@@ -29,6 +29,12 @@ export function textParts(texts:Record<string,string>):TextPart[]{
  return parts;
 }
 
+export function bottomDensity(texts:Record<string,string>){
+ if((texts.textMain?.length||0)>170)return 'bottom-long';
+ if(Math.max(texts.textMainEng?.length||0,texts.textMainheb?.length||0)>105)return 'bottom-medium';
+ return 'bottom-compact';
+}
+
 function translate(property:string,distance:number){
  switch(property){
   case 'up':return `translateY(${distance}px)`;

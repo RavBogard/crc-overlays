@@ -1,6 +1,6 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
-import {acceptsRevision,effectFrames,incomingStillDesired,textParts,tracksFor,type AnimationTrack} from '../lib/player-motion.ts';
+import {acceptsRevision,bottomDensity,effectFrames,incomingStillDesired,textParts,tracksFor,type AnimationTrack} from '../lib/player-motion.ts';
 
 test('scale y and translate tracks keep their actual transform axis',()=>{
  assert.deepEqual(effectFrames({effect:'scale',property:'y'},'In'),[{transform:'scaleY(0)'},{transform:'scale(1)'}]);
@@ -39,4 +39,10 @@ test('combined and lone language cues receive full-width single-channel treatmen
   {classes:'prayer english single-channel',text:'Transliteration only',element:'textMainEng'},
  ]);
  assert.equal(textParts({textMainEng:'Transliteration',textMainheb:'Hebrew'}).some(part=>part.classes.includes('single-channel')),false);
+});
+
+test('bottom density follows content length rather than cue name',()=>{
+ assert.equal(bottomDensity({textMainEng:'a'.repeat(66),textMainheb:'א'.repeat(72)}),'bottom-compact');
+ assert.equal(bottomDensity({textMainEng:'a'.repeat(103),textMainheb:'א'.repeat(113)}),'bottom-medium');
+ assert.equal(bottomDensity({textMain:'a'.repeat(226)}),'bottom-long');
 });
