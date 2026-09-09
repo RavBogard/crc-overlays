@@ -6318,7 +6318,7 @@
     "layout": "left",
     "texts": {
       "textMainheb": "הַלְלוּ יָהּ הַלְלוּ־אֵל בְּקָדְשׁוֹ, הַלְלוּהוּ בִּרְקִיעַ עֻזּוֹ: הַלְלוּהוּ בִגְבוּרֹתָיו, הַלְלוּהוּ כְּרֹב גֻּדְלוֹ: הַלְלוּהוּ בְּתֵקַע שׁוֹפָר, הַלְלוּהוּ בְּנֵבֶל וְכִנּוֹר: הַלְלוּהוּ בְתֹף וּמָחוֹל, הַלְלוּהוּ בְּמִנִּים וְעוּגָב: הַלְלוּהוּ בְצִלְצְלֵי־שָׁמַע, הַלְלוּהוּ בְּצִלְצְלֵי תְרוּעָה: כֹּל הַנְּשָׁמָה תְּהַלֵּל יָהּ, הַלְלוּ יָהּ:",
-      "textMainEng": "Hal-lu Yah\nHal-lu El b’kodsho,\nHal-luhu bir’kia uzo.\nHal-luhu bigvurotav,\nHal-luhu k’rov gudlo.\nHal-luhu b’teika shofar,\nHal-luhu b’neivel v’chinor.\nHal-luhu v’tof umachol,\nHal-luhu b’minim v’ugav.\nHal-luhu v’tziltz’lei sh’ma,\nHal-luhu b’tziltz’lei t’ruah.\nKol hanshamah t’haleil Yah,\nHal-lu Yah!",
+      "textMainEng": "Hal-lu Yah Hal-lu El b’kodsho, Hal-luhu bir’kia uzo. Hal-luhu bigvurotav, Hal-luhu k’rov gudlo. Hal-luhu b’teika shofar, Hal-luhu b’neivel v’chinor. Hal-luhu v’tof umachol, Hal-luhu b’minim v’ugav. Hal-luhu v’tziltz’lei sh’ma, Hal-luhu b’tziltz’lei t’ruah. Kol hanshamah t’haleil Yah, Hal-lu Yah!",
       "textTitle": "Hal'lu Yah (Psalm 150)",
       "accentTextTitle": "פְסוּקֵי דְּזִמְרָא"
     },
@@ -6689,7 +6689,7 @@
         "compositionUuid": "a5784181-b4b5-4033-8ad2-4be46bac1fff",
         "compositionSha256": "890dd8c48a3c831ae1edafd70bca754f22cae57ec94719eecc80516390bd6683",
         "operatorName": "Psalm 150",
-        "textsSha256": "87c3396e9b8eff090dea4bf30c0490fc490029f50fcf254a42bd921a8b1fe4cb",
+        "textsSha256": "58f8da9129ac0e869a846be6e606cdfa1005bcd5d0617a5bb6696e71ce2ca5ab",
         "role": "presentation and operator-identity evidence only"
       },
       "liturgy": {
@@ -6735,118 +6735,22 @@
           ],
           "textMainEng": [
             {
-              "sliceId": "psalm-one-fifty-tr-one",
+              "sliceId": "psalm-one-fifty-complete-tr",
               "unit": "psukei.psalm-150@legacy-shabbat-morning",
               "channel": "tr",
               "blocks": [
-                0
-              ],
-              "separator": " "
-            },
-            {
-              "sliceId": "psalm-one-fifty-tr-two",
-              "unit": "psukei.psalm-150@legacy-shabbat-morning",
-              "channel": "tr",
-              "blocks": [
-                1
-              ],
-              "separator": " "
-            },
-            {
-              "sliceId": "psalm-one-fifty-tr-three",
-              "unit": "psukei.psalm-150@legacy-shabbat-morning",
-              "channel": "tr",
-              "blocks": [
-                2
-              ],
-              "separator": " "
-            },
-            {
-              "sliceId": "psalm-one-fifty-tr-four",
-              "unit": "psukei.psalm-150@legacy-shabbat-morning",
-              "channel": "tr",
-              "blocks": [
-                3
-              ],
-              "separator": " "
-            },
-            {
-              "sliceId": "psalm-one-fifty-tr-five",
-              "unit": "psukei.psalm-150@legacy-shabbat-morning",
-              "channel": "tr",
-              "blocks": [
-                4
-              ],
-              "separator": " "
-            },
-            {
-              "sliceId": "psalm-one-fifty-tr-six",
-              "unit": "psukei.psalm-150@legacy-shabbat-morning",
-              "channel": "tr",
-              "blocks": [
-                5
-              ],
-              "separator": " "
-            },
-            {
-              "sliceId": "psalm-one-fifty-tr-seven",
-              "unit": "psukei.psalm-150@legacy-shabbat-morning",
-              "channel": "tr",
-              "blocks": [
-                6
-              ],
-              "separator": " "
-            },
-            {
-              "sliceId": "psalm-one-fifty-tr-eight",
-              "unit": "psukei.psalm-150@legacy-shabbat-morning",
-              "channel": "tr",
-              "blocks": [
-                7
-              ],
-              "separator": " "
-            },
-            {
-              "sliceId": "psalm-one-fifty-tr-nine",
-              "unit": "psukei.psalm-150@legacy-shabbat-morning",
-              "channel": "tr",
-              "blocks": [
-                8
-              ],
-              "separator": " "
-            },
-            {
-              "sliceId": "psalm-one-fifty-tr-ten",
-              "unit": "psukei.psalm-150@legacy-shabbat-morning",
-              "channel": "tr",
-              "blocks": [
-                9
-              ],
-              "separator": " "
-            },
-            {
-              "sliceId": "psalm-one-fifty-tr-eleven",
-              "unit": "psukei.psalm-150@legacy-shabbat-morning",
-              "channel": "tr",
-              "blocks": [
-                10
-              ],
-              "separator": " "
-            },
-            {
-              "sliceId": "psalm-one-fifty-tr-twelve",
-              "unit": "psukei.psalm-150@legacy-shabbat-morning",
-              "channel": "tr",
-              "blocks": [
-                11
-              ],
-              "separator": " "
-            },
-            {
-              "sliceId": "psalm-one-fifty-tr-thirteen",
-              "unit": "psukei.psalm-150@legacy-shabbat-morning",
-              "channel": "tr",
-              "blocks": [
+                0,
+                1,
+                2,
+                3,
+                4,
+                5,
+                6,
+                7,
+                8,
+                9,
+                10,
+                11,
                 12
               ],
               "separator": " "

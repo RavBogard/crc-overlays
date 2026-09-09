@@ -311,7 +311,7 @@
       "operatorName": "Psalm 150",
       "layout": "left",
       "archiveRecordSha256": "890dd8c48a3c831ae1edafd70bca754f22cae57ec94719eecc80516390bd6683",
-      "expectedTextsSha256": "87c3396e9b8eff090dea4bf30c0490fc490029f50fcf254a42bd921a8b1fe4cb",
+      "expectedTextsSha256": "58f8da9129ac0e869a846be6e606cdfa1005bcd5d0617a5bb6696e71ce2ca5ab",
       "title": { "archiveField": "title" },
       "accentTitle": { "archiveField": "titleAccent" },
       "fields": {
@@ -319,19 +319,7 @@
           { "sliceId": "psalm-one-fifty-complete-he", "unit": "psukei.psalm-150@legacy-shabbat-morning", "channel": "he", "blocks": [0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12], "separator": " " }
         ],
         "textMainEng": [
-          { "sliceId": "psalm-one-fifty-tr-one", "unit": "psukei.psalm-150@legacy-shabbat-morning", "channel": "tr", "blocks": [0], "separator": " " },
-          { "sliceId": "psalm-one-fifty-tr-two", "unit": "psukei.psalm-150@legacy-shabbat-morning", "channel": "tr", "blocks": [1], "separator": " " },
-          { "sliceId": "psalm-one-fifty-tr-three", "unit": "psukei.psalm-150@legacy-shabbat-morning", "channel": "tr", "blocks": [2], "separator": " " },
-          { "sliceId": "psalm-one-fifty-tr-four", "unit": "psukei.psalm-150@legacy-shabbat-morning", "channel": "tr", "blocks": [3], "separator": " " },
-          { "sliceId": "psalm-one-fifty-tr-five", "unit": "psukei.psalm-150@legacy-shabbat-morning", "channel": "tr", "blocks": [4], "separator": " " },
-          { "sliceId": "psalm-one-fifty-tr-six", "unit": "psukei.psalm-150@legacy-shabbat-morning", "channel": "tr", "blocks": [5], "separator": " " },
-          { "sliceId": "psalm-one-fifty-tr-seven", "unit": "psukei.psalm-150@legacy-shabbat-morning", "channel": "tr", "blocks": [6], "separator": " " },
-          { "sliceId": "psalm-one-fifty-tr-eight", "unit": "psukei.psalm-150@legacy-shabbat-morning", "channel": "tr", "blocks": [7], "separator": " " },
-          { "sliceId": "psalm-one-fifty-tr-nine", "unit": "psukei.psalm-150@legacy-shabbat-morning", "channel": "tr", "blocks": [8], "separator": " " },
-          { "sliceId": "psalm-one-fifty-tr-ten", "unit": "psukei.psalm-150@legacy-shabbat-morning", "channel": "tr", "blocks": [9], "separator": " " },
-          { "sliceId": "psalm-one-fifty-tr-eleven", "unit": "psukei.psalm-150@legacy-shabbat-morning", "channel": "tr", "blocks": [10], "separator": " " },
-          { "sliceId": "psalm-one-fifty-tr-twelve", "unit": "psukei.psalm-150@legacy-shabbat-morning", "channel": "tr", "blocks": [11], "separator": " " },
-          { "sliceId": "psalm-one-fifty-tr-thirteen", "unit": "psukei.psalm-150@legacy-shabbat-morning", "channel": "tr", "blocks": [12], "separator": " " }
+          { "sliceId": "psalm-one-fifty-complete-tr", "unit": "psukei.psalm-150@legacy-shabbat-morning", "channel": "tr", "blocks": [0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12], "separator": " " }
         ]
       }
     },
