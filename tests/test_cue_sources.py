@@ -85,7 +85,7 @@ class SourceAdapterTests(unittest.TestCase):
         cue = next(item for item in catalog if item["id"] == cue_id)
         self.assertEqual(
             cue_map["presentation"],
-            {"transliterationFontSize": 30, "hebrewFontSize": 34},
+            {"transliterationFontSize": 29, "hebrewFontSize": 34},
         )
         self.assertEqual(cue["presentation"], cue_map["presentation"])
         with self.assertRaisesRegex(generator.SourceError, "integer from 24 to 52"):
@@ -188,6 +188,84 @@ class SourceAdapterTests(unittest.TestCase):
         with self.assertRaisesRegex(
             validator.ValidationError, "Hebrew/transliteration source coverage differs"
         ):
+            validator.validate(mapping, catalog)
+
+    def test_birchot_rows_are_three_visible_panels_with_hidden_legacy_alias(self):
+        mapping = json.loads(
+            (ROOT / "content" / "legacy-crc-shabbat-morning.sources.json").read_text(encoding="utf-8")
+        )
+        catalog = json.loads((ROOT / "lib" / "cues.json").read_text(encoding="utf-8"))
+        ids = {
+            "0135de3c-9a47-4fdc-91b9-99bacdf64970",
+            "b60c1abc-2257-4316-9ae4-2a03f72133d6",
+            "ceb24b8c-d9a7-4607-99bf-c0962e2a88ff",
+            "2b3da7a3-dc18-46f1-a792-13a4771b343c",
+        }
+        cues = [cue for cue in catalog if cue["id"] in ids]
+        by_id = {cue["id"]: cue for cue in cues}
+        alias = by_id["2b3da7a3-dc18-46f1-a792-13a4771b343c"]
+        target = by_id["ceb24b8c-d9a7-4607-99bf-c0962e2a88ff"]
+        self.assertEqual([len(cue["contentRows"]) for cue in cues], [3, 3, 2, 2])
+        self.assertEqual(sum(not cue.get("hidden", False) for cue in cues), 3)
+        self.assertEqual(alias["aliasOf"], target["id"])
+        self.assertTrue(alias["hidden"])
+        self.assertEqual(alias["contentRows"], target["contentRows"])
+        self.assertEqual(
+            target["contentRows"][-1]["en"],
+            "Blessed are you, the eternal, our God,\n…who has provided me all I need.",
+        )
+        validator.validate(mapping, catalog)
+
+    def test_authoring_pack_exposes_only_pinned_birchot_translations(self):
+        result = subprocess.run(
+            [
+                sys.executable,
+                str(ROOT / "scripts" / "build-authoring-sources.py"),
+                "--check",
+                "--source-root",
+                "C:/Users/dsbog/shireishabbat",
+            ],
+            cwd=ROOT,
+            text=True,
+            capture_output=True,
+            check=False,
+        )
+        self.assertEqual(result.returncode, 0, result.stderr)
+        pack = json.loads(
+            (ROOT / "content" / "authoring-sources.json").read_text(encoding="utf-8")
+        )
+        translations = [
+            (unit, block)
+            for unit in pack["sources"]
+            for block in unit["blocks"]
+            if block["kind"] == "translation-en"
+        ]
+        self.assertEqual(len(translations), 8)
+        self.assertEqual(
+            {unit["id"] for unit, _ in translations},
+            {"awakening.birchot-hashachar@legacy-shabbat-morning"},
+        )
+        self.assertTrue(all(len(block["pairedBlockIds"]) == 2 for _, block in translations))
+        self.assertTrue(all(len(block["sourceBlockSha256"]) == 64 for _, block in translations))
+        final = next(block for _, block in translations if block["index"] == 24)
+        self.assertEqual(final["supplementIds"], ["birchot-hashachar-final-clause"])
+        self.assertEqual(
+            final["en"],
+            "Blessed are you, the eternal, our God,\n…who has provided me all I need.",
+        )
+
+    def test_validator_rejects_birchot_translation_reordering(self):
+        mapping = json.loads(
+            (ROOT / "content" / "legacy-crc-shabbat-morning.sources.json").read_text(encoding="utf-8")
+        )
+        catalog = json.loads((ROOT / "lib" / "cues.json").read_text(encoding="utf-8"))
+        cue = next(
+            item
+            for item in mapping["cues"]
+            if item["id"] == "0135de3c-9a47-4fdc-91b9-99bacdf64970"
+        )
+        cue["contentRows"].reverse()
+        with self.assertRaisesRegex(validator.ValidationError, "coverage/order changed"):
             validator.validate(mapping, catalog)
 
 

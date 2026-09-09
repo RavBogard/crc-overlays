@@ -11,11 +11,44 @@ from pathlib import Path
 from typing import Any
 
 ROOT = Path(__file__).resolve().parents[1]
+BIRCHOT_UNIT = "awakening.birchot-hashachar@legacy-shabbat-morning"
+BIRCHOT_TRANSLATIONS = {
+    2: (0, 1),
+    5: (3, 4),
+    8: (6, 7),
+    12: (10, 11),
+    15: (13, 14),
+    18: (16, 17),
+    21: (19, 20),
+    24: (22, 23),
+}
+BIRCHOT_FINAL_SUPPLEMENT = "birchot-hashachar-final-clause"
 
 
 def object_sha256(value: Any) -> str:
     payload = json.dumps(value, ensure_ascii=False, sort_keys=True, separators=(",", ":"))
     return hashlib.sha256(payload.encode("utf-8")).hexdigest()
+
+
+def text_sha256(value: str) -> str:
+    return hashlib.sha256(value.encode("utf-8")).hexdigest()
+
+
+def load_supplements(mapping: dict[str, Any], source_root: Path) -> dict[str, str]:
+    result = {}
+    for supplement_id, evidence in mapping.get("supplements", {}).items():
+        path = source_root / evidence["file"]
+        raw = path.read_bytes()
+        if hashlib.sha256(raw).hexdigest() != evidence["fileSha256"]:
+            raise SystemExit(f"supplement file changed: {evidence['file']}")
+        source_line = evidence["sourceLine"]
+        if path.read_text(encoding="utf-8").splitlines().count(source_line) != 1:
+            raise SystemExit(f"supplement source line changed: {supplement_id}")
+        text = evidence["text"]
+        if text_sha256(text) != evidence["textSha256"]:
+            raise SystemExit(f"supplement text hash changed: {supplement_id}")
+        result[supplement_id] = text
+    return result
 
 
 def main() -> int:
@@ -32,6 +65,7 @@ def main() -> int:
 
     mapping = json.loads(args.mapping.read_text(encoding="utf-8"))
     authority = mapping["authority"]
+    supplements = load_supplements(mapping, args.source_root)
     if (args.source_root / ".git").exists():
         source_commit = subprocess.run(
             ["git", "rev-parse", "HEAD"], cwd=args.source_root, check=True, capture_output=True, text=True
@@ -64,6 +98,48 @@ def main() -> int:
                         "he": block["he"],
                         "tr": block["tr"],
                         "sourceBlockSha256": object_sha256(block),
+                    }
+                )
+            elif unit["id"] == BIRCHOT_UNIT and index in BIRCHOT_TRANSLATIONS:
+                if (
+                    block.get("type") != "english"
+                    or block.get("role") is not None
+                    or not isinstance(block.get("en"), str)
+                    or not block["en"]
+                ):
+                    raise SystemExit(f"Birchot translation block changed: {index}")
+                supplement_ids = [BIRCHOT_FINAL_SUPPLEMENT] if index == 24 else []
+                translated = block["en"] + "".join(
+                    "\n" + supplements[supplement_id] for supplement_id in supplement_ids
+                )
+                feed_block_hash = object_sha256(block)
+                blocks.append(
+                    {
+                        "id": f"{unit['id']}#block-{index}",
+                        "index": index,
+                        "kind": "translation-en",
+                        "en": translated,
+                        "pairedBlockIds": [
+                            f"{unit['id']}#block-{paired_index}"
+                            for paired_index in BIRCHOT_TRANSLATIONS[index]
+                        ],
+                        "feedBlockSha256": feed_block_hash,
+                        "supplementIds": supplement_ids,
+                        "sourceTextSha256": text_sha256(translated),
+                        "sourceBlockSha256": object_sha256(
+                            {
+                                "feedBlockSha256": feed_block_hash,
+                                "supplements": [
+                                    {
+                                        "id": supplement_id,
+                                        "textSha256": mapping["supplements"][supplement_id][
+                                            "textSha256"
+                                        ],
+                                    }
+                                    for supplement_id in supplement_ids
+                                ],
+                            }
+                        ),
                     }
                 )
             elif (
@@ -102,6 +178,13 @@ def main() -> int:
             "feedSchemaVersion": authority["feedSchemaVersion"],
             "printing": authority["printing"],
             "license": authority["license"],
+            "supplements": {
+                supplement_id: {
+                    key: evidence[key]
+                    for key in ("file", "fileSha256", "symbol", "textSha256")
+                }
+                for supplement_id, evidence in mapping.get("supplements", {}).items()
+            },
         },
         "sources": sources,
     }

@@ -19,6 +19,24 @@ PRESENTATION_BOUNDS = {
     "transliterationFontSize": (20, 48),
     "titleFontSize": (20, 42),
 }
+BIRCHOT_UNIT = "awakening.birchot-hashachar@legacy-shabbat-morning"
+BIRCHOT_TRANSLATIONS = {
+    2: [0, 1],
+    5: [3, 4],
+    8: [6, 7],
+    12: [10, 11],
+    15: [13, 14],
+    18: [16, 17],
+    21: [19, 20],
+    24: [22, 23],
+}
+BIRCHOT_VISIBLE_ROWS = {
+    "0135de3c-9a47-4fdc-91b9-99bacdf64970": [2, 5, 8],
+    "b60c1abc-2257-4316-9ae4-2a03f72133d6": [12, 15, 18],
+    "ceb24b8c-d9a7-4607-99bf-c0962e2a88ff": [21, 24],
+}
+BIRCHOT_ALIAS = "2b3da7a3-dc18-46f1-a792-13a4771b343c"
+BIRCHOT_FINAL_SUPPLEMENT = "birchot-hashachar-final-clause"
 
 
 class ValidationError(RuntimeError):
@@ -49,6 +67,73 @@ def validate_presentation(value: Any, cue_id: str) -> dict[str, int] | None:
                 f"presentation.{key} for {cue_id} must be an integer from {minimum} to {maximum}"
             )
     return value
+
+
+def validate_content_rows(
+    cue_map: dict[str, Any], cue: dict[str, Any], supplements: dict[str, Any]
+) -> None:
+    cue_id = cue_map["id"]
+    rows = cue_map.get("contentRows")
+    expected_en_blocks = BIRCHOT_VISIBLE_ROWS.get(cue_id)
+    if cue_id == BIRCHOT_ALIAS:
+        expected_en_blocks = BIRCHOT_VISIBLE_ROWS[cue_map.get("aliasOf")]
+        if cue_map.get("aliasOf") != "ceb24b8c-d9a7-4607-99bf-c0962e2a88ff" or cue_map.get(
+            "hidden"
+        ) is not True:
+            raise ValidationError("legacy Birchot fourth panel must remain a hidden alias of panel 3")
+    elif cue_map.get("aliasOf") is not None or cue_map.get("hidden") is not None:
+        raise ValidationError(f"unexpected cue alias metadata: {cue_id}")
+    if cue.get("aliasOf") != cue_map.get("aliasOf") or cue.get("hidden") != cue_map.get(
+        "hidden"
+    ):
+        raise ValidationError(f"compiled cue alias metadata mismatch: {cue_id}")
+    if expected_en_blocks is None:
+        if rows is not None or cue.get("contentRows") is not None:
+            raise ValidationError(f"translations are not authorized for cue {cue_id}")
+        return
+    if not isinstance(rows, list) or len(rows) != len(expected_en_blocks):
+        raise ValidationError(f"invalid Birchot content row count: {cue_id}")
+    actual_en_blocks = []
+    for row in rows:
+        if not isinstance(row, dict) or set(row) != {"rowId", "he", "tr", "en"}:
+            raise ValidationError(f"invalid Birchot content row shape: {cue_id}")
+        he_spec, tr_spec, en_spec = row["he"], row["tr"], row["en"]
+        if (
+            not isinstance(row["rowId"], str)
+            or not SLICE_ID.fullmatch(row["rowId"])
+            or he_spec.get("unit") != BIRCHOT_UNIT
+            or tr_spec.get("unit") != BIRCHOT_UNIT
+            or en_spec.get("unit") != BIRCHOT_UNIT
+            or he_spec.get("channel") != "he"
+            or tr_spec.get("channel") != "tr"
+            or en_spec.get("channel") != "en"
+            or he_spec.get("blocks") != tr_spec.get("blocks")
+            or len(en_spec.get("blocks", [])) != 1
+        ):
+            raise ValidationError(f"invalid Birchot content row selectors: {cue_id}")
+        en_block = en_spec["blocks"][0]
+        if BIRCHOT_TRANSLATIONS.get(en_block) != he_spec.get("blocks"):
+            raise ValidationError(f"Birchot translation pairing changed: {cue_id}")
+        supplement = en_spec.get("supplement")
+        if supplement != (BIRCHOT_FINAL_SUPPLEMENT if en_block == 24 else None):
+            raise ValidationError(f"Birchot translation supplement changed: {cue_id}")
+        actual_en_blocks.append(en_block)
+    if actual_en_blocks != expected_en_blocks:
+        raise ValidationError(f"Birchot blessing coverage/order changed: {cue_id}")
+    content_rows = cue.get("contentRows")
+    if object_sha256(content_rows) != cue_map.get("expectedContentRowsSha256"):
+        raise ValidationError(f"generated content row hash mismatch: {cue_id}")
+    liturgy = cue.get("provenance", {}).get("liturgy", {})
+    if liturgy.get("contentRows") != rows:
+        raise ValidationError(f"content row provenance mismatch: {cue_id}")
+    supplement_ids = {
+        row["en"]["supplement"] for row in rows if row["en"].get("supplement")
+    }
+    expected_supplements = {
+        supplement_id: supplements[supplement_id] for supplement_id in supplement_ids
+    }
+    if liturgy.get("supplements", {}) != expected_supplements:
+        raise ValidationError(f"content row supplement provenance mismatch: {cue_id}")
 
 
 def validate(mapping: dict[str, Any], catalog: list[dict[str, Any]]) -> None:
@@ -82,6 +167,7 @@ def validate(mapping: dict[str, Any], catalog: list[dict[str, Any]]) -> None:
         expected_presentation = validate_presentation(cue_map.get("presentation"), cue_id)
         if cue.get("presentation") != expected_presentation:
             raise ValidationError(f"compiled presentation metadata mismatch for {cue_id}")
+        validate_content_rows(cue_map, cue, mapping.get("supplements", {}))
         if not cue.get("texts", {}).get("textTitle"):
             raise ValidationError(f"title missing for {cue_id}")
         if not isinstance(cue.get("animations"), list) or not cue.get("duration"):

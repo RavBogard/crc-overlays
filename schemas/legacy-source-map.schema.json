@@ -16,6 +16,22 @@
       "type": "object",
       "required": ["file", "sha256", "role"]
     },
+    "supplements": {
+      "type": "object",
+      "additionalProperties": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": ["file", "fileSha256", "symbol", "sourceLine", "text", "textSha256"],
+        "properties": {
+          "file": { "type": "string", "minLength": 1 },
+          "fileSha256": { "type": "string", "pattern": "^[0-9a-f]{64}$" },
+          "symbol": { "type": "string", "minLength": 1 },
+          "sourceLine": { "type": "string", "minLength": 1 },
+          "text": { "type": "string", "minLength": 1 },
+          "textSha256": { "type": "string", "pattern": "^[0-9a-f]{64}$" }
+        }
+      }
+    },
     "units": {
       "type": "object",
       "minProperties": 1,
@@ -28,6 +44,25 @@
         "type": "object",
         "required": ["id", "operatorName", "layout", "archiveRecordSha256", "expectedTextsSha256", "title", "fields"],
         "properties": {
+          "expectedContentRowsSha256": { "type": "string", "pattern": "^[0-9a-f]{64}$" },
+          "contentRows": {
+            "type": "array",
+            "minItems": 1,
+            "items": {
+              "type": "object",
+              "additionalProperties": false,
+              "required": ["rowId", "he", "tr", "en"],
+              "properties": {
+                "rowId": { "type": "string", "pattern": "^[a-z0-9]+(?:-[a-z0-9]+)*$" },
+                "he": { "$ref": "#/$defs/rowSelector" },
+                "tr": { "$ref": "#/$defs/rowSelector" },
+                "en": { "$ref": "#/$defs/translationSelector" }
+              }
+            }
+          },
+          "aliasOf": { "type": "string", "format": "uuid" },
+          "hidden": { "type": "boolean" },
+          "retirementNote": { "type": "string", "minLength": 1 },
           "presentation": {
             "type": "object",
             "additionalProperties": false,
@@ -39,6 +74,32 @@
             }
           }
         }
+      }
+    }
+  },
+  "$defs": {
+    "rowSelector": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["unit", "channel", "blocks", "separator"],
+      "properties": {
+        "unit": { "type": "string", "minLength": 1 },
+        "channel": { "enum": ["he", "tr", "en"] },
+        "blocks": { "type": "array", "minItems": 1, "items": { "type": "integer", "minimum": 0 } },
+        "separator": { "type": "string" }
+      }
+    },
+    "translationSelector": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["unit", "channel", "blocks", "separator"],
+      "properties": {
+        "unit": { "type": "string", "minLength": 1 },
+        "channel": { "const": "en" },
+        "blocks": { "type": "array", "minItems": 1, "maxItems": 1, "items": { "type": "integer", "minimum": 0 } },
+        "separator": { "type": "string" },
+        "supplement": { "type": "string", "minLength": 1 },
+        "supplementSeparator": { "type": "string" }
       }
     }
   }

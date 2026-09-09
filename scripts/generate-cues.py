@@ -23,6 +23,18 @@ PRESENTATION_BOUNDS = {
     "transliterationFontSize": (20, 48),
     "titleFontSize": (20, 42),
 }
+BIRCHOT_UNIT = "awakening.birchot-hashachar@legacy-shabbat-morning"
+BIRCHOT_TRANSLATIONS = {
+    2: [0, 1],
+    5: [3, 4],
+    8: [6, 7],
+    12: [10, 11],
+    15: [13, 14],
+    18: [16, 17],
+    21: [19, 20],
+    24: [22, 23],
+}
+BIRCHOT_FINAL_SUPPLEMENT = "birchot-hashachar-final-clause"
 
 
 def file_sha256(path: Path) -> str:
@@ -64,6 +76,31 @@ def presentation(value: Any, cue_id: str) -> dict[str, int] | None:
                 f"presentation.{key} for {cue_id} must be an integer from {minimum} to {maximum}"
             )
         result[key] = raw
+    return result
+
+
+def load_supplements(mapping: dict[str, Any], source_root: Path) -> dict[str, str]:
+    result = {}
+    for supplement_id, evidence in mapping.get("supplements", {}).items():
+        path = source_root / evidence["file"]
+        raw = path.read_bytes()
+        require_equal(
+            f"supplement file {supplement_id} SHA-256",
+            hashlib.sha256(raw).hexdigest(),
+            evidence["fileSha256"],
+        )
+        require_equal(
+            f"supplement source line {supplement_id} occurrence count",
+            path.read_text(encoding="utf-8").splitlines().count(evidence["sourceLine"]),
+            1,
+        )
+        text = evidence["text"]
+        require_equal(
+            f"supplement text {supplement_id} SHA-256",
+            hashlib.sha256(text.encode("utf-8")).hexdigest(),
+            evidence["textSha256"],
+        )
+        result[supplement_id] = text
     return result
 
 
@@ -134,7 +171,55 @@ def render_line(spec: dict[str, Any], units: dict[str, dict[str, Any]], composit
     return spec.get("separator", " ").join(values)
 
 
-def build_catalog(mapping: dict[str, Any], feed: dict[str, Any], archive: dict[str, Any]) -> list[dict[str, Any]]:
+def render_content_rows(
+    rows: list[dict[str, Any]],
+    units: dict[str, dict[str, Any]],
+    composition: dict[str, Any],
+    supplements: dict[str, str],
+) -> list[dict[str, str]]:
+    rendered = []
+    for row in rows:
+        he_spec, tr_spec, en_spec = row["he"], row["tr"], row["en"]
+        if (
+            he_spec.get("unit") != BIRCHOT_UNIT
+            or tr_spec.get("unit") != BIRCHOT_UNIT
+            or en_spec.get("unit") != BIRCHOT_UNIT
+            or he_spec.get("channel") != "he"
+            or tr_spec.get("channel") != "tr"
+            or en_spec.get("channel") != "en"
+            or he_spec.get("blocks") != tr_spec.get("blocks")
+            or len(en_spec.get("blocks", [])) != 1
+            or BIRCHOT_TRANSLATIONS.get(en_spec["blocks"][0]) != he_spec.get("blocks")
+        ):
+            raise SourceError(f"invalid Birchot translation row: {row.get('rowId')!r}")
+        expected_supplement = (
+            BIRCHOT_FINAL_SUPPLEMENT if en_spec["blocks"][0] == 24 else None
+        )
+        if en_spec.get("supplement") != expected_supplement:
+            raise SourceError(f"invalid Birchot translation supplement: {row.get('rowId')!r}")
+        values = {
+            channel: render_line(row[channel], units, composition)
+            for channel in ("he", "tr", "en")
+        }
+        supplement_id = row["en"].get("supplement")
+        if supplement_id:
+            try:
+                values["en"] += row["en"].get("supplementSeparator", "\n") + supplements[
+                    supplement_id
+                ]
+            except KeyError as exc:
+                raise SourceError(f"unknown translation supplement: {supplement_id}") from exc
+        rendered.append(values)
+    return rendered
+
+
+def build_catalog(
+    mapping: dict[str, Any],
+    feed: dict[str, Any],
+    archive: dict[str, Any],
+    supplements: dict[str, str] | None = None,
+) -> list[dict[str, Any]]:
+    supplements = supplements or {}
     authority = mapping["authority"]
     require_equal("feed schemaVersion", feed.get("schemaVersion"), authority["feedSchemaVersion"])
     require_equal("feed printing", feed.get("printing"), authority["printing"])
@@ -221,6 +306,32 @@ def build_catalog(mapping: dict[str, Any], feed: dict[str, Any], archive: dict[s
         cue_presentation = presentation(cue_map.get("presentation"), cue_id)
         if cue_presentation is not None:
             generated_cue["presentation"] = cue_presentation
+        if "contentRows" in cue_map:
+            content_rows = render_content_rows(
+                cue_map["contentRows"], units, composition, supplements
+            )
+            require_equal(
+                f"generated content rows for {cue_id} SHA-256",
+                object_sha256(content_rows),
+                cue_map["expectedContentRowsSha256"],
+            )
+            generated_cue["contentRows"] = content_rows
+            provenance["liturgy"]["contentRows"] = cue_map["contentRows"]
+            supplement_ids = sorted(
+                {
+                    row["en"]["supplement"]
+                    for row in cue_map["contentRows"]
+                    if row["en"].get("supplement")
+                }
+            )
+            if supplement_ids:
+                provenance["liturgy"]["supplements"] = {
+                    supplement_id: mapping["supplements"][supplement_id]
+                    for supplement_id in supplement_ids
+                }
+        if "aliasOf" in cue_map:
+            generated_cue["aliasOf"] = cue_map["aliasOf"]
+            generated_cue["hidden"] = cue_map.get("hidden", False)
         catalog.append(generated_cue)
     return catalog
 
@@ -243,7 +354,12 @@ def main() -> int:
         archive_path = args.archive_root / mapping["archive"]["file"]
         require_equal("feed SHA-256", file_sha256(feed_path), mapping["authority"]["feedSha256"])
         require_equal("archive SHA-256", file_sha256(archive_path), mapping["archive"]["sha256"])
-        catalog = build_catalog(mapping, load_json(feed_path), load_json(archive_path))
+        catalog = build_catalog(
+            mapping,
+            load_json(feed_path),
+            load_json(archive_path),
+            load_supplements(mapping, args.source_root),
+        )
         rendered = json.dumps(catalog, ensure_ascii=False, indent=2) + "\n"
         if args.check:
             require_equal("generated catalog", args.output.read_text(encoding="utf-8"), rendered)

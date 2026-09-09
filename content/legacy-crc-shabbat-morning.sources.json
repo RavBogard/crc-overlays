@@ -17,6 +17,16 @@
       "spdx": "CRC-internal, non-commercial, for the TEXT and its reuse: permission confirmed 2026-08-31 by CRC's executive director (R-0831-license-1), NOT CC — see attribution. THE WHOLE-BOOK PDF IS UNDER NO HOLD: CRC publishes this volume publicly on its own website and has done so for years, and Daniel so ruled on 2026-09-05 (R-0904-corpus-cw-93 §4). The PDF the app serves is CRC's own original file, byte for byte, not a re-typeset of it."
     }
   },
+  "supplements": {
+    "birchot-hashachar-final-clause": {
+      "file": "build/typst/content/shared/awakening.typ",
+      "fileSha256": "9272234d473ae47ea5265939b30f1dba653f4abd6afbafbad5a574014d4e2419",
+      "symbol": "BH-E3G",
+      "sourceLine": "#let BH-E3G = eng(\"…who has provided me all I need.\")",
+      "text": "…who has provided me all I need.",
+      "textSha256": "5ed8a70eaa5c6a543b69a6eb99ecf16d6b07a78470bfffb67686e3bd40c95808"
+    }
+  },
   "archive": {
     "file": "master-composition-449398.json",
     "sha256": "9e372260b251d87a126dfba57dbb699531c466338a9134263963f453db3f8f1c",
@@ -204,57 +214,460 @@
       "operatorName": "Birchot Hashachar 1",
       "layout": "left",
       "archiveRecordSha256": "bc0a41aec21af9ea265a3a7fe9c73e93a50acdcd5143ad3338ffc7d77cea1b88",
-      "expectedTextsSha256": "57c6b521eec20abda40f9ac8efeceaa971fd4f7bca1309a2b89eba00ffc6064c",
-      "title": { "archiveField": "title" },
-      "accentTitle": { "archiveField": "titleAccent" },
+      "expectedTextsSha256": "0e8c464b749ad09da5dd4d2924e73f5c3f59a36f74f8eafbbcce4753f1b1b1f3",
+      "title": {
+        "archiveField": "title"
+      },
+      "accentTitle": {
+        "archiveField": "titleAccent"
+      },
       "fields": {
         "textMainheb": [
-          { "sliceId": "birchot-image-he", "unit": "awakening.birchot-hashachar@legacy-shabbat-morning", "channel": "he", "blocks": [0, 1], "separator": " " },
-          { "sliceId": "birchot-freedom-he", "unit": "awakening.birchot-hashachar@legacy-shabbat-morning", "channel": "he", "blocks": [3, 4], "separator": " " }
+          {
+            "sliceId": "birchot-image-he",
+            "unit": "awakening.birchot-hashachar@legacy-shabbat-morning",
+            "channel": "he",
+            "blocks": [
+              0,
+              1
+            ],
+            "separator": " "
+          },
+          {
+            "sliceId": "birchot-freedom-he",
+            "unit": "awakening.birchot-hashachar@legacy-shabbat-morning",
+            "channel": "he",
+            "blocks": [
+              3,
+              4
+            ],
+            "separator": " "
+          },
+          {
+            "sliceId": "birchot-yisrael-he",
+            "unit": "awakening.birchot-hashachar@legacy-shabbat-morning",
+            "channel": "he",
+            "blocks": [
+              6,
+              7
+            ],
+            "separator": " "
+          }
         ],
         "textMainEng": [
-          { "sliceId": "birchot-image-tr", "unit": "awakening.birchot-hashachar@legacy-shabbat-morning", "channel": "tr", "blocks": [0, 1], "separator": " " },
-          { "sliceId": "birchot-freedom-tr", "unit": "awakening.birchot-hashachar@legacy-shabbat-morning", "channel": "tr", "blocks": [3, 4], "separator": " " }
+          {
+            "sliceId": "birchot-image-tr",
+            "unit": "awakening.birchot-hashachar@legacy-shabbat-morning",
+            "channel": "tr",
+            "blocks": [
+              0,
+              1
+            ],
+            "separator": " "
+          },
+          {
+            "sliceId": "birchot-freedom-tr",
+            "unit": "awakening.birchot-hashachar@legacy-shabbat-morning",
+            "channel": "tr",
+            "blocks": [
+              3,
+              4
+            ],
+            "separator": " "
+          },
+          {
+            "sliceId": "birchot-yisrael-tr",
+            "unit": "awakening.birchot-hashachar@legacy-shabbat-morning",
+            "channel": "tr",
+            "blocks": [
+              6,
+              7
+            ],
+            "separator": " "
+          }
         ]
-      }
+      },
+      "contentRows": [
+        {
+          "rowId": "birchot-image",
+          "he": {
+            "unit": "awakening.birchot-hashachar@legacy-shabbat-morning",
+            "channel": "he",
+            "blocks": [
+              0,
+              1
+            ],
+            "separator": " "
+          },
+          "tr": {
+            "unit": "awakening.birchot-hashachar@legacy-shabbat-morning",
+            "channel": "tr",
+            "blocks": [
+              0,
+              1
+            ],
+            "separator": " "
+          },
+          "en": {
+            "unit": "awakening.birchot-hashachar@legacy-shabbat-morning",
+            "channel": "en",
+            "blocks": [
+              2
+            ],
+            "separator": " "
+          }
+        },
+        {
+          "rowId": "birchot-freedom",
+          "he": {
+            "unit": "awakening.birchot-hashachar@legacy-shabbat-morning",
+            "channel": "he",
+            "blocks": [
+              3,
+              4
+            ],
+            "separator": " "
+          },
+          "tr": {
+            "unit": "awakening.birchot-hashachar@legacy-shabbat-morning",
+            "channel": "tr",
+            "blocks": [
+              3,
+              4
+            ],
+            "separator": " "
+          },
+          "en": {
+            "unit": "awakening.birchot-hashachar@legacy-shabbat-morning",
+            "channel": "en",
+            "blocks": [
+              5
+            ],
+            "separator": " "
+          }
+        },
+        {
+          "rowId": "birchot-yisrael",
+          "he": {
+            "unit": "awakening.birchot-hashachar@legacy-shabbat-morning",
+            "channel": "he",
+            "blocks": [
+              6,
+              7
+            ],
+            "separator": " "
+          },
+          "tr": {
+            "unit": "awakening.birchot-hashachar@legacy-shabbat-morning",
+            "channel": "tr",
+            "blocks": [
+              6,
+              7
+            ],
+            "separator": " "
+          },
+          "en": {
+            "unit": "awakening.birchot-hashachar@legacy-shabbat-morning",
+            "channel": "en",
+            "blocks": [
+              8
+            ],
+            "separator": " "
+          }
+        }
+      ],
+      "expectedContentRowsSha256": "701abe5d5518e1bc602ef34383bc9dfacb2549487baf341770659407837f87b5"
     },
     {
       "id": "b60c1abc-2257-4316-9ae4-2a03f72133d6",
       "operatorName": "Birchot Hashachar 2",
       "layout": "left",
       "archiveRecordSha256": "2d6f83d54106b57d1a8a77c49eb78513f3c23bda4996976b2dde5b6e5b72da82",
-      "expectedTextsSha256": "98a71914cf2a88345210b003280a6348fb3d9a312c675aa146587e46a2c0abb7",
-      "title": { "archiveField": "title" },
-      "accentTitle": { "archiveField": "titleAccent" },
+      "expectedTextsSha256": "0562b6d02a62cd2b449573009bb56e5f168aa7be7feb6c3de86894920dd39916",
+      "title": {
+        "archiveField": "title"
+      },
+      "accentTitle": {
+        "archiveField": "titleAccent"
+      },
       "fields": {
         "textMainheb": [
-          { "sliceId": "birchot-yisrael-he", "unit": "awakening.birchot-hashachar@legacy-shabbat-morning", "channel": "he", "blocks": [6, 7], "separator": " " },
-          { "sliceId": "birchot-sight-he", "unit": "awakening.birchot-hashachar@legacy-shabbat-morning", "channel": "he", "blocks": [10, 11], "separator": " " }
+          {
+            "sliceId": "birchot-sight-he",
+            "unit": "awakening.birchot-hashachar@legacy-shabbat-morning",
+            "channel": "he",
+            "blocks": [
+              10,
+              11
+            ],
+            "separator": " "
+          },
+          {
+            "sliceId": "birchot-clothing-he",
+            "unit": "awakening.birchot-hashachar@legacy-shabbat-morning",
+            "channel": "he",
+            "blocks": [
+              13,
+              14
+            ],
+            "separator": " "
+          },
+          {
+            "sliceId": "birchot-strength-he",
+            "unit": "awakening.birchot-hashachar@legacy-shabbat-morning",
+            "channel": "he",
+            "blocks": [
+              16,
+              17
+            ],
+            "separator": " "
+          }
         ],
         "textMainEng": [
-          { "sliceId": "birchot-yisrael-tr", "unit": "awakening.birchot-hashachar@legacy-shabbat-morning", "channel": "tr", "blocks": [6, 7], "separator": " " },
-          { "sliceId": "birchot-sight-tr", "unit": "awakening.birchot-hashachar@legacy-shabbat-morning", "channel": "tr", "blocks": [10, 11], "separator": " " }
+          {
+            "sliceId": "birchot-sight-tr",
+            "unit": "awakening.birchot-hashachar@legacy-shabbat-morning",
+            "channel": "tr",
+            "blocks": [
+              10,
+              11
+            ],
+            "separator": " "
+          },
+          {
+            "sliceId": "birchot-clothing-tr",
+            "unit": "awakening.birchot-hashachar@legacy-shabbat-morning",
+            "channel": "tr",
+            "blocks": [
+              13,
+              14
+            ],
+            "separator": " "
+          },
+          {
+            "sliceId": "birchot-strength-tr",
+            "unit": "awakening.birchot-hashachar@legacy-shabbat-morning",
+            "channel": "tr",
+            "blocks": [
+              16,
+              17
+            ],
+            "separator": " "
+          }
         ]
-      }
+      },
+      "contentRows": [
+        {
+          "rowId": "birchot-sight",
+          "he": {
+            "unit": "awakening.birchot-hashachar@legacy-shabbat-morning",
+            "channel": "he",
+            "blocks": [
+              10,
+              11
+            ],
+            "separator": " "
+          },
+          "tr": {
+            "unit": "awakening.birchot-hashachar@legacy-shabbat-morning",
+            "channel": "tr",
+            "blocks": [
+              10,
+              11
+            ],
+            "separator": " "
+          },
+          "en": {
+            "unit": "awakening.birchot-hashachar@legacy-shabbat-morning",
+            "channel": "en",
+            "blocks": [
+              12
+            ],
+            "separator": " "
+          }
+        },
+        {
+          "rowId": "birchot-clothing",
+          "he": {
+            "unit": "awakening.birchot-hashachar@legacy-shabbat-morning",
+            "channel": "he",
+            "blocks": [
+              13,
+              14
+            ],
+            "separator": " "
+          },
+          "tr": {
+            "unit": "awakening.birchot-hashachar@legacy-shabbat-morning",
+            "channel": "tr",
+            "blocks": [
+              13,
+              14
+            ],
+            "separator": " "
+          },
+          "en": {
+            "unit": "awakening.birchot-hashachar@legacy-shabbat-morning",
+            "channel": "en",
+            "blocks": [
+              15
+            ],
+            "separator": " "
+          }
+        },
+        {
+          "rowId": "birchot-strength",
+          "he": {
+            "unit": "awakening.birchot-hashachar@legacy-shabbat-morning",
+            "channel": "he",
+            "blocks": [
+              16,
+              17
+            ],
+            "separator": " "
+          },
+          "tr": {
+            "unit": "awakening.birchot-hashachar@legacy-shabbat-morning",
+            "channel": "tr",
+            "blocks": [
+              16,
+              17
+            ],
+            "separator": " "
+          },
+          "en": {
+            "unit": "awakening.birchot-hashachar@legacy-shabbat-morning",
+            "channel": "en",
+            "blocks": [
+              18
+            ],
+            "separator": " "
+          }
+        }
+      ],
+      "expectedContentRowsSha256": "359a7fef616e9246612c5af8eddf4fd38a8f9fccde1674c7ab4e220ae88661e7"
     },
     {
       "id": "ceb24b8c-d9a7-4607-99bf-c0962e2a88ff",
       "operatorName": "Birchot Hashachar 3",
       "layout": "left",
       "archiveRecordSha256": "885e9e3f07cbb35474304801d1ccd544b218225b6e1a566ed263605693b34916",
-      "expectedTextsSha256": "b1bf80a25c8eb690c990086242a4cfa601e6193dc806cfb65ac6657d469302f5",
-      "title": { "archiveField": "title" },
-      "accentTitle": { "archiveField": "titleAccent" },
+      "expectedTextsSha256": "22692bdbc76e2c322809ffd707369f5f4f3ddeaffc32d13054465d09a65478c4",
+      "title": {
+        "archiveField": "title"
+      },
+      "accentTitle": {
+        "archiveField": "titleAccent"
+      },
       "fields": {
         "textMainheb": [
-          { "sliceId": "birchot-clothing-he", "unit": "awakening.birchot-hashachar@legacy-shabbat-morning", "channel": "he", "blocks": [13, 14], "separator": " " },
-          { "sliceId": "birchot-strength-he", "unit": "awakening.birchot-hashachar@legacy-shabbat-morning", "channel": "he", "blocks": [16, 17], "separator": " " }
+          {
+            "sliceId": "birchot-steps-he",
+            "unit": "awakening.birchot-hashachar@legacy-shabbat-morning",
+            "channel": "he",
+            "blocks": [
+              19,
+              20
+            ],
+            "separator": " "
+          },
+          {
+            "sliceId": "birchot-personal-he",
+            "unit": "awakening.birchot-hashachar@legacy-shabbat-morning",
+            "channel": "he",
+            "blocks": [
+              22,
+              23
+            ],
+            "separator": " "
+          }
         ],
         "textMainEng": [
-          { "sliceId": "birchot-clothing-tr", "unit": "awakening.birchot-hashachar@legacy-shabbat-morning", "channel": "tr", "blocks": [13, 14], "separator": " " },
-          { "sliceId": "birchot-strength-tr", "unit": "awakening.birchot-hashachar@legacy-shabbat-morning", "channel": "tr", "blocks": [16, 17], "separator": " " }
+          {
+            "sliceId": "birchot-steps-tr",
+            "unit": "awakening.birchot-hashachar@legacy-shabbat-morning",
+            "channel": "tr",
+            "blocks": [
+              19,
+              20
+            ],
+            "separator": " "
+          },
+          {
+            "sliceId": "birchot-personal-tr",
+            "unit": "awakening.birchot-hashachar@legacy-shabbat-morning",
+            "channel": "tr",
+            "blocks": [
+              22,
+              23
+            ],
+            "separator": " "
+          }
         ]
-      }
+      },
+      "contentRows": [
+        {
+          "rowId": "birchot-steps",
+          "he": {
+            "unit": "awakening.birchot-hashachar@legacy-shabbat-morning",
+            "channel": "he",
+            "blocks": [
+              19,
+              20
+            ],
+            "separator": " "
+          },
+          "tr": {
+            "unit": "awakening.birchot-hashachar@legacy-shabbat-morning",
+            "channel": "tr",
+            "blocks": [
+              19,
+              20
+            ],
+            "separator": " "
+          },
+          "en": {
+            "unit": "awakening.birchot-hashachar@legacy-shabbat-morning",
+            "channel": "en",
+            "blocks": [
+              21
+            ],
+            "separator": " "
+          }
+        },
+        {
+          "rowId": "birchot-personal",
+          "he": {
+            "unit": "awakening.birchot-hashachar@legacy-shabbat-morning",
+            "channel": "he",
+            "blocks": [
+              22,
+              23
+            ],
+            "separator": " "
+          },
+          "tr": {
+            "unit": "awakening.birchot-hashachar@legacy-shabbat-morning",
+            "channel": "tr",
+            "blocks": [
+              22,
+              23
+            ],
+            "separator": " "
+          },
+          "en": {
+            "unit": "awakening.birchot-hashachar@legacy-shabbat-morning",
+            "channel": "en",
+            "blocks": [
+              24
+            ],
+            "separator": " ",
+            "supplement": "birchot-hashachar-final-clause",
+            "supplementSeparator": "\n"
+          }
+        }
+      ],
+      "expectedContentRowsSha256": "27a866e54a46b66724a140711296837fb398f035fc60c5ea58b62b9094c41200"
     },
     {
       "id": "2b3da7a3-dc18-46f1-a792-13a4771b343c",
@@ -262,18 +675,124 @@
       "layout": "left",
       "archiveRecordSha256": "c9352aac205388ef8a4dda78a8a9124e4189aad0c447edcc4bcff7802a6163fa",
       "expectedTextsSha256": "22692bdbc76e2c322809ffd707369f5f4f3ddeaffc32d13054465d09a65478c4",
-      "title": { "archiveField": "title" },
-      "accentTitle": { "archiveField": "titleAccent" },
+      "title": {
+        "archiveField": "title"
+      },
+      "accentTitle": {
+        "archiveField": "titleAccent"
+      },
       "fields": {
         "textMainheb": [
-          { "sliceId": "birchot-steps-he", "unit": "awakening.birchot-hashachar@legacy-shabbat-morning", "channel": "he", "blocks": [19, 20], "separator": " " },
-          { "sliceId": "birchot-personal-he", "unit": "awakening.birchot-hashachar@legacy-shabbat-morning", "channel": "he", "blocks": [22, 23], "separator": " " }
+          {
+            "sliceId": "birchot-steps-alias-he",
+            "unit": "awakening.birchot-hashachar@legacy-shabbat-morning",
+            "channel": "he",
+            "blocks": [
+              19,
+              20
+            ],
+            "separator": " "
+          },
+          {
+            "sliceId": "birchot-personal-alias-he",
+            "unit": "awakening.birchot-hashachar@legacy-shabbat-morning",
+            "channel": "he",
+            "blocks": [
+              22,
+              23
+            ],
+            "separator": " "
+          }
         ],
         "textMainEng": [
-          { "sliceId": "birchot-steps-tr", "unit": "awakening.birchot-hashachar@legacy-shabbat-morning", "channel": "tr", "blocks": [19, 20], "separator": " " },
-          { "sliceId": "birchot-personal-tr", "unit": "awakening.birchot-hashachar@legacy-shabbat-morning", "channel": "tr", "blocks": [22, 23], "separator": " " }
+          {
+            "sliceId": "birchot-steps-alias-tr",
+            "unit": "awakening.birchot-hashachar@legacy-shabbat-morning",
+            "channel": "tr",
+            "blocks": [
+              19,
+              20
+            ],
+            "separator": " "
+          },
+          {
+            "sliceId": "birchot-personal-alias-tr",
+            "unit": "awakening.birchot-hashachar@legacy-shabbat-morning",
+            "channel": "tr",
+            "blocks": [
+              22,
+              23
+            ],
+            "separator": " "
+          }
         ]
-      }
+      },
+      "contentRows": [
+        {
+          "rowId": "birchot-steps",
+          "he": {
+            "unit": "awakening.birchot-hashachar@legacy-shabbat-morning",
+            "channel": "he",
+            "blocks": [
+              19,
+              20
+            ],
+            "separator": " "
+          },
+          "tr": {
+            "unit": "awakening.birchot-hashachar@legacy-shabbat-morning",
+            "channel": "tr",
+            "blocks": [
+              19,
+              20
+            ],
+            "separator": " "
+          },
+          "en": {
+            "unit": "awakening.birchot-hashachar@legacy-shabbat-morning",
+            "channel": "en",
+            "blocks": [
+              21
+            ],
+            "separator": " "
+          }
+        },
+        {
+          "rowId": "birchot-personal",
+          "he": {
+            "unit": "awakening.birchot-hashachar@legacy-shabbat-morning",
+            "channel": "he",
+            "blocks": [
+              22,
+              23
+            ],
+            "separator": " "
+          },
+          "tr": {
+            "unit": "awakening.birchot-hashachar@legacy-shabbat-morning",
+            "channel": "tr",
+            "blocks": [
+              22,
+              23
+            ],
+            "separator": " "
+          },
+          "en": {
+            "unit": "awakening.birchot-hashachar@legacy-shabbat-morning",
+            "channel": "en",
+            "blocks": [
+              24
+            ],
+            "separator": " ",
+            "supplement": "birchot-hashachar-final-clause",
+            "supplementSeparator": "\n"
+          }
+        }
+      ],
+      "expectedContentRowsSha256": "27a866e54a46b66724a140711296837fb398f035fc60c5ea58b62b9094c41200",
+      "aliasOf": "ceb24b8c-d9a7-4607-99bf-c0962e2a88ff",
+      "hidden": true,
+      "retirementNote": "Legacy fourth-panel UUID remains a hidden command alias of consolidated Birchot Hashachar 3."
     },
     {
       "id": "65743cb0-95c9-4d26-b8eb-74c86f1f1b36",

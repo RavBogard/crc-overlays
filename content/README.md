@@ -1,7 +1,7 @@
 # Legacy CRC overlay source adapter
 
 `legacy-crc-shabbat-morning.sources.json` is the reviewed mapping for the bounded
-eight-cue catalog. It makes the maintained CRC Shabbat morning feed authoritative
+morning-service catalog. It makes the maintained CRC Shabbat morning feed authoritative
 for sacred text. The Singular archive supplies only stable composition UUIDs,
 operator names, title labels, presentation records, and the authorized non-liturgical
 `Thank you` message.
@@ -24,11 +24,13 @@ The first command requires the sibling private checkouts at `../shireishabbat` a
 `--archive-root`. The second command validates the committed catalog and provenance
 without reading either private checkout, so it is suitable for ordinary CI.
 
-Current liturgical coverage is Barechu, Modeh Ani, Mah Tovu / Hineh Mah Tov, Oseh
-Shalom, and the three archived Mourner's Kaddish panels. The three Kaddish cues are
-explicit slices of the one maintained morning unit; they are not invented canonical
-unit IDs. The catalog intentionally excludes English translation channels. The
-archive's other 154 named compositions remain unmapped and outside this batch.
+The three Kaddish cues are explicit slices of one maintained morning unit; they are
+not invented canonical unit IDs. English translation channels remain excluded by
+default. Birchot Hashachar is the sole approved exception: eight exact CRC English
+blocks are paired with their Hebrew/transliteration blessings, and the final English
+block is completed by the separately hash-pinned CRC `BH-E3G` source fragment. The
+four historical Birchot UUIDs remain command-compatible as three visible panels plus
+one hidden alias of the third panel; no blessing is omitted.
 
 The feed declares the text `CRC-internal, non-commercial` and attributes Central
 Reform Congregation, St. Louis. This private consumer may carry the selected generated

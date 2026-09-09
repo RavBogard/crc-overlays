@@ -14,6 +14,14 @@
     "license": {
       "attribution": "Central Reform Congregation, St. Louis. Contains third-party liturgical texts used by permission for CRC's non-commercial use; 31 printed credits retained verbatim. Not licensed for redistribution or adaptation by others.",
       "spdx": "CRC-internal, non-commercial, for the TEXT and its reuse: permission confirmed 2026-08-31 by CRC's executive director (R-0831-license-1), NOT CC — see attribution. THE WHOLE-BOOK PDF IS UNDER NO HOLD: CRC publishes this volume publicly on its own website and has done so for years, and Daniel so ruled on 2026-09-05 (R-0904-corpus-cw-93 §4). The PDF the app serves is CRC's own original file, byte for byte, not a re-typeset of it."
+    },
+    "supplements": {
+      "birchot-hashachar-final-clause": {
+        "file": "build/typst/content/shared/awakening.typ",
+        "fileSha256": "9272234d473ae47ea5265939b30f1dba653f4abd6afbafbad5a574014d4e2419",
+        "symbol": "BH-E3G",
+        "textSha256": "5ed8a70eaa5c6a543b69a6eb99ecf16d6b07a78470bfffb67686e3bd40c95808"
+      }
     }
   },
   "sources": [
@@ -359,6 +367,20 @@
           "sourceBlockSha256": "f4800ac56a6289e0f222c1fdf44d8f93244c554c3e6c0e56431c66a017690d5a"
         },
         {
+          "id": "awakening.birchot-hashachar@legacy-shabbat-morning#block-2",
+          "index": 2,
+          "kind": "translation-en",
+          "en": "Blessed are you, the eternal, our God, who has created me in your image.",
+          "pairedBlockIds": [
+            "awakening.birchot-hashachar@legacy-shabbat-morning#block-0",
+            "awakening.birchot-hashachar@legacy-shabbat-morning#block-1"
+          ],
+          "feedBlockSha256": "29e043c2ebb5e5be2d110715021c2babdf2676a86302044cdc34347cff9eba8d",
+          "supplementIds": [],
+          "sourceTextSha256": "153fb1599c86351873d71d075c10fb070727411ad2b469d5f916e97f83cc7b88",
+          "sourceBlockSha256": "c0171a735a3ff6c7c2e59014d1c52078a38cc77981312c21b7348b9efa2d5444"
+        },
+        {
           "id": "awakening.birchot-hashachar@legacy-shabbat-morning#block-3",
           "index": 3,
           "kind": "bilingual",
@@ -373,6 +395,20 @@
           "he": "מֶלֶךְ הָעוֹלָם, שֶׁעָשַׂנִי בַּת/בֶּן חוֹרִין:",
           "tr": "melech ha-olam, she-asani bat / ben chorin.",
           "sourceBlockSha256": "8fa76bf78d2102af56678636bcfcb3692fda8db60d8cb5729a67af4af071f6b6"
+        },
+        {
+          "id": "awakening.birchot-hashachar@legacy-shabbat-morning#block-5",
+          "index": 5,
+          "kind": "translation-en",
+          "en": "Blessed are you, the eternal, our God, who has made me free.",
+          "pairedBlockIds": [
+            "awakening.birchot-hashachar@legacy-shabbat-morning#block-3",
+            "awakening.birchot-hashachar@legacy-shabbat-morning#block-4"
+          ],
+          "feedBlockSha256": "9e2e97c2e30fde31a040f1259e3ebf15fc2d96b09daaeaeaddb16320167aa917",
+          "supplementIds": [],
+          "sourceTextSha256": "b6eb72d46d6d5395f42c9ca21d01b1ce7deadd95d62172a0e235f4eae3278c59",
+          "sourceBlockSha256": "ca3aa27fd89c6d5c4d89531a6a9505bf63c0b4b53f836f10dcd37444bba8c0a0"
         },
         {
           "id": "awakening.birchot-hashachar@legacy-shabbat-morning#block-6",
@@ -391,6 +427,20 @@
           "sourceBlockSha256": "92a8cdc7cf8f4aba78aa8489d3661534eba687436a1a2d6c16c81f1d76c8668b"
         },
         {
+          "id": "awakening.birchot-hashachar@legacy-shabbat-morning#block-8",
+          "index": 8,
+          "kind": "translation-en",
+          "en": "Blessed are you, the eternal, our God, who has made me Yisraeil*.",
+          "pairedBlockIds": [
+            "awakening.birchot-hashachar@legacy-shabbat-morning#block-6",
+            "awakening.birchot-hashachar@legacy-shabbat-morning#block-7"
+          ],
+          "feedBlockSha256": "341dd8707a6d18df87af296ceeaf50c47953300f1773bc4ec4319507a34f2e41",
+          "supplementIds": [],
+          "sourceTextSha256": "08db6f42d515413540613017dbc15fef334161260a59293c94bf4584df72b41b",
+          "sourceBlockSha256": "648b7de176a21085f313a0d100c46966fbddd2f2116a6e3961b51dbcae99fefa"
+        },
+        {
           "id": "awakening.birchot-hashachar@legacy-shabbat-morning#block-10",
           "index": 10,
           "kind": "bilingual",
@@ -405,6 +455,20 @@
           "he": "מֶלֶךְ הָעוֹלָם, פּוֹקֵחַ עִוְרִים:",
           "tr": "melech ha-olam, pokei-ach ivrim.",
           "sourceBlockSha256": "533b396d40ea35fd6df838eba7ee1c0087dab96d55d690916c6eeeadefd5904e"
+        },
+        {
+          "id": "awakening.birchot-hashachar@legacy-shabbat-morning#block-12",
+          "index": 12,
+          "kind": "translation-en",
+          "en": "Blessed are you, the eternal, our God, who opens the eyes of the blind.",
+          "pairedBlockIds": [
+            "awakening.birchot-hashachar@legacy-shabbat-morning#block-10",
+            "awakening.birchot-hashachar@legacy-shabbat-morning#block-11"
+          ],
+          "feedBlockSha256": "0ff49ac6082802d65dc1cf8b04190f7d1d10e4de03b0cd0735eef3f516c17241",
+          "supplementIds": [],
+          "sourceTextSha256": "7a00363f7abe0022a77e8792e6cff439f51f1417a408cfc126979f6a845f37d1",
+          "sourceBlockSha256": "9312651a71a7d601052ce06aa2c20afa684bbee28c0cc8b2bcf7a0d818e9f4c5"
         },
         {
           "id": "awakening.birchot-hashachar@legacy-shabbat-morning#block-13",
@@ -423,6 +487,20 @@
           "sourceBlockSha256": "3578caacfe26da4d8491209703858cade46c9749fd1be6857a2f788201e4091b"
         },
         {
+          "id": "awakening.birchot-hashachar@legacy-shabbat-morning#block-15",
+          "index": 15,
+          "kind": "translation-en",
+          "en": "Blessed are you, the eternal, our God, who provides clothes for the needy.",
+          "pairedBlockIds": [
+            "awakening.birchot-hashachar@legacy-shabbat-morning#block-13",
+            "awakening.birchot-hashachar@legacy-shabbat-morning#block-14"
+          ],
+          "feedBlockSha256": "c45ed03e7a4851c7fa7621947c0be5bb217a9b750ef34f99a42e46121fb215a8",
+          "supplementIds": [],
+          "sourceTextSha256": "2c97a52fdbbb5b4fa08a808fa9ba1b4be100d52ea9c61f30e1902cec4a7912c6",
+          "sourceBlockSha256": "fd06ef7fd190b76f2ea8062e99b7e1bd30bd99b0b0d48a6ef8c9a8c0a5942c3b"
+        },
+        {
           "id": "awakening.birchot-hashachar@legacy-shabbat-morning#block-16",
           "index": 16,
           "kind": "bilingual",
@@ -437,6 +515,20 @@
           "he": "מֶלֶךְ הָעוֹלָם, הַנּוֹתֵן לַיָּעֵף כֹּחַ:",
           "tr": "melech ha-olam, hanotein layaeif koach.",
           "sourceBlockSha256": "cf691da1e2c10cabc7ba2ed359720f14326e3e50d832e2daa6db3a4947de8eb8"
+        },
+        {
+          "id": "awakening.birchot-hashachar@legacy-shabbat-morning#block-18",
+          "index": 18,
+          "kind": "translation-en",
+          "en": "Blessed are you, the eternal, our God, who gives strength to the weak.",
+          "pairedBlockIds": [
+            "awakening.birchot-hashachar@legacy-shabbat-morning#block-16",
+            "awakening.birchot-hashachar@legacy-shabbat-morning#block-17"
+          ],
+          "feedBlockSha256": "ed71c82a61b98ad356169fe5cd91f879d3eabd9151da79ee8042f914500da673",
+          "supplementIds": [],
+          "sourceTextSha256": "3256f474601ea39b8d7feb7a579f05371609ea3ac0953ab04160de263bbef607",
+          "sourceBlockSha256": "c46e4a32ed8130551cd07ec6edeb63780413ac52651fc4dda28b82f0a9c01e39"
         },
         {
           "id": "awakening.birchot-hashachar@legacy-shabbat-morning#block-19",
@@ -455,6 +547,20 @@
           "sourceBlockSha256": "1c1c7039e0365d9a5a4823a294caf5fa5a43bf2e663d1097d5d49b686d32b4ec"
         },
         {
+          "id": "awakening.birchot-hashachar@legacy-shabbat-morning#block-21",
+          "index": 21,
+          "kind": "translation-en",
+          "en": "Blessed are you, the eternal, our God, who guides the steps of human beings.",
+          "pairedBlockIds": [
+            "awakening.birchot-hashachar@legacy-shabbat-morning#block-19",
+            "awakening.birchot-hashachar@legacy-shabbat-morning#block-20"
+          ],
+          "feedBlockSha256": "17bd893f57676a75ae796960d783e29a3c9e9662caa1f7680b9454aec04a6559",
+          "supplementIds": [],
+          "sourceTextSha256": "cdd22b18b04f906db449df543ad7502e85ad57b6d31c015665d11c717a1946b0",
+          "sourceBlockSha256": "daab8de881732bd902f03cdaf3659b069e210d116a7ded8c969077a9602c1909"
+        },
+        {
           "id": "awakening.birchot-hashachar@legacy-shabbat-morning#block-22",
           "index": 22,
           "kind": "bilingual",
@@ -469,6 +575,22 @@
           "he": "מֶלֶךְ הָעוֹלָם, . . .",
           "tr": "melech ha-olam, . . .",
           "sourceBlockSha256": "0531676fd11d3d42bb933db81d193975b74657db2cc2b9db38e84d3a71d47804"
+        },
+        {
+          "id": "awakening.birchot-hashachar@legacy-shabbat-morning#block-24",
+          "index": 24,
+          "kind": "translation-en",
+          "en": "Blessed are you, the eternal, our God,\n…who has provided me all I need.",
+          "pairedBlockIds": [
+            "awakening.birchot-hashachar@legacy-shabbat-morning#block-22",
+            "awakening.birchot-hashachar@legacy-shabbat-morning#block-23"
+          ],
+          "feedBlockSha256": "62969449b6f39425ce11a201c0069ec333323d5a6e22ae0bb731fa925cf126b5",
+          "supplementIds": [
+            "birchot-hashachar-final-clause"
+          ],
+          "sourceTextSha256": "cd59f34f0172626dcc7527e8f5a3dceb06cae9b30694bd8d6b99a5b63d3fe5cf",
+          "sourceBlockSha256": "f704e3ea8852113001ab6dcd62e553d737e501fcb92c1f596f556b2c7a347197"
         }
       ]
     },

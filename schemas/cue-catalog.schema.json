@@ -41,6 +41,22 @@
           "titleFontSize": { "type": "integer", "minimum": 20, "maximum": 42 }
         }
       },
+      "contentRows": {
+        "type": "array",
+        "minItems": 1,
+        "items": {
+          "type": "object",
+          "additionalProperties": false,
+          "required": ["he", "tr", "en"],
+          "properties": {
+            "he": { "type": "string", "minLength": 1 },
+            "tr": { "type": "string", "minLength": 1 },
+            "en": { "type": "string", "minLength": 1 }
+          }
+        }
+      },
+      "aliasOf": { "type": "string", "format": "uuid" },
+      "hidden": { "type": "boolean" },
       "provenance": {
         "type": "object",
         "required": ["kind", "mappingSchemaVersion", "archive"],
