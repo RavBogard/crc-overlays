@@ -10,6 +10,7 @@ Requests time out instead of hanging indefinitely. Polls do not overlap, cached 
 
 - **Show cue** requests the selected cue with its In animation.
 - **Animate cue out** clears only if the selected cue is the requested cue.
+- **Animate out** animates whichever graphic is currently requested out.
 - **Clear now** immediately cuts the requested graphic.
 
 ## Feedback

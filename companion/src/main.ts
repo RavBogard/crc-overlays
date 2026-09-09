@@ -12,7 +12,12 @@ interface Config { baseUrl: string; pollInterval: number; [key: string]: string 
 interface Secrets { controlKey: string; [key: string]: string }
 interface Manifest extends InstanceTypes {
   config: Config; secrets: Secrets
-  actions: { show_cue: { options: { cue: string } }; animate_out: { options: { cue: string } }; clear_now: { options: Record<string, never> } }
+  actions: {
+    show_cue: { options: { cue: string } }
+    animate_out: { options: { cue: string } }
+    animate_clear: { options: Record<string, never> }
+    clear_now: { options: Record<string, never> }
+  }
   feedbacks: {
     requested: { type: 'boolean'; options: { cue: string } }
     rendered: { type: 'boolean'; options: { cue: string } }
@@ -90,7 +95,7 @@ export default class CrcOverlaysInstance extends InstanceBase<Manifest> {
       if (generation === this.#generation && !this.#destroyed) this.#publishFeedback()
     }
   }
-  async #command(action: 'in' | 'out' | 'cut', cue?: string): Promise<void> {
+  async #command(action: 'in' | 'out' | 'clear' | 'cut', cue?: string): Promise<void> {
     const client = this.#client
     const generation = this.#generation
     if (!client || this.#destroyed) return
@@ -125,6 +130,7 @@ export default class CrcOverlaysInstance extends InstanceBase<Manifest> {
     const actions: CompanionActionDefinitions<Manifest['actions']> = {
       show_cue: { name: 'Show cue', description: 'Request a cue with its In animation.', options: [{ type: 'dropdown', id: 'cue', label: 'Cue', choices: [...CUES], default: CUES[0].id }], callback: async event => this.#command('in', String(event.options.cue)) },
       animate_out: { name: 'Animate cue out', description: 'Clear only if the selected cue is currently requested.', options: [{ type: 'dropdown', id: 'cue', label: 'Cue', choices: [...CUES], default: CUES[0].id }], callback: async event => this.#command('out', String(event.options.cue)) },
+      animate_clear: { name: 'Animate out', description: 'Animate the currently requested graphic out, regardless of which cue it is.', options: [], callback: async () => this.#command('clear') },
       clear_now: { name: 'Clear now', description: 'Immediately cancel animation and clear the graphics output.', options: [], callback: async () => this.#command('cut') },
     }
     this.setActionDefinitions(actions)
@@ -140,7 +146,7 @@ export default class CrcOverlaysInstance extends InstanceBase<Manifest> {
   #definePresets(): void {
     const presets: CompanionPresetDefinitions<Manifest> = {}
     for (const cue of CUES) presets[`show_${cue.id}`] = {
-      type: 'simple', name: `Show ${cue.label}`, style: { text: cue.label, size: '18', color: combineRgb(255, 255, 255), bgcolor: combineRgb(35, 35, 35) },
+      type: 'simple', name: `Show ${cue.label}`, style: { text: cue.label, size: '14', color: combineRgb(255, 255, 255), bgcolor: combineRgb(35, 35, 35) },
       steps: [{ down: [{ actionId: 'show_cue', options: { cue: cue.id } }], up: [] }],
       feedbacks: [
         { feedbackId: 'requested', options: { cue: cue.id }, style: { bgcolor: combineRgb(180, 110, 0) } },
@@ -148,7 +154,8 @@ export default class CrcOverlaysInstance extends InstanceBase<Manifest> {
         { feedbackId: 'disconnected', options: {}, style: { bgcolor: combineRgb(175, 0, 0) } },
       ],
     }
-    presets.clear_now = { type: 'simple', name: 'Clear now', style: { text: 'CLEAR\nNOW', size: '18', color: combineRgb(255, 255, 255), bgcolor: combineRgb(120, 0, 0) }, steps: [{ down: [{ actionId: 'clear_now', options: {} }], up: [] }], feedbacks: [{ feedbackId: 'rendered', options: { cue: '' }, style: { bgcolor: combineRgb(0, 130, 70) } }, { feedbackId: 'disconnected', options: {}, style: { bgcolor: combineRgb(175, 0, 0) } }] }
+    presets.animate_out = { type: 'simple', name: 'Animate out', style: { text: 'Animate\nOut', size: '14', color: combineRgb(255, 255, 255), bgcolor: combineRgb(65, 65, 65) }, steps: [{ down: [{ actionId: 'animate_clear', options: {} }], up: [] }], feedbacks: [{ feedbackId: 'rendered', options: { cue: '' }, style: { bgcolor: combineRgb(0, 130, 70) } }, { feedbackId: 'disconnected', options: {}, style: { bgcolor: combineRgb(175, 0, 0) } }] }
+    presets.clear_now = { type: 'simple', name: 'Clear now', style: { text: 'CLEAR\nNOW', size: '14', color: combineRgb(255, 255, 255), bgcolor: combineRgb(120, 0, 0) }, steps: [{ down: [{ actionId: 'clear_now', options: {} }], up: [] }], feedbacks: [{ feedbackId: 'rendered', options: { cue: '' }, style: { bgcolor: combineRgb(0, 130, 70) } }, { feedbackId: 'disconnected', options: {}, style: { bgcolor: combineRgb(175, 0, 0) } }] }
     const structure: CompanionPresetSection<Manifest>[] = [{ id: 'crc_overlay_controls', name: 'CRC Overlay Controls', definitions: Object.keys(presets) }]
     this.setPresetDefinitions(structure, presets)
   }

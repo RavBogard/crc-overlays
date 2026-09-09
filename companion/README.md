@@ -21,7 +21,7 @@ The package command creates a Companion module archive in this directory. In Com
 - Control key: the deployment's `CONTROL_KEY`. Companion stores this `secret-text` field in its secrets store; it must not be put in button text, logs, screenshots, or shared exports.
 - Poll interval: 500-5000 ms; 1000 ms is the default.
 
-The preset section includes the three current CRC cue buttons and **Clear now**.
+The preset section includes the three current CRC cue buttons, animated **Animate out**, and immediate **Clear now**.
 
 ## Operator feedback
 

@@ -38,6 +38,18 @@ describe('OverlayClient ordering', () => {
     expect(bodies[1]).toEqual(bodies[0])
   })
 
+  it('sends an unconditional animated clear without a cue', async () => {
+    let body: Record<string, unknown> = {}
+    const fetchMock = vi.fn(async (_url: string | URL | Request, init?: RequestInit) => {
+      body = JSON.parse(String(init?.body))
+      return response({ commandId: body.commandId, ...snapshot({ cue: null }) })
+    })
+    const client = new OverlayClient({ baseUrl: 'https://example.test', controlKey: 'secret', clientId: 'companion-test', fetch: fetchMock, retryDelays: [] })
+    await client.activate('clear')
+    expect(body).toMatchObject({ action: 'clear', clientId: 'companion-test' })
+    expect(body).not.toHaveProperty('cue')
+  })
+
   it('aborts a hung state request at the configured deadline', async () => {
     vi.useFakeTimers()
     try {
