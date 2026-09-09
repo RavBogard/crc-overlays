@@ -84,7 +84,7 @@ class SourceAdapterTests(unittest.TestCase):
             check=False,
         )
         self.assertEqual(result.returncode, 0, result.stderr)
-        self.assertIn("validated 20 source-mapped cues", result.stdout)
+        self.assertIn("validated 29 source-mapped cues", result.stdout)
 
     def test_catalog_allows_only_declared_original_english(self):
         mapping = json.loads(
@@ -114,7 +114,7 @@ class SourceAdapterTests(unittest.TestCase):
             (ROOT / "content" / "legacy-crc-shabbat-morning.sources.json").read_text(encoding="utf-8")
         )
         new_cues = mapping["cues"][8:]
-        self.assertEqual(len(new_cues), 12)
+        self.assertEqual(len(new_cues), 21)
         for cue in new_cues:
             specs = [spec for lines in cue["fields"].values() for spec in lines]
             self.assertTrue(specs, cue["operatorName"])
@@ -142,6 +142,18 @@ class SourceAdapterTests(unittest.TestCase):
                 "separator": " ",
             },
         ]
+        with self.assertRaisesRegex(
+            validator.ValidationError, "Hebrew/transliteration source coverage differs"
+        ):
+            validator.validate(mapping, catalog)
+
+    def test_validator_rejects_reordered_bilingual_source_coverage(self):
+        mapping = json.loads(
+            (ROOT / "content" / "legacy-crc-shabbat-morning.sources.json").read_text(encoding="utf-8")
+        )
+        catalog = json.loads((ROOT / "lib" / "cues.json").read_text(encoding="utf-8"))
+        cue = next(item for item in mapping["cues"] if item["operatorName"] == "Vahavta 1")
+        cue["fields"]["textMainEng"][0]["blocks"].reverse()
         with self.assertRaisesRegex(
             validator.ValidationError, "Hebrew/transliteration source coverage differs"
         ):

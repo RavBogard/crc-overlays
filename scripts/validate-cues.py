@@ -42,8 +42,8 @@ def validate(mapping: dict[str, Any], catalog: list[dict[str, Any]]) -> None:
         raise ValidationError("first-service feed must remain legacy CRC Shabbat morning")
 
     mapped = mapping.get("cues", [])
-    if len(mapped) != 20 or len(catalog) != 20:
-        raise ValidationError("the bounded catalog must contain exactly twenty source-mapped cues")
+    if len(mapped) != 29 or len(catalog) != 29:
+        raise ValidationError("the bounded catalog must contain exactly twenty-nine source-mapped cues")
     mapped_ids = [cue.get("id") for cue in mapped]
     catalog_ids = [cue.get("id") for cue in catalog]
     if len(set(mapped_ids)) != len(mapped_ids) or mapped_ids != catalog_ids:
@@ -94,15 +94,12 @@ def validate(mapping: dict[str, Any], catalog: list[dict[str, Any]]) -> None:
             raise ValidationError(f"prayer cue must explicitly select Hebrew and transliteration: {cue_id}")
         if not cue_map.get("originalReading"):
             bilingual_coverage = {
-                channel: {
-                    unit_id: {
-                        index
-                        for spec in source_specs
-                        if spec.get("channel") == channel and spec.get("unit") == unit_id
-                        for index in spec.get("blocks", [])
-                    }
-                    for unit_id in {spec.get("unit") for spec in source_specs}
-                }
+                channel: [
+                    (spec.get("unit"), index)
+                    for spec in source_specs
+                    if spec.get("channel") == channel
+                    for index in spec.get("blocks", [])
+                ]
                 for channel in ("he", "tr")
             }
             if bilingual_coverage["he"] != bilingual_coverage["tr"]:
@@ -140,7 +137,7 @@ def main() -> int:
     args = parser.parse_args()
     try:
         validate(load(args.mapping), load(args.catalog))
-        print("validated 20 source-mapped cues")
+        print("validated 29 source-mapped cues")
         return 0
     except (KeyError, OSError, json.JSONDecodeError, ValidationError) as exc:
         print(f"cue validation failed: {exc}", file=sys.stderr)
