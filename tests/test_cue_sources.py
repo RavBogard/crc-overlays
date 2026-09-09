@@ -19,6 +19,7 @@ def load_script(name):
 
 
 generator = load_script("generate-cues.py")
+validator = load_script("validate-cues.py")
 
 
 class SourceAdapterTests(unittest.TestCase):
@@ -118,6 +119,33 @@ class SourceAdapterTests(unittest.TestCase):
             specs = [spec for lines in cue["fields"].values() for spec in lines]
             self.assertTrue(specs, cue["operatorName"])
             self.assertTrue(all(spec.get("sliceId") for spec in specs), cue["operatorName"])
+
+    def test_validator_rejects_mismatched_bilingual_source_coverage(self):
+        mapping = json.loads(
+            (ROOT / "content" / "legacy-crc-shabbat-morning.sources.json").read_text(encoding="utf-8")
+        )
+        catalog = json.loads((ROOT / "lib" / "cues.json").read_text(encoding="utf-8"))
+        cue = next(item for item in mapping["cues"] if item["operatorName"] == "Psalm 150")
+        cue["fields"]["textMainheb"] = [
+            {
+                "sliceId": "old-ashrei-he",
+                "unit": "psukei.ashrei-opening@legacy-shabbat-morning",
+                "channel": "he",
+                "blocks": [0, 1],
+                "separator": " ",
+            },
+            {
+                "sliceId": "old-refrain-he",
+                "unit": "psukei.psalm-150@legacy-shabbat-morning",
+                "channel": "he",
+                "blocks": [11, 12],
+                "separator": " ",
+            },
+        ]
+        with self.assertRaisesRegex(
+            validator.ValidationError, "Hebrew/transliteration source coverage differs"
+        ):
+            validator.validate(mapping, catalog)
 
 
 if __name__ == "__main__":

@@ -6317,7 +6317,7 @@
     "name": "Psalm 150",
     "layout": "left",
     "texts": {
-      "textMainheb": "אַשְׁרֵי יוֹשְׁבֵי בֵיתֶךָ: עוֹד יְהַלְלוּךָ סֶלָה:\nכֹּל הַנְּשָׁמָה תְּהַלֵּל יָהּ, הַלְלוּ יָהּ:",
+      "textMainheb": "הַלְלוּ יָהּ הַלְלוּ־אֵל בְּקָדְשׁוֹ, הַלְלוּהוּ בִּרְקִיעַ עֻזּוֹ: הַלְלוּהוּ בִגְבוּרֹתָיו, הַלְלוּהוּ כְּרֹב גֻּדְלוֹ: הַלְלוּהוּ בְּתֵקַע שׁוֹפָר, הַלְלוּהוּ בְּנֵבֶל וְכִנּוֹר: הַלְלוּהוּ בְתֹף וּמָחוֹל, הַלְלוּהוּ בְּמִנִּים וְעוּגָב: הַלְלוּהוּ בְצִלְצְלֵי־שָׁמַע, הַלְלוּהוּ בְּצִלְצְלֵי תְרוּעָה: כֹּל הַנְּשָׁמָה תְּהַלֵּל יָהּ, הַלְלוּ יָהּ:",
       "textMainEng": "Hal-lu Yah\nHal-lu El b’kodsho,\nHal-luhu bir’kia uzo.\nHal-luhu bigvurotav,\nHal-luhu k’rov gudlo.\nHal-luhu b’teika shofar,\nHal-luhu b’neivel v’chinor.\nHal-luhu v’tof umachol,\nHal-luhu b’minim v’ugav.\nHal-luhu v’tziltz’lei sh’ma,\nHal-luhu b’tziltz’lei t’ruah.\nKol hanshamah t’haleil Yah,\nHal-lu Yah!",
       "textTitle": "Hal'lu Yah (Psalm 150)",
       "accentTextTitle": "פְסוּקֵי דְּזִמְרָא"
@@ -6689,7 +6689,7 @@
         "compositionUuid": "a5784181-b4b5-4033-8ad2-4be46bac1fff",
         "compositionSha256": "890dd8c48a3c831ae1edafd70bca754f22cae57ec94719eecc80516390bd6683",
         "operatorName": "Psalm 150",
-        "textsSha256": "0a2374b0b9f8d55d74eaa07b29628382850481499afe9e068a5169602c90cd4d",
+        "textsSha256": "87c3396e9b8eff090dea4bf30c0490fc490029f50fcf254a42bd921a8b1fe4cb",
         "role": "presentation and operator-identity evidence only"
       },
       "liturgy": {
@@ -6707,26 +6707,26 @@
           "spdx": "CRC-internal, non-commercial, for the TEXT and its reuse: permission confirmed 2026-08-31 by CRC's executive director (R-0831-license-1), NOT CC — see attribution. THE WHOLE-BOOK PDF IS UNDER NO HOLD: CRC publishes this volume publicly on its own website and has done so for years, and Daniel so ruled on 2026-09-05 (R-0904-corpus-cw-93 §4). The PDF the app serves is CRC's own original file, byte for byte, not a re-typeset of it."
         },
         "unitIds": [
-          "psukei.ashrei-opening@legacy-shabbat-morning",
           "psukei.psalm-150@legacy-shabbat-morning"
         ],
         "slices": {
           "textMainheb": [
             {
-              "sliceId": "psalm-one-fifty-ashrei-he",
-              "unit": "psukei.ashrei-opening@legacy-shabbat-morning",
-              "channel": "he",
-              "blocks": [
-                0,
-                1
-              ],
-              "separator": " "
-            },
-            {
-              "sliceId": "psalm-one-fifty-refrain-he",
+              "sliceId": "psalm-one-fifty-complete-he",
               "unit": "psukei.psalm-150@legacy-shabbat-morning",
               "channel": "he",
               "blocks": [
+                0,
+                1,
+                2,
+                3,
+                4,
+                5,
+                6,
+                7,
+                8,
+                9,
+                10,
                 11,
                 12
               ],

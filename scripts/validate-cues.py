@@ -92,6 +92,21 @@ def validate(mapping: dict[str, Any], catalog: list[dict[str, Any]]) -> None:
                 )
         elif channels != {"he", "tr"}:
             raise ValidationError(f"prayer cue must explicitly select Hebrew and transliteration: {cue_id}")
+        if not cue_map.get("originalReading"):
+            bilingual_coverage = {
+                channel: {
+                    unit_id: {
+                        index
+                        for spec in source_specs
+                        if spec.get("channel") == channel and spec.get("unit") == unit_id
+                        for index in spec.get("blocks", [])
+                    }
+                    for unit_id in {spec.get("unit") for spec in source_specs}
+                }
+                for channel in ("he", "tr")
+            }
+            if bilingual_coverage["he"] != bilingual_coverage["tr"]:
+                raise ValidationError(f"Hebrew/transliteration source coverage differs: {cue_id}")
         named_slices = [spec.get("sliceId") for spec in source_specs]
         if any(named_slices):
             if any(not isinstance(value, str) or not SLICE_ID.fullmatch(value) for value in named_slices):
