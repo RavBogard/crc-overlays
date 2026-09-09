@@ -10,7 +10,8 @@
     "dev": "next dev --port 5175",
     "build": "next build",
     "start": "next start --port 5175",
-    "lint": "eslint . --ignore-pattern dist --ignore-pattern .next"
+    "lint": "eslint . --ignore-pattern dist --ignore-pattern .next",
+    "test:renderer": "node --test --experimental-strip-types tests/player.test.ts"
   },
   "dependencies": {
     "@base-ui/react": "^1.7.0",
