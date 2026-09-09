@@ -1,6 +1,6 @@
 # CRC Overlays for Bitfocus Companion 5
 
-Native Companion controls for the CRC Overlays API. Every button activation receives a stable command ID and increasing controller sequence before network work begins. Retries keep both values, so a delayed **In** cannot supersede a later **Clear now**.
+Native Companion controls for the CRC Overlays API. Every button activation receives a stable command ID and increasing controller sequence before network work begins. Retries keep both values, so a delayed **In** cannot supersede a later **Clear now**. Cue choices and presets come from the authenticated API catalog.
 
 Requests have bounded timeouts, feedback polling is single-flight, and delayed responses cannot replace a newer revision or survive a connection reconfiguration.
 
@@ -21,7 +21,7 @@ The package command creates a Companion module archive in this directory. In Com
 - Control key: the deployment's `CONTROL_KEY`. Companion stores this `secret-text` field in its secrets store; it must not be put in button text, logs, screenshots, or shared exports.
 - Poll interval: 500-5000 ms; 1000 ms is the default.
 
-The preset section includes the three current CRC cue buttons, animated **Animate out**, and immediate **Clear now**.
+The preset section includes every cue in the last validated catalog, animated **Animate out**, and immediate **Clear now**. Use the **Refresh cue catalog** action after publishing newly reviewed cues; a temporary or invalid response retains the previous list.
 
 ## Operator feedback
 
@@ -33,4 +33,4 @@ Rendered is deliberately not labeled "on air." It proves browser render state on
 
 ## Current limits
 
-CRC-first single-output operation only. The cue catalog is the three-cue test catalog and is compiled into this module. Physical Stream Deck operation, broadcast tally, vMix/OBS integration, failure rehearsal, and automatic catalog discovery remain outside this milestone.
+CRC-first single-output operation only. Catalog refresh is explicit rather than periodic. Physical Stream Deck operation, broadcast tally, vMix/OBS integration, and failure rehearsal remain outside this milestone.

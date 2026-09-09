@@ -46,6 +46,7 @@ export class OverlayClient {
   }
 
   state(): Promise<OverlaySnapshot> { return this.#request<OverlaySnapshot>('/api/state', { method: 'GET' }, false) }
+  catalog(): Promise<unknown> { return this.#request<unknown>('/api/catalog', { method: 'GET' }, false) }
 
   #nextSequence(): number {
     const clockSequence = this.#now() * 1_000

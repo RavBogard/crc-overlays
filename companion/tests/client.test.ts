@@ -8,6 +8,17 @@ const snapshot = (overrides: Partial<OverlaySnapshot> = {}): OverlaySnapshot => 
 const response = (body: object, status = 200) => new Response(JSON.stringify(body), { status, headers: { 'Content-Type': 'application/json' } })
 
 describe('OverlayClient ordering', () => {
+  it('loads the catalog through the authenticated API route', async () => {
+    let request: { url: string; authorization: string | null } | null = null
+    const fetchMock = vi.fn(async (url: string | URL | Request, init?: RequestInit) => {
+      request = { url: String(url), authorization: new Headers(init?.headers).get('Authorization') }
+      return response([])
+    })
+    const client = new OverlayClient({ baseUrl: 'https://example.test/', controlKey: 'secret', clientId: 'companion-test', fetch: fetchMock })
+    await client.catalog()
+    expect(request).toEqual({ url: 'https://example.test/api/catalog', authorization: 'Bearer secret' })
+  })
+
   it('a delayed In cannot supersede a later Cut', async () => {
     const arrivals: Array<{ action: string; sequence: number }> = []
     const fetchMock = vi.fn(async (_url: string | URL | Request, init?: RequestInit) => {
