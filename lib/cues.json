@@ -5,7 +5,7 @@
     "layout": "bottom",
     "texts": {
       "textMainEng": "Bar’chu et Adonai hamvorach!\nBaruch Adonai hamvorach l’olam va-ed!",
-      "textMainheb": "בָּרְכוּ אֶת יְיָ הַמְבֹרָךְ  |  בָּרוּךְ יְיָ הַמְבֹרָךְ לְעוֹלָם וָעֶד",
+      "textMainheb": "בָּרְכוּ אֶת יְיָ הַמְבֹרָךְ\nבָּרוּךְ יְיָ הַמְבֹרָךְ לְעוֹלָם וָעֶד",
       "textTitle": "Bar'chu בָּרְכוּ"
     },
     "animations": [
@@ -263,7 +263,7 @@
         "compositionUuid": "efa9fad4-f7d5-4091-a708-82103028861b",
         "compositionSha256": "69ca6cc3841df9328a5fd32fce602cf69e7d0cc4401af6695a0dade811c6dcf1",
         "operatorName": "Barechu",
-        "textsSha256": "28550d58b1b36ecabff96dcfb13d3a4140f893bd9bb0de8fb85d9f9244532d60",
+        "textsSha256": "53c162eea2c44b7a4ac4452c1360e4a7bc072aa07cade6742d2887f09683360b",
         "role": "presentation and operator-identity evidence only"
       },
       "liturgy": {
@@ -307,10 +307,17 @@
               "unit": "shma.barchu@legacy-shabbat-morning",
               "channel": "he",
               "blocks": [
-                0,
+                0
+              ],
+              "separator": " "
+            },
+            {
+              "unit": "shma.barchu@legacy-shabbat-morning",
+              "channel": "he",
+              "blocks": [
                 1
               ],
-              "separator": "  |  "
+              "separator": " "
             }
           ]
         }
@@ -323,7 +330,7 @@
     "layout": "bottom",
     "texts": {
       "textMainEng": "Modeh / modah ani l’fanecha, ruach chai v’kayam,\nShehechezarta bi nishmati b’chemlah, rabah emunatecha.",
-      "textMainheb": "מוֹדֶה\\מוֹדָה אֲנִי לְפָנֶיךָ, רוּחַ חַי וְקַיָּם, שֶׁהֶחֱזַרְתָּ בִּי נִשְׁמָתִי בְּחֶמְלָה, רַבָּה אֱמוּנָתֶךָ:",
+      "textMainheb": "מוֹדֶה\\מוֹדָה אֲנִי לְפָנֶיךָ, רוּחַ חַי וְקַיָּם,\nשֶׁהֶחֱזַרְתָּ בִּי נִשְׁמָתִי בְּחֶמְלָה, רַבָּה אֱמוּנָתֶךָ:",
       "textTitle": "Modeh Ani מוֹדָה אֲנִי"
     },
     "animations": [
@@ -581,7 +588,7 @@
         "compositionUuid": "eac2dee3-17f3-4a52-9ca5-4d7611f0f9dc",
         "compositionSha256": "7ac3631f726269068a929986fb26387acfa469062615e702bfb934cb1a66bd68",
         "operatorName": "Modeh Ani (Bottom)",
-        "textsSha256": "b7759849ce30dc35b67092ad7f0875c1305968918514ab219bde4cdf2bb4d148",
+        "textsSha256": "478802eb35986d6b8f571e0a7e7ee1b74a51d1bb280afc7e19d7c8238cdbbb45",
         "role": "presentation and operator-identity evidence only"
       },
       "liturgy": {
@@ -628,7 +635,14 @@
               "channel": "he",
               "blocks": [
                 0,
-                1,
+                1
+              ],
+              "separator": " "
+            },
+            {
+              "unit": "awakening.modeh-ani@legacy-shabbat-morning",
+              "channel": "he",
+              "blocks": [
                 2,
                 3
               ],
