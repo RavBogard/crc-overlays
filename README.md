@@ -1,49 +1,33 @@
-# CRC Overlay Control — test milestone
+# CRC Overlay Control — rehearsal console
 
-Vercel-hosted controller, durable cue state, and transparent 1920×1080 graphics output. Three archived CRC cues: Barechu, Modeh Ani (Bottom), and Mah Tovu. Branding, renderer, and cue content are separate. This is an engineering rehearsal, not a service-ready Singular replacement.
+Vercel-hosted controller, durable cue state, and transparent 1920×1080 graphics output. The current source-backed catalog contains eight cues: Barechu, Modeh Ani (Bottom), Mah Tovu, Thank you, Oseh Shalom, and Mourners Kaddish 1–3. This remains an engineering rehearsal.
 
 ## Run locally
 
-Start with `npm run dev` (port 5175). `.env` supplies CONTROL_KEY and OUTPUT_KEY; never commit keys or Companion exports. The PostgreSQL schema is in `db/postgres.sql`; run `node --env-file=.env.production.local scripts/migrate-postgres.mjs` against this project's dedicated database. The prior D1 implementation remains in Git history and the original Sites checkout.
-
-Controller: http://localhost:5175/. Output: `/output#key=OUTPUT_KEY` (key is moved to tab session storage). Add output to vMix or OBS as a 1920×1080 browser source with transparency. Preview is excluded from output acknowledgments. `work/CONNECTIONS.md` contains private connection details.
+Start with `npm run dev` (port 5175). `.env` supplies `CONTROL_KEY` and `OUTPUT_KEY`; never commit keys or Companion exports. Controller: `http://localhost:5175/`. Output: `/output#key=OUTPUT_KEY`; add it to vMix or OBS as a transparent 1920×1080 Browser source. Preview is excluded from output acknowledgments.
 
 ## Control contract
 
-`GET /api/catalog`, `GET /api/state`, `POST /api/ack` accept an output or control Bearer key. `POST /api/command` requires a control key. Commands use `action: in|out|clear|cut`, a known `cue` for in/out, and optional `commandId`, `clientId`, and increasing `sequence`. Out clears only its matching cue; clear animates out; cut cancels animation immediately.
-
-The web controller assigns IDs and sequence numbers, retained across reload within the tab. Duplicate command IDs do not replay. Lower sequence numbers for the same controller do not replace newer requests. Separate controllers follow server arrival order. **Generic HTTP Companion test buttons omit ordering metadata: delayed requests can arrive after clear. Do not use this integration in a service until sequencing and retry identity are assigned at activation.**
-
-Output holds its last graphic on disconnection. A renderer expires from status after eight seconds without acknowledgments. Rendered means the browser matched requested state; it does not mean the broadcast is on air. Clear requires working connectivity.
+`GET /api/catalog`, `GET /api/state`, and `POST /api/ack` accept an output or control Bearer key. `POST /api/command` requires a control key. Commands use `action: in|out|clear|cut`, a known cue for `in`/`out`, and optional command identity and sequence metadata. `cut` clears immediately. Output holds its last graphic on disconnection; rendered means the browser matched requested state and does not establish that vMix or OBS is on air.
 
 ## Companion
 
-Companion 5.0.5 at http://127.0.0.1:8000/. Connection CRC_Overlays_Test uses Generic HTTP Requests 3.1.1. Page 1, CRC Overlay Test: row 0 columns 1–5 are Barechu, Modeh Ani, Mah Tovu, Animate out, Clear now. Physical hardware not verified. These older Generic HTTP button colours are static. The native CRC_Overlays module is installed separately; its rehearsal buttons occupy row 1 and provide requested/rendered/disconnected feedback. No CRC production camera configuration was imported.
+Use the installed native CRC Overlays Companion module 1.1.0 and its dynamic catalog presets for rehearsal. It supplies ordered commands, retry identity, and requested/rendered/disconnected feedback. Generic HTTP requests are a legacy fallback and do not provide sequencing or retry identity. Physical Stream Deck operation, vMix/OBS integration, and full-service rehearsal remain unverified.
 
-`scripts/prepare-companion.py` generates a private page import using the installed version's captured template. `work/companion-before.companionconfig` preserves the initial setup. Never share generated configs without removing keys.
+## Source and licensing
 
-## Content and scope
-
-The eight-cue catalog is generated from a pinned maintained legacy CRC Shabbat morning feed. Prayer cues select only the exact Hebrew and transliteration blocks listed in `content/legacy-crc-shabbat-morning.sources.json`; English translations are excluded. The source map also pins the whole feed, every selected unit, the Singular archive, every selected composition record, and every generated text object. `python scripts/generate-cues.py --check` fails closed on any change. Singular supplies the stable composition UUIDs, operator names, title labels, presentation records, and the authorized non-liturgical Thank you copy; it is not the prayer-text authority. See `content/README.md` for the generation and licensing boundary.
-
-The catalog covers the original three cues plus Thank you, Oseh Shalom, and Mourners Kaddish 1–3. The remaining archived graphics, overrides, camera-linked buttons, and prayer authoring remain migration work. Timings come from the archive; renderer motion and geometry are refreshed rather than treated as a pixel-identical Singular clone. Hebrew font matching remains unresolved.
+Prayer cues select only the exact Hebrew and transliteration blocks listed in `content/legacy-crc-shabbat-morning.sources.json`; English translations are excluded. The source map pins the feed, selected units, archive compositions, and generated text objects. Run `python scripts/generate-cues.py --check` to fail closed on source drift. Singular supplies stable composition records and authorized non-liturgical Thank you copy; it is not the prayer-text authority. Direct authorized art and refreshed templates are Siona-inspired and are not presented as exact legacy fidelity.
 
 ## Evidence — 2026-09-09
 
-- TypeScript and production build passed.
-- `scripts/check-api.py`: 19 assertions passed for authentication, cue validation, in/out, duplicate IDs, conflicts, delayed sequence, acknowledgments, and clear.
-- Six actual Companion API presses against the live Vercel deployment: all three prayers, animated clear, Barechu again, immediate clear. Each matched a settled acknowledgment from a separate graphics browser.
-- WebMCP registration, read-back, valid cue, invalid cue rejection, and immediate clear passed through the supported browser runtime.
-- Focused review confirmed monotonic console snapshots, preview key cleanup, and bounded nonblocking acknowledgments. Native Companion commands now carry activation sequence and retry identity; the older generic row remains an unsequenced reference.
-- Cloud Companion-to-output operation is verified. Native button presses matched Vercel requested/rendered state. Disconnecting the graphics browser turned native feedback red; reconnecting restored green for the settled cue. Physical Stream Deck, vMix/OBS and broader network/restart rehearsal remain unverified.
+- `scripts/check-api.py`: 19 local assertions passed for authentication, cue validation, in/out, duplicate IDs, conflicts, delayed sequence, acknowledgments, and clear.
+- Source guard checks passed with `python scripts/generate-cues.py --check`.
+- All eight catalog cues were checked for exact DOM output and no overflow; rapid cut and prayer replacement behavior passed.
+- WebMCP registration, read-back, valid and invalid cue handling, and immediate clear passed through the supported browser runtime.
+- Native Companion 1.1.0 is installed locally; catalog expansion is verified separately against each deployed release.
+
+The remaining 154 archived graphics, overrides, camera-linked buttons, and prayer authoring remain migration work. Physical Stream Deck, vMix/OBS, and full-service restart/network rehearsal are separate unverified gates.
 
 ## Hosting
 
-Primary source: https://github.com/RavBogard/crc-overlays (private).
-Live controller: https://crc-overlays.vercel.app. Vercel project: crc-overlays under ravbogards-projects. Production uses its own Neon database named crc-overlays, provisioned on free_v3 in iad1. DATABASE_URL, CONTROL_KEY and OUTPUT_KEY are runtime secrets. Preview deployments have no production database or keys.
-
-Vercel runs standard Next.js. The old Sites deployment is retained as a separate prototype snapshot; its state is independent and it is not the current source/deployment workflow. Neither shireishabbat nor shirei-tshuvah-web is modified by this deployment.
-
-Database initialization is an explicit migration step, not a public API or automatic request action. All changes to the single CRC output are serialized by a PostgreSQL row lock. This preserves duplicate-command handling and per-controller ordering. The native Companion module assigns activation sequence and retry identity; the historical Generic HTTP row retains its ordering limitation.
-
-Vercel migration validation: production build/typecheck, 19 API assertions, concurrent duplicate and reordered-sequence tests. Scoped independent review completed; idle database connection errors handled without crashing the process. Physical Stream Deck and vMix/OBS checks remain separate.
+Primary source: https://github.com/RavBogard/crc-overlays (private). Live controller: https://crc-overlays.vercel.app. Production uses its own Neon database; `DATABASE_URL`, `CONTROL_KEY`, and `OUTPUT_KEY` are runtime secrets. No deployment of this documentation or the current source batch is implied until the Producer confirms it.
