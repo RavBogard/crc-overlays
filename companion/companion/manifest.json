@@ -1,0 +1,25 @@
+{
+  "$schema": "../node_modules/@companion-module/base/assets/manifest.schema.json",
+  "id": "crc-overlays",
+  "name": "CRC Overlays",
+  "type": "connection",
+  "shortname": "CRC Overlays",
+  "description": "Sequenced overlay controls with requested and rendered feedback",
+  "version": "1.0.0",
+  "license": "MIT",
+  "repository": "git+https://github.com/RavBogard/crc-overlays.git",
+  "bugs": "https://github.com/RavBogard/crc-overlays/issues",
+  "maintainers": [{"name": "Central Reform Congregation"}],
+  "legacyIds": [],
+  "runtime": {
+    "type": "node22",
+    "api": "nodejs-ipc",
+    "apiVersion": "2.0.4",
+    "entrypoint": "../dist/main.js",
+    "permissions": {}
+  },
+  "manufacturer": "Central Reform Congregation",
+  "products": ["CRC Overlays"],
+  "keywords": ["graphics", "overlay", "lower third", "CRC"],
+  "isPrerelease": false
+}

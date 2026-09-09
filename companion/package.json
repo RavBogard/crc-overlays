@@ -1,0 +1,26 @@
+{
+  "name": "companion-module-crc-overlays",
+  "version": "1.0.0",
+  "description": "Bitfocus Companion controls and truthful renderer feedback for CRC Overlays",
+  "license": "MIT",
+  "type": "module",
+  "main": "dist/main.js",
+  "scripts": {
+    "build": "tsc -p tsconfig.build.json",
+    "lint": "tsc -p tsconfig.json --noEmit",
+    "test": "vitest run",
+    "package": "npm run build && companion-module-build"
+  },
+  "engines": {
+    "node": ">=22.20"
+  },
+  "dependencies": {
+    "@companion-module/base": "2.0.4"
+  },
+  "devDependencies": {
+    "@companion-module/tools": "^3.0.1",
+    "@types/node": "^22.19.17",
+    "typescript": "~6.0.3",
+    "vitest": "^4.1.9"
+  }
+}
