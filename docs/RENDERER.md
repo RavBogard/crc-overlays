@@ -1,6 +1,6 @@
 # Renderer fidelity boundary
 
-The renderer implements refreshed CRC lower-third, left-panel, and right-panel geometry at a 1920 × 1080 design size. The visual language takes a restrained palette and circular rhythm from the supplied Siona Benjamin floor image: deep blue structure, turquoise accents, warm gold rings, and calm high-contrast prayer surfaces. It does not place the detailed artwork behind text or represent the treatment as an official logo.
+The renderer implements refreshed CRC lower-third, left-panel, and right-panel geometry at a 1920 × 1080 design size. The visual language uses the CRC-owned Siona Benjamin floor artwork as a circular emblem, with a restrained palette drawn from it: deep blue structure, turquoise accents, warm gold rings, and calm high-contrast prayer surfaces. The detailed artwork stays inside the emblem rather than behind prayer text. The lower third occupies about 29% of the frame and places transliteration and Hebrew side by side.
 
 Animation tracks preserve archive timing offsets and power-easing intent where current cues provide them. Fade, `scaleX`, `scaleY`, two-axis scale, and up/down/left/right translate effects are supported. Known `logoGroup`, `titleGroup`, `HebText`, and `EngText` tracks are applied in addition to direct tile tracks. This is a bounded mapping of CRC cue behavior, not a generic Singular renderer or a pixel-equivalent recreation.
 
