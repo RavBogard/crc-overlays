@@ -1,6 +1,6 @@
 import assert from 'node:assert/strict';
 import test from 'node:test';
-import {appendOAuthRedirect,canonicalOrigin,exactResource,normalizeRedirect,normalizeScope,pkceChallenge,readLimitedBody,safeClientMetadata,secretMatches} from '../lib/oauth-core';
+import {AUTHORIZATION_SCOPES,appendOAuthRedirect,canonicalOrigin,exactResource,normalizeRedirect,normalizeScope,pkceChallenge,readLimitedBody,safeClientMetadata,secretMatches} from '../lib/oauth-core';
 
 test('redirect URIs require HTTPS except loopback and reject fragments or credentials',()=>{
  assert.equal(normalizeRedirect('https://chat.example/callback?fixed=1'),'https://chat.example/callback?fixed=1');
@@ -17,10 +17,15 @@ test('client metadata permits public auth-code clients with rotating refresh tok
 test('scope and audience are fixed to authoring MCP resource',()=>{
  const request=new Request('http://localhost:5175/oauth/authorize');
  assert.equal(normalizeScope('crc.authoring'),'crc.authoring');
+ assert.equal(normalizeScope('offline_access crc.authoring'),'crc.authoring offline_access');
+ assert.throws(()=>normalizeScope('offline_access'),/invalid_scope/);
+ assert.throws(()=>normalizeScope('crc.authoring offline_access offline_access'),/invalid_scope/);
  assert.throws(()=>normalizeScope('crc.authoring live.control'),/invalid_scope/);
  assert.equal(exactResource(null,request),'http://localhost:5175/api/mcp');
  assert.throws(()=>exactResource('https://other.example/api/mcp',request),/invalid_target/);
 });
+
+test('authorization scopes advertise optional refresh consent',()=>assert.deepEqual([...AUTHORIZATION_SCOPES],['crc.authoring','offline_access']));
 
 test('PKCE S256 and state redirect preserve an existing callback query',()=>{
  assert.equal(pkceChallenge('0123456789012345678901234567890123456789012'),'_RpfHqw8pAZIomzVUE7sjRmHSM543WVdC4o-Kc4_3C0');
