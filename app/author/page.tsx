@@ -593,7 +593,7 @@ export default function AuthorPage() {
       <header className="author-header">
         <div>
           <span className="eyebrow">CRC OVERLAY AUTHORING</span>
-          <h1>Source-backed cue editor</h1>
+          <h1>Overlay editor</h1>
           <p>
             Build from CRC’s authorized text, inspect the broadcast frame, and
             publish an exact reviewed version.
@@ -635,7 +635,7 @@ export default function AuthorPage() {
                 <small>
                   Version {item.version}
                   {item.activeRevision
-                    ? ` · Live revision ${item.activeRevision}`
+                    ? ` · Published revision ${item.activeRevision}`
                     : ""}
                 </small>
                 <small>{formatTime(item.updatedAt)}</small>
@@ -946,7 +946,7 @@ export default function AuthorPage() {
               {dirty
                 ? " · Unsaved changes"
                 : draft.activeRevision
-                  ? ` · Live revision ${draft.activeRevision}`
+                  ? ` · Published revision ${draft.activeRevision}`
                   : " · Not published"}
             </p>
           )}
