@@ -2,6 +2,8 @@
 
 Native Companion controls for the CRC Overlays API. Every button activation receives a stable command ID and increasing controller sequence before network work begins. Retries keep both values, so a delayed **In** cannot supersede a later **Clear now**.
 
+Requests have bounded timeouts, feedback polling is single-flight, and delayed responses cannot replace a newer revision or survive a connection reconfiguration.
+
 ## Build and install
 
 Use Node 22.20 or newer in the Node 22 line:
@@ -16,7 +18,7 @@ npm run package
 The package command creates a Companion module archive in this directory. In Companion 5, open **Settings > Advanced > Developer modules** to load this directory for development, or install the generated archive using Companion's module installation UI. Add a **CRC Overlays** connection and set:
 
 - Overlay base URL: `https://crc-overlays.vercel.app` by default, or another deployment.
-- Control key: the deployment's `CONTROL_KEY`. It is masked and must not be put in button text, logs, screenshots, or shared exports.
+- Control key: the deployment's `CONTROL_KEY`. Companion stores this `secret-text` field in its secrets store; it must not be put in button text, logs, screenshots, or shared exports.
 - Poll interval: 500-5000 ms; 1000 ms is the default.
 
 The preset section includes the three current CRC cue buttons and **Clear now**.

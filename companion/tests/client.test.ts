@@ -1,5 +1,5 @@
 import { describe, expect, it, vi } from 'vitest'
-import { deriveFeedback, OverlayClient, type OverlaySnapshot } from '../src/client.js'
+import { deriveFeedback, isNewerSnapshot, OverlayClient, type OverlaySnapshot } from '../src/client.js'
 
 const snapshot = (overrides: Partial<OverlaySnapshot> = {}): OverlaySnapshot => ({
   revision: 4, cue: 'cue-a', mode: 'animate', updated: 1_000, serverTime: 10_000,
@@ -37,6 +37,21 @@ describe('OverlayClient ordering', () => {
     expect(bodies).toHaveLength(2)
     expect(bodies[1]).toEqual(bodies[0])
   })
+
+  it('aborts a hung state request at the configured deadline', async () => {
+    vi.useFakeTimers()
+    try {
+      const fetchMock = vi.fn((_url: string | URL | Request, init?: RequestInit) => new Promise<Response>((_resolve, reject) => {
+        init?.signal?.addEventListener('abort', () => reject(init.signal?.reason), { once: true })
+      }))
+      const client = new OverlayClient({ baseUrl: 'https://example.test', controlKey: 'secret', clientId: 'companion-test', fetch: fetchMock, requestTimeoutMs: 20 })
+      const pending = expect(client.state()).rejects.toThrow('timed out')
+      await vi.advanceTimersByTimeAsync(21)
+      await pending
+    } finally {
+      vi.useRealTimers()
+    }
+  })
 })
 
 describe('truthful feedback', () => {
@@ -49,5 +64,18 @@ describe('truthful feedback', () => {
   it('reports disconnected for a stale poll or stale renderer heartbeat', () => {
     expect(deriveFeedback(snapshot(), 1_000, 10_000)).toMatchObject({ rendered: false, disconnected: true })
     expect(deriveFeedback(snapshot({ renderers: [] }), 10_000, 10_100)).toMatchObject({ rendered: false, disconnected: true })
+  })
+
+  it('ages a renderer heartbeat while a cached snapshot is held', () => {
+    expect(deriveFeedback(snapshot(), 10_000, 17_000)).toMatchObject({ rendered: true, disconnected: false })
+    expect(deriveFeedback(snapshot(), 10_000, 17_600)).toMatchObject({ rendered: false, disconnected: true })
+  })
+
+  it('rejects delayed snapshots that would roll state backward', () => {
+    const current = snapshot({ revision: 8, serverTime: 20_000, cue: null })
+    expect(isNewerSnapshot(current, snapshot({ revision: 7, serverTime: 21_000 }))).toBe(false)
+    expect(isNewerSnapshot(current, snapshot({ revision: 8, serverTime: 19_000 }))).toBe(false)
+    expect(isNewerSnapshot(current, snapshot({ revision: 8, serverTime: 20_001 }))).toBe(true)
+    expect(isNewerSnapshot(current, snapshot({ revision: 9, serverTime: 19_000 }))).toBe(true)
   })
 })

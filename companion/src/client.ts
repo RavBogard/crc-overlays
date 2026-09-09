@@ -7,7 +7,7 @@ export interface CommandReceipt extends OverlaySnapshot { commandId: string }
 export interface FeedbackState { requestedCue: string | null; renderedCue: string | null; rendered: boolean; disconnected: boolean }
 export interface OverlayClientOptions {
   baseUrl: string; controlKey: string; clientId: string; fetch?: typeof globalThis.fetch; now?: () => number
-  sleep?: (milliseconds: number) => Promise<void>; retryDelays?: number[]
+  sleep?: (milliseconds: number) => Promise<void>; retryDelays?: number[]; requestTimeoutMs?: number
 }
 
 const RENDERER_FRESH_MS = 8_000
@@ -24,6 +24,7 @@ export class OverlayClient {
   readonly #now: () => number
   readonly #sleep: (milliseconds: number) => Promise<void>
   readonly #retryDelays: number[]
+  readonly #requestTimeoutMs: number
   #lastSequence = 0
 
   constructor(options: OverlayClientOptions) {
@@ -34,6 +35,7 @@ export class OverlayClient {
     this.#now = options.now ?? Date.now
     this.#sleep = options.sleep ?? (milliseconds => new Promise(resolve => setTimeout(resolve, milliseconds)))
     this.#retryDelays = options.retryDelays ?? [150, 400]
+    this.#requestTimeoutMs = options.requestTimeoutMs ?? 4_000
   }
 
   activate(action: OverlayAction, cue?: string): Promise<CommandReceipt> {
@@ -55,9 +57,12 @@ export class OverlayClient {
     const attempts = retryable ? this.#retryDelays.length + 1 : 1
     let lastError: unknown
     for (let attempt = 0; attempt < attempts; attempt += 1) {
+      const controller = new AbortController()
+      const timeout = setTimeout(() => controller.abort(new ApiError('Overlay API request timed out', true)), this.#requestTimeoutMs)
       try {
         const response = await this.#fetch(`${this.#baseUrl}${path}`, {
           ...init,
+          signal: controller.signal,
           headers: { Authorization: `Bearer ${this.#controlKey}`, Accept: 'application/json', ...(init.body ? { 'Content-Type': 'application/json' } : {}) },
         })
         if (!response.ok) {
@@ -70,6 +75,8 @@ export class OverlayClient {
         lastError = error
         if (error instanceof ApiError && !error.retryable) throw error
         if (attempt === attempts - 1) throw error
+      } finally {
+        clearTimeout(timeout)
       }
       await this.#sleep(this.#retryDelays[attempt] ?? 0)
     }
@@ -81,7 +88,12 @@ export function deriveFeedback(snapshot: OverlaySnapshot | null, pollReceivedAt:
   if (!snapshot || pollReceivedAt === null || now - pollReceivedAt > pollStaleMs) {
     return { requestedCue: snapshot?.cue ?? null, renderedCue: null, rendered: false, disconnected: true }
   }
-  const fresh = (renderer: RendererState) => snapshot.serverTime - renderer.seen <= RENDERER_FRESH_MS
+  const estimatedServerNow = snapshot.serverTime + Math.max(0, now - pollReceivedAt)
+  const fresh = (renderer: RendererState) => estimatedServerNow - renderer.seen <= RENDERER_FRESH_MS
   const renderedMatch = snapshot.renderers.find(renderer => fresh(renderer) && renderer.phase === 'settled' && renderer.revision === snapshot.revision && renderer.cue === snapshot.cue)
   return { requestedCue: snapshot.cue, renderedCue: renderedMatch?.cue ?? null, rendered: Boolean(renderedMatch), disconnected: !snapshot.renderers.some(fresh) }
+}
+
+export function isNewerSnapshot(current: OverlaySnapshot | null, candidate: OverlaySnapshot): boolean {
+  return current === null || candidate.revision > current.revision || (candidate.revision === current.revision && candidate.serverTime >= current.serverTime)
 }

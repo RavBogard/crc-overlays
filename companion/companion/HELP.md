@@ -4,6 +4,8 @@ Configure the overlay deployment URL and its control key, then add buttons from 
 
 Each press is assigned a command ID and increasing sequence at activation. Transient server/network failures retry the same command identity. The server can therefore ignore a delayed older request after a newer request from this Companion connection.
 
+Requests time out instead of hanging indefinitely. Polls do not overlap, cached heartbeat freshness continues to age between responses, and responses from an older configuration are ignored.
+
 ## Actions
 
 - **Show cue** requests the selected cue with its In animation.

@@ -1,5 +1,5 @@
 import { combineRgb, InstanceBase, InstanceStatus, type CompanionActionDefinitions, type CompanionFeedbackDefinitions, type CompanionPresetDefinitions, type CompanionPresetSection, type InstanceTypes, type SomeCompanionConfigField } from '@companion-module/base'
-import { deriveFeedback, OverlayClient, type OverlaySnapshot } from './client.js'
+import { deriveFeedback, isNewerSnapshot, OverlayClient, type OverlaySnapshot } from './client.js'
 
 const CUES = [
   { id: 'efa9fad4-f7d5-4091-a708-82103028861b', label: 'Barechu' },
@@ -8,9 +8,10 @@ const CUES = [
 ] as const
 const TARGETS = [{ id: '', label: 'Clear' }, ...CUES]
 
-interface Config { baseUrl: string; controlKey: string; pollInterval: number; [key: string]: string | number }
+interface Config { baseUrl: string; pollInterval: number; [key: string]: string | number }
+interface Secrets { controlKey: string; [key: string]: string }
 interface Manifest extends InstanceTypes {
-  config: Config; secrets: undefined
+  config: Config; secrets: Secrets
   actions: { show_cue: { options: { cue: string } }; animate_out: { options: { cue: string } }; clear_now: { options: Record<string, never> } }
   feedbacks: {
     requested: { type: 'boolean'; options: { cue: string } }
@@ -21,23 +22,28 @@ interface Manifest extends InstanceTypes {
 }
 
 export default class CrcOverlaysInstance extends InstanceBase<Manifest> {
-  #config: Config = { baseUrl: 'https://crc-overlays.vercel.app', controlKey: '', pollInterval: 1_000 }
+  #config: Config = { baseUrl: 'https://crc-overlays.vercel.app', pollInterval: 1_000 }
+  #controlKey = ''
   #client: OverlayClient | null = null
   #snapshot: OverlaySnapshot | null = null
   #pollReceivedAt: number | null = null
   #pollTimer: NodeJS.Timeout | null = null
+  #pollInFlight: { generation: number } | null = null
+  #generation = 0
+  #destroyed = false
 
-  async init(config: Config): Promise<void> {
+  async init(config: Config, _isFirstInit: boolean, secrets: Secrets): Promise<void> {
+    this.#destroyed = false
     this.setVariableDefinitions({
       requested_cue: { name: 'Requested cue' },
       revision: { name: 'Requested revision' },
       renderer_status: { name: 'Renderer status' },
     })
     this.#defineActions(); this.#defineFeedbacks(); this.#definePresets()
-    await this.#applyConfig(config)
+    await this.#applyConfig(config, secrets)
   }
-  async destroy(): Promise<void> { this.#stopPolling() }
-  async configUpdated(config: Config): Promise<void> { await this.#applyConfig(config) }
+  async destroy(): Promise<void> { this.#destroyed = true; this.#generation += 1; this.#client = null; this.#stopPolling() }
+  async configUpdated(config: Config, secrets: Secrets): Promise<void> { await this.#applyConfig(config, secrets) }
 
   getConfigFields(): SomeCompanionConfigField[] {
     return [
@@ -48,35 +54,65 @@ export default class CrcOverlaysInstance extends InstanceBase<Manifest> {
     ]
   }
 
-  async #applyConfig(config: Config): Promise<void> {
+  async #applyConfig(config: Config, secrets: Secrets): Promise<void> {
+    const generation = ++this.#generation
     this.#stopPolling()
-    this.#config = { baseUrl: String(config.baseUrl || 'https://crc-overlays.vercel.app').replace(/\/+$/, ''), controlKey: String(config.controlKey || ''), pollInterval: Math.min(5_000, Math.max(500, Number(config.pollInterval) || 1_000)) }
+    this.#config = { baseUrl: String(config.baseUrl || 'https://crc-overlays.vercel.app').replace(/\/+$/, ''), pollInterval: Math.min(5_000, Math.max(500, Number(config.pollInterval) || 1_000)) }
+    this.#controlKey = String(secrets.controlKey || '')
     this.#snapshot = null; this.#pollReceivedAt = null
-    if (!this.#config.controlKey) {
+    if (!this.#controlKey) {
       this.#client = null; this.updateStatus(InstanceStatus.BadConfig, 'Control key required'); this.#publishFeedback(); return
     }
-    this.#client = new OverlayClient({ baseUrl: this.#config.baseUrl, controlKey: this.#config.controlKey, clientId: `companion-${this.id}` })
+    const client = new OverlayClient({ baseUrl: this.#config.baseUrl, controlKey: this.#controlKey, clientId: `companion-${this.id}` })
+    this.#client = client
     this.updateStatus(InstanceStatus.Connecting)
-    await this.#poll()
+    await this.#poll(generation, client)
+    if (generation !== this.#generation || this.#destroyed) return
     this.#pollTimer = setInterval(() => void this.#poll(), this.#config.pollInterval)
   }
   #stopPolling(): void { if (this.#pollTimer) clearInterval(this.#pollTimer); this.#pollTimer = null }
 
-  async #poll(): Promise<void> {
-    if (!this.#client) return
-    try { this.#snapshot = await this.#client.state(); this.#pollReceivedAt = Date.now(); this.updateStatus(InstanceStatus.Ok) }
-    catch (error) { this.#pollReceivedAt = null; this.updateStatus(InstanceStatus.ConnectionFailure, this.#safeError(error)) }
-    this.#publishFeedback()
+  async #poll(generation = this.#generation, client = this.#client): Promise<void> {
+    if (!client || generation !== this.#generation || this.#destroyed) return
+    if (this.#pollInFlight?.generation === generation) { this.#publishFeedback(); return }
+    const token = { generation }
+    this.#pollInFlight = token
+    try {
+      const snapshot = await client.state()
+      if (generation !== this.#generation || this.#destroyed) return
+      this.#acceptSnapshot(snapshot)
+      this.updateStatus(InstanceStatus.Ok)
+    } catch (error) {
+      if (generation !== this.#generation || this.#destroyed) return
+      this.#pollReceivedAt = null; this.updateStatus(InstanceStatus.ConnectionFailure, this.#safeError(error))
+    } finally {
+      if (this.#pollInFlight === token) this.#pollInFlight = null
+      if (generation === this.#generation && !this.#destroyed) this.#publishFeedback()
+    }
   }
   async #command(action: 'in' | 'out' | 'cut', cue?: string): Promise<void> {
-    if (!this.#client) return
-    try { this.#snapshot = await this.#client.activate(action, cue); this.#pollReceivedAt = Date.now(); this.updateStatus(InstanceStatus.Ok) }
-    catch (error) { this.#pollReceivedAt = null; this.updateStatus(InstanceStatus.ConnectionFailure, this.#safeError(error)) }
-    this.#publishFeedback()
+    const client = this.#client
+    const generation = this.#generation
+    if (!client || this.#destroyed) return
+    try {
+      const snapshot = await client.activate(action, cue)
+      if (generation !== this.#generation || this.#destroyed) return
+      this.#acceptSnapshot(snapshot)
+      this.updateStatus(InstanceStatus.Ok)
+    } catch (error) {
+      if (generation !== this.#generation || this.#destroyed) return
+      this.#pollReceivedAt = null; this.updateStatus(InstanceStatus.ConnectionFailure, this.#safeError(error))
+    }
+    if (generation === this.#generation && !this.#destroyed) this.#publishFeedback()
+  }
+  #acceptSnapshot(snapshot: OverlaySnapshot): void {
+    if (!isNewerSnapshot(this.#snapshot, snapshot)) return
+    this.#snapshot = snapshot
+    this.#pollReceivedAt = Date.now()
   }
   #safeError(error: unknown): string {
     const message = error instanceof Error ? error.message : 'Overlay API request failed'
-    return this.#config.controlKey ? message.replaceAll(this.#config.controlKey, '[redacted]') : message
+    return this.#controlKey ? message.replaceAll(this.#controlKey, '[redacted]') : message
   }
   #publishFeedback(): void {
     const state = deriveFeedback(this.#snapshot, this.#pollReceivedAt)
