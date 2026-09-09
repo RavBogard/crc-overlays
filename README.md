@@ -1,12 +1,12 @@
 # CRC Overlay Control — test milestone
 
-Cloud-compatible controller, durable cue state, and transparent 1920×1080 graphics output. Three archived CRC cues: Barechu, Modeh Ani (Bottom), and Mah Tovu. Branding, renderer, and cue content are separate. This is an engineering rehearsal, not a service-ready Singular replacement.
+Vercel-hosted controller, durable cue state, and transparent 1920×1080 graphics output. Three archived CRC cues: Barechu, Modeh Ani (Bottom), and Mah Tovu. Branding, renderer, and cue content are separate. This is an engineering rehearsal, not a service-ready Singular replacement.
 
 ## Run locally
 
-Start with `node node_modules/vinext/dist/cli.js dev --port 5173`. `.env` supplies CONTROL_KEY and OUTPUT_KEY; never commit keys or Companion exports. Schema migrations live in `drizzle/`.
+Start with `npm run dev` (port 5175). `.env` supplies CONTROL_KEY and OUTPUT_KEY; never commit keys or Companion exports. The PostgreSQL schema is in `db/postgres.sql`; run `node --env-file=.env.production.local scripts/migrate-postgres.mjs` against this project�s dedicated database. Historical D1 files are retained only as migration references.
 
-Controller: http://localhost:5173/. Output: `/output#key=OUTPUT_KEY` (key is moved to tab session storage). Add output to vMix or OBS as a 1920×1080 browser source with transparency. Preview is excluded from output acknowledgments. `work/CONNECTIONS.md` contains private connection details.
+Controller: http://localhost:5175/. Output: `/output#key=OUTPUT_KEY` (key is moved to tab session storage). Add output to vMix or OBS as a 1920×1080 browser source with transparency. Preview is excluded from output acknowledgments. `work/CONNECTIONS.md` contains private connection details.
 
 ## Control contract
 
@@ -37,6 +37,11 @@ Text is copied from the archived Singular master without editorial changes. The 
 
 ## Hosting
 
-Sites registration is owner-private. Keys are configured as runtime secrets. Cloud state is separate from local rehearsal state. Companion and vMix/OBS cannot use an interactive ChatGPT sign-in gate; device access must be resolved before switching their URLs. Private review hosting does not establish cloud device operation.
+Primary source: https://github.com/RavBogard/crc-overlays (private).
+Vercel project: crc-overlays under ravbogards-projects. Production uses its own Neon database named crc-overlays, provisioned on free_v3 in iad1. DATABASE_URL, CONTROL_KEY and OUTPUT_KEY are runtime secrets. Preview deployments have no production database or keys.
 
-The Sites build helper failed through the Windows npm shim; direct `node node_modules/vinext/dist/cli.js build` passed. Packaging uses the provided Sites helper and generated migrations.
+Vercel runs standard Next.js. The old Sites deployment is retained as a separate prototype snapshot; its state is independent and it is not the current source/deployment workflow. Neither shireishabbat nor shirei-tshuvah-web is modified by this deployment.
+
+Database initialization is an explicit migration step, not a public API or automatic request action. All changes to the single CRC output are serialized by a PostgreSQL row lock. This preserves duplicate-command handling and per-controller ordering. The existing Companion activation-order limitation remains and must be fixed before service use.
+
+Vercel migration validation: production build/typecheck, 19 API assertions, concurrent duplicate and reordered-sequence tests. Scoped independent review completed; idle database connection errors handled without crashing the process. Physical Stream Deck and vMix/OBS checks remain separate.

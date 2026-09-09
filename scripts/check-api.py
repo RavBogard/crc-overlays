@@ -1,6 +1,6 @@
-import json, pathlib, urllib.request, urllib.error, uuid
-BASE='http://localhost:5173'
-keys=json.loads(pathlib.Path('work/keys.json').read_text())
+import json, pathlib, urllib.request, urllib.error, uuid, os
+BASE=os.environ.get('CRC_TEST_URL','http://localhost:5175')
+keys=json.loads(pathlib.Path(os.environ.get('CRC_TEST_KEYS','work/keys.json')).read_text())
 def request(path, body=None, key='CONTROL_KEY'):
     headers={'Content-Type':'application/json'}
     if key: headers['Authorization']='Bearer '+keys[key]

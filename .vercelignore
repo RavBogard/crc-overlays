@@ -1,0 +1,6 @@
+work
+.env*
+.wrangler
+.sites-runtime
+dist
+node_modules
