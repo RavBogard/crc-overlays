@@ -31,6 +31,16 @@
         "required": ["In", "Out"],
         "properties": { "In": { "type": "number" }, "Out": { "type": "number" } }
       },
+      "presentation": {
+        "type": "object",
+        "additionalProperties": false,
+        "minProperties": 1,
+        "properties": {
+          "hebrewFontSize": { "type": "integer", "minimum": 24, "maximum": 52 },
+          "transliterationFontSize": { "type": "integer", "minimum": 20, "maximum": 48 },
+          "titleFontSize": { "type": "integer", "minimum": 20, "maximum": 42 }
+        }
+      },
       "provenance": {
         "type": "object",
         "required": ["kind", "mappingSchemaVersion", "archive"],

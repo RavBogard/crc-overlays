@@ -10533,6 +10533,10 @@
           ]
         }
       }
+    },
+    "presentation": {
+      "transliterationFontSize": 30,
+      "hebrewFontSize": 34
     }
   },
   {

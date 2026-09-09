@@ -26,7 +26,19 @@
       "minItems": 1,
       "items": {
         "type": "object",
-        "required": ["id", "operatorName", "layout", "archiveRecordSha256", "expectedTextsSha256", "title", "fields"]
+        "required": ["id", "operatorName", "layout", "archiveRecordSha256", "expectedTextsSha256", "title", "fields"],
+        "properties": {
+          "presentation": {
+            "type": "object",
+            "additionalProperties": false,
+            "minProperties": 1,
+            "properties": {
+              "hebrewFontSize": { "type": "integer", "minimum": 24, "maximum": 52 },
+              "transliterationFontSize": { "type": "integer", "minimum": 20, "maximum": 48 },
+              "titleFontSize": { "type": "integer", "minimum": 20, "maximum": 42 }
+            }
+          }
+        }
       }
     }
   }

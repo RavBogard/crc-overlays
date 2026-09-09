@@ -14,6 +14,11 @@ from typing import Any
 ROOT = Path(__file__).resolve().parents[1]
 UUID = re.compile(r"^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$")
 SLICE_ID = re.compile(r"^[a-z0-9]+(?:-[a-z0-9]+)*$")
+PRESENTATION_BOUNDS = {
+    "hebrewFontSize": (24, 52),
+    "transliterationFontSize": (20, 48),
+    "titleFontSize": (20, 42),
+}
 
 
 class ValidationError(RuntimeError):
@@ -27,6 +32,23 @@ def load(path: Path) -> Any:
 def object_sha256(value: Any) -> str:
     payload = json.dumps(value, ensure_ascii=False, sort_keys=True, separators=(",", ":"))
     return hashlib.sha256(payload.encode("utf-8")).hexdigest()
+
+
+def validate_presentation(value: Any, cue_id: str) -> dict[str, int] | None:
+    if value is None:
+        return None
+    if not isinstance(value, dict) or not value:
+        raise ValidationError(f"presentation for {cue_id} must be a non-empty object")
+    extra = set(value) - set(PRESENTATION_BOUNDS)
+    if extra:
+        raise ValidationError(f"unsupported presentation fields for {cue_id}: {sorted(extra)!r}")
+    for key, raw in value.items():
+        minimum, maximum = PRESENTATION_BOUNDS[key]
+        if isinstance(raw, bool) or not isinstance(raw, int) or not minimum <= raw <= maximum:
+            raise ValidationError(
+                f"presentation.{key} for {cue_id} must be an integer from {minimum} to {maximum}"
+            )
+    return value
 
 
 def validate(mapping: dict[str, Any], catalog: list[dict[str, Any]]) -> None:
@@ -57,6 +79,9 @@ def validate(mapping: dict[str, Any], catalog: list[dict[str, Any]]) -> None:
             raise ValidationError(f"operator identity changed for {cue_id}")
         if cue.get("layout") != cue_map.get("layout") or cue.get("layout") not in {"bottom", "left", "right"}:
             raise ValidationError(f"invalid layout for {cue_id}")
+        expected_presentation = validate_presentation(cue_map.get("presentation"), cue_id)
+        if cue.get("presentation") != expected_presentation:
+            raise ValidationError(f"compiled presentation metadata mismatch for {cue_id}")
         if not cue.get("texts", {}).get("textTitle"):
             raise ValidationError(f"title missing for {cue_id}")
         if not isinstance(cue.get("animations"), list) or not cue.get("duration"):

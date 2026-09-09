@@ -75,6 +75,37 @@ class SourceAdapterTests(unittest.TestCase):
                 {},
             )
 
+    def test_presentation_metadata_is_bounded_and_compiled_exactly(self):
+        cue_id = "4343d861-686f-449a-9f4e-2943da5a59db"
+        mapping = json.loads(
+            (ROOT / "content" / "legacy-crc-shabbat-morning.sources.json").read_text(encoding="utf-8")
+        )
+        catalog = json.loads((ROOT / "lib" / "cues.json").read_text(encoding="utf-8"))
+        cue_map = next(item for item in mapping["cues"] if item["id"] == cue_id)
+        cue = next(item for item in catalog if item["id"] == cue_id)
+        self.assertEqual(
+            cue_map["presentation"],
+            {"transliterationFontSize": 30, "hebrewFontSize": 34},
+        )
+        self.assertEqual(cue["presentation"], cue_map["presentation"])
+        with self.assertRaisesRegex(generator.SourceError, "integer from 24 to 52"):
+            generator.presentation({"hebrewFontSize": True}, cue_id)
+        cue_map["presentation"]["hebrewFontSize"] = 53
+        with self.assertRaisesRegex(validator.ValidationError, "integer from 24 to 52"):
+            validator.validate(mapping, catalog)
+
+    def test_validator_rejects_compiled_presentation_drift(self):
+        cue_id = "4343d861-686f-449a-9f4e-2943da5a59db"
+        mapping = json.loads(
+            (ROOT / "content" / "legacy-crc-shabbat-morning.sources.json").read_text(encoding="utf-8")
+        )
+        catalog = json.loads((ROOT / "lib" / "cues.json").read_text(encoding="utf-8"))
+        next(item for item in catalog if item["id"] == cue_id)["presentation"][
+            "hebrewFontSize"
+        ] = 35
+        with self.assertRaisesRegex(validator.ValidationError, "compiled presentation metadata"):
+            validator.validate(mapping, catalog)
+
     def test_committed_catalog_and_mapping_validate(self):
         result = subprocess.run(
             [sys.executable, str(ROOT / "scripts" / "validate-cues.py")],

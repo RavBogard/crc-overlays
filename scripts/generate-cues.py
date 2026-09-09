@@ -18,6 +18,13 @@ class SourceError(RuntimeError):
     pass
 
 
+PRESENTATION_BOUNDS = {
+    "hebrewFontSize": (24, 52),
+    "transliterationFontSize": (20, 48),
+    "titleFontSize": (20, 42),
+}
+
+
 def file_sha256(path: Path) -> str:
     return hashlib.sha256(path.read_bytes()).hexdigest()
 
@@ -39,6 +46,25 @@ def load_json(path: Path) -> Any:
 def require_equal(label: str, actual: Any, expected: Any) -> None:
     if actual != expected:
         raise SourceError(f"{label} changed: expected {expected!r}, found {actual!r}")
+
+
+def presentation(value: Any, cue_id: str) -> dict[str, int] | None:
+    if value is None:
+        return None
+    if not isinstance(value, dict) or not value:
+        raise SourceError(f"presentation for {cue_id} must be a non-empty object")
+    extra = set(value) - set(PRESENTATION_BOUNDS)
+    if extra:
+        raise SourceError(f"unsupported presentation fields for {cue_id}: {sorted(extra)!r}")
+    result: dict[str, int] = {}
+    for key, raw in value.items():
+        minimum, maximum = PRESENTATION_BOUNDS[key]
+        if isinstance(raw, bool) or not isinstance(raw, int) or not minimum <= raw <= maximum:
+            raise SourceError(
+                f"presentation.{key} for {cue_id} must be an integer from {minimum} to {maximum}"
+            )
+        result[key] = raw
+    return result
 
 
 def archive_text(composition: dict[str, Any], field: str) -> str:
@@ -183,17 +209,19 @@ def build_catalog(mapping: dict[str, Any], feed: dict[str, Any], archive: dict[s
             }
         else:
             provenance["copy"] = "authorized non-liturgical archive resource reuse"
-        catalog.append(
-            {
-                "id": cue_id,
-                "name": cue_map["operatorName"],
-                "layout": cue_map["layout"],
-                "texts": text_fields,
-                "animations": animations(composition),
-                "duration": archive["compositionProps"]["durations"][cue_id],
-                "provenance": provenance,
-            }
-        )
+        generated_cue = {
+            "id": cue_id,
+            "name": cue_map["operatorName"],
+            "layout": cue_map["layout"],
+            "texts": text_fields,
+            "animations": animations(composition),
+            "duration": archive["compositionProps"]["durations"][cue_id],
+            "provenance": provenance,
+        }
+        cue_presentation = presentation(cue_map.get("presentation"), cue_id)
+        if cue_presentation is not None:
+            generated_cue["presentation"] = cue_presentation
+        catalog.append(generated_cue)
     return catalog
 
 
