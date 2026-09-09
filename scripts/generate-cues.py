@@ -92,7 +92,15 @@ def render_line(spec: dict[str, Any], units: dict[str, dict[str, Any]], composit
             block = blocks[index]
         except IndexError as exc:
             raise SourceError(f"block {index} is absent from {unit_id}") from exc
-        require_equal(f"{unit_id} block {index} type", block.get("type"), "stanza")
+        channel = spec["channel"]
+        expected_type = "english" if channel == "en" else "stanza"
+        require_equal(f"{unit_id} block {index} type", block.get("type"), expected_type)
+        if channel == "en" and "role" in spec:
+            require_equal(
+                f"{unit_id} block {index} English role",
+                block.get("role"),
+                spec["role"],
+            )
         value = block.get(channel)
         if not isinstance(value, str) or not value:
             raise SourceError(f"channel {channel!r} is absent from {unit_id} block {index}")

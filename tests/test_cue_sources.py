@@ -45,6 +45,35 @@ class SourceAdapterTests(unittest.TestCase):
                 {"unit": "sample@legacy", "channel": "he", "blocks": [0]}, units, {}
             )
 
+    def test_render_line_accepts_only_declared_original_english(self):
+        units = {
+            "sample@legacy": {
+                "blocks": [{"type": "english", "role": "original", "en": "Source text"}]
+            }
+        }
+        result = generator.render_line(
+            {
+                "unit": "sample@legacy",
+                "channel": "en",
+                "role": "original",
+                "blocks": [0],
+            },
+            units,
+            {},
+        )
+        self.assertEqual(result, "Source text")
+        with self.assertRaises(generator.SourceError):
+            generator.render_line(
+                {
+                    "unit": "sample@legacy",
+                    "channel": "en",
+                    "role": "translation",
+                    "blocks": [0],
+                },
+                units,
+                {},
+            )
+
     def test_committed_catalog_and_mapping_validate(self):
         result = subprocess.run(
             [sys.executable, str(ROOT / "scripts" / "validate-cues.py")],
@@ -54,9 +83,9 @@ class SourceAdapterTests(unittest.TestCase):
             check=False,
         )
         self.assertEqual(result.returncode, 0, result.stderr)
-        self.assertIn("validated 8 source-mapped cues", result.stdout)
+        self.assertIn("validated 20 source-mapped cues", result.stdout)
 
-    def test_catalog_has_no_english_translation_channel(self):
+    def test_catalog_allows_only_declared_original_english(self):
         mapping = json.loads(
             (ROOT / "content" / "legacy-crc-shabbat-morning.sources.json").read_text(encoding="utf-8")
         )
@@ -67,7 +96,28 @@ class SourceAdapterTests(unittest.TestCase):
             for spec in lines
             if "channel" in spec
         }
-        self.assertEqual(channels, {"he", "tr"})
+        self.assertEqual(channels, {"he", "tr", "en"})
+        english_specs = [
+            (cue, spec)
+            for cue in mapping["cues"]
+            for lines in cue["fields"].values()
+            for spec in lines
+            if spec.get("channel") == "en"
+        ]
+        self.assertTrue(english_specs)
+        self.assertTrue(all(cue.get("originalReading") for cue, _ in english_specs))
+        self.assertTrue(all(spec.get("role") == "original" for _, spec in english_specs))
+
+    def test_new_service_cues_have_named_source_slices(self):
+        mapping = json.loads(
+            (ROOT / "content" / "legacy-crc-shabbat-morning.sources.json").read_text(encoding="utf-8")
+        )
+        new_cues = mapping["cues"][8:]
+        self.assertEqual(len(new_cues), 12)
+        for cue in new_cues:
+            specs = [spec for lines in cue["fields"].values() for spec in lines]
+            self.assertTrue(specs, cue["operatorName"])
+            self.assertTrue(all(spec.get("sliceId") for spec in specs), cue["operatorName"])
 
 
 if __name__ == "__main__":

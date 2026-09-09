@@ -28,7 +28,17 @@
     "awakening.mah-tovu@legacy-shabbat-morning": "c906c119ad08be21d19ae9adc6a3d1e3965d6bb191e666419e000fea86e0da49",
     "awakening.hineh-mah-tov@legacy-shabbat-morning": "4ca2d405dd5cbe5bf69a3ec53de88b5b4ef2cd11afc3bccca8773a529d47d1da",
     "amidah.oseh-shalom@legacy-shabbat-morning": "23c50180c237c043dce89c011177d6ab6d2df9852dd5984358099ef2e02a2d31",
-    "concluding.mourners-kaddish@legacy-shabbat-morning": "09c89cdddb760db2e5fceb1ad6cfa2597c524b87a2b7f23c146d69da4f83ba94"
+    "concluding.mourners-kaddish@legacy-shabbat-morning": "09c89cdddb760db2e5fceb1ad6cfa2597c524b87a2b7f23c146d69da4f83ba94",
+    "awakening.hareini@legacy-shabbat-morning": "c8f93eb04a1042470ab764703974b5f5f18035a0c06d79fb30411a82c211ea0a",
+    "awakening.elohai-nshamah@legacy-shabbat-morning": "4c012dab4c6cba008090773ef86315b488c9d536162ff67c55558d7a2bc694f2",
+    "awakening.birchot-hashachar@legacy-shabbat-morning": "45ce9cc69aa3943b4949a2d355c77d433777be55537771ffb896db6035f24c11",
+    "psukei.psalm-91@legacy-shabbat-morning": "4a7b49697a01891d955a8519c5925f383a3e566ea285e005328af63f75caae45",
+    "psukei.psalm-92@legacy-shabbat-morning": "0669376e31c7de8c99e217b08de535747f0a3810a388b8d33754669512a59ad3",
+    "psukei.kol-hanshamah@legacy-shabbat-morning": "1b2b8b89a21936bc772a82d471a4bc984004e78e8e1724f2c82bf08642ee4613",
+    "psukei.ashrei-opening@legacy-shabbat-morning": "dcf88c8b424e44c553f0b71a846282f34769ebce8dde1ccc7ff908372e53b1a2",
+    "psukei.psalm-150@legacy-shabbat-morning": "d406b0f962655a06a833301acd32749280bf54e06d50142cce5deaa97b17a18a",
+    "psukei.chatzi-kaddish@legacy-shabbat-morning": "aa2e83a2324d264f3baeaedc22ed60c78727e102e4415212b762813aa386be57",
+    "shma.as-we-bless@legacy-shabbat-morning": "53a3817d5f76e9dadd209caed5f4d5f91cf194610f76c4669194efd5cf193351"
   },
   "cues": [
     {
@@ -149,6 +159,238 @@
       "fields": {
         "textMainheb": [{ "unit": "concluding.mourners-kaddish@legacy-shabbat-morning", "channel": "he", "blocks": [17, 18, 19, 20, 21, 22, 23], "separator": " " }],
         "textMainEng": [{ "unit": "concluding.mourners-kaddish@legacy-shabbat-morning", "channel": "tr", "blocks": [17, 18, 19, 20, 21, 22, 23], "separator": " " }]
+      }
+    },
+    {
+      "id": "e1bd7775-ddf1-468b-b3f7-ac98f11df958",
+      "operatorName": "Hareini",
+      "layout": "bottom",
+      "archiveRecordSha256": "44f0f84c14cbbb6abf460e9e4120488374986ab9ba19a5dcd26df4ba39b177fc",
+      "expectedTextsSha256": "dde9734def70fa12dd380827389a478ac635ab18a0722a52c261475dfe90bb1d",
+      "title": { "archiveField": "title" },
+      "fields": {
+        "textMain": [
+          { "sliceId": "hareini-acceptance-tr", "unit": "awakening.hareini@legacy-shabbat-morning", "channel": "tr", "blocks": [0, 1], "separator": " " },
+          { "sliceId": "hareini-love-tr", "unit": "awakening.hareini@legacy-shabbat-morning", "channel": "tr", "blocks": [2], "separator": " " },
+          { "sliceId": "hareini-complete-he", "unit": "awakening.hareini@legacy-shabbat-morning", "channel": "he", "blocks": [0, 1, 2], "separator": " " }
+        ]
+      }
+    },
+    {
+      "id": "d4298cbf-d17e-498b-ad70-d7900e899718",
+      "operatorName": "Elohai Nshama",
+      "layout": "bottom",
+      "archiveRecordSha256": "96123e92b9d41c11fe4c1a9c25b64ed046616117a398fe39378474f424761604",
+      "expectedTextsSha256": "847d2b4ed2207731593f1d318f8d584eaf67b632d520708614e673a535ab14d8",
+      "title": { "archiveField": "title" },
+      "fields": {
+        "textMain": [
+          { "sliceId": "elohai-nshamah-tr", "unit": "awakening.elohai-nshamah@legacy-shabbat-morning", "channel": "tr", "blocks": [0], "separator": " " },
+          { "sliceId": "elohai-nshamah-he", "unit": "awakening.elohai-nshamah@legacy-shabbat-morning", "channel": "he", "blocks": [0], "separator": " " }
+        ]
+      }
+    },
+    {
+      "id": "0135de3c-9a47-4fdc-91b9-99bacdf64970",
+      "operatorName": "Birchot Hashachar 1",
+      "layout": "left",
+      "archiveRecordSha256": "bc0a41aec21af9ea265a3a7fe9c73e93a50acdcd5143ad3338ffc7d77cea1b88",
+      "expectedTextsSha256": "57c6b521eec20abda40f9ac8efeceaa971fd4f7bca1309a2b89eba00ffc6064c",
+      "title": { "archiveField": "title" },
+      "accentTitle": { "archiveField": "titleAccent" },
+      "fields": {
+        "textMainheb": [
+          { "sliceId": "birchot-image-he", "unit": "awakening.birchot-hashachar@legacy-shabbat-morning", "channel": "he", "blocks": [0, 1], "separator": " " },
+          { "sliceId": "birchot-freedom-he", "unit": "awakening.birchot-hashachar@legacy-shabbat-morning", "channel": "he", "blocks": [3, 4], "separator": " " }
+        ],
+        "textMainEng": [
+          { "sliceId": "birchot-image-tr", "unit": "awakening.birchot-hashachar@legacy-shabbat-morning", "channel": "tr", "blocks": [0, 1], "separator": " " },
+          { "sliceId": "birchot-freedom-tr", "unit": "awakening.birchot-hashachar@legacy-shabbat-morning", "channel": "tr", "blocks": [3, 4], "separator": " " }
+        ]
+      }
+    },
+    {
+      "id": "b60c1abc-2257-4316-9ae4-2a03f72133d6",
+      "operatorName": "Birchot Hashachar 2",
+      "layout": "left",
+      "archiveRecordSha256": "2d6f83d54106b57d1a8a77c49eb78513f3c23bda4996976b2dde5b6e5b72da82",
+      "expectedTextsSha256": "98a71914cf2a88345210b003280a6348fb3d9a312c675aa146587e46a2c0abb7",
+      "title": { "archiveField": "title" },
+      "accentTitle": { "archiveField": "titleAccent" },
+      "fields": {
+        "textMainheb": [
+          { "sliceId": "birchot-yisrael-he", "unit": "awakening.birchot-hashachar@legacy-shabbat-morning", "channel": "he", "blocks": [6, 7], "separator": " " },
+          { "sliceId": "birchot-sight-he", "unit": "awakening.birchot-hashachar@legacy-shabbat-morning", "channel": "he", "blocks": [10, 11], "separator": " " }
+        ],
+        "textMainEng": [
+          { "sliceId": "birchot-yisrael-tr", "unit": "awakening.birchot-hashachar@legacy-shabbat-morning", "channel": "tr", "blocks": [6, 7], "separator": " " },
+          { "sliceId": "birchot-sight-tr", "unit": "awakening.birchot-hashachar@legacy-shabbat-morning", "channel": "tr", "blocks": [10, 11], "separator": " " }
+        ]
+      }
+    },
+    {
+      "id": "ceb24b8c-d9a7-4607-99bf-c0962e2a88ff",
+      "operatorName": "Birchot Hashachar 3",
+      "layout": "left",
+      "archiveRecordSha256": "885e9e3f07cbb35474304801d1ccd544b218225b6e1a566ed263605693b34916",
+      "expectedTextsSha256": "b1bf80a25c8eb690c990086242a4cfa601e6193dc806cfb65ac6657d469302f5",
+      "title": { "archiveField": "title" },
+      "accentTitle": { "archiveField": "titleAccent" },
+      "fields": {
+        "textMainheb": [
+          { "sliceId": "birchot-clothing-he", "unit": "awakening.birchot-hashachar@legacy-shabbat-morning", "channel": "he", "blocks": [13, 14], "separator": " " },
+          { "sliceId": "birchot-strength-he", "unit": "awakening.birchot-hashachar@legacy-shabbat-morning", "channel": "he", "blocks": [16, 17], "separator": " " }
+        ],
+        "textMainEng": [
+          { "sliceId": "birchot-clothing-tr", "unit": "awakening.birchot-hashachar@legacy-shabbat-morning", "channel": "tr", "blocks": [13, 14], "separator": " " },
+          { "sliceId": "birchot-strength-tr", "unit": "awakening.birchot-hashachar@legacy-shabbat-morning", "channel": "tr", "blocks": [16, 17], "separator": " " }
+        ]
+      }
+    },
+    {
+      "id": "2b3da7a3-dc18-46f1-a792-13a4771b343c",
+      "operatorName": "Birchot Hashachar 4",
+      "layout": "left",
+      "archiveRecordSha256": "c9352aac205388ef8a4dda78a8a9124e4189aad0c447edcc4bcff7802a6163fa",
+      "expectedTextsSha256": "22692bdbc76e2c322809ffd707369f5f4f3ddeaffc32d13054465d09a65478c4",
+      "title": { "archiveField": "title" },
+      "accentTitle": { "archiveField": "titleAccent" },
+      "fields": {
+        "textMainheb": [
+          { "sliceId": "birchot-steps-he", "unit": "awakening.birchot-hashachar@legacy-shabbat-morning", "channel": "he", "blocks": [19, 20], "separator": " " },
+          { "sliceId": "birchot-personal-he", "unit": "awakening.birchot-hashachar@legacy-shabbat-morning", "channel": "he", "blocks": [22, 23], "separator": " " }
+        ],
+        "textMainEng": [
+          { "sliceId": "birchot-steps-tr", "unit": "awakening.birchot-hashachar@legacy-shabbat-morning", "channel": "tr", "blocks": [19, 20], "separator": " " },
+          { "sliceId": "birchot-personal-tr", "unit": "awakening.birchot-hashachar@legacy-shabbat-morning", "channel": "tr", "blocks": [22, 23], "separator": " " }
+        ]
+      }
+    },
+    {
+      "id": "65743cb0-95c9-4d26-b8eb-74c86f1f1b36",
+      "operatorName": "Psukei DZimrah 1",
+      "layout": "left",
+      "archiveRecordSha256": "7b69a377a23c07339fc5d0d814bd0f984586e7893a4a86c57db672432467a329",
+      "expectedTextsSha256": "da942a8033260dc0c75cdf3b6c5828dbd2c0edd0880cf93c4ca8b465703fb142",
+      "title": { "archiveField": "title" },
+      "accentTitle": { "archiveField": "titleAccent" },
+      "fields": {
+        "textMainheb": [
+          { "sliceId": "psukei-one-psalm-ninety-one-he", "unit": "psukei.psalm-91@legacy-shabbat-morning", "channel": "he", "blocks": [0, 1], "separator": " " },
+          { "sliceId": "psukei-one-psalm-ninety-two-he", "unit": "psukei.psalm-92@legacy-shabbat-morning", "channel": "he", "blocks": [0, 1, 2, 3], "separator": " " }
+        ],
+        "textMainEng": [
+          { "sliceId": "psukei-one-psalm-ninety-one-tr", "unit": "psukei.psalm-91@legacy-shabbat-morning", "channel": "tr", "blocks": [0, 1], "separator": " " },
+          { "sliceId": "psukei-one-psalm-ninety-two-opening-tr", "unit": "psukei.psalm-92@legacy-shabbat-morning", "channel": "tr", "blocks": [0, 1], "separator": " " },
+          { "sliceId": "psukei-one-psalm-ninety-two-closing-tr", "unit": "psukei.psalm-92@legacy-shabbat-morning", "channel": "tr", "blocks": [2, 3], "separator": " " }
+        ]
+      }
+    },
+    {
+      "id": "f792daee-3663-4350-a3cb-783897e1f463",
+      "operatorName": "Psukei DZimrah 2",
+      "layout": "left",
+      "archiveRecordSha256": "9a1cc83c6aff4a33cb8b76e0651bd96cf97a1b71b167976fc55bab81a893ac2b",
+      "expectedTextsSha256": "811cc420ad9e8865aa6589f0fe5862f1ba556e2fe9b6899d33b22f792ae0e7bd",
+      "title": { "archiveField": "title" },
+      "accentTitle": { "archiveField": "titleAccent" },
+      "fields": {
+        "textMainheb": [
+          { "sliceId": "psukei-two-ashrei-he", "unit": "psukei.ashrei-opening@legacy-shabbat-morning", "channel": "he", "blocks": [0, 1], "separator": " " },
+          { "sliceId": "psukei-two-kol-hanshamah-he", "unit": "psukei.kol-hanshamah@legacy-shabbat-morning", "channel": "he", "blocks": [0, 1], "separator": " " }
+        ],
+        "textMainEng": [
+          { "sliceId": "psukei-two-ashrei-opening-tr", "unit": "psukei.ashrei-opening@legacy-shabbat-morning", "channel": "tr", "blocks": [0], "separator": " " },
+          { "sliceId": "psukei-two-ashrei-closing-tr", "unit": "psukei.ashrei-opening@legacy-shabbat-morning", "channel": "tr", "blocks": [1], "separator": " " },
+          { "sliceId": "psukei-two-kol-hanshamah-tr", "unit": "psukei.kol-hanshamah@legacy-shabbat-morning", "channel": "tr", "blocks": [0, 1], "separator": " " }
+        ]
+      }
+    },
+    {
+      "id": "a5784181-b4b5-4033-8ad2-4be46bac1fff",
+      "operatorName": "Psalm 150",
+      "layout": "left",
+      "archiveRecordSha256": "890dd8c48a3c831ae1edafd70bca754f22cae57ec94719eecc80516390bd6683",
+      "expectedTextsSha256": "0a2374b0b9f8d55d74eaa07b29628382850481499afe9e068a5169602c90cd4d",
+      "title": { "archiveField": "title" },
+      "accentTitle": { "archiveField": "titleAccent" },
+      "fields": {
+        "textMainheb": [
+          { "sliceId": "psalm-one-fifty-ashrei-he", "unit": "psukei.ashrei-opening@legacy-shabbat-morning", "channel": "he", "blocks": [0, 1], "separator": " " },
+          { "sliceId": "psalm-one-fifty-refrain-he", "unit": "psukei.psalm-150@legacy-shabbat-morning", "channel": "he", "blocks": [11, 12], "separator": " " }
+        ],
+        "textMainEng": [
+          { "sliceId": "psalm-one-fifty-tr-one", "unit": "psukei.psalm-150@legacy-shabbat-morning", "channel": "tr", "blocks": [0], "separator": " " },
+          { "sliceId": "psalm-one-fifty-tr-two", "unit": "psukei.psalm-150@legacy-shabbat-morning", "channel": "tr", "blocks": [1], "separator": " " },
+          { "sliceId": "psalm-one-fifty-tr-three", "unit": "psukei.psalm-150@legacy-shabbat-morning", "channel": "tr", "blocks": [2], "separator": " " },
+          { "sliceId": "psalm-one-fifty-tr-four", "unit": "psukei.psalm-150@legacy-shabbat-morning", "channel": "tr", "blocks": [3], "separator": " " },
+          { "sliceId": "psalm-one-fifty-tr-five", "unit": "psukei.psalm-150@legacy-shabbat-morning", "channel": "tr", "blocks": [4], "separator": " " },
+          { "sliceId": "psalm-one-fifty-tr-six", "unit": "psukei.psalm-150@legacy-shabbat-morning", "channel": "tr", "blocks": [5], "separator": " " },
+          { "sliceId": "psalm-one-fifty-tr-seven", "unit": "psukei.psalm-150@legacy-shabbat-morning", "channel": "tr", "blocks": [6], "separator": " " },
+          { "sliceId": "psalm-one-fifty-tr-eight", "unit": "psukei.psalm-150@legacy-shabbat-morning", "channel": "tr", "blocks": [7], "separator": " " },
+          { "sliceId": "psalm-one-fifty-tr-nine", "unit": "psukei.psalm-150@legacy-shabbat-morning", "channel": "tr", "blocks": [8], "separator": " " },
+          { "sliceId": "psalm-one-fifty-tr-ten", "unit": "psukei.psalm-150@legacy-shabbat-morning", "channel": "tr", "blocks": [9], "separator": " " },
+          { "sliceId": "psalm-one-fifty-tr-eleven", "unit": "psukei.psalm-150@legacy-shabbat-morning", "channel": "tr", "blocks": [10], "separator": " " },
+          { "sliceId": "psalm-one-fifty-tr-twelve", "unit": "psukei.psalm-150@legacy-shabbat-morning", "channel": "tr", "blocks": [11], "separator": " " },
+          { "sliceId": "psalm-one-fifty-tr-thirteen", "unit": "psukei.psalm-150@legacy-shabbat-morning", "channel": "tr", "blocks": [12], "separator": " " }
+        ]
+      }
+    },
+    {
+      "id": "0a4b12eb-1463-44d7-be91-329049e5ec82",
+      "operatorName": "Readers Kaddish 1",
+      "layout": "left",
+      "archiveRecordSha256": "62bbd9a44e8c5f5a3b3b6b7b4d001ebdf94f5098bf6c01705debb7425dc4b7cf",
+      "expectedTextsSha256": "5739b0ba5fb0f71b204f7ebaff9172a1df65784cf2ac10894a77d87b7cfbfbc1",
+      "title": { "archiveField": "title" },
+      "accentTitle": { "archiveField": "titleAccent" },
+      "fields": {
+        "textMainheb": [
+          { "sliceId": "readers-kaddish-one-he", "unit": "psukei.chatzi-kaddish@legacy-shabbat-morning", "channel": "he", "blocks": [0, 1, 2, 3, 4, 5], "separator": " " }
+        ],
+        "textMainEng": [
+          { "sliceId": "readers-kaddish-one-tr-one", "unit": "psukei.chatzi-kaddish@legacy-shabbat-morning", "channel": "tr", "blocks": [0], "separator": " " },
+          { "sliceId": "readers-kaddish-one-tr-two", "unit": "psukei.chatzi-kaddish@legacy-shabbat-morning", "channel": "tr", "blocks": [1], "separator": " " },
+          { "sliceId": "readers-kaddish-one-tr-three", "unit": "psukei.chatzi-kaddish@legacy-shabbat-morning", "channel": "tr", "blocks": [2], "separator": " " },
+          { "sliceId": "readers-kaddish-one-tr-four", "unit": "psukei.chatzi-kaddish@legacy-shabbat-morning", "channel": "tr", "blocks": [3], "separator": " " },
+          { "sliceId": "readers-kaddish-one-tr-five", "unit": "psukei.chatzi-kaddish@legacy-shabbat-morning", "channel": "tr", "blocks": [4], "separator": " " },
+          { "sliceId": "readers-kaddish-one-tr-six", "unit": "psukei.chatzi-kaddish@legacy-shabbat-morning", "channel": "tr", "blocks": [5], "separator": " " }
+        ]
+      }
+    },
+    {
+      "id": "7c087a0d-23cb-458e-af6a-3210982ff0d6",
+      "operatorName": "Readers Kaddish 2",
+      "layout": "left",
+      "archiveRecordSha256": "ba867d2dcd88c2cd6c93f0a6156181572dcde153b146ea77d6a2a39b31bb89fd",
+      "expectedTextsSha256": "d48a073e574d306a55ba113a4aff54d0aa5b88b57ebd8866807fad87bf3003ef",
+      "title": { "archiveField": "title" },
+      "accentTitle": { "archiveField": "titleAccent" },
+      "fields": {
+        "textMainheb": [
+          { "sliceId": "readers-kaddish-two-he", "unit": "psukei.chatzi-kaddish@legacy-shabbat-morning", "channel": "he", "blocks": [6, 7, 8, 9, 10, 11, 12, 13, 14], "separator": " " }
+        ],
+        "textMainEng": [
+          { "sliceId": "readers-kaddish-two-response-tr", "unit": "psukei.chatzi-kaddish@legacy-shabbat-morning", "channel": "tr", "blocks": [6, 7], "separator": " " },
+          { "sliceId": "readers-kaddish-two-closing-tr", "unit": "psukei.chatzi-kaddish@legacy-shabbat-morning", "channel": "tr", "blocks": [8, 9, 10, 11, 12, 13, 14], "separator": " " }
+        ]
+      }
+    },
+    {
+      "id": "1dc607cc-37fa-48d7-a13d-9030a28f332d",
+      "operatorName": "As We Bless",
+      "layout": "bottom",
+      "archiveRecordSha256": "6f7b51e70094ee63edeccf1f0fb602bd95709d287622fce5c79b3971b2250bd7",
+      "expectedTextsSha256": "fd576a1c9f1274b6b617a17259be50379236695694e013d24ced149a65f05ba2",
+      "originalReading": true,
+      "title": { "archiveField": "title" },
+      "fields": {
+        "textMain": [
+          { "sliceId": "as-we-bless-one", "unit": "shma.as-we-bless@legacy-shabbat-morning", "channel": "en", "role": "original", "blocks": [0], "separator": " " },
+          { "sliceId": "as-we-bless-two", "unit": "shma.as-we-bless@legacy-shabbat-morning", "channel": "en", "role": "original", "blocks": [1], "separator": " " },
+          { "sliceId": "as-we-bless-three", "unit": "shma.as-we-bless@legacy-shabbat-morning", "channel": "en", "role": "original", "blocks": [2], "separator": " " },
+          { "sliceId": "as-we-bless-four", "unit": "shma.as-we-bless@legacy-shabbat-morning", "channel": "en", "role": "original", "blocks": [3], "separator": " " }
+        ]
       }
     }
   ]

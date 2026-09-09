@@ -13,6 +13,7 @@ from typing import Any
 
 ROOT = Path(__file__).resolve().parents[1]
 UUID = re.compile(r"^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$")
+SLICE_ID = re.compile(r"^[a-z0-9]+(?:-[a-z0-9]+)*$")
 
 
 class ValidationError(RuntimeError):
@@ -41,8 +42,8 @@ def validate(mapping: dict[str, Any], catalog: list[dict[str, Any]]) -> None:
         raise ValidationError("first-service feed must remain legacy CRC Shabbat morning")
 
     mapped = mapping.get("cues", [])
-    if len(mapped) != 8 or len(catalog) != 8:
-        raise ValidationError("the bounded catalog must contain exactly current three plus proposed five cues")
+    if len(mapped) != 20 or len(catalog) != 20:
+        raise ValidationError("the bounded catalog must contain exactly twenty source-mapped cues")
     mapped_ids = [cue.get("id") for cue in mapped]
     catalog_ids = [cue.get("id") for cue in catalog]
     if len(set(mapped_ids)) != len(mapped_ids) or mapped_ids != catalog_ids:
@@ -84,8 +85,19 @@ def validate(mapping: dict[str, Any], catalog: list[dict[str, Any]]) -> None:
         if not source_specs:
             raise ValidationError(f"prayer cue has no explicit source slices: {cue_id}")
         channels = {spec.get("channel") for spec in source_specs}
-        if not channels.issubset({"he", "tr"}) or not {"he", "tr"}.issubset(channels):
+        if cue_map.get("originalReading"):
+            if channels != {"en"} or any(spec.get("role") != "original" for spec in source_specs):
+                raise ValidationError(
+                    f"original English reading must select only role=original English: {cue_id}"
+                )
+        elif channels != {"he", "tr"}:
             raise ValidationError(f"prayer cue must explicitly select Hebrew and transliteration: {cue_id}")
+        named_slices = [spec.get("sliceId") for spec in source_specs]
+        if any(named_slices):
+            if any(not isinstance(value, str) or not SLICE_ID.fullmatch(value) for value in named_slices):
+                raise ValidationError(f"every source selector must have a valid named slice: {cue_id}")
+            if len(named_slices) != len(set(named_slices)):
+                raise ValidationError(f"named source slices must be unique within cue: {cue_id}")
         for spec in source_specs:
             if spec["unit"] not in mapping.get("units", {}):
                 raise ValidationError(f"unhashed unit in {cue_id}: {spec['unit']}")
@@ -113,7 +125,7 @@ def main() -> int:
     args = parser.parse_args()
     try:
         validate(load(args.mapping), load(args.catalog))
-        print("validated 8 source-mapped cues")
+        print("validated 20 source-mapped cues")
         return 0
     except (KeyError, OSError, json.JSONDecodeError, ValidationError) as exc:
         print(f"cue validation failed: {exc}", file=sys.stderr)

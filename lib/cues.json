@@ -2985,5 +2985,5127 @@
         }
       }
     }
+  },
+  {
+    "id": "e1bd7775-ddf1-468b-b3f7-ac98f11df958",
+    "name": "Hareini",
+    "layout": "bottom",
+    "texts": {
+      "textMain": "Hareini m’kabeil alai et mitzvat haborei\nv’ahavta l’rei-acha kamocha\nהַרֵינִי מְקַבֵּל עָלַי אֶת מִצְוַת הַבּוֹרֵי וְאָהַבְתָּ לְרֵעֲךָ כָמוֹךָ",
+      "textTitle": "Hareini הריני"
+    },
+    "animations": [
+      {
+        "element": "Image",
+        "direction": "In",
+        "effect": {
+          "easing": {
+            "easing": "power1",
+            "inOut": "out"
+          },
+          "effect": "fade",
+          "property": "none"
+        },
+        "keyframes": [
+          0,
+          0.5
+        ]
+      },
+      {
+        "element": "Image",
+        "direction": "Out",
+        "effect": {
+          "easing": {
+            "easing": "power1",
+            "inOut": "in"
+          },
+          "effect": "fade",
+          "property": "none"
+        },
+        "keyframes": [
+          0,
+          0.5
+        ]
+      },
+      {
+        "element": "baseTitle",
+        "direction": "In",
+        "effect": {
+          "easing": {
+            "easing": "power3",
+            "inOut": "out"
+          },
+          "effect": "scale",
+          "property": "x"
+        },
+        "keyframes": [
+          0.42333333333333323,
+          1.1733333333333333
+        ]
+      },
+      {
+        "element": "baseTitle",
+        "direction": "Out",
+        "effect": {
+          "easing": {
+            "easing": "power2",
+            "inOut": "in"
+          },
+          "effect": "scale",
+          "property": "x"
+        },
+        "keyframes": [
+          0,
+          0.4
+        ]
+      },
+      {
+        "element": "baseTitleGrad",
+        "direction": "In",
+        "effect": {
+          "easing": {
+            "easing": "power3",
+            "inOut": "out"
+          },
+          "effect": "scale",
+          "property": "x"
+        },
+        "keyframes": [
+          0.4183333333333332,
+          1.1683333333333334
+        ]
+      },
+      {
+        "element": "baseTitleGrad",
+        "direction": "Out",
+        "effect": {
+          "easing": {
+            "easing": "power2",
+            "inOut": "in"
+          },
+          "effect": "scale",
+          "property": "x"
+        },
+        "keyframes": [
+          0,
+          0.4
+        ]
+      },
+      {
+        "element": "baseMain",
+        "direction": "In",
+        "effect": {
+          "easing": {
+            "easing": "power4",
+            "inOut": "out"
+          },
+          "effect": "scale",
+          "property": "x"
+        },
+        "keyframes": [
+          0.3,
+          1.1
+        ]
+      },
+      {
+        "element": "baseMain",
+        "direction": "Out",
+        "effect": {
+          "easing": {
+            "easing": "power2",
+            "inOut": "in"
+          },
+          "effect": "scale",
+          "property": "x"
+        },
+        "keyframes": [
+          0.1,
+          0.5
+        ]
+      },
+      {
+        "element": "accentLineBottom",
+        "direction": "In",
+        "effect": {
+          "easing": {
+            "easing": "power3",
+            "inOut": "out"
+          },
+          "effect": "scale",
+          "property": "x"
+        },
+        "keyframes": [
+          0.4,
+          1.15
+        ]
+      },
+      {
+        "element": "accentLineBottom",
+        "direction": "Out",
+        "effect": {
+          "easing": {
+            "easing": "power2",
+            "inOut": "in"
+          },
+          "effect": "scale",
+          "property": "x"
+        },
+        "keyframes": [
+          0,
+          0.45
+        ]
+      },
+      {
+        "element": "textMain",
+        "direction": "In",
+        "effect": {
+          "easing": {
+            "easing": "power1",
+            "inOut": "out"
+          },
+          "effect": "fade",
+          "property": "none"
+        },
+        "keyframes": [
+          0.7,
+          1.2
+        ]
+      },
+      {
+        "element": "textMain",
+        "direction": "Out",
+        "effect": {
+          "easing": {
+            "easing": "power1",
+            "inOut": "in"
+          },
+          "effect": "fade",
+          "property": "none"
+        },
+        "keyframes": [
+          0.1,
+          0.3
+        ]
+      },
+      {
+        "element": "textTitle",
+        "direction": "In",
+        "effect": {
+          "easing": {
+            "easing": "power2",
+            "inOut": "out"
+          },
+          "effect": "fade",
+          "property": "none"
+        },
+        "keyframes": [
+          0.7,
+          1.05
+        ]
+      },
+      {
+        "element": "textTitle",
+        "direction": "Out",
+        "effect": {
+          "easing": {
+            "easing": "power1",
+            "inOut": "in"
+          },
+          "effect": "fade",
+          "property": "none"
+        },
+        "keyframes": [
+          0.1,
+          0.21000000000000002
+        ]
+      },
+      {
+        "element": "logoGroup",
+        "direction": "In",
+        "effect": {
+          "easing": {
+            "easing": "power1",
+            "inOut": "out"
+          },
+          "effect": "scale",
+          "property": "xAndY"
+        },
+        "keyframes": [
+          0,
+          0.6999999999999995
+        ]
+      }
+    ],
+    "duration": {
+      "In": 1.2,
+      "Out": 0.5
+    },
+    "provenance": {
+      "kind": "generated legacy CRC source adapter",
+      "mappingSchemaVersion": 1,
+      "archive": {
+        "file": "master-composition-449398.json",
+        "sha256": "9e372260b251d87a126dfba57dbb699531c466338a9134263963f453db3f8f1c",
+        "compositionUuid": "e1bd7775-ddf1-468b-b3f7-ac98f11df958",
+        "compositionSha256": "44f0f84c14cbbb6abf460e9e4120488374986ab9ba19a5dcd26df4ba39b177fc",
+        "operatorName": "Hareini",
+        "textsSha256": "dde9734def70fa12dd380827389a478ac635ab18a0722a52c261475dfe90bb1d",
+        "role": "presentation and operator-identity evidence only"
+      },
+      "liturgy": {
+        "repository": "shireishabbat",
+        "repositoryCommit": "a3d88b6fccb5a87b1519d8bccefc78b5d52ef2e9",
+        "feed": "dist-app/legacy-shabbat-morning-feed.json",
+        "feedSha256": "ed92804dbe7279e9250feb58a4a06300b42b069c0f688a49fa1f5352d5430575",
+        "printing": {
+          "builtAt": "2026-09-06T14:47:09Z",
+          "gitSha": "de9171d-LICENSED",
+          "pages": 54
+        },
+        "license": {
+          "attribution": "Central Reform Congregation, St. Louis. Contains third-party liturgical texts used by permission for CRC's non-commercial use; 31 printed credits retained verbatim. Not licensed for redistribution or adaptation by others.",
+          "spdx": "CRC-internal, non-commercial, for the TEXT and its reuse: permission confirmed 2026-08-31 by CRC's executive director (R-0831-license-1), NOT CC — see attribution. THE WHOLE-BOOK PDF IS UNDER NO HOLD: CRC publishes this volume publicly on its own website and has done so for years, and Daniel so ruled on 2026-09-05 (R-0904-corpus-cw-93 §4). The PDF the app serves is CRC's own original file, byte for byte, not a re-typeset of it."
+        },
+        "unitIds": [
+          "awakening.hareini@legacy-shabbat-morning"
+        ],
+        "slices": {
+          "textMain": [
+            {
+              "sliceId": "hareini-acceptance-tr",
+              "unit": "awakening.hareini@legacy-shabbat-morning",
+              "channel": "tr",
+              "blocks": [
+                0,
+                1
+              ],
+              "separator": " "
+            },
+            {
+              "sliceId": "hareini-love-tr",
+              "unit": "awakening.hareini@legacy-shabbat-morning",
+              "channel": "tr",
+              "blocks": [
+                2
+              ],
+              "separator": " "
+            },
+            {
+              "sliceId": "hareini-complete-he",
+              "unit": "awakening.hareini@legacy-shabbat-morning",
+              "channel": "he",
+              "blocks": [
+                0,
+                1,
+                2
+              ],
+              "separator": " "
+            }
+          ]
+        }
+      }
+    }
+  },
+  {
+    "id": "d4298cbf-d17e-498b-ad70-d7900e899718",
+    "name": "Elohai Nshama",
+    "layout": "bottom",
+    "texts": {
+      "textMain": "Elohai n’shamah shenatata bi t’horah hi.\nאֱלֹהַי נְשָׁמָה שֶׁנָּתַתָּ בִּי טְהוֹרָה הִיא:",
+      "textTitle": "Elohai N'shama אֱלהַי. נְשָׁמָה"
+    },
+    "animations": [
+      {
+        "element": "accentLineBottom",
+        "direction": "In",
+        "effect": {
+          "easing": {
+            "easing": "power3",
+            "inOut": "out"
+          },
+          "effect": "scale",
+          "property": "x"
+        },
+        "keyframes": [
+          0.4,
+          1.15
+        ]
+      },
+      {
+        "element": "accentLineBottom",
+        "direction": "Out",
+        "effect": {
+          "easing": {
+            "easing": "power2",
+            "inOut": "in"
+          },
+          "effect": "scale",
+          "property": "x"
+        },
+        "keyframes": [
+          0,
+          0.45
+        ]
+      },
+      {
+        "element": "baseTitle",
+        "direction": "In",
+        "effect": {
+          "easing": {
+            "easing": "power3",
+            "inOut": "out"
+          },
+          "effect": "scale",
+          "property": "x"
+        },
+        "keyframes": [
+          0.42333333333333323,
+          1.1733333333333333
+        ]
+      },
+      {
+        "element": "baseTitle",
+        "direction": "Out",
+        "effect": {
+          "easing": {
+            "easing": "power2",
+            "inOut": "in"
+          },
+          "effect": "scale",
+          "property": "x"
+        },
+        "keyframes": [
+          0,
+          0.4
+        ]
+      },
+      {
+        "element": "baseMain",
+        "direction": "In",
+        "effect": {
+          "easing": {
+            "easing": "power4",
+            "inOut": "out"
+          },
+          "effect": "scale",
+          "property": "x"
+        },
+        "keyframes": [
+          0.3,
+          1.1
+        ]
+      },
+      {
+        "element": "baseMain",
+        "direction": "Out",
+        "effect": {
+          "easing": {
+            "easing": "power2",
+            "inOut": "in"
+          },
+          "effect": "scale",
+          "property": "x"
+        },
+        "keyframes": [
+          0.1,
+          0.5
+        ]
+      },
+      {
+        "element": "Image",
+        "direction": "In",
+        "effect": {
+          "easing": {
+            "easing": "power1",
+            "inOut": "out"
+          },
+          "effect": "fade",
+          "property": "none"
+        },
+        "keyframes": [
+          0,
+          0.5
+        ]
+      },
+      {
+        "element": "Image",
+        "direction": "Out",
+        "effect": {
+          "easing": {
+            "easing": "power1",
+            "inOut": "in"
+          },
+          "effect": "fade",
+          "property": "none"
+        },
+        "keyframes": [
+          0,
+          0.5
+        ]
+      },
+      {
+        "element": "baseTitleGrad",
+        "direction": "In",
+        "effect": {
+          "easing": {
+            "easing": "power3",
+            "inOut": "out"
+          },
+          "effect": "scale",
+          "property": "x"
+        },
+        "keyframes": [
+          0.4183333333333332,
+          1.1683333333333334
+        ]
+      },
+      {
+        "element": "baseTitleGrad",
+        "direction": "Out",
+        "effect": {
+          "easing": {
+            "easing": "power2",
+            "inOut": "in"
+          },
+          "effect": "scale",
+          "property": "x"
+        },
+        "keyframes": [
+          0,
+          0.4
+        ]
+      },
+      {
+        "element": "textMain",
+        "direction": "In",
+        "effect": {
+          "easing": {
+            "easing": "power1",
+            "inOut": "out"
+          },
+          "effect": "fade",
+          "property": "none"
+        },
+        "keyframes": [
+          0.7,
+          1.2
+        ]
+      },
+      {
+        "element": "textMain",
+        "direction": "Out",
+        "effect": {
+          "easing": {
+            "easing": "power1",
+            "inOut": "in"
+          },
+          "effect": "fade",
+          "property": "none"
+        },
+        "keyframes": [
+          0.1,
+          0.3
+        ]
+      },
+      {
+        "element": "textTitle",
+        "direction": "In",
+        "effect": {
+          "easing": {
+            "easing": "power2",
+            "inOut": "out"
+          },
+          "effect": "fade",
+          "property": "none"
+        },
+        "keyframes": [
+          0.7,
+          1.05
+        ]
+      },
+      {
+        "element": "textTitle",
+        "direction": "Out",
+        "effect": {
+          "easing": {
+            "easing": "power1",
+            "inOut": "in"
+          },
+          "effect": "fade",
+          "property": "none"
+        },
+        "keyframes": [
+          0.1,
+          0.21000000000000002
+        ]
+      },
+      {
+        "element": "logoGroup",
+        "direction": "In",
+        "effect": {
+          "easing": {
+            "easing": "power1",
+            "inOut": "out"
+          },
+          "effect": "scale",
+          "property": "xAndY"
+        },
+        "keyframes": [
+          0,
+          0.6999999999999995
+        ]
+      }
+    ],
+    "duration": {
+      "In": 1.2,
+      "Out": 0.5
+    },
+    "provenance": {
+      "kind": "generated legacy CRC source adapter",
+      "mappingSchemaVersion": 1,
+      "archive": {
+        "file": "master-composition-449398.json",
+        "sha256": "9e372260b251d87a126dfba57dbb699531c466338a9134263963f453db3f8f1c",
+        "compositionUuid": "d4298cbf-d17e-498b-ad70-d7900e899718",
+        "compositionSha256": "96123e92b9d41c11fe4c1a9c25b64ed046616117a398fe39378474f424761604",
+        "operatorName": "Elohai Nshama",
+        "textsSha256": "847d2b4ed2207731593f1d318f8d584eaf67b632d520708614e673a535ab14d8",
+        "role": "presentation and operator-identity evidence only"
+      },
+      "liturgy": {
+        "repository": "shireishabbat",
+        "repositoryCommit": "a3d88b6fccb5a87b1519d8bccefc78b5d52ef2e9",
+        "feed": "dist-app/legacy-shabbat-morning-feed.json",
+        "feedSha256": "ed92804dbe7279e9250feb58a4a06300b42b069c0f688a49fa1f5352d5430575",
+        "printing": {
+          "builtAt": "2026-09-06T14:47:09Z",
+          "gitSha": "de9171d-LICENSED",
+          "pages": 54
+        },
+        "license": {
+          "attribution": "Central Reform Congregation, St. Louis. Contains third-party liturgical texts used by permission for CRC's non-commercial use; 31 printed credits retained verbatim. Not licensed for redistribution or adaptation by others.",
+          "spdx": "CRC-internal, non-commercial, for the TEXT and its reuse: permission confirmed 2026-08-31 by CRC's executive director (R-0831-license-1), NOT CC — see attribution. THE WHOLE-BOOK PDF IS UNDER NO HOLD: CRC publishes this volume publicly on its own website and has done so for years, and Daniel so ruled on 2026-09-05 (R-0904-corpus-cw-93 §4). The PDF the app serves is CRC's own original file, byte for byte, not a re-typeset of it."
+        },
+        "unitIds": [
+          "awakening.elohai-nshamah@legacy-shabbat-morning"
+        ],
+        "slices": {
+          "textMain": [
+            {
+              "sliceId": "elohai-nshamah-tr",
+              "unit": "awakening.elohai-nshamah@legacy-shabbat-morning",
+              "channel": "tr",
+              "blocks": [
+                0
+              ],
+              "separator": " "
+            },
+            {
+              "sliceId": "elohai-nshamah-he",
+              "unit": "awakening.elohai-nshamah@legacy-shabbat-morning",
+              "channel": "he",
+              "blocks": [
+                0
+              ],
+              "separator": " "
+            }
+          ]
+        }
+      }
+    }
+  },
+  {
+    "id": "0135de3c-9a47-4fdc-91b9-99bacdf64970",
+    "name": "Birchot Hashachar 1",
+    "layout": "left",
+    "texts": {
+      "textMainheb": "בָּרוּךְ אַתָּה יְיָ אֱלֹהֵינוּ מֶלֶךְ הָעוֹלָם, שֶׁעָשַׂנִי בְּצַלְמוֹ:\nבָּרוּךְ אַתָּה יְיָ אֱלֹהֵינוּ מֶלֶךְ הָעוֹלָם, שֶׁעָשַׂנִי בַּת/בֶּן חוֹרִין:",
+      "textMainEng": "Baruch atah Adonai Eloheinu melech ha-olam, she-asani b’tsalmo.\nBaruch atah Adonai Eloheinu melech ha-olam, she-asani bat / ben chorin.",
+      "textTitle": "Birchot Hashachar",
+      "accentTextTitle": "ברכות השחר"
+    },
+    "animations": [
+      {
+        "element": "baseTitle",
+        "direction": "In",
+        "effect": {
+          "easing": {
+            "easing": "power3",
+            "inOut": "out"
+          },
+          "effect": "scale",
+          "property": "y"
+        },
+        "keyframes": [
+          0.4,
+          0.85
+        ]
+      },
+      {
+        "element": "baseTitle",
+        "direction": "Out",
+        "effect": {
+          "easing": {
+            "easing": "power2",
+            "inOut": "in"
+          },
+          "effect": "scale",
+          "property": "y"
+        },
+        "keyframes": [
+          0,
+          0.3
+        ]
+      },
+      {
+        "element": "textTitle",
+        "direction": "In",
+        "effect": {
+          "easing": {
+            "easing": "power3",
+            "inOut": "out"
+          },
+          "effect": "translate",
+          "property": "down"
+        },
+        "keyframes": [
+          0.4,
+          0.9
+        ]
+      },
+      {
+        "element": "textTitle",
+        "direction": "Out",
+        "effect": {
+          "easing": {
+            "easing": "power2",
+            "inOut": "in"
+          },
+          "effect": "fade",
+          "property": "none"
+        },
+        "keyframes": [
+          0,
+          0.15
+        ]
+      },
+      {
+        "element": "accentTextTitle",
+        "direction": "In",
+        "effect": {
+          "easing": {
+            "easing": "power3",
+            "inOut": "out"
+          },
+          "effect": "translate",
+          "property": "down"
+        },
+        "keyframes": [
+          0.3,
+          0.9
+        ]
+      },
+      {
+        "element": "accentTextTitle",
+        "direction": "Out",
+        "effect": {
+          "easing": {
+            "easing": "power1",
+            "inOut": "in"
+          },
+          "effect": "fade",
+          "property": "none"
+        },
+        "keyframes": [
+          0,
+          0.1
+        ]
+      },
+      {
+        "element": "baseTitleGrad",
+        "direction": "In",
+        "effect": {
+          "easing": {
+            "easing": "power3",
+            "inOut": "out"
+          },
+          "effect": "scale",
+          "property": "y"
+        },
+        "keyframes": [
+          0.4,
+          0.85
+        ]
+      },
+      {
+        "element": "baseTitleGrad",
+        "direction": "Out",
+        "effect": {
+          "easing": {
+            "easing": "power2",
+            "inOut": "in"
+          },
+          "effect": "scale",
+          "property": "y"
+        },
+        "keyframes": [
+          0,
+          0.3
+        ]
+      },
+      {
+        "element": "textMainheb",
+        "direction": "In",
+        "effect": {
+          "easing": {
+            "easing": "power3",
+            "inOut": "out"
+          },
+          "effect": "translate",
+          "property": "up"
+        },
+        "keyframes": [
+          0.4,
+          0.9500000000000003
+        ]
+      },
+      {
+        "element": "textMainheb",
+        "direction": "Out",
+        "effect": {
+          "easing": {
+            "easing": "power1",
+            "inOut": "in"
+          },
+          "effect": "translate",
+          "property": "up"
+        },
+        "keyframes": [
+          0.08833333333333335,
+          0.3883333333333333
+        ]
+      },
+      {
+        "element": "baseMain",
+        "direction": "In",
+        "effect": {
+          "easing": {
+            "easing": "power4",
+            "inOut": "out"
+          },
+          "effect": "scale",
+          "property": "y"
+        },
+        "keyframes": [
+          0,
+          0.8
+        ]
+      },
+      {
+        "element": "baseMain",
+        "direction": "Out",
+        "effect": {
+          "easing": {
+            "easing": "power2",
+            "inOut": "in"
+          },
+          "effect": "scale",
+          "property": "y"
+        },
+        "keyframes": [
+          0.10500000000000001,
+          0.5
+        ]
+      },
+      {
+        "element": "Image",
+        "direction": "In",
+        "effect": {
+          "easing": {
+            "easing": "power1",
+            "inOut": "out"
+          },
+          "effect": "fade",
+          "property": "none"
+        },
+        "keyframes": [
+          0,
+          0.5
+        ]
+      },
+      {
+        "element": "Image",
+        "direction": "Out",
+        "effect": {
+          "easing": {
+            "easing": "power1",
+            "inOut": "in"
+          },
+          "effect": "fade",
+          "property": "none"
+        },
+        "keyframes": [
+          0,
+          0.5
+        ]
+      },
+      {
+        "element": "textMainEng",
+        "direction": "In",
+        "effect": {
+          "easing": {
+            "easing": "power3",
+            "inOut": "out"
+          },
+          "effect": "translate",
+          "property": "up"
+        },
+        "keyframes": [
+          0.4,
+          0.9500000000000003
+        ]
+      },
+      {
+        "element": "textMainEng",
+        "direction": "Out",
+        "effect": {
+          "easing": {
+            "easing": "power1",
+            "inOut": "in"
+          },
+          "effect": "translate",
+          "property": "up"
+        },
+        "keyframes": [
+          0.08833333333333335,
+          0.3883333333333333
+        ]
+      },
+      {
+        "element": "HebText",
+        "direction": "In",
+        "effect": {
+          "easing": {
+            "easing": "power2",
+            "inOut": "out"
+          },
+          "effect": "fade",
+          "property": "none"
+        },
+        "keyframes": [
+          0.6,
+          1.0000000000000002
+        ]
+      },
+      {
+        "element": "HebText",
+        "direction": "Out",
+        "effect": {
+          "easing": {
+            "easing": "power2",
+            "inOut": "in"
+          },
+          "effect": "fade",
+          "property": "none"
+        },
+        "keyframes": [
+          0.046666666666666676,
+          0.14666666666666667
+        ]
+      },
+      {
+        "element": "titleGroup",
+        "direction": "In",
+        "effect": {
+          "easing": {
+            "easing": "power3",
+            "inOut": "out"
+          },
+          "effect": "fade",
+          "property": "none"
+        },
+        "keyframes": [
+          0.6,
+          0.9
+        ]
+      },
+      {
+        "element": "logoGroup",
+        "direction": "In",
+        "effect": {
+          "easing": {
+            "easing": "power1",
+            "inOut": "out"
+          },
+          "effect": "scale",
+          "property": "xAndY"
+        },
+        "keyframes": [
+          0,
+          0.6999999999999995
+        ]
+      },
+      {
+        "element": "EngText",
+        "direction": "In",
+        "effect": {
+          "easing": {
+            "easing": "power2",
+            "inOut": "out"
+          },
+          "effect": "fade",
+          "property": "none"
+        },
+        "keyframes": [
+          0.6,
+          1.0000000000000002
+        ]
+      },
+      {
+        "element": "EngText",
+        "direction": "Out",
+        "effect": {
+          "easing": {
+            "easing": "power2",
+            "inOut": "in"
+          },
+          "effect": "fade",
+          "property": "none"
+        },
+        "keyframes": [
+          0.046666666666666676,
+          0.14666666666666667
+        ]
+      }
+    ],
+    "duration": {
+      "In": 1.0000000000000002,
+      "Out": 0.5
+    },
+    "provenance": {
+      "kind": "generated legacy CRC source adapter",
+      "mappingSchemaVersion": 1,
+      "archive": {
+        "file": "master-composition-449398.json",
+        "sha256": "9e372260b251d87a126dfba57dbb699531c466338a9134263963f453db3f8f1c",
+        "compositionUuid": "0135de3c-9a47-4fdc-91b9-99bacdf64970",
+        "compositionSha256": "bc0a41aec21af9ea265a3a7fe9c73e93a50acdcd5143ad3338ffc7d77cea1b88",
+        "operatorName": "Birchot Hashachar 1",
+        "textsSha256": "57c6b521eec20abda40f9ac8efeceaa971fd4f7bca1309a2b89eba00ffc6064c",
+        "role": "presentation and operator-identity evidence only"
+      },
+      "liturgy": {
+        "repository": "shireishabbat",
+        "repositoryCommit": "a3d88b6fccb5a87b1519d8bccefc78b5d52ef2e9",
+        "feed": "dist-app/legacy-shabbat-morning-feed.json",
+        "feedSha256": "ed92804dbe7279e9250feb58a4a06300b42b069c0f688a49fa1f5352d5430575",
+        "printing": {
+          "builtAt": "2026-09-06T14:47:09Z",
+          "gitSha": "de9171d-LICENSED",
+          "pages": 54
+        },
+        "license": {
+          "attribution": "Central Reform Congregation, St. Louis. Contains third-party liturgical texts used by permission for CRC's non-commercial use; 31 printed credits retained verbatim. Not licensed for redistribution or adaptation by others.",
+          "spdx": "CRC-internal, non-commercial, for the TEXT and its reuse: permission confirmed 2026-08-31 by CRC's executive director (R-0831-license-1), NOT CC — see attribution. THE WHOLE-BOOK PDF IS UNDER NO HOLD: CRC publishes this volume publicly on its own website and has done so for years, and Daniel so ruled on 2026-09-05 (R-0904-corpus-cw-93 §4). The PDF the app serves is CRC's own original file, byte for byte, not a re-typeset of it."
+        },
+        "unitIds": [
+          "awakening.birchot-hashachar@legacy-shabbat-morning"
+        ],
+        "slices": {
+          "textMainheb": [
+            {
+              "sliceId": "birchot-image-he",
+              "unit": "awakening.birchot-hashachar@legacy-shabbat-morning",
+              "channel": "he",
+              "blocks": [
+                0,
+                1
+              ],
+              "separator": " "
+            },
+            {
+              "sliceId": "birchot-freedom-he",
+              "unit": "awakening.birchot-hashachar@legacy-shabbat-morning",
+              "channel": "he",
+              "blocks": [
+                3,
+                4
+              ],
+              "separator": " "
+            }
+          ],
+          "textMainEng": [
+            {
+              "sliceId": "birchot-image-tr",
+              "unit": "awakening.birchot-hashachar@legacy-shabbat-morning",
+              "channel": "tr",
+              "blocks": [
+                0,
+                1
+              ],
+              "separator": " "
+            },
+            {
+              "sliceId": "birchot-freedom-tr",
+              "unit": "awakening.birchot-hashachar@legacy-shabbat-morning",
+              "channel": "tr",
+              "blocks": [
+                3,
+                4
+              ],
+              "separator": " "
+            }
+          ]
+        }
+      }
+    }
+  },
+  {
+    "id": "b60c1abc-2257-4316-9ae4-2a03f72133d6",
+    "name": "Birchot Hashachar 2",
+    "layout": "left",
+    "texts": {
+      "textMainheb": "בָּרוּךְ אַתָּה יְיָ אֱלֹהֵינוּ מֶלֶךְ הָעוֹלָם, שֶׁעָשַׂנִי יִשְׂרָאֵל:\nבָּרוּךְ אַתָּה יְיָ אֱלֹהֵינוּ מֶלֶךְ הָעוֹלָם, פּוֹקֵחַ עִוְרִים:",
+      "textMainEng": "Baruch atah Adonai Eloheinu melech ha-olam, she-asani Yisraeil. *\nBaruch atah Adonai Eloheinu melech ha-olam, pokei-ach ivrim.",
+      "textTitle": "Birchot Hashachar",
+      "accentTextTitle": "ברכות השחר"
+    },
+    "animations": [
+      {
+        "element": "baseTitle",
+        "direction": "In",
+        "effect": {
+          "easing": {
+            "easing": "power3",
+            "inOut": "out"
+          },
+          "effect": "scale",
+          "property": "y"
+        },
+        "keyframes": [
+          0.4,
+          0.85
+        ]
+      },
+      {
+        "element": "baseTitle",
+        "direction": "Out",
+        "effect": {
+          "easing": {
+            "easing": "power2",
+            "inOut": "in"
+          },
+          "effect": "scale",
+          "property": "y"
+        },
+        "keyframes": [
+          0,
+          0.3
+        ]
+      },
+      {
+        "element": "textTitle",
+        "direction": "In",
+        "effect": {
+          "easing": {
+            "easing": "power3",
+            "inOut": "out"
+          },
+          "effect": "translate",
+          "property": "down"
+        },
+        "keyframes": [
+          0.4,
+          0.9
+        ]
+      },
+      {
+        "element": "textTitle",
+        "direction": "Out",
+        "effect": {
+          "easing": {
+            "easing": "power2",
+            "inOut": "in"
+          },
+          "effect": "fade",
+          "property": "none"
+        },
+        "keyframes": [
+          0,
+          0.15
+        ]
+      },
+      {
+        "element": "accentTextTitle",
+        "direction": "In",
+        "effect": {
+          "easing": {
+            "easing": "power3",
+            "inOut": "out"
+          },
+          "effect": "translate",
+          "property": "down"
+        },
+        "keyframes": [
+          0.3,
+          0.9
+        ]
+      },
+      {
+        "element": "accentTextTitle",
+        "direction": "Out",
+        "effect": {
+          "easing": {
+            "easing": "power1",
+            "inOut": "in"
+          },
+          "effect": "fade",
+          "property": "none"
+        },
+        "keyframes": [
+          0,
+          0.1
+        ]
+      },
+      {
+        "element": "baseTitleGrad",
+        "direction": "In",
+        "effect": {
+          "easing": {
+            "easing": "power3",
+            "inOut": "out"
+          },
+          "effect": "scale",
+          "property": "y"
+        },
+        "keyframes": [
+          0.4,
+          0.85
+        ]
+      },
+      {
+        "element": "baseTitleGrad",
+        "direction": "Out",
+        "effect": {
+          "easing": {
+            "easing": "power2",
+            "inOut": "in"
+          },
+          "effect": "scale",
+          "property": "y"
+        },
+        "keyframes": [
+          0,
+          0.3
+        ]
+      },
+      {
+        "element": "textMainheb",
+        "direction": "In",
+        "effect": {
+          "easing": {
+            "easing": "power3",
+            "inOut": "out"
+          },
+          "effect": "translate",
+          "property": "up"
+        },
+        "keyframes": [
+          0.4,
+          0.9500000000000003
+        ]
+      },
+      {
+        "element": "textMainheb",
+        "direction": "Out",
+        "effect": {
+          "easing": {
+            "easing": "power1",
+            "inOut": "in"
+          },
+          "effect": "translate",
+          "property": "up"
+        },
+        "keyframes": [
+          0.08833333333333335,
+          0.3883333333333333
+        ]
+      },
+      {
+        "element": "baseMain",
+        "direction": "In",
+        "effect": {
+          "easing": {
+            "easing": "power4",
+            "inOut": "out"
+          },
+          "effect": "scale",
+          "property": "y"
+        },
+        "keyframes": [
+          0,
+          0.8
+        ]
+      },
+      {
+        "element": "baseMain",
+        "direction": "Out",
+        "effect": {
+          "easing": {
+            "easing": "power2",
+            "inOut": "in"
+          },
+          "effect": "scale",
+          "property": "y"
+        },
+        "keyframes": [
+          0.10500000000000001,
+          0.5
+        ]
+      },
+      {
+        "element": "Image",
+        "direction": "In",
+        "effect": {
+          "easing": {
+            "easing": "power1",
+            "inOut": "out"
+          },
+          "effect": "fade",
+          "property": "none"
+        },
+        "keyframes": [
+          0,
+          0.5
+        ]
+      },
+      {
+        "element": "Image",
+        "direction": "Out",
+        "effect": {
+          "easing": {
+            "easing": "power1",
+            "inOut": "in"
+          },
+          "effect": "fade",
+          "property": "none"
+        },
+        "keyframes": [
+          0,
+          0.5
+        ]
+      },
+      {
+        "element": "textMainEng",
+        "direction": "In",
+        "effect": {
+          "easing": {
+            "easing": "power3",
+            "inOut": "out"
+          },
+          "effect": "translate",
+          "property": "up"
+        },
+        "keyframes": [
+          0.4,
+          0.9500000000000003
+        ]
+      },
+      {
+        "element": "textMainEng",
+        "direction": "Out",
+        "effect": {
+          "easing": {
+            "easing": "power1",
+            "inOut": "in"
+          },
+          "effect": "translate",
+          "property": "up"
+        },
+        "keyframes": [
+          0.08833333333333335,
+          0.3883333333333333
+        ]
+      },
+      {
+        "element": "HebText",
+        "direction": "In",
+        "effect": {
+          "easing": {
+            "easing": "power2",
+            "inOut": "out"
+          },
+          "effect": "fade",
+          "property": "none"
+        },
+        "keyframes": [
+          0.6,
+          1.0000000000000002
+        ]
+      },
+      {
+        "element": "HebText",
+        "direction": "Out",
+        "effect": {
+          "easing": {
+            "easing": "power2",
+            "inOut": "in"
+          },
+          "effect": "fade",
+          "property": "none"
+        },
+        "keyframes": [
+          0.046666666666666676,
+          0.14666666666666667
+        ]
+      },
+      {
+        "element": "titleGroup",
+        "direction": "In",
+        "effect": {
+          "easing": {
+            "easing": "power3",
+            "inOut": "out"
+          },
+          "effect": "fade",
+          "property": "none"
+        },
+        "keyframes": [
+          0.6,
+          0.9
+        ]
+      },
+      {
+        "element": "logoGroup",
+        "direction": "In",
+        "effect": {
+          "easing": {
+            "easing": "power1",
+            "inOut": "out"
+          },
+          "effect": "scale",
+          "property": "xAndY"
+        },
+        "keyframes": [
+          0,
+          0.6999999999999995
+        ]
+      },
+      {
+        "element": "EngText",
+        "direction": "In",
+        "effect": {
+          "easing": {
+            "easing": "power2",
+            "inOut": "out"
+          },
+          "effect": "fade",
+          "property": "none"
+        },
+        "keyframes": [
+          0.6,
+          1.0000000000000002
+        ]
+      },
+      {
+        "element": "EngText",
+        "direction": "Out",
+        "effect": {
+          "easing": {
+            "easing": "power2",
+            "inOut": "in"
+          },
+          "effect": "fade",
+          "property": "none"
+        },
+        "keyframes": [
+          0.046666666666666676,
+          0.14666666666666667
+        ]
+      }
+    ],
+    "duration": {
+      "In": 1.0000000000000002,
+      "Out": 0.5
+    },
+    "provenance": {
+      "kind": "generated legacy CRC source adapter",
+      "mappingSchemaVersion": 1,
+      "archive": {
+        "file": "master-composition-449398.json",
+        "sha256": "9e372260b251d87a126dfba57dbb699531c466338a9134263963f453db3f8f1c",
+        "compositionUuid": "b60c1abc-2257-4316-9ae4-2a03f72133d6",
+        "compositionSha256": "2d6f83d54106b57d1a8a77c49eb78513f3c23bda4996976b2dde5b6e5b72da82",
+        "operatorName": "Birchot Hashachar 2",
+        "textsSha256": "98a71914cf2a88345210b003280a6348fb3d9a312c675aa146587e46a2c0abb7",
+        "role": "presentation and operator-identity evidence only"
+      },
+      "liturgy": {
+        "repository": "shireishabbat",
+        "repositoryCommit": "a3d88b6fccb5a87b1519d8bccefc78b5d52ef2e9",
+        "feed": "dist-app/legacy-shabbat-morning-feed.json",
+        "feedSha256": "ed92804dbe7279e9250feb58a4a06300b42b069c0f688a49fa1f5352d5430575",
+        "printing": {
+          "builtAt": "2026-09-06T14:47:09Z",
+          "gitSha": "de9171d-LICENSED",
+          "pages": 54
+        },
+        "license": {
+          "attribution": "Central Reform Congregation, St. Louis. Contains third-party liturgical texts used by permission for CRC's non-commercial use; 31 printed credits retained verbatim. Not licensed for redistribution or adaptation by others.",
+          "spdx": "CRC-internal, non-commercial, for the TEXT and its reuse: permission confirmed 2026-08-31 by CRC's executive director (R-0831-license-1), NOT CC — see attribution. THE WHOLE-BOOK PDF IS UNDER NO HOLD: CRC publishes this volume publicly on its own website and has done so for years, and Daniel so ruled on 2026-09-05 (R-0904-corpus-cw-93 §4). The PDF the app serves is CRC's own original file, byte for byte, not a re-typeset of it."
+        },
+        "unitIds": [
+          "awakening.birchot-hashachar@legacy-shabbat-morning"
+        ],
+        "slices": {
+          "textMainheb": [
+            {
+              "sliceId": "birchot-yisrael-he",
+              "unit": "awakening.birchot-hashachar@legacy-shabbat-morning",
+              "channel": "he",
+              "blocks": [
+                6,
+                7
+              ],
+              "separator": " "
+            },
+            {
+              "sliceId": "birchot-sight-he",
+              "unit": "awakening.birchot-hashachar@legacy-shabbat-morning",
+              "channel": "he",
+              "blocks": [
+                10,
+                11
+              ],
+              "separator": " "
+            }
+          ],
+          "textMainEng": [
+            {
+              "sliceId": "birchot-yisrael-tr",
+              "unit": "awakening.birchot-hashachar@legacy-shabbat-morning",
+              "channel": "tr",
+              "blocks": [
+                6,
+                7
+              ],
+              "separator": " "
+            },
+            {
+              "sliceId": "birchot-sight-tr",
+              "unit": "awakening.birchot-hashachar@legacy-shabbat-morning",
+              "channel": "tr",
+              "blocks": [
+                10,
+                11
+              ],
+              "separator": " "
+            }
+          ]
+        }
+      }
+    }
+  },
+  {
+    "id": "ceb24b8c-d9a7-4607-99bf-c0962e2a88ff",
+    "name": "Birchot Hashachar 3",
+    "layout": "left",
+    "texts": {
+      "textMainheb": "בָּרוּךְ אַתָּה יְיָ אֱלֹהֵינוּ מֶלֶךְ הָעוֹלָם, מַלְבִּישׁ עֲרֻמִּים:\nבָּרוּךְ אַתָּה יְיָ אֱלֹהֵינוּ מֶלֶךְ הָעוֹלָם, הַנּוֹתֵן לַיָּעֵף כֹּחַ:",
+      "textMainEng": "Baruch atah Adonai Eloheinu melech ha-olam, malbish arumim.\nBaruch atah Adonai Eloheinu melech ha-olam, hanotein layaeif koach.",
+      "textTitle": "Birchot Hashachar",
+      "accentTextTitle": "ברכות השחר"
+    },
+    "animations": [
+      {
+        "element": "baseTitle",
+        "direction": "In",
+        "effect": {
+          "easing": {
+            "easing": "power3",
+            "inOut": "out"
+          },
+          "effect": "scale",
+          "property": "y"
+        },
+        "keyframes": [
+          0.4,
+          0.85
+        ]
+      },
+      {
+        "element": "baseTitle",
+        "direction": "Out",
+        "effect": {
+          "easing": {
+            "easing": "power2",
+            "inOut": "in"
+          },
+          "effect": "scale",
+          "property": "y"
+        },
+        "keyframes": [
+          0,
+          0.3
+        ]
+      },
+      {
+        "element": "textTitle",
+        "direction": "In",
+        "effect": {
+          "easing": {
+            "easing": "power3",
+            "inOut": "out"
+          },
+          "effect": "translate",
+          "property": "down"
+        },
+        "keyframes": [
+          0.4,
+          0.9
+        ]
+      },
+      {
+        "element": "textTitle",
+        "direction": "Out",
+        "effect": {
+          "easing": {
+            "easing": "power2",
+            "inOut": "in"
+          },
+          "effect": "fade",
+          "property": "none"
+        },
+        "keyframes": [
+          0,
+          0.15
+        ]
+      },
+      {
+        "element": "accentTextTitle",
+        "direction": "In",
+        "effect": {
+          "easing": {
+            "easing": "power3",
+            "inOut": "out"
+          },
+          "effect": "translate",
+          "property": "down"
+        },
+        "keyframes": [
+          0.3,
+          0.9
+        ]
+      },
+      {
+        "element": "accentTextTitle",
+        "direction": "Out",
+        "effect": {
+          "easing": {
+            "easing": "power1",
+            "inOut": "in"
+          },
+          "effect": "fade",
+          "property": "none"
+        },
+        "keyframes": [
+          0,
+          0.1
+        ]
+      },
+      {
+        "element": "baseTitleGrad",
+        "direction": "In",
+        "effect": {
+          "easing": {
+            "easing": "power3",
+            "inOut": "out"
+          },
+          "effect": "scale",
+          "property": "y"
+        },
+        "keyframes": [
+          0.4,
+          0.85
+        ]
+      },
+      {
+        "element": "baseTitleGrad",
+        "direction": "Out",
+        "effect": {
+          "easing": {
+            "easing": "power2",
+            "inOut": "in"
+          },
+          "effect": "scale",
+          "property": "y"
+        },
+        "keyframes": [
+          0,
+          0.3
+        ]
+      },
+      {
+        "element": "textMainheb",
+        "direction": "In",
+        "effect": {
+          "easing": {
+            "easing": "power3",
+            "inOut": "out"
+          },
+          "effect": "translate",
+          "property": "up"
+        },
+        "keyframes": [
+          0.4,
+          0.9500000000000003
+        ]
+      },
+      {
+        "element": "textMainheb",
+        "direction": "Out",
+        "effect": {
+          "easing": {
+            "easing": "power1",
+            "inOut": "in"
+          },
+          "effect": "translate",
+          "property": "up"
+        },
+        "keyframes": [
+          0.08833333333333335,
+          0.3883333333333333
+        ]
+      },
+      {
+        "element": "baseMain",
+        "direction": "In",
+        "effect": {
+          "easing": {
+            "easing": "power4",
+            "inOut": "out"
+          },
+          "effect": "scale",
+          "property": "y"
+        },
+        "keyframes": [
+          0,
+          0.8
+        ]
+      },
+      {
+        "element": "baseMain",
+        "direction": "Out",
+        "effect": {
+          "easing": {
+            "easing": "power2",
+            "inOut": "in"
+          },
+          "effect": "scale",
+          "property": "y"
+        },
+        "keyframes": [
+          0.10500000000000001,
+          0.5
+        ]
+      },
+      {
+        "element": "Image",
+        "direction": "In",
+        "effect": {
+          "easing": {
+            "easing": "power1",
+            "inOut": "out"
+          },
+          "effect": "fade",
+          "property": "none"
+        },
+        "keyframes": [
+          0,
+          0.5
+        ]
+      },
+      {
+        "element": "Image",
+        "direction": "Out",
+        "effect": {
+          "easing": {
+            "easing": "power1",
+            "inOut": "in"
+          },
+          "effect": "fade",
+          "property": "none"
+        },
+        "keyframes": [
+          0,
+          0.5
+        ]
+      },
+      {
+        "element": "textMainEng",
+        "direction": "In",
+        "effect": {
+          "easing": {
+            "easing": "power3",
+            "inOut": "out"
+          },
+          "effect": "translate",
+          "property": "up"
+        },
+        "keyframes": [
+          0.4,
+          0.9500000000000003
+        ]
+      },
+      {
+        "element": "textMainEng",
+        "direction": "Out",
+        "effect": {
+          "easing": {
+            "easing": "power1",
+            "inOut": "in"
+          },
+          "effect": "translate",
+          "property": "up"
+        },
+        "keyframes": [
+          0.08833333333333335,
+          0.3883333333333333
+        ]
+      },
+      {
+        "element": "HebText",
+        "direction": "In",
+        "effect": {
+          "easing": {
+            "easing": "power2",
+            "inOut": "out"
+          },
+          "effect": "fade",
+          "property": "none"
+        },
+        "keyframes": [
+          0.6,
+          1.0000000000000002
+        ]
+      },
+      {
+        "element": "HebText",
+        "direction": "Out",
+        "effect": {
+          "easing": {
+            "easing": "power2",
+            "inOut": "in"
+          },
+          "effect": "fade",
+          "property": "none"
+        },
+        "keyframes": [
+          0.046666666666666676,
+          0.14666666666666667
+        ]
+      },
+      {
+        "element": "titleGroup",
+        "direction": "In",
+        "effect": {
+          "easing": {
+            "easing": "power3",
+            "inOut": "out"
+          },
+          "effect": "fade",
+          "property": "none"
+        },
+        "keyframes": [
+          0.6,
+          0.9
+        ]
+      },
+      {
+        "element": "logoGroup",
+        "direction": "In",
+        "effect": {
+          "easing": {
+            "easing": "power1",
+            "inOut": "out"
+          },
+          "effect": "scale",
+          "property": "xAndY"
+        },
+        "keyframes": [
+          0,
+          0.6999999999999995
+        ]
+      },
+      {
+        "element": "EngText",
+        "direction": "In",
+        "effect": {
+          "easing": {
+            "easing": "power2",
+            "inOut": "out"
+          },
+          "effect": "fade",
+          "property": "none"
+        },
+        "keyframes": [
+          0.6,
+          1.0000000000000002
+        ]
+      },
+      {
+        "element": "EngText",
+        "direction": "Out",
+        "effect": {
+          "easing": {
+            "easing": "power2",
+            "inOut": "in"
+          },
+          "effect": "fade",
+          "property": "none"
+        },
+        "keyframes": [
+          0.046666666666666676,
+          0.14666666666666667
+        ]
+      }
+    ],
+    "duration": {
+      "In": 1.0000000000000002,
+      "Out": 0.5
+    },
+    "provenance": {
+      "kind": "generated legacy CRC source adapter",
+      "mappingSchemaVersion": 1,
+      "archive": {
+        "file": "master-composition-449398.json",
+        "sha256": "9e372260b251d87a126dfba57dbb699531c466338a9134263963f453db3f8f1c",
+        "compositionUuid": "ceb24b8c-d9a7-4607-99bf-c0962e2a88ff",
+        "compositionSha256": "885e9e3f07cbb35474304801d1ccd544b218225b6e1a566ed263605693b34916",
+        "operatorName": "Birchot Hashachar 3",
+        "textsSha256": "b1bf80a25c8eb690c990086242a4cfa601e6193dc806cfb65ac6657d469302f5",
+        "role": "presentation and operator-identity evidence only"
+      },
+      "liturgy": {
+        "repository": "shireishabbat",
+        "repositoryCommit": "a3d88b6fccb5a87b1519d8bccefc78b5d52ef2e9",
+        "feed": "dist-app/legacy-shabbat-morning-feed.json",
+        "feedSha256": "ed92804dbe7279e9250feb58a4a06300b42b069c0f688a49fa1f5352d5430575",
+        "printing": {
+          "builtAt": "2026-09-06T14:47:09Z",
+          "gitSha": "de9171d-LICENSED",
+          "pages": 54
+        },
+        "license": {
+          "attribution": "Central Reform Congregation, St. Louis. Contains third-party liturgical texts used by permission for CRC's non-commercial use; 31 printed credits retained verbatim. Not licensed for redistribution or adaptation by others.",
+          "spdx": "CRC-internal, non-commercial, for the TEXT and its reuse: permission confirmed 2026-08-31 by CRC's executive director (R-0831-license-1), NOT CC — see attribution. THE WHOLE-BOOK PDF IS UNDER NO HOLD: CRC publishes this volume publicly on its own website and has done so for years, and Daniel so ruled on 2026-09-05 (R-0904-corpus-cw-93 §4). The PDF the app serves is CRC's own original file, byte for byte, not a re-typeset of it."
+        },
+        "unitIds": [
+          "awakening.birchot-hashachar@legacy-shabbat-morning"
+        ],
+        "slices": {
+          "textMainheb": [
+            {
+              "sliceId": "birchot-clothing-he",
+              "unit": "awakening.birchot-hashachar@legacy-shabbat-morning",
+              "channel": "he",
+              "blocks": [
+                13,
+                14
+              ],
+              "separator": " "
+            },
+            {
+              "sliceId": "birchot-strength-he",
+              "unit": "awakening.birchot-hashachar@legacy-shabbat-morning",
+              "channel": "he",
+              "blocks": [
+                16,
+                17
+              ],
+              "separator": " "
+            }
+          ],
+          "textMainEng": [
+            {
+              "sliceId": "birchot-clothing-tr",
+              "unit": "awakening.birchot-hashachar@legacy-shabbat-morning",
+              "channel": "tr",
+              "blocks": [
+                13,
+                14
+              ],
+              "separator": " "
+            },
+            {
+              "sliceId": "birchot-strength-tr",
+              "unit": "awakening.birchot-hashachar@legacy-shabbat-morning",
+              "channel": "tr",
+              "blocks": [
+                16,
+                17
+              ],
+              "separator": " "
+            }
+          ]
+        }
+      }
+    }
+  },
+  {
+    "id": "2b3da7a3-dc18-46f1-a792-13a4771b343c",
+    "name": "Birchot Hashachar 4",
+    "layout": "left",
+    "texts": {
+      "textMainheb": "בָּרוּךְ אַתָּה יְיָ אֱלֹהֵינוּ מֶלֶךְ הָעוֹלָם, אֲשֶׁר הֵכִין מִצְעֲדֵי גָבֶר:\nבָּרוּךְ אַתָּה יְיָ אֱלֹהֵינוּ מֶלֶךְ הָעוֹלָם, . . .",
+      "textMainEng": "Baruch atah Adonai Eloheinu melech ha-olam, asher heichin mitz’adei gaver.\nBaruch atah Adonai Eloheinu melech ha-olam, . . .",
+      "textTitle": "Birchot Hashachar",
+      "accentTextTitle": "ברכות השחר"
+    },
+    "animations": [
+      {
+        "element": "baseTitle",
+        "direction": "In",
+        "effect": {
+          "easing": {
+            "easing": "power3",
+            "inOut": "out"
+          },
+          "effect": "scale",
+          "property": "y"
+        },
+        "keyframes": [
+          0.4,
+          0.85
+        ]
+      },
+      {
+        "element": "baseTitle",
+        "direction": "Out",
+        "effect": {
+          "easing": {
+            "easing": "power2",
+            "inOut": "in"
+          },
+          "effect": "scale",
+          "property": "y"
+        },
+        "keyframes": [
+          0,
+          0.3
+        ]
+      },
+      {
+        "element": "textTitle",
+        "direction": "In",
+        "effect": {
+          "easing": {
+            "easing": "power3",
+            "inOut": "out"
+          },
+          "effect": "translate",
+          "property": "down"
+        },
+        "keyframes": [
+          0.4,
+          0.9
+        ]
+      },
+      {
+        "element": "textTitle",
+        "direction": "Out",
+        "effect": {
+          "easing": {
+            "easing": "power2",
+            "inOut": "in"
+          },
+          "effect": "fade",
+          "property": "none"
+        },
+        "keyframes": [
+          0,
+          0.15
+        ]
+      },
+      {
+        "element": "accentTextTitle",
+        "direction": "In",
+        "effect": {
+          "easing": {
+            "easing": "power3",
+            "inOut": "out"
+          },
+          "effect": "translate",
+          "property": "down"
+        },
+        "keyframes": [
+          0.3,
+          0.9
+        ]
+      },
+      {
+        "element": "accentTextTitle",
+        "direction": "Out",
+        "effect": {
+          "easing": {
+            "easing": "power1",
+            "inOut": "in"
+          },
+          "effect": "fade",
+          "property": "none"
+        },
+        "keyframes": [
+          0,
+          0.1
+        ]
+      },
+      {
+        "element": "baseTitleGrad",
+        "direction": "In",
+        "effect": {
+          "easing": {
+            "easing": "power3",
+            "inOut": "out"
+          },
+          "effect": "scale",
+          "property": "y"
+        },
+        "keyframes": [
+          0.4,
+          0.85
+        ]
+      },
+      {
+        "element": "baseTitleGrad",
+        "direction": "Out",
+        "effect": {
+          "easing": {
+            "easing": "power2",
+            "inOut": "in"
+          },
+          "effect": "scale",
+          "property": "y"
+        },
+        "keyframes": [
+          0,
+          0.3
+        ]
+      },
+      {
+        "element": "textMainheb",
+        "direction": "In",
+        "effect": {
+          "easing": {
+            "easing": "power3",
+            "inOut": "out"
+          },
+          "effect": "translate",
+          "property": "up"
+        },
+        "keyframes": [
+          0.4,
+          0.9500000000000003
+        ]
+      },
+      {
+        "element": "textMainheb",
+        "direction": "Out",
+        "effect": {
+          "easing": {
+            "easing": "power1",
+            "inOut": "in"
+          },
+          "effect": "translate",
+          "property": "up"
+        },
+        "keyframes": [
+          0.08833333333333335,
+          0.3883333333333333
+        ]
+      },
+      {
+        "element": "baseMain",
+        "direction": "In",
+        "effect": {
+          "easing": {
+            "easing": "power4",
+            "inOut": "out"
+          },
+          "effect": "scale",
+          "property": "y"
+        },
+        "keyframes": [
+          0,
+          0.8
+        ]
+      },
+      {
+        "element": "baseMain",
+        "direction": "Out",
+        "effect": {
+          "easing": {
+            "easing": "power2",
+            "inOut": "in"
+          },
+          "effect": "scale",
+          "property": "y"
+        },
+        "keyframes": [
+          0.10500000000000001,
+          0.5
+        ]
+      },
+      {
+        "element": "Image",
+        "direction": "In",
+        "effect": {
+          "easing": {
+            "easing": "power1",
+            "inOut": "out"
+          },
+          "effect": "fade",
+          "property": "none"
+        },
+        "keyframes": [
+          0,
+          0.5
+        ]
+      },
+      {
+        "element": "Image",
+        "direction": "Out",
+        "effect": {
+          "easing": {
+            "easing": "power1",
+            "inOut": "in"
+          },
+          "effect": "fade",
+          "property": "none"
+        },
+        "keyframes": [
+          0,
+          0.5
+        ]
+      },
+      {
+        "element": "textMainEng",
+        "direction": "In",
+        "effect": {
+          "easing": {
+            "easing": "power3",
+            "inOut": "out"
+          },
+          "effect": "translate",
+          "property": "up"
+        },
+        "keyframes": [
+          0.4,
+          0.9500000000000003
+        ]
+      },
+      {
+        "element": "textMainEng",
+        "direction": "Out",
+        "effect": {
+          "easing": {
+            "easing": "power1",
+            "inOut": "in"
+          },
+          "effect": "translate",
+          "property": "up"
+        },
+        "keyframes": [
+          0.08833333333333335,
+          0.3883333333333333
+        ]
+      },
+      {
+        "element": "HebText",
+        "direction": "In",
+        "effect": {
+          "easing": {
+            "easing": "power2",
+            "inOut": "out"
+          },
+          "effect": "fade",
+          "property": "none"
+        },
+        "keyframes": [
+          0.6,
+          1.0000000000000002
+        ]
+      },
+      {
+        "element": "HebText",
+        "direction": "Out",
+        "effect": {
+          "easing": {
+            "easing": "power2",
+            "inOut": "in"
+          },
+          "effect": "fade",
+          "property": "none"
+        },
+        "keyframes": [
+          0.046666666666666676,
+          0.14666666666666667
+        ]
+      },
+      {
+        "element": "titleGroup",
+        "direction": "In",
+        "effect": {
+          "easing": {
+            "easing": "power3",
+            "inOut": "out"
+          },
+          "effect": "fade",
+          "property": "none"
+        },
+        "keyframes": [
+          0.6,
+          0.9
+        ]
+      },
+      {
+        "element": "logoGroup",
+        "direction": "In",
+        "effect": {
+          "easing": {
+            "easing": "power1",
+            "inOut": "out"
+          },
+          "effect": "scale",
+          "property": "xAndY"
+        },
+        "keyframes": [
+          0,
+          0.6999999999999995
+        ]
+      },
+      {
+        "element": "EngText",
+        "direction": "In",
+        "effect": {
+          "easing": {
+            "easing": "power2",
+            "inOut": "out"
+          },
+          "effect": "fade",
+          "property": "none"
+        },
+        "keyframes": [
+          0.6,
+          1.0000000000000002
+        ]
+      },
+      {
+        "element": "EngText",
+        "direction": "Out",
+        "effect": {
+          "easing": {
+            "easing": "power2",
+            "inOut": "in"
+          },
+          "effect": "fade",
+          "property": "none"
+        },
+        "keyframes": [
+          0.046666666666666676,
+          0.14666666666666667
+        ]
+      }
+    ],
+    "duration": {
+      "In": 1.0000000000000002,
+      "Out": 0.5
+    },
+    "provenance": {
+      "kind": "generated legacy CRC source adapter",
+      "mappingSchemaVersion": 1,
+      "archive": {
+        "file": "master-composition-449398.json",
+        "sha256": "9e372260b251d87a126dfba57dbb699531c466338a9134263963f453db3f8f1c",
+        "compositionUuid": "2b3da7a3-dc18-46f1-a792-13a4771b343c",
+        "compositionSha256": "c9352aac205388ef8a4dda78a8a9124e4189aad0c447edcc4bcff7802a6163fa",
+        "operatorName": "Birchot Hashachar 4",
+        "textsSha256": "22692bdbc76e2c322809ffd707369f5f4f3ddeaffc32d13054465d09a65478c4",
+        "role": "presentation and operator-identity evidence only"
+      },
+      "liturgy": {
+        "repository": "shireishabbat",
+        "repositoryCommit": "a3d88b6fccb5a87b1519d8bccefc78b5d52ef2e9",
+        "feed": "dist-app/legacy-shabbat-morning-feed.json",
+        "feedSha256": "ed92804dbe7279e9250feb58a4a06300b42b069c0f688a49fa1f5352d5430575",
+        "printing": {
+          "builtAt": "2026-09-06T14:47:09Z",
+          "gitSha": "de9171d-LICENSED",
+          "pages": 54
+        },
+        "license": {
+          "attribution": "Central Reform Congregation, St. Louis. Contains third-party liturgical texts used by permission for CRC's non-commercial use; 31 printed credits retained verbatim. Not licensed for redistribution or adaptation by others.",
+          "spdx": "CRC-internal, non-commercial, for the TEXT and its reuse: permission confirmed 2026-08-31 by CRC's executive director (R-0831-license-1), NOT CC — see attribution. THE WHOLE-BOOK PDF IS UNDER NO HOLD: CRC publishes this volume publicly on its own website and has done so for years, and Daniel so ruled on 2026-09-05 (R-0904-corpus-cw-93 §4). The PDF the app serves is CRC's own original file, byte for byte, not a re-typeset of it."
+        },
+        "unitIds": [
+          "awakening.birchot-hashachar@legacy-shabbat-morning"
+        ],
+        "slices": {
+          "textMainheb": [
+            {
+              "sliceId": "birchot-steps-he",
+              "unit": "awakening.birchot-hashachar@legacy-shabbat-morning",
+              "channel": "he",
+              "blocks": [
+                19,
+                20
+              ],
+              "separator": " "
+            },
+            {
+              "sliceId": "birchot-personal-he",
+              "unit": "awakening.birchot-hashachar@legacy-shabbat-morning",
+              "channel": "he",
+              "blocks": [
+                22,
+                23
+              ],
+              "separator": " "
+            }
+          ],
+          "textMainEng": [
+            {
+              "sliceId": "birchot-steps-tr",
+              "unit": "awakening.birchot-hashachar@legacy-shabbat-morning",
+              "channel": "tr",
+              "blocks": [
+                19,
+                20
+              ],
+              "separator": " "
+            },
+            {
+              "sliceId": "birchot-personal-tr",
+              "unit": "awakening.birchot-hashachar@legacy-shabbat-morning",
+              "channel": "tr",
+              "blocks": [
+                22,
+                23
+              ],
+              "separator": " "
+            }
+          ]
+        }
+      }
+    }
+  },
+  {
+    "id": "65743cb0-95c9-4d26-b8eb-74c86f1f1b36",
+    "name": "Psukei DZimrah 1",
+    "layout": "left",
+    "texts": {
+      "textMainheb": "אֹרֶךְ יָמִים אַשְׂבִּיעֵהוּ, וְאַרְאֵהוּ בִּישׁוּעָתִי:\nטוֹב לְהֹדוֹת לַיְיָ, וּלְזַמֵּר לְשִׁמְךָ עֶלְיוֹן: לְהַגִּיד בַּבֹּקֶר חַסְדֶּךָ, וֶאֱמוּנָתְךָ בַּלֵּילוֹת:",
+      "textMainEng": "Orech yamim asbi-eihu, v’areihu bi’shuati.\nTov l’hodot l’Shem (Adonai), ul’zameir l’shimcha elyon.\nL’hagid baboker chasdecha, ve-emunatcha baleilot.",
+      "textTitle": "Psukei d'Zimrah",
+      "accentTextTitle": "פְסוּקֵי דְּזִמְרָא"
+    },
+    "animations": [
+      {
+        "element": "baseTitle",
+        "direction": "In",
+        "effect": {
+          "easing": {
+            "easing": "power3",
+            "inOut": "out"
+          },
+          "effect": "scale",
+          "property": "y"
+        },
+        "keyframes": [
+          0.4,
+          0.85
+        ]
+      },
+      {
+        "element": "baseTitle",
+        "direction": "Out",
+        "effect": {
+          "easing": {
+            "easing": "power2",
+            "inOut": "in"
+          },
+          "effect": "scale",
+          "property": "y"
+        },
+        "keyframes": [
+          0,
+          0.3
+        ]
+      },
+      {
+        "element": "textTitle",
+        "direction": "In",
+        "effect": {
+          "easing": {
+            "easing": "power3",
+            "inOut": "out"
+          },
+          "effect": "translate",
+          "property": "down"
+        },
+        "keyframes": [
+          0.4,
+          0.9
+        ]
+      },
+      {
+        "element": "textTitle",
+        "direction": "Out",
+        "effect": {
+          "easing": {
+            "easing": "power2",
+            "inOut": "in"
+          },
+          "effect": "fade",
+          "property": "none"
+        },
+        "keyframes": [
+          0,
+          0.15
+        ]
+      },
+      {
+        "element": "baseTitleGrad",
+        "direction": "In",
+        "effect": {
+          "easing": {
+            "easing": "power3",
+            "inOut": "out"
+          },
+          "effect": "scale",
+          "property": "y"
+        },
+        "keyframes": [
+          0.4,
+          0.85
+        ]
+      },
+      {
+        "element": "baseTitleGrad",
+        "direction": "Out",
+        "effect": {
+          "easing": {
+            "easing": "power2",
+            "inOut": "in"
+          },
+          "effect": "scale",
+          "property": "y"
+        },
+        "keyframes": [
+          0,
+          0.3
+        ]
+      },
+      {
+        "element": "textMainheb",
+        "direction": "In",
+        "effect": {
+          "easing": {
+            "easing": "power3",
+            "inOut": "out"
+          },
+          "effect": "translate",
+          "property": "up"
+        },
+        "keyframes": [
+          0.4,
+          0.9500000000000003
+        ]
+      },
+      {
+        "element": "textMainheb",
+        "direction": "Out",
+        "effect": {
+          "easing": {
+            "easing": "power1",
+            "inOut": "in"
+          },
+          "effect": "translate",
+          "property": "up"
+        },
+        "keyframes": [
+          0.08833333333333335,
+          0.3883333333333333
+        ]
+      },
+      {
+        "element": "baseMain",
+        "direction": "In",
+        "effect": {
+          "easing": {
+            "easing": "power4",
+            "inOut": "out"
+          },
+          "effect": "scale",
+          "property": "y"
+        },
+        "keyframes": [
+          0,
+          0.8
+        ]
+      },
+      {
+        "element": "baseMain",
+        "direction": "Out",
+        "effect": {
+          "easing": {
+            "easing": "power2",
+            "inOut": "in"
+          },
+          "effect": "scale",
+          "property": "y"
+        },
+        "keyframes": [
+          0.10500000000000001,
+          0.5
+        ]
+      },
+      {
+        "element": "Image",
+        "direction": "In",
+        "effect": {
+          "easing": {
+            "easing": "power1",
+            "inOut": "out"
+          },
+          "effect": "fade",
+          "property": "none"
+        },
+        "keyframes": [
+          0,
+          0.5
+        ]
+      },
+      {
+        "element": "Image",
+        "direction": "Out",
+        "effect": {
+          "easing": {
+            "easing": "power1",
+            "inOut": "in"
+          },
+          "effect": "fade",
+          "property": "none"
+        },
+        "keyframes": [
+          0,
+          0.5
+        ]
+      },
+      {
+        "element": "textMainEng",
+        "direction": "In",
+        "effect": {
+          "easing": {
+            "easing": "power3",
+            "inOut": "out"
+          },
+          "effect": "translate",
+          "property": "up"
+        },
+        "keyframes": [
+          0.4,
+          0.9500000000000003
+        ]
+      },
+      {
+        "element": "textMainEng",
+        "direction": "Out",
+        "effect": {
+          "easing": {
+            "easing": "power1",
+            "inOut": "in"
+          },
+          "effect": "translate",
+          "property": "up"
+        },
+        "keyframes": [
+          0.08833333333333335,
+          0.3883333333333333
+        ]
+      },
+      {
+        "element": "accentTextTitle",
+        "direction": "In",
+        "effect": {
+          "easing": {
+            "easing": "power3",
+            "inOut": "out"
+          },
+          "effect": "translate",
+          "property": "down"
+        },
+        "keyframes": [
+          0.3,
+          0.9
+        ]
+      },
+      {
+        "element": "accentTextTitle",
+        "direction": "Out",
+        "effect": {
+          "easing": {
+            "easing": "power1",
+            "inOut": "in"
+          },
+          "effect": "fade",
+          "property": "none"
+        },
+        "keyframes": [
+          0,
+          0.1
+        ]
+      },
+      {
+        "element": "HebText",
+        "direction": "In",
+        "effect": {
+          "easing": {
+            "easing": "power2",
+            "inOut": "out"
+          },
+          "effect": "fade",
+          "property": "none"
+        },
+        "keyframes": [
+          0.6,
+          1.0000000000000002
+        ]
+      },
+      {
+        "element": "HebText",
+        "direction": "Out",
+        "effect": {
+          "easing": {
+            "easing": "power2",
+            "inOut": "in"
+          },
+          "effect": "fade",
+          "property": "none"
+        },
+        "keyframes": [
+          0.046666666666666676,
+          0.14666666666666667
+        ]
+      },
+      {
+        "element": "titleGroup",
+        "direction": "In",
+        "effect": {
+          "easing": {
+            "easing": "power3",
+            "inOut": "out"
+          },
+          "effect": "fade",
+          "property": "none"
+        },
+        "keyframes": [
+          0.6,
+          0.9
+        ]
+      },
+      {
+        "element": "logoGroup",
+        "direction": "In",
+        "effect": {
+          "easing": {
+            "easing": "power1",
+            "inOut": "out"
+          },
+          "effect": "scale",
+          "property": "xAndY"
+        },
+        "keyframes": [
+          0,
+          0.6999999999999995
+        ]
+      },
+      {
+        "element": "EngText",
+        "direction": "In",
+        "effect": {
+          "easing": {
+            "easing": "power2",
+            "inOut": "out"
+          },
+          "effect": "fade",
+          "property": "none"
+        },
+        "keyframes": [
+          0.6,
+          1.0000000000000002
+        ]
+      },
+      {
+        "element": "EngText",
+        "direction": "Out",
+        "effect": {
+          "easing": {
+            "easing": "power2",
+            "inOut": "in"
+          },
+          "effect": "fade",
+          "property": "none"
+        },
+        "keyframes": [
+          0.046666666666666676,
+          0.14666666666666667
+        ]
+      }
+    ],
+    "duration": {
+      "In": 1.0000000000000002,
+      "Out": 0.5
+    },
+    "provenance": {
+      "kind": "generated legacy CRC source adapter",
+      "mappingSchemaVersion": 1,
+      "archive": {
+        "file": "master-composition-449398.json",
+        "sha256": "9e372260b251d87a126dfba57dbb699531c466338a9134263963f453db3f8f1c",
+        "compositionUuid": "65743cb0-95c9-4d26-b8eb-74c86f1f1b36",
+        "compositionSha256": "7b69a377a23c07339fc5d0d814bd0f984586e7893a4a86c57db672432467a329",
+        "operatorName": "Psukei DZimrah 1",
+        "textsSha256": "da942a8033260dc0c75cdf3b6c5828dbd2c0edd0880cf93c4ca8b465703fb142",
+        "role": "presentation and operator-identity evidence only"
+      },
+      "liturgy": {
+        "repository": "shireishabbat",
+        "repositoryCommit": "a3d88b6fccb5a87b1519d8bccefc78b5d52ef2e9",
+        "feed": "dist-app/legacy-shabbat-morning-feed.json",
+        "feedSha256": "ed92804dbe7279e9250feb58a4a06300b42b069c0f688a49fa1f5352d5430575",
+        "printing": {
+          "builtAt": "2026-09-06T14:47:09Z",
+          "gitSha": "de9171d-LICENSED",
+          "pages": 54
+        },
+        "license": {
+          "attribution": "Central Reform Congregation, St. Louis. Contains third-party liturgical texts used by permission for CRC's non-commercial use; 31 printed credits retained verbatim. Not licensed for redistribution or adaptation by others.",
+          "spdx": "CRC-internal, non-commercial, for the TEXT and its reuse: permission confirmed 2026-08-31 by CRC's executive director (R-0831-license-1), NOT CC — see attribution. THE WHOLE-BOOK PDF IS UNDER NO HOLD: CRC publishes this volume publicly on its own website and has done so for years, and Daniel so ruled on 2026-09-05 (R-0904-corpus-cw-93 §4). The PDF the app serves is CRC's own original file, byte for byte, not a re-typeset of it."
+        },
+        "unitIds": [
+          "psukei.psalm-91@legacy-shabbat-morning",
+          "psukei.psalm-92@legacy-shabbat-morning"
+        ],
+        "slices": {
+          "textMainheb": [
+            {
+              "sliceId": "psukei-one-psalm-ninety-one-he",
+              "unit": "psukei.psalm-91@legacy-shabbat-morning",
+              "channel": "he",
+              "blocks": [
+                0,
+                1
+              ],
+              "separator": " "
+            },
+            {
+              "sliceId": "psukei-one-psalm-ninety-two-he",
+              "unit": "psukei.psalm-92@legacy-shabbat-morning",
+              "channel": "he",
+              "blocks": [
+                0,
+                1,
+                2,
+                3
+              ],
+              "separator": " "
+            }
+          ],
+          "textMainEng": [
+            {
+              "sliceId": "psukei-one-psalm-ninety-one-tr",
+              "unit": "psukei.psalm-91@legacy-shabbat-morning",
+              "channel": "tr",
+              "blocks": [
+                0,
+                1
+              ],
+              "separator": " "
+            },
+            {
+              "sliceId": "psukei-one-psalm-ninety-two-opening-tr",
+              "unit": "psukei.psalm-92@legacy-shabbat-morning",
+              "channel": "tr",
+              "blocks": [
+                0,
+                1
+              ],
+              "separator": " "
+            },
+            {
+              "sliceId": "psukei-one-psalm-ninety-two-closing-tr",
+              "unit": "psukei.psalm-92@legacy-shabbat-morning",
+              "channel": "tr",
+              "blocks": [
+                2,
+                3
+              ],
+              "separator": " "
+            }
+          ]
+        }
+      }
+    }
+  },
+  {
+    "id": "f792daee-3663-4350-a3cb-783897e1f463",
+    "name": "Psukei DZimrah 2",
+    "layout": "left",
+    "texts": {
+      "textMainheb": "אַשְׁרֵי יוֹשְׁבֵי בֵיתֶךָ: עוֹד יְהַלְלוּךָ סֶלָה:\nהַלְלוּ...........הַלְלוּ־יָהּ: כֹּל הַנְּשָׁמָה תְּהַלֵּל יָהּ הַלְלוּ־יָהּ:",
+      "textMainEng": "Ashrei yoshvei veitecha.\nOd y’hal-lucha! Selah!\nHal-lu............Hal-lu Yah. Kol hanshamah t’haleil Yah Hal-lu-Yah!",
+      "textTitle": "Psukei d'Zimrah",
+      "accentTextTitle": "פְסוּקֵי דְּזִמְרָא"
+    },
+    "animations": [
+      {
+        "element": "baseTitle",
+        "direction": "In",
+        "effect": {
+          "easing": {
+            "easing": "power3",
+            "inOut": "out"
+          },
+          "effect": "scale",
+          "property": "y"
+        },
+        "keyframes": [
+          0.4,
+          0.85
+        ]
+      },
+      {
+        "element": "baseTitle",
+        "direction": "Out",
+        "effect": {
+          "easing": {
+            "easing": "power2",
+            "inOut": "in"
+          },
+          "effect": "scale",
+          "property": "y"
+        },
+        "keyframes": [
+          0,
+          0.3
+        ]
+      },
+      {
+        "element": "textTitle",
+        "direction": "In",
+        "effect": {
+          "easing": {
+            "easing": "power3",
+            "inOut": "out"
+          },
+          "effect": "translate",
+          "property": "down"
+        },
+        "keyframes": [
+          0.4,
+          0.9
+        ]
+      },
+      {
+        "element": "textTitle",
+        "direction": "Out",
+        "effect": {
+          "easing": {
+            "easing": "power2",
+            "inOut": "in"
+          },
+          "effect": "fade",
+          "property": "none"
+        },
+        "keyframes": [
+          0,
+          0.15
+        ]
+      },
+      {
+        "element": "baseTitleGrad",
+        "direction": "In",
+        "effect": {
+          "easing": {
+            "easing": "power3",
+            "inOut": "out"
+          },
+          "effect": "scale",
+          "property": "y"
+        },
+        "keyframes": [
+          0.4,
+          0.85
+        ]
+      },
+      {
+        "element": "baseTitleGrad",
+        "direction": "Out",
+        "effect": {
+          "easing": {
+            "easing": "power2",
+            "inOut": "in"
+          },
+          "effect": "scale",
+          "property": "y"
+        },
+        "keyframes": [
+          0,
+          0.3
+        ]
+      },
+      {
+        "element": "textMainheb",
+        "direction": "In",
+        "effect": {
+          "easing": {
+            "easing": "power3",
+            "inOut": "out"
+          },
+          "effect": "translate",
+          "property": "up"
+        },
+        "keyframes": [
+          0.4,
+          0.9500000000000003
+        ]
+      },
+      {
+        "element": "textMainheb",
+        "direction": "Out",
+        "effect": {
+          "easing": {
+            "easing": "power1",
+            "inOut": "in"
+          },
+          "effect": "translate",
+          "property": "up"
+        },
+        "keyframes": [
+          0.08833333333333335,
+          0.3883333333333333
+        ]
+      },
+      {
+        "element": "baseMain",
+        "direction": "In",
+        "effect": {
+          "easing": {
+            "easing": "power4",
+            "inOut": "out"
+          },
+          "effect": "scale",
+          "property": "y"
+        },
+        "keyframes": [
+          0,
+          0.8
+        ]
+      },
+      {
+        "element": "baseMain",
+        "direction": "Out",
+        "effect": {
+          "easing": {
+            "easing": "power2",
+            "inOut": "in"
+          },
+          "effect": "scale",
+          "property": "y"
+        },
+        "keyframes": [
+          0.10500000000000001,
+          0.5
+        ]
+      },
+      {
+        "element": "Image",
+        "direction": "In",
+        "effect": {
+          "easing": {
+            "easing": "power1",
+            "inOut": "out"
+          },
+          "effect": "fade",
+          "property": "none"
+        },
+        "keyframes": [
+          0,
+          0.5
+        ]
+      },
+      {
+        "element": "Image",
+        "direction": "Out",
+        "effect": {
+          "easing": {
+            "easing": "power1",
+            "inOut": "in"
+          },
+          "effect": "fade",
+          "property": "none"
+        },
+        "keyframes": [
+          0,
+          0.5
+        ]
+      },
+      {
+        "element": "textMainEng",
+        "direction": "In",
+        "effect": {
+          "easing": {
+            "easing": "power3",
+            "inOut": "out"
+          },
+          "effect": "translate",
+          "property": "up"
+        },
+        "keyframes": [
+          0.4,
+          0.9500000000000003
+        ]
+      },
+      {
+        "element": "textMainEng",
+        "direction": "Out",
+        "effect": {
+          "easing": {
+            "easing": "power1",
+            "inOut": "in"
+          },
+          "effect": "translate",
+          "property": "up"
+        },
+        "keyframes": [
+          0.08833333333333335,
+          0.3883333333333333
+        ]
+      },
+      {
+        "element": "accentTextTitle",
+        "direction": "In",
+        "effect": {
+          "easing": {
+            "easing": "power3",
+            "inOut": "out"
+          },
+          "effect": "translate",
+          "property": "down"
+        },
+        "keyframes": [
+          0.3,
+          0.9
+        ]
+      },
+      {
+        "element": "accentTextTitle",
+        "direction": "Out",
+        "effect": {
+          "easing": {
+            "easing": "power1",
+            "inOut": "in"
+          },
+          "effect": "fade",
+          "property": "none"
+        },
+        "keyframes": [
+          0,
+          0.1
+        ]
+      },
+      {
+        "element": "HebText",
+        "direction": "In",
+        "effect": {
+          "easing": {
+            "easing": "power2",
+            "inOut": "out"
+          },
+          "effect": "fade",
+          "property": "none"
+        },
+        "keyframes": [
+          0.6,
+          1.0000000000000002
+        ]
+      },
+      {
+        "element": "HebText",
+        "direction": "Out",
+        "effect": {
+          "easing": {
+            "easing": "power2",
+            "inOut": "in"
+          },
+          "effect": "fade",
+          "property": "none"
+        },
+        "keyframes": [
+          0.046666666666666676,
+          0.14666666666666667
+        ]
+      },
+      {
+        "element": "titleGroup",
+        "direction": "In",
+        "effect": {
+          "easing": {
+            "easing": "power3",
+            "inOut": "out"
+          },
+          "effect": "fade",
+          "property": "none"
+        },
+        "keyframes": [
+          0.6,
+          0.9
+        ]
+      },
+      {
+        "element": "logoGroup",
+        "direction": "In",
+        "effect": {
+          "easing": {
+            "easing": "power1",
+            "inOut": "out"
+          },
+          "effect": "scale",
+          "property": "xAndY"
+        },
+        "keyframes": [
+          0,
+          0.6999999999999995
+        ]
+      },
+      {
+        "element": "EngText",
+        "direction": "In",
+        "effect": {
+          "easing": {
+            "easing": "power2",
+            "inOut": "out"
+          },
+          "effect": "fade",
+          "property": "none"
+        },
+        "keyframes": [
+          0.6,
+          1.0000000000000002
+        ]
+      },
+      {
+        "element": "EngText",
+        "direction": "Out",
+        "effect": {
+          "easing": {
+            "easing": "power2",
+            "inOut": "in"
+          },
+          "effect": "fade",
+          "property": "none"
+        },
+        "keyframes": [
+          0.046666666666666676,
+          0.14666666666666667
+        ]
+      }
+    ],
+    "duration": {
+      "In": 1.0000000000000002,
+      "Out": 0.5
+    },
+    "provenance": {
+      "kind": "generated legacy CRC source adapter",
+      "mappingSchemaVersion": 1,
+      "archive": {
+        "file": "master-composition-449398.json",
+        "sha256": "9e372260b251d87a126dfba57dbb699531c466338a9134263963f453db3f8f1c",
+        "compositionUuid": "f792daee-3663-4350-a3cb-783897e1f463",
+        "compositionSha256": "9a1cc83c6aff4a33cb8b76e0651bd96cf97a1b71b167976fc55bab81a893ac2b",
+        "operatorName": "Psukei DZimrah 2",
+        "textsSha256": "811cc420ad9e8865aa6589f0fe5862f1ba556e2fe9b6899d33b22f792ae0e7bd",
+        "role": "presentation and operator-identity evidence only"
+      },
+      "liturgy": {
+        "repository": "shireishabbat",
+        "repositoryCommit": "a3d88b6fccb5a87b1519d8bccefc78b5d52ef2e9",
+        "feed": "dist-app/legacy-shabbat-morning-feed.json",
+        "feedSha256": "ed92804dbe7279e9250feb58a4a06300b42b069c0f688a49fa1f5352d5430575",
+        "printing": {
+          "builtAt": "2026-09-06T14:47:09Z",
+          "gitSha": "de9171d-LICENSED",
+          "pages": 54
+        },
+        "license": {
+          "attribution": "Central Reform Congregation, St. Louis. Contains third-party liturgical texts used by permission for CRC's non-commercial use; 31 printed credits retained verbatim. Not licensed for redistribution or adaptation by others.",
+          "spdx": "CRC-internal, non-commercial, for the TEXT and its reuse: permission confirmed 2026-08-31 by CRC's executive director (R-0831-license-1), NOT CC — see attribution. THE WHOLE-BOOK PDF IS UNDER NO HOLD: CRC publishes this volume publicly on its own website and has done so for years, and Daniel so ruled on 2026-09-05 (R-0904-corpus-cw-93 §4). The PDF the app serves is CRC's own original file, byte for byte, not a re-typeset of it."
+        },
+        "unitIds": [
+          "psukei.ashrei-opening@legacy-shabbat-morning",
+          "psukei.kol-hanshamah@legacy-shabbat-morning"
+        ],
+        "slices": {
+          "textMainheb": [
+            {
+              "sliceId": "psukei-two-ashrei-he",
+              "unit": "psukei.ashrei-opening@legacy-shabbat-morning",
+              "channel": "he",
+              "blocks": [
+                0,
+                1
+              ],
+              "separator": " "
+            },
+            {
+              "sliceId": "psukei-two-kol-hanshamah-he",
+              "unit": "psukei.kol-hanshamah@legacy-shabbat-morning",
+              "channel": "he",
+              "blocks": [
+                0,
+                1
+              ],
+              "separator": " "
+            }
+          ],
+          "textMainEng": [
+            {
+              "sliceId": "psukei-two-ashrei-opening-tr",
+              "unit": "psukei.ashrei-opening@legacy-shabbat-morning",
+              "channel": "tr",
+              "blocks": [
+                0
+              ],
+              "separator": " "
+            },
+            {
+              "sliceId": "psukei-two-ashrei-closing-tr",
+              "unit": "psukei.ashrei-opening@legacy-shabbat-morning",
+              "channel": "tr",
+              "blocks": [
+                1
+              ],
+              "separator": " "
+            },
+            {
+              "sliceId": "psukei-two-kol-hanshamah-tr",
+              "unit": "psukei.kol-hanshamah@legacy-shabbat-morning",
+              "channel": "tr",
+              "blocks": [
+                0,
+                1
+              ],
+              "separator": " "
+            }
+          ]
+        }
+      }
+    }
+  },
+  {
+    "id": "a5784181-b4b5-4033-8ad2-4be46bac1fff",
+    "name": "Psalm 150",
+    "layout": "left",
+    "texts": {
+      "textMainheb": "אַשְׁרֵי יוֹשְׁבֵי בֵיתֶךָ: עוֹד יְהַלְלוּךָ סֶלָה:\nכֹּל הַנְּשָׁמָה תְּהַלֵּל יָהּ, הַלְלוּ יָהּ:",
+      "textMainEng": "Hal-lu Yah\nHal-lu El b’kodsho,\nHal-luhu bir’kia uzo.\nHal-luhu bigvurotav,\nHal-luhu k’rov gudlo.\nHal-luhu b’teika shofar,\nHal-luhu b’neivel v’chinor.\nHal-luhu v’tof umachol,\nHal-luhu b’minim v’ugav.\nHal-luhu v’tziltz’lei sh’ma,\nHal-luhu b’tziltz’lei t’ruah.\nKol hanshamah t’haleil Yah,\nHal-lu Yah!",
+      "textTitle": "Hal'lu Yah (Psalm 150)",
+      "accentTextTitle": "פְסוּקֵי דְּזִמְרָא"
+    },
+    "animations": [
+      {
+        "element": "baseTitle",
+        "direction": "In",
+        "effect": {
+          "easing": {
+            "easing": "power3",
+            "inOut": "out"
+          },
+          "effect": "scale",
+          "property": "y"
+        },
+        "keyframes": [
+          0.4,
+          0.85
+        ]
+      },
+      {
+        "element": "baseTitle",
+        "direction": "Out",
+        "effect": {
+          "easing": {
+            "easing": "power2",
+            "inOut": "in"
+          },
+          "effect": "scale",
+          "property": "y"
+        },
+        "keyframes": [
+          0,
+          0.3
+        ]
+      },
+      {
+        "element": "textTitle",
+        "direction": "In",
+        "effect": {
+          "easing": {
+            "easing": "power3",
+            "inOut": "out"
+          },
+          "effect": "translate",
+          "property": "down"
+        },
+        "keyframes": [
+          0.4,
+          0.9
+        ]
+      },
+      {
+        "element": "textTitle",
+        "direction": "Out",
+        "effect": {
+          "easing": {
+            "easing": "power2",
+            "inOut": "in"
+          },
+          "effect": "fade",
+          "property": "none"
+        },
+        "keyframes": [
+          0,
+          0.15
+        ]
+      },
+      {
+        "element": "accentTextTitle",
+        "direction": "In",
+        "effect": {
+          "easing": {
+            "easing": "power3",
+            "inOut": "out"
+          },
+          "effect": "translate",
+          "property": "down"
+        },
+        "keyframes": [
+          0.3,
+          0.9
+        ]
+      },
+      {
+        "element": "accentTextTitle",
+        "direction": "Out",
+        "effect": {
+          "easing": {
+            "easing": "power1",
+            "inOut": "in"
+          },
+          "effect": "fade",
+          "property": "none"
+        },
+        "keyframes": [
+          0,
+          0.1
+        ]
+      },
+      {
+        "element": "baseTitleGrad",
+        "direction": "In",
+        "effect": {
+          "easing": {
+            "easing": "power3",
+            "inOut": "out"
+          },
+          "effect": "scale",
+          "property": "y"
+        },
+        "keyframes": [
+          0.4,
+          0.85
+        ]
+      },
+      {
+        "element": "baseTitleGrad",
+        "direction": "Out",
+        "effect": {
+          "easing": {
+            "easing": "power2",
+            "inOut": "in"
+          },
+          "effect": "scale",
+          "property": "y"
+        },
+        "keyframes": [
+          0,
+          0.3
+        ]
+      },
+      {
+        "element": "textMainheb",
+        "direction": "In",
+        "effect": {
+          "easing": {
+            "easing": "power3",
+            "inOut": "out"
+          },
+          "effect": "translate",
+          "property": "up"
+        },
+        "keyframes": [
+          0.4,
+          0.9500000000000003
+        ]
+      },
+      {
+        "element": "textMainheb",
+        "direction": "Out",
+        "effect": {
+          "easing": {
+            "easing": "power1",
+            "inOut": "in"
+          },
+          "effect": "translate",
+          "property": "up"
+        },
+        "keyframes": [
+          0.08833333333333335,
+          0.3883333333333333
+        ]
+      },
+      {
+        "element": "baseMain",
+        "direction": "In",
+        "effect": {
+          "easing": {
+            "easing": "power4",
+            "inOut": "out"
+          },
+          "effect": "scale",
+          "property": "y"
+        },
+        "keyframes": [
+          0,
+          0.8
+        ]
+      },
+      {
+        "element": "baseMain",
+        "direction": "Out",
+        "effect": {
+          "easing": {
+            "easing": "power2",
+            "inOut": "in"
+          },
+          "effect": "scale",
+          "property": "y"
+        },
+        "keyframes": [
+          0.10500000000000001,
+          0.5
+        ]
+      },
+      {
+        "element": "Image",
+        "direction": "In",
+        "effect": {
+          "easing": {
+            "easing": "power1",
+            "inOut": "out"
+          },
+          "effect": "fade",
+          "property": "none"
+        },
+        "keyframes": [
+          0,
+          0.5
+        ]
+      },
+      {
+        "element": "Image",
+        "direction": "Out",
+        "effect": {
+          "easing": {
+            "easing": "power1",
+            "inOut": "in"
+          },
+          "effect": "fade",
+          "property": "none"
+        },
+        "keyframes": [
+          0,
+          0.5
+        ]
+      },
+      {
+        "element": "textMainEng",
+        "direction": "In",
+        "effect": {
+          "easing": {
+            "easing": "power3",
+            "inOut": "out"
+          },
+          "effect": "translate",
+          "property": "up"
+        },
+        "keyframes": [
+          0.4,
+          0.9500000000000003
+        ]
+      },
+      {
+        "element": "textMainEng",
+        "direction": "Out",
+        "effect": {
+          "easing": {
+            "easing": "power1",
+            "inOut": "in"
+          },
+          "effect": "translate",
+          "property": "up"
+        },
+        "keyframes": [
+          0.08833333333333335,
+          0.3883333333333333
+        ]
+      },
+      {
+        "element": "HebText",
+        "direction": "In",
+        "effect": {
+          "easing": {
+            "easing": "power2",
+            "inOut": "out"
+          },
+          "effect": "fade",
+          "property": "none"
+        },
+        "keyframes": [
+          0.6,
+          1.0000000000000002
+        ]
+      },
+      {
+        "element": "HebText",
+        "direction": "Out",
+        "effect": {
+          "easing": {
+            "easing": "power2",
+            "inOut": "in"
+          },
+          "effect": "fade",
+          "property": "none"
+        },
+        "keyframes": [
+          0.046666666666666676,
+          0.14666666666666667
+        ]
+      },
+      {
+        "element": "titleGroup",
+        "direction": "In",
+        "effect": {
+          "easing": {
+            "easing": "power3",
+            "inOut": "out"
+          },
+          "effect": "fade",
+          "property": "none"
+        },
+        "keyframes": [
+          0.6,
+          0.9
+        ]
+      },
+      {
+        "element": "logoGroup",
+        "direction": "In",
+        "effect": {
+          "easing": {
+            "easing": "power1",
+            "inOut": "out"
+          },
+          "effect": "scale",
+          "property": "xAndY"
+        },
+        "keyframes": [
+          0,
+          0.6999999999999995
+        ]
+      },
+      {
+        "element": "EngText",
+        "direction": "In",
+        "effect": {
+          "easing": {
+            "easing": "power2",
+            "inOut": "out"
+          },
+          "effect": "fade",
+          "property": "none"
+        },
+        "keyframes": [
+          0.6,
+          1.0000000000000002
+        ]
+      },
+      {
+        "element": "EngText",
+        "direction": "Out",
+        "effect": {
+          "easing": {
+            "easing": "power2",
+            "inOut": "in"
+          },
+          "effect": "fade",
+          "property": "none"
+        },
+        "keyframes": [
+          0.046666666666666676,
+          0.14666666666666667
+        ]
+      }
+    ],
+    "duration": {
+      "In": 1.0000000000000002,
+      "Out": 0.5
+    },
+    "provenance": {
+      "kind": "generated legacy CRC source adapter",
+      "mappingSchemaVersion": 1,
+      "archive": {
+        "file": "master-composition-449398.json",
+        "sha256": "9e372260b251d87a126dfba57dbb699531c466338a9134263963f453db3f8f1c",
+        "compositionUuid": "a5784181-b4b5-4033-8ad2-4be46bac1fff",
+        "compositionSha256": "890dd8c48a3c831ae1edafd70bca754f22cae57ec94719eecc80516390bd6683",
+        "operatorName": "Psalm 150",
+        "textsSha256": "0a2374b0b9f8d55d74eaa07b29628382850481499afe9e068a5169602c90cd4d",
+        "role": "presentation and operator-identity evidence only"
+      },
+      "liturgy": {
+        "repository": "shireishabbat",
+        "repositoryCommit": "a3d88b6fccb5a87b1519d8bccefc78b5d52ef2e9",
+        "feed": "dist-app/legacy-shabbat-morning-feed.json",
+        "feedSha256": "ed92804dbe7279e9250feb58a4a06300b42b069c0f688a49fa1f5352d5430575",
+        "printing": {
+          "builtAt": "2026-09-06T14:47:09Z",
+          "gitSha": "de9171d-LICENSED",
+          "pages": 54
+        },
+        "license": {
+          "attribution": "Central Reform Congregation, St. Louis. Contains third-party liturgical texts used by permission for CRC's non-commercial use; 31 printed credits retained verbatim. Not licensed for redistribution or adaptation by others.",
+          "spdx": "CRC-internal, non-commercial, for the TEXT and its reuse: permission confirmed 2026-08-31 by CRC's executive director (R-0831-license-1), NOT CC — see attribution. THE WHOLE-BOOK PDF IS UNDER NO HOLD: CRC publishes this volume publicly on its own website and has done so for years, and Daniel so ruled on 2026-09-05 (R-0904-corpus-cw-93 §4). The PDF the app serves is CRC's own original file, byte for byte, not a re-typeset of it."
+        },
+        "unitIds": [
+          "psukei.ashrei-opening@legacy-shabbat-morning",
+          "psukei.psalm-150@legacy-shabbat-morning"
+        ],
+        "slices": {
+          "textMainheb": [
+            {
+              "sliceId": "psalm-one-fifty-ashrei-he",
+              "unit": "psukei.ashrei-opening@legacy-shabbat-morning",
+              "channel": "he",
+              "blocks": [
+                0,
+                1
+              ],
+              "separator": " "
+            },
+            {
+              "sliceId": "psalm-one-fifty-refrain-he",
+              "unit": "psukei.psalm-150@legacy-shabbat-morning",
+              "channel": "he",
+              "blocks": [
+                11,
+                12
+              ],
+              "separator": " "
+            }
+          ],
+          "textMainEng": [
+            {
+              "sliceId": "psalm-one-fifty-tr-one",
+              "unit": "psukei.psalm-150@legacy-shabbat-morning",
+              "channel": "tr",
+              "blocks": [
+                0
+              ],
+              "separator": " "
+            },
+            {
+              "sliceId": "psalm-one-fifty-tr-two",
+              "unit": "psukei.psalm-150@legacy-shabbat-morning",
+              "channel": "tr",
+              "blocks": [
+                1
+              ],
+              "separator": " "
+            },
+            {
+              "sliceId": "psalm-one-fifty-tr-three",
+              "unit": "psukei.psalm-150@legacy-shabbat-morning",
+              "channel": "tr",
+              "blocks": [
+                2
+              ],
+              "separator": " "
+            },
+            {
+              "sliceId": "psalm-one-fifty-tr-four",
+              "unit": "psukei.psalm-150@legacy-shabbat-morning",
+              "channel": "tr",
+              "blocks": [
+                3
+              ],
+              "separator": " "
+            },
+            {
+              "sliceId": "psalm-one-fifty-tr-five",
+              "unit": "psukei.psalm-150@legacy-shabbat-morning",
+              "channel": "tr",
+              "blocks": [
+                4
+              ],
+              "separator": " "
+            },
+            {
+              "sliceId": "psalm-one-fifty-tr-six",
+              "unit": "psukei.psalm-150@legacy-shabbat-morning",
+              "channel": "tr",
+              "blocks": [
+                5
+              ],
+              "separator": " "
+            },
+            {
+              "sliceId": "psalm-one-fifty-tr-seven",
+              "unit": "psukei.psalm-150@legacy-shabbat-morning",
+              "channel": "tr",
+              "blocks": [
+                6
+              ],
+              "separator": " "
+            },
+            {
+              "sliceId": "psalm-one-fifty-tr-eight",
+              "unit": "psukei.psalm-150@legacy-shabbat-morning",
+              "channel": "tr",
+              "blocks": [
+                7
+              ],
+              "separator": " "
+            },
+            {
+              "sliceId": "psalm-one-fifty-tr-nine",
+              "unit": "psukei.psalm-150@legacy-shabbat-morning",
+              "channel": "tr",
+              "blocks": [
+                8
+              ],
+              "separator": " "
+            },
+            {
+              "sliceId": "psalm-one-fifty-tr-ten",
+              "unit": "psukei.psalm-150@legacy-shabbat-morning",
+              "channel": "tr",
+              "blocks": [
+                9
+              ],
+              "separator": " "
+            },
+            {
+              "sliceId": "psalm-one-fifty-tr-eleven",
+              "unit": "psukei.psalm-150@legacy-shabbat-morning",
+              "channel": "tr",
+              "blocks": [
+                10
+              ],
+              "separator": " "
+            },
+            {
+              "sliceId": "psalm-one-fifty-tr-twelve",
+              "unit": "psukei.psalm-150@legacy-shabbat-morning",
+              "channel": "tr",
+              "blocks": [
+                11
+              ],
+              "separator": " "
+            },
+            {
+              "sliceId": "psalm-one-fifty-tr-thirteen",
+              "unit": "psukei.psalm-150@legacy-shabbat-morning",
+              "channel": "tr",
+              "blocks": [
+                12
+              ],
+              "separator": " "
+            }
+          ]
+        }
+      }
+    }
+  },
+  {
+    "id": "0a4b12eb-1463-44d7-be91-329049e5ec82",
+    "name": "Readers Kaddish 1",
+    "layout": "left",
+    "texts": {
+      "textMainheb": "יִתְגַּדַּל וְיִתְקַדַּשׁ שְׁמֵהּ רַבָּא: בְּעָלְמָא דִּי בְרָא כִרְעוּתֵהּ, וְיַמְלִיךְ מַלְכוּתֵהּ בְּחַיֵּיכוֹן וּבְיוֹמֵיכוֹן וּבְחַיֵּי דְכָל בֵּית יִשְׂרָאֵל, בַּעֲגָלָא וּבִזְמַן קָרִיב, וְאִמְרוּ אָמֵן:",
+      "textMainEng": "Yitgadal v’yitkadash shmeih raba.\nB’alma di v’ra chiruteih,\nv’yamlich malchuteih\nb’chayeichon uv’yomeichon\nuv’chayei d’chol beit Yisraeil,\nba-agala uvizman kariv, v’imru amein.",
+      "textTitle": "Hatzi Kaddish",
+      "accentTextTitle": "חצי קדיש"
+    },
+    "animations": [
+      {
+        "element": "baseTitle",
+        "direction": "In",
+        "effect": {
+          "easing": {
+            "easing": "power3",
+            "inOut": "out"
+          },
+          "effect": "scale",
+          "property": "y"
+        },
+        "keyframes": [
+          0.4,
+          0.85
+        ]
+      },
+      {
+        "element": "baseTitle",
+        "direction": "Out",
+        "effect": {
+          "easing": {
+            "easing": "power2",
+            "inOut": "in"
+          },
+          "effect": "scale",
+          "property": "y"
+        },
+        "keyframes": [
+          0,
+          0.3
+        ]
+      },
+      {
+        "element": "accentTextTitle",
+        "direction": "In",
+        "effect": {
+          "easing": {
+            "easing": "power3",
+            "inOut": "out"
+          },
+          "effect": "translate",
+          "property": "down"
+        },
+        "keyframes": [
+          0.3,
+          0.9
+        ]
+      },
+      {
+        "element": "accentTextTitle",
+        "direction": "Out",
+        "effect": {
+          "easing": {
+            "easing": "power1",
+            "inOut": "in"
+          },
+          "effect": "fade",
+          "property": "none"
+        },
+        "keyframes": [
+          0,
+          0.1
+        ]
+      },
+      {
+        "element": "baseTitleGrad",
+        "direction": "In",
+        "effect": {
+          "easing": {
+            "easing": "power3",
+            "inOut": "out"
+          },
+          "effect": "scale",
+          "property": "y"
+        },
+        "keyframes": [
+          0.4,
+          0.85
+        ]
+      },
+      {
+        "element": "baseTitleGrad",
+        "direction": "Out",
+        "effect": {
+          "easing": {
+            "easing": "power2",
+            "inOut": "in"
+          },
+          "effect": "scale",
+          "property": "y"
+        },
+        "keyframes": [
+          0,
+          0.3
+        ]
+      },
+      {
+        "element": "textMainheb",
+        "direction": "In",
+        "effect": {
+          "easing": {
+            "easing": "power3",
+            "inOut": "out"
+          },
+          "effect": "translate",
+          "property": "up"
+        },
+        "keyframes": [
+          0.4,
+          0.9500000000000003
+        ]
+      },
+      {
+        "element": "textMainheb",
+        "direction": "Out",
+        "effect": {
+          "easing": {
+            "easing": "power1",
+            "inOut": "in"
+          },
+          "effect": "translate",
+          "property": "up"
+        },
+        "keyframes": [
+          0.08833333333333335,
+          0.3883333333333333
+        ]
+      },
+      {
+        "element": "baseMain",
+        "direction": "In",
+        "effect": {
+          "easing": {
+            "easing": "power4",
+            "inOut": "out"
+          },
+          "effect": "scale",
+          "property": "y"
+        },
+        "keyframes": [
+          0,
+          0.8
+        ]
+      },
+      {
+        "element": "baseMain",
+        "direction": "Out",
+        "effect": {
+          "easing": {
+            "easing": "power2",
+            "inOut": "in"
+          },
+          "effect": "scale",
+          "property": "y"
+        },
+        "keyframes": [
+          0.10500000000000001,
+          0.5
+        ]
+      },
+      {
+        "element": "Image",
+        "direction": "In",
+        "effect": {
+          "easing": {
+            "easing": "power1",
+            "inOut": "out"
+          },
+          "effect": "fade",
+          "property": "none"
+        },
+        "keyframes": [
+          0,
+          0.5
+        ]
+      },
+      {
+        "element": "Image",
+        "direction": "Out",
+        "effect": {
+          "easing": {
+            "easing": "power1",
+            "inOut": "in"
+          },
+          "effect": "fade",
+          "property": "none"
+        },
+        "keyframes": [
+          0,
+          0.5
+        ]
+      },
+      {
+        "element": "textMainEng",
+        "direction": "In",
+        "effect": {
+          "easing": {
+            "easing": "power3",
+            "inOut": "out"
+          },
+          "effect": "translate",
+          "property": "up"
+        },
+        "keyframes": [
+          0.4,
+          0.9500000000000003
+        ]
+      },
+      {
+        "element": "textMainEng",
+        "direction": "Out",
+        "effect": {
+          "easing": {
+            "easing": "power1",
+            "inOut": "in"
+          },
+          "effect": "translate",
+          "property": "up"
+        },
+        "keyframes": [
+          0.08833333333333335,
+          0.3883333333333333
+        ]
+      },
+      {
+        "element": "textTitle",
+        "direction": "In",
+        "effect": {
+          "easing": {
+            "easing": "power3",
+            "inOut": "out"
+          },
+          "effect": "translate",
+          "property": "down"
+        },
+        "keyframes": [
+          0.4,
+          0.9
+        ]
+      },
+      {
+        "element": "textTitle",
+        "direction": "Out",
+        "effect": {
+          "easing": {
+            "easing": "power2",
+            "inOut": "in"
+          },
+          "effect": "fade",
+          "property": "none"
+        },
+        "keyframes": [
+          0,
+          0.15
+        ]
+      },
+      {
+        "element": "HebText",
+        "direction": "In",
+        "effect": {
+          "easing": {
+            "easing": "power2",
+            "inOut": "out"
+          },
+          "effect": "fade",
+          "property": "none"
+        },
+        "keyframes": [
+          0.6,
+          1.0000000000000002
+        ]
+      },
+      {
+        "element": "HebText",
+        "direction": "Out",
+        "effect": {
+          "easing": {
+            "easing": "power2",
+            "inOut": "in"
+          },
+          "effect": "fade",
+          "property": "none"
+        },
+        "keyframes": [
+          0.046666666666666676,
+          0.14666666666666667
+        ]
+      },
+      {
+        "element": "titleGroup",
+        "direction": "In",
+        "effect": {
+          "easing": {
+            "easing": "power3",
+            "inOut": "out"
+          },
+          "effect": "fade",
+          "property": "none"
+        },
+        "keyframes": [
+          0.6,
+          0.9
+        ]
+      },
+      {
+        "element": "logoGroup",
+        "direction": "In",
+        "effect": {
+          "easing": {
+            "easing": "power1",
+            "inOut": "out"
+          },
+          "effect": "scale",
+          "property": "xAndY"
+        },
+        "keyframes": [
+          0,
+          0.6999999999999995
+        ]
+      },
+      {
+        "element": "EngText",
+        "direction": "In",
+        "effect": {
+          "easing": {
+            "easing": "power2",
+            "inOut": "out"
+          },
+          "effect": "fade",
+          "property": "none"
+        },
+        "keyframes": [
+          0.6,
+          1.0000000000000002
+        ]
+      },
+      {
+        "element": "EngText",
+        "direction": "Out",
+        "effect": {
+          "easing": {
+            "easing": "power2",
+            "inOut": "in"
+          },
+          "effect": "fade",
+          "property": "none"
+        },
+        "keyframes": [
+          0.046666666666666676,
+          0.14666666666666667
+        ]
+      }
+    ],
+    "duration": {
+      "In": 1.0000000000000002,
+      "Out": 0.5
+    },
+    "provenance": {
+      "kind": "generated legacy CRC source adapter",
+      "mappingSchemaVersion": 1,
+      "archive": {
+        "file": "master-composition-449398.json",
+        "sha256": "9e372260b251d87a126dfba57dbb699531c466338a9134263963f453db3f8f1c",
+        "compositionUuid": "0a4b12eb-1463-44d7-be91-329049e5ec82",
+        "compositionSha256": "62bbd9a44e8c5f5a3b3b6b7b4d001ebdf94f5098bf6c01705debb7425dc4b7cf",
+        "operatorName": "Readers Kaddish 1",
+        "textsSha256": "5739b0ba5fb0f71b204f7ebaff9172a1df65784cf2ac10894a77d87b7cfbfbc1",
+        "role": "presentation and operator-identity evidence only"
+      },
+      "liturgy": {
+        "repository": "shireishabbat",
+        "repositoryCommit": "a3d88b6fccb5a87b1519d8bccefc78b5d52ef2e9",
+        "feed": "dist-app/legacy-shabbat-morning-feed.json",
+        "feedSha256": "ed92804dbe7279e9250feb58a4a06300b42b069c0f688a49fa1f5352d5430575",
+        "printing": {
+          "builtAt": "2026-09-06T14:47:09Z",
+          "gitSha": "de9171d-LICENSED",
+          "pages": 54
+        },
+        "license": {
+          "attribution": "Central Reform Congregation, St. Louis. Contains third-party liturgical texts used by permission for CRC's non-commercial use; 31 printed credits retained verbatim. Not licensed for redistribution or adaptation by others.",
+          "spdx": "CRC-internal, non-commercial, for the TEXT and its reuse: permission confirmed 2026-08-31 by CRC's executive director (R-0831-license-1), NOT CC — see attribution. THE WHOLE-BOOK PDF IS UNDER NO HOLD: CRC publishes this volume publicly on its own website and has done so for years, and Daniel so ruled on 2026-09-05 (R-0904-corpus-cw-93 §4). The PDF the app serves is CRC's own original file, byte for byte, not a re-typeset of it."
+        },
+        "unitIds": [
+          "psukei.chatzi-kaddish@legacy-shabbat-morning"
+        ],
+        "slices": {
+          "textMainheb": [
+            {
+              "sliceId": "readers-kaddish-one-he",
+              "unit": "psukei.chatzi-kaddish@legacy-shabbat-morning",
+              "channel": "he",
+              "blocks": [
+                0,
+                1,
+                2,
+                3,
+                4,
+                5
+              ],
+              "separator": " "
+            }
+          ],
+          "textMainEng": [
+            {
+              "sliceId": "readers-kaddish-one-tr-one",
+              "unit": "psukei.chatzi-kaddish@legacy-shabbat-morning",
+              "channel": "tr",
+              "blocks": [
+                0
+              ],
+              "separator": " "
+            },
+            {
+              "sliceId": "readers-kaddish-one-tr-two",
+              "unit": "psukei.chatzi-kaddish@legacy-shabbat-morning",
+              "channel": "tr",
+              "blocks": [
+                1
+              ],
+              "separator": " "
+            },
+            {
+              "sliceId": "readers-kaddish-one-tr-three",
+              "unit": "psukei.chatzi-kaddish@legacy-shabbat-morning",
+              "channel": "tr",
+              "blocks": [
+                2
+              ],
+              "separator": " "
+            },
+            {
+              "sliceId": "readers-kaddish-one-tr-four",
+              "unit": "psukei.chatzi-kaddish@legacy-shabbat-morning",
+              "channel": "tr",
+              "blocks": [
+                3
+              ],
+              "separator": " "
+            },
+            {
+              "sliceId": "readers-kaddish-one-tr-five",
+              "unit": "psukei.chatzi-kaddish@legacy-shabbat-morning",
+              "channel": "tr",
+              "blocks": [
+                4
+              ],
+              "separator": " "
+            },
+            {
+              "sliceId": "readers-kaddish-one-tr-six",
+              "unit": "psukei.chatzi-kaddish@legacy-shabbat-morning",
+              "channel": "tr",
+              "blocks": [
+                5
+              ],
+              "separator": " "
+            }
+          ]
+        }
+      }
+    }
+  },
+  {
+    "id": "7c087a0d-23cb-458e-af6a-3210982ff0d6",
+    "name": "Readers Kaddish 2",
+    "layout": "left",
+    "texts": {
+      "textMainheb": "יְהֵא שְׁמֵהּ רַבָּא מְבָרַךְ לְעָלַם וּלְעָלְמֵי עָלְמַיָּא: יִתְבָּרַךְ וְיִשְׁתַּבַּח, וְיִתְפָּאַר וְיִתְרוֹמַם וְיִתְנַשֵּׂא וְיִתְהַדָּר וְיִתְעַלֶּה וְיִתְהַלָּל שְׁמֵהּ דְּקֻדְשָׁא בְּרִיךְ הוּא, לְעֵלָּא מִן כָּל בִּרְכָתָא וְשִׁירָתָא תֻּשְׁבְּחָתָא וְנֶחֱמָתָא, דַּאֲמִירָן בְּעָלְמָא, וְאִמְרוּ אָמֵן:",
+      "textMainEng": "Y’hei sh’meih raba m’varach l’alam ul’almei almaya.\nYitbarach v’yishtabach v’yitpa-ar y’vitromam v’yitnasei v’yithadar v’yitaleh v’yithalal sh’meih d’kudsha b’rich hu, l’eila min kol birchata v’shirata tushb’chata v’nechemata, da-amiran b’alma, v’imru amein.",
+      "textTitle": "Hatzi Kaddish",
+      "accentTextTitle": "חצי קדיש"
+    },
+    "animations": [
+      {
+        "element": "baseTitle",
+        "direction": "In",
+        "effect": {
+          "easing": {
+            "easing": "power3",
+            "inOut": "out"
+          },
+          "effect": "scale",
+          "property": "y"
+        },
+        "keyframes": [
+          0.4,
+          0.85
+        ]
+      },
+      {
+        "element": "baseTitle",
+        "direction": "Out",
+        "effect": {
+          "easing": {
+            "easing": "power2",
+            "inOut": "in"
+          },
+          "effect": "scale",
+          "property": "y"
+        },
+        "keyframes": [
+          0,
+          0.3
+        ]
+      },
+      {
+        "element": "accentTextTitle",
+        "direction": "In",
+        "effect": {
+          "easing": {
+            "easing": "power3",
+            "inOut": "out"
+          },
+          "effect": "translate",
+          "property": "down"
+        },
+        "keyframes": [
+          0.3,
+          0.9
+        ]
+      },
+      {
+        "element": "accentTextTitle",
+        "direction": "Out",
+        "effect": {
+          "easing": {
+            "easing": "power1",
+            "inOut": "in"
+          },
+          "effect": "fade",
+          "property": "none"
+        },
+        "keyframes": [
+          0,
+          0.1
+        ]
+      },
+      {
+        "element": "baseTitleGrad",
+        "direction": "In",
+        "effect": {
+          "easing": {
+            "easing": "power3",
+            "inOut": "out"
+          },
+          "effect": "scale",
+          "property": "y"
+        },
+        "keyframes": [
+          0.4,
+          0.85
+        ]
+      },
+      {
+        "element": "baseTitleGrad",
+        "direction": "Out",
+        "effect": {
+          "easing": {
+            "easing": "power2",
+            "inOut": "in"
+          },
+          "effect": "scale",
+          "property": "y"
+        },
+        "keyframes": [
+          0,
+          0.3
+        ]
+      },
+      {
+        "element": "textMainheb",
+        "direction": "In",
+        "effect": {
+          "easing": {
+            "easing": "power3",
+            "inOut": "out"
+          },
+          "effect": "translate",
+          "property": "up"
+        },
+        "keyframes": [
+          0.4,
+          0.9500000000000003
+        ]
+      },
+      {
+        "element": "textMainheb",
+        "direction": "Out",
+        "effect": {
+          "easing": {
+            "easing": "power1",
+            "inOut": "in"
+          },
+          "effect": "translate",
+          "property": "up"
+        },
+        "keyframes": [
+          0.08833333333333335,
+          0.3883333333333333
+        ]
+      },
+      {
+        "element": "baseMain",
+        "direction": "In",
+        "effect": {
+          "easing": {
+            "easing": "power4",
+            "inOut": "out"
+          },
+          "effect": "scale",
+          "property": "y"
+        },
+        "keyframes": [
+          0,
+          0.8
+        ]
+      },
+      {
+        "element": "baseMain",
+        "direction": "Out",
+        "effect": {
+          "easing": {
+            "easing": "power2",
+            "inOut": "in"
+          },
+          "effect": "scale",
+          "property": "y"
+        },
+        "keyframes": [
+          0.10500000000000001,
+          0.5
+        ]
+      },
+      {
+        "element": "Image",
+        "direction": "In",
+        "effect": {
+          "easing": {
+            "easing": "power1",
+            "inOut": "out"
+          },
+          "effect": "fade",
+          "property": "none"
+        },
+        "keyframes": [
+          0,
+          0.5
+        ]
+      },
+      {
+        "element": "Image",
+        "direction": "Out",
+        "effect": {
+          "easing": {
+            "easing": "power1",
+            "inOut": "in"
+          },
+          "effect": "fade",
+          "property": "none"
+        },
+        "keyframes": [
+          0,
+          0.5
+        ]
+      },
+      {
+        "element": "textMainEng",
+        "direction": "In",
+        "effect": {
+          "easing": {
+            "easing": "power3",
+            "inOut": "out"
+          },
+          "effect": "translate",
+          "property": "up"
+        },
+        "keyframes": [
+          0.4,
+          0.9500000000000003
+        ]
+      },
+      {
+        "element": "textMainEng",
+        "direction": "Out",
+        "effect": {
+          "easing": {
+            "easing": "power1",
+            "inOut": "in"
+          },
+          "effect": "translate",
+          "property": "up"
+        },
+        "keyframes": [
+          0.08833333333333335,
+          0.3883333333333333
+        ]
+      },
+      {
+        "element": "textTitle",
+        "direction": "In",
+        "effect": {
+          "easing": {
+            "easing": "power3",
+            "inOut": "out"
+          },
+          "effect": "translate",
+          "property": "down"
+        },
+        "keyframes": [
+          0.4,
+          0.9
+        ]
+      },
+      {
+        "element": "textTitle",
+        "direction": "Out",
+        "effect": {
+          "easing": {
+            "easing": "power2",
+            "inOut": "in"
+          },
+          "effect": "fade",
+          "property": "none"
+        },
+        "keyframes": [
+          0,
+          0.15
+        ]
+      },
+      {
+        "element": "HebText",
+        "direction": "In",
+        "effect": {
+          "easing": {
+            "easing": "power2",
+            "inOut": "out"
+          },
+          "effect": "fade",
+          "property": "none"
+        },
+        "keyframes": [
+          0.6,
+          1.0000000000000002
+        ]
+      },
+      {
+        "element": "HebText",
+        "direction": "Out",
+        "effect": {
+          "easing": {
+            "easing": "power2",
+            "inOut": "in"
+          },
+          "effect": "fade",
+          "property": "none"
+        },
+        "keyframes": [
+          0.046666666666666676,
+          0.14666666666666667
+        ]
+      },
+      {
+        "element": "titleGroup",
+        "direction": "In",
+        "effect": {
+          "easing": {
+            "easing": "power3",
+            "inOut": "out"
+          },
+          "effect": "fade",
+          "property": "none"
+        },
+        "keyframes": [
+          0.6,
+          0.9
+        ]
+      },
+      {
+        "element": "logoGroup",
+        "direction": "In",
+        "effect": {
+          "easing": {
+            "easing": "power1",
+            "inOut": "out"
+          },
+          "effect": "scale",
+          "property": "xAndY"
+        },
+        "keyframes": [
+          0,
+          0.6999999999999995
+        ]
+      },
+      {
+        "element": "EngText",
+        "direction": "In",
+        "effect": {
+          "easing": {
+            "easing": "power2",
+            "inOut": "out"
+          },
+          "effect": "fade",
+          "property": "none"
+        },
+        "keyframes": [
+          0.6,
+          1.0000000000000002
+        ]
+      },
+      {
+        "element": "EngText",
+        "direction": "Out",
+        "effect": {
+          "easing": {
+            "easing": "power2",
+            "inOut": "in"
+          },
+          "effect": "fade",
+          "property": "none"
+        },
+        "keyframes": [
+          0.046666666666666676,
+          0.14666666666666667
+        ]
+      }
+    ],
+    "duration": {
+      "In": 1.0000000000000002,
+      "Out": 0.5
+    },
+    "provenance": {
+      "kind": "generated legacy CRC source adapter",
+      "mappingSchemaVersion": 1,
+      "archive": {
+        "file": "master-composition-449398.json",
+        "sha256": "9e372260b251d87a126dfba57dbb699531c466338a9134263963f453db3f8f1c",
+        "compositionUuid": "7c087a0d-23cb-458e-af6a-3210982ff0d6",
+        "compositionSha256": "ba867d2dcd88c2cd6c93f0a6156181572dcde153b146ea77d6a2a39b31bb89fd",
+        "operatorName": "Readers Kaddish 2",
+        "textsSha256": "d48a073e574d306a55ba113a4aff54d0aa5b88b57ebd8866807fad87bf3003ef",
+        "role": "presentation and operator-identity evidence only"
+      },
+      "liturgy": {
+        "repository": "shireishabbat",
+        "repositoryCommit": "a3d88b6fccb5a87b1519d8bccefc78b5d52ef2e9",
+        "feed": "dist-app/legacy-shabbat-morning-feed.json",
+        "feedSha256": "ed92804dbe7279e9250feb58a4a06300b42b069c0f688a49fa1f5352d5430575",
+        "printing": {
+          "builtAt": "2026-09-06T14:47:09Z",
+          "gitSha": "de9171d-LICENSED",
+          "pages": 54
+        },
+        "license": {
+          "attribution": "Central Reform Congregation, St. Louis. Contains third-party liturgical texts used by permission for CRC's non-commercial use; 31 printed credits retained verbatim. Not licensed for redistribution or adaptation by others.",
+          "spdx": "CRC-internal, non-commercial, for the TEXT and its reuse: permission confirmed 2026-08-31 by CRC's executive director (R-0831-license-1), NOT CC — see attribution. THE WHOLE-BOOK PDF IS UNDER NO HOLD: CRC publishes this volume publicly on its own website and has done so for years, and Daniel so ruled on 2026-09-05 (R-0904-corpus-cw-93 §4). The PDF the app serves is CRC's own original file, byte for byte, not a re-typeset of it."
+        },
+        "unitIds": [
+          "psukei.chatzi-kaddish@legacy-shabbat-morning"
+        ],
+        "slices": {
+          "textMainheb": [
+            {
+              "sliceId": "readers-kaddish-two-he",
+              "unit": "psukei.chatzi-kaddish@legacy-shabbat-morning",
+              "channel": "he",
+              "blocks": [
+                6,
+                7,
+                8,
+                9,
+                10,
+                11,
+                12,
+                13,
+                14
+              ],
+              "separator": " "
+            }
+          ],
+          "textMainEng": [
+            {
+              "sliceId": "readers-kaddish-two-response-tr",
+              "unit": "psukei.chatzi-kaddish@legacy-shabbat-morning",
+              "channel": "tr",
+              "blocks": [
+                6,
+                7
+              ],
+              "separator": " "
+            },
+            {
+              "sliceId": "readers-kaddish-two-closing-tr",
+              "unit": "psukei.chatzi-kaddish@legacy-shabbat-morning",
+              "channel": "tr",
+              "blocks": [
+                8,
+                9,
+                10,
+                11,
+                12,
+                13,
+                14
+              ],
+              "separator": " "
+            }
+          ]
+        }
+      }
+    }
+  },
+  {
+    "id": "1dc607cc-37fa-48d7-a13d-9030a28f332d",
+    "name": "As We Bless",
+    "layout": "bottom",
+    "texts": {
+      "textMain": "As we bless the source of life, so we are blessed. (2x)\nAnd our blessings give us strength and make our visions clear.\nAnd our blessings give us peace and the courage to dare.\nAs we bless the source of life, so we are blessed.",
+      "textTitle": "As We Bless"
+    },
+    "animations": [
+      {
+        "element": "baseMain",
+        "direction": "In",
+        "effect": {
+          "easing": {
+            "easing": "power4",
+            "inOut": "out"
+          },
+          "effect": "scale",
+          "property": "x"
+        },
+        "keyframes": [
+          0.3,
+          1.1
+        ]
+      },
+      {
+        "element": "baseMain",
+        "direction": "Out",
+        "effect": {
+          "easing": {
+            "easing": "power2",
+            "inOut": "in"
+          },
+          "effect": "scale",
+          "property": "x"
+        },
+        "keyframes": [
+          0.1,
+          0.5
+        ]
+      },
+      {
+        "element": "textMain",
+        "direction": "In",
+        "effect": {
+          "easing": {
+            "easing": "power1",
+            "inOut": "out"
+          },
+          "effect": "fade",
+          "property": "none"
+        },
+        "keyframes": [
+          0.7,
+          1.2
+        ]
+      },
+      {
+        "element": "textMain",
+        "direction": "Out",
+        "effect": {
+          "easing": {
+            "easing": "power1",
+            "inOut": "in"
+          },
+          "effect": "fade",
+          "property": "none"
+        },
+        "keyframes": [
+          0.1,
+          0.3
+        ]
+      },
+      {
+        "element": "baseTitle",
+        "direction": "In",
+        "effect": {
+          "easing": {
+            "easing": "power3",
+            "inOut": "out"
+          },
+          "effect": "scale",
+          "property": "x"
+        },
+        "keyframes": [
+          0.42333333333333323,
+          1.1733333333333333
+        ]
+      },
+      {
+        "element": "baseTitle",
+        "direction": "Out",
+        "effect": {
+          "easing": {
+            "easing": "power2",
+            "inOut": "in"
+          },
+          "effect": "scale",
+          "property": "x"
+        },
+        "keyframes": [
+          0,
+          0.4
+        ]
+      },
+      {
+        "element": "textTitle",
+        "direction": "In",
+        "effect": {
+          "easing": {
+            "easing": "power2",
+            "inOut": "out"
+          },
+          "effect": "fade",
+          "property": "none"
+        },
+        "keyframes": [
+          0.7,
+          1.05
+        ]
+      },
+      {
+        "element": "textTitle",
+        "direction": "Out",
+        "effect": {
+          "easing": {
+            "easing": "power1",
+            "inOut": "in"
+          },
+          "effect": "fade",
+          "property": "none"
+        },
+        "keyframes": [
+          0.1,
+          0.21000000000000002
+        ]
+      },
+      {
+        "element": "baseTitleGrad",
+        "direction": "In",
+        "effect": {
+          "easing": {
+            "easing": "power3",
+            "inOut": "out"
+          },
+          "effect": "scale",
+          "property": "x"
+        },
+        "keyframes": [
+          0.4183333333333332,
+          1.1683333333333334
+        ]
+      },
+      {
+        "element": "baseTitleGrad",
+        "direction": "Out",
+        "effect": {
+          "easing": {
+            "easing": "power2",
+            "inOut": "in"
+          },
+          "effect": "scale",
+          "property": "x"
+        },
+        "keyframes": [
+          0,
+          0.4
+        ]
+      },
+      {
+        "element": "Image",
+        "direction": "In",
+        "effect": {
+          "easing": {
+            "easing": "power1",
+            "inOut": "out"
+          },
+          "effect": "fade",
+          "property": "none"
+        },
+        "keyframes": [
+          0,
+          0.5
+        ]
+      },
+      {
+        "element": "Image",
+        "direction": "Out",
+        "effect": {
+          "easing": {
+            "easing": "power1",
+            "inOut": "in"
+          },
+          "effect": "fade",
+          "property": "none"
+        },
+        "keyframes": [
+          0,
+          0.5
+        ]
+      },
+      {
+        "element": "accentLineBottom",
+        "direction": "In",
+        "effect": {
+          "easing": {
+            "easing": "power3",
+            "inOut": "out"
+          },
+          "effect": "scale",
+          "property": "x"
+        },
+        "keyframes": [
+          0.4,
+          1.15
+        ]
+      },
+      {
+        "element": "accentLineBottom",
+        "direction": "Out",
+        "effect": {
+          "easing": {
+            "easing": "power2",
+            "inOut": "in"
+          },
+          "effect": "scale",
+          "property": "x"
+        },
+        "keyframes": [
+          0,
+          0.45
+        ]
+      },
+      {
+        "element": "logoGroup",
+        "direction": "In",
+        "effect": {
+          "easing": {
+            "easing": "power1",
+            "inOut": "out"
+          },
+          "effect": "scale",
+          "property": "xAndY"
+        },
+        "keyframes": [
+          0,
+          0.6999999999999995
+        ]
+      }
+    ],
+    "duration": {
+      "In": 1.2,
+      "Out": 0.5
+    },
+    "provenance": {
+      "kind": "generated legacy CRC source adapter",
+      "mappingSchemaVersion": 1,
+      "archive": {
+        "file": "master-composition-449398.json",
+        "sha256": "9e372260b251d87a126dfba57dbb699531c466338a9134263963f453db3f8f1c",
+        "compositionUuid": "1dc607cc-37fa-48d7-a13d-9030a28f332d",
+        "compositionSha256": "6f7b51e70094ee63edeccf1f0fb602bd95709d287622fce5c79b3971b2250bd7",
+        "operatorName": "As We Bless",
+        "textsSha256": "fd576a1c9f1274b6b617a17259be50379236695694e013d24ced149a65f05ba2",
+        "role": "presentation and operator-identity evidence only"
+      },
+      "liturgy": {
+        "repository": "shireishabbat",
+        "repositoryCommit": "a3d88b6fccb5a87b1519d8bccefc78b5d52ef2e9",
+        "feed": "dist-app/legacy-shabbat-morning-feed.json",
+        "feedSha256": "ed92804dbe7279e9250feb58a4a06300b42b069c0f688a49fa1f5352d5430575",
+        "printing": {
+          "builtAt": "2026-09-06T14:47:09Z",
+          "gitSha": "de9171d-LICENSED",
+          "pages": 54
+        },
+        "license": {
+          "attribution": "Central Reform Congregation, St. Louis. Contains third-party liturgical texts used by permission for CRC's non-commercial use; 31 printed credits retained verbatim. Not licensed for redistribution or adaptation by others.",
+          "spdx": "CRC-internal, non-commercial, for the TEXT and its reuse: permission confirmed 2026-08-31 by CRC's executive director (R-0831-license-1), NOT CC — see attribution. THE WHOLE-BOOK PDF IS UNDER NO HOLD: CRC publishes this volume publicly on its own website and has done so for years, and Daniel so ruled on 2026-09-05 (R-0904-corpus-cw-93 §4). The PDF the app serves is CRC's own original file, byte for byte, not a re-typeset of it."
+        },
+        "unitIds": [
+          "shma.as-we-bless@legacy-shabbat-morning"
+        ],
+        "slices": {
+          "textMain": [
+            {
+              "sliceId": "as-we-bless-one",
+              "unit": "shma.as-we-bless@legacy-shabbat-morning",
+              "channel": "en",
+              "role": "original",
+              "blocks": [
+                0
+              ],
+              "separator": " "
+            },
+            {
+              "sliceId": "as-we-bless-two",
+              "unit": "shma.as-we-bless@legacy-shabbat-morning",
+              "channel": "en",
+              "role": "original",
+              "blocks": [
+                1
+              ],
+              "separator": " "
+            },
+            {
+              "sliceId": "as-we-bless-three",
+              "unit": "shma.as-we-bless@legacy-shabbat-morning",
+              "channel": "en",
+              "role": "original",
+              "blocks": [
+                2
+              ],
+              "separator": " "
+            },
+            {
+              "sliceId": "as-we-bless-four",
+              "unit": "shma.as-we-bless@legacy-shabbat-morning",
+              "channel": "en",
+              "role": "original",
+              "blocks": [
+                3
+              ],
+              "separator": " "
+            }
+          ]
+        }
+      }
+    }
   }
 ]
