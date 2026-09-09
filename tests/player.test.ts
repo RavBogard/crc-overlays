@@ -1,10 +1,15 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
 import {acceptsRevision,effectFrames,incomingStillDesired,measuredBottomTextHeight,textParts,tracksFor,type AnimationTrack} from '../lib/player-motion.ts';
+import {panelRowChannels,panelStackGeometry,usesPanelRows,type ContentRow} from '../lib/player.ts';
 
 test('scale y and translate tracks keep their actual transform axis',()=>{
  assert.deepEqual(effectFrames({effect:'scale',property:'y'},'In'),[{transform:'scaleY(0)'},{transform:'scale(1)'}]);
  assert.deepEqual(effectFrames({effect:'translate',property:'up'},'Out',40),[{transform:'translate(0, 0)'},{transform:'translateY(40px)'}]);
+});
+
+test('panel bilingual stack places Hebrew immediately after measured transliteration',()=>{
+ assert.deepEqual(panelStackGeometry(337.2),{englishHeight:338,hebrewTop:540,hebrewHeight:484});
 });
 
 test('transition state rejects stale and duplicate revisions',()=>{
@@ -45,4 +50,17 @@ test('bottom height follows unscaled measured content with a crest-safe minimum'
  assert.equal(measuredBottomTextHeight([128,167.2]),168);
  assert.equal(measuredBottomTextHeight([0,44]),84);
  assert.equal(measuredBottomTextHeight([]),84);
+});
+
+test('structured source rows replace aggregate panel text without changing lower thirds',()=>{
+ const contentRows:ContentRow[]=[{he:'עברית',tr:'Transliteration',en:'Translation'}];
+ assert.equal(usesPanelRows({layout:'left',contentRows}),true);
+ assert.equal(usesPanelRows({layout:'right',contentRows}),true);
+ assert.equal(usesPanelRows({layout:'bottom',contentRows}),false);
+ assert.equal(usesPanelRows({layout:'left'}),false);
+ assert.deepEqual(panelRowChannels(contentRows[0]).map(({element,animationElement,text})=>({element,animationElement,text})),[
+  {element:'textMainheb',animationElement:'textMainheb',text:'עברית'},
+  {element:'textMainEng',animationElement:'textMainEng',text:'Transliteration'},
+  {element:'textTranslation',animationElement:'textMainEng',text:'Translation'},
+ ]);
 });
