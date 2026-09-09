@@ -638,7 +638,7 @@
       "archiveRecordSha256": "37919cbf3164bf1cc588a05f3fc4bd4646cb347266e13f40794f8194856172ff",
       "expectedTextsSha256": "88e81a675fa3c8569b8c5a7d4baa43d5af0df85db44bd988ab5c813e6acd0bcc",
       "presentation": {
-        "transliterationFontSize": 30,
+        "transliterationFontSize": 29,
         "hebrewFontSize": 34
       },
       "title": {

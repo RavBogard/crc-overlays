@@ -34,7 +34,7 @@ export function exactResource(value:string|null,request?:Request){const expected
 export function safeClientMetadata(value:unknown){
  if(!value||typeof value!=='object')throw Error('invalid_client_metadata');
  const body=value as Record<string,unknown>;const redirects=body.redirect_uris;
- if(!Array.isArray(redirects)||redirects.length<1||redirects.length>10)throw Error('invalid_redirect_uris');
+ if(!Array.isArray(redirects)||redirects.length<1||redirects.length>10)throw Error('invalid_redirect_uri');
  if(body.token_endpoint_auth_method!==undefined&&body.token_endpoint_auth_method!=='none')throw Error('invalid_client_metadata');
  const grantTypes=body.grant_types??['authorization_code','refresh_token'];const responseTypes=body.response_types??['code'];
  if(!Array.isArray(grantTypes)||!grantTypes.includes('authorization_code')||grantTypes.some(value=>value!=='authorization_code'&&value!=='refresh_token')||!Array.isArray(responseTypes)||responseTypes.length!==1||responseTypes[0]!=='code')throw Error('invalid_client_metadata');

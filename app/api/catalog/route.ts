@@ -1,2 +1,2 @@
-import {authorized,catalogVersion,cues,json} from '@/lib/server';
-export async function GET(r:Request){return authorized(r)?new Response(JSON.stringify(cues),{headers:{'Content-Type':'application/json','Cache-Control':'no-store','Referrer-Policy':'no-referrer','X-Content-Type-Options':'nosniff','X-CRC-Catalog-Version':catalogVersion}}):json({error:'Access key required'},401)}
+import {authorized,catalog,json} from '@/lib/server';
+export async function GET(r:Request){if(!authorized(r))return json({error:'Access key required'},401);try{const current=await catalog();return new Response(JSON.stringify(current.cues),{headers:{'Content-Type':'application/json','Cache-Control':'no-store','Referrer-Policy':'no-referrer','X-Content-Type-Options':'nosniff','X-CRC-Catalog-Version':current.version}})}catch{return json({error:'Catalog unavailable'},503)}}

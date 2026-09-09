@@ -1052,7 +1052,7 @@ export default function AuthorPage() {
                   </small>
                 </span>
                 {draft?.activeRevision === item.revision ? (
-                  <em>Live</em>
+                  <em>Current publication</em>
                 ) : (
                   <button
                     disabled={!!busy}

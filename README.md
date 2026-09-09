@@ -1,6 +1,6 @@
 # CRC Overlay Control — rehearsal console
 
-Vercel-hosted controller, durable cue state, and transparent 1920×1080 graphics output. The source-backed rehearsal catalog contains twenty cues, including the opening Shabbat-morning sequence, Barechu, Oseh Shalom, and Mourners Kaddish 1–3. This remains an engineering rehearsal.
+Vercel-hosted controller, durable cue state, and transparent 1920×1080 graphics output. The source-backed rehearsal catalog contains twenty-nine cues, including the opening Shabbat-morning sequence, Barechu, Oseh Shalom, and Mourners Kaddish 1–3. This remains an engineering rehearsal.
 
 ## Run locally
 
@@ -26,9 +26,17 @@ Prayer cues select the exact Hebrew and transliteration blocks listed in `conten
 - WebMCP registration, read-back, valid and invalid cue handling, and immediate clear passed through the supported browser runtime.
 - Native Companion 1.1.0 is installed locally; catalog expansion is verified separately against each deployed release.
 
-The remaining 142 archived graphics, overrides, camera-linked buttons, and prayer authoring remain migration work. Physical Stream Deck, vMix/OBS, and full-service restart/network rehearsal are separate unverified gates.
+The remaining 133 archived graphics, overrides, and camera-linked buttons remain migration work. Physical Stream Deck, vMix/OBS, and full-service restart/network rehearsal are separate unverified gates.
 
 ## Hosting
 
 Primary source: https://github.com/RavBogard/crc-overlays (private). Live controller: https://crc-overlays.vercel.app. Production uses its own Neon database; `DATABASE_URL`, `CONTROL_KEY`, and `OUTPUT_KEY` are runtime secrets. Release deployment and visual verification are confirmed separately from a source commit. See [broadcast rehearsal](docs/REHEARSAL.md) for the hardware and compositor checks.
 
+
+## Create and edit overlays
+
+Open `/author` with the control key. Import an existing cue to preserve its Companion button ID, or create a draft from paired canonical source blocks. Adjust title, grouping, template and type size, save, render the isolated preview, approve that exact version, then publish. Publication changes future selections; the currently selected graphic remains pinned. Revision history provides rollback without a code deployment.
+
+AI authoring uses the shared OAuth MCP endpoint `/api/mcp`; see [MCP setup](docs/MCP.md). AI can find sources and prepare drafts, then Michael reviews the rendered frame in the editor before publication. Protocol integration is verified; actual ChatGPT and Claude account connections remain acceptance steps.
+
+Authoring release validation: 27 focused tests passed (one database test separately exercised with the isolated database), 26 authoring API assertions and 27 OAuth/MCP assertions passed. All 29 cues passed browser fit review after the Vahavta 2 type adjustment. See [release boundaries](docs/AUTHORING-RELEASE.md).
