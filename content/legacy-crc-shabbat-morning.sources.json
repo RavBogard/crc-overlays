@@ -1,0 +1,155 @@
+{
+  "schemaVersion": 1,
+  "catalog": "lib/cues.json",
+  "authority": {
+    "repository": "shireishabbat",
+    "repositoryCommit": "a3d88b6fccb5a87b1519d8bccefc78b5d52ef2e9",
+    "feed": "dist-app/legacy-shabbat-morning-feed.json",
+    "feedSha256": "ed92804dbe7279e9250feb58a4a06300b42b069c0f688a49fa1f5352d5430575",
+    "feedSchemaVersion": 1,
+    "printing": {
+      "builtAt": "2026-09-06T14:47:09Z",
+      "gitSha": "de9171d-LICENSED",
+      "pages": 54
+    },
+    "license": {
+      "attribution": "Central Reform Congregation, St. Louis. Contains third-party liturgical texts used by permission for CRC's non-commercial use; 31 printed credits retained verbatim. Not licensed for redistribution or adaptation by others.",
+      "spdx": "CRC-internal, non-commercial, for the TEXT and its reuse: permission confirmed 2026-08-31 by CRC's executive director (R-0831-license-1), NOT CC — see attribution. THE WHOLE-BOOK PDF IS UNDER NO HOLD: CRC publishes this volume publicly on its own website and has done so for years, and Daniel so ruled on 2026-09-05 (R-0904-corpus-cw-93 §4). The PDF the app serves is CRC's own original file, byte for byte, not a re-typeset of it."
+    }
+  },
+  "archive": {
+    "file": "master-composition-449398.json",
+    "sha256": "9e372260b251d87a126dfba57dbb699531c466338a9134263963f453db3f8f1c",
+    "role": "presentation and operator-identity evidence only"
+  },
+  "units": {
+    "awakening.modeh-ani@legacy-shabbat-morning": "584132abec31b3563f197b8af6acd8f05f41afac77f8e6608af9aa35d9997716",
+    "shma.barchu@legacy-shabbat-morning": "cf5d3b37a6f0ff55368581dbc087d58dbdd882282a78d553e866aa24c472a6ee",
+    "awakening.mah-tovu@legacy-shabbat-morning": "c906c119ad08be21d19ae9adc6a3d1e3965d6bb191e666419e000fea86e0da49",
+    "awakening.hineh-mah-tov@legacy-shabbat-morning": "4ca2d405dd5cbe5bf69a3ec53de88b5b4ef2cd11afc3bccca8773a529d47d1da",
+    "amidah.oseh-shalom@legacy-shabbat-morning": "23c50180c237c043dce89c011177d6ab6d2df9852dd5984358099ef2e02a2d31",
+    "concluding.mourners-kaddish@legacy-shabbat-morning": "09c89cdddb760db2e5fceb1ad6cfa2597c524b87a2b7f23c146d69da4f83ba94"
+  },
+  "cues": [
+    {
+      "id": "efa9fad4-f7d5-4091-a708-82103028861b",
+      "operatorName": "Barechu",
+      "layout": "bottom",
+      "archiveRecordSha256": "69ca6cc3841df9328a5fd32fce602cf69e7d0cc4401af6695a0dade811c6dcf1",
+      "expectedTextsSha256": "28550d58b1b36ecabff96dcfb13d3a4140f893bd9bb0de8fb85d9f9244532d60",
+      "title": { "archiveField": "title" },
+      "fields": {
+        "textMainEng": [
+          { "unit": "shma.barchu@legacy-shabbat-morning", "channel": "tr", "blocks": [0], "separator": " " },
+          { "unit": "shma.barchu@legacy-shabbat-morning", "channel": "tr", "blocks": [1], "separator": " " }
+        ],
+        "textMainheb": [
+          { "unit": "shma.barchu@legacy-shabbat-morning", "channel": "he", "blocks": [0, 1], "separator": "  |  " }
+        ]
+      }
+    },
+    {
+      "id": "eac2dee3-17f3-4a52-9ca5-4d7611f0f9dc",
+      "operatorName": "Modeh Ani (Bottom)",
+      "layout": "bottom",
+      "archiveRecordSha256": "7ac3631f726269068a929986fb26387acfa469062615e702bfb934cb1a66bd68",
+      "expectedTextsSha256": "b7759849ce30dc35b67092ad7f0875c1305968918514ab219bde4cdf2bb4d148",
+      "title": { "archiveField": "title" },
+      "fields": {
+        "textMainEng": [
+          { "unit": "awakening.modeh-ani@legacy-shabbat-morning", "channel": "tr", "blocks": [0, 1], "separator": " " },
+          { "unit": "awakening.modeh-ani@legacy-shabbat-morning", "channel": "tr", "blocks": [2, 3], "separator": " " }
+        ],
+        "textMainheb": [
+          { "unit": "awakening.modeh-ani@legacy-shabbat-morning", "channel": "he", "blocks": [0, 1, 2, 3], "separator": " " }
+        ]
+      }
+    },
+    {
+      "id": "bbd7c98b-f1de-41ee-9719-2bb27a30d0db",
+      "operatorName": "Mah Tovu",
+      "layout": "left",
+      "archiveRecordSha256": "dfe1f60a62f059ec8250cf0ed9e958d42d4db3b271a95b472ca37c1b071538f2",
+      "expectedTextsSha256": "3111cf815e397c950780ca0c1c9b5d977ac7522f7e3a10e885cf33c616eb2fa0",
+      "title": { "archiveField": "title" },
+      "accentTitle": { "archiveField": "titleAccent" },
+      "fields": {
+        "textMainheb": [
+          { "unit": "awakening.mah-tovu@legacy-shabbat-morning", "channel": "he", "blocks": [0, 1], "separator": " " },
+          { "unit": "awakening.mah-tovu@legacy-shabbat-morning", "channel": "he", "blocks": [3, 4], "separator": " " },
+          { "unit": "awakening.hineh-mah-tov@legacy-shabbat-morning", "channel": "he", "blocks": [0, 1], "separator": " " }
+        ],
+        "textMainEng": [
+          { "unit": "awakening.mah-tovu@legacy-shabbat-morning", "channel": "tr", "blocks": [0, 1], "separator": " " },
+          { "unit": "awakening.mah-tovu@legacy-shabbat-morning", "channel": "tr", "blocks": [3, 4], "separator": " " },
+          { "unit": "awakening.hineh-mah-tov@legacy-shabbat-morning", "channel": "tr", "blocks": [0, 1], "separator": " " }
+        ]
+      }
+    },
+    {
+      "id": "09f50803-3288-4b78-bcc7-560025668e1a",
+      "operatorName": "Thank you",
+      "layout": "right",
+      "archiveRecordSha256": "02b402c7425babc8e29c505803e535636c242db083d5dc6cbecd82cbcc325bf8",
+      "expectedTextsSha256": "66df03e852d7e8d41bbb7e11e91edeebfc254f821be9d7d52ce457ca05ec4cbc",
+      "nonLiturgical": true,
+      "title": { "archiveField": "title" },
+      "fields": { "textMain": [{ "archiveField": "text" }] }
+    },
+    {
+      "id": "1c78286d-319b-4025-8e5d-578e2888855e",
+      "operatorName": "Oseh Shalom",
+      "layout": "bottom",
+      "archiveRecordSha256": "7b8de0c1d2857f96fa69098e657f3eb2efa56e14b77cb8c3711a028f5fb2a4f0",
+      "expectedTextsSha256": "7e98dffc3117dc4e9b1655a51a2ebb689cd08757bcbacad79f4fff5398950671",
+      "title": { "archiveField": "title" },
+      "fields": {
+        "textMainEng": [
+          { "unit": "amidah.oseh-shalom@legacy-shabbat-morning", "channel": "tr", "blocks": [0, 1, 2], "separator": " " }
+        ],
+        "textMainheb": [
+          { "unit": "amidah.oseh-shalom@legacy-shabbat-morning", "channel": "he", "blocks": [0, 1, 2], "separator": " " }
+        ]
+      }
+    },
+    {
+      "id": "c2d2c129-7d7d-4bbc-a296-46cc1fb9f48e",
+      "operatorName": "Mourners Kaddish 1",
+      "layout": "left",
+      "archiveRecordSha256": "3993eece7d5ffa09f8366cd7b7755f1bf7d219a7727895ad9ca8d087dce59a39",
+      "expectedTextsSha256": "a512615cd24ce2a4a8877434ba3bb8814d348a952cce56655e3715dac41d6614",
+      "title": { "archiveField": "title" },
+      "accentTitle": { "archiveField": "titleAccent" },
+      "fields": {
+        "textMainheb": [{ "unit": "concluding.mourners-kaddish@legacy-shabbat-morning", "channel": "he", "blocks": [2, 3, 4, 5, 6, 7, 8, 9], "separator": " " }],
+        "textMainEng": [{ "unit": "concluding.mourners-kaddish@legacy-shabbat-morning", "channel": "tr", "blocks": [2, 3, 4, 5, 6, 7, 8, 9], "separator": " " }]
+      }
+    },
+    {
+      "id": "f15c1944-da76-4d61-95c8-05c032d47c4d",
+      "operatorName": "Mourners Kaddish 2",
+      "layout": "left",
+      "archiveRecordSha256": "097870e22801f61461a02bd79a1b38a78804ebe7d051e8c410b67f7341703e93",
+      "expectedTextsSha256": "bfa78984e13ea673f2f35ac2384962cc95a51c1cda1ab1eb2c66681bd774802d",
+      "title": { "archiveField": "title" },
+      "accentTitle": { "archiveField": "titleAccent" },
+      "fields": {
+        "textMainheb": [{ "unit": "concluding.mourners-kaddish@legacy-shabbat-morning", "channel": "he", "blocks": [10, 11, 12, 13, 14, 15, 16], "separator": " " }],
+        "textMainEng": [{ "unit": "concluding.mourners-kaddish@legacy-shabbat-morning", "channel": "tr", "blocks": [10, 11, 12, 13, 14, 15, 16], "separator": " " }]
+      }
+    },
+    {
+      "id": "dbf354df-e399-4d8b-bcfc-c067cc3cf2fc",
+      "operatorName": "Mourners Kaddish 3",
+      "layout": "left",
+      "archiveRecordSha256": "d421a7ec13233c76f9767865262bf62767a9e2be0ca731638fa902f0b1364255",
+      "expectedTextsSha256": "a035808d3ba3370587dcc22cd62203496e8b5f7f36430200aab926121fe06494",
+      "title": { "archiveField": "title" },
+      "accentTitle": { "archiveField": "titleAccent" },
+      "fields": {
+        "textMainheb": [{ "unit": "concluding.mourners-kaddish@legacy-shabbat-morning", "channel": "he", "blocks": [17, 18, 19, 20, 21, 22, 23], "separator": " " }],
+        "textMainEng": [{ "unit": "concluding.mourners-kaddish@legacy-shabbat-morning", "channel": "tr", "blocks": [17, 18, 19, 20, 21, 22, 23], "separator": " " }]
+      }
+    }
+  ]
+}

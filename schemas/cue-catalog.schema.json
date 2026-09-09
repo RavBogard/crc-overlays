@@ -1,0 +1,47 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://centralreform.org/schemas/crc-overlay-catalog-v1.json",
+  "title": "CRC generated overlay cue catalog",
+  "type": "array",
+  "minItems": 1,
+  "items": {
+    "type": "object",
+    "additionalProperties": false,
+    "required": ["id", "name", "layout", "texts", "animations", "duration", "provenance"],
+    "properties": {
+      "id": { "type": "string", "format": "uuid" },
+      "name": { "type": "string", "minLength": 1 },
+      "layout": { "enum": ["bottom", "left", "right"] },
+      "texts": {
+        "type": "object",
+        "required": ["textTitle"],
+        "additionalProperties": { "type": "string" },
+        "properties": {
+          "textTitle": { "type": "string", "minLength": 1 },
+          "accentTextTitle": { "type": "string" },
+          "textMain": { "type": "string" },
+          "textMainheb": { "type": "string" },
+          "textMainEng": { "type": "string" }
+        }
+      },
+      "animations": { "type": "array", "items": { "type": "object" } },
+      "duration": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": ["In", "Out"],
+        "properties": { "In": { "type": "number" }, "Out": { "type": "number" } }
+      },
+      "provenance": {
+        "type": "object",
+        "required": ["kind", "mappingSchemaVersion", "archive"],
+        "properties": {
+          "kind": { "const": "generated legacy CRC source adapter" },
+          "mappingSchemaVersion": { "const": 1 },
+          "archive": { "type": "object" },
+          "liturgy": { "type": "object" },
+          "copy": { "type": "string" }
+        }
+      }
+    }
+  }
+}

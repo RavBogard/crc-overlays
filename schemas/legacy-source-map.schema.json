@@ -1,0 +1,33 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://centralreform.org/schemas/crc-overlay-legacy-source-map-v1.json",
+  "title": "CRC legacy overlay source map",
+  "type": "object",
+  "additionalProperties": false,
+  "required": ["schemaVersion", "catalog", "authority", "archive", "units", "cues"],
+  "properties": {
+    "schemaVersion": { "const": 1 },
+    "catalog": { "const": "lib/cues.json" },
+    "authority": {
+      "type": "object",
+      "required": ["repository", "repositoryCommit", "feed", "feedSha256", "feedSchemaVersion", "printing", "license"]
+    },
+    "archive": {
+      "type": "object",
+      "required": ["file", "sha256", "role"]
+    },
+    "units": {
+      "type": "object",
+      "minProperties": 1,
+      "additionalProperties": { "type": "string", "pattern": "^[0-9a-f]{64}$" }
+    },
+    "cues": {
+      "type": "array",
+      "minItems": 1,
+      "items": {
+        "type": "object",
+        "required": ["id", "operatorName", "layout", "archiveRecordSha256", "expectedTextsSha256", "title", "fields"]
+      }
+    }
+  }
+}

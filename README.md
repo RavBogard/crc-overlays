@@ -24,7 +24,9 @@ Companion 5.0.5 at http://127.0.0.1:8000/. Connection CRC_Overlays_Test uses Gen
 
 ## Content and scope
 
-Text is copied from the archived Singular master without editorial changes. The canonical source candidate remains in the separate archive lab; ShireiShabbat synchronization is not connected here. Timings come from the archive; easing and geometry are approximations. Hebrew font matching remains unresolved. All 162 graphics, other compositions, overrides, camera-linked buttons, and prayer authoring remain migration work.
+The eight-cue catalog is generated from a pinned maintained legacy CRC Shabbat morning feed. Prayer cues select only the exact Hebrew and transliteration blocks listed in `content/legacy-crc-shabbat-morning.sources.json`; English translations are excluded. The source map also pins the whole feed, every selected unit, the Singular archive, every selected composition record, and every generated text object. `python scripts/generate-cues.py --check` fails closed on any change. Singular supplies the stable composition UUIDs, operator names, title labels, presentation records, and the authorized non-liturgical Thank you copy; it is not the prayer-text authority. See `content/README.md` for the generation and licensing boundary.
+
+The catalog covers the original three cues plus Thank you, Oseh Shalom, and Mourners Kaddish 1–3. The remaining archived graphics, overrides, camera-linked buttons, and prayer authoring remain migration work. Timings come from the archive; renderer motion and geometry are refreshed rather than treated as a pixel-identical Singular clone. Hebrew font matching remains unresolved.
 
 ## Evidence — 2026-09-09
 
