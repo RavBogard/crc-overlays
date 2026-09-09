@@ -4,7 +4,7 @@ Vercel-hosted controller, durable cue state, and transparent 1920Ã—1080 graphics
 
 ## Run locally
 
-Start with `npm run dev` (port 5175). `.env` supplies CONTROL_KEY and OUTPUT_KEY; never commit keys or Companion exports. The PostgreSQL schema is in `db/postgres.sql`; run `node --env-file=.env.production.local scripts/migrate-postgres.mjs` against this project’s dedicated database. Historical D1 files are retained only as migration references.
+Start with `npm run dev` (port 5175). `.env` supplies CONTROL_KEY and OUTPUT_KEY; never commit keys or Companion exports. The PostgreSQL schema is in `db/postgres.sql`; run `node --env-file=.env.production.local scripts/migrate-postgres.mjs` against this project’s dedicated database. The prior D1 implementation remains in Git history and the original Sites checkout.
 
 Controller: http://localhost:5175/. Output: `/output#key=OUTPUT_KEY` (key is moved to tab session storage). Add output to vMix or OBS as a 1920Ã—1080 browser source with transparency. Preview is excluded from output acknowledgments. `work/CONNECTIONS.md` contains private connection details.
 
