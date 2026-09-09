@@ -1,0 +1,896 @@
+[
+  {
+    "id": "efa9fad4-f7d5-4091-a708-82103028861b",
+    "name": "Barechu",
+    "layout": "bottom",
+    "texts": {
+      "textTitle": "Bar'chu בָּרְכוּ",
+      "textMain": "Bar'chu et Adonai ham'vorach! \nBaruch Adonai ham'vorach l’olam va’ed!\nבָּרְכוּ אֶת ה’ הַמְברָךְ  |  בָּרוּךְ ה' הַמְברָךְ לְעולָם וָעֶד"
+    },
+    "animations": [
+      {
+        "element": "baseMain",
+        "direction": "In",
+        "effect": {
+          "easing": {
+            "easing": "power4",
+            "inOut": "out"
+          },
+          "effect": "scale",
+          "property": "x"
+        },
+        "keyframes": [
+          0.3,
+          1.1
+        ]
+      },
+      {
+        "element": "baseMain",
+        "direction": "Out",
+        "effect": {
+          "easing": {
+            "easing": "power2",
+            "inOut": "in"
+          },
+          "effect": "scale",
+          "property": "x"
+        },
+        "keyframes": [
+          0.1,
+          0.5
+        ]
+      },
+      {
+        "element": "textTitle",
+        "direction": "In",
+        "effect": {
+          "easing": {
+            "easing": "power2",
+            "inOut": "out"
+          },
+          "effect": "fade",
+          "property": "none"
+        },
+        "keyframes": [
+          0.7,
+          1.05
+        ]
+      },
+      {
+        "element": "textTitle",
+        "direction": "Out",
+        "effect": {
+          "easing": {
+            "easing": "power1",
+            "inOut": "in"
+          },
+          "effect": "fade",
+          "property": "none"
+        },
+        "keyframes": [
+          0.1,
+          0.21000000000000002
+        ]
+      },
+      {
+        "element": "baseTitle",
+        "direction": "In",
+        "effect": {
+          "easing": {
+            "easing": "power3",
+            "inOut": "out"
+          },
+          "effect": "scale",
+          "property": "x"
+        },
+        "keyframes": [
+          0.42333333333333323,
+          1.1733333333333333
+        ]
+      },
+      {
+        "element": "baseTitle",
+        "direction": "Out",
+        "effect": {
+          "easing": {
+            "easing": "power2",
+            "inOut": "in"
+          },
+          "effect": "scale",
+          "property": "x"
+        },
+        "keyframes": [
+          0,
+          0.4
+        ]
+      },
+      {
+        "element": "baseTitleGrad",
+        "direction": "In",
+        "effect": {
+          "easing": {
+            "easing": "power3",
+            "inOut": "out"
+          },
+          "effect": "scale",
+          "property": "x"
+        },
+        "keyframes": [
+          0.4183333333333332,
+          1.1683333333333334
+        ]
+      },
+      {
+        "element": "baseTitleGrad",
+        "direction": "Out",
+        "effect": {
+          "easing": {
+            "easing": "power2",
+            "inOut": "in"
+          },
+          "effect": "scale",
+          "property": "x"
+        },
+        "keyframes": [
+          0,
+          0.4
+        ]
+      },
+      {
+        "element": "Image",
+        "direction": "In",
+        "effect": {
+          "easing": {
+            "easing": "power1",
+            "inOut": "out"
+          },
+          "effect": "fade",
+          "property": "none"
+        },
+        "keyframes": [
+          0,
+          0.5
+        ]
+      },
+      {
+        "element": "Image",
+        "direction": "Out",
+        "effect": {
+          "easing": {
+            "easing": "power1",
+            "inOut": "in"
+          },
+          "effect": "fade",
+          "property": "none"
+        },
+        "keyframes": [
+          0,
+          0.5
+        ]
+      },
+      {
+        "element": "accentLineBottom",
+        "direction": "In",
+        "effect": {
+          "easing": {
+            "easing": "power3",
+            "inOut": "out"
+          },
+          "effect": "scale",
+          "property": "x"
+        },
+        "keyframes": [
+          0.4,
+          1.15
+        ]
+      },
+      {
+        "element": "accentLineBottom",
+        "direction": "Out",
+        "effect": {
+          "easing": {
+            "easing": "power2",
+            "inOut": "in"
+          },
+          "effect": "scale",
+          "property": "x"
+        },
+        "keyframes": [
+          0,
+          0.45
+        ]
+      },
+      {
+        "element": "textMain",
+        "direction": "In",
+        "effect": {
+          "easing": {
+            "easing": "power1",
+            "inOut": "out"
+          },
+          "effect": "fade",
+          "property": "none"
+        },
+        "keyframes": [
+          0.7,
+          1.2
+        ]
+      },
+      {
+        "element": "textMain",
+        "direction": "Out",
+        "effect": {
+          "easing": {
+            "easing": "power1",
+            "inOut": "in"
+          },
+          "effect": "fade",
+          "property": "none"
+        },
+        "keyframes": [
+          0.1,
+          0.3
+        ]
+      },
+      {
+        "element": "logoGroup",
+        "direction": "In",
+        "effect": {
+          "easing": {
+            "easing": "power1",
+            "inOut": "out"
+          },
+          "effect": "scale",
+          "property": "xAndY"
+        },
+        "keyframes": [
+          0,
+          0.6999999999999995
+        ]
+      }
+    ],
+    "duration": {
+      "In": 1.2,
+      "Out": 0.5
+    },
+    "provenance": {
+      "kind": "Singular archive reference",
+      "file": "barechu-reference.json",
+      "sha256": "fe7c0c955aea3b711f4cec9dba06789a9794bfb6c926d46639f50910db61d011"
+    }
+  },
+  {
+    "id": "eac2dee3-17f3-4a52-9ca5-4d7611f0f9dc",
+    "name": "Modeh Ani (Bottom)",
+    "layout": "bottom",
+    "texts": {
+      "textMain": "Modeh/Modah ani l'fanecha, ruach chai v'kayam\nshehechezarta bi nishmati b'chemlah, rabah emunatecha\nמוֹדֶה/מוֹדָה אֲנִי לְפָנֶיךָ, רוּחַ חַי וְקַיָּם  שֶׁהֶחֱזַרְתָּ בִּי נִשְׁמָתִי בְּחֶמְלָה, רַבָּה אֱמוּנָתֶךָ",
+      "textTitle": "Modeh Ani "
+    },
+    "animations": [
+      {
+        "element": "baseTitle",
+        "direction": "In",
+        "effect": {
+          "easing": {
+            "easing": "power3",
+            "inOut": "out"
+          },
+          "effect": "scale",
+          "property": "x"
+        },
+        "keyframes": [
+          0.42333333333333323,
+          1.1733333333333333
+        ]
+      },
+      {
+        "element": "baseTitle",
+        "direction": "Out",
+        "effect": {
+          "easing": {
+            "easing": "power2",
+            "inOut": "in"
+          },
+          "effect": "scale",
+          "property": "x"
+        },
+        "keyframes": [
+          0,
+          0.4
+        ]
+      },
+      {
+        "element": "baseTitleGrad",
+        "direction": "In",
+        "effect": {
+          "easing": {
+            "easing": "power3",
+            "inOut": "out"
+          },
+          "effect": "scale",
+          "property": "x"
+        },
+        "keyframes": [
+          0.4183333333333332,
+          1.1683333333333334
+        ]
+      },
+      {
+        "element": "baseTitleGrad",
+        "direction": "Out",
+        "effect": {
+          "easing": {
+            "easing": "power2",
+            "inOut": "in"
+          },
+          "effect": "scale",
+          "property": "x"
+        },
+        "keyframes": [
+          0,
+          0.4
+        ]
+      },
+      {
+        "element": "Image",
+        "direction": "In",
+        "effect": {
+          "easing": {
+            "easing": "power1",
+            "inOut": "out"
+          },
+          "effect": "fade",
+          "property": "none"
+        },
+        "keyframes": [
+          0,
+          0.5
+        ]
+      },
+      {
+        "element": "Image",
+        "direction": "Out",
+        "effect": {
+          "easing": {
+            "easing": "power1",
+            "inOut": "in"
+          },
+          "effect": "fade",
+          "property": "none"
+        },
+        "keyframes": [
+          0,
+          0.5
+        ]
+      },
+      {
+        "element": "accentLineBottom",
+        "direction": "In",
+        "effect": {
+          "easing": {
+            "easing": "power3",
+            "inOut": "out"
+          },
+          "effect": "scale",
+          "property": "x"
+        },
+        "keyframes": [
+          0.4,
+          1.15
+        ]
+      },
+      {
+        "element": "accentLineBottom",
+        "direction": "Out",
+        "effect": {
+          "easing": {
+            "easing": "power2",
+            "inOut": "in"
+          },
+          "effect": "scale",
+          "property": "x"
+        },
+        "keyframes": [
+          0,
+          0.45
+        ]
+      },
+      {
+        "element": "baseMain",
+        "direction": "In",
+        "effect": {
+          "easing": {
+            "easing": "power4",
+            "inOut": "out"
+          },
+          "effect": "scale",
+          "property": "x"
+        },
+        "keyframes": [
+          0.3,
+          1.1
+        ]
+      },
+      {
+        "element": "baseMain",
+        "direction": "Out",
+        "effect": {
+          "easing": {
+            "easing": "power2",
+            "inOut": "in"
+          },
+          "effect": "scale",
+          "property": "x"
+        },
+        "keyframes": [
+          0.1,
+          0.5
+        ]
+      },
+      {
+        "element": "textMain",
+        "direction": "In",
+        "effect": {
+          "easing": {
+            "easing": "power1",
+            "inOut": "out"
+          },
+          "effect": "fade",
+          "property": "none"
+        },
+        "keyframes": [
+          0.7,
+          1.2
+        ]
+      },
+      {
+        "element": "textMain",
+        "direction": "Out",
+        "effect": {
+          "easing": {
+            "easing": "power1",
+            "inOut": "in"
+          },
+          "effect": "fade",
+          "property": "none"
+        },
+        "keyframes": [
+          0.1,
+          0.3
+        ]
+      },
+      {
+        "element": "textTitle",
+        "direction": "In",
+        "effect": {
+          "easing": {
+            "easing": "power2",
+            "inOut": "out"
+          },
+          "effect": "fade",
+          "property": "none"
+        },
+        "keyframes": [
+          0.7,
+          1.05
+        ]
+      },
+      {
+        "element": "textTitle",
+        "direction": "Out",
+        "effect": {
+          "easing": {
+            "easing": "power1",
+            "inOut": "in"
+          },
+          "effect": "fade",
+          "property": "none"
+        },
+        "keyframes": [
+          0.1,
+          0.21000000000000002
+        ]
+      },
+      {
+        "element": "logoGroup",
+        "direction": "In",
+        "effect": {
+          "easing": {
+            "easing": "power1",
+            "inOut": "out"
+          },
+          "effect": "scale",
+          "property": "xAndY"
+        },
+        "keyframes": [
+          0,
+          0.6999999999999995
+        ]
+      }
+    ],
+    "duration": {
+      "In": 1.2,
+      "Out": 0.5
+    },
+    "provenance": {
+      "kind": "Singular archive reference",
+      "file": "modeh-ani-bottom-reference.json",
+      "sha256": "bc9987e36c1c12d238bfbe7255aad77f9a37bf7d46e0f35ec5aeb0749d06d205"
+    }
+  },
+  {
+    "id": "bbd7c98b-f1de-41ee-9719-2bb27a30d0db",
+    "name": "Mah Tovu",
+    "layout": "left",
+    "texts": {
+      "textTitle": "Mah Tovu / Hineih Mah Tov",
+      "accentTextTitle": "מַה טֹּבוּ",
+      "textMainheb": "מַה טֹּבוּ אֹהָלֶיךָ, יַעֲקֹב; מִשְׁכְּנֹתֶיךָ יִשְׂרָאֵל. וַאֲנִי בְּרֹב חַסְדְּךָ אָבוֹא בֵיתֶךָ אֶשְׁתַּחֲוֶה אֶל הֵיכַל קָדְשְׁךָ בְּיִרְאָתֶךָ.\nהִנֵּה מַה טוֹב וּמַה נָּעִים שֶׁבֶת אָחִים גַּם יַחַד",
+      "textMainEng": "Mah tovu ohalecha Ya'akov mishk'notecha Yisrael! \nVa'ani b'rov chasd'cha avo veitecha, eshtachaveh El heichal kodsh'cha b'yir'atecha\nHineih mah tov umah na'im shevet achim gam yachad"
+    },
+    "animations": [
+      {
+        "element": "baseTitle",
+        "direction": "In",
+        "effect": {
+          "easing": {
+            "easing": "power3",
+            "inOut": "out"
+          },
+          "effect": "scale",
+          "property": "y"
+        },
+        "keyframes": [
+          0.4,
+          0.85
+        ]
+      },
+      {
+        "element": "baseTitle",
+        "direction": "Out",
+        "effect": {
+          "easing": {
+            "easing": "power2",
+            "inOut": "in"
+          },
+          "effect": "scale",
+          "property": "y"
+        },
+        "keyframes": [
+          0,
+          0.3
+        ]
+      },
+      {
+        "element": "textTitle",
+        "direction": "In",
+        "effect": {
+          "easing": {
+            "easing": "power3",
+            "inOut": "out"
+          },
+          "effect": "translate",
+          "property": "down"
+        },
+        "keyframes": [
+          0.4,
+          0.9
+        ]
+      },
+      {
+        "element": "textTitle",
+        "direction": "Out",
+        "effect": {
+          "easing": {
+            "easing": "power2",
+            "inOut": "in"
+          },
+          "effect": "fade",
+          "property": "none"
+        },
+        "keyframes": [
+          0,
+          0.15
+        ]
+      },
+      {
+        "element": "accentTextTitle",
+        "direction": "In",
+        "effect": {
+          "easing": {
+            "easing": "power3",
+            "inOut": "out"
+          },
+          "effect": "translate",
+          "property": "down"
+        },
+        "keyframes": [
+          0.3,
+          0.9
+        ]
+      },
+      {
+        "element": "accentTextTitle",
+        "direction": "Out",
+        "effect": {
+          "easing": {
+            "easing": "power1",
+            "inOut": "in"
+          },
+          "effect": "fade",
+          "property": "none"
+        },
+        "keyframes": [
+          0,
+          0.1
+        ]
+      },
+      {
+        "element": "baseTitleGrad",
+        "direction": "In",
+        "effect": {
+          "easing": {
+            "easing": "power3",
+            "inOut": "out"
+          },
+          "effect": "scale",
+          "property": "y"
+        },
+        "keyframes": [
+          0.4,
+          0.85
+        ]
+      },
+      {
+        "element": "baseTitleGrad",
+        "direction": "Out",
+        "effect": {
+          "easing": {
+            "easing": "power2",
+            "inOut": "in"
+          },
+          "effect": "scale",
+          "property": "y"
+        },
+        "keyframes": [
+          0,
+          0.3
+        ]
+      },
+      {
+        "element": "textMainheb",
+        "direction": "In",
+        "effect": {
+          "easing": {
+            "easing": "power3",
+            "inOut": "out"
+          },
+          "effect": "translate",
+          "property": "up"
+        },
+        "keyframes": [
+          0.4,
+          0.9500000000000003
+        ]
+      },
+      {
+        "element": "textMainheb",
+        "direction": "Out",
+        "effect": {
+          "easing": {
+            "easing": "power1",
+            "inOut": "in"
+          },
+          "effect": "translate",
+          "property": "up"
+        },
+        "keyframes": [
+          0.08833333333333335,
+          0.3883333333333333
+        ]
+      },
+      {
+        "element": "baseMain",
+        "direction": "In",
+        "effect": {
+          "easing": {
+            "easing": "power4",
+            "inOut": "out"
+          },
+          "effect": "scale",
+          "property": "y"
+        },
+        "keyframes": [
+          0,
+          0.8
+        ]
+      },
+      {
+        "element": "baseMain",
+        "direction": "Out",
+        "effect": {
+          "easing": {
+            "easing": "power2",
+            "inOut": "in"
+          },
+          "effect": "scale",
+          "property": "y"
+        },
+        "keyframes": [
+          0.10500000000000001,
+          0.5
+        ]
+      },
+      {
+        "element": "Image",
+        "direction": "In",
+        "effect": {
+          "easing": {
+            "easing": "power1",
+            "inOut": "out"
+          },
+          "effect": "fade",
+          "property": "none"
+        },
+        "keyframes": [
+          0,
+          0.5
+        ]
+      },
+      {
+        "element": "Image",
+        "direction": "Out",
+        "effect": {
+          "easing": {
+            "easing": "power1",
+            "inOut": "in"
+          },
+          "effect": "fade",
+          "property": "none"
+        },
+        "keyframes": [
+          0,
+          0.5
+        ]
+      },
+      {
+        "element": "textMainEng",
+        "direction": "In",
+        "effect": {
+          "easing": {
+            "easing": "power3",
+            "inOut": "out"
+          },
+          "effect": "translate",
+          "property": "up"
+        },
+        "keyframes": [
+          0.4,
+          0.9500000000000003
+        ]
+      },
+      {
+        "element": "textMainEng",
+        "direction": "Out",
+        "effect": {
+          "easing": {
+            "easing": "power1",
+            "inOut": "in"
+          },
+          "effect": "translate",
+          "property": "up"
+        },
+        "keyframes": [
+          0.08833333333333335,
+          0.3883333333333333
+        ]
+      },
+      {
+        "element": "HebText",
+        "direction": "In",
+        "effect": {
+          "easing": {
+            "easing": "power2",
+            "inOut": "out"
+          },
+          "effect": "fade",
+          "property": "none"
+        },
+        "keyframes": [
+          0.6,
+          1.0000000000000002
+        ]
+      },
+      {
+        "element": "HebText",
+        "direction": "Out",
+        "effect": {
+          "easing": {
+            "easing": "power2",
+            "inOut": "in"
+          },
+          "effect": "fade",
+          "property": "none"
+        },
+        "keyframes": [
+          0.046666666666666676,
+          0.14666666666666667
+        ]
+      },
+      {
+        "element": "titleGroup",
+        "direction": "In",
+        "effect": {
+          "easing": {
+            "easing": "power3",
+            "inOut": "out"
+          },
+          "effect": "fade",
+          "property": "none"
+        },
+        "keyframes": [
+          0.6,
+          0.9
+        ]
+      },
+      {
+        "element": "logoGroup",
+        "direction": "In",
+        "effect": {
+          "easing": {
+            "easing": "power1",
+            "inOut": "out"
+          },
+          "effect": "scale",
+          "property": "xAndY"
+        },
+        "keyframes": [
+          0,
+          0.6999999999999995
+        ]
+      },
+      {
+        "element": "EngText",
+        "direction": "In",
+        "effect": {
+          "easing": {
+            "easing": "power2",
+            "inOut": "out"
+          },
+          "effect": "fade",
+          "property": "none"
+        },
+        "keyframes": [
+          0.6,
+          1.0000000000000002
+        ]
+      },
+      {
+        "element": "EngText",
+        "direction": "Out",
+        "effect": {
+          "easing": {
+            "easing": "power2",
+            "inOut": "in"
+          },
+          "effect": "fade",
+          "property": "none"
+        },
+        "keyframes": [
+          0.046666666666666676,
+          0.14666666666666667
+        ]
+      }
+    ],
+    "duration": {
+      "In": 1.0000000000000002,
+      "Out": 0.5
+    },
+    "provenance": {
+      "kind": "Singular archive reference",
+      "file": "mah-tovu-reference.json",
+      "sha256": "0f53faca546c6934a4ad860ac6f4d1ba13ae51ba57351969629f081fabd88552"
+    }
+  }
+]
