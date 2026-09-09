@@ -1,5 +1,5 @@
 import { combineRgb, InstanceBase, InstanceStatus, type CompanionActionDefinitions, type CompanionFeedbackDefinitions, type CompanionPresetDefinitions, type CompanionPresetSection, type InstanceTypes, type SomeCompanionConfigField } from '@companion-module/base'
-import { CatalogStore, cuePresetId, hasCatalogCue, type CatalogCue } from './catalog.js'
+import { CatalogStore, cuePresetId, hasCatalogCue, visibleCatalogCues, type CatalogCue } from './catalog.js'
 import { deriveFeedback, isNewerSnapshot, OverlayClient, type OverlaySnapshot } from './client.js'
 
 const FALLBACK_CUES: CatalogCue[] = [
@@ -157,7 +157,7 @@ export default class CrcOverlaysInstance extends InstanceBase<Manifest> {
   }
 
   #defineActions(): void {
-    const choices = this.#catalog.cues.map(cue => ({ id: cue.id, label: cue.name }))
+    const choices = visibleCatalogCues(this.#catalog.cues).map(cue => ({ id: cue.id, label: cue.name }))
     const defaultCue = choices[0]?.id ?? FALLBACK_CUES[0]!.id
     const actions: CompanionActionDefinitions<Manifest['actions']> = {
       show_cue: { name: 'Show cue', description: 'Request a cue with its In animation.', options: [{ type: 'dropdown', id: 'cue', label: 'Cue', choices, default: defaultCue }], callback: async event => this.#cueCommand('in', String(event.options.cue)) },
@@ -180,7 +180,7 @@ export default class CrcOverlaysInstance extends InstanceBase<Manifest> {
   }
   #definePresets(): void {
     const presets: CompanionPresetDefinitions<Manifest> = {}
-    for (const cue of this.#catalog.cues) presets[cuePresetId(cue.id)] = {
+    for (const cue of visibleCatalogCues(this.#catalog.cues)) presets[cuePresetId(cue.id)] = {
       type: 'simple', name: `Show ${cue.name}`, style: { text: cue.name, size: '14', color: combineRgb(255, 255, 255), bgcolor: combineRgb(35, 35, 35) },
       steps: [{ down: [{ actionId: 'show_cue', options: { cue: cue.id } }], up: [] }],
       feedbacks: [

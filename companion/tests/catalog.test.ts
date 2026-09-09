@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest'
-import { CatalogStore, cuePresetId, hasCatalogCue, validateCatalog, type CatalogCue } from '../src/catalog.js'
+import { CatalogStore, cuePresetId, hasCatalogCue, validateCatalog, visibleCatalogCues, type CatalogCue } from '../src/catalog.js'
 
 const original: CatalogCue[] = [
   { id: 'efa9fad4-f7d5-4091-a708-82103028861b', name: 'Barechu', layout: 'bottom' },
@@ -34,5 +34,16 @@ describe('authenticated catalog state', () => {
     ])
     expect(hasCatalogCue(original, original[0]!.id)).toBe(true)
     expect(hasCatalogCue(original, '75ff6cbd-86f3-49ea-a007-77686ec3eaa4')).toBe(false)
+  })
+
+  it('preserves hidden aliases for old commands and feedback while excluding operator choices', () => {
+    const hidden = { ...added, hidden: true }
+    const cues = validateCatalog([...original, hidden])
+    expect(cues.at(-1)).toEqual(hidden)
+    expect(hasCatalogCue(cues, hidden.id)).toBe(true)
+    expect(cues.find(cue => cue.id === hidden.id)?.name).toBe(hidden.name)
+    expect(visibleCatalogCues(cues).map(cue => cue.id)).not.toContain(hidden.id)
+    expect(visibleCatalogCues(cues)).toEqual(original)
+    expect(() => validateCatalog([{ ...added, hidden: 'yes' }])).toThrow(/hidden flag/)
   })
 })
