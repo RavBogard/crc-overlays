@@ -1,6 +1,6 @@
 # CRC Overlay Control — rehearsal console
 
-Vercel-hosted controller, durable cue state, and transparent 1920×1080 graphics output. The current source-backed catalog contains eight cues: Barechu, Modeh Ani (Bottom), Mah Tovu, Thank you, Oseh Shalom, and Mourners Kaddish 1–3. This remains an engineering rehearsal.
+Vercel-hosted controller, durable cue state, and transparent 1920×1080 graphics output. The source-backed rehearsal catalog contains twenty cues, including the opening Shabbat-morning sequence, Barechu, Oseh Shalom, and Mourners Kaddish 1–3. This remains an engineering rehearsal.
 
 ## Run locally
 
@@ -16,18 +16,19 @@ Use the installed native CRC Overlays Companion module 1.1.0 and its dynamic cat
 
 ## Source and licensing
 
-Prayer cues select only the exact Hebrew and transliteration blocks listed in `content/legacy-crc-shabbat-morning.sources.json`; English translations are excluded. The source map pins the feed, selected units, archive compositions, and generated text objects. Run `python scripts/generate-cues.py --check` to fail closed on source drift. Singular supplies stable composition records and authorized non-liturgical Thank you copy; it is not the prayer-text authority. Direct authorized art and refreshed templates are Siona-inspired and are not presented as exact legacy fidelity.
+Prayer cues select the exact Hebrew and transliteration blocks listed in `content/legacy-crc-shabbat-morning.sources.json`; English translations are excluded. As We Bless is an explicitly declared original English reading; its selectors must carry source role `original`. Ordinary bilingual cues must cover the same source units and blocks in both languages. The source map pins the feed, selected units, archive compositions, and generated text objects. Run `python scripts/generate-cues.py --check` to fail closed on source drift. Singular supplies stable composition records and authorized non-liturgical Thank you copy; it is not the prayer-text authority. Direct authorized art and refreshed templates are Siona-inspired and are not presented as exact legacy fidelity.
 
 ## Evidence — 2026-09-09
 
 - `scripts/check-api.py`: 19 local assertions passed for authentication, cue validation, in/out, duplicate IDs, conflicts, delayed sequence, acknowledgments, and clear.
 - Source guard checks passed with `python scripts/generate-cues.py --check`.
-- All eight catalog cues were checked for exact DOM output and no overflow; rapid cut and prayer replacement behavior passed.
+- The initial eight-cue batch passed exact DOM output, overflow, rapid cut and prayer replacement checks. Expanded-catalog visual verification is recorded separately for its release.
 - WebMCP registration, read-back, valid and invalid cue handling, and immediate clear passed through the supported browser runtime.
 - Native Companion 1.1.0 is installed locally; catalog expansion is verified separately against each deployed release.
 
-The remaining 154 archived graphics, overrides, camera-linked buttons, and prayer authoring remain migration work. Physical Stream Deck, vMix/OBS, and full-service restart/network rehearsal are separate unverified gates.
+The remaining 142 archived graphics, overrides, camera-linked buttons, and prayer authoring remain migration work. Physical Stream Deck, vMix/OBS, and full-service restart/network rehearsal are separate unverified gates.
 
 ## Hosting
 
-Primary source: https://github.com/RavBogard/crc-overlays (private). Live controller: https://crc-overlays.vercel.app. Production uses its own Neon database; `DATABASE_URL`, `CONTROL_KEY`, and `OUTPUT_KEY` are runtime secrets. No deployment of this documentation or the current source batch is implied until the Producer confirms it.
+Primary source: https://github.com/RavBogard/crc-overlays (private). Live controller: https://crc-overlays.vercel.app. Production uses its own Neon database; `DATABASE_URL`, `CONTROL_KEY`, and `OUTPUT_KEY` are runtime secrets. Release deployment and visual verification are confirmed separately from a source commit. See [broadcast rehearsal](docs/REHEARSAL.md) for the hardware and compositor checks.
+
