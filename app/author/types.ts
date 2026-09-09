@@ -13,6 +13,7 @@ export type DraftContent =
       mode: "bilingual";
       hebrewGroups: SourceGroup[];
       transliterationGroups: SourceGroup[];
+      includeTranslation?: boolean;
     }
   | { mode: "original-en"; englishGroups: SourceGroup[] };
 export type Draft = {
@@ -32,7 +33,8 @@ export type Draft = {
 export type SourceBlock = {
   id: string;
   index: number;
-  kind: ContentMode;
+  kind: ContentMode | "translation-en";
+  pairedBlockIds?: string[];
   he?: string;
   tr?: string;
   en?: string;
@@ -81,6 +83,7 @@ export type PublishedRevision = {
   actor: string;
 };
 export type DraftForm = {
+  includeTranslation?: boolean;
   name: string;
   title: string;
   accentTitle: string;

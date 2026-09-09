@@ -12,7 +12,7 @@ Start with `npm run dev` (port 5175). `.env` supplies `CONTROL_KEY` and `OUTPUT_
 
 ## Companion
 
-Use the installed native CRC Overlays Companion module 1.1.0 and its dynamic catalog presets for rehearsal. It supplies ordered commands, retry identity, and requested/rendered/disconnected feedback. Generic HTTP requests are a legacy fallback and do not provide sequencing or retry identity. Physical Stream Deck operation, vMix/OBS integration, and full-service rehearsal remain unverified.
+Use the installed native CRC Overlays Companion module 1.1.1 and its dynamic catalog presets for rehearsal. It supplies ordered commands, retry identity, and requested/rendered/disconnected feedback. Generic HTTP requests are a legacy fallback and do not provide sequencing or retry identity. Physical Stream Deck operation, vMix/OBS integration, and full-service rehearsal remain unverified.
 
 ## Source and licensing
 
@@ -40,3 +40,5 @@ Open `/author` with the control key. Import an existing cue to preserve its Comp
 AI authoring uses the shared OAuth MCP endpoint `/api/mcp`; see [MCP setup](docs/MCP.md). AI can find sources and prepare drafts, then Michael reviews the rendered frame in the editor before publication. Protocol integration is verified; actual ChatGPT and Claude account connections remain acceptance steps.
 
 Authoring release validation: 27 focused tests passed (one database test separately exercised with the isolated database), 26 authoring API assertions and 27 OAuth/MCP assertions passed. All 29 cues passed browser fit review after the Vahavta 2 type adjustment. See [release boundaries](docs/AUTHORING-RELEASE.md).
+
+Panel refresh: three Birchot panels now include canonical English alongside paired Hebrew/transliteration. Catalog retains29 IDs (28 visible plus one compatibility alias). See [density review](docs/PANEL-DENSITY-REVIEW.md). Companion page3 adds the nine later morning cues; physical hardware remains unverified.

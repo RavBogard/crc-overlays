@@ -10,14 +10,14 @@ const baselineCueJson=require('./cues.json');
 export type Layout='bottom'|'left'|'right';
 export type Presentation={hebrewFontSize?:number;transliterationFontSize?:number;titleFontSize?:number};
 export type SourceGroup={sourceId:string;blockIds:string[]};
-export type BilingualContent={mode:'bilingual';hebrewGroups:SourceGroup[];transliterationGroups:SourceGroup[]};
+export type BilingualContent={mode:'bilingual';hebrewGroups:SourceGroup[];transliterationGroups:SourceGroup[];includeTranslation?:boolean};
 export type OriginalEnglishContent={mode:'original-en';englishGroups:SourceGroup[]};
 export type DraftContent=BilingualContent|OriginalEnglishContent;
 export type EditableDraft={name:string;title:string;accentTitle?:string;layout:Layout;templateCueId:string;content:DraftContent;presentation:Presentation};
 export type SourcePin={feedSha256:string;unitSha256:Record<string,string>;blockSha256:Record<string,string>};
 export type Draft=EditableDraft&{id:string;version:number;sourcePin:SourcePin;activeRevision:number|null;activeDraftVersion:number|null;createdAt:number;updatedAt:number;createdBy:string;updatedBy:string};
 export type AuthoringCue=Cue&{presentation?:Presentation;authoring:{draftId:string;draftVersion:number;sourceIds:string[];feedSha256:string;unitSha256:Record<string,string>}};
-export type SourceBlock={id:string;index:number;kind:'bilingual'|'original-en';he?:string;tr?:string;en?:string;role?:'original';sourceBlockSha256:string};
+export type SourceBlock={id:string;index:number;kind:'bilingual'|'original-en'|'translation-en';pairedBlockIds?:string[];he?:string;tr?:string;en?:string;role?:'original';sourceBlockSha256:string};
 export type AuthoringSource={id:string;name:string;section:string|number|null;unitSha256:string;blocks:SourceBlock[]};
 export type SourcePack={schemaVersion:number;authority:{repository:string;repositoryCommit:string;feed:string;feedSha256:string;license:unknown;printing:unknown};sources:AuthoringSource[]};
 
@@ -72,7 +72,7 @@ function parseGroups(value:unknown,label:string,kind:SourceBlock['kind']){
 export function parseContent(value:unknown):DraftContent{
  const input=record(value,'content');
  if(input.mode==='bilingual'){
-  onlyKeys(input,['mode','hebrewGroups','transliterationGroups'],'content');
+  onlyKeys(input,['mode','hebrewGroups','transliterationGroups','includeTranslation'],'content');
   const hebrewGroups=parseGroups(input.hebrewGroups,'content.hebrewGroups','bilingual');
   const transliterationGroups=parseGroups(input.transliterationGroups,'content.transliterationGroups','bilingual');
   const sequence=(groups:SourceGroup[])=>groups.flatMap(group=>group.blockIds.map(blockId=>`${group.sourceId}\u0000${blockId}`));
@@ -80,7 +80,10 @@ export function parseContent(value:unknown):DraftContent{
   const transliterationSequence=sequence(transliterationGroups);
   if(new Set(hebrewSequence).size!==hebrewSequence.length||new Set(transliterationSequence).size!==transliterationSequence.length)throw new AuthoringError('repeated_source_block','A source block may be selected only once per language');
   if(JSON.stringify(hebrewSequence)!==JSON.stringify(transliterationSequence))throw new AuthoringError('mismatched_source_coverage','Hebrew and transliteration must select the same ordered source blocks');
-  return {mode:'bilingual',hebrewGroups,transliterationGroups};
+  if(input.includeTranslation!==undefined&&typeof input.includeTranslation!=='boolean')throw new AuthoringError('invalid_input','includeTranslation must be boolean');
+  const content:BilingualContent={mode:'bilingual',hebrewGroups,transliterationGroups,...(input.includeTranslation?{includeTranslation:true}:{})};
+  if(content.includeTranslation)translationSelections(content);
+  return content;
  }
  if(input.mode==='original-en'){
   onlyKeys(input,['mode','englishGroups'],'content');
@@ -90,6 +93,21 @@ export function parseContent(value:unknown):DraftContent{
   return {mode:'original-en',englishGroups};
  }
  throw new AuthoringError('invalid_input','content.mode must be bilingual or original-en');
+}
+
+// Only whole, explicitly paired canonical blessings can gain a translation.
+function translationSelections(content:BilingualContent){
+ const pairs=content.hebrewGroups.flatMap(group=>group.blockIds.map(blockId=>({sourceId:group.sourceId,blockId})));
+ const result:Array<{sourceId:string;block:SourceBlock;pairIds:string[]}>=[];
+ for(let offset=0;offset<pairs.length;){
+  const first=pairs[offset];
+  const matches=source(first.sourceId).blocks.filter(block=>block.kind==='translation-en'&&block.pairedBlockIds?.[0]===first.blockId);
+  if(matches.length!==1)throw new AuthoringError('missing_translation','Select complete blessings with authorized English translations');
+  const block=matches[0], pairIds=block.pairedBlockIds!;
+  if(!block.en||!pairIds.length||pairIds.some((id,index)=>pairs[offset+index]?.sourceId!==first.sourceId||pairs[offset+index]?.blockId!==id))throw new AuthoringError('partial_translation','English requires complete, ordered blessing pairs');
+  result.push({sourceId:first.sourceId,block,pairIds});offset+=pairIds.length;
+ }
+ return result;
 }
 
 export function parseEditable(value:unknown,partial=false):Partial<EditableDraft>{
@@ -139,6 +157,7 @@ export function buildCue(draft:Draft):AuthoringCue{
  const template=baselineCues.find(cue=>cue.id===draft.templateCueId);
  if(!template)throw new AuthoringError('unknown_template','Draft template is unavailable',409);
  if(template.layout!==draft.layout)throw new AuthoringError('template_layout_mismatch','Template cue layout must match the draft layout');
+ if(draft.content.mode==='bilingual'&&draft.content.includeTranslation&&draft.layout==='bottom')throw new AuthoringError('translation_layout','Use a left or right panel for translated blessing rows');
  const texts:Record<string,string>={textTitle:draft.title};
  if(draft.accentTitle)texts.accentTextTitle=draft.accentTitle;
  const groups=draft.content.mode==='bilingual'
@@ -159,6 +178,7 @@ export function buildCue(draft:Draft):AuthoringCue{
  }
  return {
   id:draft.id,name:draft.name,layout:draft.layout,texts,
+  ...(draft.content.mode==='bilingual'&&draft.content.includeTranslation?{contentRows:translationSelections(draft.content).map(({sourceId,block,pairIds})=>({he:renderGroup({sourceId,blockIds:pairIds},'he'),tr:renderGroup({sourceId,blockIds:pairIds},'tr'),en:block.en!}))}:{}),
   animations,duration:structuredClone(template.duration),
   ...(template.template?{template:structuredClone(template.template)}:{}),
   ...(Object.keys(draft.presentation).length?{presentation:structuredClone(draft.presentation)}:{}),
@@ -171,7 +191,9 @@ export function buildCue(draft:Draft):AuthoringCue{
 
 function selectedPairs(content:DraftContent){
  const groups=content.mode==='bilingual'?content.hebrewGroups:content.englishGroups;
- return groups.flatMap(group=>group.blockIds.map(blockId=>({sourceId:group.sourceId,blockId})));
+ const pairs=groups.flatMap(group=>group.blockIds.map(blockId=>({sourceId:group.sourceId,blockId})));
+ if(content.mode==='bilingual'&&content.includeTranslation)pairs.push(...translationSelections(content).map(({sourceId,block})=>({sourceId,blockId:block.id})));
+ return pairs;
 }
 export function sourcePinFor(content:DraftContent):SourcePin{
  const pairs=selectedPairs(content);
@@ -216,6 +238,7 @@ export function editableFromBaseline(cueId:string):EditableDraft{
    mode:'bilingual',
    hebrewGroups:groupsFromSpecs(specs.filter(spec=>spec.channel==='he')),
    transliterationGroups:groupsFromSpecs(specs.filter(spec=>spec.channel==='tr')),
+   ...(cue.contentRows?.length?{includeTranslation:true}:{}),
   };
  }
  content=parseContent(content);

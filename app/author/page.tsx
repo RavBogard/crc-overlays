@@ -43,6 +43,7 @@ function formFromDraft(draft: Draft): DraftForm {
     layout: draft.layout,
     templateCueId: draft.templateCueId,
     mode: draft.content.mode,
+    includeTranslation: draft.content.mode === "bilingual" && draft.content.includeTranslation,
     groups: structuredClone(groups),
     presentation: { ...draft.presentation },
   };
@@ -56,6 +57,7 @@ function editable(form: DraftForm) {
           mode: "bilingual" as const,
           hebrewGroups: groups,
           transliterationGroups: structuredClone(groups),
+          ...(form.includeTranslation ? { includeTranslation: true } : {}),
         }
       : { mode: "original-en" as const, englishGroups: groups };
   return {
@@ -319,7 +321,7 @@ export default function AuthorPage() {
     setActiveGroup(Math.max(0, Math.min(activeGroup, groups.length - 1)));
   }
   function changeMode(mode: DraftForm["mode"]) {
-    changeForm({ mode, groups: [] });
+    changeForm({ mode, groups: [], includeTranslation: false });
     setActiveGroup(0);
     setSourcePage(0);
   }
@@ -810,6 +812,7 @@ export default function AuthorPage() {
 
         <section className="panel settings-panel">
           <span className="step-label">2 · APPEARANCE</span>
+          {form.mode === "bilingual" && (form.includeTranslation || source?.blocks.some(block => block.kind === "translation-en")) && <label><input type="checkbox" checked={!!form.includeTranslation} onChange={e => changeForm({includeTranslation:e.target.checked})} /> Include authorized English for complete Birchot Hashachar blessings</label>}
           <h2>Title and layout</h2>
           <label>
             Draft name

@@ -34,7 +34,7 @@ export function findFitErrors(root: HTMLElement) {
   const rootBox = root.getBoundingClientRect();
   if (!root.querySelector(".overlay")) return ["The graphic did not render."];
   const scale = rootBox.width / WIDTH || 1;
-  for (const element of root.querySelectorAll<HTMLElement>(".overlay .part")) {
+  for (const element of root.querySelectorAll<HTMLElement>(".overlay .part, .overlay .content-row, .overlay .prayer")) {
     const box = element.getBoundingClientRect();
     const name = element.dataset.element || "Graphic";
     if (

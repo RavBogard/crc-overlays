@@ -30,3 +30,33 @@ test('combined legacy templates animate both split source channels after editing
  const id='e1bd7775-ddf1-468b-b3f7-ac98f11df958';const editable=editableFromBaseline(id);const now=Date.now();const draft:Draft={...editable,id,version:2,sourcePin:sourcePinFor(editable.content),activeRevision:1,activeDraftVersion:1,createdAt:now,updatedAt:now,createdBy:'test',updatedBy:'test'};
  const cue=buildCue(draft);assert.ok(cue.texts.textMainheb);assert.ok(cue.texts.textMainEng);assert.ok(cue.animations.some(track=>track.element==='textMainheb'));assert.ok(cue.animations.some(track=>track.element==='textMainEng'));
 });
+
+
+test('translated blessings require complete canonical pairs and pin English too',()=>{
+ const source=sourcePack.sources.find(s=>s.blocks.some(b=>b.kind==='translation-en'))!;
+ assert.ok(source,'authorized blessing translations available');
+ const translation=source.blocks.find(b=>b.kind==='translation-en')!;
+ const ids=translation.pairedBlockIds!;
+ const groups=[{sourceId:source.id,blockIds:ids}];
+ const content=parseContent({mode:'bilingual',hebrewGroups:groups,transliterationGroups:groups,includeTranslation:true});
+ const pin=sourcePinFor(content);
+ assert.equal(pin.blockSha256[JSON.stringify([source.id,translation.id])],translation.sourceBlockSha256);
+ const partial=[{sourceId:source.id,blockIds:ids.slice(0,1)}];
+ assert.throws(()=>parseContent({mode:'bilingual',hebrewGroups:partial,transliterationGroups:partial,includeTranslation:true}),/complete|ordered/);
+ assert.throws(()=>parseContent({mode:'original-en',englishGroups:[{sourceId:source.id,blockIds:[translation.id]}]}),/not original-en/);
+ const existing=editableFromBaseline(BARECHU);
+ assert.throws(()=>parseContent({...existing.content,includeTranslation:true}),/complete|authorized/);
+});
+
+
+test('translated baseline import retains all three source channels',()=>{
+ const id='0135de3c-9a47-4fdc-91b9-99bacdf64970';
+ const editable=editableFromBaseline(id),now=Date.now();
+ const draft:Draft={...editable,id,version:1,sourcePin:sourcePinFor(editable.content),activeRevision:null,activeDraftVersion:null,createdAt:now,updatedAt:now,createdBy:'test',updatedBy:'test'};
+ const cue=buildCue(draft);
+ assert.equal(cue.contentRows?.length,3);
+ assert.ok(cue.contentRows?.every(row=>row.he&&row.tr&&row.en));
+ const english=sourcePack.sources.flatMap(s=>s.blocks).find(b=>b.kind==='translation-en')!;
+ const prior=english.sourceBlockSha256;
+ try{english.sourceBlockSha256='changed';assert.throws(()=>buildCue(draft),/source rebase/)}finally{english.sourceBlockSha256=prior}
+});

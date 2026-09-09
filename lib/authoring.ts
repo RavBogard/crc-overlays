@@ -29,7 +29,7 @@ export function createAuthoringService(repo:AuthoringRepository){
    return {authority:sourcePack.authority,sources:sourcePack.sources.filter(s=>s.blocks.length&&(s.name.toLocaleLowerCase().includes(query)||s.id.toLocaleLowerCase().includes(query)||String(s.section??'').toLocaleLowerCase().includes(query))).slice(0,limit).map(({blocks,...s})=>({...s,blockCount:blocks.length,kinds:[...new Set(blocks.map(b=>b.kind))]}))};
   }
   if(operation==='get_source'){keys(data,['sourceId']);const id=string(data.sourceId,'sourceId');const source=sourcePack.sources.find(s=>s.id===id);if(!source)throw new AuthoringError('unknown_source','Unknown authoring source',404);return {authority:sourcePack.authority,source};}
-  if(operation==='list_templates'){keys(data,[]);return {templates:baselineCues.map(cue=>{let importable=true;try{editableFromBaseline(cue.id)}catch{importable=false}return {id:cue.id,name:cue.name,layout:cue.layout,importable}})};}
+  if(operation==='list_templates'){keys(data,[]);return {templates:baselineCues.filter(cue=>!cue.hidden).map(cue=>{let importable=true;try{editableFromBaseline(cue.id)}catch{importable=false}return {id:cue.id,name:cue.name,layout:cue.layout,importable}})};}
   if(operation==='list_drafts'){keys(data,[]);return {drafts:await repo.listDrafts()};}
   if(operation==='get_draft'){keys(data,['draftId']);const draft=await requiredDraft(repo,string(data.draftId,'draftId'));return {draft};}
   if(operation==='create_draft'){
