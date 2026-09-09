@@ -19,7 +19,7 @@ OAuth endpoints:
 - `/oauth/token` for authorization-code and refresh-token grants
 - `/oauth/revoke` for access-token revocation or refresh-family revocation
 
-Production redirect URIs must use HTTPS. HTTP is accepted only for loopback callbacks such as `http://127.0.0.1:49152/callback`. Registered redirect URIs must match exactly during authorization and code exchange. Authorization codes are one-use and expire after five minutes. Access tokens expire after one hour. Refresh tokens expire after 30 days and rotate on every use; reuse revokes the refresh-token family.
+Production redirect URIs must use HTTPS. HTTP is accepted only for loopback callbacks such as `http://127.0.0.1:49152/callback`. Registered redirect URIs must match exactly during authorization and code exchange. Authorization codes are one-use and expire after five minutes. Access tokens expire after one hour. Refresh tokens expire after 30 days and rotate on every use; reuse or revocation invalidates every refresh and access token in that family.
 
 The consent form asks for the CRC authoring key in a POST body. It displays the registered callback destination, stores only an opaque request handle in the form, and never places a bootstrap key or bearer token in a URL. Requests have durable database rate limits and bounded bodies.
 

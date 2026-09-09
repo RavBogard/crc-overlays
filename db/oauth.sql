@@ -27,6 +27,7 @@ CREATE TABLE IF NOT EXISTS oauth_codes(
 );
 CREATE TABLE IF NOT EXISTS oauth_tokens(
  token_hash text PRIMARY KEY,
+ family_hash text,
  client_id_hash text NOT NULL REFERENCES oauth_clients(client_id_hash),
  scope text NOT NULL,
  resource text NOT NULL,
@@ -34,6 +35,7 @@ CREATE TABLE IF NOT EXISTS oauth_tokens(
  expires bigint NOT NULL,
  revoked_at bigint
 );
+ALTER TABLE oauth_tokens ADD COLUMN IF NOT EXISTS family_hash text;
 CREATE TABLE IF NOT EXISTS oauth_refresh_tokens(
  token_hash text PRIMARY KEY,
  family_hash text NOT NULL,
@@ -53,5 +55,6 @@ CREATE TABLE IF NOT EXISTS oauth_rate_limits(
 CREATE INDEX IF NOT EXISTS oauth_authorization_requests_expiry ON oauth_authorization_requests(expires);
 CREATE INDEX IF NOT EXISTS oauth_codes_expiry ON oauth_codes(expires);
 CREATE INDEX IF NOT EXISTS oauth_tokens_expiry ON oauth_tokens(expires);
+CREATE INDEX IF NOT EXISTS oauth_tokens_family ON oauth_tokens(family_hash) WHERE family_hash IS NOT NULL;
 CREATE INDEX IF NOT EXISTS oauth_refresh_tokens_expiry ON oauth_refresh_tokens(expires);
 CREATE INDEX IF NOT EXISTS oauth_refresh_tokens_family ON oauth_refresh_tokens(family_hash);
