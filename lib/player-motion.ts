@@ -2,6 +2,7 @@ export type AnimationDirection='In'|'Out';
 export type SingularEffect={effect?:string;property?:string;easing?:{easing?:string;inOut?:string}};
 export type AnimationTrack={element:string;direction:string;effect?:SingularEffect;keyframes?:number[]};
 export type PlayerState={cue:string|null;revision:number;mode:string};
+export type TextPart={classes:string;text:string;element:string};
 
 export const GROUPS:Record<string,string[]>={
  Image:['logoGroup'],
@@ -18,6 +19,15 @@ export function tracksFor(element:string,direction:AnimationDirection,tracks:Ani
 
 export function acceptsRevision(next:PlayerState,current:PlayerState){return next.revision>current.revision}
 export function incomingStillDesired(incomingCue:string,desired:PlayerState){return incomingCue===desired.cue}
+
+export function textParts(texts:Record<string,string>):TextPart[]{
+ if(texts.textMain)return [{classes:'prayer combined single-channel',text:texts.textMain,element:'textMain'}];
+ const parts:TextPart[]=[];
+ if(texts.textMainEng)parts.push({classes:'prayer english',text:texts.textMainEng,element:'textMainEng'});
+ if(texts.textMainheb)parts.push({classes:'prayer hebrew',text:texts.textMainheb,element:'textMainheb'});
+ if(parts.length===1)parts[0].classes+=' single-channel';
+ return parts;
+}
 
 function translate(property:string,distance:number){
  switch(property){

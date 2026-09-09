@@ -1,6 +1,6 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
-import {acceptsRevision,effectFrames,incomingStillDesired,tracksFor,type AnimationTrack} from '../lib/player-motion.ts';
+import {acceptsRevision,effectFrames,incomingStillDesired,textParts,tracksFor,type AnimationTrack} from '../lib/player-motion.ts';
 
 test('scale y and translate tracks keep their actual transform axis',()=>{
  assert.deepEqual(effectFrames({effect:'scale',property:'y'},'In'),[{transform:'scaleY(0)'},{transform:'scale(1)'}]);
@@ -29,4 +29,14 @@ test('an element receives both its direct track and its archived group track',()
  ];
  assert.deepEqual(tracksFor('Image','In',tracks),tracks.slice(0,2));
  assert.deepEqual(tracksFor('Image','Out',tracks),[]);
+});
+
+test('combined and lone language cues receive full-width single-channel treatment',()=>{
+ assert.deepEqual(textParts({textMain:'English only'}),[
+  {classes:'prayer combined single-channel',text:'English only',element:'textMain'},
+ ]);
+ assert.deepEqual(textParts({textMainEng:'Transliteration only'}),[
+  {classes:'prayer english single-channel',text:'Transliteration only',element:'textMainEng'},
+ ]);
+ assert.equal(textParts({textMainEng:'Transliteration',textMainheb:'Hebrew'}).some(part=>part.classes.includes('single-channel')),false);
 });
