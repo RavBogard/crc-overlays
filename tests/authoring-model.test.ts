@@ -22,6 +22,7 @@ test('original English accepts only explicitly original source blocks',()=>{
 test('imported source draft renders from an exact authority pin',()=>{
  const editable=editableFromBaseline(BARECHU);const now=Date.now();const draft:Draft={...editable,id:BARECHU,version:1,sourcePin:sourcePinFor(editable.content),activeRevision:null,activeDraftVersion:null,createdAt:now,updatedAt:now,createdBy:'test',updatedBy:'test'};
  const cue=buildCue(draft);assert.equal(cue.id,BARECHU);assert.ok(cue.texts.textMainheb);assert.ok(cue.texts.textMainEng);
+ assert.equal(JSON.stringify(draft.sourcePin).includes('\\u0000'),false,'persisted JSONB source pins contain no PostgreSQL-forbidden NUL escape');
  draft.sourcePin.feedSha256='changed';assert.throws(()=>buildCue(draft),/explicit source rebase/);
 });
 

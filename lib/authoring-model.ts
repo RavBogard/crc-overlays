@@ -181,7 +181,7 @@ export function sourcePinFor(content:DraftContent):SourcePin{
   unitSha256:Object.fromEntries(sourceIds.map(id=>[id,source(id).unitSha256])),
   blockSha256:Object.fromEntries(pairs.map(({sourceId,blockId})=>{
    const block=source(sourceId).blocks.find(item=>item.id===blockId)!;
-   return [`${sourceId}\u0000${blockId}`,block.sourceBlockSha256];
+   return [JSON.stringify([sourceId,blockId]),block.sourceBlockSha256];
   })),
  };
 }
