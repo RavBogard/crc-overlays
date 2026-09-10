@@ -31,11 +31,13 @@ BIRCHOT_TRANSLATIONS = {
     24: [22, 23],
 }
 BIRCHOT_VISIBLE_ROWS = {
-    "0135de3c-9a47-4fdc-91b9-99bacdf64970": [2, 5, 8],
-    "b60c1abc-2257-4316-9ae4-2a03f72133d6": [12, 15, 18],
-    "ceb24b8c-d9a7-4607-99bf-c0962e2a88ff": [21, 24],
+    "0135de3c-9a47-4fdc-91b9-99bacdf64970": [2, 5, 8, 12],
+    "b60c1abc-2257-4316-9ae4-2a03f72133d6": [15, 18, 21, 24],
 }
-BIRCHOT_ALIAS = "2b3da7a3-dc18-46f1-a792-13a4771b343c"
+BIRCHOT_ALIASES = {
+    "ceb24b8c-d9a7-4607-99bf-c0962e2a88ff": "b60c1abc-2257-4316-9ae4-2a03f72133d6",
+    "2b3da7a3-dc18-46f1-a792-13a4771b343c": "b60c1abc-2257-4316-9ae4-2a03f72133d6",
+}
 BIRCHOT_FINAL_SUPPLEMENT = "birchot-hashachar-final-clause"
 SEQUENCE_ALIAS_TARGETS = {
     "f792daee-3663-4350-a3cb-783897e1f463": "65743cb0-95c9-4d26-b8eb-74c86f1f1b36",
@@ -82,12 +84,10 @@ def validate_content_rows(
     cue_id = cue_map["id"]
     rows = cue_map.get("contentRows")
     expected_en_blocks = BIRCHOT_VISIBLE_ROWS.get(cue_id)
-    if cue_id == BIRCHOT_ALIAS:
-        expected_en_blocks = BIRCHOT_VISIBLE_ROWS[cue_map.get("aliasOf")]
-        if cue_map.get("aliasOf") != "ceb24b8c-d9a7-4607-99bf-c0962e2a88ff" or cue_map.get(
-            "hidden"
-        ) is not True:
-            raise ValidationError("legacy Birchot fourth panel must remain a hidden alias of panel 3")
+    if cue_id in BIRCHOT_ALIASES:
+        expected_en_blocks = BIRCHOT_VISIBLE_ROWS[BIRCHOT_ALIASES[cue_id]]
+        if cue_map.get("aliasOf") != BIRCHOT_ALIASES[cue_id] or cue_map.get("hidden") is not True:
+            raise ValidationError("retired Birchot panels must remain hidden aliases of panel 2")
     elif cue_map.get("aliasOf") is not None or cue_map.get("hidden") is not None:
         if (
             cue_map.get("aliasOf") != SEQUENCE_ALIAS_TARGETS.get(cue_id)

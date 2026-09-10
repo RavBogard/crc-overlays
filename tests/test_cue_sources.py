@@ -190,7 +190,7 @@ class SourceAdapterTests(unittest.TestCase):
         ):
             validator.validate(mapping, catalog)
 
-    def test_birchot_rows_are_three_visible_panels_with_hidden_legacy_alias(self):
+    def test_birchot_rows_are_two_visible_panels_with_hidden_legacy_aliases(self):
         mapping = json.loads(
             (ROOT / "content" / "legacy-crc-shabbat-morning.sources.json").read_text(encoding="utf-8")
         )
@@ -203,13 +203,16 @@ class SourceAdapterTests(unittest.TestCase):
         }
         cues = [cue for cue in catalog if cue["id"] in ids]
         by_id = {cue["id"]: cue for cue in cues}
-        alias = by_id["2b3da7a3-dc18-46f1-a792-13a4771b343c"]
-        target = by_id["ceb24b8c-d9a7-4607-99bf-c0962e2a88ff"]
-        self.assertEqual([len(cue["contentRows"]) for cue in cues], [3, 3, 2, 2])
-        self.assertEqual(sum(not cue.get("hidden", False) for cue in cues), 3)
-        self.assertEqual(alias["aliasOf"], target["id"])
-        self.assertTrue(alias["hidden"])
-        self.assertEqual(alias["contentRows"], target["contentRows"])
+        target = by_id["b60c1abc-2257-4316-9ae4-2a03f72133d6"]
+        aliases = [
+            by_id["ceb24b8c-d9a7-4607-99bf-c0962e2a88ff"],
+            by_id["2b3da7a3-dc18-46f1-a792-13a4771b343c"],
+        ]
+        self.assertEqual([len(cue["contentRows"]) for cue in cues], [4, 4, 4, 4])
+        self.assertEqual(sum(not cue.get("hidden", False) for cue in cues), 2)
+        self.assertTrue(all(alias["aliasOf"] == target["id"] for alias in aliases))
+        self.assertTrue(all(alias["hidden"] for alias in aliases))
+        self.assertTrue(all(alias["contentRows"] == target["contentRows"] for alias in aliases))
         self.assertEqual(
             target["contentRows"][-1]["en"],
             "Blessed are you, the eternal, our God,\n…who has provided me all I need.",

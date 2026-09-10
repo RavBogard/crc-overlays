@@ -3633,8 +3633,8 @@
     "name": "Birchot Hashachar 1",
     "layout": "left",
     "texts": {
-      "textMainheb": "בָּרוּךְ אַתָּה יְיָ אֱלֹהֵינוּ מֶלֶךְ הָעוֹלָם, שֶׁעָשַׂנִי בְּצַלְמוֹ:\nבָּרוּךְ אַתָּה יְיָ אֱלֹהֵינוּ מֶלֶךְ הָעוֹלָם, שֶׁעָשַׂנִי בַּת/בֶּן חוֹרִין:\nבָּרוּךְ אַתָּה יְיָ אֱלֹהֵינוּ מֶלֶךְ הָעוֹלָם, שֶׁעָשַׂנִי יִשְׂרָאֵל:",
-      "textMainEng": "Baruch atah Adonai Eloheinu melech ha-olam, she-asani b’tsalmo.\nBaruch atah Adonai Eloheinu melech ha-olam, she-asani bat / ben chorin.\nBaruch atah Adonai Eloheinu melech ha-olam, she-asani Yisraeil. *",
+      "textMainheb": "בָּרוּךְ אַתָּה יְיָ אֱלֹהֵינוּ מֶלֶךְ הָעוֹלָם, שֶׁעָשַׂנִי בְּצַלְמוֹ:\nבָּרוּךְ אַתָּה יְיָ אֱלֹהֵינוּ מֶלֶךְ הָעוֹלָם, שֶׁעָשַׂנִי בַּת/בֶּן חוֹרִין:\nבָּרוּךְ אַתָּה יְיָ אֱלֹהֵינוּ מֶלֶךְ הָעוֹלָם, שֶׁעָשַׂנִי יִשְׂרָאֵל:\nבָּרוּךְ אַתָּה יְיָ אֱלֹהֵינוּ מֶלֶךְ הָעוֹלָם, פּוֹקֵחַ עִוְרִים:",
+      "textMainEng": "Baruch atah Adonai Eloheinu melech ha-olam, she-asani b’tsalmo.\nBaruch atah Adonai Eloheinu melech ha-olam, she-asani bat / ben chorin.\nBaruch atah Adonai Eloheinu melech ha-olam, she-asani Yisraeil. *\nBaruch atah Adonai Eloheinu melech ha-olam, pokei-ach ivrim.",
       "textTitle": "Birchot Hashachar",
       "accentTextTitle": "ברכות השחר"
     },
@@ -4005,7 +4005,7 @@
         "compositionUuid": "0135de3c-9a47-4fdc-91b9-99bacdf64970",
         "compositionSha256": "bc0a41aec21af9ea265a3a7fe9c73e93a50acdcd5143ad3338ffc7d77cea1b88",
         "operatorName": "Birchot Hashachar 1",
-        "textsSha256": "0e8c464b749ad09da5dd4d2924e73f5c3f59a36f74f8eafbbcce4753f1b1b1f3",
+        "textsSha256": "58323ec41dad6b21b034a41daa9eebc64eed12bd1903243c065e0dd685236582",
         "role": "presentation and operator-identity evidence only"
       },
       "liturgy": {
@@ -4056,6 +4056,16 @@
                 7
               ],
               "separator": " "
+            },
+            {
+              "sliceId": "birchot-sight-he",
+              "unit": "awakening.birchot-hashachar@legacy-shabbat-morning",
+              "channel": "he",
+              "blocks": [
+                10,
+                11
+              ],
+              "separator": " "
             }
           ],
           "textMainEng": [
@@ -4086,6 +4096,16 @@
               "blocks": [
                 6,
                 7
+              ],
+              "separator": " "
+            },
+            {
+              "sliceId": "birchot-sight-tr",
+              "unit": "awakening.birchot-hashachar@legacy-shabbat-morning",
+              "channel": "tr",
+              "blocks": [
+                10,
+                11
               ],
               "separator": " "
             }
@@ -4178,6 +4198,35 @@
               ],
               "separator": " "
             }
+          },
+          {
+            "rowId": "birchot-sight",
+            "he": {
+              "unit": "awakening.birchot-hashachar@legacy-shabbat-morning",
+              "channel": "he",
+              "blocks": [
+                10,
+                11
+              ],
+              "separator": " "
+            },
+            "tr": {
+              "unit": "awakening.birchot-hashachar@legacy-shabbat-morning",
+              "channel": "tr",
+              "blocks": [
+                10,
+                11
+              ],
+              "separator": " "
+            },
+            "en": {
+              "unit": "awakening.birchot-hashachar@legacy-shabbat-morning",
+              "channel": "en",
+              "blocks": [
+                12
+              ],
+              "separator": " "
+            }
           }
         ]
       }
@@ -4197,6 +4246,11 @@
         "he": "בָּרוּךְ אַתָּה יְיָ אֱלֹהֵינוּ מֶלֶךְ הָעוֹלָם, שֶׁעָשַׂנִי יִשְׂרָאֵל:",
         "tr": "Baruch atah Adonai Eloheinu melech ha-olam, she-asani Yisraeil. *",
         "en": "Blessed are you, the eternal, our God, who has made me Yisraeil*."
+      },
+      {
+        "he": "בָּרוּךְ אַתָּה יְיָ אֱלֹהֵינוּ מֶלֶךְ הָעוֹלָם, פּוֹקֵחַ עִוְרִים:",
+        "tr": "Baruch atah Adonai Eloheinu melech ha-olam, pokei-ach ivrim.",
+        "en": "Blessed are you, the eternal, our God, who opens the eyes of the blind."
       }
     ]
   },
@@ -4205,8 +4259,8 @@
     "name": "Birchot Hashachar 2",
     "layout": "left",
     "texts": {
-      "textMainheb": "בָּרוּךְ אַתָּה יְיָ אֱלֹהֵינוּ מֶלֶךְ הָעוֹלָם, פּוֹקֵחַ עִוְרִים:\nבָּרוּךְ אַתָּה יְיָ אֱלֹהֵינוּ מֶלֶךְ הָעוֹלָם, מַלְבִּישׁ עֲרֻמִּים:\nבָּרוּךְ אַתָּה יְיָ אֱלֹהֵינוּ מֶלֶךְ הָעוֹלָם, הַנּוֹתֵן לַיָּעֵף כֹּחַ:",
-      "textMainEng": "Baruch atah Adonai Eloheinu melech ha-olam, pokei-ach ivrim.\nBaruch atah Adonai Eloheinu melech ha-olam, malbish arumim.\nBaruch atah Adonai Eloheinu melech ha-olam, hanotein layaeif koach.",
+      "textMainheb": "בָּרוּךְ אַתָּה יְיָ אֱלֹהֵינוּ מֶלֶךְ הָעוֹלָם, מַלְבִּישׁ עֲרֻמִּים:\nבָּרוּךְ אַתָּה יְיָ אֱלֹהֵינוּ מֶלֶךְ הָעוֹלָם, הַנּוֹתֵן לַיָּעֵף כֹּחַ:\nבָּרוּךְ אַתָּה יְיָ אֱלֹהֵינוּ מֶלֶךְ הָעוֹלָם, אֲשֶׁר הֵכִין מִצְעֲדֵי גָבֶר:\nבָּרוּךְ אַתָּה יְיָ אֱלֹהֵינוּ מֶלֶךְ הָעוֹלָם, . . .",
+      "textMainEng": "Baruch atah Adonai Eloheinu melech ha-olam, malbish arumim.\nBaruch atah Adonai Eloheinu melech ha-olam, hanotein layaeif koach.\nBaruch atah Adonai Eloheinu melech ha-olam, asher heichin mitz’adei gaver.\nBaruch atah Adonai Eloheinu melech ha-olam, . . .",
       "textTitle": "Birchot Hashachar",
       "accentTextTitle": "ברכות השחר"
     },
@@ -4577,7 +4631,7 @@
         "compositionUuid": "b60c1abc-2257-4316-9ae4-2a03f72133d6",
         "compositionSha256": "2d6f83d54106b57d1a8a77c49eb78513f3c23bda4996976b2dde5b6e5b72da82",
         "operatorName": "Birchot Hashachar 2",
-        "textsSha256": "0562b6d02a62cd2b449573009bb56e5f168aa7be7feb6c3de86894920dd39916",
+        "textsSha256": "5fb4345fd27e1eac3e398d6e9108dfdb46bde640dcc5c66704684110347388ce",
         "role": "presentation and operator-identity evidence only"
       },
       "liturgy": {
@@ -4600,16 +4654,6 @@
         "slices": {
           "textMainheb": [
             {
-              "sliceId": "birchot-sight-he",
-              "unit": "awakening.birchot-hashachar@legacy-shabbat-morning",
-              "channel": "he",
-              "blocks": [
-                10,
-                11
-              ],
-              "separator": " "
-            },
-            {
               "sliceId": "birchot-clothing-he",
               "unit": "awakening.birchot-hashachar@legacy-shabbat-morning",
               "channel": "he",
@@ -4628,19 +4672,29 @@
                 17
               ],
               "separator": " "
-            }
-          ],
-          "textMainEng": [
+            },
             {
-              "sliceId": "birchot-sight-tr",
+              "sliceId": "birchot-steps-he",
               "unit": "awakening.birchot-hashachar@legacy-shabbat-morning",
-              "channel": "tr",
+              "channel": "he",
               "blocks": [
-                10,
-                11
+                19,
+                20
               ],
               "separator": " "
             },
+            {
+              "sliceId": "birchot-personal-he",
+              "unit": "awakening.birchot-hashachar@legacy-shabbat-morning",
+              "channel": "he",
+              "blocks": [
+                22,
+                23
+              ],
+              "separator": " "
+            }
+          ],
+          "textMainEng": [
             {
               "sliceId": "birchot-clothing-tr",
               "unit": "awakening.birchot-hashachar@legacy-shabbat-morning",
@@ -4660,39 +4714,30 @@
                 17
               ],
               "separator": " "
+            },
+            {
+              "sliceId": "birchot-steps-tr",
+              "unit": "awakening.birchot-hashachar@legacy-shabbat-morning",
+              "channel": "tr",
+              "blocks": [
+                19,
+                20
+              ],
+              "separator": " "
+            },
+            {
+              "sliceId": "birchot-personal-tr",
+              "unit": "awakening.birchot-hashachar@legacy-shabbat-morning",
+              "channel": "tr",
+              "blocks": [
+                22,
+                23
+              ],
+              "separator": " "
             }
           ]
         },
         "contentRows": [
-          {
-            "rowId": "birchot-sight",
-            "he": {
-              "unit": "awakening.birchot-hashachar@legacy-shabbat-morning",
-              "channel": "he",
-              "blocks": [
-                10,
-                11
-              ],
-              "separator": " "
-            },
-            "tr": {
-              "unit": "awakening.birchot-hashachar@legacy-shabbat-morning",
-              "channel": "tr",
-              "blocks": [
-                10,
-                11
-              ],
-              "separator": " "
-            },
-            "en": {
-              "unit": "awakening.birchot-hashachar@legacy-shabbat-morning",
-              "channel": "en",
-              "blocks": [
-                12
-              ],
-              "separator": " "
-            }
-          },
           {
             "rowId": "birchot-clothing",
             "he": {
@@ -4750,16 +4795,81 @@
               ],
               "separator": " "
             }
+          },
+          {
+            "rowId": "birchot-steps",
+            "he": {
+              "unit": "awakening.birchot-hashachar@legacy-shabbat-morning",
+              "channel": "he",
+              "blocks": [
+                19,
+                20
+              ],
+              "separator": " "
+            },
+            "tr": {
+              "unit": "awakening.birchot-hashachar@legacy-shabbat-morning",
+              "channel": "tr",
+              "blocks": [
+                19,
+                20
+              ],
+              "separator": " "
+            },
+            "en": {
+              "unit": "awakening.birchot-hashachar@legacy-shabbat-morning",
+              "channel": "en",
+              "blocks": [
+                21
+              ],
+              "separator": " "
+            }
+          },
+          {
+            "rowId": "birchot-personal",
+            "he": {
+              "unit": "awakening.birchot-hashachar@legacy-shabbat-morning",
+              "channel": "he",
+              "blocks": [
+                22,
+                23
+              ],
+              "separator": " "
+            },
+            "tr": {
+              "unit": "awakening.birchot-hashachar@legacy-shabbat-morning",
+              "channel": "tr",
+              "blocks": [
+                22,
+                23
+              ],
+              "separator": " "
+            },
+            "en": {
+              "unit": "awakening.birchot-hashachar@legacy-shabbat-morning",
+              "channel": "en",
+              "blocks": [
+                24
+              ],
+              "separator": " ",
+              "supplement": "birchot-hashachar-final-clause",
+              "supplementSeparator": "\n"
+            }
           }
-        ]
+        ],
+        "supplements": {
+          "birchot-hashachar-final-clause": {
+            "file": "build/typst/content/shared/awakening.typ",
+            "fileSha256": "9272234d473ae47ea5265939b30f1dba653f4abd6afbafbad5a574014d4e2419",
+            "symbol": "BH-E3G",
+            "sourceLine": "#let BH-E3G = eng(\"…who has provided me all I need.\")",
+            "text": "…who has provided me all I need.",
+            "textSha256": "5ed8a70eaa5c6a543b69a6eb99ecf16d6b07a78470bfffb67686e3bd40c95808"
+          }
+        }
       }
     },
     "contentRows": [
-      {
-        "he": "בָּרוּךְ אַתָּה יְיָ אֱלֹהֵינוּ מֶלֶךְ הָעוֹלָם, פּוֹקֵחַ עִוְרִים:",
-        "tr": "Baruch atah Adonai Eloheinu melech ha-olam, pokei-ach ivrim.",
-        "en": "Blessed are you, the eternal, our God, who opens the eyes of the blind."
-      },
       {
         "he": "בָּרוּךְ אַתָּה יְיָ אֱלֹהֵינוּ מֶלֶךְ הָעוֹלָם, מַלְבִּישׁ עֲרֻמִּים:",
         "tr": "Baruch atah Adonai Eloheinu melech ha-olam, malbish arumim.",
@@ -4769,6 +4879,16 @@
         "he": "בָּרוּךְ אַתָּה יְיָ אֱלֹהֵינוּ מֶלֶךְ הָעוֹלָם, הַנּוֹתֵן לַיָּעֵף כֹּחַ:",
         "tr": "Baruch atah Adonai Eloheinu melech ha-olam, hanotein layaeif koach.",
         "en": "Blessed are you, the eternal, our God, who gives strength to the weak."
+      },
+      {
+        "he": "בָּרוּךְ אַתָּה יְיָ אֱלֹהֵינוּ מֶלֶךְ הָעוֹלָם, אֲשֶׁר הֵכִין מִצְעֲדֵי גָבֶר:",
+        "tr": "Baruch atah Adonai Eloheinu melech ha-olam, asher heichin mitz’adei gaver.",
+        "en": "Blessed are you, the eternal, our God, who guides the steps of human beings."
+      },
+      {
+        "he": "בָּרוּךְ אַתָּה יְיָ אֱלֹהֵינוּ מֶלֶךְ הָעוֹלָם, . . .",
+        "tr": "Baruch atah Adonai Eloheinu melech ha-olam, . . .",
+        "en": "Blessed are you, the eternal, our God,\n…who has provided me all I need."
       }
     ]
   },
@@ -4777,8 +4897,8 @@
     "name": "Birchot Hashachar 3",
     "layout": "left",
     "texts": {
-      "textMainheb": "בָּרוּךְ אַתָּה יְיָ אֱלֹהֵינוּ מֶלֶךְ הָעוֹלָם, אֲשֶׁר הֵכִין מִצְעֲדֵי גָבֶר:\nבָּרוּךְ אַתָּה יְיָ אֱלֹהֵינוּ מֶלֶךְ הָעוֹלָם, . . .",
-      "textMainEng": "Baruch atah Adonai Eloheinu melech ha-olam, asher heichin mitz’adei gaver.\nBaruch atah Adonai Eloheinu melech ha-olam, . . .",
+      "textMainheb": "בָּרוּךְ אַתָּה יְיָ אֱלֹהֵינוּ מֶלֶךְ הָעוֹלָם, מַלְבִּישׁ עֲרֻמִּים:\nבָּרוּךְ אַתָּה יְיָ אֱלֹהֵינוּ מֶלֶךְ הָעוֹלָם, הַנּוֹתֵן לַיָּעֵף כֹּחַ:\nבָּרוּךְ אַתָּה יְיָ אֱלֹהֵינוּ מֶלֶךְ הָעוֹלָם, אֲשֶׁר הֵכִין מִצְעֲדֵי גָבֶר:\nבָּרוּךְ אַתָּה יְיָ אֱלֹהֵינוּ מֶלֶךְ הָעוֹלָם, . . .",
+      "textMainEng": "Baruch atah Adonai Eloheinu melech ha-olam, malbish arumim.\nBaruch atah Adonai Eloheinu melech ha-olam, hanotein layaeif koach.\nBaruch atah Adonai Eloheinu melech ha-olam, asher heichin mitz’adei gaver.\nBaruch atah Adonai Eloheinu melech ha-olam, . . .",
       "textTitle": "Birchot Hashachar",
       "accentTextTitle": "ברכות השחר"
     },
@@ -5149,7 +5269,7 @@
         "compositionUuid": "ceb24b8c-d9a7-4607-99bf-c0962e2a88ff",
         "compositionSha256": "885e9e3f07cbb35474304801d1ccd544b218225b6e1a566ed263605693b34916",
         "operatorName": "Birchot Hashachar 3",
-        "textsSha256": "22692bdbc76e2c322809ffd707369f5f4f3ddeaffc32d13054465d09a65478c4",
+        "textsSha256": "5fb4345fd27e1eac3e398d6e9108dfdb46bde640dcc5c66704684110347388ce",
         "role": "presentation and operator-identity evidence only"
       },
       "liturgy": {
@@ -5171,6 +5291,26 @@
         ],
         "slices": {
           "textMainheb": [
+            {
+              "sliceId": "birchot-clothing-he",
+              "unit": "awakening.birchot-hashachar@legacy-shabbat-morning",
+              "channel": "he",
+              "blocks": [
+                13,
+                14
+              ],
+              "separator": " "
+            },
+            {
+              "sliceId": "birchot-strength-he",
+              "unit": "awakening.birchot-hashachar@legacy-shabbat-morning",
+              "channel": "he",
+              "blocks": [
+                16,
+                17
+              ],
+              "separator": " "
+            },
             {
               "sliceId": "birchot-steps-he",
               "unit": "awakening.birchot-hashachar@legacy-shabbat-morning",
@@ -5194,6 +5334,26 @@
           ],
           "textMainEng": [
             {
+              "sliceId": "birchot-clothing-tr",
+              "unit": "awakening.birchot-hashachar@legacy-shabbat-morning",
+              "channel": "tr",
+              "blocks": [
+                13,
+                14
+              ],
+              "separator": " "
+            },
+            {
+              "sliceId": "birchot-strength-tr",
+              "unit": "awakening.birchot-hashachar@legacy-shabbat-morning",
+              "channel": "tr",
+              "blocks": [
+                16,
+                17
+              ],
+              "separator": " "
+            },
+            {
               "sliceId": "birchot-steps-tr",
               "unit": "awakening.birchot-hashachar@legacy-shabbat-morning",
               "channel": "tr",
@@ -5216,6 +5376,64 @@
           ]
         },
         "contentRows": [
+          {
+            "rowId": "birchot-clothing",
+            "he": {
+              "unit": "awakening.birchot-hashachar@legacy-shabbat-morning",
+              "channel": "he",
+              "blocks": [
+                13,
+                14
+              ],
+              "separator": " "
+            },
+            "tr": {
+              "unit": "awakening.birchot-hashachar@legacy-shabbat-morning",
+              "channel": "tr",
+              "blocks": [
+                13,
+                14
+              ],
+              "separator": " "
+            },
+            "en": {
+              "unit": "awakening.birchot-hashachar@legacy-shabbat-morning",
+              "channel": "en",
+              "blocks": [
+                15
+              ],
+              "separator": " "
+            }
+          },
+          {
+            "rowId": "birchot-strength",
+            "he": {
+              "unit": "awakening.birchot-hashachar@legacy-shabbat-morning",
+              "channel": "he",
+              "blocks": [
+                16,
+                17
+              ],
+              "separator": " "
+            },
+            "tr": {
+              "unit": "awakening.birchot-hashachar@legacy-shabbat-morning",
+              "channel": "tr",
+              "blocks": [
+                16,
+                17
+              ],
+              "separator": " "
+            },
+            "en": {
+              "unit": "awakening.birchot-hashachar@legacy-shabbat-morning",
+              "channel": "en",
+              "blocks": [
+                18
+              ],
+              "separator": " "
+            }
+          },
           {
             "rowId": "birchot-steps",
             "he": {
@@ -5291,6 +5509,16 @@
     },
     "contentRows": [
       {
+        "he": "בָּרוּךְ אַתָּה יְיָ אֱלֹהֵינוּ מֶלֶךְ הָעוֹלָם, מַלְבִּישׁ עֲרֻמִּים:",
+        "tr": "Baruch atah Adonai Eloheinu melech ha-olam, malbish arumim.",
+        "en": "Blessed are you, the eternal, our God, who provides clothes for the needy."
+      },
+      {
+        "he": "בָּרוּךְ אַתָּה יְיָ אֱלֹהֵינוּ מֶלֶךְ הָעוֹלָם, הַנּוֹתֵן לַיָּעֵף כֹּחַ:",
+        "tr": "Baruch atah Adonai Eloheinu melech ha-olam, hanotein layaeif koach.",
+        "en": "Blessed are you, the eternal, our God, who gives strength to the weak."
+      },
+      {
         "he": "בָּרוּךְ אַתָּה יְיָ אֱלֹהֵינוּ מֶלֶךְ הָעוֹלָם, אֲשֶׁר הֵכִין מִצְעֲדֵי גָבֶר:",
         "tr": "Baruch atah Adonai Eloheinu melech ha-olam, asher heichin mitz’adei gaver.",
         "en": "Blessed are you, the eternal, our God, who guides the steps of human beings."
@@ -5300,15 +5528,17 @@
         "tr": "Baruch atah Adonai Eloheinu melech ha-olam, . . .",
         "en": "Blessed are you, the eternal, our God,\n…who has provided me all I need."
       }
-    ]
+    ],
+    "aliasOf": "b60c1abc-2257-4316-9ae4-2a03f72133d6",
+    "hidden": true
   },
   {
     "id": "2b3da7a3-dc18-46f1-a792-13a4771b343c",
     "name": "Birchot Hashachar 4",
     "layout": "left",
     "texts": {
-      "textMainheb": "בָּרוּךְ אַתָּה יְיָ אֱלֹהֵינוּ מֶלֶךְ הָעוֹלָם, אֲשֶׁר הֵכִין מִצְעֲדֵי גָבֶר:\nבָּרוּךְ אַתָּה יְיָ אֱלֹהֵינוּ מֶלֶךְ הָעוֹלָם, . . .",
-      "textMainEng": "Baruch atah Adonai Eloheinu melech ha-olam, asher heichin mitz’adei gaver.\nBaruch atah Adonai Eloheinu melech ha-olam, . . .",
+      "textMainheb": "בָּרוּךְ אַתָּה יְיָ אֱלֹהֵינוּ מֶלֶךְ הָעוֹלָם, מַלְבִּישׁ עֲרֻמִּים:\nבָּרוּךְ אַתָּה יְיָ אֱלֹהֵינוּ מֶלֶךְ הָעוֹלָם, הַנּוֹתֵן לַיָּעֵף כֹּחַ:\nבָּרוּךְ אַתָּה יְיָ אֱלֹהֵינוּ מֶלֶךְ הָעוֹלָם, אֲשֶׁר הֵכִין מִצְעֲדֵי גָבֶר:\nבָּרוּךְ אַתָּה יְיָ אֱלֹהֵינוּ מֶלֶךְ הָעוֹלָם, . . .",
+      "textMainEng": "Baruch atah Adonai Eloheinu melech ha-olam, malbish arumim.\nBaruch atah Adonai Eloheinu melech ha-olam, hanotein layaeif koach.\nBaruch atah Adonai Eloheinu melech ha-olam, asher heichin mitz’adei gaver.\nBaruch atah Adonai Eloheinu melech ha-olam, . . .",
       "textTitle": "Birchot Hashachar",
       "accentTextTitle": "ברכות השחר"
     },
@@ -5679,7 +5909,7 @@
         "compositionUuid": "2b3da7a3-dc18-46f1-a792-13a4771b343c",
         "compositionSha256": "c9352aac205388ef8a4dda78a8a9124e4189aad0c447edcc4bcff7802a6163fa",
         "operatorName": "Birchot Hashachar 4",
-        "textsSha256": "22692bdbc76e2c322809ffd707369f5f4f3ddeaffc32d13054465d09a65478c4",
+        "textsSha256": "5fb4345fd27e1eac3e398d6e9108dfdb46bde640dcc5c66704684110347388ce",
         "role": "presentation and operator-identity evidence only"
       },
       "liturgy": {
@@ -5702,7 +5932,27 @@
         "slices": {
           "textMainheb": [
             {
-              "sliceId": "birchot-steps-alias-he",
+              "sliceId": "birchot-clothing-he",
+              "unit": "awakening.birchot-hashachar@legacy-shabbat-morning",
+              "channel": "he",
+              "blocks": [
+                13,
+                14
+              ],
+              "separator": " "
+            },
+            {
+              "sliceId": "birchot-strength-he",
+              "unit": "awakening.birchot-hashachar@legacy-shabbat-morning",
+              "channel": "he",
+              "blocks": [
+                16,
+                17
+              ],
+              "separator": " "
+            },
+            {
+              "sliceId": "birchot-steps-he",
               "unit": "awakening.birchot-hashachar@legacy-shabbat-morning",
               "channel": "he",
               "blocks": [
@@ -5712,7 +5962,7 @@
               "separator": " "
             },
             {
-              "sliceId": "birchot-personal-alias-he",
+              "sliceId": "birchot-personal-he",
               "unit": "awakening.birchot-hashachar@legacy-shabbat-morning",
               "channel": "he",
               "blocks": [
@@ -5724,7 +5974,27 @@
           ],
           "textMainEng": [
             {
-              "sliceId": "birchot-steps-alias-tr",
+              "sliceId": "birchot-clothing-tr",
+              "unit": "awakening.birchot-hashachar@legacy-shabbat-morning",
+              "channel": "tr",
+              "blocks": [
+                13,
+                14
+              ],
+              "separator": " "
+            },
+            {
+              "sliceId": "birchot-strength-tr",
+              "unit": "awakening.birchot-hashachar@legacy-shabbat-morning",
+              "channel": "tr",
+              "blocks": [
+                16,
+                17
+              ],
+              "separator": " "
+            },
+            {
+              "sliceId": "birchot-steps-tr",
               "unit": "awakening.birchot-hashachar@legacy-shabbat-morning",
               "channel": "tr",
               "blocks": [
@@ -5734,7 +6004,7 @@
               "separator": " "
             },
             {
-              "sliceId": "birchot-personal-alias-tr",
+              "sliceId": "birchot-personal-tr",
               "unit": "awakening.birchot-hashachar@legacy-shabbat-morning",
               "channel": "tr",
               "blocks": [
@@ -5746,6 +6016,64 @@
           ]
         },
         "contentRows": [
+          {
+            "rowId": "birchot-clothing",
+            "he": {
+              "unit": "awakening.birchot-hashachar@legacy-shabbat-morning",
+              "channel": "he",
+              "blocks": [
+                13,
+                14
+              ],
+              "separator": " "
+            },
+            "tr": {
+              "unit": "awakening.birchot-hashachar@legacy-shabbat-morning",
+              "channel": "tr",
+              "blocks": [
+                13,
+                14
+              ],
+              "separator": " "
+            },
+            "en": {
+              "unit": "awakening.birchot-hashachar@legacy-shabbat-morning",
+              "channel": "en",
+              "blocks": [
+                15
+              ],
+              "separator": " "
+            }
+          },
+          {
+            "rowId": "birchot-strength",
+            "he": {
+              "unit": "awakening.birchot-hashachar@legacy-shabbat-morning",
+              "channel": "he",
+              "blocks": [
+                16,
+                17
+              ],
+              "separator": " "
+            },
+            "tr": {
+              "unit": "awakening.birchot-hashachar@legacy-shabbat-morning",
+              "channel": "tr",
+              "blocks": [
+                16,
+                17
+              ],
+              "separator": " "
+            },
+            "en": {
+              "unit": "awakening.birchot-hashachar@legacy-shabbat-morning",
+              "channel": "en",
+              "blocks": [
+                18
+              ],
+              "separator": " "
+            }
+          },
           {
             "rowId": "birchot-steps",
             "he": {
@@ -5821,6 +6149,16 @@
     },
     "contentRows": [
       {
+        "he": "בָּרוּךְ אַתָּה יְיָ אֱלֹהֵינוּ מֶלֶךְ הָעוֹלָם, מַלְבִּישׁ עֲרֻמִּים:",
+        "tr": "Baruch atah Adonai Eloheinu melech ha-olam, malbish arumim.",
+        "en": "Blessed are you, the eternal, our God, who provides clothes for the needy."
+      },
+      {
+        "he": "בָּרוּךְ אַתָּה יְיָ אֱלֹהֵינוּ מֶלֶךְ הָעוֹלָם, הַנּוֹתֵן לַיָּעֵף כֹּחַ:",
+        "tr": "Baruch atah Adonai Eloheinu melech ha-olam, hanotein layaeif koach.",
+        "en": "Blessed are you, the eternal, our God, who gives strength to the weak."
+      },
+      {
         "he": "בָּרוּךְ אַתָּה יְיָ אֱלֹהֵינוּ מֶלֶךְ הָעוֹלָם, אֲשֶׁר הֵכִין מִצְעֲדֵי גָבֶר:",
         "tr": "Baruch atah Adonai Eloheinu melech ha-olam, asher heichin mitz’adei gaver.",
         "en": "Blessed are you, the eternal, our God, who guides the steps of human beings."
@@ -5831,7 +6169,7 @@
         "en": "Blessed are you, the eternal, our God,\n…who has provided me all I need."
       }
     ],
-    "aliasOf": "ceb24b8c-d9a7-4607-99bf-c0962e2a88ff",
+    "aliasOf": "b60c1abc-2257-4316-9ae4-2a03f72133d6",
     "hidden": true
   },
   {
