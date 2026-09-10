@@ -290,7 +290,7 @@
       "operatorName": "Mourners Kaddish 1",
       "layout": "left",
       "archiveRecordSha256": "3993eece7d5ffa09f8366cd7b7755f1bf7d219a7727895ad9ca8d087dce59a39",
-      "expectedTextsSha256": "a512615cd24ce2a4a8877434ba3bb8814d348a952cce56655e3715dac41d6614",
+      "expectedTextsSha256": "207dad267cb57ce7be798bddec740a47e24894d355705ddc03cae6f64e7fd623",
       "title": {
         "archiveField": "title"
       },
@@ -310,7 +310,10 @@
               6,
               7,
               8,
-              9
+              9,
+              10,
+              11,
+              12
             ],
             "separator": " "
           }
@@ -327,7 +330,10 @@
               6,
               7,
               8,
-              9
+              9,
+              10,
+              11,
+              12
             ],
             "separator": " "
           }
@@ -339,7 +345,7 @@
       "operatorName": "Mourners Kaddish 2",
       "layout": "left",
       "archiveRecordSha256": "097870e22801f61461a02bd79a1b38a78804ebe7d051e8c410b67f7341703e93",
-      "expectedTextsSha256": "bfa78984e13ea673f2f35ac2384962cc95a51c1cda1ab1eb2c66681bd774802d",
+      "expectedTextsSha256": "05a7a55fb1467194e44652999bc43cf0c3c7b3ba74b42c8afc464f4b88da6fbb",
       "title": {
         "archiveField": "title"
       },
@@ -352,13 +358,17 @@
             "unit": "concluding.mourners-kaddish@legacy-shabbat-morning",
             "channel": "he",
             "blocks": [
-              10,
-              11,
-              12,
               13,
               14,
               15,
-              16
+              16,
+              17,
+              18,
+              19,
+              20,
+              21,
+              22,
+              23
             ],
             "separator": " "
           }
@@ -368,13 +378,17 @@
             "unit": "concluding.mourners-kaddish@legacy-shabbat-morning",
             "channel": "tr",
             "blocks": [
-              10,
-              11,
-              12,
               13,
               14,
               15,
-              16
+              16,
+              17,
+              18,
+              19,
+              20,
+              21,
+              22,
+              23
             ],
             "separator": " "
           }
@@ -386,7 +400,7 @@
       "operatorName": "Mourners Kaddish 3",
       "layout": "left",
       "archiveRecordSha256": "d421a7ec13233c76f9767865262bf62767a9e2be0ca731638fa902f0b1364255",
-      "expectedTextsSha256": "a035808d3ba3370587dcc22cd62203496e8b5f7f36430200aab926121fe06494",
+      "expectedTextsSha256": "05a7a55fb1467194e44652999bc43cf0c3c7b3ba74b42c8afc464f4b88da6fbb",
       "title": {
         "archiveField": "title"
       },
@@ -399,6 +413,10 @@
             "unit": "concluding.mourners-kaddish@legacy-shabbat-morning",
             "channel": "he",
             "blocks": [
+              13,
+              14,
+              15,
+              16,
               17,
               18,
               19,
@@ -415,6 +433,10 @@
             "unit": "concluding.mourners-kaddish@legacy-shabbat-morning",
             "channel": "tr",
             "blocks": [
+              13,
+              14,
+              15,
+              16,
               17,
               18,
               19,
@@ -426,7 +448,10 @@
             "separator": " "
           }
         ]
-      }
+      },
+      "aliasOf": "f15c1944-da76-4d61-95c8-05c032d47c4d",
+      "hidden": true,
+      "retirementNote": "Legacy third-panel UUID remains a hidden command alias of consolidated Mourners Kaddish 2."
     },
     {
       "id": "e1bd7775-ddf1-468b-b3f7-ac98f11df958",

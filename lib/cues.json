@@ -1701,8 +1701,8 @@
     "name": "Mourners Kaddish 1",
     "layout": "left",
     "texts": {
-      "textMainheb": "יִתְגַּדַּל וְיִתְקַדַּשׁ שְׁמֵהּ רַבָּא: בְּעָלְמָא דִּי בְרָא כִרְעוּתֵהּ, וְיַמְלִיךְ מַלְכוּתֵהּ בְּחַיֵּיכוֹן וּבְיוֹמֵיכוֹן וּבְחַיֵּי דְכָל בֵּית יִשְׂרָאֵל, בַּעֲגָלָא וּבִזְמַן קָרִיב, וְאִמְרוּ אָמֵן: יְהֵא שְׁמֵהּ רַבָּא מְבָרַךְ לְעָלַם וּלְעָלְמֵי עָלְמַיָּא:",
-      "textMainEng": "Yitgadal v’yitkadash shmeih raba. B’alma di v’ra chiruteih, v’yamlich malchuteih b’chayeichon uv’yomeichon uv’chayei d’chol beit Yisraeil, ba-agala uvizman kariv, v’imru amein. Y’hei sh’meih raba m’varach l’alam ul’almei almaya.",
+      "textMainheb": "יִתְגַּדַּל וְיִתְקַדַּשׁ שְׁמֵהּ רַבָּא: בְּעָלְמָא דִּי בְרָא כִרְעוּתֵהּ, וְיַמְלִיךְ מַלְכוּתֵהּ בְּחַיֵּיכוֹן וּבְיוֹמֵיכוֹן וּבְחַיֵּי דְכָל בֵּית יִשְׂרָאֵל, בַּעֲגָלָא וּבִזְמַן קָרִיב, וְאִמְרוּ אָמֵן: יְהֵא שְׁמֵהּ רַבָּא מְבָרַךְ לְעָלַם וּלְעָלְמֵי עָלְמַיָּא: יִתְבָּרַךְ וְיִשְׁתַּבַּח, וְיִתְפָּאַר וְיִתְרוֹמַם וְיִתְנַשֵּׂא וְיִתְהַדָּר וְיִתְעַלֶּה וְיִתְהַלָּל",
+      "textMainEng": "Yitgadal v’yitkadash shmeih raba. B’alma di v’ra chiruteih, v’yamlich malchuteih b’chayeichon uv’yomeichon uv’chayei d’chol beit Yisraeil, ba-agala uvizman kariv, v’imru amein. Y’hei sh’meih raba m’varach l’alam ul’almei almaya. Yitbarach v’yishtabach v’yitpa-ar y’vitromam v’yitnasei v’yithadar v’yitaleh v’yithalal",
       "textTitle": "Mourner's Kaddish",
       "accentTextTitle": "קדיש"
     },
@@ -2073,7 +2073,7 @@
         "compositionUuid": "c2d2c129-7d7d-4bbc-a296-46cc1fb9f48e",
         "compositionSha256": "3993eece7d5ffa09f8366cd7b7755f1bf7d219a7727895ad9ca8d087dce59a39",
         "operatorName": "Mourners Kaddish 1",
-        "textsSha256": "a512615cd24ce2a4a8877434ba3bb8814d348a952cce56655e3715dac41d6614",
+        "textsSha256": "207dad267cb57ce7be798bddec740a47e24894d355705ddc03cae6f64e7fd623",
         "role": "presentation and operator-identity evidence only"
       },
       "liturgy": {
@@ -2106,7 +2106,10 @@
                 6,
                 7,
                 8,
-                9
+                9,
+                10,
+                11,
+                12
               ],
               "separator": " "
             }
@@ -2123,7 +2126,10 @@
                 6,
                 7,
                 8,
-                9
+                9,
+                10,
+                11,
+                12
               ],
               "separator": " "
             }
@@ -2137,8 +2143,8 @@
     "name": "Mourners Kaddish 2",
     "layout": "left",
     "texts": {
-      "textMainheb": "יִתְבָּרַךְ וְיִשְׁתַּבַּח, וְיִתְפָּאַר וְיִתְרוֹמַם וְיִתְנַשֵּׂא וְיִתְהַדָּר וְיִתְעַלֶּה וְיִתְהַלָּל שְׁמֵהּ דְּקֻדְשָׁא בְּרִיךְ הוּא, לְעֵלָּא מִן כָּל בִּרְכָתָא וְשִׁירָתָא תֻּשְׁבְּחָתָא וְנֶחֱמָתָא, דַּאֲמִירָן בְּעָלְמָא, וְאִמְרוּ אָמֵן:",
-      "textMainEng": "Yitbarach v’yishtabach v’yitpa-ar y’vitromam v’yitnasei v’yithadar v’yitaleh v’yithalal sh’meih d’kudsha b’rich hu, l’eila min kol birchata v’shirata tushb’chata v’nechemata, da-amiran b’alma, v’imru amein.",
+      "textMainheb": "שְׁמֵהּ דְּקֻדְשָׁא בְּרִיךְ הוּא, לְעֵלָּא מִן כָּל בִּרְכָתָא וְשִׁירָתָא תֻּשְׁבְּחָתָא וְנֶחֱמָתָא, דַּאֲמִירָן בְּעָלְמָא, וְאִמְרוּ אָמֵן: יְהֵא שְׁלָמָא רַבָּא מִן שְׁמַיָּא, וְחַיִּים עָלֵינוּ וְעַל כָּל יִשְׂרָאֵל, וְאִמְרוּ אָמֵן: עֹשֶׂה שָׁלוֹם בִּמְרוֹמָיו, הוּא יַעֲשֶׂה שָׁלוֹם עָלֵינוּ וְעַל כָּל יִשְׂרָאֵל, וְעַל כָּל יוֹשְׁבֵי תֵּבֵל, וְאִמְרוּ אָמֵן:",
+      "textMainEng": "sh’meih d’kudsha b’rich hu, l’eila min kol birchata v’shirata tushb’chata v’nechemata, da-amiran b’alma, v’imru amein. Y’hei sh’lama raba min sh’maya, v’chayim aleinu v’al kol Yisraeil, v’imru amein. Oseh shalom bimromav, hu ya-aseh shalom aleinu v’al kol Yisraeil, v’al kol yoshvei teivel, v’imru amein.",
       "textTitle": "Mourner's Kaddish",
       "accentTextTitle": "קדיש"
     },
@@ -2509,7 +2515,7 @@
         "compositionUuid": "f15c1944-da76-4d61-95c8-05c032d47c4d",
         "compositionSha256": "097870e22801f61461a02bd79a1b38a78804ebe7d051e8c410b67f7341703e93",
         "operatorName": "Mourners Kaddish 2",
-        "textsSha256": "bfa78984e13ea673f2f35ac2384962cc95a51c1cda1ab1eb2c66681bd774802d",
+        "textsSha256": "05a7a55fb1467194e44652999bc43cf0c3c7b3ba74b42c8afc464f4b88da6fbb",
         "role": "presentation and operator-identity evidence only"
       },
       "liturgy": {
@@ -2535,13 +2541,17 @@
               "unit": "concluding.mourners-kaddish@legacy-shabbat-morning",
               "channel": "he",
               "blocks": [
-                10,
-                11,
-                12,
                 13,
                 14,
                 15,
-                16
+                16,
+                17,
+                18,
+                19,
+                20,
+                21,
+                22,
+                23
               ],
               "separator": " "
             }
@@ -2551,13 +2561,17 @@
               "unit": "concluding.mourners-kaddish@legacy-shabbat-morning",
               "channel": "tr",
               "blocks": [
-                10,
-                11,
-                12,
                 13,
                 14,
                 15,
-                16
+                16,
+                17,
+                18,
+                19,
+                20,
+                21,
+                22,
+                23
               ],
               "separator": " "
             }
@@ -2571,8 +2585,8 @@
     "name": "Mourners Kaddish 3",
     "layout": "left",
     "texts": {
-      "textMainheb": "יְהֵא שְׁלָמָא רַבָּא מִן שְׁמַיָּא, וְחַיִּים עָלֵינוּ וְעַל כָּל יִשְׂרָאֵל, וְאִמְרוּ אָמֵן: עֹשֶׂה שָׁלוֹם בִּמְרוֹמָיו, הוּא יַעֲשֶׂה שָׁלוֹם עָלֵינוּ וְעַל כָּל יִשְׂרָאֵל, וְעַל כָּל יוֹשְׁבֵי תֵּבֵל, וְאִמְרוּ אָמֵן:",
-      "textMainEng": "Y’hei sh’lama raba min sh’maya, v’chayim aleinu v’al kol Yisraeil, v’imru amein. Oseh shalom bimromav, hu ya-aseh shalom aleinu v’al kol Yisraeil, v’al kol yoshvei teivel, v’imru amein.",
+      "textMainheb": "שְׁמֵהּ דְּקֻדְשָׁא בְּרִיךְ הוּא, לְעֵלָּא מִן כָּל בִּרְכָתָא וְשִׁירָתָא תֻּשְׁבְּחָתָא וְנֶחֱמָתָא, דַּאֲמִירָן בְּעָלְמָא, וְאִמְרוּ אָמֵן: יְהֵא שְׁלָמָא רַבָּא מִן שְׁמַיָּא, וְחַיִּים עָלֵינוּ וְעַל כָּל יִשְׂרָאֵל, וְאִמְרוּ אָמֵן: עֹשֶׂה שָׁלוֹם בִּמְרוֹמָיו, הוּא יַעֲשֶׂה שָׁלוֹם עָלֵינוּ וְעַל כָּל יִשְׂרָאֵל, וְעַל כָּל יוֹשְׁבֵי תֵּבֵל, וְאִמְרוּ אָמֵן:",
+      "textMainEng": "sh’meih d’kudsha b’rich hu, l’eila min kol birchata v’shirata tushb’chata v’nechemata, da-amiran b’alma, v’imru amein. Y’hei sh’lama raba min sh’maya, v’chayim aleinu v’al kol Yisraeil, v’imru amein. Oseh shalom bimromav, hu ya-aseh shalom aleinu v’al kol Yisraeil, v’al kol yoshvei teivel, v’imru amein.",
       "textTitle": "Mourner's Kaddish",
       "accentTextTitle": "קדיש"
     },
@@ -2943,7 +2957,7 @@
         "compositionUuid": "dbf354df-e399-4d8b-bcfc-c067cc3cf2fc",
         "compositionSha256": "d421a7ec13233c76f9767865262bf62767a9e2be0ca731638fa902f0b1364255",
         "operatorName": "Mourners Kaddish 3",
-        "textsSha256": "a035808d3ba3370587dcc22cd62203496e8b5f7f36430200aab926121fe06494",
+        "textsSha256": "05a7a55fb1467194e44652999bc43cf0c3c7b3ba74b42c8afc464f4b88da6fbb",
         "role": "presentation and operator-identity evidence only"
       },
       "liturgy": {
@@ -2969,6 +2983,10 @@
               "unit": "concluding.mourners-kaddish@legacy-shabbat-morning",
               "channel": "he",
               "blocks": [
+                13,
+                14,
+                15,
+                16,
                 17,
                 18,
                 19,
@@ -2985,6 +3003,10 @@
               "unit": "concluding.mourners-kaddish@legacy-shabbat-morning",
               "channel": "tr",
               "blocks": [
+                13,
+                14,
+                15,
+                16,
                 17,
                 18,
                 19,
@@ -2998,7 +3020,9 @@
           ]
         }
       }
-    }
+    },
+    "aliasOf": "f15c1944-da76-4d61-95c8-05c032d47c4d",
+    "hidden": true
   },
   {
     "id": "e1bd7775-ddf1-468b-b3f7-ac98f11df958",
