@@ -15,6 +15,7 @@ test('panel bilingual stack places Hebrew immediately after measured translitera
 
 test('structured rows use bounded inter-row spacing that preserves four-row fit',()=>{
  assert.equal(panelRowGap([190,190,190,190]),16);
+ assert.equal(panelRowGap([205,205,205,205],844,4,24),4);
  assert.equal(panelRowGap([100,100]),56);
  assert.equal(panelRowGap([420,420]),4);
 });
