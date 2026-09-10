@@ -1,7 +1,7 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
 import {acceptsRevision,effectFrames,incomingStillDesired,measuredBottomTextHeight,textParts,tracksFor,type AnimationTrack} from '../lib/player-motion.ts';
-import {panelRowChannels,panelStackGeometry,usesPanelRows,type ContentRow} from '../lib/player.ts';
+import {panelRowChannels,panelRowGap,panelStackGeometry,usesPanelRows,type ContentRow} from '../lib/player.ts';
 
 test('scale y and translate tracks keep their actual transform axis',()=>{
  assert.deepEqual(effectFrames({effect:'scale',property:'y'},'In'),[{transform:'scaleY(0)'},{transform:'scale(1)'}]);
@@ -9,7 +9,14 @@ test('scale y and translate tracks keep their actual transform axis',()=>{
 });
 
 test('panel bilingual stack places Hebrew immediately after measured transliteration',()=>{
- assert.deepEqual(panelStackGeometry(337.2),{englishHeight:338,hebrewTop:540,hebrewHeight:484});
+ assert.deepEqual(panelStackGeometry(337.2,431.1),{englishTop:209,englishHeight:338,gap:19,hebrewTop:566,hebrewHeight:432});
+ assert.deepEqual(panelStackGeometry(120,180),{englishTop:410,englishHeight:120,gap:88,hebrewTop:618,hebrewHeight:180});
+});
+
+test('structured rows use bounded inter-row spacing that preserves four-row fit',()=>{
+ assert.equal(panelRowGap([190,190,190,190]),16);
+ assert.equal(panelRowGap([100,100]),56);
+ assert.equal(panelRowGap([420,420]),4);
 });
 
 test('transition state rejects stale and duplicate revisions',()=>{
