@@ -289,8 +289,16 @@ export class LiveRoom extends DurableObject<Env>{
   }
   this.closeProtocol(socket,'Unsupported message');
  }
- async webSocketClose(socket:WebSocket){this.broadcastPresence(socket);await this.scheduleExpiry(socket)}
- async webSocketError(socket:WebSocket){this.broadcastPresence(socket);await this.scheduleExpiry(socket)}
+ async webSocketClose(socket:WebSocket,code:number,reason:string){
+  socket.close(code,reason);
+  this.broadcastPresence(socket);
+  await this.scheduleExpiry(socket);
+ }
+ async webSocketError(socket:WebSocket){
+  socket.close(1011,'WebSocket error');
+  this.broadcastPresence(socket);
+  await this.scheduleExpiry(socket);
+ }
  async alarm(){this.broadcastPresence();await this.scheduleExpiry()}
 
  private send(socket:WebSocket,event:unknown){
