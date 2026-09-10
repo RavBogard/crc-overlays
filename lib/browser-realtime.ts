@@ -96,15 +96,16 @@ export class BrowserRealtimeTransport{
 
  private async connect(generation:number){
   this.ticketAbort?.abort();const abort=new AbortController();this.ticketAbort=abort;
-  this.ticketTimer=this.dependencies.setTimeout(()=>abort.abort(),5000);
+  const ticketTimer=this.dependencies.setTimeout(()=>abort.abort(),5000);this.ticketTimer=ticketTimer;
+  const clearTicket=()=>{this.dependencies.clearTimeout(ticketTimer);if(this.ticketTimer===ticketTimer)this.ticketTimer=null;if(this.ticketAbort===abort)this.ticketAbort=null};
   try{
    const response=await this.dependencies.fetch(`/api/realtime?role=${this.options.role}`,{headers:{Authorization:`Bearer ${this.options.key}`},cache:'no-store',signal:abort.signal});
    if(!response.ok)throw Error('Realtime ticket unavailable');
    const ticket=await response.json();if(!isTicket(ticket))throw Error('Invalid realtime ticket');
-   if(this.ticketTimer){this.dependencies.clearTimeout(this.ticketTimer);this.ticketTimer=null}if(this.ticketAbort===abort)this.ticketAbort=null;
+   clearTicket();
    if(this.stopped||generation!==this.generation)return;
    this.open(ticket,generation);
-  }catch{if(this.ticketTimer){this.dependencies.clearTimeout(this.ticketTimer);this.ticketTimer=null}if(this.ticketAbort===abort)this.ticketAbort=null;if(!this.stopped&&generation===this.generation)this.scheduleReconnect(generation)}
+  }catch{clearTicket();if(!this.stopped&&generation===this.generation)this.scheduleReconnect(generation)}
  }
 
  private open(ticket:Ticket,generation:number){

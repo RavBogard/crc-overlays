@@ -73,6 +73,19 @@ test('preview heartbeats never contain a renderer acknowledgment',async()=>{
  assert.deepEqual(JSON.parse(h.sockets[0].sent.at(-1)!),{type:'heartbeat'});h.transport.stop();
 });
 
+test('a socket that never opens is closed by the initial snapshot deadline',async()=>{
+ const h=harness();h.transport.start();await settle();
+ [...h.timeouts.values()][0]();
+ assert.equal(h.sockets[0].readyState,3);assert.equal(h.statuses.at(-1),'reconnecting');h.transport.stop();
+});
+
+test('heartbeats without an initial snapshot do not satisfy the handshake deadline',async()=>{
+ const h=harness();h.transport.start();await settle();h.sockets[0].open();
+ h.sockets[0].receive({type:'pong',serverTime:200});await settle();
+ [...h.timeouts.values()][0]();
+ assert.equal(h.sockets[0].readyState,3);assert.equal(h.statuses.includes('live'),false);h.transport.stop();
+});
+
 test('disconnect holds client state, mints a fresh ticket, and stop cancels further reconnects',async()=>{
  const h=harness();h.transport.start();await settle();h.sockets[0].open();h.sockets[0].receive({type:'snapshot',snapshot:snapshot(3)});await settle();h.sockets[0].close();
  assert.deepEqual(h.snapshots.map(value=>value.revision),[3]);assert.equal(h.statuses.at(-1),'reconnecting');
