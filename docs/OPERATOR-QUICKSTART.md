@@ -2,7 +2,7 @@
 
 ## Before rehearsal
 
-1. Get the private renderer URL from `work/CONNECTIONS.md`. Do not paste its key into chat, tickets, screenshots, or committed files.
+1. On the control page, expand **Connect vMix, OBS, or Companion** and press **Copy output URL**. The private renderer URL is also in `work/CONNECTIONS.md`.
 2. Open Companion at `http://localhost:8000`. Confirm the **CRC Overlays** connection is enabled and healthy.
 3. Open the renderer as a 1920 × 1080 browser input in OBS or vMix. Keep transparency enabled.
 4. After cues are published, use the CRC module's **Refresh cue catalog** action before expecting new cue choices or presets.
@@ -39,7 +39,7 @@ Current connection blockers: the inspected ChatGPT and Claude clients were signe
 
 ## Companion rehearsal pages
 
-Keep page 2, **CRC Morning Rehearsal**, intact. It holds the existing cue controls and has only seven open cells. The nine newer cues belong on a separate, verified-empty page, in catalog order:
+Page 2, **CRC Morning Rehearsal**, and page 3, **CRC Morning Continued**, contain the morning library. The density refresh removes five redundant compatibility buttons, leaving 16 cue buttons on page 2 and eight on page 3. Existing clear and navigation controls retain their locations. The original page 3 sequence was:
 
 1. Yotzer Or (short)
 2. Yotzer Or 1
