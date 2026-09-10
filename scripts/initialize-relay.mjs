@@ -1,10 +1,11 @@
 // Run through tsx with production environment explicitly loaded. Never runs at startup.
-import {legacySnapshot} from '../lib/server.ts';
+import {legacySnapshot,authoringCatalog} from '../lib/server.ts';
 import {relayRequest} from '../lib/relay.ts';
 import {db} from '../lib/database.ts';
 try{
  const state=await legacySnapshot();
- const response=await relayRequest('/initialize',{state,catalogVersion:state.catalogVersion});
+ const catalog=await authoringCatalog();
+ const response=await relayRequest('/initialize',{state,catalogVersion:catalog.version,cues:catalog.cues});
  if(!response.ok)throw Error(`Relay initialization refused (${response.status})`);
  const result=await response.json();
  console.log(JSON.stringify({initialized:true,revision:result.revision??result.snapshot?.revision}));

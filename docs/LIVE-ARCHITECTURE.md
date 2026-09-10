@@ -4,24 +4,24 @@
 
 - Vercel hosts the controller, output renderer, authoring UI, and authenticated APIs.
 - Neon stores the source-based authoring drafts and immutable published revisions.
-- A Cloudflare SQLite Durable Object holds CRC's live state, serializes commands,
+- A Cloudflare SQLite Durable Object holds CRC's approved playback catalog and live state, serializes commands,
   and pushes updates to browser and Companion WebSocket connections.
 - The browser renders graphics locally. Idle output connections do not query Neon.
 
 The live relay is a separate deployment. `RELAY_URL` and `RELAY_SECRET` must be
 configured on Vercel, with the same secret and allowed website origins on the relay.
-No database connection string or source corpus is installed in the relay. Only the
-selected graphic is sent to it. The complete library remains an authenticated app
-resource.
+No database connection string or full source corpus is installed in the relay. It
+stores only the approved playback cues, with authenticated access. Drafts and source
+texts remain in the authoring system.
 
 ## Normal operation
 
 A client obtains a short-lived, role-scoped connection ticket from `/api/realtime`.
 It opens a WebSocket, receives the current state once, and downloads the cue catalog
-on connection or a catalog-change notification. A command selects reviewed content
-through Vercel, then the relay durably commits the command before broadcasting its
-new state. Command IDs and controller sequence numbers protect against duplicate or
-out-of-order delivery. A clear does not need a Neon query.
+on connection or a catalog-change notification. Vercel forwards a small cue-ID/action command. The relay resolves the reviewed
+content from its stored catalog and durably commits the command before broadcasting
+its new state. Command IDs and controller sequence numbers protect against duplicate or
+out-of-order delivery. Neither cue selection nor a clear needs a Neon query.
 
 Renderer acknowledgments and small connection heartbeats update transient presence,
 not Postgres tables. Presence messages do not repeat the selected graphic. Preview
@@ -30,9 +30,10 @@ feedback report renderer acknowledgment, not an on-air guarantee.
 
 Publication notifies connected clients to refresh their catalog. It never changes
 the currently selected graphic. If that notification fails, the authoring operation
-reports that its save succeeded but live refresh is pending; reconnecting or an
-explicit catalog refresh obtains current content. Selecting a later cue also carries
-the current catalog version. A full catalog refresh is presently used on changes;
+reports that its save succeeded but live refresh is pending. Use **Sync live library**
+in the editor (authenticated `POST /api/live-catalog`) to retry the transfer; merely
+reconnecting an output does not synchronize authoring changes. If synchronization is pending, live cue selection continues using the last
+successfully synchronized approved catalog. A full catalog refresh is presently used on changes;
 per-cue delta downloads are a possible further optimization, not an idle operation.
 
 ## Failure and lifecycle
@@ -45,8 +46,8 @@ source must remain connected when it may still be used on air.
 
 Cloudflare hibernation keeps idle sockets connected without an always-running
 database listener. Presence expires after the documented timeout; a normal socket
-close removes it immediately. Library editing or selecting newly published content
-still requires Neon availability. A paid allowance is not a substitute for these
+close removes it immediately. Library editing and publishing require Neon availability; playing the synchronized
+overlay library does not. A paid allowance is not a substitute for these
 traffic controls.
 
 ## Migration and rollback
@@ -55,7 +56,8 @@ traffic controls.
 2. Configure its production secret and website-origin allowlist.
 3. Initialize it once from the existing pinned PostgreSQL state with
    `scripts/initialize-relay.mjs`, through `tsx` with explicit environment loading.
-   Initialization cannot overwrite an initialized room.
+   Initialization includes the approved playback catalog and cannot overwrite an
+   initialized room.
 4. Configure Vercel's relay environment and deploy the push clients and API routing.
 5. Refresh OBS/vMix browser sources once so they load the push client. Their existing
    output URLs remain valid. Upgrade Companion to the push-capable module.

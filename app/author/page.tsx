@@ -485,7 +485,7 @@ export default function AuthorPage() {
     setBusy("publish");
     setError("");
     try {
-      const response = await authoringCall<{ revision: PublishedRevision }>(
+      const response = await authoringCall<{ revision: PublishedRevision; warning?: string }>(
         key,
         "publish_draft",
         {
@@ -505,7 +505,7 @@ export default function AuthorPage() {
         ...list.filter((item) => item.id !== latest.id),
       ]);
       setMessage(
-        `Published revision ${response.revision.revision} from reviewed draft version ${response.revision.draftVersion}.`,
+        response.warning || `Published revision ${response.revision.revision} from reviewed draft version ${response.revision.draftVersion}.`,
       );
       await showRevisions(latest);
     } catch (value) {
@@ -526,12 +526,26 @@ export default function AuthorPage() {
         fail(value);
       }
   }
+  async function syncLiveLibrary() {
+    setBusy("sync-live");
+    setError("");
+    try {
+      const response = await fetch("/api/live-catalog", {
+        method: "POST", headers: { Authorization: `Bearer ${key}` },
+        signal: AbortSignal.timeout(15000),
+      });
+      const result = await response.json();
+      if (!response.ok) throw new Error(result.error || "Live library synchronization failed.");
+      setMessage("The live library is synchronized. The graphic already on screen is unchanged.");
+    } catch (value) { fail(value); }
+    finally { setBusy(""); }
+  }
   async function activateRevision(revision: number) {
     if (!draft) return;
     setBusy(`rollback-${revision}`);
     setError("");
     try {
-      const response = await authoringCall<{ draft: Draft }>(
+      const response = await authoringCall<{ draft: Draft; warning?: string }>(
         key,
         "rollback_draft",
         { draftId: draft.id, expectedVersion: draft.version, revision },
@@ -546,7 +560,7 @@ export default function AuthorPage() {
       ]);
       await showRevisions(response.draft);
       setMessage(
-        `Published revision ${revision} is now active. The latest editable content is still available.`,
+        response.warning || `Published revision ${revision} is now active. The latest editable content is still available.`,
       );
     } catch (value) {
       fail(value);
@@ -602,6 +616,9 @@ export default function AuthorPage() {
           </p>
         </div>
         <Link href="/">Live control</Link>
+        <button disabled={!!busy} onClick={() => void syncLiveLibrary()}>
+          {busy === "sync-live" ? "Synchronizing…" : "Sync live library"}
+        </button>
       </header>
       <nav className="stepbar" aria-label="Authoring workflow">
         <span className="active">1 Content</span>

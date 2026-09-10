@@ -2,14 +2,15 @@ import {relayConfigured,relayRequest} from '@/lib/relay';
 import {authorized,json,db,catalog,snapshot} from '@/lib/server';
 export async function POST(r:Request){if(!authorized(r,true))return json({error:'Control key required'},401);
 try{if(Number(r.headers.get('content-length'))>4096)return json({error:'Request too large'},413);const raw=await r.text();if(raw.length>4096)return json({error:'Request too large'},413);let b:any;try{b=JSON.parse(raw)}catch{return json({error:'Invalid JSON'},400)}if(!b||typeof b!=='object')return json({error:'Invalid command'},400);
-const selectedCatalog=['in','out'].includes(b.action)?await catalog():null;
+const useRelay=relayConfigured();
+const selectedCatalog=!useRelay&&['in','out'].includes(b.action)?await catalog():null;
 const selected=selectedCatalog?.cues.find(c=>c.id===b.cue)??null;
-if(!['in','out','clear','cut'].includes(b.action)||(['in','out'].includes(b.action)&&!selected))return json({error:'Unknown action or cue'},400);
+if(!['in','out','clear','cut'].includes(b.action)||(['in','out'].includes(b.action)&&(typeof b.cue!=='string'||b.cue.length>160||(!useRelay&&!selected))))return json({error:'Unknown action or cue'},400);
 const id=b.commandId??crypto.randomUUID();if(typeof id!=='string'||!/^[a-zA-Z0-9_-]{8,80}$/.test(id))return json({error:'Invalid command ID'},400);
 const cue=['in','out'].includes(b.action)?b.cue:null;
 const client=b.clientId??null;const sequence=b.sequence??null;if(client!==null&&(typeof client!=='string'||!/^[a-zA-Z0-9_-]{8,80}$/.test(client)||!Number.isSafeInteger(sequence)||sequence<0))return json({error:'Invalid controller sequence'},400);
-if(relayConfigured()){
- const response=await relayRequest('/command',{action:b.action,cue,cuePayload:selected??null,commandId:id,clientId:client,sequence,catalogVersion:selectedCatalog?.version});
+if(useRelay){
+ const response=await relayRequest('/command',{action:b.action,cue,commandId:id,clientId:client,sequence});
  return json(await response.json(),response.status);
 }
 const connection=await db.connect();

@@ -1,8 +1,6 @@
-import {catalog,db} from '../lib/server.ts';
-import {relayRequest} from '../lib/relay.ts';
+import {db} from '../lib/database.ts';
+import {syncLiveCatalog} from '../lib/sync-live-catalog.ts';
 try{
- const {version}=await catalog();
- const response=await relayRequest('/catalog',{version});
- if(!response.ok)throw Error(`Relay catalog update refused (${response.status})`);
- console.log('Relay catalog notification confirmed');
+ await syncLiveCatalog();
+ console.log('Relay catalog synchronization confirmed');
 }finally{await db.end()}

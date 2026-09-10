@@ -138,10 +138,10 @@ const defaults=()=>defaultService??=createAuthoringService(new PgAuthoringReposi
 export async function authoringOperation(operation:string,input:unknown,actor:string){
  const result=await defaults().operation(operation,input,actor);
  if(['publish_draft','rollback_draft','import_cue'].includes(operation)){
-  const {relayConfigured,relayRequest}=await import('./relay');
+  const {relayConfigured}=await import('./relay');
   if(relayConfigured()){
-   try{const {catalog}=await import('./server');const response=await relayRequest('/catalog',{version:(await catalog()).version});if(!response.ok)throw Error('Relay unavailable')}
-   catch{return {...(result as Record<string,unknown>),liveRefreshPending:true,warning:'Saved successfully. Live catalog notification is pending; reconnect or refresh the cue catalog after the relay recovers.'}}
+   try{const {syncLiveCatalog}=await import('./sync-live-catalog');await syncLiveCatalog()}
+   catch{return {...(result as Record<string,unknown>),liveRefreshPending:true,warning:'Saved successfully, but the live library has not received this update. Use Sync live library in the editor after the connection recovers. Live playback continues using the last synchronized version.'}}
   }
  }
  return result;
