@@ -1,0 +1,139 @@
+export type RealtimeRole='control'|'output'|'preview';
+export type RealtimeStatus='bootstrapping'|'live'|'reconnecting'|'stopped';
+
+export type RendererAck={id:string;revision:number;cue:string|null;phase:string;seen?:number};
+export type RealtimeSnapshot={revision:number;cue:string|null;mode:'animate'|'cut';updated:number;cuePayload:any|null;catalogVersion:string;renderers:RendererAck[];serverTime:number};
+
+type Ticket={url:string;ticket:string;heartbeatMs:number;staleMs:number;protocol:1};
+type SocketLike={readyState:number;onopen:null|((event:any)=>void);onmessage:null|((event:any)=>void);onclose:null|((event:any)=>void);onerror:null|((event:any)=>void);send(data:string):void;close(code?:number,reason?:string):void};
+
+export type RealtimeDependencies={
+ fetch:typeof fetch;
+ socket:(url:string,protocols:string[])=>SocketLike;
+ setTimeout:(callback:()=>void,delay:number)=>ReturnType<typeof setTimeout>;
+ clearTimeout:(timer:ReturnType<typeof setTimeout>)=>void;
+ setInterval:(callback:()=>void,delay:number)=>ReturnType<typeof setInterval>;
+ clearInterval:(timer:ReturnType<typeof setInterval>)=>void;
+ now:()=>number;
+ random:()=>number;
+};
+
+export type BrowserRealtimeOptions={
+ key:string;
+ role:RealtimeRole;
+ id:string;
+ getAck?:()=>Omit<RendererAck,'seen'>;
+ getCatalogVersion?:()=>string;
+ onSnapshot:(snapshot:RealtimeSnapshot)=>void|Promise<void>;
+ onPresence?:(renderers:RendererAck[],serverTime:number)=>void|Promise<void>;
+ onCatalog?:(version:string)=>void|Promise<void>;
+ onStatus?:(status:RealtimeStatus)=>void;
+ dependencies?:Partial<RealtimeDependencies>;
+};
+
+export class CatalogRefreshCoordinator<T extends {version:string}>{
+ private desired='';
+ private attempted='';
+ private pending:Promise<void>|null=null;
+ private readonly operations:{getVersion:()=>string;load:()=>Promise<T>;apply:(value:T)=>void|Promise<void>};
+ constructor(operations:{getVersion:()=>string;load:()=>Promise<T>;apply:(value:T)=>void|Promise<void>}){this.operations=operations}
+ request(version:string){
+  this.desired=version;
+  if(version===this.operations.getVersion())return Promise.resolve();
+  if(!this.pending){const run=this.drain();this.pending=run.finally(()=>{this.pending=null;if(this.desired!==this.attempted&&this.desired!==this.operations.getVersion())void this.request(this.desired).catch(()=>{})})}
+  return this.pending;
+ }
+ private async drain(){
+  while(this.desired!==this.operations.getVersion()){
+   const target=this.desired;this.attempted=target;
+   const value=await this.operations.load();await this.operations.apply(value);
+   // One fetch satisfies one marker. A different marker received during the
+   // fetch gets its own pass; a lagging marker cannot create an idle loop.
+   if(this.desired===target)return;
+  }
+ }
+}
+
+const defaults:RealtimeDependencies={
+ fetch:globalThis.fetch.bind(globalThis),
+ socket:(url,protocols)=>new WebSocket(url,protocols),
+ setTimeout:(callback,delay)=>setTimeout(callback,delay),
+ clearTimeout:timer=>clearTimeout(timer),
+ setInterval:(callback,delay)=>setInterval(callback,delay),
+ clearInterval:timer=>clearInterval(timer),
+ now:()=>Date.now(),
+ random:()=>Math.random(),
+};
+
+function isSnapshot(value:any):value is RealtimeSnapshot{return value&&Number.isSafeInteger(value.revision)&&value.revision>=0&&(value.cue===null||typeof value.cue==='string')&&(value.mode==='animate'||value.mode==='cut')&&typeof value.catalogVersion==='string'&&Array.isArray(value.renderers)&&Number.isFinite(value.serverTime)}
+function isTicket(value:any):value is Ticket{return value&&value.protocol===1&&typeof value.url==='string'&&/^wss?:\/\//.test(value.url)&&typeof value.ticket==='string'&&value.ticket.length>0&&Number.isFinite(value.heartbeatMs)&&Number.isFinite(value.staleMs)}
+
+export class BrowserRealtimeTransport{
+ private readonly options:BrowserRealtimeOptions;
+ private readonly dependencies:RealtimeDependencies;
+ private socket:SocketLike|null=null;
+ private ticketAbort:AbortController|null=null;
+ private reconnectTimer:ReturnType<typeof setTimeout>|null=null;
+ private ticketTimer:ReturnType<typeof setTimeout>|null=null;
+ private heartbeatTimer:ReturnType<typeof setInterval>|null=null;
+ private handshakeTimer:ReturnType<typeof setTimeout>|null=null;
+ private stopped=true;
+ private live=false;
+ private generation=0;
+ private failures=0;
+ private lastRevision=-1;
+ private lastServerTime=-1;
+ private lastMessageAt=0;
+ private queue=Promise.resolve();
+
+ constructor(options:BrowserRealtimeOptions){this.options=options;this.dependencies={...defaults,...options.dependencies}}
+
+ start(){if(!this.stopped)return;this.stopped=false;this.generation++;this.options.onStatus?.('bootstrapping');void this.connect(this.generation)}
+
+ stop(){if(this.stopped)return;this.stopped=true;this.live=false;this.generation++;this.clearTimers();this.ticketAbort?.abort();this.ticketAbort=null;const socket=this.socket;this.socket=null;if(socket)socket.close(1000,'disposed');this.options.onStatus?.('stopped')}
+
+ sendAck(ack:Omit<RendererAck,'seen'>){if(this.options.role!=='output'||!this.live||this.socket?.readyState!==1)return false;this.socket.send(JSON.stringify({type:'ack',...ack}));return true}
+
+ private async connect(generation:number){
+  this.ticketAbort?.abort();const abort=new AbortController();this.ticketAbort=abort;
+  this.ticketTimer=this.dependencies.setTimeout(()=>abort.abort(),5000);
+  try{
+   const response=await this.dependencies.fetch(`/api/realtime?role=${this.options.role}`,{headers:{Authorization:`Bearer ${this.options.key}`},cache:'no-store',signal:abort.signal});
+   if(!response.ok)throw Error('Realtime ticket unavailable');
+   const ticket=await response.json();if(!isTicket(ticket))throw Error('Invalid realtime ticket');
+   if(this.ticketTimer){this.dependencies.clearTimeout(this.ticketTimer);this.ticketTimer=null}if(this.ticketAbort===abort)this.ticketAbort=null;
+   if(this.stopped||generation!==this.generation)return;
+   this.open(ticket,generation);
+  }catch{if(this.ticketTimer){this.dependencies.clearTimeout(this.ticketTimer);this.ticketTimer=null}if(this.ticketAbort===abort)this.ticketAbort=null;if(!this.stopped&&generation===this.generation)this.scheduleReconnect(generation)}
+ }
+
+ private open(ticket:Ticket,generation:number){
+  const socket=this.dependencies.socket(ticket.url,['crc-overlays-v1',`ticket.${ticket.ticket}`]);this.socket=socket;this.live=false;
+  this.handshakeTimer=this.dependencies.setTimeout(()=>socket.close(4000,'connection timeout'),10000);
+  socket.onopen=()=>{if(this.stopped||generation!==this.generation||this.socket!==socket){socket.close(1000,'stale');return}this.lastMessageAt=this.dependencies.now();socket.send(JSON.stringify({type:'hello',id:this.options.id}));const heartbeatMs=Math.max(1000,Math.min(60000,ticket.heartbeatMs));const staleMs=Math.max(heartbeatMs*2,Math.min(120000,ticket.staleMs));this.heartbeatTimer=this.dependencies.setInterval(()=>{if(this.socket!==socket)return;if(this.dependencies.now()-this.lastMessageAt>staleMs){socket.close(4000,'stale');return}const ack=this.live&&this.options.role==='output'?this.options.getAck?.():undefined;socket.send(JSON.stringify(ack?{type:'heartbeat',ack}:{type:'heartbeat'}))},heartbeatMs)};
+  socket.onmessage=event=>{if(this.stopped||generation!==this.generation||this.socket!==socket||typeof event.data!=='string'||event.data.length>262144)return;this.lastMessageAt=this.dependencies.now();let message:any;try{message=JSON.parse(event.data)}catch{return}this.queue=this.queue.then(()=>this.handle(message,generation,socket)).catch(()=>{if(!this.stopped&&generation===this.generation&&this.socket===socket)socket.close(4000,'event failed')})};
+  socket.onerror=()=>socket.close();
+  socket.onclose=()=>{if(this.socket!==socket)return;this.socket=null;this.live=false;this.clearSocketTimers();if(!this.stopped&&generation===this.generation)this.scheduleReconnect(generation)};
+ }
+
+ private async handle(message:any,generation:number,socket:SocketLike){
+  if(this.stopped||generation!==this.generation||this.socket!==socket)return;
+  if(message?.type==='pong')return;
+  if(message?.type==='presence'&&Array.isArray(message.renderers)&&Number.isFinite(message.serverTime)){if(message.serverTime>=this.lastServerTime){this.lastServerTime=message.serverTime;await this.options.onPresence?.(message.renderers,message.serverTime)}return}
+  if(message?.type==='catalog'&&typeof message.version==='string'){if(message.version!==this.options.getCatalogVersion?.())void Promise.resolve(this.options.onCatalog?.(message.version)).catch(()=>{});return}
+  if(message?.type!=='snapshot'||!isSnapshot(message.snapshot))return;
+  const snapshot=message.snapshot;if(snapshot.revision<this.lastRevision||(snapshot.revision===this.lastRevision&&snapshot.serverTime<this.lastServerTime))return;
+  this.lastRevision=Math.max(this.lastRevision,snapshot.revision);this.lastServerTime=Math.max(this.lastServerTime,snapshot.serverTime);
+  await this.options.onSnapshot(snapshot);
+  if(this.stopped||generation!==this.generation||this.socket!==socket)return;
+  if(this.handshakeTimer){this.dependencies.clearTimeout(this.handshakeTimer);this.handshakeTimer=null}
+  this.failures=0;this.live=true;this.options.onStatus?.('live');
+ }
+
+ private scheduleReconnect(generation:number){
+  if(this.reconnectTimer||this.stopped)return;this.options.onStatus?.('reconnecting');const base=Math.min(30000,1000*2**Math.min(this.failures++,5));const delay=Math.round(base*(0.8+this.dependencies.random()*0.4));this.reconnectTimer=this.dependencies.setTimeout(()=>{this.reconnectTimer=null;if(!this.stopped&&generation===this.generation)void this.connect(generation)},delay)
+ }
+
+ private clearSocketTimers(){if(this.heartbeatTimer){this.dependencies.clearInterval(this.heartbeatTimer);this.heartbeatTimer=null}if(this.handshakeTimer){this.dependencies.clearTimeout(this.handshakeTimer);this.handshakeTimer=null}}
+ private clearTimers(){this.clearSocketTimers();if(this.ticketTimer){this.dependencies.clearTimeout(this.ticketTimer);this.ticketTimer=null}if(this.reconnectTimer){this.dependencies.clearTimeout(this.reconnectTimer);this.reconnectTimer=null}}
+}
