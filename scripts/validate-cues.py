@@ -41,8 +41,6 @@ BIRCHOT_ALIASES = {
 BIRCHOT_FINAL_SUPPLEMENT = "birchot-hashachar-final-clause"
 SEQUENCE_ALIAS_TARGETS = {
     "f792daee-3663-4350-a3cb-783897e1f463": "65743cb0-95c9-4d26-b8eb-74c86f1f1b36",
-    "7c087a0d-23cb-458e-af6a-3210982ff0d6": "0a4b12eb-1463-44d7-be91-329049e5ec82",
-    "847f0ed9-cd05-44ed-b2a2-c7947cbb72d6": "aa4a2b0c-23d2-45d3-8268-735331466a60",
     "5bad62c7-3005-4977-8349-230520c70211": "a5c90765-48c0-4384-a3e2-65b43cc2adf1",
     "dbf354df-e399-4d8b-bcfc-c067cc3cf2fc": "f15c1944-da76-4d61-95c8-05c032d47c4d",
 }
@@ -61,12 +59,6 @@ SEQUENCE_VISIBLE_COVERAGE = {
     ],
     "f15c1944-da76-4d61-95c8-05c032d47c4d": [
         *(("concluding.mourners-kaddish@legacy-shabbat-morning", index) for index in range(13, 24))
-    ],
-    "0a4b12eb-1463-44d7-be91-329049e5ec82": [
-        *(("psukei.chatzi-kaddish@legacy-shabbat-morning", index) for index in range(15))
-    ],
-    "aa4a2b0c-23d2-45d3-8268-735331466a60": [
-        *(("shma.yotzer-or@legacy-shabbat-morning", index) for index in range(16))
     ],
     "a5c90765-48c0-4384-a3e2-65b43cc2adf1": [
         *(("shma.mi-chamocha@legacy-shabbat-morning", index) for index in range(13))
