@@ -3,6 +3,7 @@ import cues from './cues.json';
 import {db} from './database';
 import {publishedCues} from './authoring';
 import type {Cue} from './player';
+import {SNAPSHOT_STATE_SQL,newestPayloadCache,resolvePayload,type PayloadCache} from './snapshot-payload-cache';
 export type AliasCatalogCue=Cue&{hidden?:boolean;aliasOf?:string};
 export {db};
 export function authorized(request:Request,control=false){const token=request.headers.get('authorization')?.replace(/^Bearer /,'');return !!token&&((!!process.env.CONTROL_KEY&&token===process.env.CONTROL_KEY)||(!control&&!!process.env.OUTPUT_KEY&&token===process.env.OUTPUT_KEY));}
@@ -31,4 +32,5 @@ export function mergePublishedCatalog(baseline:readonly AliasCatalogCue[],publis
 export async function catalog(){const items=mergePublishedCatalog(cues as unknown as AliasCatalogCue[],await publishedCues());return {cues:items,version:createHash('sha256').update(JSON.stringify(items)).digest('hex').slice(0,16)}}
 export async function knownCue(id:unknown){return typeof id==='string'&&(await catalog()).cues.some(c=>c.id===id)}
 export {cues};
-export async function snapshot(){const state=(await db.query('SELECT revision,cue,mode,updated,cue_payload AS "cuePayload" FROM state WHERE id=1')).rows[0]??{revision:0,cue:null,mode:'animate',updated:0};const rs=await db.query('SELECT id,revision,cue,phase,seen FROM renderers WHERE seen>$1 ORDER BY seen DESC',[Date.now()-8000]);return {...state,catalogVersion:(await catalog()).version,renderers:rs.rows,serverTime:Date.now()}}
+let payloadCache:PayloadCache|null=null;
+export async function snapshot(){const captured=payloadCache;const state=(await db.query(SNAPSHOT_STATE_SQL,[captured?.revision??-1])).rows[0]??{revision:0,cue:null,mode:'animate',updated:0,cuePayload:null};const resolved=resolvePayload(captured,state);payloadCache=newestPayloadCache(payloadCache,resolved.candidate);const [rs,currentCatalog]=await Promise.all([db.query('SELECT id,revision,cue,phase,seen FROM renderers WHERE seen>$1 ORDER BY seen DESC',[Date.now()-8000]),catalog()]);return {...state,cuePayload:resolved.payload,catalogVersion:currentCatalog.version,renderers:rs.rows,serverTime:Date.now()}}
