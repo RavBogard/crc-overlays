@@ -1,5 +1,10 @@
 export const MAX_MESSAGE_BYTES=4096;
 export const MAX_SNAPSHOT_BYTES=256*1024;
+// The approved library grows independently from the single cue pinned in live state.
+export const MAX_CATALOG_BYTES=4*1024*1024;
+export const MAX_REQUEST_BYTES=MAX_CATALOG_BYTES+MAX_SNAPSHOT_BYTES;
+// Leave room for revision, renderer presence, and event framing around a pinned cue.
+export const MAX_CUE_PAYLOAD_BYTES=MAX_SNAPSHOT_BYTES-4096;
 export const MAX_RECEIPTS=2048;
 export const STALE_MS=30_000;
 export const PROTOCOL='crc-overlays-v1';
@@ -49,7 +54,7 @@ export function parseCatalog(value:unknown):ApprovedCatalog|null{
  for(const cue of input.cues){
   if(!cue||typeof cue!=='object'||Array.isArray(cue))return null;
   const id=(cue as Record<string,unknown>).id;
-  if(typeof id!=='string'||!id||id.length>160||ids.has(id))return null;
+  if(typeof id!=='string'||!id||id.length>160||ids.has(id)||jsonBytes(cue)>MAX_CUE_PAYLOAD_BYTES)return null;
   ids.add(id);cues.push(cue as CuePayload);
  }
  return {version:input.version as string,cues};

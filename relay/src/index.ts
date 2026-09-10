@@ -1,5 +1,5 @@
 import {DurableObject} from 'cloudflare:workers';
-import {MAX_MESSAGE_BYTES,MAX_RECEIPTS,MAX_SNAPSHOT_BYTES,PROTOCOL,STALE_MS,jsonBytes,nextState,parseAck,parseCatalog,parseCommand,parseInitialState,validCatalogVersion,validInteger,validToken,validUuid,verifyTicket,type ApprovedCatalog,type Command,type CuePayload,type LiveState,type Renderer,type Role,type Snapshot,type SocketAttachment} from './protocol';
+import {MAX_CATALOG_BYTES,MAX_MESSAGE_BYTES,MAX_RECEIPTS,MAX_REQUEST_BYTES,MAX_SNAPSHOT_BYTES,PROTOCOL,STALE_MS,jsonBytes,nextState,parseAck,parseCatalog,parseCommand,parseInitialState,validCatalogVersion,validInteger,validToken,validUuid,verifyTicket,type ApprovedCatalog,type Command,type CuePayload,type LiveState,type Renderer,type Role,type Snapshot,type SocketAttachment} from './protocol';
 
 interface Env{
  LIVE_ROOM:DurableObjectNamespace<LiveRoom>;
@@ -79,7 +79,8 @@ export class LiveRoom extends DurableObject<Env>{
   try{
    if(url.pathname==='/state'&&request.method==='GET')return json(this.snapshot());
    if(url.pathname==='/catalog'&&request.method==='GET')return json(this.readCatalog());
-   const input=await this.readBody(request);
+   const bodyLimit=url.pathname==='/initialize'?MAX_REQUEST_BYTES:url.pathname==='/catalog'?MAX_CATALOG_BYTES:MAX_MESSAGE_BYTES;
+   const input=await this.readBody(request,bodyLimit);
    if(url.pathname==='/initialize'&&request.method==='POST')return this.initialize(input);
    if(url.pathname==='/command'&&request.method==='POST')return this.command(input);
    if(url.pathname==='/catalog'&&request.method==='POST')return this.catalog(input);
@@ -125,11 +126,11 @@ export class LiveRoom extends DurableObject<Env>{
   return row?{version:row.version,cues:JSON.parse(row.cues_json) as CuePayload[]}:null;
  }
  private writeCatalog(catalog:ApprovedCatalog){this.sql.exec('INSERT OR REPLACE INTO approved_catalog(singleton,version,cues_json) VALUES(1,?,?)',catalog.version,JSON.stringify(catalog.cues))}
- private async readBody(request:Request){
+ private async readBody(request:Request,maxBytes:number){
   const declared=Number(request.headers.get('content-length')??0);
-  if(declared>MAX_SNAPSHOT_BYTES)throw new HttpError(413,'Request too large');
+  if(declared>maxBytes)throw new HttpError(413,'Request too large');
   const body=await request.text();
-  if(new TextEncoder().encode(body).byteLength>MAX_SNAPSHOT_BYTES)throw new HttpError(413,'Request too large');
+  if(new TextEncoder().encode(body).byteLength>maxBytes)throw new HttpError(413,'Request too large');
   try{return JSON.parse(body) as unknown}catch{throw new HttpError(400,'Invalid JSON')}
  }
  private currentRenderers(exclude?:WebSocket){
@@ -162,7 +163,7 @@ export class LiveRoom extends DurableObject<Env>{
   if(!state||!catalog||(state.cue===null)!==(state.cuePayload===null))throw new HttpError(400,'Invalid initialization');
   if(state.cue!==null&&state.cuePayload?.id!==state.cue)throw new HttpError(400,'Selected cue payload does not match cue');
   if(state.cue!==null&&!catalog.cues.some(cue=>cue.id===state.cue))throw new HttpError(400,'Selected cue is not in approved catalog');
-  if(jsonBytes(catalog)>MAX_SNAPSHOT_BYTES)throw new HttpError(413,'Catalog too large');
+  if(jsonBytes(catalog)>MAX_CATALOG_BYTES)throw new HttpError(413,'Catalog too large');
   this.ensureSnapshotSize({...state,renderers:[],serverTime:Date.now()});
   const created=this.ctx.storage.transactionSync(()=>{
    if(this.readState()||this.readCatalog())return false;
@@ -218,7 +219,7 @@ export class LiveRoom extends DurableObject<Env>{
   if(expectedVersion!==undefined&&!validCatalogVersion(expectedVersion))throw new HttpError(400,'Invalid expected catalog version');
   const catalog=parseCatalog(value);
   if(!catalog)throw new HttpError(400,'Invalid approved catalog');
-  if(jsonBytes(catalog)>MAX_SNAPSHOT_BYTES)throw new HttpError(413,'Catalog too large');
+  if(jsonBytes(catalog)>MAX_CATALOG_BYTES)throw new HttpError(413,'Catalog too large');
   const state=this.readState();
   if(!state)throw new HttpError(409,'Relay initialization required');
   const currentCatalog=this.readCatalog();

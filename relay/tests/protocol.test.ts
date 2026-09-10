@@ -1,5 +1,5 @@
 import {describe,expect,it} from 'vitest';
-import {nextState,parseCatalog,parseCommand,parseInitialState,verifyTicket,type LiveState} from '../src/protocol';
+import {MAX_CUE_PAYLOAD_BYTES,MAX_SNAPSHOT_BYTES,nextState,parseCatalog,parseCommand,parseInitialState,verifyTicket,type LiveState} from '../src/protocol';
 
 const encode=(value:Uint8Array|string)=>{
  const bytes=typeof value==='string'?new TextEncoder().encode(value):value;
@@ -32,6 +32,14 @@ describe('relay protocol',()=>{
   expect(parseCatalog({version:'v1',cues:[{id:'cue-a'},{id:'cue-b'}]})).not.toBeNull();
   expect(parseCatalog({version:'v1',cues:[]})).toBeNull();
   expect(parseCatalog({version:'v1',cues:[{id:'cue-a'},{id:'cue-a'}]})).toBeNull();
+ });
+
+ it('allows a growing catalog beyond one snapshot while rejecting an unplayable cue',()=>{
+  const cues=Array.from({length:80},(_,index)=>({id:`cue-${index}`,text:'x'.repeat(4096)}));
+  const catalog={version:'large-v1',cues};
+  expect(JSON.stringify(catalog).length).toBeGreaterThan(MAX_SNAPSHOT_BYTES);
+  expect(parseCatalog(catalog)).not.toBeNull();
+  expect(parseCatalog({version:'large-cue',cues:[{id:'cue-huge',text:'x'.repeat(MAX_CUE_PAYLOAD_BYTES)}]})).toBeNull();
  });
 
  it('pins selected catalog content and preserves it for an out on another cue',()=>{
