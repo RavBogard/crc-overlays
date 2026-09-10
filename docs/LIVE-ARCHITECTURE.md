@@ -103,3 +103,21 @@ the relay deployment and durable data when rolling back website code.
 Local verification is separate from Cloudflare deployment, OBS/vMix browser-source
 verification, physical Stream Deck operation, and actual account usage metering.
 Do not mark those surfaces verified from a synthetic protocol test.
+
+## Local acceptance — September 10, 2026
+
+The production website build ran locally with `DATABASE_URL` pointing to an
+unavailable loopback database and a separate local Wrangler relay. The bounded
+`scripts/check-live-site.mts` check passed initial three-role connections,
+catalog retrieval, In/Clear/Cut fanout, output-key command denial, simulated
+renderer acknowledgment, fresh-ticket reconnect, and presence removal on close.
+During its 20.25-second idle sample, the three protocol clients made zero HTTP
+requests and received zero snapshots; WebSocket application messages totaled
+120 bytes sent and 1,350 bytes received. These are protocol-test measurements,
+not an OBS rendering test or a Cloudflare/Neon billing measurement.
+
+The relay contract harness, scoped-ticket/no-Postgres route tests, browser
+transport/player tests, publication synchronization tests, Companion tests,
+TypeScript checks, and production website build passed. Rehearsal servers were
+stopped afterward. Cloudflare account access, hosted relay deployment and
+initialization, Vercel cutover, and installed-client refresh remain outstanding.
