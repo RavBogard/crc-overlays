@@ -14,4 +14,4 @@
 
 .right .title:not(.title-accent){top:36px;height:66px;font-size:30px;line-height:1.1}.right .title-accent{top:108px;height:44px;line-height:44px}
 
-.left .base,.right .base{height:var(--panel-height,1040px)}.left .accent,.right .accent{top:calc(var(--panel-height,1040px) + 16px);bottom:auto}
+.left::before,.left::after,.right::before,.right::after{display:none}.left .logo,.right .logo{top:39px;border:0;padding:0;box-shadow:none;filter:none}

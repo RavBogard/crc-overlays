@@ -1,6 +1,6 @@
 # Panel density review — 2026-09-09
 
-Panels are 640 pixels wide with a 16 pixel outer margin. The logo occupies the upper-right header. Ordinary bilingual panels place Hebrew after measured transliteration with an 18 pixel gap. Their backgrounds end below the actual text rather than leaving a full-height empty card. Lower thirds retain their approved layout.
+Panels are 640 pixels wide with a 16 pixel outer margin. The logo occupies the upper-right header. Ordinary bilingual panels place Hebrew after measured transliteration with an 18 pixel gap. Their backgrounds retain the full 1040 pixel height regardless of content length. Side-panel decorative logo rings are removed, with the logo contained within the upper-right header. Lower thirds retain their approved layout.
 
 Birchot Hashachar is three visible panels (3/3/2 blessings). Each row retains exact Hebrew, transliteration and authorized English. The final English ending comes from separately hash-pinned canonical BH-E3G in shared awakening.typ, because the legacy feed ends mid-translation. The old fourth cue remains a hidden compatibility alias of the third; existing buttons still resolve.
 
