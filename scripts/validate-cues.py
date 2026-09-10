@@ -46,6 +46,32 @@ SEQUENCE_ALIAS_TARGETS = {
     "5bad62c7-3005-4977-8349-230520c70211": "a5c90765-48c0-4384-a3e2-65b43cc2adf1",
     "dbf354df-e399-4d8b-bcfc-c067cc3cf2fc": "f15c1944-da76-4d61-95c8-05c032d47c4d",
 }
+SEQUENCE_VISIBLE_COVERAGE = {
+    "65743cb0-95c9-4d26-b8eb-74c86f1f1b36": [
+        ("psukei.psalm-91@legacy-shabbat-morning", 0),
+        ("psukei.psalm-91@legacy-shabbat-morning", 1),
+        *(("psukei.psalm-92@legacy-shabbat-morning", index) for index in range(4)),
+        ("psukei.ashrei-opening@legacy-shabbat-morning", 0),
+        ("psukei.ashrei-opening@legacy-shabbat-morning", 1),
+        ("psukei.kol-hanshamah@legacy-shabbat-morning", 0),
+        ("psukei.kol-hanshamah@legacy-shabbat-morning", 1),
+    ],
+    "c2d2c129-7d7d-4bbc-a296-46cc1fb9f48e": [
+        *(("concluding.mourners-kaddish@legacy-shabbat-morning", index) for index in range(2, 13))
+    ],
+    "f15c1944-da76-4d61-95c8-05c032d47c4d": [
+        *(("concluding.mourners-kaddish@legacy-shabbat-morning", index) for index in range(13, 24))
+    ],
+    "0a4b12eb-1463-44d7-be91-329049e5ec82": [
+        *(("psukei.chatzi-kaddish@legacy-shabbat-morning", index) for index in range(15))
+    ],
+    "aa4a2b0c-23d2-45d3-8268-735331466a60": [
+        *(("shma.yotzer-or@legacy-shabbat-morning", index) for index in range(16))
+    ],
+    "a5c90765-48c0-4384-a3e2-65b43cc2adf1": [
+        *(("shma.mi-chamocha@legacy-shabbat-morning", index) for index in range(13))
+    ],
+}
 
 
 class ValidationError(RuntimeError):
@@ -226,6 +252,9 @@ def validate(mapping: dict[str, Any], catalog: list[dict[str, Any]]) -> None:
             }
             if bilingual_coverage["he"] != bilingual_coverage["tr"]:
                 raise ValidationError(f"Hebrew/transliteration source coverage differs: {cue_id}")
+            expected_sequence_coverage = SEQUENCE_VISIBLE_COVERAGE.get(cue_id)
+            if expected_sequence_coverage is not None and bilingual_coverage["he"] != expected_sequence_coverage:
+                raise ValidationError(f"consolidated sequence coverage/order changed: {cue_id}")
         named_slices = [spec.get("sliceId") for spec in source_specs]
         if any(named_slices):
             if any(not isinstance(value, str) or not SLICE_ID.fullmatch(value) for value in named_slices):
@@ -249,6 +278,10 @@ def validate(mapping: dict[str, Any], catalog: list[dict[str, Any]]) -> None:
 
     mapped_by_id = {cue["id"]: cue for cue in mapped}
     catalog_by_id = {cue["id"]: cue for cue in catalog}
+    for alias_id, target_id in SEQUENCE_ALIAS_TARGETS.items():
+        alias_map = mapped_by_id[alias_id]
+        if alias_map.get("aliasOf") != target_id or alias_map.get("hidden") is not True:
+            raise ValidationError(f"required sequence alias changed: {alias_id}")
     def source_identity(specs: Any) -> list[tuple[Any, ...]] | None:
         if specs is None:
             return None

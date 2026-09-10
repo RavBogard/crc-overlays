@@ -271,6 +271,37 @@ class SourceAdapterTests(unittest.TestCase):
         with self.assertRaisesRegex(validator.ValidationError, "coverage/order changed"):
             validator.validate(mapping, catalog)
 
+    def test_side_sequences_keep_stable_hidden_aliases_and_exact_coverage(self):
+        mapping = json.loads(
+            (ROOT / "content" / "legacy-crc-shabbat-morning.sources.json").read_text(encoding="utf-8")
+        )
+        catalog = json.loads((ROOT / "lib" / "cues.json").read_text(encoding="utf-8"))
+        mapped = {cue["id"]: cue for cue in mapping["cues"]}
+        compiled = {cue["id"]: cue for cue in catalog}
+        self.assertEqual(len(validator.SEQUENCE_ALIAS_TARGETS), 5)
+        for alias_id, target_id in validator.SEQUENCE_ALIAS_TARGETS.items():
+            self.assertEqual(mapped[alias_id]["aliasOf"], target_id)
+            self.assertTrue(mapped[alias_id]["hidden"])
+            self.assertEqual(compiled[alias_id]["aliasOf"], target_id)
+            self.assertTrue(compiled[alias_id]["hidden"])
+            for field in ("textMain", "textMainheb", "textMainEng"):
+                self.assertEqual(
+                    compiled[alias_id]["texts"].get(field),
+                    compiled[target_id]["texts"].get(field),
+                )
+        validator.validate(mapping, catalog)
+
+    def test_validator_rejects_consolidated_sequence_omission(self):
+        mapping = json.loads(
+            (ROOT / "content" / "legacy-crc-shabbat-morning.sources.json").read_text(encoding="utf-8")
+        )
+        catalog = json.loads((ROOT / "lib" / "cues.json").read_text(encoding="utf-8"))
+        cue = next(item for item in mapping["cues"] if item["operatorName"] == "Yotzer Or 1")
+        cue["fields"]["textMainheb"][-1]["blocks"].pop()
+        cue["fields"]["textMainEng"][-1]["blocks"].pop()
+        with self.assertRaisesRegex(validator.ValidationError, "sequence coverage/order changed"):
+            validator.validate(mapping, catalog)
+
 
 if __name__ == "__main__":
     unittest.main()
