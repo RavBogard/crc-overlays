@@ -9350,8 +9350,8 @@
     "name": "Yotzer Or 1",
     "layout": "left",
     "texts": {
-      "textMainheb": "בָּרוּךְ אַתָּה יְיָ אֱלֹהֵינוּ מֶלֶךְ הָעוֹלָם, יוֹצֵר אוֹר, וּבוֹרֵא חֹשֶׁךְ, עֹשֶׂה שָׁלוֹם וּבוֹרֵא אֶת הַכֹּל: הַמֵּאִיר לָאָרֶץ וְלַדָּרִים עָלֶיהָ בְּרַחֲמִים: וּבְטוּבוֹ מְחַדֵּשׁ בְּכָל יוֹם תָּמִיד מַעֲשֵׂה בְרֵאשִׁית:\nמָה רַבּוּ מַעֲשֶׂיךָ, יְיָ: כֻּלָּם בְּחָכְמָה עָשִׂיתָ, מָלְאָה הָאָרֶץ קִנְיָנֶךָ: תִּתְבָּרַךְ יְיָ, אֱלֹהֵינוּ, עַל שֶׁבַח מַעֲשֵׂה יָדֶיךָ: וְעַל מְאוֹרֵי אוֹר שֶׁעָשִׂיתָ יְפָאֲרוּךָ: סֶלָה: בָּרוּךְ אַתָּה, יְיָ, יוֹצֵר הַמְּאוֹרוֹת:",
-      "textMainEng": "Baruch atah Adonai Eloheinu melech ha-olam, yotzeir or uvorei choshech, oseh shalom uvorei et hakol. Hamei-ir la-aretz v’ladarim aleiha b’rachamim. Uv’tuvo m’chadeish b’chol yom tamid ma-aseih v’reishit.\nMah rabu ma-asecha, Adonai! Kulam b’chochmah asita, malah ha-aretz kinyanecha. Titbarach, Adonai Eloheinu, al shevach ma-aseih yadecha. V’al m’orei or sheasita y’fa-arucha. Selah. Baruch atah, Adonai, yotzeir hamorot.",
+      "textMainheb": "בָּרוּךְ אַתָּה יְיָ אֱלֹהֵינוּ מֶלֶךְ הָעוֹלָם, יוֹצֵר אוֹר, וּבוֹרֵא חֹשֶׁךְ, עֹשֶׂה שָׁלוֹם וּבוֹרֵא אֶת הַכֹּל: הַמֵּאִיר לָאָרֶץ וְלַדָּרִים עָלֶיהָ בְּרַחֲמִים: וּבְטוּבוֹ מְחַדֵּשׁ בְּכָל יוֹם תָּמִיד מַעֲשֵׂה בְרֵאשִׁית:",
+      "textMainEng": "Baruch atah Adonai Eloheinu melech ha-olam, yotzeir or uvorei choshech, oseh shalom uvorei et hakol. Hamei-ir la-aretz v’ladarim aleiha b’rachamim. Uv’tuvo m’chadeish b’chol yom tamid ma-aseih v’reishit.",
       "textTitle": "Yotzeir Or",
       "accentTextTitle": "יוֹצֵר אוֹר"
     },
@@ -9722,7 +9722,7 @@
         "compositionUuid": "aa4a2b0c-23d2-45d3-8268-735331466a60",
         "compositionSha256": "443afbe416998a8cea94bb28a4412c2d1b7cf66ec1e1490fb2a5ea5d8995c651",
         "operatorName": "Yotzer Or 1",
-        "textsSha256": "588b3d94a9e2a2a4a0705adb0f6b7a5d947d675c7518dfe3f6e7e3d052900d99",
+        "textsSha256": "40b6529a6c416d65fa157abed4d321871c702d6487f19678c8c7125708b5a163",
         "role": "presentation and operator-identity evidence only"
       },
       "liturgy": {
@@ -9759,22 +9759,6 @@
                 7
               ],
               "separator": " "
-            },
-            {
-              "sliceId": "yotzer-or-two-he",
-              "unit": "shma.yotzer-or@legacy-shabbat-morning",
-              "channel": "he",
-              "blocks": [
-                8,
-                9,
-                10,
-                11,
-                12,
-                13,
-                14,
-                15
-              ],
-              "separator": " "
             }
           ],
           "textMainEng": [
@@ -9793,22 +9777,6 @@
                 7
               ],
               "separator": " "
-            },
-            {
-              "sliceId": "yotzer-or-two-tr",
-              "unit": "shma.yotzer-or@legacy-shabbat-morning",
-              "channel": "tr",
-              "blocks": [
-                8,
-                9,
-                10,
-                11,
-                12,
-                13,
-                14,
-                15
-              ],
-              "separator": " "
             }
           ]
         }
@@ -9820,8 +9788,8 @@
     "name": "Yotzer Or 2",
     "layout": "left",
     "texts": {
-      "textMainheb": "בָּרוּךְ אַתָּה יְיָ אֱלֹהֵינוּ מֶלֶךְ הָעוֹלָם, יוֹצֵר אוֹר, וּבוֹרֵא חֹשֶׁךְ, עֹשֶׂה שָׁלוֹם וּבוֹרֵא אֶת הַכֹּל: הַמֵּאִיר לָאָרֶץ וְלַדָּרִים עָלֶיהָ בְּרַחֲמִים: וּבְטוּבוֹ מְחַדֵּשׁ בְּכָל יוֹם תָּמִיד מַעֲשֵׂה בְרֵאשִׁית:\nמָה רַבּוּ מַעֲשֶׂיךָ, יְיָ: כֻּלָּם בְּחָכְמָה עָשִׂיתָ, מָלְאָה הָאָרֶץ קִנְיָנֶךָ: תִּתְבָּרַךְ יְיָ, אֱלֹהֵינוּ, עַל שֶׁבַח מַעֲשֵׂה יָדֶיךָ: וְעַל מְאוֹרֵי אוֹר שֶׁעָשִׂיתָ יְפָאֲרוּךָ: סֶלָה: בָּרוּךְ אַתָּה, יְיָ, יוֹצֵר הַמְּאוֹרוֹת:",
-      "textMainEng": "Baruch atah Adonai Eloheinu melech ha-olam, yotzeir or uvorei choshech, oseh shalom uvorei et hakol. Hamei-ir la-aretz v’ladarim aleiha b’rachamim. Uv’tuvo m’chadeish b’chol yom tamid ma-aseih v’reishit.\nMah rabu ma-asecha, Adonai! Kulam b’chochmah asita, malah ha-aretz kinyanecha. Titbarach, Adonai Eloheinu, al shevach ma-aseih yadecha. V’al m’orei or sheasita y’fa-arucha. Selah. Baruch atah, Adonai, yotzeir hamorot.",
+      "textMainheb": "מָה רַבּוּ מַעֲשֶׂיךָ, יְיָ: כֻּלָּם בְּחָכְמָה עָשִׂיתָ, מָלְאָה הָאָרֶץ קִנְיָנֶךָ: תִּתְבָּרַךְ יְיָ, אֱלֹהֵינוּ, עַל שֶׁבַח מַעֲשֵׂה יָדֶיךָ: וְעַל מְאוֹרֵי אוֹר שֶׁעָשִׂיתָ יְפָאֲרוּךָ: סֶלָה: בָּרוּךְ אַתָּה, יְיָ, יוֹצֵר הַמְּאוֹרוֹת:",
+      "textMainEng": "Mah rabu ma-asecha, Adonai! Kulam b’chochmah asita, malah ha-aretz kinyanecha. Titbarach, Adonai Eloheinu, al shevach ma-aseih yadecha. V’al m’orei or sheasita y’fa-arucha. Selah. Baruch atah, Adonai, yotzeir hamorot.",
       "textTitle": "Yotzeir Or",
       "accentTextTitle": "יוֹצֵר אוֹר"
     },
@@ -10192,7 +10160,7 @@
         "compositionUuid": "847f0ed9-cd05-44ed-b2a2-c7947cbb72d6",
         "compositionSha256": "2e2693f2a58907050ac37184cc504c283c6978e4530c82716cba90791acd03cc",
         "operatorName": "Yotzer Or 2",
-        "textsSha256": "588b3d94a9e2a2a4a0705adb0f6b7a5d947d675c7518dfe3f6e7e3d052900d99",
+        "textsSha256": "3e8763ac69426e5a131c8f8739f19c43a435b75e89a30377fdc5f62968a82e7b",
         "role": "presentation and operator-identity evidence only"
       },
       "liturgy": {
@@ -10215,22 +10183,6 @@
         "slices": {
           "textMainheb": [
             {
-              "sliceId": "yotzer-or-one-he",
-              "unit": "shma.yotzer-or@legacy-shabbat-morning",
-              "channel": "he",
-              "blocks": [
-                0,
-                1,
-                2,
-                3,
-                4,
-                5,
-                6,
-                7
-              ],
-              "separator": " "
-            },
-            {
               "sliceId": "yotzer-or-two-he",
               "unit": "shma.yotzer-or@legacy-shabbat-morning",
               "channel": "he",
@@ -10248,22 +10200,6 @@
             }
           ],
           "textMainEng": [
-            {
-              "sliceId": "yotzer-or-one-tr",
-              "unit": "shma.yotzer-or@legacy-shabbat-morning",
-              "channel": "tr",
-              "blocks": [
-                0,
-                1,
-                2,
-                3,
-                4,
-                5,
-                6,
-                7
-              ],
-              "separator": " "
-            },
             {
               "sliceId": "yotzer-or-two-tr",
               "unit": "shma.yotzer-or@legacy-shabbat-morning",
@@ -10283,9 +10219,7 @@
           ]
         }
       }
-    },
-    "aliasOf": "aa4a2b0c-23d2-45d3-8268-735331466a60",
-    "hidden": true
+    }
   },
   {
     "id": "4715aa3b-02c7-4ec9-899d-22e6a7d190c1",

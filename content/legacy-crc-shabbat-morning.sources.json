@@ -2076,7 +2076,7 @@
       "operatorName": "Yotzer Or 1",
       "layout": "left",
       "archiveRecordSha256": "443afbe416998a8cea94bb28a4412c2d1b7cf66ec1e1490fb2a5ea5d8995c651",
-      "expectedTextsSha256": "588b3d94a9e2a2a4a0705adb0f6b7a5d947d675c7518dfe3f6e7e3d052900d99",
+      "expectedTextsSha256": "40b6529a6c416d65fa157abed4d321871c702d6487f19678c8c7125708b5a163",
       "title": {
         "archiveField": "title"
       },
@@ -2100,22 +2100,6 @@
               7
             ],
             "separator": " "
-          },
-          {
-            "sliceId": "yotzer-or-two-he",
-            "unit": "shma.yotzer-or@legacy-shabbat-morning",
-            "channel": "he",
-            "blocks": [
-              8,
-              9,
-              10,
-              11,
-              12,
-              13,
-              14,
-              15
-            ],
-            "separator": " "
           }
         ],
         "textMainEng": [
@@ -2134,7 +2118,42 @@
               7
             ],
             "separator": " "
-          },
+          }
+        ]
+      }
+    },
+    {
+      "id": "847f0ed9-cd05-44ed-b2a2-c7947cbb72d6",
+      "operatorName": "Yotzer Or 2",
+      "layout": "left",
+      "archiveRecordSha256": "2e2693f2a58907050ac37184cc504c283c6978e4530c82716cba90791acd03cc",
+      "expectedTextsSha256": "3e8763ac69426e5a131c8f8739f19c43a435b75e89a30377fdc5f62968a82e7b",
+      "title": {
+        "archiveField": "title"
+      },
+      "accentTitle": {
+        "archiveField": "titleAccent"
+      },
+      "fields": {
+        "textMainheb": [
+          {
+            "sliceId": "yotzer-or-two-he",
+            "unit": "shma.yotzer-or@legacy-shabbat-morning",
+            "channel": "he",
+            "blocks": [
+              8,
+              9,
+              10,
+              11,
+              12,
+              13,
+              14,
+              15
+            ],
+            "separator": " "
+          }
+        ],
+        "textMainEng": [
           {
             "sliceId": "yotzer-or-two-tr",
             "unit": "shma.yotzer-or@legacy-shabbat-morning",
@@ -2153,92 +2172,6 @@
           }
         ]
       }
-    },
-    {
-      "id": "847f0ed9-cd05-44ed-b2a2-c7947cbb72d6",
-      "operatorName": "Yotzer Or 2",
-      "layout": "left",
-      "archiveRecordSha256": "2e2693f2a58907050ac37184cc504c283c6978e4530c82716cba90791acd03cc",
-      "expectedTextsSha256": "588b3d94a9e2a2a4a0705adb0f6b7a5d947d675c7518dfe3f6e7e3d052900d99",
-      "title": {
-        "archiveField": "title"
-      },
-      "accentTitle": {
-        "archiveField": "titleAccent"
-      },
-      "fields": {
-        "textMainheb": [
-          {
-            "sliceId": "yotzer-or-one-he",
-            "unit": "shma.yotzer-or@legacy-shabbat-morning",
-            "channel": "he",
-            "blocks": [
-              0,
-              1,
-              2,
-              3,
-              4,
-              5,
-              6,
-              7
-            ],
-            "separator": " "
-          },
-          {
-            "sliceId": "yotzer-or-two-he",
-            "unit": "shma.yotzer-or@legacy-shabbat-morning",
-            "channel": "he",
-            "blocks": [
-              8,
-              9,
-              10,
-              11,
-              12,
-              13,
-              14,
-              15
-            ],
-            "separator": " "
-          }
-        ],
-        "textMainEng": [
-          {
-            "sliceId": "yotzer-or-one-tr",
-            "unit": "shma.yotzer-or@legacy-shabbat-morning",
-            "channel": "tr",
-            "blocks": [
-              0,
-              1,
-              2,
-              3,
-              4,
-              5,
-              6,
-              7
-            ],
-            "separator": " "
-          },
-          {
-            "sliceId": "yotzer-or-two-tr",
-            "unit": "shma.yotzer-or@legacy-shabbat-morning",
-            "channel": "tr",
-            "blocks": [
-              8,
-              9,
-              10,
-              11,
-              12,
-              13,
-              14,
-              15
-            ],
-            "separator": " "
-          }
-        ]
-      },
-      "aliasOf": "aa4a2b0c-23d2-45d3-8268-735331466a60",
-      "hidden": true,
-      "retirementNote": "Legacy second-panel UUID remains a hidden command alias of the consolidated Yotzer Or panel."
     },
     {
       "id": "4715aa3b-02c7-4ec9-899d-22e6a7d190c1",
