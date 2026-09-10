@@ -182,7 +182,7 @@ class SiteClient {
     check(value.protocol === 1, `${this.role} realtime bootstrap has unsupported protocol`);
     const socketUrl = new URL(value.url);
     check(socketUrl.protocol === "ws:" || socketUrl.protocol === "wss:", `${this.role} realtime URL is invalid`);
-    check(socketUrl.protocol === "wss:" || loopback(socketUrl.hostname), `${this.role} plaintext realtime URL is not loopback`);
+    check(loopback(socketUrl.hostname), `${this.role} realtime relay must also be loopback`);
     this.bootstrapTicket = value.ticket;
 
     const ws = new WebSocket(socketUrl, ["crc-overlays-v1", `ticket.${value.ticket}`]);
