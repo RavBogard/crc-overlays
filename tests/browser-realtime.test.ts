@@ -1,18 +1,19 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
-import {BrowserRealtimeTransport,CatalogRefreshCoordinator,type RealtimeDependencies,type RealtimeSnapshot} from '../lib/browser-realtime.ts';
+import {BrowserRealtimeTransport,CatalogRefreshCoordinator,type RealtimeDependencies,type RealtimeSnapshot,type RendererAck} from '../lib/browser-realtime.ts';
+import type {Cue} from '../lib/player.ts';
 
 class FakeSocket{
- readyState=0;onopen:((event:any)=>void)|null=null;onmessage:((event:{data:unknown})=>void)|null=null;onclose:((event:any)=>void)|null=null;onerror:((event:any)=>void)|null=null;sent:string[]=[];
+ readyState=0;onopen:((event:Event)=>void)|null=null;onmessage:((event:MessageEvent<unknown>)=>void)|null=null;onclose:((event:Event)=>void)|null=null;onerror:((event:Event)=>void)|null=null;sent:string[]=[];
  readonly url:string;readonly protocols:string[];
  constructor(url:string,protocols:string[]){this.url=url;this.protocols=protocols}
- open(){this.readyState=1;this.onopen?.({})}
- receive(message:unknown){this.onmessage?.({data:JSON.stringify(message)})}
- close(){if(this.readyState===3)return;this.readyState=3;this.onclose?.({})}
+ open(){this.readyState=1;this.onopen?.(new Event('open'))}
+ receive(message:unknown){this.onmessage?.(new MessageEvent('message',{data:JSON.stringify(message)}))}
+ close(){if(this.readyState===3)return;this.readyState=3;this.onclose?.(new Event('close'))}
  send(data:string){this.sent.push(data)}
 }
 
-const snapshot=(revision:number,serverTime=revision):RealtimeSnapshot=>({revision,cue:revision?`cue-${revision}`:null,mode:'animate',updated:serverTime,cuePayload:revision?{id:`cue-${revision}`,texts:{}}:null,catalogVersion:'catalog-a',renderers:[],serverTime});
+const snapshot=(revision:number,serverTime=revision):RealtimeSnapshot=>({revision,cue:revision?`cue-${revision}`:null,mode:'animate',updated:serverTime,cuePayload:revision?{id:`cue-${revision}`,texts:{}} as Cue:null,catalogVersion:'catalog-a',renderers:[],serverTime});
 const settle=()=>new Promise(resolve=>setTimeout(resolve,0));
 
 test('catalog refresh serializes fetches and retains a newer marker received in flight',async()=>{
@@ -30,13 +31,13 @@ test('catalog refresh does not loop when the published marker lags the fetched c
 function harness(role:'control'|'output'|'preview'='control'){
  const sockets:FakeSocket[]=[];const urls:string[]=[];const timeouts=new Map<number,()=>void>();const intervals=new Map<number,()=>void>();let timerId=0;let now=100;
  const dependencies:Partial<RealtimeDependencies>={
-  fetch:async(input:any)=>{urls.push(String(input));return Response.json({url:'wss://relay.example/connect',ticket:'signed.ticket',heartbeatMs:10000,staleMs:30000,protocol:1})},
+  fetch:async(input:RequestInfo|URL)=>{urls.push(String(input));return Response.json({url:'wss://relay.example/connect',ticket:'signed.ticket',heartbeatMs:10000,staleMs:30000,protocol:1})},
   socket:(url,protocols)=>{const socket=new FakeSocket(url,protocols);sockets.push(socket);return socket},
-  setTimeout:(callback)=>{const id=++timerId;timeouts.set(id,callback);return id as any},clearTimeout:(id)=>{timeouts.delete(id as any)},
-  setInterval:(callback)=>{const id=++timerId;intervals.set(id,callback);return id as any},clearInterval:(id)=>{intervals.delete(id as any)},
+  setTimeout:(callback)=>{const id=++timerId;timeouts.set(id,callback);return id as unknown as ReturnType<typeof setTimeout>},clearTimeout:(id)=>{timeouts.delete(Number(id))},
+  setInterval:(callback)=>{const id=++timerId;intervals.set(id,callback);return id as unknown as ReturnType<typeof setInterval>},clearInterval:(id)=>{intervals.delete(Number(id))},
   now:()=>now,random:()=>0.5,
  };
- const snapshots:RealtimeSnapshot[]=[];const statuses:string[]=[];const presence:any[]=[];
+ const snapshots:RealtimeSnapshot[]=[];const statuses:string[]=[];const presence:Array<{renderers:RendererAck[];serverTime:number}>=[];
  const transport=new BrowserRealtimeTransport({key:'secret',role,id:'00000000-0000-4000-8000-000000000000',getAck:()=>({id:'00000000-0000-4000-8000-000000000000',revision:4,cue:'cue-4',phase:'settled'}),onSnapshot:value=>{snapshots.push(value)},onPresence:(renderers,serverTime)=>{presence.push({renderers,serverTime})},onStatus:status=>statuses.push(status),dependencies});
  return {transport,sockets,urls,timeouts,intervals,snapshots,statuses,presence,setNow:(value:number)=>{now=value}};
 }

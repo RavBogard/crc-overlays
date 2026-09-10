@@ -1,11 +1,13 @@
+import type {Cue} from './player';
+
 export type RealtimeRole='control'|'output'|'preview';
 export type RealtimeStatus='bootstrapping'|'live'|'reconnecting'|'stopped';
 
 export type RendererAck={id:string;revision:number;cue:string|null;phase:string;seen?:number};
-export type RealtimeSnapshot={revision:number;cue:string|null;mode:'animate'|'cut';updated:number;cuePayload:any|null;catalogVersion:string;renderers:RendererAck[];serverTime:number};
+export type RealtimeSnapshot={revision:number;cue:string|null;mode:'animate'|'cut';updated:number;cuePayload:Cue|null;catalogVersion:string;renderers:RendererAck[];serverTime:number};
 
 type Ticket={url:string;ticket:string;heartbeatMs:number;staleMs:number;protocol:1};
-type SocketLike={readyState:number;onopen:null|((event:any)=>void);onmessage:null|((event:any)=>void);onclose:null|((event:any)=>void);onerror:null|((event:any)=>void);send(data:string):void;close(code?:number,reason?:string):void};
+type SocketLike={readyState:number;onopen:null|((event:Event)=>void);onmessage:null|((event:MessageEvent<unknown>)=>void);onclose:null|((event:Event)=>void);onerror:null|((event:Event)=>void);send(data:string):void;close(code?:number,reason?:string):void};
 
 export type RealtimeDependencies={
  fetch:typeof fetch;
@@ -56,7 +58,7 @@ export class CatalogRefreshCoordinator<T extends {version:string}>{
 
 const defaults:RealtimeDependencies={
  fetch:globalThis.fetch.bind(globalThis),
- socket:(url,protocols)=>new WebSocket(url,protocols),
+ socket:(url,protocols)=>new WebSocket(url,protocols) as unknown as SocketLike,
  setTimeout:(callback,delay)=>setTimeout(callback,delay),
  clearTimeout:timer=>clearTimeout(timer),
  setInterval:(callback,delay)=>setInterval(callback,delay),
@@ -65,8 +67,11 @@ const defaults:RealtimeDependencies={
  random:()=>Math.random(),
 };
 
-function isSnapshot(value:any):value is RealtimeSnapshot{return value&&Number.isSafeInteger(value.revision)&&value.revision>=0&&(value.cue===null||typeof value.cue==='string')&&(value.mode==='animate'||value.mode==='cut')&&typeof value.catalogVersion==='string'&&Array.isArray(value.renderers)&&Number.isFinite(value.serverTime)}
-function isTicket(value:any):value is Ticket{return value&&value.protocol===1&&typeof value.url==='string'&&/^wss?:\/\//.test(value.url)&&typeof value.ticket==='string'&&value.ticket.length>0&&Number.isFinite(value.heartbeatMs)&&Number.isFinite(value.staleMs)}
+function isRecord(value:unknown):value is Record<string,unknown>{return typeof value==='object'&&value!==null}
+function isRendererAck(value:unknown):value is RendererAck{return isRecord(value)&&typeof value.id==='string'&&Number.isSafeInteger(value.revision)&&(value.cue===null||typeof value.cue==='string')&&typeof value.phase==='string'&&(value.seen===undefined||Number.isFinite(value.seen))}
+function isCuePayload(value:unknown):value is Cue{return isRecord(value)&&typeof value.id==='string'}
+function isSnapshot(value:unknown):value is RealtimeSnapshot{return isRecord(value)&&Number.isSafeInteger(value.revision)&&Number(value.revision)>=0&&(value.cue===null||typeof value.cue==='string')&&(value.mode==='animate'||value.mode==='cut')&&Number.isFinite(value.updated)&&(value.cuePayload===null||isCuePayload(value.cuePayload))&&typeof value.catalogVersion==='string'&&Array.isArray(value.renderers)&&value.renderers.every(isRendererAck)&&Number.isFinite(value.serverTime)}
+function isTicket(value:unknown):value is Ticket{return isRecord(value)&&value.protocol===1&&typeof value.url==='string'&&/^wss?:\/\//.test(value.url)&&typeof value.ticket==='string'&&value.ticket.length>0&&Number.isFinite(value.heartbeatMs)&&Number.isFinite(value.staleMs)}
 
 export class BrowserRealtimeTransport{
  private readonly options:BrowserRealtimeOptions;
@@ -101,7 +106,7 @@ export class BrowserRealtimeTransport{
   try{
    const response=await this.dependencies.fetch(`/api/realtime?role=${this.options.role}`,{headers:{Authorization:`Bearer ${this.options.key}`},cache:'no-store',signal:abort.signal});
    if(!response.ok)throw Error('Realtime ticket unavailable');
-   const ticket=await response.json();if(!isTicket(ticket))throw Error('Invalid realtime ticket');
+   const ticket:unknown=await response.json();if(!isTicket(ticket))throw Error('Invalid realtime ticket');
    clearTicket();
    if(this.stopped||generation!==this.generation)return;
    this.open(ticket,generation);
@@ -112,17 +117,18 @@ export class BrowserRealtimeTransport{
   const socket=this.dependencies.socket(ticket.url,['crc-overlays-v1',`ticket.${ticket.ticket}`]);this.socket=socket;this.live=false;
   this.handshakeTimer=this.dependencies.setTimeout(()=>socket.close(4000,'connection timeout'),10000);
   socket.onopen=()=>{if(this.stopped||generation!==this.generation||this.socket!==socket){socket.close(1000,'stale');return}this.lastMessageAt=this.dependencies.now();socket.send(JSON.stringify({type:'hello',id:this.options.id}));const heartbeatMs=Math.max(1000,Math.min(60000,ticket.heartbeatMs));const staleMs=Math.max(heartbeatMs*2,Math.min(120000,ticket.staleMs));this.heartbeatTimer=this.dependencies.setInterval(()=>{if(this.socket!==socket)return;if(this.dependencies.now()-this.lastMessageAt>staleMs){socket.close(4000,'stale');return}const ack=this.live&&this.options.role==='output'?this.options.getAck?.():undefined;socket.send(JSON.stringify(ack?{type:'heartbeat',ack}:{type:'heartbeat'}))},heartbeatMs)};
-  socket.onmessage=event=>{if(this.stopped||generation!==this.generation||this.socket!==socket||typeof event.data!=='string'||event.data.length>262144)return;this.lastMessageAt=this.dependencies.now();let message:any;try{message=JSON.parse(event.data)}catch{return}this.queue=this.queue.then(()=>this.handle(message,generation,socket)).catch(()=>{if(!this.stopped&&generation===this.generation&&this.socket===socket)socket.close(4000,'event failed')})};
+  socket.onmessage=event=>{if(this.stopped||generation!==this.generation||this.socket!==socket||typeof event.data!=='string'||event.data.length>262144)return;this.lastMessageAt=this.dependencies.now();let message:unknown;try{message=JSON.parse(event.data)}catch{return}this.queue=this.queue.then(()=>this.handle(message,generation,socket)).catch(()=>{if(!this.stopped&&generation===this.generation&&this.socket===socket)socket.close(4000,'event failed')})};
   socket.onerror=()=>socket.close();
   socket.onclose=()=>{if(this.socket!==socket)return;this.socket=null;this.live=false;this.clearSocketTimers();if(!this.stopped&&generation===this.generation)this.scheduleReconnect(generation)};
  }
 
- private async handle(message:any,generation:number,socket:SocketLike){
+ private async handle(message:unknown,generation:number,socket:SocketLike){
   if(this.stopped||generation!==this.generation||this.socket!==socket)return;
-  if(message?.type==='pong')return;
-  if(message?.type==='presence'&&Array.isArray(message.renderers)&&Number.isFinite(message.serverTime)){if(message.serverTime>=this.lastServerTime){this.lastServerTime=message.serverTime;await this.options.onPresence?.(message.renderers,message.serverTime)}return}
-  if(message?.type==='catalog'&&typeof message.version==='string'){if(message.version!==this.options.getCatalogVersion?.())void Promise.resolve(this.options.onCatalog?.(message.version)).catch(()=>{});return}
-  if(message?.type!=='snapshot'||!isSnapshot(message.snapshot))return;
+  if(!isRecord(message))return;
+  if(message.type==='pong')return;
+  if(message.type==='presence'&&Array.isArray(message.renderers)&&message.renderers.every(isRendererAck)&&Number.isFinite(message.serverTime)){const serverTime=Number(message.serverTime);if(serverTime>=this.lastServerTime){this.lastServerTime=serverTime;await this.options.onPresence?.(message.renderers,serverTime)}return}
+  if(message.type==='catalog'&&typeof message.version==='string'){if(message.version!==this.options.getCatalogVersion?.())void Promise.resolve(this.options.onCatalog?.(message.version)).catch(()=>{});return}
+  if(message.type!=='snapshot'||!isSnapshot(message.snapshot))return;
   const snapshot=message.snapshot;if(snapshot.revision<this.lastRevision||(snapshot.revision===this.lastRevision&&snapshot.serverTime<this.lastServerTime))return;
   this.lastRevision=Math.max(this.lastRevision,snapshot.revision);this.lastServerTime=Math.max(this.lastServerTime,snapshot.serverTime);
   await this.options.onSnapshot(snapshot);
