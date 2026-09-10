@@ -1,11 +1,11 @@
 import { describe, expect, it, vi } from 'vitest'
-import { deriveFeedback, isNewerSnapshot, OverlayClient, type OverlaySnapshot, type RealtimeConnectionState } from '../src/client.js'
+import { CatalogRefreshCoordinator, deriveFeedback, isNewerSnapshot, OverlayClient, type OverlaySnapshot, type RealtimeConnectionState, type VersionedCatalog } from '../src/client.js'
 
 const snapshot = (overrides: Partial<OverlaySnapshot> = {}): OverlaySnapshot => ({
   revision: 4, cue: 'cue-a', mode: 'animate', updated: 1_000, catalogVersion: 'catalog-1', serverTime: 10_000,
   renderers: [{ id: 'output', revision: 4, cue: 'cue-a', phase: 'settled', seen: 9_500 }], ...overrides,
 })
-const response = (body: object, status = 200) => new Response(JSON.stringify(body), { status, headers: { 'Content-Type': 'application/json' } })
+const response = (body: object, status = 200, catalogVersion = 'catalog-1') => new Response(JSON.stringify(body), { status, headers: { 'Content-Type': 'application/json', 'X-CRC-Catalog-Version': catalogVersion } })
 const bootstrap = { url: 'wss://relay.example.test/connect', ticket: 'one-time-ticket', heartbeatMs: 10_000, staleMs: 30_000, protocol: 1 as const }
 
 class FakeSocket {
@@ -39,6 +39,12 @@ describe('OverlayClient ordering', () => {
     const client = new OverlayClient({ baseUrl: 'https://example.test/', controlKey: 'secret', clientId: 'companion-test', fetch: fetchMock })
     await client.catalog()
     expect(request).toEqual({ url: 'https://example.test/api/catalog', authorization: 'Bearer secret' })
+  })
+
+  it('returns the catalog version from the authenticated response header', async () => {
+    const fetchMock = vi.fn(async () => response([{ id: 'cue-a' }], 200, 'actual-version'))
+    const client = new OverlayClient({ baseUrl: 'https://example.test', controlKey: 'secret', clientId: 'companion-test', fetch: fetchMock })
+    await expect(client.catalogWithVersion()).resolves.toEqual({ cues: [{ id: 'cue-a' }], version: 'actual-version' })
   })
 
   it('a delayed In cannot supersede a later Cut', async () => {
@@ -94,6 +100,37 @@ describe('OverlayClient ordering', () => {
       await vi.advanceTimersByTimeAsync(21)
       await pending
     } finally { vi.useRealTimers() }
+  })
+})
+
+describe('catalog refresh coordination', () => {
+  it('coalesces an in-flight notification and follows it with the latest catalog', async () => {
+    const pending: Array<(value: VersionedCatalog<string[]>) => void> = []
+    const load = vi.fn(() => new Promise<VersionedCatalog<string[]>>(resolve => pending.push(resolve)))
+    const applied: VersionedCatalog<string[]>[] = []
+    const refresh = new CatalogRefreshCoordinator(load, value => { applied.push(value) })
+    const complete = refresh.request('version-2')
+    await vi.waitFor(() => expect(load).toHaveBeenCalledTimes(1))
+    expect(refresh.request('version-3')).toBe(complete)
+    pending[0]!({ cues: ['two'], version: 'version-2' })
+    await vi.waitFor(() => expect(load).toHaveBeenCalledTimes(2))
+    pending[1]!({ cues: ['three'], version: 'version-3' })
+    await complete
+    expect(applied).toEqual([{ cues: ['two'], version: 'version-2' }, { cues: ['three'], version: 'version-3' }])
+  })
+
+  it('does not loop when an in-flight notification marker is older than the fetched catalog', async () => {
+    const pending: Array<(value: VersionedCatalog<string[]>) => void> = []
+    const load = vi.fn(() => new Promise<VersionedCatalog<string[]>>(resolve => pending.push(resolve)))
+    const refresh = new CatalogRefreshCoordinator(load, vi.fn())
+    const complete = refresh.request('version-2')
+    await vi.waitFor(() => expect(load).toHaveBeenCalledTimes(1))
+    void refresh.request('version-1')
+    pending[0]!({ cues: ['current'], version: 'version-2' })
+    await vi.waitFor(() => expect(load).toHaveBeenCalledTimes(2))
+    pending[1]!({ cues: ['still-current'], version: 'version-2' })
+    await complete
+    expect(load).toHaveBeenCalledTimes(2)
   })
 })
 

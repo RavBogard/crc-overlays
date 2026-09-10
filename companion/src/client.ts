@@ -6,6 +6,7 @@ export interface OverlaySnapshot { revision: number; cue: string | null; mode: s
 export interface CommandReceipt extends OverlaySnapshot { commandId: string }
 export interface FeedbackState { requestedCue: string | null; renderedCue: string | null; rendered: boolean; disconnected: boolean }
 export interface RealtimeBootstrap { url: string; ticket: string; heartbeatMs: number; staleMs: number; protocol: 1 }
+export interface VersionedCatalog<T = unknown> { cues: T; version: string }
 export type RealtimeConnectionState = 'connecting' | 'connected' | 'disconnected'
 export interface RealtimeHandlers {
   onSnapshot(snapshot: OverlaySnapshot): void
@@ -70,7 +71,14 @@ export class OverlayClient {
     return this.#request<CommandReceipt>('/api/command', { method: 'POST', body }, true)
   }
 
-  catalog(): Promise<unknown> { return this.#request<unknown>('/api/catalog', { method: 'GET' }, false) }
+  catalog(): Promise<unknown> { return this.catalogWithVersion().then(result => result.cues) }
+  catalogWithVersion(): Promise<VersionedCatalog> {
+    return this.#request<VersionedCatalog>('/api/catalog', { method: 'GET' }, false, async response => {
+      const version = response.headers.get('X-CRC-Catalog-Version')
+      if (!version || version.length > 200) throw new ApiError('Overlay catalog version header is invalid', false)
+      return { cues: await response.json() as unknown, version }
+    })
+  }
   realtimeBootstrap(): Promise<RealtimeBootstrap> { return this.#request<RealtimeBootstrap>('/api/realtime?role=control', { method: 'GET' }, false) }
   subscribe(handlers: RealtimeHandlers): RealtimeSubscription {
     return new RealtimeSubscription({ clientId: randomUUID(), bootstrap: () => this.realtimeBootstrap(), socketFactory: this.#webSocketFactory, now: this.#now, reconnectDelays: this.#reconnectDelays, handlers })
@@ -82,7 +90,7 @@ export class OverlayClient {
     return this.#lastSequence
   }
 
-  async #request<T>(path: string, init: RequestInit, retryable: boolean): Promise<T> {
+  async #request<T>(path: string, init: RequestInit, retryable: boolean, read: (response: Response) => Promise<T> = async response => await response.json() as T): Promise<T> {
     const attempts = retryable ? this.#retryDelays.length + 1 : 1
     let lastError: unknown
     for (let attempt = 0; attempt < attempts; attempt += 1) {
@@ -99,7 +107,7 @@ export class OverlayClient {
           const error = new ApiError(`Overlay API ${response.status}: ${message || response.statusText}`, response.status >= 500)
           if (response.status < 500 || attempt === attempts - 1) throw error
           lastError = error
-        } else return (await response.json()) as T
+        } else return await read(response)
       } catch (error) {
         lastError = error
         if (error instanceof ApiError && !error.retryable) throw error
@@ -108,6 +116,39 @@ export class OverlayClient {
       await this.#sleep(this.#retryDelays[attempt] ?? 0)
     }
     throw lastError instanceof Error ? lastError : new Error('Overlay API request failed')
+  }
+}
+
+export class CatalogRefreshCoordinator<T = unknown> {
+  readonly #load: () => Promise<VersionedCatalog<T>>
+  readonly #apply: (catalog: VersionedCatalog<T>) => void | Promise<void>
+  #active: Promise<void> | null = null
+  #requestSerial = 0
+  #requestedVersion = ''
+
+  constructor(load: () => Promise<VersionedCatalog<T>>, apply: (catalog: VersionedCatalog<T>) => void | Promise<void>) {
+    this.#load = load
+    this.#apply = apply
+  }
+
+  request(version = ''): Promise<void> {
+    this.#requestSerial += 1
+    if (version) this.#requestedVersion = version
+    if (this.#active) return this.#active
+    const active = this.#run()
+    this.#active = active
+    const clear = () => { if (this.#active === active) this.#active = null }
+    void active.then(clear, clear)
+    return active
+  }
+
+  async #run(): Promise<void> {
+    while (true) {
+      const requestSerial = this.#requestSerial
+      const catalog = await this.#load()
+      await this.#apply(catalog)
+      if (this.#requestSerial === requestSerial || this.#requestedVersion === catalog.version) return
+    }
   }
 }
 

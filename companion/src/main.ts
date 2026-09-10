@@ -1,6 +1,6 @@
 import { combineRgb, InstanceBase, InstanceStatus, type CompanionActionDefinitions, type CompanionFeedbackDefinitions, type CompanionPresetDefinitions, type CompanionPresetSection, type InstanceTypes, type SomeCompanionConfigField } from '@companion-module/base'
 import { CatalogStore, cuePresetId, hasCatalogCue, visibleCatalogCues, type CatalogCue } from './catalog.js'
-import { deriveFeedback, isNewerSnapshot, OverlayClient, type OverlaySnapshot, type RealtimeSubscription, type RendererState } from './client.js'
+import { CatalogRefreshCoordinator, deriveFeedback, isNewerSnapshot, OverlayClient, type OverlaySnapshot, type RealtimeSubscription, type RendererState } from './client.js'
 
 const FALLBACK_CUES: CatalogCue[] = [
   { id: 'efa9fad4-f7d5-4091-a708-82103028861b', name: 'Barechu', layout: 'bottom' },
@@ -36,6 +36,7 @@ export default class CrcOverlaysInstance extends InstanceBase<Manifest> {
   #presenceReceivedAt: number | null = null
   #presenceTimer: NodeJS.Timeout | null = null
   #subscription: RealtimeSubscription | null = null
+  #catalogRefresh: CatalogRefreshCoordinator | null = null
   #catalogVersion = ''
   #generation = 0
   #destroyed = false
@@ -67,19 +68,28 @@ export default class CrcOverlaysInstance extends InstanceBase<Manifest> {
     this.#stopRealtime()
     this.#config = { baseUrl: String(config.baseUrl || 'https://crc-overlays.vercel.app').replace(/\/+$/, '') }
     this.#controlKey = String(secrets.controlKey || '')
-    this.#snapshot = null; this.#transportConnected = false; this.#presenceReceivedAt = null; this.#catalogVersion = ''
+    this.#snapshot = null; this.#transportConnected = false; this.#presenceReceivedAt = null; this.#catalogVersion = ''; this.#catalogRefresh = null
     if (!this.#controlKey) {
       this.#client = null; this.updateStatus(InstanceStatus.BadConfig, 'Control key required'); this.#publishFeedback(); return
     }
     const client = new OverlayClient({ baseUrl: this.#config.baseUrl, controlKey: this.#controlKey, clientId: `companion-${this.id}` })
     this.#client = client
+    this.#catalogRefresh = new CatalogRefreshCoordinator(
+      () => client.catalogWithVersion(),
+      catalog => {
+        if (generation !== this.#generation || this.#destroyed) return
+        if (!this.#catalog.replace(catalog.cues)) throw new Error('Catalog validation failed')
+        this.#catalogVersion = catalog.version
+        this.#defineActions(); this.#defineFeedbacks(); this.#definePresets()
+      },
+    )
     this.updateStatus(InstanceStatus.Connecting)
     const subscription = client.subscribe({
       onSnapshot: snapshot => {
         if (generation !== this.#generation || this.#destroyed) return
         this.#transportConnected = true
         this.#acceptSnapshot(snapshot, true)
-        if (snapshot.catalogVersion !== this.#catalogVersion) void this.#refreshCatalog(generation, client, false, snapshot.catalogVersion)
+        if (snapshot.catalogVersion !== this.#catalogVersion) void this.#refreshCatalog(generation, false, snapshot.catalogVersion)
         this.updateStatus(InstanceStatus.Ok)
         this.#publishFeedback()
       },
@@ -90,7 +100,7 @@ export default class CrcOverlaysInstance extends InstanceBase<Manifest> {
       },
       onCatalog: version => {
         if (generation !== this.#generation || this.#destroyed || version === this.#catalogVersion) return
-        void this.#refreshCatalog(generation, client, false, version)
+        void this.#refreshCatalog(generation, false, version)
       },
       onConnection: (state, detail) => {
         if (generation !== this.#generation || this.#destroyed) return
@@ -147,10 +157,10 @@ export default class CrcOverlaysInstance extends InstanceBase<Manifest> {
       if (!this.#destroyed) this.#publishFeedback()
     }, 30_000)
   }
-  async #refreshCatalog(generation = this.#generation, client = this.#client, operatorRequested = true, version = this.#snapshot?.catalogVersion ?? ''): Promise<void> {
-    if (!client || generation !== this.#generation || this.#destroyed) return
-    let value: unknown
-    try { value = await client.catalog() }
+  async #refreshCatalog(generation = this.#generation, operatorRequested = true, version = this.#snapshot?.catalogVersion ?? ''): Promise<void> {
+    const refresh = this.#catalogRefresh
+    if (!refresh || generation !== this.#generation || this.#destroyed) return
+    try { await refresh.request(version) }
     catch {
       if (generation !== this.#generation || this.#destroyed) return
       this.log('warn', 'Catalog refresh failed; retaining the last validated catalog.')
@@ -158,13 +168,6 @@ export default class CrcOverlaysInstance extends InstanceBase<Manifest> {
       return
     }
     if (generation !== this.#generation || this.#destroyed) return
-    if (!this.#catalog.replace(value)) {
-      this.log('warn', 'Catalog validation failed; retaining the last validated catalog.')
-      if (operatorRequested) this.updateStatus(InstanceStatus.UnknownWarning, 'Catalog invalid; retained previous cue list')
-      return
-    }
-    this.#catalogVersion = version
-    this.#defineActions(); this.#defineFeedbacks(); this.#definePresets()
     if (operatorRequested) this.updateStatus(InstanceStatus.Ok, `Catalog refreshed: ${this.#catalog.cues.length} cues`)
   }
   async #cueCommand(action: 'in' | 'out', cue: string): Promise<void> {
