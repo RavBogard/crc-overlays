@@ -88,8 +88,37 @@ function validatePublishPreview(draft:Draft,preview?:PreviewRecord){if(!preview)
 function assertRevisionAuthority(cue:AuthoringCue){const value=cue as AuthoringCue&{provenance?:{liturgy?:{feedSha256?:string}}};const feed=value.authoring?.feedSha256??value.provenance?.liturgy?.feedSha256;if(feed!==sourcePack.authority.feedSha256)throw new AuthoringError('source_pin_mismatch','Revision source authority no longer matches the pinned feed',409)}
 const clone=<T>(value:T):T=>structuredClone(value);
 
+export type SignatureSnapshot<T>={signature:string;value:T};
+export function signatureCache<T>(signature:()=>Promise<string>,load:()=>Promise<SignatureSnapshot<T>>){
+ let cached:{signature:string;value:T}|undefined;
+ let pending:{signature:string;value:Promise<T>}|undefined;
+ return async()=>{
+  const current=await signature();
+  if(cached?.signature===current)return cached.value;
+  if(pending?.signature===current)return pending.value;
+  const value=load().then(snapshot=>{cached=snapshot;return snapshot.value});
+  pending={signature:current,value};
+  try{return await value}finally{if(pending?.value===value)pending=undefined}
+ };
+}
+
+export const PUBLISHED_SIGNATURE_SQL=`SELECT COALESCE(md5(string_agg(id || ':' || active_revision::text, ',' ORDER BY id)),md5('')) AS signature
+FROM authoring_drafts
+WHERE active_revision IS NOT NULL`;
+export const PUBLISHED_CUES_SQL=`WITH active AS MATERIALIZED (
+ SELECT id,active_revision,updated_at FROM authoring_drafts WHERE active_revision IS NOT NULL
+)
+SELECT COALESCE(json_agg(r.cue ORDER BY active.updated_at DESC),'[]'::json) AS cues,
+ COALESCE(md5(string_agg(active.id || ':' || active.active_revision::text, ',' ORDER BY active.id)),md5('')) AS signature
+FROM active
+JOIN authoring_revisions r ON r.draft_id=active.id AND r.revision=active.active_revision`;
+
 class PgAuthoringRepository implements AuthoringRepository{
  private async db(){return (await import('./database')).db}
+ private readonly publishedCache=signatureCache(
+  async()=>String((await (await this.db()).query(PUBLISHED_SIGNATURE_SQL)).rows[0]?.signature??''),
+  async()=>{const row=(await (await this.db()).query(PUBLISHED_CUES_SQL)).rows[0] as {signature:string;cues:AuthoringCue[]};return {signature:String(row.signature),value:row.cues}},
+ );
  async listDrafts(){return (await (await this.db()).query('SELECT document FROM authoring_drafts ORDER BY updated_at DESC')).rows.map((r:{document:Draft})=>r.document)}
  async getDraft(id:string){return (await (await this.db()).query('SELECT document FROM authoring_drafts WHERE id=$1',[id])).rows[0]?.document??null}
  async insertDraft(d:Draft){await (await this.db()).query('INSERT INTO authoring_drafts(id,document,version,created_at,updated_at,created_by,updated_by) VALUES($1,$2,$3,$4,$4,$5,$5)',[d.id,d,d.version,d.createdAt,d.createdBy]);return d}
@@ -101,7 +130,7 @@ class PgAuthoringRepository implements AuthoringRepository{
  async publish(id:string,v:number,previewId:string,actor:string){const db=await this.db();const client=await db.connect();try{await client.query('BEGIN');const dr=await client.query('SELECT document FROM authoring_drafts WHERE id=$1 AND version=$2 FOR UPDATE',[id,v]);const d=dr.rows[0]?.document as Draft|undefined;if(!d)throw conflict();const pr=await client.query('SELECT id,draft_id AS "draftId",draft_version AS "draftVersion",cue_hash AS "cueHash",cue,validation,review,created_at AS "createdAt",created_by AS "createdBy" FROM authoring_previews WHERE id=$1',[previewId]);const p=pr.rows[0] as PreviewRecord|undefined;validatePublishPreview(d,p);let rr=await client.query('SELECT draft_id AS "draftId",revision,draft_version AS "draftVersion",cue_hash AS "cueHash",cue,preview_id AS "previewId",review,actor,created_at AS "createdAt" FROM authoring_revisions WHERE draft_id=$1 AND draft_version=$2 AND cue_hash=$3',[id,v,p!.cueHash]);if(!rr.rows[0])rr=await client.query('INSERT INTO authoring_revisions(draft_id,revision,draft_version,cue_hash,cue,preview_id,review,actor,created_at) SELECT $1,COALESCE(MAX(revision),0)+1,$2,$3,$4,$5,$6,$7,$8 FROM authoring_revisions WHERE draft_id=$1 RETURNING draft_id AS "draftId",revision,draft_version AS "draftVersion",cue_hash AS "cueHash",cue,preview_id AS "previewId",review,actor,created_at AS "createdAt"',[id,v,p!.cueHash,p!.cue,previewId,p!.review,actor,Date.now()]);const row=rr.rows[0] as Revision;d.activeRevision=row.revision;d.activeDraftVersion=row.draftVersion;d.updatedAt=Date.now();d.updatedBy=actor;await client.query('UPDATE authoring_drafts SET document=$2,active_revision=$3,active_draft_version=$4,updated_at=$5,updated_by=$6 WHERE id=$1',[id,d,row.revision,row.draftVersion,d.updatedAt,actor]);await client.query('COMMIT');return row}catch(e){await client.query('ROLLBACK');throw e}finally{client.release()}}
  async revisions(id:string){return (await (await this.db()).query('SELECT draft_id AS "draftId",revision,draft_version AS "draftVersion",cue_hash AS "cueHash",cue,preview_id AS "previewId",review,actor,created_at AS "createdAt" FROM authoring_revisions WHERE draft_id=$1 ORDER BY revision DESC',[id])).rows}
  async rollback(id:string,v:number,revision:number,actor:string){const db=await this.db();const client=await db.connect();try{await client.query('BEGIN');const dr=await client.query('SELECT document FROM authoring_drafts WHERE id=$1 AND version=$2 FOR UPDATE',[id,v]);const d=dr.rows[0]?.document as Draft|undefined;if(!d)throw conflict();const rr=await client.query('SELECT draft_id AS "draftId",revision,draft_version AS "draftVersion",cue_hash AS "cueHash",cue,preview_id AS "previewId",review,actor,created_at AS "createdAt" FROM authoring_revisions WHERE draft_id=$1 AND revision=$2',[id,revision]);const row=rr.rows[0] as Revision|undefined;if(!row)throw new AuthoringError('unknown_revision','Unknown revision',404);d.version++;d.activeRevision=row.revision;d.activeDraftVersion=row.draftVersion;d.updatedAt=Date.now();d.updatedBy=actor;await client.query('UPDATE authoring_drafts SET document=$2,version=$3,active_revision=$4,active_draft_version=$5,updated_at=$6,updated_by=$7 WHERE id=$1',[id,d,d.version,row.revision,row.draftVersion,d.updatedAt,actor]);await client.query('COMMIT');return {draft:d,revision:row}}catch(e){await client.query('ROLLBACK');throw e}finally{client.release()}}
- async published(){return (await (await this.db()).query('SELECT r.cue FROM authoring_drafts d JOIN authoring_revisions r ON r.draft_id=d.id AND r.revision=d.active_revision ORDER BY d.updated_at DESC')).rows.map((r:{cue:AuthoringCue})=>r.cue)}
+ async published(){return this.publishedCache()}
 }
 
 let defaultService:ReturnType<typeof createAuthoringService>|undefined;
