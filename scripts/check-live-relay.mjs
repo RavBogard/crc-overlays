@@ -330,6 +330,12 @@ async function main() {
       afterPublication.cuePayload?.texts?.textTitle === cueA.texts.textTitle,
     "catalog publication changed the selected pinned payload",
   );
+  await request("/catalog", {
+    method:"POST",
+    body:{version:`stale-${randomUUID()}`,expectedVersion:catalogVersion,cues:[cueA,cueB]},
+    expected:[409],
+  });
+  check((await request('/catalog')).version===publicationVersion,"stale publisher overwrote the live catalog");
   catalogVersion = publicationVersion;
 
   const noncurrentId = randomUUID();

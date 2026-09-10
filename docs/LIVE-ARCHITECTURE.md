@@ -14,6 +14,11 @@ No database connection string or full source corpus is installed in the relay. I
 stores only the approved playback cues, with authenticated access. Drafts and source
 texts remain in the authoring system.
 
+The library may grow to 4 MiB without changing the live message budget. Each
+selected-graphic snapshot stays below 256 KiB; publication rejects an individual
+cue that would exceed that budget. Idle traffic contains only heartbeat and
+presence metadata, not the cue library, images, or animation frames.
+
 ## Normal operation
 
 A client obtains a short-lived, role-scoped connection ticket from `/api/realtime`.
@@ -69,6 +74,10 @@ After later deployments that change baseline cues, run
 explicitly loaded. Catalog markers are refresh hints; they never invalidate the
 exact graphic already selected by an accepted command.
 
+Catalog synchronization uses compare-and-swap against the relay's current version.
+A delayed older publisher cannot replace a newer synchronized library; a conflict
+retries with fresh authoring content, at most three times.
+
 Legacy state and acknowledgment endpoints proxy to the relay after configuration,
 so an old browser does not keep reading Neon during the refresh window. Old clients
 still issue unnecessary HTTP requests until refreshed.
@@ -77,3 +86,20 @@ Do not remove relay configuration as a casual rollback: PostgreSQL live state is
 no longer authoritative after cutover. Restoring the old runtime requires explicitly
 reconciling the latest relay state first, or it can resurrect an old graphic. Keep
 the relay deployment and durable data when rolling back website code.
+
+## Repeatable verification
+
+- `tests/relay-routing.test.ts` makes every PostgreSQL query/connection throw and
+  exercises state, catalog, cue selection, cut, and acknowledgments.
+- `scripts/check-live-relay.mjs` refuses non-loopback URLs. It installs synthetic
+  cues and checks signed tickets, three-role fanout, command ordering/retries,
+  catalog publication/CAS, pinned content, role-specific presence, reconnects,
+  and no repeated graphic payloads while idle. It closes its own clients.
+- `tests/browser-realtime.test.ts` checks lifecycle, handshake deadlines, stale
+  sockets/revisions, output versus preview acknowledgments, and catalog races.
+- Companion's tests check the equivalent push connection, feedback, retry identity,
+  first-snapshot timeout, and serialized catalog refresh.
+
+Local verification is separate from Cloudflare deployment, OBS/vMix browser-source
+verification, physical Stream Deck operation, and actual account usage metering.
+Do not mark those surfaces verified from a synthetic protocol test.
