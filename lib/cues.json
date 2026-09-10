@@ -5839,8 +5839,8 @@
     "name": "Psukei DZimrah 1",
     "layout": "left",
     "texts": {
-      "textMainheb": "אֹרֶךְ יָמִים אַשְׂבִּיעֵהוּ, וְאַרְאֵהוּ בִּישׁוּעָתִי:\nטוֹב לְהֹדוֹת לַיְיָ, וּלְזַמֵּר לְשִׁמְךָ עֶלְיוֹן: לְהַגִּיד בַּבֹּקֶר חַסְדֶּךָ, וֶאֱמוּנָתְךָ בַּלֵּילוֹת:",
-      "textMainEng": "Orech yamim asbi-eihu, v’areihu bi’shuati.\nTov l’hodot l’Shem (Adonai), ul’zameir l’shimcha elyon.\nL’hagid baboker chasdecha, ve-emunatcha baleilot.",
+      "textMainheb": "אֹרֶךְ יָמִים אַשְׂבִּיעֵהוּ, וְאַרְאֵהוּ בִּישׁוּעָתִי:\nטוֹב לְהֹדוֹת לַיְיָ, וּלְזַמֵּר לְשִׁמְךָ עֶלְיוֹן: לְהַגִּיד בַּבֹּקֶר חַסְדֶּךָ, וֶאֱמוּנָתְךָ בַּלֵּילוֹת:\nאַשְׁרֵי יוֹשְׁבֵי בֵיתֶךָ: עוֹד יְהַלְלוּךָ סֶלָה:\nהַלְלוּ...........הַלְלוּ־יָהּ: כֹּל הַנְּשָׁמָה תְּהַלֵּל יָהּ הַלְלוּ־יָהּ:",
+      "textMainEng": "Orech yamim asbi-eihu, v’areihu bi’shuati.\nTov l’hodot l’Shem (Adonai), ul’zameir l’shimcha elyon.\nL’hagid baboker chasdecha, ve-emunatcha baleilot.\nAshrei yoshvei veitecha.\nOd y’hal-lucha! Selah!\nHal-lu............Hal-lu Yah. Kol hanshamah t’haleil Yah Hal-lu-Yah!",
       "textTitle": "Psukei d'Zimrah",
       "accentTextTitle": "פְסוּקֵי דְּזִמְרָא"
     },
@@ -6211,7 +6211,7 @@
         "compositionUuid": "65743cb0-95c9-4d26-b8eb-74c86f1f1b36",
         "compositionSha256": "7b69a377a23c07339fc5d0d814bd0f984586e7893a4a86c57db672432467a329",
         "operatorName": "Psukei DZimrah 1",
-        "textsSha256": "da942a8033260dc0c75cdf3b6c5828dbd2c0edd0880cf93c4ca8b465703fb142",
+        "textsSha256": "088d56c59ec8c6ad14bcd5eb14459c96dbcfaff4b3d8be92448e8870e6783569",
         "role": "presentation and operator-identity evidence only"
       },
       "liturgy": {
@@ -6229,6 +6229,8 @@
           "spdx": "CRC-internal, non-commercial, for the TEXT and its reuse: permission confirmed 2026-08-31 by CRC's executive director (R-0831-license-1), NOT CC — see attribution. THE WHOLE-BOOK PDF IS UNDER NO HOLD: CRC publishes this volume publicly on its own website and has done so for years, and Daniel so ruled on 2026-09-05 (R-0904-corpus-cw-93 §4). The PDF the app serves is CRC's own original file, byte for byte, not a re-typeset of it."
         },
         "unitIds": [
+          "psukei.ashrei-opening@legacy-shabbat-morning",
+          "psukei.kol-hanshamah@legacy-shabbat-morning",
           "psukei.psalm-91@legacy-shabbat-morning",
           "psukei.psalm-92@legacy-shabbat-morning"
         ],
@@ -6253,6 +6255,26 @@
                 1,
                 2,
                 3
+              ],
+              "separator": " "
+            },
+            {
+              "sliceId": "psukei-two-ashrei-he",
+              "unit": "psukei.ashrei-opening@legacy-shabbat-morning",
+              "channel": "he",
+              "blocks": [
+                0,
+                1
+              ],
+              "separator": " "
+            },
+            {
+              "sliceId": "psukei-two-kol-hanshamah-he",
+              "unit": "psukei.kol-hanshamah@legacy-shabbat-morning",
+              "channel": "he",
+              "blocks": [
+                0,
+                1
               ],
               "separator": " "
             }
@@ -6287,6 +6309,34 @@
                 3
               ],
               "separator": " "
+            },
+            {
+              "sliceId": "psukei-two-ashrei-opening-tr",
+              "unit": "psukei.ashrei-opening@legacy-shabbat-morning",
+              "channel": "tr",
+              "blocks": [
+                0
+              ],
+              "separator": " "
+            },
+            {
+              "sliceId": "psukei-two-ashrei-closing-tr",
+              "unit": "psukei.ashrei-opening@legacy-shabbat-morning",
+              "channel": "tr",
+              "blocks": [
+                1
+              ],
+              "separator": " "
+            },
+            {
+              "sliceId": "psukei-two-kol-hanshamah-tr",
+              "unit": "psukei.kol-hanshamah@legacy-shabbat-morning",
+              "channel": "tr",
+              "blocks": [
+                0,
+                1
+              ],
+              "separator": " "
             }
           ]
         }
@@ -6298,8 +6348,8 @@
     "name": "Psukei DZimrah 2",
     "layout": "left",
     "texts": {
-      "textMainheb": "אַשְׁרֵי יוֹשְׁבֵי בֵיתֶךָ: עוֹד יְהַלְלוּךָ סֶלָה:\nהַלְלוּ...........הַלְלוּ־יָהּ: כֹּל הַנְּשָׁמָה תְּהַלֵּל יָהּ הַלְלוּ־יָהּ:",
-      "textMainEng": "Ashrei yoshvei veitecha.\nOd y’hal-lucha! Selah!\nHal-lu............Hal-lu Yah. Kol hanshamah t’haleil Yah Hal-lu-Yah!",
+      "textMainheb": "אֹרֶךְ יָמִים אַשְׂבִּיעֵהוּ, וְאַרְאֵהוּ בִּישׁוּעָתִי:\nטוֹב לְהֹדוֹת לַיְיָ, וּלְזַמֵּר לְשִׁמְךָ עֶלְיוֹן: לְהַגִּיד בַּבֹּקֶר חַסְדֶּךָ, וֶאֱמוּנָתְךָ בַּלֵּילוֹת:\nאַשְׁרֵי יוֹשְׁבֵי בֵיתֶךָ: עוֹד יְהַלְלוּךָ סֶלָה:\nהַלְלוּ...........הַלְלוּ־יָהּ: כֹּל הַנְּשָׁמָה תְּהַלֵּל יָהּ הַלְלוּ־יָהּ:",
+      "textMainEng": "Orech yamim asbi-eihu, v’areihu bi’shuati.\nTov l’hodot l’Shem (Adonai), ul’zameir l’shimcha elyon.\nL’hagid baboker chasdecha, ve-emunatcha baleilot.\nAshrei yoshvei veitecha.\nOd y’hal-lucha! Selah!\nHal-lu............Hal-lu Yah. Kol hanshamah t’haleil Yah Hal-lu-Yah!",
       "textTitle": "Psukei d'Zimrah",
       "accentTextTitle": "פְסוּקֵי דְּזִמְרָא"
     },
@@ -6670,7 +6720,7 @@
         "compositionUuid": "f792daee-3663-4350-a3cb-783897e1f463",
         "compositionSha256": "9a1cc83c6aff4a33cb8b76e0651bd96cf97a1b71b167976fc55bab81a893ac2b",
         "operatorName": "Psukei DZimrah 2",
-        "textsSha256": "811cc420ad9e8865aa6589f0fe5862f1ba556e2fe9b6899d33b22f792ae0e7bd",
+        "textsSha256": "088d56c59ec8c6ad14bcd5eb14459c96dbcfaff4b3d8be92448e8870e6783569",
         "role": "presentation and operator-identity evidence only"
       },
       "liturgy": {
@@ -6689,10 +6739,34 @@
         },
         "unitIds": [
           "psukei.ashrei-opening@legacy-shabbat-morning",
-          "psukei.kol-hanshamah@legacy-shabbat-morning"
+          "psukei.kol-hanshamah@legacy-shabbat-morning",
+          "psukei.psalm-91@legacy-shabbat-morning",
+          "psukei.psalm-92@legacy-shabbat-morning"
         ],
         "slices": {
           "textMainheb": [
+            {
+              "sliceId": "psukei-one-psalm-ninety-one-he",
+              "unit": "psukei.psalm-91@legacy-shabbat-morning",
+              "channel": "he",
+              "blocks": [
+                0,
+                1
+              ],
+              "separator": " "
+            },
+            {
+              "sliceId": "psukei-one-psalm-ninety-two-he",
+              "unit": "psukei.psalm-92@legacy-shabbat-morning",
+              "channel": "he",
+              "blocks": [
+                0,
+                1,
+                2,
+                3
+              ],
+              "separator": " "
+            },
             {
               "sliceId": "psukei-two-ashrei-he",
               "unit": "psukei.ashrei-opening@legacy-shabbat-morning",
@@ -6715,6 +6789,36 @@
             }
           ],
           "textMainEng": [
+            {
+              "sliceId": "psukei-one-psalm-ninety-one-tr",
+              "unit": "psukei.psalm-91@legacy-shabbat-morning",
+              "channel": "tr",
+              "blocks": [
+                0,
+                1
+              ],
+              "separator": " "
+            },
+            {
+              "sliceId": "psukei-one-psalm-ninety-two-opening-tr",
+              "unit": "psukei.psalm-92@legacy-shabbat-morning",
+              "channel": "tr",
+              "blocks": [
+                0,
+                1
+              ],
+              "separator": " "
+            },
+            {
+              "sliceId": "psukei-one-psalm-ninety-two-closing-tr",
+              "unit": "psukei.psalm-92@legacy-shabbat-morning",
+              "channel": "tr",
+              "blocks": [
+                2,
+                3
+              ],
+              "separator": " "
+            },
             {
               "sliceId": "psukei-two-ashrei-opening-tr",
               "unit": "psukei.ashrei-opening@legacy-shabbat-morning",
@@ -6746,7 +6850,9 @@
           ]
         }
       }
-    }
+    },
+    "aliasOf": "65743cb0-95c9-4d26-b8eb-74c86f1f1b36",
+    "hidden": true
   },
   {
     "id": "a5784181-b4b5-4033-8ad2-4be46bac1fff",

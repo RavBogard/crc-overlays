@@ -37,6 +37,13 @@ BIRCHOT_VISIBLE_ROWS = {
 }
 BIRCHOT_ALIAS = "2b3da7a3-dc18-46f1-a792-13a4771b343c"
 BIRCHOT_FINAL_SUPPLEMENT = "birchot-hashachar-final-clause"
+SEQUENCE_ALIAS_TARGETS = {
+    "f792daee-3663-4350-a3cb-783897e1f463": "65743cb0-95c9-4d26-b8eb-74c86f1f1b36",
+    "7c087a0d-23cb-458e-af6a-3210982ff0d6": "0a4b12eb-1463-44d7-be91-329049e5ec82",
+    "847f0ed9-cd05-44ed-b2a2-c7947cbb72d6": "aa4a2b0c-23d2-45d3-8268-735331466a60",
+    "5bad62c7-3005-4977-8349-230520c70211": "a5c90765-48c0-4384-a3e2-65b43cc2adf1",
+    "dbf354df-e399-4d8b-bcfc-c067cc3cf2fc": "f15c1944-da76-4d61-95c8-05c032d47c4d",
+}
 
 
 class ValidationError(RuntimeError):
@@ -82,7 +89,11 @@ def validate_content_rows(
         ) is not True:
             raise ValidationError("legacy Birchot fourth panel must remain a hidden alias of panel 3")
     elif cue_map.get("aliasOf") is not None or cue_map.get("hidden") is not None:
-        raise ValidationError(f"unexpected cue alias metadata: {cue_id}")
+        if (
+            cue_map.get("aliasOf") != SEQUENCE_ALIAS_TARGETS.get(cue_id)
+            or cue_map.get("hidden") is not True
+        ):
+            raise ValidationError(f"unexpected cue alias metadata: {cue_id}")
     if cue.get("aliasOf") != cue_map.get("aliasOf") or cue.get("hidden") != cue_map.get(
         "hidden"
     ):
@@ -235,6 +246,35 @@ def validate(mapping: dict[str, Any], catalog: list[dict[str, Any]]) -> None:
             raise ValidationError(f"unit provenance mismatch for {cue_id}")
         if liturgy.get("slices") != cue_map.get("fields"):
             raise ValidationError(f"slice provenance mismatch for {cue_id}")
+
+    mapped_by_id = {cue["id"]: cue for cue in mapped}
+    catalog_by_id = {cue["id"]: cue for cue in catalog}
+    def source_identity(specs: Any) -> list[tuple[Any, ...]] | None:
+        if specs is None:
+            return None
+        return [
+            (spec.get("unit"), spec.get("channel"), spec.get("blocks"), spec.get("separator"))
+            for spec in specs
+        ]
+
+    for alias_map in mapped:
+        target_id = alias_map.get("aliasOf")
+        if target_id is None:
+            continue
+        if target_id == alias_map["id"] or target_id not in mapped_by_id:
+            raise ValidationError(f"invalid cue alias target: {alias_map['id']}")
+        target_map = mapped_by_id[target_id]
+        alias_cue = catalog_by_id[alias_map["id"]]
+        target_cue = catalog_by_id[target_id]
+        for field in ("textMain", "textMainheb", "textMainEng"):
+            if source_identity(alias_map.get("fields", {}).get(field)) != source_identity(
+                target_map.get("fields", {}).get(field)
+            ):
+                raise ValidationError(f"cue alias source selectors differ: {alias_map['id']}")
+            if alias_cue.get("texts", {}).get(field) != target_cue.get("texts", {}).get(field):
+                raise ValidationError(f"compiled cue alias text differs: {alias_map['id']}")
+        if alias_map.get("contentRows") != target_map.get("contentRows"):
+            raise ValidationError(f"cue alias content rows differ: {alias_map['id']}")
 
 
 def main() -> int:
