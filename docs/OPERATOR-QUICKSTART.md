@@ -55,6 +55,17 @@ The fourth Birchot Hashachar cue is a compatibility alias and should not receive
 
 Create the new page only after verifying it is empty or unused. Use native **Show cue** actions, add Clear and Animate out controls if the page will be operated directly, and test it only in a staffed rehearsal.
 
+After the catalog changes, prepare page-only import candidates from a fresh full Companion backup:
+
+```powershell
+python scripts/prepare-companion-catalog.py `
+  work/companion-backup.companionconfig `
+  lib/cues.json `
+  work/catalog-sync
+```
+
+The script reads gzip or plain JSON, accepts only page 2 named **CRC Morning Rehearsal** and page 3 named **CRC Morning Continued**, and never contacts Companion. It removes a hidden cue button only when every action on that button is the native `show_cue` action; mixed actions cause the preparation to fail. Visible cue labels are refreshed while button settings and feedbacks remain intact. Review the two page-only candidates and the count-only report before importing them in Companion. Empty cells left by removed aliases remain empty.
+
 ## Recovery
 
 - Wrong graphic: press **Clear now**, verify program is clean, then select the correct cue.
