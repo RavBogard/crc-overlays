@@ -106,6 +106,7 @@ function delay(milliseconds) {
   return new Promise((resolve) => setTimeout(resolve, milliseconds));
 }
 
+const activeClients=new Set();
 class RelayClient {
   constructor(role, id) {
     this.role = role;
@@ -113,6 +114,7 @@ class RelayClient {
     this.messages = [];
     this.waiters = new Set();
     this.socket = null;
+    activeClients.add(this);
   }
 
   async connect() {
@@ -147,7 +149,7 @@ class RelayClient {
     check(ws.protocol === "crc-overlays-v1", `${this.role} WebSocket selected the wrong protocol`);
     this.send({ type: "hello", id: this.id });
     const initial = await this.waitFor((message) => message.type === "snapshot");
-    check(initial.entry.bytes <= MAX_SNAPSHOT_BYTES, `${this.role} initial snapshot exceeds 256 KiB`);
+    check(initial.bytes <= MAX_SNAPSHOT_BYTES, `${this.role} initial snapshot exceeds 256 KiB`);
     return initial.message.snapshot;
   }
 
@@ -282,7 +284,6 @@ async function main() {
         commandId,
         clientId: controller,
         sequence: nextSequence,
-        catalogVersion,
       },
     });
   }
@@ -304,7 +305,6 @@ async function main() {
       commandId: randomUUID(),
       clientId: controller,
       sequence: sequence + 1,
-      catalogVersion,
     },
     expected: [400],
   });
@@ -350,7 +350,6 @@ async function main() {
       commandId: noncurrentId,
       clientId: controller,
       sequence,
-      catalogVersion,
     },
     expected: [409],
   });
@@ -419,4 +418,4 @@ main().catch((error) => {
   const message = error instanceof Error ? error.message : "unknown relay check failure";
   console.error(`FAIL ${message}`);
   process.exitCode = 1;
-});
+}).finally(()=>{for(const client of activeClients)client.close()});
