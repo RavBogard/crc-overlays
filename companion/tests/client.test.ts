@@ -98,6 +98,30 @@ describe('OverlayClient ordering', () => {
 })
 
 describe('realtime subscription', () => {
+  it('allows plaintext WebSockets only for loopback rehearsal relays', async () => {
+    const localSocket = new FakeSocket()
+    let localCreated = false
+    const local = new OverlayClient({
+      baseUrl: 'http://localhost:3000', controlKey: 'secret', clientId: 'commands',
+      fetch: vi.fn(async () => response({ ...bootstrap, url: 'ws://127.0.0.1:8787/connect' })),
+      webSocketFactory: () => { localCreated = true; return localSocket },
+    }).subscribe({ onSnapshot: vi.fn(), onPresence: vi.fn(), onCatalog: vi.fn(), onConnection: vi.fn() })
+    local.start()
+    await vi.waitFor(() => expect(localCreated).toBe(true))
+    local.stop()
+
+    const remoteFactory = vi.fn(() => new FakeSocket())
+    const remoteStates: RealtimeConnectionState[] = []
+    const remote = new OverlayClient({
+      baseUrl: 'https://example.test', controlKey: 'secret', clientId: 'commands', reconnectDelays: [60_000],
+      fetch: vi.fn(async () => response({ ...bootstrap, url: 'ws://relay.example.test/connect' })), webSocketFactory: remoteFactory,
+    }).subscribe({ onSnapshot: vi.fn(), onPresence: vi.fn(), onCatalog: vi.fn(), onConnection: state => remoteStates.push(state) })
+    remote.start()
+    await vi.waitFor(() => expect(remoteStates.at(-1)).toBe('disconnected'))
+    expect(remoteFactory).not.toHaveBeenCalled()
+    remote.stop()
+  })
+
   it('bootstraps with control auth and opens the ticket subprotocol without polling state', async () => {
     const sockets: FakeSocket[] = []
     const socketArgs: Array<{ url: string; protocols: string[] }> = []
@@ -177,6 +201,34 @@ describe('realtime subscription', () => {
     socket.close(1006, 'network lost')
     expect(connections.at(-1)).toBe('disconnected')
     subscription.stop()
+  })
+
+  it('closes a socket that never opens within ten seconds', async () => {
+    vi.useFakeTimers()
+    try {
+      const socket = new FakeSocket()
+      const client = new OverlayClient({ baseUrl: 'https://example.test', controlKey: 'secret', clientId: 'commands', fetch: vi.fn(async () => response(bootstrap)), reconnectDelays: [60_000], webSocketFactory: () => socket })
+      const subscription = client.subscribe({ onSnapshot: vi.fn(), onPresence: vi.fn(), onCatalog: vi.fn(), onConnection: vi.fn() })
+      subscription.start(); await vi.advanceTimersByTimeAsync(0)
+      await vi.advanceTimersByTimeAsync(10_000)
+      expect(socket.closes.at(-1)).toEqual({ code: 4001, reason: 'Realtime snapshot timeout' })
+      subscription.stop()
+    } finally { vi.useRealTimers() }
+  })
+
+  it('requires the first snapshot within ten seconds even when pongs arrive', async () => {
+    vi.useFakeTimers()
+    try {
+      const socket = new FakeSocket()
+      const client = new OverlayClient({ baseUrl: 'https://example.test', controlKey: 'secret', clientId: 'commands', fetch: vi.fn(async () => response(bootstrap)), reconnectDelays: [60_000], webSocketFactory: () => socket })
+      const subscription = client.subscribe({ onSnapshot: vi.fn(), onPresence: vi.fn(), onCatalog: vi.fn(), onConnection: vi.fn() })
+      subscription.start(); await vi.advanceTimersByTimeAsync(0); socket.emit('open')
+      await vi.advanceTimersByTimeAsync(9_000)
+      socket.message({ type: 'pong', serverTime: 9_000 })
+      await vi.advanceTimersByTimeAsync(1_000)
+      expect(socket.closes.at(-1)).toEqual({ code: 4001, reason: 'Realtime snapshot timeout' })
+      subscription.stop()
+    } finally { vi.useRealTimers() }
   })
 })
 

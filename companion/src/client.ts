@@ -30,6 +30,7 @@ export interface OverlayClientOptions {
 }
 
 const MAX_REALTIME_MESSAGE_BYTES = 256 * 1024
+const HANDSHAKE_TIMEOUT_MS = 10_000
 const OPEN = 1
 
 class ApiError extends Error {
@@ -123,6 +124,7 @@ export class RealtimeSubscription {
   readonly #options: SubscriptionOptions
   #socket: RealtimeSocket | null = null
   #heartbeatTimer: NodeJS.Timeout | null = null
+  #handshakeTimer: NodeJS.Timeout | null = null
   #reconnectTimer: NodeJS.Timeout | null = null
   #stopped = true
   #generation = 0
@@ -155,6 +157,9 @@ export class RealtimeSubscription {
       if (this.#stopped || generation !== this.#generation) return
       const socket = this.#options.socketFactory(bootstrap.url, ['crc-overlays-v1', `ticket.${bootstrap.ticket}`])
       this.#socket = socket
+      this.#handshakeTimer = setTimeout(() => {
+        if (this.#isCurrent(socket, generation)) socket.close(4001, 'Realtime snapshot timeout')
+      }, HANDSHAKE_TIMEOUT_MS)
       socket.addEventListener('open', () => {
         if (!this.#isCurrent(socket, generation)) return
         if (socket.protocol !== 'crc-overlays-v1') { socket.close(1002, 'Realtime protocol mismatch'); return }
@@ -176,6 +181,8 @@ export class RealtimeSubscription {
         if (!parsed) { socket.close(1002, 'Realtime event invalid'); return }
         this.#lastFrameAt = this.#options.now()
         if (parsed.type === 'snapshot') {
+          if (this.#handshakeTimer) clearTimeout(this.#handshakeTimer)
+          this.#handshakeTimer = null
           this.#reconnectAttempt = 0
           this.#connected = true
           this.#options.handlers.onSnapshot(parsed.snapshot)
@@ -188,7 +195,9 @@ export class RealtimeSubscription {
         if (!this.#isCurrent(socket, generation)) return
         this.#socket = null
         if (this.#heartbeatTimer) clearInterval(this.#heartbeatTimer)
+        if (this.#handshakeTimer) clearTimeout(this.#handshakeTimer)
         this.#heartbeatTimer = null
+        this.#handshakeTimer = null
         this.#setDisconnected()
         this.#scheduleReconnect(generation)
       })
@@ -218,8 +227,10 @@ export class RealtimeSubscription {
   }
   #clearTimers(): void {
     if (this.#heartbeatTimer) clearInterval(this.#heartbeatTimer)
+    if (this.#handshakeTimer) clearTimeout(this.#handshakeTimer)
     if (this.#reconnectTimer) clearTimeout(this.#reconnectTimer)
     this.#heartbeatTimer = null
+    this.#handshakeTimer = null
     this.#reconnectTimer = null
   }
 }
@@ -235,7 +246,7 @@ export function isNewerSnapshot(current: OverlaySnapshot | null, candidate: Over
 }
 
 function validateBootstrap(value: unknown): RealtimeBootstrap {
-  if (!isRecord(value) || value.protocol !== 1 || typeof value.url !== 'string' || !value.url.startsWith('wss://') || typeof value.ticket !== 'string' || !value.ticket || !isPositiveInteger(value.heartbeatMs) || !isPositiveInteger(value.staleMs) || value.staleMs <= value.heartbeatMs) throw new Error('Realtime bootstrap response is invalid')
+  if (!isRecord(value) || value.protocol !== 1 || typeof value.url !== 'string' || !validRealtimeUrl(value.url) || typeof value.ticket !== 'string' || !value.ticket || !isPositiveInteger(value.heartbeatMs) || !isPositiveInteger(value.staleMs) || value.staleMs <= value.heartbeatMs) throw new Error('Realtime bootstrap response is invalid')
   return value as unknown as RealtimeBootstrap
 }
 
@@ -268,6 +279,14 @@ function parseRenderers(value: unknown): RendererState[] | null {
 }
 
 function isRecord(value: unknown): value is Record<string, unknown> { return Boolean(value) && typeof value === 'object' && !Array.isArray(value) }
+function validRealtimeUrl(value: string): boolean {
+  try {
+    const url = new URL(value)
+    if (url.username || url.password || url.hash) return false
+    if (url.protocol === 'wss:') return true
+    return url.protocol === 'ws:' && ['localhost', '127.0.0.1', '[::1]'].includes(url.hostname)
+  } catch { return false }
+}
 function isFiniteNumber(value: unknown): value is number { return typeof value === 'number' && Number.isFinite(value) }
 function isPositiveInteger(value: unknown): value is number { return Number.isInteger(value) && Number(value) > 0 }
 function isNonnegativeInteger(value: unknown): value is number { return Number.isInteger(value) && Number(value) >= 0 }
