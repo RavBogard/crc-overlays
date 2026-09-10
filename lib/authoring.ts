@@ -135,5 +135,15 @@ class PgAuthoringRepository implements AuthoringRepository{
 
 let defaultService:ReturnType<typeof createAuthoringService>|undefined;
 const defaults=()=>defaultService??=createAuthoringService(new PgAuthoringRepository());
-export async function authoringOperation(operation:string,input:unknown,actor:string){return defaults().operation(operation,input,actor)}
+export async function authoringOperation(operation:string,input:unknown,actor:string){
+ const result=await defaults().operation(operation,input,actor);
+ if(['publish_draft','rollback_draft','import_cue'].includes(operation)){
+  const {relayConfigured,relayRequest}=await import('./relay');
+  if(relayConfigured()){
+   try{const {catalog}=await import('./server');const response=await relayRequest('/catalog',{version:(await catalog()).version});if(!response.ok)throw Error('Relay unavailable')}
+   catch{return {...(result as Record<string,unknown>),liveRefreshPending:true,warning:'Saved successfully. Live catalog notification is pending; reconnect or refresh the cue catalog after the relay recovers.'}}
+  }
+ }
+ return result;
+}
 export async function publishedCues():Promise<Cue[]>{return defaults().publishedCues()}
