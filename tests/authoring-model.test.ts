@@ -54,7 +54,7 @@ test('translated baseline import retains all three source channels',()=>{
  const editable=editableFromBaseline(id),now=Date.now();
  const draft:Draft={...editable,id,version:1,sourcePin:sourcePinFor(editable.content),activeRevision:null,activeDraftVersion:null,createdAt:now,updatedAt:now,createdBy:'test',updatedBy:'test'};
  const cue=buildCue(draft);
- assert.equal(cue.contentRows?.length,3);
+ assert.equal(cue.contentRows?.length,4);
  assert.ok(cue.contentRows?.every(row=>row.he&&row.tr&&row.en));
  const english=sourcePack.sources.flatMap(s=>s.blocks).find(b=>b.kind==='translation-en')!;
  const prior=english.sourceBlockSha256;
