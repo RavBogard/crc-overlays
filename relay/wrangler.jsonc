@@ -1,0 +1,17 @@
+{
+  "$schema": "./node_modules/wrangler/config-schema.json",
+  "name": "crc-live-relay",
+  "main": "src/index.ts",
+  "compatibility_date": "2026-09-10",
+  "durable_objects": {
+    "bindings": [
+      { "name": "LIVE_ROOM", "class_name": "LiveRoom" }
+    ]
+  },
+  "exports": {
+    "LiveRoom": { "type": "durable-object", "storage": "sqlite" }
+  },
+  "vars": {
+    "ALLOWED_ORIGINS": "https://crc-overlays.vercel.app,http://localhost:5175"
+  }
+}
