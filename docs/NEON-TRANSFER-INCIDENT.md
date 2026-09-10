@@ -36,3 +36,12 @@ provider-enforced suspension for the existing overage.
 The free allowance must not be treated as a verified production capacity budget.
 Before service use, confirm provider availability and arrange a suitable allowance
 or fallback. Close unused rehearsal output and control windows when rehearsal ends.
+
+## Subsequent quota enforcement and playback recovery
+
+On September 10, the production database began returning SQLSTATE `53000`:
+"Your project has exceeded the data transfer quota." Fresh database export and
+authoring operations were unavailable. The event-driven relay cutover restored
+playback from the saved 29-cue production catalog without database queries. See
+`LIVE-ARCHITECTURE.md` for deployed versions and verification. Authoring remains
+blocked on database availability; no billing plan was changed.

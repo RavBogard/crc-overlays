@@ -119,5 +119,34 @@ not an OBS rendering test or a Cloudflare/Neon billing measurement.
 The relay contract harness, scoped-ticket/no-Postgres route tests, browser
 transport/player tests, publication synchronization tests, Companion tests,
 TypeScript checks, and production website build passed. Rehearsal servers were
-stopped afterward. Cloudflare account access, hosted relay deployment and
-initialization, Vercel cutover, and installed-client refresh remain outstanding.
+stopped afterward. Hosted deployment was verified separately below.
+
+## Production cutover — September 10, 2026
+
+- Website: https://crc-overlays.vercel.app
+- Runtime commit: `98279e0` on private GitHub `main`.
+- Vercel deployment: `3VgavfA8bQTnbMmaPKD9F2pSVcEf`,
+  `crc-overlays-8g1povmcx-ravbogards-projects.vercel.app`.
+- Relay: https://crc-live-relay.crc-overlays.workers.dev
+- Active relay version: `8438cf80-4cb0-468e-af56-77234a5bd226`.
+
+Neon had begun refusing all database connections because of its exhausted transfer
+quota. Initialization therefore used the saved production catalog captured earlier
+that morning: 29 records, 24 visible cues, catalog version `d37d122359b9920d`.
+All saved cue text matched the current baseline. The selected graphic started
+clear, with a fresh high revision to prevent older connected clients retaining a
+stale revision. PostgreSQL authoring history was not modified or replaced.
+
+Before promotion, authenticated hosted checks verified the complete saved catalog,
+an output WebSocket, cue selection/fanout, simulated renderer acknowledgment,
+output-key command denial, and immediate clear. The canonical website subsequently
+returned the same relay state and all 29 cues. The bounded test client was closed.
+
+Editing and publishing remain unavailable until Neon access is restored. Playback
+is independent of that outage. Existing browser sources must reload once to stop
+using the old HTTP polling client; new inputs load the push client automatically.
+
+Michael's rollout is a one-month parallel trial: import new Companion pages into
+unused slots, add a separate CRC browser input, and retain all Singular pages,
+connections, camera controls, and graphics inputs. Physical switcher/Stream Deck
+rehearsal is still required; protocol acknowledgment does not establish program tally.
