@@ -11612,8 +11612,8 @@
     "name": "Mi Chamocha (Sat 1)",
     "layout": "left",
     "texts": {
-      "textMainheb": "מִי־כָמֹכָה בָּאֵלִים, יְיָ מִי כָּמֹכָה נֶאְדָּר בַּקֹּדֶשׁ נוֹרָא תְהִלֹּת, עֹשֵׂה פֶלֶא׃ שִׁירָה חֲדָשָׁה שִׁבְּחוּ גְאוּלִים לְשִׁמְךָ עַל שְׂפַת הַיָּם, יַחַד כֻּלָּם הוֹדוּ וְהִמְלִיכוּ וְאָמְרוּ׃ יְיָ יִמְלֹךְ לְעוֹלָם וָעֶד׃",
-      "textMainEng": "Mi chamochah ba-eilim, Adonai Mi kamochah nedar bakodesh nora t’hilot, oseh fele? Shirah chadashah shibchu g‘ulim l’shimcha al s’fat hayam, yachad kulam hodu v’himlichu v’amru. Adonai (Yah) yimloch l’olam va-ed.",
+      "textMainheb": "מִי־כָמֹכָה בָּאֵלִים, יְיָ מִי כָּמֹכָה נֶאְדָּר בַּקֹּדֶשׁ נוֹרָא תְהִלֹּת, עֹשֵׂה פֶלֶא׃ שִׁירָה חֲדָשָׁה שִׁבְּחוּ גְאוּלִים לְשִׁמְךָ עַל שְׂפַת הַיָּם, יַחַד כֻּלָּם הוֹדוּ וְהִמְלִיכוּ וְאָמְרוּ׃ יְיָ יִמְלֹךְ לְעוֹלָם וָעֶד׃\nצוּר יִשְׂרָאֵל, קוּמָה בְּעֶזְרַת יִשְׂרָאֵל, וּפְדֵה כִנְאֻמֶךָ׃ יְהוּדָה וְיִשְׂרָאֵל׃ גֹּאֲלֵנוּ יְיָ צְבָאוֹת שְׁמוֹ׃ קְדוֹשׁ יִשְׂרָאֵל׃ בָּרוּךְ אַתָּה, יְיָ גָאַל יִשְׂרָאֵל׃ שִׁירוּ לַֹיהוָֹה כִּי־גָאֹה גָּאָה׃",
+      "textMainEng": "Mi chamochah ba-eilim, Adonai Mi kamochah nedar bakodesh nora t’hilot, oseh fele? Shirah chadashah shibchu g‘ulim l’shimcha al s’fat hayam, yachad kulam hodu v’himlichu v’amru. Adonai (Yah) yimloch l’olam va-ed.\nTzur Yisraeil kuma b’ezrat Yisraeil, uf’dei chinumecha. Y’hudah v’Yisraeil. Go-aleinu Adonai tz’vaot sh’moh. K’dosh Yisraeil. Baruch atah Adonai ga-al Yisraeil. Shiru l’Adonai ki ga-oh ga-ah.",
       "textTitle": "Mi Chamochah",
       "accentTextTitle": "מִי כָמכָה"
     },
@@ -11984,7 +11984,7 @@
         "compositionUuid": "a5c90765-48c0-4384-a3e2-65b43cc2adf1",
         "compositionSha256": "4ab45ac4e59d6e7d9f54195b466a0cab33ff405aac57a8981dc01bbbfe11da0e",
         "operatorName": "Mi Chamocha (Sat 1)",
-        "textsSha256": "b521e9967156a4d11b90fd8ffc89e826baa3b9f72d295f22852fab44599d44bf",
+        "textsSha256": "32be7e457a8e6f6804e9b933cb419e8ce64647ff3174c012d04a0a1846bbacaa",
         "role": "presentation and operator-identity evidence only"
       },
       "liturgy": {
@@ -12020,6 +12020,20 @@
                 6
               ],
               "separator": " "
+            },
+            {
+              "sliceId": "mi-chamocha-sat-two-he",
+              "unit": "shma.mi-chamocha@legacy-shabbat-morning",
+              "channel": "he",
+              "blocks": [
+                7,
+                8,
+                9,
+                10,
+                11,
+                12
+              ],
+              "separator": " "
             }
           ],
           "textMainEng": [
@@ -12037,6 +12051,20 @@
                 6
               ],
               "separator": " "
+            },
+            {
+              "sliceId": "mi-chamocha-sat-two-tr",
+              "unit": "shma.mi-chamocha@legacy-shabbat-morning",
+              "channel": "tr",
+              "blocks": [
+                7,
+                8,
+                9,
+                10,
+                11,
+                12
+              ],
+              "separator": " "
             }
           ]
         }
@@ -12048,8 +12076,8 @@
     "name": "Mi Chamocha (Sat 2)",
     "layout": "left",
     "texts": {
-      "textMainheb": "צוּר יִשְׂרָאֵל, קוּמָה בְּעֶזְרַת יִשְׂרָאֵל, וּפְדֵה כִנְאֻמֶךָ׃ יְהוּדָה וְיִשְׂרָאֵל׃ גֹּאֲלֵנוּ יְיָ צְבָאוֹת שְׁמוֹ׃ קְדוֹשׁ יִשְׂרָאֵל׃ בָּרוּךְ אַתָּה, יְיָ גָאַל יִשְׂרָאֵל׃ שִׁירוּ לַֹיהוָֹה כִּי־גָאֹה גָּאָה׃",
-      "textMainEng": "Tzur Yisraeil kuma b’ezrat Yisraeil, uf’dei chinumecha. Y’hudah v’Yisraeil. Go-aleinu Adonai tz’vaot sh’moh. K’dosh Yisraeil. Baruch atah Adonai ga-al Yisraeil. Shiru l’Adonai ki ga-oh ga-ah.",
+      "textMainheb": "מִי־כָמֹכָה בָּאֵלִים, יְיָ מִי כָּמֹכָה נֶאְדָּר בַּקֹּדֶשׁ נוֹרָא תְהִלֹּת, עֹשֵׂה פֶלֶא׃ שִׁירָה חֲדָשָׁה שִׁבְּחוּ גְאוּלִים לְשִׁמְךָ עַל שְׂפַת הַיָּם, יַחַד כֻּלָּם הוֹדוּ וְהִמְלִיכוּ וְאָמְרוּ׃ יְיָ יִמְלֹךְ לְעוֹלָם וָעֶד׃\nצוּר יִשְׂרָאֵל, קוּמָה בְּעֶזְרַת יִשְׂרָאֵל, וּפְדֵה כִנְאֻמֶךָ׃ יְהוּדָה וְיִשְׂרָאֵל׃ גֹּאֲלֵנוּ יְיָ צְבָאוֹת שְׁמוֹ׃ קְדוֹשׁ יִשְׂרָאֵל׃ בָּרוּךְ אַתָּה, יְיָ גָאַל יִשְׂרָאֵל׃ שִׁירוּ לַֹיהוָֹה כִּי־גָאֹה גָּאָה׃",
+      "textMainEng": "Mi chamochah ba-eilim, Adonai Mi kamochah nedar bakodesh nora t’hilot, oseh fele? Shirah chadashah shibchu g‘ulim l’shimcha al s’fat hayam, yachad kulam hodu v’himlichu v’amru. Adonai (Yah) yimloch l’olam va-ed.\nTzur Yisraeil kuma b’ezrat Yisraeil, uf’dei chinumecha. Y’hudah v’Yisraeil. Go-aleinu Adonai tz’vaot sh’moh. K’dosh Yisraeil. Baruch atah Adonai ga-al Yisraeil. Shiru l’Adonai ki ga-oh ga-ah.",
       "textTitle": "Mi Chamochah",
       "accentTextTitle": "מִי כָמכָה"
     },
@@ -12420,7 +12448,7 @@
         "compositionUuid": "5bad62c7-3005-4977-8349-230520c70211",
         "compositionSha256": "b6161cb820bbd157bf349317d17cb824a6205787d3b05a8e448b8aa2cdb9260e",
         "operatorName": "Mi Chamocha (Sat 2)",
-        "textsSha256": "025b3de6eab1fb1918d68b65ba9f09612134e446c0a4ef37b67ffee21e9d1d0f",
+        "textsSha256": "32be7e457a8e6f6804e9b933cb419e8ce64647ff3174c012d04a0a1846bbacaa",
         "role": "presentation and operator-identity evidence only"
       },
       "liturgy": {
@@ -12443,6 +12471,21 @@
         "slices": {
           "textMainheb": [
             {
+              "sliceId": "mi-chamocha-sat-one-he",
+              "unit": "shma.mi-chamocha@legacy-shabbat-morning",
+              "channel": "he",
+              "blocks": [
+                0,
+                1,
+                2,
+                3,
+                4,
+                5,
+                6
+              ],
+              "separator": " "
+            },
+            {
               "sliceId": "mi-chamocha-sat-two-he",
               "unit": "shma.mi-chamocha@legacy-shabbat-morning",
               "channel": "he",
@@ -12458,6 +12501,21 @@
             }
           ],
           "textMainEng": [
+            {
+              "sliceId": "mi-chamocha-sat-one-tr",
+              "unit": "shma.mi-chamocha@legacy-shabbat-morning",
+              "channel": "tr",
+              "blocks": [
+                0,
+                1,
+                2,
+                3,
+                4,
+                5,
+                6
+              ],
+              "separator": " "
+            },
             {
               "sliceId": "mi-chamocha-sat-two-tr",
               "unit": "shma.mi-chamocha@legacy-shabbat-morning",
@@ -12475,7 +12533,9 @@
           ]
         }
       }
-    }
+    },
+    "aliasOf": "a5c90765-48c0-4384-a3e2-65b43cc2adf1",
+    "hidden": true
   },
   {
     "id": "219230a4-5d95-40b6-876c-9492db9fbaef",

@@ -2404,7 +2404,7 @@
       "operatorName": "Mi Chamocha (Sat 1)",
       "layout": "left",
       "archiveRecordSha256": "4ab45ac4e59d6e7d9f54195b466a0cab33ff405aac57a8981dc01bbbfe11da0e",
-      "expectedTextsSha256": "b521e9967156a4d11b90fd8ffc89e826baa3b9f72d295f22852fab44599d44bf",
+      "expectedTextsSha256": "32be7e457a8e6f6804e9b933cb419e8ce64647ff3174c012d04a0a1846bbacaa",
       "title": {
         "archiveField": "title"
       },
@@ -2427,41 +2427,7 @@
               6
             ],
             "separator": " "
-          }
-        ],
-        "textMainEng": [
-          {
-            "sliceId": "mi-chamocha-sat-one-tr",
-            "unit": "shma.mi-chamocha@legacy-shabbat-morning",
-            "channel": "tr",
-            "blocks": [
-              0,
-              1,
-              2,
-              3,
-              4,
-              5,
-              6
-            ],
-            "separator": " "
-          }
-        ]
-      }
-    },
-    {
-      "id": "5bad62c7-3005-4977-8349-230520c70211",
-      "operatorName": "Mi Chamocha (Sat 2)",
-      "layout": "left",
-      "archiveRecordSha256": "b6161cb820bbd157bf349317d17cb824a6205787d3b05a8e448b8aa2cdb9260e",
-      "expectedTextsSha256": "025b3de6eab1fb1918d68b65ba9f09612134e446c0a4ef37b67ffee21e9d1d0f",
-      "title": {
-        "archiveField": "title"
-      },
-      "accentTitle": {
-        "archiveField": "titleAccent"
-      },
-      "fields": {
-        "textMainheb": [
+          },
           {
             "sliceId": "mi-chamocha-sat-two-he",
             "unit": "shma.mi-chamocha@legacy-shabbat-morning",
@@ -2479,6 +2445,21 @@
         ],
         "textMainEng": [
           {
+            "sliceId": "mi-chamocha-sat-one-tr",
+            "unit": "shma.mi-chamocha@legacy-shabbat-morning",
+            "channel": "tr",
+            "blocks": [
+              0,
+              1,
+              2,
+              3,
+              4,
+              5,
+              6
+            ],
+            "separator": " "
+          },
+          {
             "sliceId": "mi-chamocha-sat-two-tr",
             "unit": "shma.mi-chamocha@legacy-shabbat-morning",
             "channel": "tr",
@@ -2494,6 +2475,86 @@
           }
         ]
       }
+    },
+    {
+      "id": "5bad62c7-3005-4977-8349-230520c70211",
+      "operatorName": "Mi Chamocha (Sat 2)",
+      "layout": "left",
+      "archiveRecordSha256": "b6161cb820bbd157bf349317d17cb824a6205787d3b05a8e448b8aa2cdb9260e",
+      "expectedTextsSha256": "32be7e457a8e6f6804e9b933cb419e8ce64647ff3174c012d04a0a1846bbacaa",
+      "title": {
+        "archiveField": "title"
+      },
+      "accentTitle": {
+        "archiveField": "titleAccent"
+      },
+      "fields": {
+        "textMainheb": [
+          {
+            "sliceId": "mi-chamocha-sat-one-he",
+            "unit": "shma.mi-chamocha@legacy-shabbat-morning",
+            "channel": "he",
+            "blocks": [
+              0,
+              1,
+              2,
+              3,
+              4,
+              5,
+              6
+            ],
+            "separator": " "
+          },
+          {
+            "sliceId": "mi-chamocha-sat-two-he",
+            "unit": "shma.mi-chamocha@legacy-shabbat-morning",
+            "channel": "he",
+            "blocks": [
+              7,
+              8,
+              9,
+              10,
+              11,
+              12
+            ],
+            "separator": " "
+          }
+        ],
+        "textMainEng": [
+          {
+            "sliceId": "mi-chamocha-sat-one-tr",
+            "unit": "shma.mi-chamocha@legacy-shabbat-morning",
+            "channel": "tr",
+            "blocks": [
+              0,
+              1,
+              2,
+              3,
+              4,
+              5,
+              6
+            ],
+            "separator": " "
+          },
+          {
+            "sliceId": "mi-chamocha-sat-two-tr",
+            "unit": "shma.mi-chamocha@legacy-shabbat-morning",
+            "channel": "tr",
+            "blocks": [
+              7,
+              8,
+              9,
+              10,
+              11,
+              12
+            ],
+            "separator": " "
+          }
+        ]
+      },
+      "aliasOf": "a5c90765-48c0-4384-a3e2-65b43cc2adf1",
+      "hidden": true,
+      "retirementNote": "Legacy second-panel UUID remains a hidden command alias of the consolidated Mi Chamocha panel."
     },
     {
       "id": "219230a4-5d95-40b6-876c-9492db9fbaef",
