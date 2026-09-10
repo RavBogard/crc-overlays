@@ -1,6 +1,6 @@
 import { combineRgb, InstanceBase, InstanceStatus, type CompanionActionDefinitions, type CompanionFeedbackDefinitions, type CompanionPresetDefinitions, type CompanionPresetSection, type InstanceTypes, type SomeCompanionConfigField } from '@companion-module/base'
 import { CatalogStore, cuePresetId, hasCatalogCue, visibleCatalogCues, type CatalogCue } from './catalog.js'
-import { deriveFeedback, isNewerSnapshot, OverlayClient, type OverlaySnapshot } from './client.js'
+import { deriveFeedback, isNewerSnapshot, OverlayClient, type OverlaySnapshot, type RealtimeSubscription, type RendererState } from './client.js'
 
 const FALLBACK_CUES: CatalogCue[] = [
   { id: 'efa9fad4-f7d5-4091-a708-82103028861b', name: 'Barechu', layout: 'bottom' },
@@ -8,7 +8,7 @@ const FALLBACK_CUES: CatalogCue[] = [
   { id: 'bbd7c98b-f1de-41ee-9719-2bb27a30d0db', name: 'Mah Tovu', layout: 'left' },
 ]
 
-interface Config { baseUrl: string; pollInterval: number; [key: string]: string | number }
+interface Config { baseUrl: string; [key: string]: string | number }
 interface Secrets { controlKey: string; [key: string]: string }
 interface Manifest extends InstanceTypes {
   config: Config; secrets: Secrets
@@ -28,13 +28,15 @@ interface Manifest extends InstanceTypes {
 }
 
 export default class CrcOverlaysInstance extends InstanceBase<Manifest> {
-  #config: Config = { baseUrl: 'https://crc-overlays.vercel.app', pollInterval: 1_000 }
+  #config: Config = { baseUrl: 'https://crc-overlays.vercel.app' }
   #controlKey = ''
   #client: OverlayClient | null = null
   #snapshot: OverlaySnapshot | null = null
-  #pollReceivedAt: number | null = null
-  #pollTimer: NodeJS.Timeout | null = null
-  #pollInFlight: { generation: number } | null = null
+  #transportConnected = false
+  #presenceReceivedAt: number | null = null
+  #presenceTimer: NodeJS.Timeout | null = null
+  #subscription: RealtimeSubscription | null = null
+  #catalogVersion = ''
   #generation = 0
   #destroyed = false
   #catalog = new CatalogStore(FALLBACK_CUES)
@@ -49,60 +51,73 @@ export default class CrcOverlaysInstance extends InstanceBase<Manifest> {
     this.#defineActions(); this.#defineFeedbacks(); this.#definePresets()
     await this.#applyConfig(config, secrets)
   }
-  async destroy(): Promise<void> { this.#destroyed = true; this.#generation += 1; this.#client = null; this.#stopPolling() }
+  async destroy(): Promise<void> { this.#destroyed = true; this.#generation += 1; this.#client = null; this.#stopRealtime() }
   async configUpdated(config: Config, secrets: Secrets): Promise<void> { await this.#applyConfig(config, secrets) }
 
   getConfigFields(): SomeCompanionConfigField[] {
     return [
       { type: 'textinput', id: 'baseUrl', label: 'Overlay base URL', width: 12, default: 'https://crc-overlays.vercel.app', regex: '^https?://.+' },
       { type: 'secret-text', id: 'controlKey', label: 'Control key', width: 12 },
-      { type: 'number', id: 'pollInterval', label: 'Feedback polling interval (ms)', width: 6, default: 1_000, min: 500, max: 5_000, step: 100 },
-      { type: 'static-text', id: 'meaning', label: 'Feedback meaning', width: 12, value: '<strong>Rendered</strong> means a fresh graphics browser reports the requested revision settled. It is not a broadcast on-air/tally signal.' },
+      { type: 'static-text', id: 'meaning', label: 'Feedback meaning', width: 12, value: '<strong>Rendered</strong> means a connected graphics browser reports the requested revision settled. Realtime feedback expires after 30 seconds without presence. It is not a broadcast on-air/tally signal.' },
     ]
   }
 
   async #applyConfig(config: Config, secrets: Secrets): Promise<void> {
     const generation = ++this.#generation
-    this.#stopPolling()
-    this.#config = { baseUrl: String(config.baseUrl || 'https://crc-overlays.vercel.app').replace(/\/+$/, ''), pollInterval: Math.min(5_000, Math.max(500, Number(config.pollInterval) || 1_000)) }
+    this.#stopRealtime()
+    this.#config = { baseUrl: String(config.baseUrl || 'https://crc-overlays.vercel.app').replace(/\/+$/, '') }
     this.#controlKey = String(secrets.controlKey || '')
-    this.#snapshot = null; this.#pollReceivedAt = null
+    this.#snapshot = null; this.#transportConnected = false; this.#presenceReceivedAt = null; this.#catalogVersion = ''
     if (!this.#controlKey) {
       this.#client = null; this.updateStatus(InstanceStatus.BadConfig, 'Control key required'); this.#publishFeedback(); return
     }
     const client = new OverlayClient({ baseUrl: this.#config.baseUrl, controlKey: this.#controlKey, clientId: `companion-${this.id}` })
     this.#client = client
     this.updateStatus(InstanceStatus.Connecting)
-    await this.#refreshCatalog(generation, client, false)
-    if (generation !== this.#generation || this.#destroyed) return
-    await this.#poll(generation, client)
-    if (generation !== this.#generation || this.#destroyed) return
-    this.#pollTimer = setInterval(() => void this.#poll(), this.#config.pollInterval)
+    const subscription = client.subscribe({
+      onSnapshot: snapshot => {
+        if (generation !== this.#generation || this.#destroyed) return
+        this.#transportConnected = true
+        this.#acceptSnapshot(snapshot, true)
+        if (snapshot.catalogVersion !== this.#catalogVersion) void this.#refreshCatalog(generation, client, false, snapshot.catalogVersion)
+        this.updateStatus(InstanceStatus.Ok)
+        this.#publishFeedback()
+      },
+      onPresence: (renderers, serverTime) => {
+        if (generation !== this.#generation || this.#destroyed) return
+        this.#acceptPresence(renderers, serverTime)
+        this.#publishFeedback()
+      },
+      onCatalog: version => {
+        if (generation !== this.#generation || this.#destroyed || version === this.#catalogVersion) return
+        void this.#refreshCatalog(generation, client, false, version)
+      },
+      onConnection: (state, detail) => {
+        if (generation !== this.#generation || this.#destroyed) return
+        if (state === 'connected') { this.#transportConnected = true; this.updateStatus(InstanceStatus.Ok) }
+        else if (state === 'connecting') this.updateStatus(InstanceStatus.Connecting)
+        else { this.#transportConnected = false; this.updateStatus(InstanceStatus.ConnectionFailure, detail ? this.#safeError(new Error(detail)) : 'Realtime connection closed') }
+        this.#publishFeedback()
+      },
+    })
+    this.#subscription = subscription
+    subscription.start()
   }
-  #stopPolling(): void { if (this.#pollTimer) clearInterval(this.#pollTimer); this.#pollTimer = null }
-
-  async #poll(generation = this.#generation, client = this.#client): Promise<void> {
-    if (!client || generation !== this.#generation || this.#destroyed) return
-    if (this.#pollInFlight?.generation === generation) { this.#publishFeedback(); return }
-    const token = { generation }
-    this.#pollInFlight = token
-    try {
-      const snapshot = await client.state()
-      if (generation !== this.#generation || this.#destroyed) return
-      this.#acceptSnapshot(snapshot)
-      this.updateStatus(InstanceStatus.Ok)
-    } catch (error) {
-      if (generation !== this.#generation || this.#destroyed) return
-      this.#pollReceivedAt = null; this.updateStatus(InstanceStatus.ConnectionFailure, this.#safeError(error))
-    } finally {
-      if (this.#pollInFlight === token) this.#pollInFlight = null
-      if (generation === this.#generation && !this.#destroyed) this.#publishFeedback()
-    }
+  #stopRealtime(): void {
+    this.#subscription?.stop(); this.#subscription = null
+    if (this.#presenceTimer) clearTimeout(this.#presenceTimer)
+    this.#presenceTimer = null
+    this.#transportConnected = false
   }
   async #command(action: 'in' | 'out' | 'clear' | 'cut', cue?: string): Promise<void> {
     const client = this.#client
     const generation = this.#generation
     if (!client || this.#destroyed) return
+    if (!this.#transportConnected) {
+      this.updateStatus(InstanceStatus.ConnectionFailure, 'Realtime connection required before sending commands')
+      this.#publishFeedback()
+      return
+    }
     try {
       const snapshot = await client.activate(action, cue)
       if (generation !== this.#generation || this.#destroyed) return
@@ -110,16 +125,29 @@ export default class CrcOverlaysInstance extends InstanceBase<Manifest> {
       this.updateStatus(InstanceStatus.Ok)
     } catch (error) {
       if (generation !== this.#generation || this.#destroyed) return
-      this.#pollReceivedAt = null; this.updateStatus(InstanceStatus.ConnectionFailure, this.#safeError(error))
+      this.updateStatus(InstanceStatus.ConnectionFailure, this.#safeError(error))
     }
     if (generation === this.#generation && !this.#destroyed) this.#publishFeedback()
   }
-  #acceptSnapshot(snapshot: OverlaySnapshot): void {
+  #acceptSnapshot(snapshot: OverlaySnapshot, fromRealtime = false): void {
     if (!isNewerSnapshot(this.#snapshot, snapshot)) return
     this.#snapshot = snapshot
-    this.#pollReceivedAt = Date.now()
+    if (fromRealtime) this.#markPresence()
   }
-  async #refreshCatalog(generation = this.#generation, client = this.#client, operatorRequested = true): Promise<void> {
+  #acceptPresence(renderers: RendererState[], serverTime: number): void {
+    if (!this.#snapshot) return
+    this.#snapshot = { ...this.#snapshot, renderers, serverTime: Math.max(this.#snapshot.serverTime, serverTime) }
+    this.#markPresence()
+  }
+  #markPresence(): void {
+    this.#presenceReceivedAt = Date.now()
+    if (this.#presenceTimer) clearTimeout(this.#presenceTimer)
+    this.#presenceTimer = setTimeout(() => {
+      this.#presenceTimer = null
+      if (!this.#destroyed) this.#publishFeedback()
+    }, 30_000)
+  }
+  async #refreshCatalog(generation = this.#generation, client = this.#client, operatorRequested = true, version = this.#snapshot?.catalogVersion ?? ''): Promise<void> {
     if (!client || generation !== this.#generation || this.#destroyed) return
     let value: unknown
     try { value = await client.catalog() }
@@ -135,6 +163,7 @@ export default class CrcOverlaysInstance extends InstanceBase<Manifest> {
       if (operatorRequested) this.updateStatus(InstanceStatus.UnknownWarning, 'Catalog invalid; retained previous cue list')
       return
     }
+    this.#catalogVersion = version
     this.#defineActions(); this.#defineFeedbacks(); this.#definePresets()
     if (operatorRequested) this.updateStatus(InstanceStatus.Ok, `Catalog refreshed: ${this.#catalog.cues.length} cues`)
   }
@@ -150,7 +179,7 @@ export default class CrcOverlaysInstance extends InstanceBase<Manifest> {
     return this.#controlKey ? message.replaceAll(this.#controlKey, '[redacted]') : message
   }
   #publishFeedback(): void {
-    const state = deriveFeedback(this.#snapshot, this.#pollReceivedAt)
+    const state = deriveFeedback(this.#snapshot, this.#transportConnected, this.#presenceReceivedAt)
     const requestedName = this.#catalog.cues.find(cue => cue.id === state.requestedCue)?.name ?? state.requestedCue ?? 'Clear'
     this.setVariableValues({ requested_cue: requestedName, revision: this.#snapshot?.revision ?? 0, renderer_status: state.disconnected ? 'Disconnected' : state.rendered ? 'Rendered' : 'Requested' })
     this.checkAllFeedbacks()
@@ -173,8 +202,8 @@ export default class CrcOverlaysInstance extends InstanceBase<Manifest> {
     const defaultCue = this.#catalog.cues[0]?.id ?? FALLBACK_CUES[0]!.id
     const feedbacks: CompanionFeedbackDefinitions<Manifest['feedbacks']> = {
       requested: { type: 'boolean', name: 'Cue requested', description: 'The API accepted this desired state; it does not prove rendering.', defaultStyle: { bgcolor: combineRgb(180, 110, 0), color: combineRgb(255, 255, 255) }, options: [{ type: 'dropdown', id: 'cue', label: 'Cue', choices: targets, default: defaultCue }], callback: event => String(event.options.cue || '') === (this.#snapshot?.cue ?? '') },
-      rendered: { type: 'boolean', name: 'Cue rendered', description: 'A fresh graphics browser reports this exact requested revision settled. Not an on-air/tally signal.', defaultStyle: { bgcolor: combineRgb(0, 130, 70), color: combineRgb(255, 255, 255) }, options: [{ type: 'dropdown', id: 'cue', label: 'Cue', choices: targets, default: defaultCue }], callback: event => { const state = deriveFeedback(this.#snapshot, this.#pollReceivedAt); return state.rendered && String(event.options.cue || '') === (this.#snapshot?.cue ?? '') } },
-      disconnected: { type: 'boolean', name: 'API or renderer disconnected', description: 'The state poll is stale/unavailable or no graphics browser heartbeat is fresh.', defaultStyle: { bgcolor: combineRgb(175, 0, 0), color: combineRgb(255, 255, 255) }, options: [], callback: () => deriveFeedback(this.#snapshot, this.#pollReceivedAt).disconnected },
+      rendered: { type: 'boolean', name: 'Cue rendered', description: 'A connected graphics browser reports this exact requested revision settled. Not an on-air/tally signal.', defaultStyle: { bgcolor: combineRgb(0, 130, 70), color: combineRgb(255, 255, 255) }, options: [{ type: 'dropdown', id: 'cue', label: 'Cue', choices: targets, default: defaultCue }], callback: event => { const state = deriveFeedback(this.#snapshot, this.#transportConnected, this.#presenceReceivedAt); return state.rendered && String(event.options.cue || '') === (this.#snapshot?.cue ?? '') } },
+      disconnected: { type: 'boolean', name: 'Realtime or renderer disconnected', description: 'The realtime subscription is closed or no graphics browser presence has arrived for 30 seconds.', defaultStyle: { bgcolor: combineRgb(175, 0, 0), color: combineRgb(255, 255, 255) }, options: [], callback: () => deriveFeedback(this.#snapshot, this.#transportConnected, this.#presenceReceivedAt).disconnected },
     }
     this.setFeedbackDefinitions(feedbacks)
   }
