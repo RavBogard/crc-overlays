@@ -1720,7 +1720,7 @@
       "operatorName": "Readers Kaddish 1",
       "layout": "left",
       "archiveRecordSha256": "62bbd9a44e8c5f5a3b3b6b7b4d001ebdf94f5098bf6c01705debb7425dc4b7cf",
-      "expectedTextsSha256": "5739b0ba5fb0f71b204f7ebaff9172a1df65784cf2ac10894a77d87b7cfbfbc1",
+      "expectedTextsSha256": "822db46ec14434b4947845251ed227c240c8920481595fd38098a401fe21abce",
       "title": {
         "archiveField": "title"
       },
@@ -1740,6 +1740,23 @@
               3,
               4,
               5
+            ],
+            "separator": " "
+          },
+          {
+            "sliceId": "readers-kaddish-two-he",
+            "unit": "psukei.chatzi-kaddish@legacy-shabbat-morning",
+            "channel": "he",
+            "blocks": [
+              6,
+              7,
+              8,
+              9,
+              10,
+              11,
+              12,
+              13,
+              14
             ],
             "separator": " "
           }
@@ -1798,43 +1815,7 @@
               5
             ],
             "separator": " "
-          }
-        ]
-      }
-    },
-    {
-      "id": "7c087a0d-23cb-458e-af6a-3210982ff0d6",
-      "operatorName": "Readers Kaddish 2",
-      "layout": "left",
-      "archiveRecordSha256": "ba867d2dcd88c2cd6c93f0a6156181572dcde153b146ea77d6a2a39b31bb89fd",
-      "expectedTextsSha256": "d48a073e574d306a55ba113a4aff54d0aa5b88b57ebd8866807fad87bf3003ef",
-      "title": {
-        "archiveField": "title"
-      },
-      "accentTitle": {
-        "archiveField": "titleAccent"
-      },
-      "fields": {
-        "textMainheb": [
-          {
-            "sliceId": "readers-kaddish-two-he",
-            "unit": "psukei.chatzi-kaddish@legacy-shabbat-morning",
-            "channel": "he",
-            "blocks": [
-              6,
-              7,
-              8,
-              9,
-              10,
-              11,
-              12,
-              13,
-              14
-            ],
-            "separator": " "
-          }
-        ],
-        "textMainEng": [
+          },
           {
             "sliceId": "readers-kaddish-two-response-tr",
             "unit": "psukei.chatzi-kaddish@legacy-shabbat-morning",
@@ -1862,6 +1843,138 @@
           }
         ]
       }
+    },
+    {
+      "id": "7c087a0d-23cb-458e-af6a-3210982ff0d6",
+      "operatorName": "Readers Kaddish 2",
+      "layout": "left",
+      "archiveRecordSha256": "ba867d2dcd88c2cd6c93f0a6156181572dcde153b146ea77d6a2a39b31bb89fd",
+      "expectedTextsSha256": "822db46ec14434b4947845251ed227c240c8920481595fd38098a401fe21abce",
+      "title": {
+        "archiveField": "title"
+      },
+      "accentTitle": {
+        "archiveField": "titleAccent"
+      },
+      "fields": {
+        "textMainheb": [
+          {
+            "sliceId": "readers-kaddish-one-he",
+            "unit": "psukei.chatzi-kaddish@legacy-shabbat-morning",
+            "channel": "he",
+            "blocks": [
+              0,
+              1,
+              2,
+              3,
+              4,
+              5
+            ],
+            "separator": " "
+          },
+          {
+            "sliceId": "readers-kaddish-two-he",
+            "unit": "psukei.chatzi-kaddish@legacy-shabbat-morning",
+            "channel": "he",
+            "blocks": [
+              6,
+              7,
+              8,
+              9,
+              10,
+              11,
+              12,
+              13,
+              14
+            ],
+            "separator": " "
+          }
+        ],
+        "textMainEng": [
+          {
+            "sliceId": "readers-kaddish-one-tr-one",
+            "unit": "psukei.chatzi-kaddish@legacy-shabbat-morning",
+            "channel": "tr",
+            "blocks": [
+              0
+            ],
+            "separator": " "
+          },
+          {
+            "sliceId": "readers-kaddish-one-tr-two",
+            "unit": "psukei.chatzi-kaddish@legacy-shabbat-morning",
+            "channel": "tr",
+            "blocks": [
+              1
+            ],
+            "separator": " "
+          },
+          {
+            "sliceId": "readers-kaddish-one-tr-three",
+            "unit": "psukei.chatzi-kaddish@legacy-shabbat-morning",
+            "channel": "tr",
+            "blocks": [
+              2
+            ],
+            "separator": " "
+          },
+          {
+            "sliceId": "readers-kaddish-one-tr-four",
+            "unit": "psukei.chatzi-kaddish@legacy-shabbat-morning",
+            "channel": "tr",
+            "blocks": [
+              3
+            ],
+            "separator": " "
+          },
+          {
+            "sliceId": "readers-kaddish-one-tr-five",
+            "unit": "psukei.chatzi-kaddish@legacy-shabbat-morning",
+            "channel": "tr",
+            "blocks": [
+              4
+            ],
+            "separator": " "
+          },
+          {
+            "sliceId": "readers-kaddish-one-tr-six",
+            "unit": "psukei.chatzi-kaddish@legacy-shabbat-morning",
+            "channel": "tr",
+            "blocks": [
+              5
+            ],
+            "separator": " "
+          },
+          {
+            "sliceId": "readers-kaddish-two-response-tr",
+            "unit": "psukei.chatzi-kaddish@legacy-shabbat-morning",
+            "channel": "tr",
+            "blocks": [
+              6,
+              7
+            ],
+            "separator": " "
+          },
+          {
+            "sliceId": "readers-kaddish-two-closing-tr",
+            "unit": "psukei.chatzi-kaddish@legacy-shabbat-morning",
+            "channel": "tr",
+            "blocks": [
+              8,
+              9,
+              10,
+              11,
+              12,
+              13,
+              14
+            ],
+            "separator": " "
+          }
+        ]
+      },
+      "aliasOf": "0a4b12eb-1463-44d7-be91-329049e5ec82",
+      "hidden": true,
+      "retirementNote": "Legacy second-panel UUID remains a hidden command alias of the consolidated Readers Kaddish panel."
     },
     {
       "id": "1dc607cc-37fa-48d7-a13d-9030a28f332d",
