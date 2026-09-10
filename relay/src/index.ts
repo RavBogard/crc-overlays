@@ -1,5 +1,5 @@
 import {DurableObject} from 'cloudflare:workers';
-import {MAX_MESSAGE_BYTES,MAX_RECEIPTS,MAX_SNAPSHOT_BYTES,PROTOCOL,STALE_MS,jsonBytes,nextState,parseAck,parseCatalog,parseCommand,parseInitialState,validInteger,validToken,validUuid,verifyTicket,type ApprovedCatalog,type Command,type CuePayload,type LiveState,type Renderer,type Role,type Snapshot,type SocketAttachment} from './protocol';
+import {MAX_MESSAGE_BYTES,MAX_RECEIPTS,MAX_SNAPSHOT_BYTES,PROTOCOL,STALE_MS,jsonBytes,nextState,parseAck,parseCatalog,parseCommand,parseInitialState,validCatalogVersion,validInteger,validToken,validUuid,verifyTicket,type ApprovedCatalog,type Command,type CuePayload,type LiveState,type Renderer,type Role,type Snapshot,type SocketAttachment} from './protocol';
 
 interface Env{
  LIVE_ROOM:DurableObjectNamespace<LiveRoom>;
@@ -26,7 +26,7 @@ async function secretMatches(candidate:string,expected:string){
 function bearer(request:Request){return request.headers.get('authorization')?.replace(/^Bearer /,'')??''}
 function allowedOrigin(request:Request,env:Env){
  const origin=request.headers.get('origin');
- return !!origin&&env.ALLOWED_ORIGINS.split(',').map(value=>value.trim()).filter(Boolean).includes(origin);
+ return !origin||env.ALLOWED_ORIGINS.split(',').map(value=>value.trim()).filter(Boolean).includes(origin);
 }
 function ticketProtocol(request:Request){
  const protocols=(request.headers.get('sec-websocket-protocol')??'').split(',').map(value=>value.trim());
@@ -140,7 +140,7 @@ export class LiveRoom extends DurableObject<Env>{
    if(socket===exclude)continue;
    const attachment=socket.deserializeAttachment() as SocketAttachment|null;
    if(!attachment||attachment.role!=='output')continue;
-   if(now-attachment.seen>STALE_MS){socket.close(4408,'Heartbeat timeout');continue}
+   if(now-attachment.seen>STALE_MS){attachment.ack=null;socket.serializeAttachment(attachment);socket.close(4408,'Heartbeat timeout');continue}
    if(attachment.ack&&current&&attachment.ack.revision===current.revision&&attachment.ack.cue===current.cue)renderers.set(attachment.ack.id,attachment.ack);
   }
   for(const [id,renderer] of this.legacyPresence){
@@ -160,6 +160,7 @@ export class LiveRoom extends DurableObject<Env>{
   const catalog=parseCatalog({version:input.catalogVersion,cues:input.cues});
   const state=parseInitialState(input.state,input.catalogVersion);
   if(!state||!catalog||(state.cue===null)!==(state.cuePayload===null))throw new HttpError(400,'Invalid initialization');
+  if(state.cue!==null&&state.cuePayload?.id!==state.cue)throw new HttpError(400,'Selected cue payload does not match cue');
   if(state.cue!==null&&!catalog.cues.some(cue=>cue.id===state.cue))throw new HttpError(400,'Selected cue is not in approved catalog');
   if(jsonBytes(catalog)>MAX_SNAPSHOT_BYTES)throw new HttpError(413,'Catalog too large');
   this.ensureSnapshotSize({...state,renderers:[],serverTime:Date.now()});
@@ -187,13 +188,13 @@ export class LiveRoom extends DurableObject<Env>{
   const current=this.readState();
   const catalog=this.readCatalog();
   if(!current||!catalog)throw new HttpError(409,'Relay initialization required');
-  const selected=command.cue===null?null:catalog.cues.find(cue=>cue.id===command.cue)??null;
-  if((command.action==='in'||command.action==='out')&&!selected)throw new HttpError(400,'Unknown cue');
   const receipt=this.sql.exec<ReceiptRow>('SELECT action,cue FROM command_receipts WHERE command_id=?',command.commandId).toArray()[0];
   if(receipt){
    if(receipt.action!==command.action||receipt.cue!==command.cue)throw new HttpError(409,'Command ID already used for a different command');
    return {accepted:false};
   }
+  const selected=command.cue===null?null:catalog.cues.find(cue=>cue.id===command.cue)??null;
+  if((command.action==='in'||command.action==='out')&&!selected)throw new HttpError(400,'Unknown cue');
   let accepted=true;
   if(command.clientId!==null){
    const prior=this.sql.exec<{sequence:number}>('SELECT sequence FROM controller_sequences WHERE client_id=?',command.clientId).toArray()[0]?.sequence??-1;
@@ -211,6 +212,10 @@ export class LiveRoom extends DurableObject<Env>{
   return {accepted};
  }
  private catalog(value:unknown){
+  if(!value||typeof value!=='object'||Array.isArray(value))throw new HttpError(400,'Invalid approved catalog');
+  const input=value as Record<string,unknown>;
+  const expectedVersion=input.expectedVersion;
+  if(expectedVersion!==undefined&&!validCatalogVersion(expectedVersion))throw new HttpError(400,'Invalid expected catalog version');
   const catalog=parseCatalog(value);
   if(!catalog)throw new HttpError(400,'Invalid approved catalog');
   if(jsonBytes(catalog)>MAX_SNAPSHOT_BYTES)throw new HttpError(413,'Catalog too large');
@@ -218,6 +223,7 @@ export class LiveRoom extends DurableObject<Env>{
   if(!state)throw new HttpError(409,'Relay initialization required');
   const currentCatalog=this.readCatalog();
   if(!currentCatalog)throw new HttpError(409,'Relay initialization required');
+  if(expectedVersion!==undefined&&expectedVersion!==currentCatalog.version)throw new HttpError(409,'Approved catalog changed');
   if(state.catalogVersion===catalog.version&&JSON.stringify(currentCatalog.cues)!==JSON.stringify(catalog.cues))throw new HttpError(409,'Catalog version already identifies different content');
   if(state.catalogVersion!==catalog.version){
    this.ctx.storage.transactionSync(()=>{this.writeCatalog(catalog);this.writeState({...state,catalogVersion:catalog.version})});
@@ -301,9 +307,9 @@ export class LiveRoom extends DurableObject<Env>{
   for(const socket of this.ctx.getWebSockets()){
    if(socket===exclude)continue;
    const attachment=socket.deserializeAttachment() as SocketAttachment|null;
-   if(attachment?.role==='output')deadlines.push(attachment.seen+STALE_MS);
+   if(attachment?.role==='output'&&socket.readyState===WebSocket.OPEN&&attachment.seen+STALE_MS>now)deadlines.push(attachment.seen+STALE_MS);
   }
-  for(const renderer of this.legacyPresence.values())deadlines.push(renderer.seen+STALE_MS);
+  for(const renderer of this.legacyPresence.values())if(renderer.seen+STALE_MS>now)deadlines.push(renderer.seen+STALE_MS);
   if(!deadlines.length){await this.ctx.storage.deleteAlarm();return}
   await this.ctx.storage.setAlarm(Math.max(now+1,Math.min(...deadlines)));
  }
