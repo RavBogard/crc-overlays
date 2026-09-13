@@ -31,7 +31,8 @@ import { Player, type Cue } from "@/lib/player";
 import { overlayBrandingFromWorkspace } from "@/lib/branding";
 import type { AccessRole } from "@/lib/access";
 import type { PublicWorkspace } from "@/lib/workspace";
-import WorkspaceNav from "@/components/workspace-nav";
+import WorkspaceHeader from "@/components/workspace-header";
+import { layoutLabel } from "@/lib/layout-label";
 import { overlayAssetUrl } from "@/lib/overlay-assets";
 import { authoringCall } from "./api";
 import {
@@ -98,7 +99,6 @@ const sourceLabel = (item: SourceSummary | Source) => {
   return unique.join(" · ") || "Siddur library";
 };
 const itemName = (item: LibraryItem) => item.kind === "draft" ? item.draft.name : item.cue.name;
-const layoutLabel = (layout: Layout) => layout === "bottom" ? "Lower third" : layout === "left" ? "Left panel" : "Right panel";
 const sourceGroups = (draft: Draft) => {
   const content = draft.content.mode === "local-variant" ? draft.content.base : draft.content;
   return content.mode === "bilingual" ? content.hebrewGroups
@@ -906,10 +906,7 @@ export default function AuthorPage() {
 
   return (
     <main className="author-page" style={workspaceStyle}>
-      <header className="author-header">
-        <div className="brand-lockup"><div className="brand-mark"><BookOpenText size={21} /></div><div><span className="eyebrow">{workspace?.productName || "OVERLAYS"}</span><h1>Graphics library</h1></div></div>
-        <div className="header-actions"><span className="safety-note"><span /> Editing is isolated from live output</span><Link href="/author/fit-check">Fit check</Link><WorkspaceNav current="/author" className="author-workspace-nav" role={role} /></div>
-      </header>
+      <WorkspaceHeader compact current="/author" title="Library" role={role} workspace={workspace} aside={<><span className="safety-note"><span /> Editing is isolated from live output</span><Link className="header-link" href="/author/fit-check">Fit check</Link></>} />
       {workspaceLabel && <div className="workspace-banner"><CircleAlert size={16} />{workspaceLabel}</div>}
 
       <div className="author-shell">
@@ -1017,7 +1014,7 @@ export default function AuthorPage() {
 }
 
 function AccessCard({ productName, style, keyInput, setKeyInput, connect, busy, error }: { productName: string; style?: CSSProperties; keyInput: string; setKeyInput: (value: string) => void; connect: () => void; busy: string; error: string }) {
-  return <main className="author-page access-page" style={style}><div className="access-card"><div className="brand-mark"><BookOpenText size={22} /></div><span className="eyebrow">{productName}</span><h1>Open the editor</h1><p>Sign in to create and prepare graphics without changing what is live.</p><Link className="access-link" href="/access">Sign in</Link><div className="access-divider"><span>or use the existing admin key</span></div><form onSubmit={(event) => { event.preventDefault(); connect(); }}><label>Control key<input type="password" value={keyInput} onChange={(event) => setKeyInput(event.target.value)} required /></label><button className="primary-button" disabled={busy === "connect"}>{busy === "connect" ? <><LoaderCircle className="spin" size={18} /> Opening…</> : "Open graphics library"}</button></form>{error && <p role="alert" className="inline-error">{error}</p>}</div></main>;
+  return <main className="author-page access-page" style={style}><div className="access-card"><div className="brand-mark"><BookOpenText size={22} /></div><span className="eyebrow">{productName}</span><h1>Open the library</h1><p>Sign in to create and prepare graphics without changing what is live.</p><Link className="access-link" href="/access">Sign in</Link><div className="access-divider"><span>or use the existing admin key</span></div><form onSubmit={(event) => { event.preventDefault(); connect(); }}><label>Control key<input type="password" value={keyInput} onChange={(event) => setKeyInput(event.target.value)} required /></label><button className="primary-button" disabled={busy === "connect"}>{busy === "connect" ? <><LoaderCircle className="spin" size={18} /> Opening…</> : "Open the library"}</button></form>{error && <p role="alert" className="inline-error">{error}</p>}</div></main>;
 }
 
 function LibrarySidebar(props: {
@@ -1031,7 +1028,7 @@ function LibrarySidebar(props: {
   const tabCount = 3 + (props.sharedEnabled ? 1 : 0);
   return <aside className="library-sidebar">
     <div className="create-stack"><button className="siddur-button" onClick={props.beginSiddur}><BookOpenText size={19} /><span><strong>Add from siddur</strong><small>Find a prayer or reading</small></span></button><button className="secondary-create" onClick={props.beginCustom}><FilePlus2 size={17} /> New custom graphic</button></div>
-    <div className={`library-tabs tabs-${tabCount}`} role="tablist" aria-label="Graphics library">
+    <div className={`library-tabs tabs-${tabCount}`} role="tablist" aria-label="Library">
       <button role="tab" aria-selected={props.libraryTab === "published"} className={props.libraryTab === "published" ? "active" : ""} onClick={() => props.setLibraryTab("published")}>Published <span>{props.publishedItems.length}</span></button>
       <button role="tab" aria-selected={props.libraryTab === "drafts"} className={props.libraryTab === "drafts" ? "active" : ""} onClick={() => props.setLibraryTab("drafts")}>Drafts <span>{props.draftItems.length}</span></button>
       <button role="tab" aria-selected={props.libraryTab === "archived"} className={props.libraryTab === "archived" ? "active" : ""} onClick={() => props.setLibraryTab("archived")}>Archived <span>{props.archivedItems.length}</span></button>

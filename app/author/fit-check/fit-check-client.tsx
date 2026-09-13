@@ -7,7 +7,8 @@ import { overlayBrandingFromWorkspace } from "@/lib/branding";
 import { overlayAssetUrl } from "@/lib/overlay-assets";
 import type { AccessRole } from "@/lib/access";
 import type { PublicWorkspace } from "@/lib/workspace";
-import WorkspaceNav from "@/components/workspace-nav";
+import WorkspaceHeader from "@/components/workspace-header";
+import { layoutLabel } from "@/lib/layout-label";
 import { findFitErrors, waitForPreviewAssets } from "../preview";
 import "../author.css";
 import styles from "./fit-check.module.css";
@@ -27,7 +28,6 @@ type FitRow = {
 };
 
 const HEBREW = /[֐-׿]/u;
-const layoutLabel = (layout: string) => layout === "bottom" ? "Lower third" : layout === "left" ? "Left panel" : layout === "right" ? "Right panel" : layout;
 const cueText = (cue: Cue) => [...Object.values(cue.texts || {}), ...(cue.contentRows || []).flatMap((row) => [row.he, row.tr, row.en])].join(" ");
 const fontSizeOf = (root: HTMLElement, selector: string) => {
   const element = root.querySelector<HTMLElement>(selector);
@@ -143,10 +143,7 @@ export default function FitCheckClient() {
 
   return (
     <main className="author-page" style={workspaceStyle}>
-      <header className="author-header">
-        <div className="brand-lockup"><div><span className="eyebrow">{workspace?.productName || "OVERLAYS"}</span><h1>Rendered catalog fit check</h1></div></div>
-        <div className="header-actions"><Link href="/author">Back to library</Link><WorkspaceNav current="/author" className="author-workspace-nav" role={role} /></div>
-      </header>
+      <WorkspaceHeader compact current="/author" title="Fit check" role={role} workspace={workspace} aside={<Link className="header-link" href="/author">Back to library</Link>} />
       <div className={styles.wrap}>
         <p className={styles.notice}><b>Read-only check.</b> Nothing is published or sent to output.</p>
         {resolved && !controlKey && <p className={styles.summary}>Sign in from the Library first. <Link href="/author">Open the Library</Link>, connect there, then return to this page.</p>}

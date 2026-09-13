@@ -2,7 +2,7 @@
 
 import Link from 'next/link';
 import {useCallback,useEffect,useMemo,useState} from 'react';
-import WorkspaceNav from '@/components/workspace-nav';
+import WorkspaceHeader from '@/components/workspace-header';
 import './services.css';
 
 type Cue={id:string;name:string;title?:string;layout?:string};
@@ -12,7 +12,6 @@ type Collection={id:string;name:string;service:string;version:number;archived:bo
 type Feedback={id:string;version:number;collectionId?:string;kind:string;cueId?:string;context:string;reason:string;impact:string;productGap:boolean;archived:boolean;createdAt:number};
 type Dashboard={catalog:{cues:Cue[];version:string};collections:Collection[];feedback:Feedback[];permissions:{editCollections:boolean;recordFeedback:boolean;editFeedback:boolean}};
 type Source={id:string;name:string;book?:string;service?:string;section?:string};
-type Workspace={organizationName:string};
 type Role='owner'|'editor'|'operator';
 
 class ServicesRequestError extends Error{code:string;constructor(message:string,code:string){super(message);this.name='ServicesRequestError';this.code=code}}
@@ -22,12 +21,12 @@ const statusLabel:Record<string,string>={'covered':'Covered','needs-cue':'Needs 
 
 export default function ServicesPage(){
  const [dashboard,setDashboard]=useState<Dashboard|null>(null),[error,setError]=useState(''),[busy,setBusy]=useState(true),[query,setQuery]=useState(''),[activeId,setActiveId]=useState(''),[selected,setSelected]=useState<string[]>([]),[showArchived,setShowArchived]=useState(false);
- const [workspace,setWorkspace]=useState<Workspace|null>(null),[role,setRole]=useState<Role|undefined>(undefined);
+ const [role,setRole]=useState<Role|undefined>(undefined);
  const [newName,setNewName]=useState(''),[newService,setNewService]=useState('');
  const [coverage,setCoverage]=useState({id:'',label:'',status:'needs-cue',cueId:'',sourceId:'',owner:'',reason:''}),[sourceQuery,setSourceQuery]=useState(''),[sources,setSources]=useState<Source[]>([]);
  const [feedback,setFeedback]=useState({kind:'issue',cueId:'',context:'',reason:'',impact:'minor',productGap:true});
  const load=useCallback(async(includeArchived=showArchived)=>{setBusy(true);setError('');try{const data=await call<Dashboard>('get_dashboard',{includeArchived});setDashboard(data);setActiveId(current=>data.collections.some((item:Collection)=>item.id===current)?current:(data.collections[0]?.id??''))}catch(e){setError(e instanceof Error?e.message:'Services unavailable')}finally{setBusy(false)}},[showArchived]);
- useEffect(()=>{let current=true;call<Dashboard>('get_dashboard',{includeArchived:showArchived}).then(data=>{if(!current)return;setDashboard(data);setActiveId(selectedId=>data.collections.some((item:Collection)=>item.id===selectedId)?selectedId:(data.collections[0]?.id??''));setError('')}).catch(error=>{if(current)setError(error instanceof Error?error.message:'Services unavailable')}).finally(()=>{if(current)setBusy(false)});fetch('/api/workspace').then(response=>response.ok?response.json():null).then(value=>{if(current&&value)setWorkspace(value)}).catch(()=>{});fetch('/api/access',{cache:'no-store'}).then(response=>response.ok?response.json():null).then(value=>{if(current&&value?.user?.role)setRole(value.user.role as Role)}).catch(()=>{});return()=>{current=false}},[showArchived]);
+ useEffect(()=>{let current=true;call<Dashboard>('get_dashboard',{includeArchived:showArchived}).then(data=>{if(!current)return;setDashboard(data);setActiveId(selectedId=>data.collections.some((item:Collection)=>item.id===selectedId)?selectedId:(data.collections[0]?.id??''));setError('')}).catch(error=>{if(current)setError(error instanceof Error?error.message:'Services unavailable')}).finally(()=>{if(current)setBusy(false)});fetch('/api/access',{cache:'no-store'}).then(response=>response.ok?response.json():null).then(value=>{if(current&&value?.user?.role)setRole(value.user.role as Role)}).catch(()=>{});return()=>{current=false}},[showArchived]);
  const active=dashboard?.collections.find(item=>item.id===activeId);
  const cueMap=useMemo(()=>new Map(dashboard?.catalog.cues.map(c=>[c.id,c])??[]),[dashboard]);
  const filtered=useMemo(()=>{const normalized=query.toLocaleLowerCase().normalize('NFKD').replace(/[\u0591-\u05c7]/g,'');return (dashboard?.catalog.cues??[]).filter(c=>!normalized||`${c.name} ${c.title??''} ${c.id}`.toLocaleLowerCase().normalize('NFKD').replace(/[\u0591-\u05c7]/g,'').includes(normalized))},[dashboard,query]);
@@ -47,7 +46,7 @@ export default function ServicesPage(){
  async function removeCoverage(id:string){if(!active)return;await updateCollection({entries:active.entries.map(({id,type,label,cueIds})=>({id,type,label,cueIds})),coverage:active.coverage.filter(row=>row.id!==id).map(cleanCoverage)})}
  async function recordFeedback(event:React.FormEvent){event.preventDefault();if(await perform(()=>call('record_feedback',{...feedback,collectionId:active?.id,cueId:feedback.cueId||undefined})))setFeedback({kind:'issue',cueId:'',context:'',reason:'',impact:'minor',productGap:true})}
  return <main className="services-shell">
-  <header className="services-header"><div><p className="services-eyebrow">{workspace?.organizationName??'SERVICE WORKSPACE'}</p><h1>Plan the prepared parts. Keep every graphic within reach.</h1><p>Collections are optional preparation aids. They never control the live output.</p></div><WorkspaceNav current="/services" role={role}/></header>
+  <WorkspaceHeader current="/services" title="Services" role={role} lede="Plan the prepared parts and keep every graphic within reach. Collections are optional preparation aids; they never control the live output."/>
   {error&&<div className="services-error" role="alert">{error}</div>}
   {!dashboard?<p className="services-loading">{busy?'Loading service workspace…':'Unable to load.'}</p>:<>
    <section className="cue-finder" aria-labelledby="cue-finder-heading"><div className="section-heading"><div><p className="services-eyebrow">ALWAYS AVAILABLE</p><h2 id="cue-finder-heading">Global graphic finder</h2><p>Inspect any graphic without sending it live. Add selected graphics to the open collection when useful.</p></div><span>{dashboard.catalog.cues.length} published</span></div>

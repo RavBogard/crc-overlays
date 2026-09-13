@@ -5,7 +5,7 @@ import "./globals.css";
 export function generateMetadata(): Metadata {
   const workspace = getPublicWorkspace();
   return {
-    title: `${workspace.productName} Control`,
+    title: workspace.productName,
     description: `Prayer graphics for ${workspace.organizationName} broadcast production.`,
     other: {"codex-preview": "development"},
     icons: {icon: workspace.logo.src, shortcut: workspace.logo.src},

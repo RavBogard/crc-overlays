@@ -1,10 +1,9 @@
 'use client';
 
-import Image from 'next/image';
 import Link from 'next/link';
 import {useMemo, useState} from 'react';
 import type {PublicWorkspace} from '@/lib/workspace';
-import WorkspaceNav from '@/components/workspace-nav';
+import WorkspaceHeader from '@/components/workspace-header';
 import styles from './setup.module.css';
 
 type Application = 'vmix' | 'obs';
@@ -95,17 +94,7 @@ export default function SetupGuide({workspace}: {workspace: PublicWorkspace}) {
   const pageDownloads = workspace.setupDownloads.filter(item => item.kind === 'pages');
 
   return <>
-    <header className={`${styles.hero} ${workspace.id === 'crc' ? '' : styles.communityHero}`}>
-      <div className={styles.identity}>
-        <Image className={workspace.id === 'crc' ? styles.identityMark : styles.identityBanner} src={workspace.logo.src} alt={workspace.logo.alt} width={workspace.id === 'crc' ? 82 : 164} height={workspace.id === 'crc' ? 82 : 70}/>
-        <div>
-          <span className={styles.eyebrow}>{workspace.organizationName}</span>
-          <h1>Connect your sanctuary</h1>
-          <p>Add {workspace.productName} beside your current graphics system. Your existing Singular setup, camera controls, and Companion pages stay in place during the trial.</p>
-        </div>
-      </div>
-      <WorkspaceNav current="/setup"/>
-    </header>
+    <WorkspaceHeader current="/setup" title="Setup" workspace={workspace} lede={`Add ${workspace.productName} beside your current graphics system. Your existing Singular setup, camera controls, and Companion pages stay in place during the trial.`}/>
 
     <section className={styles.intro}>
       <p><strong>Allow about 10 minutes.</strong> You will add one Companion connection and one new browser input. Nothing on this page puts a graphic on air.</p>
@@ -195,7 +184,7 @@ export default function SetupGuide({workspace}: {workspace: PublicWorkspace}) {
         <h2>Test before using it in a service</h2>
         <p>With the new input off air, test one cue, a fast cue change, Animate Out, and Clear Now. Restart Companion and the browser input once. To return to Singular, take this input off air and use the unchanged Singular input.</p>
       </div>
-      <Link href="/">Open overlay control</Link>
+      <Link href="/">Open Live control</Link>
     </section>
 
     <footer className={styles.footer}>

@@ -5,10 +5,10 @@
 import Link from 'next/link';
 import {useEffect, useState} from 'react';
 import type {AccessRole} from '@/lib/access';
+import {fetchAccessUser} from '@/lib/access-client';
 import styles from './workspace-nav.module.css';
 
 type NavPermission = 'member' | 'author';
-type AccessResponse = {user?: {role?: AccessRole} | null};
 
 // Mirrors canAccess() in lib/access.ts. That module cannot be imported here because it
 // pulls in node:crypto and this navigation renders inside client components.
@@ -38,14 +38,14 @@ export default function WorkspaceNav({current, className = '', role}: {current?:
         return;
       }
     } catch {}
-    const controller = new AbortController();
-    fetch('/api/access', {credentials: 'include', signal: controller.signal})
-      .then(r => (r.ok ? r.json() : null))
-      .then((result: AccessResponse | null) => {
-        if (result?.user?.role) setResolvedRole(result.user.role);
-      })
-      .catch(() => {});
-    return () => controller.abort();
+    let live = true;
+    // Shared with the header and the rest of the page: one /api/access probe per page load.
+    void fetchAccessUser().then(user => {
+      if (live && user) setResolvedRole(user.role);
+    });
+    return () => {
+      live = false;
+    };
   }, [role]);
 
   const visible = destinations.filter(([, , permission]) => resolvedRole === undefined ? permission === 'member' : permitted(resolvedRole, permission));

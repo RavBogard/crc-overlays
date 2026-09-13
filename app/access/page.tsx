@@ -5,7 +5,8 @@ import Link from 'next/link';
 import {useRouter} from 'next/navigation';
 import {useCallback,useEffect,useState} from 'react';
 import './access.css';
-import WorkspaceNav from '@/components/workspace-nav';
+import WorkspaceHeader from '@/components/workspace-header';
+import {resetAccessUserCache} from '@/lib/access-client';
 
 type Role='owner'|'editor'|'operator';
 type Member={id:string;name:string;email:string;role:Role;enabled:boolean;hasPassword?:boolean};
@@ -83,6 +84,8 @@ export default function AccessPage(){
   setBusy(true);setMessage('');
   try{
    const response=await fetch('/api/access',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify(payload)});
+   // Sign-in, redemption and sign-out all change who the shared header and navigation see.
+   resetAccessUserCache();
    const body=await bodyOf(response);
    if(!response.ok)throw Error(body.error||'This action could not be completed.');
    if(payload.action==='redeem'){
@@ -126,10 +129,7 @@ export default function AccessPage(){
  }
 
  return <main className="access-page">
-  <header className="access-header">
-   <div className="access-brand"><span className="access-brand-mark"><LibraryBig size={20}/></span><span><small>CONGREGATION GRAPHICS</small><strong>Workspace access</strong></span></div>
-   {user?<WorkspaceNav current="/access" role={user.role}/>:<Link href="/">Live control</Link>}
-  </header>
+  <WorkspaceHeader compact current="/access" title="Account" user={user?{name:user.name,role:user.role}:null}/>
 
   <div className="access-stage">
    {message&&<div className={`access-notice ${messageKind}`} role={messageKind==='error'?'alert':'status'}><span>{messageKind==='success'?<Check size={16}/>:<ShieldCheck size={16}/>}</span>{message}</div>}
@@ -146,7 +146,7 @@ export default function AccessPage(){
      <button className="access-quiet" disabled={busy} onClick={()=>void act({action:'logout'})}><LogOut size={16}/>Sign out</button>
     </section>
     <nav className="access-destinations" aria-label="Workspace destinations">
-     <Link href="/author"><LibraryBig size={20}/><span><strong>Graphics library</strong><small>Create, review, and publish overlays</small></span></Link>
+     <Link href="/author"><LibraryBig size={20}/><span><strong>Library</strong><small>Create, review, and publish overlays</small></span></Link>
      <Link href="/setup"><MonitorUp size={20}/><span><strong>Set up this computer</strong><small>Connect Companion, Stream Deck, and video</small></span></Link>
     </nav>
 

@@ -3,10 +3,13 @@ import {getPublicWorkspace} from '@/lib/workspace';
 import SetupGuide from './setup-guide';
 import styles from './setup.module.css';
 
-export const metadata: Metadata = {
-  title: 'Connect your sanctuary graphics',
-  description: 'Guided setup for Companion, Stream Deck, vMix, and OBS.',
-};
+export function generateMetadata(): Metadata {
+  const workspace = getPublicWorkspace();
+  return {
+    title: `${workspace.productName} · Setup`,
+    description: 'Guided setup for Companion, Stream Deck, vMix, and OBS.',
+  };
+}
 
 export default function SetupPage() {
   const workspace = getPublicWorkspace();
