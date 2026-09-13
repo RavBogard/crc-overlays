@@ -2,7 +2,7 @@ import { existsSync, mkdirSync, readFileSync, rmSync, writeFileSync } from 'node
 import { dirname, resolve } from 'node:path';
 import { gunzipSync, gzipSync } from 'node:zlib';
 
-import { deriveTbiPackage } from './build-tbi-companion-module.mjs';
+import { deriveTbiPackage, CRC_MODULE_PATH, TBI_MODULE_PATH, LEGACY_TBI_MODULE_PATHS } from './build-tbi-companion-module.mjs';
 
 const repoRoot = resolve(import.meta.dirname, '..');
 const workspaceRoot = resolve(repoRoot, 'public', 'workspaces', 'temple-bnai-israel');
@@ -36,7 +36,7 @@ function visit(value) {
   }
   if (!value || typeof value !== 'object') return;
   const actionName = value.definitionId ?? value.actionId;
-  if (value.type === 'action' && actionName === 'show_cue') {
+  if (value.type === 'action' && (actionName === 'show_cue' || actionName === 'toggle_cue')) {
     const sourceCueId = unwrapOption(value.options?.cue);
     const destinationCueId = cueIds.get(sourceCueId);
     if (!destinationCueId) fail(`Companion page references an unapproved cue: ${sourceCueId}`);
@@ -73,10 +73,7 @@ if (usedCueIds.size !== 24 || [...cueIds.keys()].some(id => !usedCueIds.has(id))
   fail(`Companion pages must cover all 24 approved starter cues; found ${usedCueIds.size}`);
 }
 
-const moduleSource = resolve(repoRoot, 'public', 'downloads', 'crc-overlays-1.2.0.tgz');
-const moduleDestination = resolve(downloadsRoot, 'tbi-overlays-1.2.0.tgz');
-const legacyModuleDestination = resolve(downloadsRoot, 'companion-module-1.2.0.tgz');
-mkdirSync(dirname(moduleDestination), { recursive: true });
-writeFileSync(moduleDestination, deriveTbiPackage(readFileSync(moduleSource)));
-if (existsSync(legacyModuleDestination)) rmSync(legacyModuleDestination);
+mkdirSync(dirname(TBI_MODULE_PATH), { recursive: true });
+writeFileSync(TBI_MODULE_PATH, deriveTbiPackage(readFileSync(CRC_MODULE_PATH)));
+for (const legacy of LEGACY_TBI_MODULE_PATHS) if (existsSync(legacy)) rmSync(legacy);
 console.log('Prepared two TBI Companion pages and the TBI Overlays module package derived from the reviewed CRC package.');

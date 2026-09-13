@@ -1,5 +1,5 @@
 // Derives the Temple B'nai Israel Companion module archive from the reviewed CRC
-// archive. The CRC archive at public/downloads/crc-overlays-1.2.0.tgz is the only
+// archive. The CRC archive at public/downloads/crc-overlays-1.3.0.tgz is the only
 // reviewed input and is never rebuilt or modified here.
 //
 // Companion keys installed modules by manifest `id`, so the derived package uses
@@ -231,15 +231,19 @@ export function readManifest(tgzBuffer) {
 }
 
 const repoRoot = resolve(import.meta.dirname, '..');
-export const CRC_MODULE_PATH = resolve(repoRoot, 'public', 'downloads', 'crc-overlays-1.2.0.tgz');
-export const TBI_MODULE_PATH = resolve(repoRoot, 'public', 'workspaces', 'temple-bnai-israel', 'downloads', 'tbi-overlays-1.2.0.tgz');
-export const LEGACY_TBI_MODULE_PATH = resolve(repoRoot, 'public', 'workspaces', 'temple-bnai-israel', 'downloads', 'companion-module-1.2.0.tgz');
+export const CRC_MODULE_PATH = resolve(repoRoot, 'public', 'downloads', 'crc-overlays-1.3.0.tgz');
+export const TBI_MODULE_PATH = resolve(repoRoot, 'public', 'workspaces', 'temple-bnai-israel', 'downloads', 'tbi-overlays-1.3.0.tgz');
+// Superseded artifacts removed on every derivation run.
+export const LEGACY_TBI_MODULE_PATHS = [
+  resolve(repoRoot, 'public', 'workspaces', 'temple-bnai-israel', 'downloads', 'companion-module-1.2.0.tgz'),
+  resolve(repoRoot, 'public', 'workspaces', 'temple-bnai-israel', 'downloads', 'tbi-overlays-1.2.0.tgz'),
+];
 
 if (process.argv[1] && resolve(process.argv[1]) === resolve(import.meta.filename)) {
   const tbi = deriveTbiPackage(readFileSync(CRC_MODULE_PATH));
   mkdirSync(resolve(TBI_MODULE_PATH, '..'), { recursive: true });
   writeFileSync(TBI_MODULE_PATH, tbi);
-  if (existsSync(LEGACY_TBI_MODULE_PATH)) rmSync(LEGACY_TBI_MODULE_PATH);
+  for (const legacy of LEGACY_TBI_MODULE_PATHS) if (existsSync(legacy)) rmSync(legacy);
   const manifest = readManifest(tbi);
   const entryCount = readUstar(gunzipSync(tbi)).filter(entry => entry.typeFlag === '0').length;
   console.log(JSON.stringify({

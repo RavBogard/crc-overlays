@@ -1,5 +1,5 @@
 import { describe, expect, it, vi } from 'vitest'
-import { CatalogRefreshCoordinator, deriveFeedback, isNewerSnapshot, OverlayClient, type OverlaySnapshot, type RealtimeConnectionState, type VersionedCatalog } from '../src/client.js'
+import { CatalogRefreshCoordinator, deriveFeedback, isNewerSnapshot, OverlayClient, toggleAction, type OverlaySnapshot, type RealtimeConnectionState, type VersionedCatalog } from '../src/client.js'
 
 const snapshot = (overrides: Partial<OverlaySnapshot> = {}): OverlaySnapshot => ({
   revision: 4, cue: 'cue-a', mode: 'animate', updated: 1_000, catalogVersion: 'catalog-1', serverTime: 10_000,
@@ -21,7 +21,7 @@ class FakeSocket {
   close(code?: number, reason?: string): void {
     this.closes.push({ code, reason })
     this.readyState = 3
-    this.emit('close', new Event('close'))
+    this.emit('close', new CloseEvent('close', { code, reason }))
   }
   emit(type: string, event: Event | MessageEvent = new Event(type)): void {
     for (const listener of this.listeners.get(type) ?? []) listener(event)
@@ -229,6 +229,18 @@ describe('realtime subscription', () => {
     } finally { vi.useRealTimers() }
   })
 
+  it('reports the realtime close code and reason to the connection handler', async () => {
+    const socket = new FakeSocket()
+    const details: Array<string | undefined> = []
+    const client = new OverlayClient({ baseUrl: 'https://example.test', controlKey: 'secret', clientId: 'commands', fetch: vi.fn(async () => response(bootstrap)), reconnectDelays: [60_000], webSocketFactory: () => socket })
+    const subscription = client.subscribe({ onSnapshot: vi.fn(), onPresence: vi.fn(), onCatalog: vi.fn(), onConnection: (_state, detail) => details.push(detail) })
+    subscription.start(); await vi.waitFor(() => expect(socket.listeners.has('open')).toBe(true)); socket.emit('open'); socket.message({ type: 'snapshot', snapshot: snapshot() })
+    socket.close(4408, 'Heartbeat timeout')
+    expect(details.at(-1)).toContain('4408')
+    expect(details.at(-1)).toContain('Heartbeat timeout')
+    subscription.stop()
+  })
+
   it('marks a closed socket disconnected immediately', async () => {
     const socket = new FakeSocket()
     const connections: RealtimeConnectionState[] = []
@@ -282,11 +294,28 @@ describe('truthful feedback', () => {
     expect(deriveFeedback(snapshot(), true, 10_000, 40_000)).toMatchObject({ rendered: false, disconnected: true })
   })
 
+  it('delays the red disconnected indicator for the grace window only', () => {
+    expect(deriveFeedback(snapshot(), false, 10_000, 10_100, 30_000, null, 3_000)).toMatchObject({ rendered: false, disconnected: false })
+    expect(deriveFeedback(snapshot(), false, 10_000, 10_100, 30_000, 7_101, 3_000)).toMatchObject({ rendered: false, disconnected: false })
+    expect(deriveFeedback(snapshot(), false, 10_000, 10_100, 30_000, 7_100, 3_000)).toMatchObject({ rendered: false, disconnected: true })
+    expect(deriveFeedback(snapshot(), false, 10_000, 10_100, 30_000, 7_101, 0)).toMatchObject({ rendered: false, disconnected: true })
+    expect(deriveFeedback(snapshot(), false, 10_000, 10_100)).toMatchObject({ rendered: false, disconnected: true })
+    expect(deriveFeedback(snapshot(), true, 10_000, 10_100, 30_000, 10_099, 3_000)).toMatchObject({ rendered: true, disconnected: false, renderedCue: 'cue-a' })
+  })
+
   it('rejects delayed snapshots that would roll state backward', () => {
     const current = snapshot({ revision: 8, serverTime: 20_000, cue: null })
     expect(isNewerSnapshot(current, snapshot({ revision: 7, serverTime: 21_000 }))).toBe(false)
     expect(isNewerSnapshot(current, snapshot({ revision: 8, serverTime: 19_000 }))).toBe(false)
     expect(isNewerSnapshot(current, snapshot({ revision: 8, serverTime: 20_001 }))).toBe(true)
     expect(isNewerSnapshot(current, snapshot({ revision: 9, serverTime: 19_000 }))).toBe(true)
+  })
+})
+
+describe('toggle', () => {
+  it('animates out when the requested cue is already this cue and in otherwise', () => {
+    expect(toggleAction('cue-a', 'cue-a')).toBe('out')
+    expect(toggleAction('cue-b', 'cue-a')).toBe('in')
+    expect(toggleAction(null, 'cue-a')).toBe('in')
   })
 })

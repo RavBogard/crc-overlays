@@ -7,6 +7,9 @@ export const MAX_REQUEST_BYTES=MAX_CATALOG_BYTES+MAX_SNAPSHOT_BYTES;
 export const MAX_CUE_PAYLOAD_BYTES=MAX_SNAPSHOT_BYTES-4096;
 export const MAX_RECEIPTS=2048;
 export const STALE_MS=30_000;
+// Inclusive: a renderer last seen exactly STALE_MS ago is expired, so an alarm that
+// fires precisely on the deadline both drops the renderer and reschedules correctly.
+export const rendererExpired=(seen:number,now:number)=>now-seen>=STALE_MS;
 export const PROTOCOL='crc-overlays-v1';
 export type Role='control'|'output'|'preview';
 export type Mode='animate'|'cut';

@@ -232,14 +232,14 @@ export class RealtimeSubscription {
         else if (parsed.type === 'catalog') this.#options.handlers.onCatalog(parsed.version)
       })
       socket.addEventListener('error', () => { if (this.#isCurrent(socket, generation)) socket.close(1011, 'Realtime transport error') })
-      socket.addEventListener('close', () => {
+      socket.addEventListener('close', event => {
         if (!this.#isCurrent(socket, generation)) return
         this.#socket = null
         if (this.#heartbeatTimer) clearInterval(this.#heartbeatTimer)
         if (this.#handshakeTimer) clearTimeout(this.#handshakeTimer)
         this.#heartbeatTimer = null
         this.#handshakeTimer = null
-        this.#setDisconnected()
+        this.#setDisconnected(closeDetail(event))
         this.#scheduleReconnect(generation)
       })
     } catch (error) {
@@ -276,8 +276,23 @@ export class RealtimeSubscription {
   }
 }
 
-export function deriveFeedback(snapshot: OverlaySnapshot | null, transportConnected: boolean, presenceReceivedAt: number | null, now = Date.now(), rendererStaleMs = 30_000): FeedbackState {
-  if (!snapshot || !transportConnected || presenceReceivedAt === null || now - presenceReceivedAt >= rendererStaleMs || snapshot.renderers.length === 0) return { requestedCue: snapshot?.cue ?? null, renderedCue: null, rendered: false, disconnected: true }
+export function toggleAction(requestedCue: string | null, cue: string): 'in' | 'out' {
+  return requestedCue === cue ? 'out' : 'in'
+}
+
+function closeDetail(event: Event): string | undefined {
+  const close = event as CloseEvent
+  const code = typeof close.code === 'number' ? close.code : null
+  if (code === null) return undefined
+  const reason = typeof close.reason === 'string' ? close.reason.slice(0, 200) : ''
+  return `Realtime closed (${code}${reason ? ' ' + reason : ''})`
+}
+
+export function deriveFeedback(snapshot: OverlaySnapshot | null, transportConnected: boolean, presenceReceivedAt: number | null, now = Date.now(), rendererStaleMs = 30_000, unhealthySince: number | null = null, graceMs = 0): FeedbackState {
+  const raw = !snapshot || !transportConnected || presenceReceivedAt === null || now - presenceReceivedAt >= rendererStaleMs || snapshot.renderers.length === 0
+  // A grace window only delays the red indicator: with graceMs 0 (the default) the
+  // raw condition is reported immediately, exactly as before.
+  if (raw) return { requestedCue: snapshot?.cue ?? null, renderedCue: null, rendered: false, disconnected: graceMs <= 0 || (unhealthySince !== null && now - unhealthySince >= graceMs) }
   const renderedMatch = snapshot.renderers.find(renderer => renderer.phase === 'settled' && renderer.revision === snapshot.revision && renderer.cue === snapshot.cue)
   return { requestedCue: snapshot.cue, renderedCue: renderedMatch?.cue ?? null, rendered: Boolean(renderedMatch), disconnected: false }
 }

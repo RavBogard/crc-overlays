@@ -1,5 +1,5 @@
 import {DurableObject} from 'cloudflare:workers';
-import {MAX_CATALOG_BYTES,MAX_MESSAGE_BYTES,MAX_RECEIPTS,MAX_REQUEST_BYTES,MAX_SNAPSHOT_BYTES,PROTOCOL,STALE_MS,jsonBytes,nextState,parseAck,parseCatalog,parseCommand,parseInitialState,validCatalogVersion,validInteger,validToken,validUuid,verifyTicket,type ApprovedCatalog,type Command,type CuePayload,type LiveState,type Renderer,type Role,type Snapshot,type SocketAttachment} from './protocol';
+import {MAX_CATALOG_BYTES,MAX_MESSAGE_BYTES,MAX_RECEIPTS,MAX_REQUEST_BYTES,MAX_SNAPSHOT_BYTES,PROTOCOL,STALE_MS,jsonBytes,nextState,parseAck,parseCatalog,parseCommand,parseInitialState,rendererExpired,validCatalogVersion,validInteger,validToken,validUuid,verifyTicket,type ApprovedCatalog,type Command,type CuePayload,type LiveState,type Renderer,type Role,type Snapshot,type SocketAttachment} from './protocol';
 
 interface Env{
  LIVE_ROOM:DurableObjectNamespace<LiveRoom>;
@@ -141,11 +141,11 @@ export class LiveRoom extends DurableObject<Env>{
    if(socket===exclude)continue;
    const attachment=socket.deserializeAttachment() as SocketAttachment|null;
    if(!attachment||attachment.role!=='output')continue;
-   if(now-attachment.seen>STALE_MS){attachment.ack=null;socket.serializeAttachment(attachment);socket.close(4408,'Heartbeat timeout');continue}
+   if(rendererExpired(attachment.seen,now)){attachment.ack=null;socket.serializeAttachment(attachment);socket.close(4408,'Heartbeat timeout');continue}
    if(attachment.ack&&current&&attachment.ack.revision===current.revision&&attachment.ack.cue===current.cue)renderers.set(attachment.ack.id,attachment.ack);
   }
   for(const [id,renderer] of this.legacyPresence){
-   if(now-renderer.seen>STALE_MS)this.legacyPresence.delete(id);
+   if(rendererExpired(renderer.seen,now))this.legacyPresence.delete(id);
    else if(current&&renderer.revision===current.revision&&renderer.cue===current.cue)renderers.set(id,renderer);
   }
   return [...renderers.values()].sort((a,b)=>b.seen-a.seen);
@@ -316,9 +316,9 @@ export class LiveRoom extends DurableObject<Env>{
   for(const socket of this.ctx.getWebSockets()){
    if(socket===exclude)continue;
    const attachment=socket.deserializeAttachment() as SocketAttachment|null;
-   if(attachment?.role==='output'&&socket.readyState===WebSocket.OPEN&&attachment.seen+STALE_MS>now)deadlines.push(attachment.seen+STALE_MS);
+   if(attachment?.role==='output'&&socket.readyState===WebSocket.OPEN&&!rendererExpired(attachment.seen,now))deadlines.push(attachment.seen+STALE_MS);
   }
-  for(const renderer of this.legacyPresence.values())if(renderer.seen+STALE_MS>now)deadlines.push(renderer.seen+STALE_MS);
+  for(const renderer of this.legacyPresence.values())if(!rendererExpired(renderer.seen,now))deadlines.push(renderer.seen+STALE_MS);
   if(!deadlines.length){await this.ctx.storage.deleteAlarm();return}
   await this.ctx.storage.setAlarm(Math.max(now+1,Math.min(...deadlines)));
  }

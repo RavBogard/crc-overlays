@@ -1,5 +1,5 @@
 import {describe,expect,it} from 'vitest';
-import {MAX_CUE_PAYLOAD_BYTES,MAX_SNAPSHOT_BYTES,nextState,parseCatalog,parseCommand,parseInitialState,verifyTicket,type LiveState} from '../src/protocol';
+import {MAX_CUE_PAYLOAD_BYTES,MAX_SNAPSHOT_BYTES,STALE_MS,nextState,parseCatalog,parseCommand,parseInitialState,rendererExpired,verifyTicket,type LiveState} from '../src/protocol';
 
 const encode=(value:Uint8Array|string)=>{
  const bytes=typeof value==='string'?new TextEncoder().encode(value):value;
@@ -54,5 +54,14 @@ describe('relay protocol',()=>{
  it('parses initialized state without replacing its pinned payload',()=>{
   const payload={id:'cue-a',name:'Pinned'};
   expect(parseInitialState({revision:1,cue:'cue-a',mode:'cut',updated:12,cuePayload:payload},'catalog-v1')).toEqual({revision:1,cue:'cue-a',mode:'cut',updated:12,cuePayload:payload,catalogVersion:'catalog-v1'});
+ });
+});
+
+describe('renderer expiry',()=>{
+ it('expires a renderer at exactly the stale deadline',()=>{
+  const seen=1_000_000;
+  expect(rendererExpired(seen,seen+STALE_MS-1)).toBe(false);
+  expect(rendererExpired(seen,seen+STALE_MS)).toBe(true);
+  expect(rendererExpired(seen,seen+STALE_MS+1)).toBe(true);
  });
 });

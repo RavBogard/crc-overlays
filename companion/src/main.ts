@@ -1,6 +1,11 @@
 import { combineRgb, InstanceBase, InstanceStatus, type CompanionActionDefinitions, type CompanionFeedbackDefinitions, type CompanionPresetDefinitions, type CompanionPresetSection, type InstanceTypes, type SomeCompanionConfigField } from '@companion-module/base'
 import { CatalogStore, cuePresetId, hasCatalogCue, visibleCatalogCues, type CatalogCue } from './catalog.js'
-import { CatalogRefreshCoordinator, deriveFeedback, isNewerSnapshot, OverlayClient, type OverlaySnapshot, type RealtimeSubscription, type RendererState } from './client.js'
+import { CatalogRefreshCoordinator, deriveFeedback, isNewerSnapshot, OverlayClient, toggleAction, type FeedbackState, type OverlaySnapshot, type RealtimeSubscription, type RendererState } from './client.js'
+
+// The red disconnected indicator waits this long before painting, so a socket that
+// drops and reconnects inside the first reconnect delay does not flash the buttons red.
+const DISCONNECTED_GRACE_MS = 3_000
+const RENDERER_STALE_MS = 30_000
 
 const FALLBACK_CUES: CatalogCue[] = [
   { id: 'efa9fad4-f7d5-4091-a708-82103028861b', name: 'Barechu', layout: 'bottom' },
@@ -14,6 +19,7 @@ interface Manifest extends InstanceTypes {
   config: Config; secrets: Secrets
   actions: {
     show_cue: { options: { cue: string } }
+    toggle_cue: { options: { cue: string } }
     animate_out: { options: { cue: string } }
     animate_clear: { options: Record<string, never> }
     clear_now: { options: Record<string, never> }
@@ -40,6 +46,8 @@ export default class CrcOverlaysInstance extends InstanceBase<Manifest> {
   #catalogVersion = ''
   #generation = 0
   #destroyed = false
+  #unhealthySince: number | null = null
+  #graceTimer: NodeJS.Timeout | null = null
   #catalog = new CatalogStore(FALLBACK_CUES)
 
   async init(config: Config, _isFirstInit: boolean, secrets: Secrets): Promise<void> {
@@ -106,7 +114,12 @@ export default class CrcOverlaysInstance extends InstanceBase<Manifest> {
         if (generation !== this.#generation || this.#destroyed) return
         if (state === 'connected') { this.#transportConnected = true; this.updateStatus(InstanceStatus.Ok) }
         else if (state === 'connecting') this.updateStatus(InstanceStatus.Connecting)
-        else { this.#transportConnected = false; this.updateStatus(InstanceStatus.ConnectionFailure, detail ? this.#safeError(new Error(detail)) : 'Realtime connection closed') }
+        else {
+          this.#transportConnected = false
+          const reason = detail ? this.#safeError(new Error(detail)) : 'Realtime connection closed'
+          if (detail) this.log('warn', reason)
+          this.updateStatus(InstanceStatus.ConnectionFailure, reason)
+        }
         this.#publishFeedback()
       },
     })
@@ -118,6 +131,12 @@ export default class CrcOverlaysInstance extends InstanceBase<Manifest> {
     if (this.#presenceTimer) clearTimeout(this.#presenceTimer)
     this.#presenceTimer = null
     this.#transportConnected = false
+    this.#clearGrace()
+  }
+  #clearGrace(): void {
+    this.#unhealthySince = null
+    if (this.#graceTimer) clearTimeout(this.#graceTimer)
+    this.#graceTimer = null
   }
   async #command(action: 'in' | 'out' | 'clear' | 'cut', cue?: string): Promise<void> {
     const client = this.#client
@@ -181,8 +200,21 @@ export default class CrcOverlaysInstance extends InstanceBase<Manifest> {
     const message = error instanceof Error ? error.message : 'Overlay API request failed'
     return this.#controlKey ? message.replaceAll(this.#controlKey, '[redacted]') : message
   }
+  #feedbackState(): FeedbackState {
+    return deriveFeedback(this.#snapshot, this.#transportConnected, this.#presenceReceivedAt, Date.now(), RENDERER_STALE_MS, this.#unhealthySince, DISCONNECTED_GRACE_MS)
+  }
   #publishFeedback(): void {
-    const state = deriveFeedback(this.#snapshot, this.#transportConnected, this.#presenceReceivedAt)
+    const rawDisconnected = deriveFeedback(this.#snapshot, this.#transportConnected, this.#presenceReceivedAt).disconnected
+    if (!rawDisconnected) this.#clearGrace()
+    else if (this.#unhealthySince === null) {
+      this.#unhealthySince = Date.now()
+      if (this.#graceTimer) clearTimeout(this.#graceTimer)
+      this.#graceTimer = setTimeout(() => {
+        this.#graceTimer = null
+        if (!this.#destroyed) this.#publishFeedback()
+      }, DISCONNECTED_GRACE_MS)
+    }
+    const state = this.#feedbackState()
     const requestedName = this.#catalog.cues.find(cue => cue.id === state.requestedCue)?.name ?? state.requestedCue ?? 'Clear'
     this.setVariableValues({ requested_cue: requestedName, revision: this.#snapshot?.revision ?? 0, renderer_status: state.disconnected ? 'Disconnected' : state.rendered ? 'Rendered' : 'Requested' })
     this.checkAllFeedbacks()
@@ -193,6 +225,7 @@ export default class CrcOverlaysInstance extends InstanceBase<Manifest> {
     const defaultCue = choices[0]?.id ?? FALLBACK_CUES[0]!.id
     const actions: CompanionActionDefinitions<Manifest['actions']> = {
       show_cue: { name: 'Show cue', description: 'Request a cue with its In animation.', options: [{ type: 'dropdown', id: 'cue', label: 'Cue', choices, default: defaultCue }], callback: async event => this.#cueCommand('in', String(event.options.cue)) },
+      toggle_cue: { name: 'Toggle cue', description: 'Shows the cue with its In animation, or animates it out if it is already the requested cue.', options: [{ type: 'dropdown', id: 'cue', label: 'Cue', choices, default: defaultCue }], callback: async event => { const cue = String(event.options.cue); return this.#cueCommand(toggleAction(this.#snapshot?.cue ?? null, cue), cue) } },
       animate_out: { name: 'Animate cue out', description: 'Clear only if the selected cue is currently requested.', options: [{ type: 'dropdown', id: 'cue', label: 'Cue', choices, default: defaultCue }], callback: async event => this.#cueCommand('out', String(event.options.cue)) },
       animate_clear: { name: 'Animate out', description: 'Animate the currently requested graphic out, regardless of which cue it is.', options: [], callback: async () => this.#command('clear') },
       clear_now: { name: 'Clear now', description: 'Immediately cancel animation and clear the graphics output.', options: [], callback: async () => this.#command('cut') },
@@ -205,16 +238,16 @@ export default class CrcOverlaysInstance extends InstanceBase<Manifest> {
     const defaultCue = this.#catalog.cues[0]?.id ?? FALLBACK_CUES[0]!.id
     const feedbacks: CompanionFeedbackDefinitions<Manifest['feedbacks']> = {
       requested: { type: 'boolean', name: 'Cue requested', description: 'The API accepted this desired state; it does not prove rendering.', defaultStyle: { bgcolor: combineRgb(180, 110, 0), color: combineRgb(255, 255, 255) }, options: [{ type: 'dropdown', id: 'cue', label: 'Cue', choices: targets, default: defaultCue }], callback: event => String(event.options.cue || '') === (this.#snapshot?.cue ?? '') },
-      rendered: { type: 'boolean', name: 'Cue rendered', description: 'A connected graphics browser reports this exact requested revision settled. Not an on-air/tally signal.', defaultStyle: { bgcolor: combineRgb(0, 130, 70), color: combineRgb(255, 255, 255) }, options: [{ type: 'dropdown', id: 'cue', label: 'Cue', choices: targets, default: defaultCue }], callback: event => { const state = deriveFeedback(this.#snapshot, this.#transportConnected, this.#presenceReceivedAt); return state.rendered && String(event.options.cue || '') === (this.#snapshot?.cue ?? '') } },
-      disconnected: { type: 'boolean', name: 'Realtime or renderer disconnected', description: 'The realtime subscription is closed or no graphics browser presence has arrived for 30 seconds.', defaultStyle: { bgcolor: combineRgb(175, 0, 0), color: combineRgb(255, 255, 255) }, options: [], callback: () => deriveFeedback(this.#snapshot, this.#transportConnected, this.#presenceReceivedAt).disconnected },
+      rendered: { type: 'boolean', name: 'Cue rendered', description: 'A connected graphics browser reports this exact requested revision settled. Not an on-air/tally signal.', defaultStyle: { bgcolor: combineRgb(0, 130, 70), color: combineRgb(255, 255, 255) }, options: [{ type: 'dropdown', id: 'cue', label: 'Cue', choices: targets, default: defaultCue }], callback: event => { const state = this.#feedbackState(); return state.rendered && String(event.options.cue || '') === (this.#snapshot?.cue ?? '') } },
+      disconnected: { type: 'boolean', name: 'Realtime or renderer disconnected', description: 'The realtime subscription is closed or no graphics browser presence has arrived for 30 seconds.', defaultStyle: { bgcolor: combineRgb(175, 0, 0), color: combineRgb(255, 255, 255) }, options: [], callback: () => this.#feedbackState().disconnected },
     }
     this.setFeedbackDefinitions(feedbacks)
   }
   #definePresets(): void {
     const presets: CompanionPresetDefinitions<Manifest> = {}
     for (const cue of visibleCatalogCues(this.#catalog.cues)) presets[cuePresetId(cue.id)] = {
-      type: 'simple', name: `Show ${cue.name}`, style: { text: cue.name, size: '14', color: combineRgb(255, 255, 255), bgcolor: combineRgb(35, 35, 35) },
-      steps: [{ down: [{ actionId: 'show_cue', options: { cue: cue.id } }], up: [] }],
+      type: 'simple', name: `Toggle ${cue.name}`, style: { text: cue.name, size: '14', color: combineRgb(255, 255, 255), bgcolor: combineRgb(35, 35, 35) },
+      steps: [{ down: [{ actionId: 'toggle_cue', options: { cue: cue.id } }], up: [] }],
       feedbacks: [
         { feedbackId: 'requested', options: { cue: cue.id }, style: { bgcolor: combineRgb(180, 110, 0) } },
         { feedbackId: 'rendered', options: { cue: cue.id }, style: { bgcolor: combineRgb(0, 130, 70) } },
