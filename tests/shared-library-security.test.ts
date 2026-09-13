@@ -45,3 +45,20 @@ test('redirects and failures never move the import secret and fall back only to 
  const client=new SharedLibraryClient({WORKSPACE_ID:TBI_WORKSPACE_ID,CRC_SHARED_LIBRARY_URL:'https://crc.example.test/api/shared-library',SHARED_LIBRARY_IMPORT_KEY:IMPORT_KEY},fetcher as typeof fetch);const fresh=await client.get();assert.equal(fresh.available,true);const stale=await client.get(true);assert.equal(stale.available,true);if(stale.available)assert.equal(stale.stale,true);assert.deepEqual(observations.map(item=>item.url),['https://crc.example.test/api/shared-library','https://crc.example.test/api/shared-library']);assert.ok(observations.every(item=>item.authorization===`Bearer ${IMPORT_KEY}`&&item.redirect==='error'));
  const coldFailure=new SharedLibraryClient({WORKSPACE_ID:TBI_WORKSPACE_ID,CRC_SHARED_LIBRARY_URL:'https://crc.example.test/api/shared-library',SHARED_LIBRARY_IMPORT_KEY:IMPORT_KEY},(async()=>new Response(null,{status:503})) as typeof fetch);assert.equal((await coldFailure.get()).available,false);
 });
+
+// Rehearsal runs a local CRC on another port, so the import URL may be loopback http there and
+// nowhere else. The allowance is decided by the same rehearsal gate the storage layer uses.
+test('a loopback http CRC library is refused off rehearsal and accepted on it',async()=>{
+ let calls=0;const fetcher=async()=>{calls++;return new Response(null,{status:500})};
+ const rehearsal={CRC_AUTHORING_REHEARSAL:'1',NODE_ENV:'development'} as const;
+ const base={WORKSPACE_ID:TBI_WORKSPACE_ID,SHARED_LIBRARY_IMPORT_KEY:IMPORT_KEY};
+ for(const url of ['http://127.0.0.1:5175/api/shared-library','http://localhost:5175/api/shared-library']){
+  assert.equal(new SharedLibraryClient({...base,CRC_SHARED_LIBRARY_URL:url},fetcher as typeof fetch).configured(),false,'plain process');
+  assert.equal(new SharedLibraryClient({...base,...rehearsal,NODE_ENV:'production',CRC_SHARED_LIBRARY_URL:url},fetcher as typeof fetch).configured(),false,'production');
+  assert.equal(new SharedLibraryClient({...base,...rehearsal,VERCEL:'1',CRC_SHARED_LIBRARY_URL:url},fetcher as typeof fetch).configured(),false,'vercel');
+  assert.equal(new SharedLibraryClient({...base,...rehearsal,RELAY_URL:'https://relay.example.test',CRC_SHARED_LIBRARY_URL:url},fetcher as typeof fetch).configured(),false,'live relay');
+  assert.equal(new SharedLibraryClient({...base,...rehearsal,CRC_SHARED_LIBRARY_URL:url},fetcher as typeof fetch).configured(),true,'rehearsal');
+ }
+ for(const url of ['http://crc.example.test/api/shared-library','http://127.0.0.1/api/shared-library','http://127.0.0.1.attacker.example.test:5175/api/shared-library'])assert.equal(new SharedLibraryClient({...base,...rehearsal,CRC_SHARED_LIBRARY_URL:url},fetcher as typeof fetch).configured(),false,url);
+ assert.equal(calls,0);
+});

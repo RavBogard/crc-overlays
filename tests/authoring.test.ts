@@ -4,6 +4,9 @@ import {AuthoringError,baselineCues,buildCue,editableFromBaseline,sourcePack,typ
 import {MemoryAuthoringRepository,authoringRepositoryMode,createAuthoringService,type AuthoringWorkspace,type Revision} from '../lib/authoring.ts';
 import {exceedsOnePanel} from '../lib/panel-budget.ts';
 import type {BookUnitsResult} from '../app/author/types.ts';
+import {newDraftId,sourcePinFor} from '../lib/authoring-model.ts';
+import {buildSharedLibraryPayload,type SharedLibrarySnapshot} from '../lib/shared-library.ts';
+import type {SharedCompareResult,SharedShelfList} from '../app/author/types.ts';
 
 const BARECHU='efa9fad4-f7d5-4091-a708-82103028861b';
 const LEFT_PANEL='bbd7c98b-f1de-41ee-9719-2bb27a30d0db';
@@ -263,4 +266,91 @@ test('the editor panel budget agrees with the server prayer split',async()=>{
  assert.equal(exceedsOnePanel(all.slice(0,2),'bilingual','bottom'),true);
  const bottom=await service.operation('create_source_draft_set',{sourceId:KOL_NIDRE,mode:'bilingual',layout:'bottom',templateCueId:BARECHU},'tester') as DraftSetResult;
  for(const draft of bottom.drafts)assert.equal(exceedsOnePanel(blocksOf(draft),'bilingual','bottom'),false);
+});
+
+// The CRC shelf, end to end against the real service: a synthetic CRC graphic, a fake feed,
+// and the three things a person needs the shelf to say.
+const crcPublished=(overrides:Partial<Draft>={}):Draft=>{
+ const editable=editableFromBaseline(BARECHU);const now=Date.now();
+ return {...editable,id:newDraftId(),version:1,sourcePin:sourcePinFor(editable.content),activeRevision:1,activeDraftVersion:1,createdAt:now,updatedAt:now,createdBy:'crc-editor',updatedBy:'crc-editor',...overrides};
+};
+
+test('the CRC shelf says what is new, what TBI already has, and what CRC changed since',async()=>{
+ const crcDraft=crcPublished({name:'CRC Barechu',title:'Barechu'});const cue=buildCue(crcDraft);
+ let payload=buildSharedLibraryPayload({cues:[cue],version:'crc-v1'});
+ const repo=new MemoryAuthoringRepository();const tbi=createAuthoringService(repo,undefined,{get:async()=>({available:true,configured:true,stale:false,refreshedAt:1,payload}) as SharedLibrarySnapshot});
+ const first=await tbi.operation('list_shared_library',{},'simone') as SharedShelfList;
+ assert.equal(first.cues.length,1);assert.equal(first.cues[0].state,'new');assert.deepEqual(first.cues[0].local.drafts,[]);assert.equal(first.cues[0].set,undefined);
+
+ const copied=await tbi.operation('customize_shared_cue',{cueId:cue.id,expectedCueHash:payload.cues[0].cueHash,name:'TBI Barechu'},'simone') as DraftResult;
+ assert.equal(copied.draft.name,'TBI Barechu');assert.equal(copied.draft.activeRevision,null);
+ assert.ok(copied.draft.sharedFrom!.importedAt);assert.equal(copied.draft.sharedFrom!.upstream!.texts.textTitle,cue.texts.textTitle);
+ const afterCopy=await tbi.operation('list_shared_library',{},'simone') as SharedShelfList;
+ assert.equal(afterCopy.cues[0].state,'customized');assert.deepEqual(afterCopy.cues[0].local.drafts.map(draft=>draft.id),[copied.draft.id]);
+
+ const edited=await tbi.operation('update_draft',{draftId:copied.draft.id,expectedVersion:1,patch:{title:'TBI wording'}},'simone') as DraftResult;
+ assert.equal(edited.draft.title,'TBI wording');const settled=structuredClone(edited.draft);
+
+ // CRC republishes the same graphic with different Hebrew. Nothing local may move.
+ const republished=structuredClone(cue);republished.texts.textMainheb=`${republished.texts.textMainheb} ׃`;
+ payload=buildSharedLibraryPayload({cues:[republished],version:'crc-v2'});
+ assert.notEqual(payload.cues[0].cueHash,copied.draft.sharedFrom!.cueHash);
+ const stale=await tbi.operation('list_shared_library',{},'simone') as SharedShelfList;
+ assert.equal(stale.cues[0].state,'updated');assert.equal(stale.cues[0].local.drafts[0].cueHash,copied.draft.sharedFrom!.cueHash);
+ assert.deepEqual(await repo.getDraft(copied.draft.id),settled,'a CRC change never rewrites the local graphic');
+
+ const comparison=await tbi.operation('compare_shared_cue',{cueId:cue.id,draftId:copied.draft.id},'simone') as SharedCompareResult;
+ assert.equal(comparison.beforeAvailable,true);assert.deepEqual(comparison.changed,{wording:true,layout:false,presentation:false});
+ assert.ok(comparison.lines.some(line=>line.changed));assert.equal(comparison.after.texts.textMainheb,republished.texts.textMainheb);
+
+ const second=await tbi.operation('customize_shared_cue',{cueId:cue.id,expectedCueHash:payload.cues[0].cueHash},'simone') as DraftResult;
+ assert.notEqual(second.draft.id,copied.draft.id);
+ const both=await tbi.operation('list_shared_library',{},'simone') as SharedShelfList;
+ assert.equal(both.cues[0].state,'customized');assert.equal(both.cues[0].local.drafts.length,2);
+ await assert.rejects(tbi.operation('customize_shared_cue',{cueId:cue.id,expectedCueHash:copied.draft.sharedFrom!.cueHash},'simone'),(error)=>(error as AuthoringError).code==='shared_cue_changed');
+});
+
+test('a graphic copied before origin wording was recorded compares without a before',async()=>{
+ const crcDraft=crcPublished({name:'CRC Barechu',title:'Barechu'});const cue=buildCue(crcDraft);
+ const payload=buildSharedLibraryPayload({cues:[cue],version:'crc-v1'});
+ const repo=new MemoryAuthoringRepository();const tbi=createAuthoringService(repo,undefined,{get:async()=>({available:true,configured:true,stale:false,refreshedAt:1,payload}) as SharedLibrarySnapshot});
+ // Copies made before the shelf recorded origin wording carry no upstream snapshot.
+ const legacy=crcPublished({name:'TBI Barechu (historical copy)',activeRevision:null,activeDraftVersion:null,sharedFrom:{workspaceId:'crc',cueId:cue.id,cueHash:payload.cues[0].cueHash}});
+ await repo.insertDraft(legacy);
+ const comparison=await tbi.operation('compare_shared_cue',{cueId:cue.id,draftId:legacy.id},'simone') as SharedCompareResult;
+ assert.equal(comparison.beforeAvailable,false);assert.equal(comparison.before,null);assert.deepEqual(comparison.lines,[]);
+ assert.deepEqual(comparison.changed,{wording:false,layout:false,presentation:false});
+ assert.equal(comparison.after.texts.textTitle,cue.texts.textTitle);
+ assert.equal((await tbi.operation('list_shared_library',{},'simone') as SharedShelfList).cues[0].state,'customized');
+});
+
+test('a CRC whole prayer copies into TBI as one multipart graphic, all of it or none',async()=>{
+ const setId='crc-whole-prayer-set';
+ const members=[1,2].map(index=>crcPublished({name:`CRC Adon Olam — 0${index} of 02`,title:'Adon Olam',draftSetId:setId,setIndex:index,setCount:2}));
+ const payload=buildSharedLibraryPayload({cues:members.map(draft=>buildCue(draft)),version:'crc-set'},members);
+ const snapshot={available:true,configured:true,stale:false,refreshedAt:1,payload} as SharedLibrarySnapshot;
+ const tbi=createAuthoringService(new MemoryAuthoringRepository(),undefined,{get:async()=>snapshot});
+ const expectedCueHashes=Object.fromEntries(payload.cues.map(entry=>[entry.id,entry.cueHash]));
+ await assert.rejects(tbi.operation('customize_shared_set',{setId,expectedCueHashes:{...expectedCueHashes,[payload.cues[0].id]:'0'.repeat(64)}},'simone'),(error)=>(error as AuthoringError).code==='shared_cue_changed');
+ assert.deepEqual((await tbi.operation('list_drafts',{},'simone') as ListDraftsResult).drafts,[],'a refused copy writes nothing');
+ const result=await tbi.operation('customize_shared_set',{setId,expectedCueHashes},'simone') as DraftSetResult;
+ assert.equal(result.drafts.length,2);assert.equal(result.set.count,2);assert.equal(result.set.name,'Adon Olam');
+ assert.equal(new Set(result.drafts.map(draft=>draft.draftSetId)).size,1);
+ assert.notEqual(result.drafts[0].draftSetId,setId,'TBI owns its own set id');
+ assert.deepEqual(result.drafts.map(draft=>draft.setIndex),[1,2]);
+ assert.deepEqual(result.drafts.map(draft=>draft.sharedFrom!.cueId),payload.cues.map(entry=>entry.id));
+ assert.ok(result.drafts.every(draft=>draft.setCount===2&&draft.draftSetManifest&&draft.activeRevision===null));
+ const list=await tbi.operation('list_shared_library',{},'simone') as SharedShelfList;
+ assert.ok(list.cues.every(entry=>entry.state==='customized'&&entry.set!.id===setId&&entry.set!.count===2));
+ assert.deepEqual(list.cues.map(entry=>entry.set!.index),[1,2]);
+});
+
+test('an unavailable CRC library leaves the shelf empty and local authoring untouched',async()=>{
+ const unavailable={available:false,configured:true,stale:false,error:'CRC library is temporarily unavailable.'} as SharedLibrarySnapshot;
+ const tbi=createAuthoringService(new MemoryAuthoringRepository(),undefined,{get:async()=>unavailable});
+ const list=await tbi.operation('list_shared_library',{},'simone') as {available:boolean};
+ assert.equal(list.available,false);
+ await assert.rejects(tbi.operation('customize_shared_set',{setId:'anything',expectedCueHashes:{a:'0'.repeat(64)}},'simone'),(error)=>(error as AuthoringError).code==='shared_library_unavailable');
+ const local=await tbi.operation('create_draft',editableFromBaseline(BARECHU),'simone') as DraftResult;
+ assert.ok(local.draft.id);
 });

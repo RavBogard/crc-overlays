@@ -26,7 +26,13 @@ export type EnglishRole='translation'|'interpretation'|'translation-interpretati
 export type SourceBlock={id:string;index:number;kind:'bilingual'|'original-en'|'source-en'|'translation-en';pairedBlockIds?:string[];parallelBlockIds?:string[];he?:string;tr?:string;en?:string;role?:'original';englishRole?:EnglishRole;automatic?:boolean;noteLike?:boolean;sourceLabel?:string;sourceBlockSha256:string};
 export type AuthoringSource={id:string;name:string;section:string|number|null;unitSha256:string;blocks:SourceBlock[];origin?:string;sourceSha256?:string;book?:string;service?:string;aliases?:string[];openingWords?:string[];metadata?:Record<string,unknown>;authority?:{id:string;repository:string;repositoryCommit:string;feed:string;feedSha256:string;unitId:string;unitSha256:string}};
 export type SharedCueCopySpec=EditableDraft&{sourcePin:SourcePin;sourceSnapshots?:AuthoringSource[]};
-export type SharedCueOrigin={workspaceId:'crc';cueId:string;cueHash:string};
+/**
+ * What a TBI graphic remembers about the CRC graphic it was copied from. `upstream` is the
+ * CRC wording as it read at import — a few KB — so a later CRC change can be shown
+ * side by side without keeping a second copy of the whole library.
+ */
+export type SharedCueUpstream={layout:Layout;texts:Record<string,string>;contentRows?:Cue['contentRows'];presentation?:Presentation};
+export type SharedCueOrigin={workspaceId:'crc';cueId:string;cueHash:string;importedAt?:number;upstream?:SharedCueUpstream};
 export type DraftSetSelection={sourceId:string;blockId:string;channels:VariantChannel[]};
 export type DraftSetManifest={version:1;selections:DraftSetSelection[]};
 export type Draft=EditableDraft&{id:string;version:number;sourcePin:SourcePin;activeRevision:number|null;activeDraftVersion:number|null;createdAt:number;updatedAt:number;createdBy:string;updatedBy:string;draftSetId?:string;setIndex?:number;setCount?:number;draftSetManifest?:DraftSetManifest;sourceSnapshots?:AuthoringSource[];sharedFrom?:SharedCueOrigin;archivedAt?:number;archivedBy?:string};

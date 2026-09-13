@@ -11,13 +11,13 @@ const env={WORKSPACE_ID:TBI_WORKSPACE_ID,CRC_SHARED_LIBRARY_URL:'https://crc.exa
 // Real return shapes for authoringOperation('operation', ...), which is typed Promise<unknown> by design
 // (its return value depends on the string `operation` name). These narrow just the fields these tests read.
 type DraftResult={draft:Draft};
-type SharedLibraryListEntry={id:string;name:string;title:string;layout:string;sourceIds:string[];cueHash:string};
+type SharedLibraryListEntry={id:string;name:string;title:string;layout:string;sourceIds:string[];cueHash:string;state:string;set?:{id:string;index:number;count:number;title:string};local:{starterCueId?:string;drafts:{id:string;name:string;activeRevision:number|null;cueHash:string}[]}};
 type SharedLibraryListAvailable={available:true;configured:true;stale:boolean;refreshedAt:number;total:number;truncated:boolean;cues:SharedLibraryListEntry[]};
 type SharedLibraryUnavailable=Extract<SharedLibrarySnapshot,{available:false}>;
 type SharedCuePreview={available:true;configured:true;stale:boolean;refreshedAt:number;cueHash:string;cue:AuthoringCue};
 
 test('CRC export contains every visible published baseline and only required source snapshots',()=>{
- const visible=baselineCues.filter(cue=>!cue.hidden);const payload=buildSharedLibraryPayload({cues:baselineCues,version:'catalog-v1'},1234);
+ const visible=baselineCues.filter(cue=>!cue.hidden);const payload=buildSharedLibraryPayload({cues:baselineCues,version:'catalog-v1'},[],1234);
  assert.equal(payload.schemaVersion,1);assert.equal(payload.sourceWorkspace,'crc');assert.equal(payload.generatedAt,1234);assert.equal(payload.cues.length,visible.length);assert.ok(payload.sources.length>0);assert.ok(Buffer.byteLength(JSON.stringify(payload))<SHARED_LIBRARY_MAX_BYTES);
  const thankYou=payload.cues.find(entry=>entry.name==='Thank you')!;assert.equal(thankYou.copySpec.content.mode,'custom');assert.deepEqual(thankYou.sourceIds,[]);
  const sourceIds=new Set(payload.sources.map(source=>source.id));assert.ok(payload.cues.every(entry=>entry.sourceIds.every(id=>sourceIds.has(id))));
@@ -70,4 +70,41 @@ test('an unavailable CRC library does not disrupt local TBI authoring',async()=>
  const list=await service.operation('list_shared_library',{},'simone') as SharedLibraryUnavailable;assert.equal(list.available,false);
  await assert.rejects(service.operation('customize_shared_cue',{cueId:BARECHU,expectedCueHash:'0'.repeat(64)},'simone'),(error)=>(error as AuthoringError).code==='shared_library_unavailable');
  const editable=editableFromBaseline(BARECHU);const local=await service.operation('create_draft',editable,'simone') as DraftResult;assert.ok(local.draft.id);
+});
+
+// A CRC whole prayer is one graphic to the person who made it. It has to arrive at TBI as one
+// thing too, so the export carries the set each published member belongs to.
+test('a published CRC set exports its members with their set, and single graphics carry none',()=>{
+ const editable=editableFromBaseline(BARECHU);const setId='2f2b6a9c-set';const now=Date.now();
+ const members:Draft[]=[1,2,3].map(index=>({...editable,name:`Adon Olam — 0${index} of 03`,title:'Adon Olam',id:newDraftId(),version:1,sourcePin:sourcePinFor(editable.content),activeRevision:1,activeDraftVersion:1,createdAt:now,updatedAt:now,createdBy:'crc',updatedBy:'crc',draftSetId:setId,setIndex:index,setCount:3}));
+ const cues=members.map(draft=>buildCue(draft));
+ // Reversed on purpose: the set a cue belongs to is looked up by id, never by position.
+ const payload=buildSharedLibraryPayload({cues,version:'set-export'},[...members].reverse());
+ assert.deepEqual(payload.cues.map(entry=>entry.set!.index),[1,2,3]);
+ assert.ok(payload.cues.every(entry=>entry.set!.id===setId&&entry.set!.count===3&&entry.set!.title==='Adon Olam'));
+ const baseline=buildSharedLibraryPayload({cues:baselineCues,version:'catalog-v1'});
+ assert.ok(baseline.cues.every(entry=>entry.set===undefined),'baseline graphics belong to no set');
+ assert.ok(baseline.cues.length>0);
+});
+
+test('an unpublished draft set never leaks into the export through its set fields',()=>{
+ const editable=editableFromBaseline(BARECHU);const now=Date.now();
+ const unpublished:Draft={...editable,name:'Never published',id:newDraftId(),version:1,sourcePin:sourcePinFor(editable.content),activeRevision:null,activeDraftVersion:null,createdAt:now,updatedAt:now,createdBy:'crc',updatedBy:'crc',draftSetId:'unpublished-set',setIndex:1,setCount:1};
+ const payload=buildSharedLibraryPayload({cues:baselineCues,version:'catalog-v1'},[unpublished]);
+ assert.equal(payload.cues.some(entry=>entry.id===unpublished.id),false);
+ assert.ok(payload.cues.every(entry=>entry.set===undefined));
+});
+
+test('the TBI client accepts CRC payloads both with and without set information',async()=>{
+ const editable=editableFromBaseline(BARECHU);const now=Date.now();
+ const member:Draft={...editable,name:'Adon Olam — 01 of 01',title:'Adon Olam',id:newDraftId(),version:1,sourcePin:sourcePinFor(editable.content),activeRevision:1,activeDraftVersion:1,createdAt:now,updatedAt:now,createdBy:'crc',updatedBy:'crc',draftSetId:'compat-set',setIndex:1,setCount:1};
+ const withSet=buildSharedLibraryPayload({cues:[buildCue(member)],version:'with-set'},[member]);
+ assert.ok(withSet.cues[0].set);
+ const withoutSet=buildSharedLibraryPayload({cues:[buildCue(member)],version:'without-set'});
+ assert.equal(withoutSet.cues[0].set,undefined);
+ for(const payload of [withSet,withoutSet]){
+  const client=new SharedLibraryClient(env,(async()=>Response.json(payload)) as typeof fetch);
+  const snapshot=await client.get();assert.equal(snapshot.available,true);
+  if(snapshot.available)assert.equal(snapshot.payload.cues[0].set?.id,payload.cues[0].set?.id);
+ }
 });

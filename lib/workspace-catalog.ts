@@ -21,3 +21,12 @@ export function baselineCatalogForWorkspace(workspaceId=process.env.WORKSPACE_ID
  if(workspaceId===tbiMapping.destinationWorkspace)return mappedCatalog(tbiMapping.items,tbiMapping.destinationWorkspace,tbiMapping.starterCollectionId,tbiMapping.preparedAt);
  throw new Error(`No baseline catalog is configured for workspace ${workspaceId}`);
 }
+
+/**
+ * The CRC graphic each of this workspace's starter graphics was copied from
+ * (sourceCueId → destinationCueId). CRC itself has no starters, so its map is empty.
+ */
+export function starterSourceMap(workspaceId=process.env.WORKSPACE_ID?.trim().toLowerCase()||'crc'):Map<string,string>{
+ if(workspaceId===tbiMapping.destinationWorkspace)return new Map(tbiMapping.items.map(item=>[item.sourceCueId,item.destinationCueId]));
+ return new Map();
+}

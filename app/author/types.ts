@@ -206,3 +206,62 @@ export type DraftForm = {
   variantOverrides: LocalVariantOverride[];
   presentation: Presentation;
 };
+
+/** Where one CRC graphic stands in this workspace: never taken, taken and current, or changed upstream since. */
+export type SharedShelfState = "new" | "updated" | "customized";
+/** A CRC whole prayer travels as N graphics that name the same set. */
+export type SharedShelfSetRef = { id: string; index: number; count: number; title: string };
+/** What this workspace already holds for one CRC graphic (`list_shared_library`). */
+export type SharedShelfLocal = {
+  starterCueId?: string;
+  drafts: { id: string; name: string; activeRevision: number | null; cueHash: string }[];
+};
+/** One row of the CRC shelf, as `list_shared_library` returns it. */
+export type SharedShelfEntry = {
+  id: string;
+  name: string;
+  title: string;
+  layout: string;
+  sourceIds: string[];
+  cueHash: string;
+  state: SharedShelfState;
+  set?: SharedShelfSetRef;
+  local: SharedShelfLocal;
+};
+export type SharedShelfList = {
+  available: true;
+  configured: true;
+  stale: boolean;
+  refreshedAt: number;
+  total: number;
+  truncated: boolean;
+  cues: SharedShelfEntry[];
+};
+/** The CRC wording a graphic was copied from, and the CRC wording now. */
+export type SharedUpstreamSnapshot = {
+  layout: Layout;
+  texts: Record<string, string>;
+  contentRows?: { he: string; tr: string; en: string }[];
+  presentation?: Presentation;
+};
+export type SharedCompareLine = { before?: string; after?: string; changed: boolean };
+/** `compare_shared_cue`. `beforeAvailable` is false for graphics copied before origin wording was recorded. */
+export type SharedCompareResult = {
+  available: true;
+  configured: true;
+  stale: boolean;
+  refreshedAt: number;
+  cueHash: string;
+  draftId: string;
+  beforeAvailable: boolean;
+  before: SharedUpstreamSnapshot | null;
+  after: SharedUpstreamSnapshot;
+  changed: { wording: boolean; layout: boolean; presentation: boolean };
+  lines: SharedCompareLine[];
+};
+/** `customize_shared_set`: one CRC whole prayer copied into one new multipart draft. */
+export type CustomizeSharedSetResult = {
+  drafts: Draft[];
+  set: { id: string; name: string; count: number; draftIds: string[] };
+  sharedFrom: ({ workspaceId: string; cueId: string; cueHash: string } | undefined)[];
+};

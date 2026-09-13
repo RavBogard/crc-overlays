@@ -1,13 +1,14 @@
 import {randomUUID} from 'node:crypto';
 import type {Cue} from './player';
-import {AuthoringError,assertSourcePin,baselineCues,buildCue,cueHash,draftSetSelections,editableFromBaseline,newDraftId,normalizeGraphicName,parseEditable,previewValidation,sameStructuredValue,sourceBlockFor,sourcePack,sourcePinFor,sourceReferences,sourceSnapshotsFor,type AuthoringCue,type Draft,type DraftContent,type DraftSetSelection,type EditableDraft,type Layout,type LocalVariantOverride,type VariantChannel,type SourceBlock} from './authoring-model';
+import {AuthoringError,assertSourcePin,baselineCues,buildCue,cueHash,draftSetSelections,editableFromBaseline,newDraftId,normalizeGraphicName,parseEditable,previewValidation,sameStructuredValue,sourceBlockFor,sourcePack,sourcePinFor,sourceReferences,sourceSnapshotsFor,type AuthoringCue,type Draft,type DraftContent,type DraftSetSelection,type EditableDraft,type Layout,type LocalVariantOverride,type VariantChannel,type SourceBlock,type SharedCueUpstream} from './authoring-model';
 import {layoutLabel} from './layout-label';
 // One source of truth for how much liturgy one panel holds, shared with the editor so a
 // selection warning and a server split can never disagree.
 import {PANEL_BLOCK_LIMIT,blockCharacters,panelCharacterBudget} from './panel-budget';
-import {baselineCatalogForWorkspace} from './workspace-catalog';
+import {baselineCatalogForWorkspace,starterSourceMap} from './workspace-catalog';
 import {sourceDisplay} from './source-library';
-import {sharedLibraryClient,type SharedLibrarySnapshot} from './shared-library';
+import {sharedCueHash,sharedLibraryClient,type SharedLibraryEntry,type SharedLibraryPayload,type SharedLibrarySnapshot} from './shared-library';
+import {compareUpstream,groupSets,setState,shelfState} from './shared-shelf';
 import {AssetError,cueAssetId,defaultAssetRepository,importSharedAsset,markCueAssetPublished,type AssetRepository} from './assets';
 import {liveRelayConfigured} from './rehearsal';
 
@@ -100,6 +101,14 @@ export function suggestGraphicName(name:string,layout:string,taken:ReadonlySet<s
  return candidate;
 }
 
+// The CRC wording a shared graphic reads as right now: what a person compares against when
+// CRC republishes. A few KB, so a TBI draft can carry its own copy of what it was taken from.
+export function upstreamSnapshot(cue:Cue):SharedCueUpstream{return {layout:cue.layout as Layout,texts:structuredClone(cue.texts),...(cue.contentRows?{contentRows:structuredClone(cue.contentRows)}:{}),...(cue.presentation?{presentation:structuredClone(cue.presentation)}:{})}}
+// A starter graphic is a private copy of a CRC baseline cue under a workspace-owned id. Its
+// CRC original is the baseline cue it was copied from, hashed the way the CRC feed hashes it,
+// so "CRC changed this" is decided by the same bytes on both sides.
+function starterBaselineHash(starterMap:Map<string,string>){const origins=new Map([...starterMap].map(([source,destination])=>[destination,source]));return (starterCueId:string)=>{const sourceCueId=origins.get(starterCueId);const cue=sourceCueId?baselineCues.find(item=>item.id===sourceCueId):undefined;return cue?sharedCueHash(cue):null}}
+
 export type AuthoringWorkspace={rehearsal:boolean;storage:'memory'|'postgres';label:string|null};
 type SharedLibraryReader={get(force?:boolean):Promise<SharedLibrarySnapshot>};
 export type SharedAssetImporter=(id:string,actor:string)=>Promise<unknown>;
@@ -120,6 +129,15 @@ export function createAuthoringService(repo:AuthoringRepository,workspace:Author
   const publishedNames=new Set(catalogNames.map(cue=>normalizeGraphicName(cue.name)));
   return {draftNames,publishedNames,taken:new Set([...draftNames,...publishedNames])};
  };
+ // One CRC item becomes one unpublished TBI draft. Shared by the single-graphic copy and the
+ // whole-prayer copy so both verify the same source authority, import the same artwork, and
+ // record the same origin - including the CRC wording as it read at that moment.
+ const sharedDraftFromEntry=async(entry:SharedLibraryEntry,payload:SharedLibraryPayload,who:string,name?:string):Promise<Draft>=>{
+  const sourceSnapshots=entry.sourceIds.map(id=>payload.sources.find(source=>source.id===id)).filter((source):source is NonNullable<typeof source>=>Boolean(source)).map(source=>structuredClone(source));if(sourceSnapshots.length!==entry.sourceIds.length)throw new AuthoringError('shared_library_invalid','CRC source snapshots are incomplete',503);
+  const {sourcePin:sharedPin,...sharedEditable}=entry.copySpec;const editable=parseEditable(name?{...sharedEditable,name}:sharedEditable,false,sourceSnapshots) as EditableDraft;const pin=sourcePinFor(editable.content,sourceSnapshots,sharedPin.feedSha256);if(!sameStructuredValue(pin,sharedPin))throw new AuthoringError('shared_library_invalid','CRC source authority could not be verified',503);
+  const sharedAssetId=cueAssetId(entry.cue);if(sharedAssetId)try{await sharedAssetImporter(sharedAssetId,who)}catch(error){if(error instanceof AssetError)throw new AuthoringError(error.code,error.message,error.status);throw error}
+  const now=Date.now();const draft:Draft={...editable,id:newDraftId(),version:1,sourcePin:pin,activeRevision:null,activeDraftVersion:null,createdAt:now,updatedAt:now,createdBy:who,updatedBy:who,...(sourceSnapshots.length?{sourceSnapshots}:{}),sharedFrom:{workspaceId:'crc',cueId:entry.id,cueHash:entry.cueHash,importedAt:now,upstream:upstreamSnapshot(entry.cue)}};assertSourcePin(draft);return draft;
+ };
  const duplicateNameWarnings=async(draft:Draft):Promise<DuplicateNameWarning[]>=>{
   const {taken}=await libraryNames(draft.id);
   return taken.has(normalizeGraphicName(draft.name))?[{code:'duplicate-name',suggestedName:suggestGraphicName(draft.name,draft.layout,taken)}]:[];
@@ -129,17 +147,42 @@ export function createAuthoringService(repo:AuthoringRepository,workspace:Author
   if(operation==='get_workspace'){keys(data,[]);return {workspace};}
   if(operation==='list_shared_library'){
    keys(data,['query','limit','refresh']);const query=normalized(optionalString(data.query,'query',100));const limit=data.limit===undefined?1000:integer(data.limit,'limit',1,1000);if(data.refresh!==undefined&&typeof data.refresh!=='boolean')throw new AuthoringError('invalid_input','refresh must be boolean');const snapshot=await shared.get(data.refresh===true);
-   if(!snapshot.available)return snapshot;const matches=snapshot.payload.cues.filter(entry=>!query||normalized([entry.name,entry.title].join(' ')).includes(query));const cues=matches.slice(0,limit).map(({id,name,title,layout,sourceIds,cueHash})=>({id,name,title,layout,sourceIds,cueHash}));return {available:true,configured:true,stale:snapshot.stale,refreshedAt:snapshot.refreshedAt,total:matches.length,truncated:cues.length<matches.length,cues};
+   if(!snapshot.available)return snapshot;
+   // One read of the drafts table answers the whole shelf: what is already here, what CRC has
+   // changed since, and which starter graphic each item corresponds to. Nothing here writes.
+   const starterMap=starterSourceMap();const states=shelfState(snapshot.payload.cues,await repo.listDrafts(),starterMap,starterBaselineHash(starterMap));
+   const setStates=new Map(groupSets(snapshot.payload.cues).map(set=>[set.id,setState(set.entries.map(entry=>states.get(entry.id)!.state))]));
+   const matches=snapshot.payload.cues.filter(entry=>!query||normalized([entry.name,entry.title].join(' ')).includes(query));
+   const cues=matches.slice(0,limit).map(entry=>{const shelf=states.get(entry.id)!;return {id:entry.id,name:entry.name,title:entry.title,layout:entry.layout,sourceIds:entry.sourceIds,cueHash:entry.cueHash,state:(entry.set&&setStates.get(entry.set.id))||shelf.state,...(entry.set?{set:{...entry.set}}:{}),local:shelf.local}});
+   return {available:true,configured:true,stale:snapshot.stale,refreshedAt:snapshot.refreshedAt,total:matches.length,truncated:cues.length<matches.length,cues};
   }
   if(operation==='preview_shared_cue'){
    keys(data,['cueId','refresh']);const cueId=string(data.cueId,'cueId',160);if(data.refresh!==undefined&&typeof data.refresh!=='boolean')throw new AuthoringError('invalid_input','refresh must be boolean');const snapshot=await shared.get(data.refresh===true);if(!snapshot.available)return snapshot;const entry=snapshot.payload.cues.find(item=>item.id===cueId);if(!entry)throw new AuthoringError('unknown_shared_cue','This CRC library item is no longer available',404);const sharedAssetId=cueAssetId(entry.cue);if(sharedAssetId)try{await sharedAssetImporter(sharedAssetId,who)}catch(error){if(error instanceof AssetError)throw new AuthoringError(error.code,error.message,error.status);throw error}return {available:true,configured:true,stale:snapshot.stale,refreshedAt:snapshot.refreshedAt,cueHash:entry.cueHash,cue:structuredClone(entry.cue)};
   }
   if(operation==='customize_shared_cue'){
-   keys(data,['cueId','expectedCueHash']);const cueId=string(data.cueId,'cueId',160);const expectedCueHash=string(data.expectedCueHash,'expectedCueHash',64);if(!/^[a-f0-9]{64}$/.test(expectedCueHash))throw new AuthoringError('invalid_input','expectedCueHash must be a SHA-256 hash');const snapshot=await shared.get();if(!snapshot.available)throw new AuthoringError('shared_library_unavailable',snapshot.error,503);const entry=snapshot.payload.cues.find(item=>item.id===cueId);if(!entry)throw new AuthoringError('unknown_shared_cue','This CRC library item is no longer available',404);if(entry.cueHash!==expectedCueHash)throw new AuthoringError('shared_cue_changed','This CRC graphic changed after you opened it. Refresh the CRC library and review the current version before customizing.',409);
-   const sourceSnapshots=entry.sourceIds.map(id=>snapshot.payload.sources.find(source=>source.id===id)).filter((source):source is NonNullable<typeof source>=>Boolean(source)).map(source=>structuredClone(source));if(sourceSnapshots.length!==entry.sourceIds.length)throw new AuthoringError('shared_library_invalid','CRC source snapshots are incomplete',503);
-   const {sourcePin:sharedPin,...sharedEditable}=entry.copySpec;const editable=parseEditable(sharedEditable,false,sourceSnapshots) as EditableDraft;const pin=sourcePinFor(editable.content,sourceSnapshots,sharedPin.feedSha256);if(!sameStructuredValue(pin,sharedPin))throw new AuthoringError('shared_library_invalid','CRC source authority could not be verified',503);
-   const sharedAssetId=cueAssetId(entry.cue);if(sharedAssetId)try{await sharedAssetImporter(sharedAssetId,who)}catch(error){if(error instanceof AssetError)throw new AuthoringError(error.code,error.message,error.status);throw error}
-   const now=Date.now();const draft:Draft={...editable,id:newDraftId(),version:1,sourcePin:pin,activeRevision:null,activeDraftVersion:null,createdAt:now,updatedAt:now,createdBy:who,updatedBy:who,...(sourceSnapshots.length?{sourceSnapshots}:{}),sharedFrom:{workspaceId:'crc',cueId:entry.id,cueHash:entry.cueHash}};assertSourcePin(draft);return {draft:await repo.insertDraft(draft),sharedFrom:draft.sharedFrom};
+   keys(data,['cueId','expectedCueHash','name']);const cueId=string(data.cueId,'cueId',160);const expectedCueHash=string(data.expectedCueHash,'expectedCueHash',64);if(!/^[a-f0-9]{64}$/.test(expectedCueHash))throw new AuthoringError('invalid_input','expectedCueHash must be a SHA-256 hash');const name=optionalString(data.name,'name',80);const snapshot=await shared.get();if(!snapshot.available)throw new AuthoringError('shared_library_unavailable',snapshot.error,503);const entry=snapshot.payload.cues.find(item=>item.id===cueId);if(!entry)throw new AuthoringError('unknown_shared_cue','This CRC library item is no longer available',404);if(entry.cueHash!==expectedCueHash)throw new AuthoringError('shared_cue_changed','This CRC graphic changed after you opened it. Refresh the CRC library and review the current version before customizing.',409);
+   const draft=await sharedDraftFromEntry(entry,snapshot.payload,who,name);return {draft:await repo.insertDraft(draft),sharedFrom:draft.sharedFrom};
+  }
+  // A CRC whole prayer arrives as N graphics that belong together. Copying it takes them all
+  // or none: one insert, one new TBI set, CRC's order preserved.
+  if(operation==='customize_shared_set'){
+   keys(data,['setId','expectedCueHashes']);const setId=string(data.setId,'setId',160);const expected=object(data.expectedCueHashes,'expectedCueHashes');const expectedIds=Object.keys(expected);if(!expectedIds.length||expectedIds.length>200)throw new AuthoringError('invalid_input','expectedCueHashes must name 1-200 graphics');
+   for(const id of expectedIds){const hash=string(expected[id],`expectedCueHashes.${id}`,64);if(!/^[a-f0-9]{64}$/.test(hash))throw new AuthoringError('invalid_input','expectedCueHashes values must be SHA-256 hashes')}
+   const snapshot=await shared.get();if(!snapshot.available)throw new AuthoringError('shared_library_unavailable',snapshot.error,503);
+   const members=snapshot.payload.cues.filter(entry=>entry.set?.id===setId).sort((a,b)=>a.set!.index-b.set!.index);if(!members.length)throw new AuthoringError('unknown_shared_set','This CRC multipart graphic is no longer available',404);
+   if(members.length!==expectedIds.length||members.some(entry=>expected[entry.id]!==entry.cueHash))throw new AuthoringError('shared_cue_changed','This CRC multipart graphic changed after you opened it. Refresh the CRC library and review the current version before customizing.',409);
+   const draftSetId=randomUUID(),count=members.length;const copies:Draft[]=[];for(const [index,entry] of members.entries())copies.push({...await sharedDraftFromEntry(entry,snapshot.payload,who),draftSetId,setIndex:index+1,setCount:count});
+   const draftSetManifest={version:1 as const,selections:copies.flatMap(draft=>draftSetSelections(draft.content,draft.sourceSnapshots))};const drafts=copies.map(draft=>({...draft,draftSetManifest:structuredClone(draftSetManifest)}));
+   const inserted=await repo.insertDraftSet(drafts);return {drafts:inserted,set:{id:draftSetId,name:members[0].set!.title,count,draftIds:inserted.map(draft=>draft.id)},sharedFrom:inserted.map(draft=>draft.sharedFrom)};
+  }
+  // Read-only: what CRC changed since this graphic was copied. `before` is the wording this
+  // draft recorded at import; graphics copied before that was recorded have no before.
+  if(operation==='compare_shared_cue'){
+   keys(data,['cueId','draftId']);const cueId=string(data.cueId,'cueId',160);const draftId=string(data.draftId,'draftId',160);const draft=await requiredDraft(repo,draftId);const snapshot=await shared.get();if(!snapshot.available)return snapshot;
+   const entry=snapshot.payload.cues.find(item=>item.id===cueId);if(!entry)throw new AuthoringError('unknown_shared_cue','This CRC library item is no longer available',404);const after=upstreamSnapshot(entry.cue);const before=draft.sharedFrom?.upstream;
+   const head={available:true,configured:true,stale:snapshot.stale,refreshedAt:snapshot.refreshedAt,cueHash:entry.cueHash,draftId:draft.id};
+   if(!before)return {...head,beforeAvailable:false,before:null,after,changed:{wording:false,layout:false,presentation:false},lines:[]};
+   return {...head,beforeAvailable:true,before:structuredClone(before),after,...compareUpstream(before,after)};
   }
   if(operation==='source_facets'||operation==='list_source_facets'){
    keys(data,[]);return {books:sourceFacets('book'),services:sourceFacets('service')};
