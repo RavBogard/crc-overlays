@@ -1,21 +1,16 @@
-import { branding } from "@/lib/branding";
-
 const WIDTH = 1920;
 const HEIGHT = 1080;
 
 export async function waitForPreviewAssets(root: HTMLElement) {
   await document.fonts.ready;
-  let logo = root.querySelector<HTMLImageElement>("img.logo");
-  if (!logo) {
-    logo = new Image();
-    logo.src = branding.logo;
-  }
+  const logo = root.querySelector<HTMLImageElement>("img.logo");
+  if (!logo) throw Error("The workspace logo did not render.");
   if (!logo.complete)
     await new Promise<void>((resolve, reject) => {
       logo!.addEventListener("load", () => resolve(), { once: true });
       logo!.addEventListener(
         "error",
-        () => reject(Error("The CRC logo could not be loaded.")),
+        () => reject(Error("The workspace logo could not be loaded.")),
         { once: true },
       );
     });
@@ -26,7 +21,7 @@ export async function waitForPreviewAssets(root: HTMLElement) {
   if (document.fonts.status !== "loaded")
     throw Error("The overlay fonts are not ready.");
   if (!logo.complete || !logo.naturalWidth)
-    throw Error("The CRC logo is not ready.");
+    throw Error("The workspace logo is not ready.");
 }
 
 export function findFitErrors(root: HTMLElement) {
@@ -62,7 +57,7 @@ export function findFitErrors(root: HTMLElement) {
   }
   const logo = root.querySelector<HTMLElement>(".overlay .logo");
   if (logo)
-    occupied.push({ name: "CRC logo", box: logo.getBoundingClientRect() });
+    occupied.push({ name: "Workspace logo", box: logo.getBoundingClientRect() });
   const overlap = 2 * scale;
   for (let left = 0; left < occupied.length; left++)
     for (let right = left + 1; right < occupied.length; right++) {

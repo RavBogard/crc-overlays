@@ -1,6 +1,6 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
-import {AuthoringError,buildCue,editableFromBaseline,parseContent,sourcePack,sourcePinFor,type Draft} from '../lib/authoring-model.ts';
+import {AuthoringError,baselineCues,buildCue,editableFromBaseline,parseContent,parseEditable,sourcePack,sourcePinFor,type Draft} from '../lib/authoring-model.ts';
 
 const BARECHU='efa9fad4-f7d5-4091-a708-82103028861b';
 
@@ -59,4 +59,33 @@ test('translated baseline import retains all three source channels',()=>{
  const english=sourcePack.sources.flatMap(s=>s.blocks).find(b=>b.kind==='translation-en')!;
  const prior=english.sourceBlockSha256;
  try{english.sourceBlockSha256='changed';assert.throws(()=>buildCue(draft),/source rebase/)}finally{english.sourceBlockSha256=prior}
+});
+
+test('custom announcements are local, strictly validated, and render without source claims',()=>{
+ const content=parseContent({mode:'custom',text:'  Welcome to tonight’s gathering.  '});
+ assert.deepEqual(content,{mode:'custom',text:'Welcome to tonight’s gathering.'});
+ assert.deepEqual(sourcePinFor(content),{feedSha256:'local',unitSha256:{},blockSha256:{}});
+ assert.throws(()=>parseContent({mode:'custom',text:'Hello',sourceId:'not-allowed'}),/unsupported fields/);
+ assert.throws(()=>parseContent({mode:'custom',text:'   '}),/1-4000 characters/);
+ assert.throws(()=>parseContent({mode:'custom',text:'x'.repeat(4001)}),/1-4000 characters/);
+ const editable=parseEditable({name:'Welcome',title:'Central Reform Congregation',layout:'right',templateCueId:'09f50803-3288-4b78-bcc7-560025668e1a',content,presentation:{}}) as any;
+ const now=Date.now();const draft:Draft={...editable,id:'local-test',version:1,sourcePin:sourcePinFor(content),activeRevision:null,activeDraftVersion:null,createdAt:now,updatedAt:now,createdBy:'test',updatedBy:'test'};
+ const cue=buildCue(draft);
+ assert.equal(cue.texts.textMain,'Welcome to tonight’s gathering.');
+ assert.deepEqual(cue.authoring.sourceIds,[]);
+ assert.equal(cue.authoring.origin,'local');
+ assert.equal(cue.authoring.feedSha256,'local');
+ const split=baselineCues.find(item=>item.animations.some(track=>track.element==='textMainEng')&&!item.animations.some(track=>track.element==='textMain'))!;
+ const splitEditable=parseEditable({name:'Welcome',title:'CRC',layout:split.layout,templateCueId:split.id,content,presentation:{}}) as any;
+ const splitCue=buildCue({...draft,...splitEditable});assert.ok(splitCue.animations.some(track=>track.element==='textMain'),'custom text receives a usable body animation from split-language templates');
+});
+
+test('expanded siddur selections retain their own feed and unit authority pins',()=>{
+ const selected=sourcePack.sources.find(source=>source.id.startsWith('library:')&&source.blocks.some(block=>block.kind==='bilingual'))!;
+ const block=selected.blocks.find(item=>item.kind==='bilingual')!;const groups=[{sourceId:selected.id,blockIds:[block.id]}];
+ const content=parseContent({mode:'bilingual',hebrewGroups:groups,transliterationGroups:groups});const pin=sourcePinFor(content);
+ assert.equal(pin.feedSha256,sourcePack.authority.feedSha256,'legacy top-level pin remains backward compatible');
+ assert.deepEqual(pin.sourceAuthority?.[selected.id],{id:selected.authority!.id,feedSha256:selected.authority!.feedSha256,unitSha256:selected.authority!.unitSha256,sourceSha256:selected.sourceSha256});
+ const base=editableFromBaseline(BARECHU);const now=Date.now();const draft:Draft={...base,content,id:'expanded-test',version:1,sourcePin:pin,activeRevision:null,activeDraftVersion:null,createdAt:now,updatedAt:now,createdBy:'test',updatedBy:'test'};
+ const cue=buildCue(draft);assert.deepEqual(cue.authoring.sourceAuthority,pin.sourceAuthority);assert.ok(cue.texts.textMainheb);assert.ok(cue.texts.textMainEng);
 });

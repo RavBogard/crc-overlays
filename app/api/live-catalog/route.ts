@@ -1,10 +1,11 @@
-import {authorized,json} from '@/lib/server';
+import {authorizeRequest} from '@/lib/access';
+import {json} from '@/lib/server';
 import {relayConfigured} from '@/lib/relay';
 import {syncLiveCatalog} from '@/lib/sync-live-catalog';
 
 // Explicit recovery for a publication saved while the live relay was unavailable.
 export async function POST(request:Request){
- if(!authorized(request,true))return json({error:'Control key required'},401);
+ if(!await authorizeRequest(request,'author'))return json({error:'Control key required'},401);
  if(!relayConfigured())return json({error:'Live relay is not configured'},503);
  try{
   return json({synced:true,...await syncLiveCatalog()});

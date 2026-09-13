@@ -1,9 +1,9 @@
 import {createHash,randomUUID} from 'node:crypto';
 import {createRequire} from 'node:module';
 import type {Cue} from './player';
+import {loadSourceLibrary} from './source-library.ts';
 
 const require=createRequire(import.meta.url);
-const sourcePackJson=require('../content/authoring-sources.json');
 const sourceMapJson=require('../content/legacy-crc-shabbat-morning.sources.json');
 const baselineCueJson=require('./cues.json');
 
@@ -12,16 +12,18 @@ export type Presentation={hebrewFontSize?:number;transliterationFontSize?:number
 export type SourceGroup={sourceId:string;blockIds:string[]};
 export type BilingualContent={mode:'bilingual';hebrewGroups:SourceGroup[];transliterationGroups:SourceGroup[];includeTranslation?:boolean};
 export type OriginalEnglishContent={mode:'original-en';englishGroups:SourceGroup[]};
-export type DraftContent=BilingualContent|OriginalEnglishContent;
+export type CustomContent={mode:'custom';text:string};
+export type DraftContent=BilingualContent|OriginalEnglishContent|CustomContent;
 export type EditableDraft={name:string;title:string;accentTitle?:string;layout:Layout;templateCueId:string;content:DraftContent;presentation:Presentation};
-export type SourcePin={feedSha256:string;unitSha256:Record<string,string>;blockSha256:Record<string,string>};
-export type Draft=EditableDraft&{id:string;version:number;sourcePin:SourcePin;activeRevision:number|null;activeDraftVersion:number|null;createdAt:number;updatedAt:number;createdBy:string;updatedBy:string};
-export type AuthoringCue=Cue&{presentation?:Presentation;authoring:{draftId:string;draftVersion:number;sourceIds:string[];feedSha256:string;unitSha256:Record<string,string>}};
+export type SourceAuthorityPin={id:string;feedSha256:string;unitSha256:string;sourceSha256:string};
+export type SourcePin={feedSha256:string;unitSha256:Record<string,string>;blockSha256:Record<string,string>;sourceAuthority?:Record<string,SourceAuthorityPin>};
+export type Draft=EditableDraft&{id:string;version:number;sourcePin:SourcePin;activeRevision:number|null;activeDraftVersion:number|null;createdAt:number;updatedAt:number;createdBy:string;updatedBy:string;draftSetId?:string;setIndex?:number;setCount?:number};
+export type AuthoringCue=Cue&{presentation?:Presentation;authoring:{draftId:string;draftVersion:number;origin:'canonical'|'local';sourceIds:string[];feedSha256:string;unitSha256:Record<string,string>;sourceAuthority?:Record<string,SourceAuthorityPin>}};
 export type SourceBlock={id:string;index:number;kind:'bilingual'|'original-en'|'translation-en';pairedBlockIds?:string[];he?:string;tr?:string;en?:string;role?:'original';sourceBlockSha256:string};
-export type AuthoringSource={id:string;name:string;section:string|number|null;unitSha256:string;blocks:SourceBlock[]};
-export type SourcePack={schemaVersion:number;authority:{repository:string;repositoryCommit:string;feed:string;feedSha256:string;license:unknown;printing:unknown};sources:AuthoringSource[]};
+export type AuthoringSource={id:string;name:string;section:string|number|null;unitSha256:string;blocks:SourceBlock[];origin?:string;sourceSha256?:string;book?:string;service?:string;aliases?:string[];openingWords?:string[];metadata?:Record<string,unknown>;authority?:{id:string;repository:string;repositoryCommit:string;feed:string;feedSha256:string;unitId:string;unitSha256:string}};
+export type SourcePack={schemaVersion:number;authority:{repository:string;repositoryCommit:string;feed:string;feedSha256:string;license:unknown;printing:unknown};sources:AuthoringSource[];authorities?:unknown[];library?:unknown};
 
-export const sourcePack=sourcePackJson as SourcePack;
+export const sourcePack=loadSourceLibrary();
 export const baselineCues=baselineCueJson as AuthoringCue[];
 
 export class AuthoringError extends Error{
@@ -92,7 +94,11 @@ export function parseContent(value:unknown):DraftContent{
   if(new Set(sequence).size!==sequence.length)throw new AuthoringError('repeated_source_block','A source block may be selected only once');
   return {mode:'original-en',englishGroups};
  }
- throw new AuthoringError('invalid_input','content.mode must be bilingual or original-en');
+ if(input.mode==='custom'){
+  onlyKeys(input,['mode','text'],'content');
+  return {mode:'custom',text:text(input.text,'content.text',4000)!};
+ }
+ throw new AuthoringError('invalid_input','content.mode must be bilingual, original-en, or custom');
 }
 
 // Only whole, explicitly paired canonical blessings can gain a translation.
@@ -162,11 +168,12 @@ export function buildCue(draft:Draft):AuthoringCue{
  if(draft.accentTitle)texts.accentTextTitle=draft.accentTitle;
  const groups=draft.content.mode==='bilingual'
   ?[...draft.content.hebrewGroups,...draft.content.transliterationGroups]
-  :draft.content.englishGroups;
+  :draft.content.mode==='original-en'?draft.content.englishGroups:[];
  if(draft.content.mode==='bilingual'){
   texts.textMainheb=draft.content.hebrewGroups.map(group=>renderGroup(group,'he')).join('\n');
   texts.textMainEng=draft.content.transliterationGroups.map(group=>renderGroup(group,'tr')).join('\n');
- }else texts.textMain=draft.content.englishGroups.map(group=>renderGroup(group,'en')).join('\n');
+ }else if(draft.content.mode==='original-en')texts.textMain=draft.content.englishGroups.map(group=>renderGroup(group,'en')).join('\n');
+ else texts.textMain=draft.content.text;
  const sourceIds=[...new Set(groups.map(group=>group.sourceId))].sort();
  const animations=structuredClone(template.animations);
  if(draft.content.mode==='bilingual'&&!animations.some(track=>track.element==='textMainheb'||track.element==='textMainEng')){
@@ -175,29 +182,48 @@ export function buildCue(draft:Draft):AuthoringCue{
    for(let index=animations.length-1;index>=0;index--)if(animations[index].element==='textMain')animations.splice(index,1);
    animations.push(...combined.flatMap(track=>[{...structuredClone(track),element:'textMainheb'},{...structuredClone(track),element:'textMainEng'}]));
   }
+ }else if(draft.content.mode!=='bilingual'&&!animations.some(track=>track.element==='textMain')){
+  const single=animations.filter(track=>track.element==='textMainEng');
+  const fallback=single.length?single:animations.filter(track=>track.element==='textMainheb');
+  if(fallback.length){
+   for(let index=animations.length-1;index>=0;index--)if(animations[index].element==='textMainheb'||animations[index].element==='textMainEng')animations.splice(index,1);
+   animations.push(...fallback.map(track=>({...structuredClone(track),element:'textMain'})));
+  }
  }
  return {
   id:draft.id,name:draft.name,layout:draft.layout,texts,
-  ...(draft.content.mode==='bilingual'&&draft.content.includeTranslation?{contentRows:translationSelections(draft.content).map(({sourceId,block,pairIds})=>({he:renderGroup({sourceId,blockIds:pairIds},'he'),tr:renderGroup({sourceId,blockIds:pairIds},'tr'),en:block.en!}))}:{}),
+  ...(draft.content.mode==='bilingual'&&draft.content.includeTranslation
+   ?{contentRows:translationSelections(draft.content).map(({sourceId,block,pairIds})=>({he:renderGroup({sourceId,blockIds:pairIds},'he'),tr:renderGroup({sourceId,blockIds:pairIds},'tr'),en:block.en!}))}
+   :draft.content.mode==='bilingual'&&draft.draftSetId&&(draft.layout==='left'||draft.layout==='right')
+    ?{contentRows:draft.content.hebrewGroups.flatMap(group=>group.blockIds.map(blockId=>({he:renderGroup({sourceId:group.sourceId,blockIds:[blockId]},'he'),tr:renderGroup({sourceId:group.sourceId,blockIds:[blockId]},'tr'),en:''})))}
+    :{}),
   animations,duration:structuredClone(template.duration),
   ...(template.template?{template:structuredClone(template.template)}:{}),
   ...(Object.keys(draft.presentation).length?{presentation:structuredClone(draft.presentation)}:{}),
   authoring:{
-   draftId:draft.id,draftVersion:draft.version,sourceIds,feedSha256:sourcePack.authority.feedSha256,
+   draftId:draft.id,draftVersion:draft.version,origin:draft.content.mode==='custom'?'local':'canonical',sourceIds,feedSha256:draft.content.mode==='custom'?'local':sourcePack.authority.feedSha256,
    unitSha256:Object.fromEntries(sourceIds.map(id=>[id,source(id).unitSha256])),
+   ...(draft.sourcePin.sourceAuthority?{sourceAuthority:structuredClone(draft.sourcePin.sourceAuthority)}:{}),
   },
  };
 }
 
 function selectedPairs(content:DraftContent){
+ if(content.mode==='custom')return [];
  const groups=content.mode==='bilingual'?content.hebrewGroups:content.englishGroups;
  const pairs=groups.flatMap(group=>group.blockIds.map(blockId=>({sourceId:group.sourceId,blockId})));
  if(content.mode==='bilingual'&&content.includeTranslation)pairs.push(...translationSelections(content).map(({sourceId,block})=>({sourceId,blockId:block.id})));
  return pairs;
 }
 export function sourcePinFor(content:DraftContent):SourcePin{
+ if(content.mode==='custom')return {feedSha256:'local',unitSha256:{},blockSha256:{}};
  const pairs=selectedPairs(content);
  const sourceIds=[...new Set(pairs.map(pair=>pair.sourceId))].sort();
+ const sourceAuthority=Object.fromEntries(sourceIds.filter(id=>id.startsWith('library:')).map(id=>{
+  const selected=source(id);const authority=selected.authority;
+  if(!authority||!selected.sourceSha256)throw new AuthoringError('invalid_source_authority',`Expanded source authority is unavailable for ${id}`,409);
+  return [id,{id:authority.id,feedSha256:authority.feedSha256,unitSha256:authority.unitSha256,sourceSha256:selected.sourceSha256} satisfies SourceAuthorityPin];
+ }));
  return {
   feedSha256:sourcePack.authority.feedSha256,
   unitSha256:Object.fromEntries(sourceIds.map(id=>[id,source(id).unitSha256])),
@@ -205,6 +231,7 @@ export function sourcePinFor(content:DraftContent):SourcePin{
    const block=source(sourceId).blocks.find(item=>item.id===blockId)!;
    return [JSON.stringify([sourceId,blockId]),block.sourceBlockSha256];
   })),
+  ...(Object.keys(sourceAuthority).length?{sourceAuthority}:{}),
  };
 }
 export function assertSourcePin(draft:Draft){

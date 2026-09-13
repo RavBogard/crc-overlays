@@ -1,8 +1,9 @@
+import {authorizeRequest} from '@/lib/access';
 import {canonicalOrigin} from '../../../lib/oauth-core';
-import {authorized,json} from '../../../lib/server';
+import {json} from '../../../lib/server';
 
-export function GET(request:Request){
-  if(!authorized(request,true))return json({error:'Control key required'},401);
+export async function GET(request:Request){
+  if(!await authorizeRequest(request,'control'))return json({error:'Control key required'},401);
   const outputKey=process.env.OUTPUT_KEY;
   if(!outputKey)return json({error:'Output access is not configured'},503);
   try{

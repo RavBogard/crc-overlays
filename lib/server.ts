@@ -1,8 +1,7 @@
 import {createHash} from 'node:crypto';
 import {relayConfigured,relaySnapshot,relayCatalog} from './relay';
-import cues from './cues.json';
+import {baselineCatalogForWorkspace} from './workspace-catalog';
 import {db} from './database';
-import {publishedCues} from './authoring';
 import type {Cue} from './player';
 import {SNAPSHOT_STATE_SQL,newestPayloadCache,resolvePayload,type PayloadCache} from './snapshot-payload-cache';
 export type AliasCatalogCue=Cue&{hidden?:boolean;aliasOf?:string};
@@ -31,9 +30,9 @@ export function mergePublishedCatalog(baseline:readonly AliasCatalogCue[],publis
  return Array.from(active.keys(),id=>resolve(id,new Set())!);
 }
 export async function catalog(){return relayConfigured()?relayCatalog():authoringCatalog()}
-export async function authoringCatalog(){const items=mergePublishedCatalog(cues as unknown as AliasCatalogCue[],await publishedCues());return {cues:items,version:createHash('sha256').update(JSON.stringify(items)).digest('hex').slice(0,16)}}
+export async function authoringCatalog(){const {publishedCues}=await import('./authoring');const items=mergePublishedCatalog(baselineCatalogForWorkspace() as AliasCatalogCue[],await publishedCues());return {cues:items,version:createHash('sha256').update(JSON.stringify(items)).digest('hex').slice(0,16)}}
 export async function knownCue(id:unknown){return typeof id==='string'&&(await catalog()).cues.some(c=>c.id===id)}
-export {cues};
+export const cues=baselineCatalogForWorkspace();
 let payloadCache:PayloadCache|null=null;
 export async function snapshot(){return relayConfigured()?relaySnapshot():legacySnapshot()}
 export async function legacySnapshot(){const captured=payloadCache;const state=(await db.query(SNAPSHOT_STATE_SQL,[captured?.revision??-1])).rows[0]??{revision:0,cue:null,mode:'animate',updated:0,cuePayload:null};const resolved=resolvePayload(captured,state);payloadCache=newestPayloadCache(payloadCache,resolved.candidate);const [rs,currentCatalog]=await Promise.all([db.query('SELECT id,revision,cue,phase,seen FROM renderers WHERE seen>$1 ORDER BY seen DESC',[Date.now()-8000]),authoringCatalog()]);return {...state,cuePayload:resolved.payload,catalogVersion:currentCatalog.version,renderers:rs.rows,serverTime:Date.now()}}

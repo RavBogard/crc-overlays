@@ -28,19 +28,24 @@ test('catalog refresh does not loop when the published marker lags the fetched c
  await refresh.request('lagging-marker');await settle();assert.equal(loads,1);assert.equal(version,'already-newer');
 });
 
-function harness(role:'control'|'output'|'preview'='control'){
- const sockets:FakeSocket[]=[];const urls:string[]=[];const timeouts=new Map<number,()=>void>();const intervals=new Map<number,()=>void>();let timerId=0;let now=100;
+function harness(role:'control'|'output'|'preview'='control',key='secret'){
+ const sockets:FakeSocket[]=[];const urls:string[]=[];const requests:RequestInit[]=[];const timeouts=new Map<number,()=>void>();const intervals=new Map<number,()=>void>();let timerId=0;let now=100;
  const dependencies:Partial<RealtimeDependencies>={
-  fetch:async(input:RequestInfo|URL)=>{urls.push(String(input));return Response.json({url:'wss://relay.example/connect',ticket:'signed.ticket',heartbeatMs:10000,staleMs:30000,protocol:1})},
+  fetch:async(input:RequestInfo|URL,init?:RequestInit)=>{urls.push(String(input));requests.push(init??{});return Response.json({url:'wss://relay.example/connect',ticket:'signed.ticket',heartbeatMs:10000,staleMs:30000,protocol:1})},
   socket:(url,protocols)=>{const socket=new FakeSocket(url,protocols);sockets.push(socket);return socket},
   setTimeout:(callback)=>{const id=++timerId;timeouts.set(id,callback);return id as unknown as ReturnType<typeof setTimeout>},clearTimeout:(id)=>{timeouts.delete(Number(id))},
   setInterval:(callback)=>{const id=++timerId;intervals.set(id,callback);return id as unknown as ReturnType<typeof setInterval>},clearInterval:(id)=>{intervals.delete(Number(id))},
   now:()=>now,random:()=>0.5,
  };
  const snapshots:RealtimeSnapshot[]=[];const statuses:string[]=[];const presence:Array<{renderers:RendererAck[];serverTime:number}>=[];
- const transport=new BrowserRealtimeTransport({key:'secret',role,id:'00000000-0000-4000-8000-000000000000',getAck:()=>({id:'00000000-0000-4000-8000-000000000000',revision:4,cue:'cue-4',phase:'settled'}),onSnapshot:value=>{snapshots.push(value)},onPresence:(renderers,serverTime)=>{presence.push({renderers,serverTime})},onStatus:status=>statuses.push(status),dependencies});
- return {transport,sockets,urls,timeouts,intervals,snapshots,statuses,presence,setNow:(value:number)=>{now=value}};
+ const transport=new BrowserRealtimeTransport({key,role,id:'00000000-0000-4000-8000-000000000000',getAck:()=>({id:'00000000-0000-4000-8000-000000000000',revision:4,cue:'cue-4',phase:'settled'}),onSnapshot:value=>{snapshots.push(value)},onPresence:(renderers,serverTime)=>{presence.push({renderers,serverTime})},onStatus:status=>statuses.push(status),dependencies});
+ return {transport,sockets,urls,requests,timeouts,intervals,snapshots,statuses,presence,setNow:(value:number)=>{now=value}};
 }
+
+test('cookie sessions omit the legacy bearer header when requesting a realtime ticket',async()=>{
+ const session=harness('control','session');session.transport.start();await settle();assert.deepEqual(session.requests[0].headers,{});session.transport.stop();
+ const legacy=harness();legacy.transport.start();await settle();assert.deepEqual(legacy.requests[0].headers,{Authorization:'Bearer secret'});legacy.transport.stop();
+});
 
 test('connects with a short ticket and becomes live only after the initial snapshot',async()=>{
  const h=harness();h.transport.start();await settle();

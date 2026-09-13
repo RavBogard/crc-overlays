@@ -104,7 +104,7 @@ export class BrowserRealtimeTransport{
   const ticketTimer=this.dependencies.setTimeout(()=>abort.abort(),5000);this.ticketTimer=ticketTimer;
   const clearTicket=()=>{this.dependencies.clearTimeout(ticketTimer);if(this.ticketTimer===ticketTimer)this.ticketTimer=null;if(this.ticketAbort===abort)this.ticketAbort=null};
   try{
-   const response=await this.dependencies.fetch(`/api/realtime?role=${this.options.role}`,{headers:{Authorization:`Bearer ${this.options.key}`},cache:'no-store',signal:abort.signal});
+   const response=await this.dependencies.fetch(`/api/realtime?role=${this.options.role}`,{headers:this.options.key==='session'?{}:{Authorization:`Bearer ${this.options.key}`},cache:'no-store',signal:abort.signal});
    if(!response.ok)throw Error('Realtime ticket unavailable');
    const ticket:unknown=await response.json();if(!isTicket(ticket))throw Error('Invalid realtime ticket');
    clearTicket();

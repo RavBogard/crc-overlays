@@ -1,44 +1,45 @@
-# CRC Overlay Control — rehearsal console
+# Congregation Overlays
 
-Vercel-hosted controller, durable cue state, and transparent 1920×1080 graphics output. The source-backed rehearsal catalog contains twenty-nine cues, including the opening Shabbat-morning sequence, Barechu, Oseh Shalom, and Mourners Kaddish 1–3. This remains an engineering rehearsal.
+Hosted 1920 × 1080 broadcast graphics for CRC and an invited second congregation. The system combines a web cue library and editor, transparent OBS/vMix output, a native Companion/Stream Deck module, source-backed liturgical text, and relay-based live control.
+
+This is an active two-congregation pilot. Browser and protocol checks pass; physical Stream Deck operation, actual OBS/vMix compositing, camera-linked controls, restart/network recovery, and a complete staffed service remain acceptance gates.
+
+## Use the product
+
+- `/` opens live control. **Inspect** renders a candidate locally and never changes live output; **Show** sends it live. **Animate out** and **Clear immediately** remain direct emergency controls.
+- `/author` opens the visual library and editor. Editors can browse the siddur collection, duplicate cues, create custom non-liturgical text, preview unsaved work, save, review the exact rendered version, publish, and roll back.
+- `/setup` gives the workstation installation path, congregation-scoped output URL, Companion downloads, and verification steps.
+- `/access` accepts an invitation, signs in, and manages the current account session.
+- `/output` is the transparent program graphic. Use the private URL created by setup rather than constructing it by hand.
+
+The ordinary web experience does not require AI. The optional MCP authoring interface remains available for assisted preparation, with visual human review required before publication.
 
 ## Run locally
 
-Start with `npm run dev` (port 5175). `.env` supplies `CONTROL_KEY` and `OUTPUT_KEY`; never commit keys or Companion exports. Controller: `http://localhost:5175/`. Output: `/output#key=OUTPUT_KEY`; add it to vMix or OBS as a transparent 1920×1080 Browser source. Preview is excluded from output acknowledgments.
+Install dependencies and run `npm run dev` (port 5175). Runtime secrets belong in `.env` and must never be committed. See [setup](docs/SETUP.md) and [workspace deployment](docs/WORKSPACE-DEPLOYMENT.md) for current environment and packaging contracts.
 
-## Control contract
+For isolated local editor rehearsal without Neon or a live relay, set `CRC_AUTHORING_REHEARSAL=1` with `NODE_ENV=development` and no `RELAY_URL`. The UI labels this temporary memory-backed mode. It fails closed in production or when a relay is configured.
 
-`GET /api/catalog`, `GET /api/state`, and `POST /api/ack` accept an output or control Bearer key. `POST /api/command` requires a control key. Commands use `action: in|out|clear|cut`, a known cue for `in`/`out`, and optional command identity and sequence metadata. `cut` clears immediately. Output holds its last graphic on disconnection; rendered means the browser matched requested state and does not establish that vMix or OBS is on air.
+## Live architecture
 
-## Companion
+Control, output, and Companion receive an initial relay snapshot and continue through WebSocket updates. Catalog data refreshes only after its version marker changes. The relay holds the last synchronized published catalog, so live playback continues during an authoring database outage. Renderer acknowledgement means the browser matched requested state; it does not prove that OBS or vMix put the graphic on air.
 
-Use the installed native CRC Overlays Companion module 1.1.1 and its dynamic catalog presets for rehearsal. It supplies ordered commands, retry identity, and requested/rendered/disconnected feedback. Generic HTTP requests are a legacy fallback and do not provide sequencing or retry identity. Physical Stream Deck operation, vMix/OBS integration, and full-service rehearsal remain unverified.
+The complete siddur corpus stays server-side. Browser source search receives bounded summaries, and a selected source is fetched individually. See the [hosting cost and reliability audit](docs/planning/2026-09-product-expansion/HOSTING-COST-AND-RELIABILITY.md) for payload limits, provider assumptions, monitoring thresholds, and the analysis of the former database-polling design.
 
-## Source and licensing
+## Content integrity
 
-Prayer cues select the exact Hebrew and transliteration blocks listed in `content/legacy-crc-shabbat-morning.sources.json`; English translations are excluded. As We Bless is an explicitly declared original English reading; its selectors must carry source role `original`. Ordinary bilingual cues must cover the same source units and blocks in both languages. The source map pins the feed, selected units, archive compositions, and generated text objects. Run `python scripts/generate-cues.py --check` to fail closed on source drift. Singular supplies stable composition records and authorized non-liturgical Thank you copy; it is not the prayer-text authority. Direct authorized art and refreshed templates are Siona-inspired and are not presented as exact legacy fidelity.
+Canonical liturgical text retains source, feed, unit, and block provenance. Hebrew, transliteration, translation, and explicitly original English roles are validated rather than inferred. Custom announcements and readings are labeled local content. Publishing requires review of the exact saved version; edits invalidate stale review evidence.
 
-## Evidence — 2026-09-09
+The expanded source library currently contains the imported CRC-authorized siddur collections. Sharing content with the second congregation still depends on confirmed permission and congregation isolation. Canonical text must never be silently rewritten or copied between language roles.
 
-- `scripts/check-api.py`: 19 local assertions passed for authentication, cue validation, in/out, duplicate IDs, conflicts, delayed sequence, acknowledgments, and clear.
-- Source guard checks passed with `python scripts/generate-cues.py --check`.
-- The initial eight-cue batch passed exact DOM output, overflow, rapid cut and prayer replacement checks. Expanded-catalog visual verification is recorded separately for its release.
-- WebMCP registration, read-back, valid and invalid cue handling, and immediate clear passed through the supported browser runtime.
-- Native Companion 1.1.0 is installed locally; catalog expansion is verified separately against each deployed release.
+## Companion and service safety
 
-The remaining 133 archived graphics, overrides, and camera-linked buttons remain migration work. Physical Stream Deck, vMix/OBS, and full-service restart/network rehearsal are separate unverified gates.
+The native Companion module supplies ordered commands, retry identity, requested/rendered/disconnected feedback, and stable button behavior. Generic HTTP commands remain a compatibility path. Operators must retain a switcher-side way to hide the browser source, and Singular remains available during the parallel trial.
 
-## Hosting
+Follow [setup](docs/SETUP.md) for installation and [broadcast rehearsal](docs/REHEARSAL.md) for hardware acceptance. Do not treat automated browser checks as proof of on-air readiness.
 
-Primary source: https://github.com/RavBogard/crc-overlays (private). Live controller: https://crc-overlays.vercel.app. Production uses its own Neon database; `DATABASE_URL`, `CONTROL_KEY`, and `OUTPUT_KEY` are runtime secrets. Release deployment and visual verification are confirmed separately from a source commit. See [broadcast rehearsal](docs/REHEARSAL.md) for the hardware and compositor checks.
+## Planning and evidence
 
+The [approved product backlog](docs/planning/2026-09-product-expansion/APPROVED-BACKLOG.md) tracks the thirty approved outcomes and the additional manual-authoring work. Implemented foundations are marked separately from acceptance that still needs operators, hardware, program output, permissions, or two-workspace evidence.
 
-## Create and edit overlays
-
-Open `/author` with the control key. Import an existing cue to preserve its Companion button ID, or create a draft from paired canonical source blocks. Adjust title, grouping, template and type size, save, render the isolated preview, approve that exact version, then publish. Publication changes future selections; the currently selected graphic remains pinned. Revision history provides rollback without a code deployment.
-
-AI authoring uses the shared OAuth MCP endpoint `/api/mcp`; see [MCP setup](docs/MCP.md). AI can find sources and prepare drafts, then Michael reviews the rendered frame in the editor before publication. Protocol integration is verified; actual ChatGPT and Claude account connections remain acceptance steps.
-
-Authoring release validation: 27 focused tests passed (one database test separately exercised with the isolated database), 26 authoring API assertions and 27 OAuth/MCP assertions passed. All 29 cues passed browser fit review after the Vahavta 2 type adjustment. See [release boundaries](docs/AUTHORING-RELEASE.md).
-
-Panel refresh: three Birchot panels now include canonical English alongside paired Hebrew/transliteration. Catalog retains29 IDs (28 visible plus one compatibility alias). See [density review](docs/PANEL-DENSITY-REVIEW.md). Companion page3 adds the nine later morning cues; physical hardware remains unverified.
+Primary repository: `https://github.com/RavBogard/crc-overlays` (private). Live CRC controller: `https://crc-overlays.vercel.app`. Deployments use independent runtime credentials, relay rooms, databases, output URLs, and workspace branding while sharing one maintained release.

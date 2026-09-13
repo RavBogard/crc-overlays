@@ -1,0 +1,48 @@
+{
+  "version": 1,
+  "status": "prepared-not-provisioned",
+  "confirmedRabbi": "Rabbi Simone Schicker",
+  "assetUseStatus": "official-public-reference-prepared-for-congregation-review",
+  "officialSources": [
+    {
+      "url": "https://www.templebnaiisrael.com/",
+      "context": "Official congregation home page; confirms organization name, Kalamazoo identity, public visual language, and primary site color."
+    },
+    {
+      "url": "https://static.wixstatic.com/media/1bd217_9504960109704fdb9d41caf04d22d897~mv2.png",
+      "context": "Official-site footer artwork: colorful tree canopy, radiating bands, and a white Star of David. Stored locally as the prepared workspace artwork."
+    },
+    {
+      "url": "https://www.templebnaiisrael.com/our-rabbi",
+      "context": "Official congregation profile confirming Rabbi Simone Schicker as Temple B'nai Israel's full-time spiritual leader."
+    }
+  ],
+  "environment": {
+    "WORKSPACE_ID": "temple-bnai-israel-kalamazoo",
+    "WORKSPACE_ORGANIZATION_NAME": "Temple B'nai Israel",
+    "WORKSPACE_SHORT_NAME": "TBI",
+    "WORKSPACE_PRODUCT_NAME": "TBI Overlays",
+    "WORKSPACE_OUTPUT_NAME": "TBI sanctuary graphics",
+    "WORKSPACE_LOGO_PATH": "/workspaces/temple-bnai-israel/official-footer.png",
+    "WORKSPACE_LOGO_ALT": "Colorful tree and Star of David artwork used by Temple B'nai Israel",
+    "WORKSPACE_PRIMARY_COLOR": "#2b5672",
+    "WORKSPACE_DEEP_COLOR": "#183646",
+    "WORKSPACE_ACCENT_COLOR": "#e55c5e",
+    "WORKSPACE_STAGE": "trial",
+    "WORKSPACE_ISOLATION_VERIFIED": "false"
+  },
+  "themeNotes": {
+    "type": "Use Raleway or a metrically compatible sans serif for Latin display text; preserve the product's dedicated Hebrew face.",
+    "imagery": "Use the official colorful tree and Star of David artwork as the key identity cue. Crop deliberately; do not stretch or redraw it.",
+    "paletteBasis": "The primary blue is the recurring official-site color. Coral is present in the official artwork. The deeper blue is a broadcast-safe tonal companion for high-contrast panels.",
+    "productDirection": "Begin with the complete CRC interaction and layout system, then apply TBI identity and independently owned content records."
+  },
+  "provisioning": {
+    "isolatedDatabase": true,
+    "isolatedRelay": true,
+    "isolatedCredentials": true,
+    "isolatedDeployment": false,
+    "membersInvited": false,
+    "publicSiteCreated": false
+  }
+}

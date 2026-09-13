@@ -1,6 +1,7 @@
+import {authorizeRequest} from '@/lib/access';
 import {relayConfigured,relayRequest} from '@/lib/relay';
-import {authorized,json,db,catalog,snapshot} from '@/lib/server';
-export async function POST(r:Request){if(!authorized(r,true))return json({error:'Control key required'},401);
+import {json,db,catalog,snapshot} from '@/lib/server';
+export async function POST(r:Request){if(!await authorizeRequest(r,'control'))return json({error:'Control key required'},401);
 try{if(Number(r.headers.get('content-length'))>4096)return json({error:'Request too large'},413);const raw=await r.text();if(raw.length>4096)return json({error:'Request too large'},413);let b:any;try{b=JSON.parse(raw)}catch{return json({error:'Invalid JSON'},400)}if(!b||typeof b!=='object')return json({error:'Invalid command'},400);
 const useRelay=relayConfigured();
 const selectedCatalog=!useRelay&&['in','out'].includes(b.action)?await catalog():null;

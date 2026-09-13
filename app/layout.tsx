@@ -1,17 +1,16 @@
 import type { Metadata } from "next";
+import {getPublicWorkspace} from '@/lib/workspace';
 import "./globals.css";
 
-export const metadata: Metadata = {
-  title: "CRC Overlay Control",
-  description: "Prayer graphics for CRC broadcast production.",
-  other: {
-    "codex-preview": "development",
-  },
-  icons: {
-    icon: "/favicon.svg",
-    shortcut: "/favicon.svg",
-  },
-};
+export function generateMetadata(): Metadata {
+  const workspace = getPublicWorkspace();
+  return {
+    title: `${workspace.productName} Control`,
+    description: `Prayer graphics for ${workspace.organizationName} broadcast production.`,
+    other: {"codex-preview": "development"},
+    icons: {icon: workspace.logo.src, shortcut: workspace.logo.src},
+  };
+}
 
 export default function RootLayout({
   children,
