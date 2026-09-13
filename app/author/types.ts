@@ -115,6 +115,28 @@ export type SourceSummary = Omit<Source, "blocks"> & {
 };
 export type SourceDisplayResult = { source: Source; display?: SourceDisplay };
 export type SourceFacet = { value: string; label: string; count: number };
+/** A book as the facet list names it, without the count. */
+export type BookRef = { value: string; label: string };
+/** One unit in a book outline (`list_book_units`): enough to choose by, never the text itself. */
+export type BookUnit = {
+  id: string;
+  name: string;
+  folio: string | null;
+  kinds: SourceBlock["kind"][];
+  blockCount: number;
+  /** Only source English a siddur prints as a note — never prayer text to lead from. */
+  noteLikeOnly: boolean;
+};
+/** A printed section of a book; `title` is null for a book that prints no section names. */
+export type BookUnitSection = { index: number; title: string | null; units: BookUnit[] };
+/** The printed outline of one book, in printed order. `noteLikeOnly` counts note-only units. */
+export type BookUnitsResult = {
+  book: BookRef;
+  service: string | null;
+  sections: BookUnitSection[];
+  total: number;
+  noteLikeOnly: number;
+};
 export type TemplateSummary = {
   id: string;
   name: string;
@@ -132,6 +154,8 @@ export type EphemeralPreviewResult = {
   validation: { valid: boolean; errors: string[]; warnings: string[] };
   ephemeral: true;
 };
+/** `preview_baseline_cue` returns the same stored-nothing shape as `preview_content`. */
+export type BaselinePreviewResult = EphemeralPreviewResult;
 export type CatalogCue = {
   id: string;
   name: string;

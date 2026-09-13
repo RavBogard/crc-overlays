@@ -2,6 +2,8 @@ import test from 'node:test';
 import assert from 'node:assert/strict';
 import {AuthoringError,baselineCues,buildCue,editableFromBaseline,sourcePack,type Draft,type AuthoringCue,type AuthoringSource,type BilingualContent,type OriginalEnglishContent,type SourceEnglishContent,type LocalVariantContent,type DraftSetSelection} from '../lib/authoring-model.ts';
 import {MemoryAuthoringRepository,authoringRepositoryMode,createAuthoringService,type AuthoringWorkspace,type Revision} from '../lib/authoring.ts';
+import {exceedsOnePanel} from '../lib/panel-budget.ts';
+import type {BookUnitsResult} from '../app/author/types.ts';
 
 const BARECHU='efa9fad4-f7d5-4091-a708-82103028861b';
 const LEFT_PANEL='bbd7c98b-f1de-41ee-9719-2bb27a30d0db';
@@ -211,4 +213,54 @@ test('in-memory authoring is development-only, relay-free, and visibly labeled',
  assert.deepEqual(authoringRepositoryMode({CRC_AUTHORING_REHEARSAL:'1',NODE_ENV:'development',RELAY_URL:'memory'}),{rehearsal:true,storage:'memory',label:'Local rehearsal — changes are temporary'});
  assert.deepEqual(authoringRepositoryMode({NODE_ENV:'production'}),{rehearsal:false,storage:'postgres',label:null});
  const service=createAuthoringService(new MemoryAuthoringRepository(),memory);const result=await service.operation('get_workspace',{},'tester') as GetWorkspaceResult;assert.deepEqual(result.workspace,memory);
+});
+
+test('list_book_units prints a book outline in printed order without shipping the corpus',async()=>{
+ const service=createAuthoringService(new MemoryAuthoringRepository());
+ const shacharit=await service.operation('list_book_units',{book:'shabbat-shacharit'},'tester') as BookUnitsResult;
+ assert.deepEqual(shacharit.book,{value:'shabbat-shacharit',label:'Shirei Shabbat · Shabbat Morning'});assert.equal(shacharit.service,'Shirei Shabbat · Shabbat Morning');
+ assert.equal(shacharit.sections.length,9);assert.equal(shacharit.total,94);
+ assert.deepEqual(shacharit.sections.map(section=>section.index),[0,1,2,3,4,5,6,7,8],'sections are printed in section order');
+ assert.deepEqual(shacharit.sections[0].title,'Awakening');
+ assert.equal(shacharit.sections.reduce((sum,section)=>sum+section.units.length,0),shacharit.total);
+ const first=shacharit.sections[0].units[0];assert.equal(first.id,'library:shabbat-shacharit:awakening.modeh-ani@shabbat-shacharit');assert.equal(first.name,'Modah / Modeh Ani');assert.equal(first.folio,'p. 2');assert.equal(first.blockCount,2);assert.ok(first.kinds.includes('bilingual'));assert.equal(first.noteLikeOnly,false);
+ // The outline names units; reading one still goes through get_source.
+ assert.ok(!JSON.stringify(shacharit).includes('"he"'));
+ const facets=await service.operation('source_facets',{},'tester') as {books:Array<{value:string;count:number}>};
+ const books=await Promise.all(facets.books.map(book=>service.operation('list_book_units',{book:book.value},'tester') as Promise<BookUnitsResult>));
+ assert.deepEqual(books.map(book=>book.total),facets.books.map(book=>book.count),'every browsable unit appears in exactly one book outline');
+ assert.equal(books.reduce((sum,book)=>sum+book.noteLikeOnly,0),13,'note-only units are countable before a person opens them');
+ for(const book of books)for(const section of book.sections)for(const unit of section.units)if(unit.noteLikeOnly)assert.deepEqual(unit.kinds,['source-en']);
+ const largest=books.reduce((widest,book)=>Buffer.byteLength(JSON.stringify(book))>Buffer.byteLength(JSON.stringify(widest))?book:widest);
+ assert.equal(largest.book.value,'shirei-tshuvah');assert.ok(Buffer.byteLength(JSON.stringify(largest))<128*1024,'the largest book outline stays inside the browser response budget');
+ const byLabel=await service.operation('list_book_units',{book:'Shirei Tshuvah'},'tester') as BookUnitsResult;assert.equal(byLabel.total,largest.total);
+ await assert.rejects(service.operation('list_book_units',{book:'no-such-book'},'tester'),(error)=>(error as AuthoringError).code==='unknown_source');
+ await assert.rejects(service.operation('list_book_units',{book:'shabbat-shacharit',limit:5},'tester'),(error)=>(error as AuthoringError).code==='invalid_input');
+});
+
+test('preview_baseline_cue renders a baseline graphic without importing it',async()=>{
+ const repo=new MemoryAuthoringRepository();const service=createAuthoringService(repo);
+ const preview=await service.operation('preview_baseline_cue',{cueId:BARECHU},'tester') as PreviewContentResult;
+ assert.equal(preview.ephemeral,true);assert.equal(preview.validation.valid,true);
+ assert.equal(preview.cue.texts.textTitle,baselineCues.find(cue=>cue.id===BARECHU)!.texts.textTitle);
+ assert.equal((await service.operation('list_drafts',{},'tester') as ListDraftsResult).drafts.length,0,'looking at a baseline stores nothing');
+ assert.deepEqual(await service.publishedCues(),[]);
+ // The non-liturgical archive copy refuses here exactly as it refuses import.
+ await assert.rejects(service.operation('preview_baseline_cue',{cueId:RIGHT_PANEL},'tester'),(error)=>(error as AuthoringError).code==='unmanaged_content');
+ await assert.rejects(service.operation('preview_baseline_cue',{cueId:'missing'},'tester'),(error)=>(error as AuthoringError).code==='unknown_cue');
+});
+
+test('the editor panel budget agrees with the server prayer split',async()=>{
+ const service=createAuthoringService(new MemoryAuthoringRepository());
+ const canonical=sourcePack.sources.find(source=>source.id===KOL_NIDRE)!;
+ const blocksOf=(draft:Draft)=>(draft.content as BilingualContent).hebrewGroups.flatMap(group=>group.blockIds).map(id=>canonical.blocks.find(block=>block.id===id)!);
+ const panels=await service.operation('create_source_draft_set',{sourceId:KOL_NIDRE,mode:'bilingual',layout:'left',templateCueId:LEFT_PANEL},'tester') as DraftSetResult;
+ for(const draft of panels.drafts)assert.equal(exceedsOnePanel(blocksOf(draft),'bilingual','left'),false,'every page the server produced fits one panel');
+ const all=panels.drafts.flatMap(blocksOf);
+ assert.equal(exceedsOnePanel(all,'bilingual','left'),true,'the whole prayer needs more than one panel');
+ assert.equal(exceedsOnePanel(all.slice(0,1),'bilingual','left'),false);
+ assert.equal(exceedsOnePanel(all.slice(0,4),'bilingual','left'),true);
+ assert.equal(exceedsOnePanel(all.slice(0,2),'bilingual','bottom'),true);
+ const bottom=await service.operation('create_source_draft_set',{sourceId:KOL_NIDRE,mode:'bilingual',layout:'bottom',templateCueId:BARECHU},'tester') as DraftSetResult;
+ for(const draft of bottom.drafts)assert.equal(exceedsOnePanel(blocksOf(draft),'bilingual','bottom'),false);
 });

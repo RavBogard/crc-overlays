@@ -2,6 +2,9 @@ import {randomUUID} from 'node:crypto';
 import type {Cue} from './player';
 import {AuthoringError,assertSourcePin,baselineCues,buildCue,cueHash,draftSetSelections,editableFromBaseline,newDraftId,normalizeGraphicName,parseEditable,previewValidation,sameStructuredValue,sourceBlockFor,sourcePack,sourcePinFor,sourceReferences,sourceSnapshotsFor,type AuthoringCue,type Draft,type DraftContent,type DraftSetSelection,type EditableDraft,type Layout,type LocalVariantOverride,type VariantChannel,type SourceBlock} from './authoring-model';
 import {layoutLabel} from './layout-label';
+// One source of truth for how much liturgy one panel holds, shared with the editor so a
+// selection warning and a server split can never disagree.
+import {PANEL_BLOCK_LIMIT,blockCharacters,panelCharacterBudget} from './panel-budget';
 import {baselineCatalogForWorkspace} from './workspace-catalog';
 import {sourceDisplay} from './source-library';
 import {sharedLibraryClient,type SharedLibrarySnapshot} from './shared-library';
@@ -44,14 +47,13 @@ const legacyBrowseByKey=new Map(legacyBrowseSources.map(source=>[browseEquivalen
 const richLibraryKeys=new Set(sourcePack.sources.filter(source=>source.id.startsWith('library:')&&source.blocks.length).filter(raw=>{const source=raw as SearchSource,legacy=legacyBrowseByKey.get(browseEquivalence(source));return legacy&&sourceEnglishCount(source)>sourceEnglishCount(legacy)}).map(source=>browseEquivalence(source as SearchSource)));
 const browsableSources=sourcePack.sources.filter(raw=>{const source=raw as SearchSource;if(!source.blocks.length)return false;const key=browseEquivalence(source),legacy=legacyBrowseByKey.get(key);return source.id.startsWith('library:')?(!legacy||richLibraryKeys.has(key)):!richLibraryKeys.has(key)});
 const sourceFacets=(field:'book'|'service')=>{const facets=new Map<string,{value:string;label:string;count:number}>();for(const raw of browsableSources){const source=raw as SearchSource;const item=field==='book'?sourceBook(source):sourceService(source);if(!item.value)continue;const existing=facets.get(item.value);if(existing)existing.count++;else facets.set(item.value,{...item,count:1})}return [...facets.values()].sort((a,b)=>a.label.localeCompare(b.label)||a.value.localeCompare(b.value))};
+/** One browsable unit as a book outline prints it: enough to choose by, never the text itself. */
+type BookUnit={id:string;name:string;folio:string|null;kinds:string[];blockCount:number;noteLikeOnly:boolean};
+/** A unit that is only source English a siddur prints as a note, never prayer text to lead. */
+const unitNoteLikeOnly=(source:SearchSource)=>source.blocks.every(block=>block.kind==='source-en'&&block.noteLike===true);
+/** The printed section a unit belongs to: library metadata first, then a legacy section label. */
+const sourceSection=(source:SearchSource)=>{const index=typeof source.metadata?.sectionIndex==='number'?source.metadata.sectionIndex:null;const metadataTitle=typeof source.metadata?.sectionTitle==='string'?source.metadata.sectionTitle.trim():'';const legacyTitle=typeof source.section==='string'?source.section.trim():'';return {index,title:metadataTitle||legacyTitle||null}};
 const searchRank=(source:SearchSource,query:string)=>{if(!query)return 0;const name=normalized(source.name),opening=normalized((source.openingWords??[]).join(' ')),body=normalized(source.blocks.flatMap(block=>[block.he,block.tr,block.en]).join(' ')),metadata=normalized([source.id,source.section,...(source.aliases??[]),sourceBook(source).value,sourceBook(source).label,source.service].join(' '));if(name===query)return 0;if(name.startsWith(query))return 1;if(name.includes(query))return 2;if(opening.includes(query))return 3;if(body.includes(query))return 4;if(metadata.includes(query))return 5;return null};
-const PANEL_BLOCK_LIMIT=3;
-const PANEL_CHAR_BUDGET=600;
-const PANEL_ENGLISH_CHAR_BUDGET=400;
-
-function blockCharacters(block:SourceBlock,mode:'bilingual'|'original-en'|'source-en'){
- return mode==='bilingual'?(block.he?.length??0)+(block.tr?.length??0):(block.en?.length??0);
-}
 function sourceSetSegments(source:SearchSource,mode:'bilingual'|'original-en'|'source-en',includeTranslation:boolean){
  const blocks=source.blocks.filter(block=>mode==='source-en'?(block.kind==='source-en'||(block.kind==='bilingual'&&Boolean(block.en)))&&block.automatic!==false:block.kind===(mode==='bilingual'?'bilingual':'original-en'));
  if(!blocks.length)throw new AuthoringError('source_mode_unavailable',`This source has no automatic ${mode==='bilingual'?'paired Hebrew and transliteration':mode==='original-en'?'original English':'source English'} blocks`,409);
@@ -72,7 +74,7 @@ function sourceSetSegments(source:SearchSource,mode:'bilingual'|'original-en'|'s
 function sourceSetPages(source:SearchSource,mode:'bilingual'|'original-en'|'source-en',includeTranslation:boolean,layout:Layout){
  const segments=sourceSetSegments(source,mode,includeTranslation);
  if(layout==='bottom')return segments.flatMap(segment=>segment.map(block=>[block]));
- const characterBudget=mode==='source-en'?PANEL_ENGLISH_CHAR_BUDGET:PANEL_CHAR_BUDGET;
+ const characterBudget=panelCharacterBudget(mode);
  const pages:SourceBlock[][]=[];let page:SourceBlock[]=[];let characters=0;
  for(const segment of segments){
   const translationCharacters=includeTranslation?(source.blocks.find(block=>block.kind==='translation-en'&&block.pairedBlockIds?.[0]===segment[0].id)?.en?.length??0):0;
@@ -141,6 +143,24 @@ export function createAuthoringService(repo:AuthoringRepository,workspace:Author
   }
   if(operation==='source_facets'||operation==='list_source_facets'){
    keys(data,[]);return {books:sourceFacets('book'),services:sourceFacets('service')};
+  }
+  // The printed outline of one book: every browsable unit, in printed order, grouped by the
+  // section a reader would find it under. Names and folios only — the corpus itself stays on
+  // the server, and `get_source` remains the way to read one unit.
+  if(operation==='list_book_units'){
+   keys(data,['book']);const book=normalized(string(data.book,'book',100));
+   const matches=browsableSources.map(raw=>raw as SearchSource).filter(source=>[sourceBook(source).value,sourceBook(source).label].some(value=>normalized(value)===book));
+   if(!matches.length)throw new AuthoringError('unknown_source','Unknown authoring source book',404);
+   const sections=new Map<string,{index:number;title:string|null;units:BookUnit[]}>();
+   for(const source of matches){
+    const {index,title}=sourceSection(source);const key=index===null?`title:${title??''}`:`index:${index}`;
+    let section=sections.get(key);if(!section){section={index:index??sections.size,title,units:[]};sections.set(key,section)}
+    section.units.push({id:source.id,name:source.name,folio:sourceDisplay(source).folio,kinds:[...new Set(source.blocks.map(block=>block.kind))],blockCount:source.blocks.length,noteLikeOnly:unitNoteLikeOnly(source)});
+   }
+   const services=[...new Set(matches.map(source=>sourceService(source).label).filter(Boolean))];
+   const result={book:sourceBook(matches[0]),service:services.length===1?services[0]:null,sections:[...sections.values()].sort((a,b)=>a.index-b.index),total:matches.length,noteLikeOnly:matches.filter(unitNoteLikeOnly).length};
+   if(jsonBytes(result)>MAX_SOURCE_RESPONSE_BYTES)throw new AuthoringError('source_too_large','This book is too large for direct browser authoring',413);
+   return result;
   }
   if(operation==='search_sources'){
    keys(data,['query','book','service','limit']);const query=normalized(optionalString(data.query,'query',100));const book=normalized(optionalString(data.book,'book',100));const service=normalized(optionalString(data.service,'service',100));const limit=data.limit===undefined?20:integer(data.limit,'limit',1,50);
@@ -219,8 +239,13 @@ export function createAuthoringService(repo:AuthoringRepository,workspace:Author
    return {previewId:preview.id,draftVersion:draft.version,cue,cueHash:preview.cueHash,validation,previewPath:`/author?draft=${encodeURIComponent(draft.id)}`,fitContract:{viewport:{width:1920,height:1080},fontsReadyRequired:true,noOverflowRequired:true,browserReported:true,humanReviewRequired:true}};
   }
   if(operation==='preview_content'){
-   const editable=parseEditable(data) as EditableDraft;const sourceSnapshots=sourceSnapshotsFor(editable.content);const now=Date.now();const draft:Draft={...editable,id:newDraftId(),version:1,sourcePin:sourcePinFor(editable.content,sourceSnapshots),...(sourceSnapshots.length?{sourceSnapshots}:{}),activeRevision:null,activeDraftVersion:null,createdAt:now,updatedAt:now,createdBy:who,updatedBy:who};const cue=buildCue(draft);const validation=previewValidation(cue);
-   return {cue,validation,ephemeral:true,fitContract:{viewport:{width:1920,height:1080},fontsReadyRequired:true,noOverflowRequired:true,browserReported:true,humanReviewRequired:true}};
+   return ephemeralCue(parseEditable(data) as EditableDraft,who);
+  }
+  // Looking at a baseline graphic is not importing it: the cue is rebuilt from the same
+  // baseline mapping `import_cue` would use, and a baseline the model refuses to manage
+  // (a non-liturgical archive copy) refuses here too, with its own error.
+  if(operation==='preview_baseline_cue'){
+   keys(data,['cueId']);return ephemeralCue(editableFromBaseline(string(data.cueId,'cueId',160)),who);
   }
   if(operation==='review_draft'){
    keys(data,['draftId','expectedVersion','previewId','browserMeasurement','humanApproved']);const draft=await versionedDraft(repo,string(data.draftId,'draftId'),integer(data.expectedVersion,'expectedVersion',1));assertSourcePin(draft);const preview=await requiredPreview(repo,string(data.previewId,'previewId'));if(preview.draftId!==draft.id||preview.draftVersion!==draft.version)throw new AuthoringError('stale_preview','Preview does not match this draft version',409);if(data.humanApproved!==true)throw new AuthoringError('review_required','Human approval is required',400);
@@ -254,6 +279,18 @@ export function createAuthoringService(repo:AuthoringRepository,workspace:Author
  return {operation,publishedCues:()=>repo.published()};
 }
 
+const FIT_CONTRACT={viewport:{width:1920,height:1080},fontsReadyRequired:true,noOverflowRequired:true,browserReported:true,humanReviewRequired:true} as const;
+/**
+ * Builds the cue an editable draft would produce without storing anything: no draft row, no
+ * preview record, nothing a publication could later cite. Every ephemeral preview goes through
+ * here so a look at a graphic can never leave a trace in the library.
+ */
+function ephemeralCue(editable:EditableDraft,who:string){
+ const sourceSnapshots=sourceSnapshotsFor(editable.content);const now=Date.now();
+ const draft:Draft={...editable,id:newDraftId(),version:1,sourcePin:sourcePinFor(editable.content,sourceSnapshots),...(sourceSnapshots.length?{sourceSnapshots}:{}),activeRevision:null,activeDraftVersion:null,createdAt:now,updatedAt:now,createdBy:who,updatedBy:who};
+ const cue=buildCue(draft);
+ return {cue,validation:previewValidation(cue),ephemeral:true as const,fitContract:structuredClone(FIT_CONTRACT)};
+}
 function editableOnly(draft:Draft):EditableDraft{return {name:draft.name,title:draft.title,accentTitle:draft.accentTitle,layout:draft.layout,templateCueId:draft.templateCueId,content:draft.content,presentation:draft.presentation}}
 function copyLabel(name:string){const prefix='Copy of ';return `${prefix}${name}`.slice(0,80).trim()}
 function editableFromCatalogCue(cueId:string):EditableDraft{
