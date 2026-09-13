@@ -54,9 +54,9 @@ OAuth is not itself the product requirement. The standard device authorization f
 
 ### 2. F1: a persistent QR layer must preserve an unambiguous emergency clear
 
-**Priority: high; confidence: 90%; Daniel's preference requested.**
+**Priority: high; explicitly approved by Daniel on 2026-09-13.**
 
-The proposed bug layer is explicitly unaffected by “Clear now.” That conflicts with the established expectation that the emergency action produces a clean picture. My recommendation: ordinary Animate out affects the prayer layer, while Clear now removes **every** overlay layer. If Daniel prefers a prayer-only clear, rename it and provide a distinct, equally reachable Clear everything action on both web and Companion.
+Daniel confirmed: **Clear now removes every overlay layer**, including QR/bug and page chip, on both web and Companion. Ordinary Animate out affects the prayer layer. The QR/bug is an optional tool, **off by default**, enabled explicitly when wanted; Daniel does not expect it to be normally displayed. This supersedes the original plan's exemption of the bug from Clear now.
 
 Specify layer state, reconnect behavior, acknowledgement, and what the operator sees when only the QR remains. A renderer marked clear cannot still contain an unreported layer. Test combined prayer/artwork/QR/page-chip layouts, including long text. Make QR destination and page reference workspace-specific; TBI must not inherit a CRC link unintentionally.
 
@@ -89,13 +89,13 @@ Acceptance: an ambiguous folio prompts a choice; TBI cannot retrieve unintended 
 
 ### 5. ADAPT: add an explicit continuing-sharing experience for Simone
 
-**Priority: medium-high; confidence: 95% for ease of sharing, unresolved for automation.**
+**Priority: medium-high; discovery shelf explicitly approved by Daniel on 2026-09-13.**
 
 The current shared-library code exports visible published CRC graphics with source mappings; that is a sound foundation. The new plan focuses much more on integration than on how Simone discovers what CRC adds next month.
 
 Add New from CRC / Updated from CRC, a real TBI-branded preview, and one-click Customize. For a previously customized item, show the upstream change and offer an independent new draft; preserve Simone's wording and layout. Preserve complete multipart prayers when importing. An unavailable CRC feed must not break existing TBI material.
 
-Daniel has been asked whether he prefers a discovery shelf or automatic untouched TBI copies. Neither choice permits overwriting local edits. Do not add a selective sharing-approval gate: all current and future published CRC overlays are already approved to share.
+Daniel chose the **New from CRC shelf with one-click customization**, not automatic creation of TBI library copies. New and updated CRC material appears on the shelf; Simone chooses what to customize into an independent TBI draft. Never overwrite local edits. Do not add a selective sharing-approval gate: all current and future published CRC overlays are already approved to share.
 
 Acceptance: publish a synthetic new CRC graphic, discover and customize it in TBI, revise the CRC original, and demonstrate both visibility of the update and preservation of the TBI customization.
 
@@ -154,6 +154,22 @@ Use the existing ledger rather than create another competing tracker. Add these 
 
 ## Open decisions and implementation handback
 
-Two product questions were sent to Daniel during this review: whether emergency Clear now removes the QR layer, and whether Simone gets a New from CRC shelf or automatic untouched TBI copies. Answers are pending in this revision. Continue unrelated work; do not treat these recommendations as his answers.
+### Approved addition: Google sign-in
+
+Daniel approved this addition after the review on 2026-09-13. Build before beta, with permanent device pairing taking priority. This is an approved requirement, not a pending suggestion.
+
+- Make **Continue with Google** the primary human sign-in option; keep existing password access and recovery available, including for people who do not use Google. Preserve current accounts, drafts, ownership and roles through the migration.
+- Use Google OpenID Connect for basic identity (`openid email profile`) only. Do not request Gmail, Drive or Calendar access. Google identifies the person; the application's invitation and membership system determines congregation access. No open registration, domain-wide auto-admission or inferred administrator rights.
+- Bind a validated Google issuer/subject to the existing member. Use an authenticated account-linking or valid invitation flow to establish that binding; do not silently attach a Google account to a privileged existing account solely because an email string matches. Handle different invited and Google email addresses explicitly without inventing new memberships. Validate tokens and the sign-in transaction with a maintained implementation, including issuer, audience, expiry and applicable anti-forgery checks.
+- Create the normal application session after sign-in. Keep memberships independent across CRC and TBI, even when one Google identity belongs to both. Disabled membership must remain disabled regardless of a successful Google sign-in.
+- **Device pairing is independent:** Google sign-out, human session expiry, password changes and Google unavailability must not revoke or interrupt already-paired outputs/controllers. Devices never use a human Google access token as their permanent connection credential. Explicit device revocation remains a separate supported operation.
+- Keep the existing Overlays MCP OAuth service intact. Google as a human identity provider and Overlays as an OAuth provider to MCP clients are distinct responsibilities.
+- Configure the Google application's audience to support invited users from both congregations; do not restrict it to CRC's Google organization. Register explicit callback URLs for both workspaces and appropriate local development. Store provider credentials only in the existing secret-management paths. Record configuration ownership and recovery steps, with no secret values in documentation. If a Google dashboard action requires Daniel, prepare the code and exact remaining setup instructions first.
+
+Acceptance: existing owner links and returns through Google without duplicate membership; an invited editor receives only the assigned role; an uninvited Google user receives no access; an account can have different roles in the two workspaces; revoked/disabled membership cannot sign back in through Google; the password/recovery path still works; canceled sign-in returns cleanly; human logout/expiry leaves paired devices operating and able to reconnect. Record real Google callback evidence separately from mocked local tests. Google documentation: [OpenID Connect](https://developers.google.com/identity/openid-connect/openid-connect).
+
+### Product choices resolved
+
+Daniel answered both questions on 2026-09-13: Clear now removes all layers; QR/bug is optional and off by default. Simone gets a New from CRC shelf with one-click customization. These decisions are also recorded in the canonical build handoff. Neither question remains pending.
 
 For Claude: reconcile this review against commits made after `f323fc2`; mark each amendment accepted, already addressed (with evidence), or disputed with a reason in your next return note. Amend the canonical plan once decisions are settled. Do not rebuild completed Phase A/A2 work merely because it is mentioned here. This review changed no implementation, credentials, deployment or live output.
