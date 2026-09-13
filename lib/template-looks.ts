@@ -27,11 +27,15 @@ export function lookDescriptor(mode: TemplateLookMode, layout: TemplateLookLayou
   return "Hebrew + transliteration";
 }
 
-/** At most three tiles, one per layout, each pointing at that layout's first importable baseline. */
+/**
+ * At most three tiles, one per layout. A template contributes only its layout, motion and
+ * duration, so a baseline that cannot be imported as content (a custom graphic such as the
+ * right panel's "Thank you") is still a valid template; importable baselines are preferred.
+ */
 export function templateLooks(templates: readonly TemplateLookSummary[], mode: TemplateLookMode): TemplateLook[] {
   const looks: TemplateLook[] = [];
   for (const layout of LAYOUT_ORDER) {
-    const baseline = templates.find((item) => item.layout === layout && item.importable);
+    const baseline = templates.find((item) => item.layout === layout && item.importable) ?? templates.find((item) => item.layout === layout);
     if (!baseline) continue;
     looks.push({ id: baseline.id, layout, label: `${layoutLabel(layout)} · ${lookDescriptor(mode, layout)}` });
   }

@@ -2,6 +2,7 @@ import assert from 'node:assert/strict';
 import test from 'node:test';
 import baseline from '../lib/cues.json';
 import {templateLooks, lookDescriptor, type TemplateLookSummary} from '../lib/template-looks.ts';
+import {editableFromBaseline} from '../lib/authoring-model.ts';
 
 /** The same shape `list_templates` returns: every non-hidden baseline, in catalog order. */
 const templates: TemplateLookSummary[] = (baseline as Array<{id: string; name: string; layout: string; hidden?: boolean}>)
@@ -39,8 +40,17 @@ test('the descriptor names what goes on screen, per mode', () => {
   assert.equal(lookDescriptor('local-variant', 'left'), 'Hebrew + transliteration');
 });
 
-test('a layout with no importable baseline gets no tile', () => {
+test('a layout with no baseline gets no tile; a non-importable baseline still gives one', () => {
   const looks = templateLooks(templates.filter(item => item.layout !== 'right'), 'bilingual');
   assert.deepEqual(looks.map(look => look.layout), ['bottom', 'left']);
-  assert.equal(templateLooks(templates.map(item => ({...item, importable: false})), 'bilingual').length, 0);
+  const none = templateLooks(templates.map(item => ({...item, importable: false})), 'bilingual');
+  assert.deepEqual(none.map(look => look.layout), ['bottom', 'left', 'right']);
+});
+
+test('with real importability the right panel still gets a tile (its only baseline is a custom graphic)', () => {
+  const real = templates.map(item => { let importable = true; try { editableFromBaseline(item.id); } catch { importable = false; } return {...item, importable}; });
+  assert.ok(real.some(item => item.layout === 'right' && !item.importable), 'fixture: the right baseline is not importable');
+  const looks = templateLooks(real, 'bilingual');
+  assert.deepEqual(looks.map(look => look.layout), ['bottom', 'left', 'right']);
+  assert.equal(looks.find(look => look.layout === 'right')?.label, 'Right panel · Hebrew + transliteration');
 });
