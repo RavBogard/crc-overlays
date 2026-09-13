@@ -58,7 +58,7 @@ export class PgAccessStore implements AccessStore {
  * rehearsal exercises the same rules production enforces. Nothing here reads
  * DATABASE_URL.
  */
-export const REHEARSAL_OWNER={id:'rehearsal-owner',email:'rehearsal-owner@localhost',name:'Rehearsal Owner',role:'owner' as AccessRole};
+export const REHEARSAL_OWNER={id:'rehearsal-owner',email:'rehearsal-owner@rehearsal.invalid',name:'Rehearsal Owner',role:'owner' as AccessRole};
 export const REHEARSAL_OWNER_PASSWORD='rehearsal-owner-local-2026';
 const ATTEMPT_WINDOW_MS=60_000,ATTEMPT_LIMIT=10;
 type MemoryMember=AccessMember&{passwordHash:string|null;createdAt:number};

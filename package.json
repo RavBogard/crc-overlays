@@ -13,7 +13,9 @@
     "lint": "eslint . --ignore-pattern dist --ignore-pattern .next",
     "test": "node node_modules/tsx/dist/cli.mjs --test tests/*.test.ts app/author/*.test.ts",
     "test:renderer": "node --test --experimental-strip-types tests/player.test.ts",
-    "test:mcp": "node node_modules/tsx/dist/cli.mjs --test tests/oauth*.test.ts tests/mcp*.test.ts"
+    "test:mcp": "node node_modules/tsx/dist/cli.mjs --test tests/oauth*.test.ts tests/mcp*.test.ts",
+    "rehearsal": "node node_modules/tsx/dist/cli.mjs scripts/rehearsal.mjs",
+    "rehearsal:check": "node node_modules/tsx/dist/cli.mjs scripts/check-rehearsal.mjs"
   },
   "dependencies": {
     "@base-ui/react": "^1.7.0",
