@@ -1,0 +1,92 @@
+/* I3 - the siddur shelf: books, then printed sections, then units. Colours and focus rings
+   come from the .author-page tokens in author.css; nothing here restyles the search row. */
+
+.author-page .siddur-shelf {
+  display: grid;
+  gap: 10px;
+  max-height: 430px;
+  margin-top: 12px;
+  overflow-y: auto;
+  overscroll-behavior: contain;
+  scrollbar-color: #3b544d transparent;
+}
+.author-page .shelf-lead {
+  margin: 0;
+  color: var(--quiet);
+  font-size: 10px;
+  line-height: 1.5;
+}
+.author-page .shelf-books {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
+  gap: 6px;
+}
+.author-page .shelf-book {
+  display: grid;
+  grid-template-columns: auto minmax(0, 1fr);
+  align-items: start;
+  gap: 4px 8px;
+  padding: 10px;
+  background: #0e1816;
+  text-align: left;
+}
+.author-page .shelf-book > svg { grid-row: span 2; margin-top: 1px; color: var(--mint); }
+.author-page .shelf-book strong { overflow-wrap: anywhere; font-size: 12px; line-height: 1.35; }
+.author-page .shelf-book small { color: var(--quiet); font-size: 10px; }
+
+.author-page .shelf-crumb {
+  display: flex;
+  align-items: center;
+  gap: 9px;
+  position: sticky;
+  top: 0;
+  z-index: 2;
+  padding: 8px 2px;
+  background: var(--panel);
+}
+.author-page .shelf-crumb > div { display: grid; min-width: 0; gap: 2px; }
+.author-page .shelf-crumb small { color: var(--quiet); font-size: 10px; }
+.author-page .shelf-crumb h4 { margin: 0; font-size: 13px; }
+
+.author-page .shelf-toggle {
+  display: flex;
+  align-items: center;
+  gap: 7px;
+  color: var(--muted);
+  font-size: 11px;
+}
+.author-page .shelf-toggle input { width: 15px; height: 15px; accent-color: var(--mint-deep); }
+
+.author-page .shelf-note { margin: 0; color: var(--quiet); font-size: 11px; line-height: 1.5; }
+.author-page .shelf-error { color: var(--danger); }
+
+.author-page .shelf-section { display: grid; gap: 5px; }
+.author-page .shelf-section h5 {
+  margin: 4px 0 0;
+  color: #93a8a2;
+  font-size: 10px;
+  font-weight: 650;
+  letter-spacing: .7px;
+  text-transform: uppercase;
+}
+.author-page .shelf-units { display: grid; gap: 4px; }
+.author-page .shelf-unit {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: baseline;
+  justify-content: flex-start;
+  gap: 4px 10px;
+  padding: 9px 10px;
+  background: #0e1816;
+  text-align: left;
+}
+.author-page .shelf-unit .shelf-unit-name { min-width: 0; flex: 1 1 auto; overflow-wrap: anywhere; font-size: 12px; font-weight: 600; }
+.author-page .shelf-unit small { color: var(--quiet); font-size: 10px; white-space: nowrap; }
+.author-page .shelf-unit > svg { flex: 0 0 auto; margin-left: auto; align-self: center; color: var(--quiet); }
+
+@media (max-width: 620px) {
+  .author-page .shelf-books { grid-template-columns: repeat(auto-fit, minmax(150px, 1fr)); }
+  .author-page .shelf-unit > svg { display: none; }
+}
+
+.author-page .shelf-retry { margin-left: 6px; padding: 4px 9px; background: transparent; font-size: 10px; }
