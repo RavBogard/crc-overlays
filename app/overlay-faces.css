@@ -1,0 +1,39 @@
+/* Trial "book faces" overlay typography, behind WORKSPACE_BOOK_FACES (see lib/workspace.ts).
+   Nothing here applies unless an element carries the .faces-book class (wiring to
+   /output, console, and editor is a separate package). Same @font-face pattern as the
+   Noto Sans Hebrew rules in app/globals.css: font-display:block, explicit weights. */
+@font-face {
+  font-family: 'David Libre';
+  src: url('/assets/DavidLibre-Regular.ttf') format('truetype');
+  font-style: normal;
+  font-weight: 400;
+  font-display: block;
+}
+@font-face {
+  font-family: 'David Libre';
+  src: url('/assets/DavidLibre-Medium.ttf') format('truetype');
+  font-style: normal;
+  font-weight: 500;
+  font-display: block;
+}
+@font-face {
+  font-family: 'Frank Ruhl Libre';
+  src: url('/assets/FrankRuhlLibre[wght].ttf') format('truetype-variations');
+  font-style: normal;
+  font-weight: 400 500;
+  font-display: block;
+}
+
+/* .title (English/base title) is declared first; .hebrew/.row-hebrew/.title-accent is
+   declared after with equal specificity (.faces-book .overlay .X) so it wins the cascade
+   on an element that carries both "title" and "title-accent" (lib/player.ts renders the
+   Hebrew accent title as class="title title-accent") — matching how app/globals.css lets
+   .title-accent override the WorkRefresh default for that same combined element. */
+.faces-book .overlay .title {
+  font-family: 'Frank Ruhl Libre', 'David Libre', serif;
+}
+.faces-book .overlay .hebrew,
+.faces-book .overlay .row-hebrew,
+.faces-book .overlay .title-accent {
+  font-family: 'David Libre', 'Noto Sans Hebrew', Arial, sans-serif;
+}

@@ -57,19 +57,34 @@ function settledImage(image: HTMLImageElement, failure: string, label: string, d
   });
 }
 
-export async function waitForOverlayFonts(signal?: AbortSignal) {
+export async function waitForOverlayFonts(signal?: AbortSignal, faces: 'default' | 'book' = 'default') {
   await withDeadline(signal, async (deadline) => {
-    await bounded(Promise.all([
+    const loads = [
       document.fonts.load('400 40px "Noto Sans Hebrew"', HEBREW_SAMPLE),
       document.fonts.load('500 40px "Noto Sans Hebrew"', HEBREW_SAMPLE),
       document.fonts.load('400 40px "WorkRefresh"', "Shabbat Shalom"),
       document.fonts.load('500 40px "WorkRefresh"', "Shabbat Shalom"),
-    ]), "Overlay font loading", deadline);
+    ];
+    if (faces === 'book') {
+      loads.push(
+        document.fonts.load('400 40px "David Libre"', HEBREW_SAMPLE),
+        document.fonts.load('500 40px "David Libre"', HEBREW_SAMPLE),
+        document.fonts.load('400 40px "Frank Ruhl Libre"', "Shabbat Shalom"),
+        document.fonts.load('500 40px "Frank Ruhl Libre"', "Shabbat Shalom"),
+      );
+    }
+    await bounded(Promise.all(loads), "Overlay font loading", deadline);
     await bounded(document.fonts.ready, "Overlay font readiness", deadline);
     if (!document.fonts.check('400 40px "Noto Sans Hebrew"', HEBREW_SAMPLE))
       throw Error("The Hebrew overlay font is not ready.");
     if (!document.fonts.check('400 40px "WorkRefresh"', "Shabbat Shalom"))
       throw Error("The overlay font is not ready.");
+    if (faces === 'book') {
+      if (!document.fonts.check('400 40px "David Libre"', HEBREW_SAMPLE))
+        throw Error("The David Libre overlay font is not ready.");
+      if (!document.fonts.check('400 40px "Frank Ruhl Libre"', "Shabbat Shalom"))
+        throw Error("The Frank Ruhl Libre overlay font is not ready.");
+    }
   });
 }
 
@@ -84,9 +99,9 @@ export async function preloadOverlayImage(src: string, label = "Workspace artwor
   });
 }
 
-export async function waitForRenderedOverlayAssets(root: HTMLElement, signal?: AbortSignal) {
+export async function waitForRenderedOverlayAssets(root: HTMLElement, signal?: AbortSignal, faces: 'default' | 'book' = 'default') {
   await withDeadline(signal, async (deadline) => {
-    await waitForOverlayFonts(deadline);
+    await waitForOverlayFonts(deadline, faces);
     const logo = root.querySelector<HTMLImageElement>("img.logo");
     if (!logo) throw Error("The workspace logo did not render.");
     if (!logo.complete)

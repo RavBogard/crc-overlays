@@ -26,6 +26,7 @@ export type PublicWorkspace = {
     usesDefaultCrcIdentity: boolean;
     isolationVerified: boolean;
   };
+  bookFaces: boolean;
 };
 
 type WorkspaceEnvironment = Record<string, string | undefined>;
@@ -174,6 +175,9 @@ export function getPublicWorkspace(env: WorkspaceEnvironment = process.env): Pub
       usesDefaultCrcIdentity: crcDefault,
       isolationVerified: resolved.WORKSPACE_ISOLATION_VERIFIED === 'true',
     },
+    // Trial "book faces" (David Libre / Frank Ruhl Libre) typography, default off; see
+    // app/overlay-faces.css and lib/overlay-assets.ts waitForOverlayFonts.
+    bookFaces: resolved.WORKSPACE_BOOK_FACES === '1' || resolved.WORKSPACE_BOOK_FACES === 'true',
   };
 }
 import templeBnaiIsraelProfile from '../workspaces/temple-bnai-israel/workspace.json';

@@ -1,6 +1,7 @@
 import type { Metadata } from "next";
 import {getPublicWorkspace} from '@/lib/workspace';
 import "./globals.css";
+import "./overlay-faces.css";
 
 export function generateMetadata(): Metadata {
   const workspace = getPublicWorkspace();

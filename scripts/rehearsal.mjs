@@ -65,7 +65,7 @@ export async function portFree(port){
  return true;
 }
 
-function childEnv({relayPort,relaySecret,controlKey,outputKey}){
+function childEnv({relayPort,relaySecret,controlKey,outputKey,bookFaces}){
  const env={};
  for(const name of INHERITED_ENV)if(process.env[name]!==undefined)env[name]=process.env[name];
  Object.assign(env,{
@@ -82,6 +82,9 @@ function childEnv({relayPort,relaySecret,controlKey,outputKey}){
   DATABASE_URL:'',
   ACCESS_BOOTSTRAP_KEY:'',
  });
+ // --book-faces trials the David Libre / Frank Ruhl Libre overlay typography (lib/workspace.ts
+ // WORKSPACE_BOOK_FACES); default off, so this key is only set when explicitly requested.
+ if(bookFaces)env.WORKSPACE_BOOK_FACES='1';
  return env;
 }
 
@@ -163,7 +166,7 @@ export async function startRehearsal(options={}){
   const baseUrl=`http://localhost:${port}`;
   const stderrLines=[];
   const remember=chunk=>{for(const line of String(chunk).split(/\r?\n/))if(line.trim()){stderrLines.push(line);if(stderrLines.length>40)stderrLines.shift()}};
-  child=spawn(process.execPath,[NEXT_BIN,'dev','--port',String(port)],{cwd:ROOT,env:childEnv({relayPort,relaySecret,controlKey,outputKey}),stdio:['ignore','pipe','pipe'],windowsHide:true});
+  child=spawn(process.execPath,[NEXT_BIN,'dev','--port',String(port)],{cwd:ROOT,env:childEnv({relayPort,relaySecret,controlKey,outputKey,bookFaces:options.bookFaces}),stdio:['ignore','pipe','pipe'],windowsHide:true});
   // Observed from the instant the child exists, not only once main() attaches its own
   // listener after this function returns.
   let childExited=null;
@@ -199,10 +202,11 @@ function parseArgs(argv){
  const options={port:DEFAULT_REHEARSAL_PORT,relayPort:DEFAULT_REHEARSAL_RELAY_PORT};
  for(let index=0;index<argv.length;index+=1){
   const [flag,inline]=argv[index].split('=');
+  if(flag==='--book-faces'){options.bookFaces=true;continue}
   const value=inline??argv[++index];
   if(flag==='--port')options.port=Number(value);
   else if(flag==='--relay-port')options.relayPort=Number(value);
-  else throw new RehearsalStartError(2,`unknown argument ${argv[index]}; supported: --port <n> --relay-port <n>`);
+  else throw new RehearsalStartError(2,`unknown argument ${argv[index]}; supported: --port <n> --relay-port <n> --book-faces`);
  }
  return options;
 }

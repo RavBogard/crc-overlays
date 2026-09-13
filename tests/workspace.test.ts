@@ -72,6 +72,15 @@ test('workspace validation rejects unsafe public configuration', () => {
   assert.throws(() => getPublicWorkspace({WORKSPACE_DEFAULT_COMPOSITOR: 'resolume'}), /default compositor/);
 });
 
+test('bookFaces defaults off and is enabled only by the exact string "1" or "true"', () => {
+  assert.equal(getPublicWorkspace({}).bookFaces, false);
+  assert.equal(getPublicWorkspace({WORKSPACE_BOOK_FACES: '1'}).bookFaces, true);
+  assert.equal(getPublicWorkspace({WORKSPACE_BOOK_FACES: 'true'}).bookFaces, true);
+  assert.equal(getPublicWorkspace({WORKSPACE_BOOK_FACES: '0'}).bookFaces, false);
+  assert.equal(getPublicWorkspace({WORKSPACE_BOOK_FACES: 'yes'}).bookFaces, false);
+  assert.equal(getPublicWorkspace({WORKSPACE_BOOK_FACES: ''}).bookFaces, false);
+});
+
 test('the setup default compositor is congregation configuration, not a hardcoded workspace comparison', () => {
   assert.equal(getPublicWorkspace({}).defaultCompositor, 'vmix');
   assert.equal(getPublicWorkspace({WORKSPACE_DEFAULT_COMPOSITOR: '  OBS '}).defaultCompositor, 'obs');

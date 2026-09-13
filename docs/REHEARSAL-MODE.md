@@ -9,8 +9,10 @@ instance to publish and show a graphic.
 ## One command
 
 ```
-npm run rehearsal            # optional: -- --port 5175 --relay-port 8788
+npm run rehearsal            # optional: -- --port 5175 --relay-port 8788 --book-faces
 ```
+
+`--book-faces` sets `WORKSPACE_BOOK_FACES=1` in the Next child's environment, trialing the David Libre / Frank Ruhl Libre overlay typography (default off; see `docs/RENDERER.md`).
 
 This runs `scripts/rehearsal.mjs` (under tsx), which:
 
