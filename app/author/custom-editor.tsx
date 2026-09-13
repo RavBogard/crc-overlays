@@ -25,10 +25,12 @@ export function CustomTextEditor({ form, changeForm, templates }: { form: DraftF
     setValues({});
     setActiveId(template?.id || "");
     if (!template) return;
-    // Only a draft with nothing in it yet may have its layout chosen for it.
+    // Only a draft with nothing in it yet is composed (and has its layout chosen) on pick; words
+    // already typed stay until the first guided keystroke, so choosing a starter never erases them.
     const untouched = !form.customText.trim() && !form.title.trim();
-    const baseline = templates.find((item) => item.layout === template.layout && item.importable);
-    composeInto(template, {}, untouched ? { layout: template.layout, templateCueId: baseline?.id || form.templateCueId } : {});
+    if (!untouched) return;
+    const baseline = templates.find((item) => item.layout === template.layout);
+    composeInto(template, {}, { layout: template.layout, templateCueId: baseline?.id || form.templateCueId });
   };
 
   return <section className="form-section custom-section"><div className="section-heading"><span>1</span><div><h3>Write the graphic</h3><p>For announcements, welcome messages, names, and community-specific readings.</p></div></div>
