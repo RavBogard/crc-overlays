@@ -84,3 +84,46 @@ export function findFitErrors(root: HTMLElement) {
   errors.push(...overlapErrors(occupied, overlap));
   return [...new Set(errors)];
 }
+
+// Below this line: sparse-fill detection, layered on the same frame/scale
+// convention as findFitErrors above (native 1920x1080 px, divided by the
+// stage's render scale) but measuring how much of a panel a cue actually
+// fills rather than whether it overflows it.
+export const SPARSE_FILL = 0.35;
+
+function textRangeHeight(elements: HTMLElement[]): number {
+  let top = Infinity;
+  let bottom = -Infinity;
+  for (const element of elements) {
+    if (!element.textContent?.trim()) continue;
+    const range = document.createRange();
+    range.selectNodeContents(element);
+    for (const box of range.getClientRects()) {
+      top = Math.min(top, box.top);
+      bottom = Math.max(bottom, box.bottom);
+    }
+  }
+  return top <= bottom ? bottom - top : 0;
+}
+
+export function panelFillRatio(root: HTMLElement): number | null {
+  const overlay = root.querySelector<HTMLElement>(".overlay");
+  if (!overlay || !(overlay.classList.contains("left") || overlay.classList.contains("right"))) return null;
+  const rootBox = root.getBoundingClientRect();
+  const scale = rootBox.width / WIDTH || 1;
+  const rows = root.querySelectorAll<HTMLElement>(".overlay .panel-rows .content-row");
+  if (rows.length)
+    return Array.from(rows).reduce((sum, row) => sum + row.getBoundingClientRect().height, 0) / scale / 842;
+  const english = root.querySelector<HTMLElement>(".overlay .english:not(.single-channel)");
+  const hebrew = root.querySelector<HTMLElement>(".overlay .hebrew:not(.single-channel)");
+  if (english && hebrew) return textRangeHeight([english, hebrew]) / scale / 840;
+  const single = root.querySelector<HTMLElement>(".overlay .prayer.single-channel");
+  if (single) return textRangeHeight([single]) / scale / 840;
+  return null;
+}
+
+export function findFitWarnings(root: HTMLElement): string[] {
+  const ratio = panelFillRatio(root);
+  if (ratio !== null && ratio < SPARSE_FILL) return ["Sparse — consider Lower third"];
+  return [];
+}

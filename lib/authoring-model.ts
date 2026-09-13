@@ -241,7 +241,7 @@ export function buildCue(draft:Draft):AuthoringCue{
   id:draft.id,name:draft.name,layout:draft.layout,texts,
   ...(content.mode==='bilingual'&&content.includeTranslation
    ?{contentRows:translationSelections(content,draft.sourceSnapshots).map(({sourceId,block,pairIds})=>({he:renderGroup({sourceId,blockIds:pairIds},'he',draft.sourceSnapshots,overrides),tr:renderGroup({sourceId,blockIds:pairIds},'tr',draft.sourceSnapshots,overrides),en:overrides.find(item=>item.sourceId===sourceId&&item.blockId===block.id&&item.channel==='en')?.localText??block.en!}))}
-   :content.mode==='bilingual'&&draft.draftSetId&&(draft.layout==='left'||draft.layout==='right')
+   :content.mode==='bilingual'&&(draft.layout==='left'||draft.layout==='right')
     ?{contentRows:content.hebrewGroups.flatMap(group=>group.blockIds.map(blockId=>({he:renderGroup({sourceId:group.sourceId,blockIds:[blockId]},'he',draft.sourceSnapshots,overrides),tr:renderGroup({sourceId:group.sourceId,blockIds:[blockId]},'tr',draft.sourceSnapshots,overrides),en:''})))}
     :{}),
   animations,duration:structuredClone(template.duration),

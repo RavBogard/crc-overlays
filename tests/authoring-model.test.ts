@@ -89,6 +89,51 @@ test('custom announcements are local, strictly validated, and render without sou
  const splitCue=buildCue({...draft,...splitEditable});assert.ok(splitCue.animations.some(track=>track.element==='textMain'),'custom text receives a usable body animation from split-language templates');
 });
 
+test('bilingual left draft without a draft set still emits one content row per block',()=>{
+ const LEFT='bbd7c98b-f1de-41ee-9719-2bb27a30d0db';
+ const source=sourcePack.sources.find(item=>item.blocks.filter(block=>block.kind==='bilingual').length>=2)!;
+ const blocks=source.blocks.filter(block=>block.kind==='bilingual');
+ const groups=[{sourceId:source.id,blockIds:[blocks[0].id]}];
+ const content=parseContent({mode:'bilingual',hebrewGroups:groups,transliterationGroups:groups});
+ const editable=parseEditable({name:'Left single',title:'Left single',layout:'left',templateCueId:LEFT,content,presentation:{}}) as EditableDraft;
+ const now=Date.now();
+ const draft:Draft={...editable,id:'left-single-test',version:1,sourcePin:sourcePinFor(content),activeRevision:null,activeDraftVersion:null,createdAt:now,updatedAt:now,createdBy:'test',updatedBy:'test'};
+ assert.equal(draft.draftSetId,undefined,'no draft set is attached to this draft');
+ const cue=buildCue(draft);
+ assert.equal(cue.contentRows?.length,1);
+ assert.equal(cue.contentRows?.[0].he,blocks[0].he);
+ assert.equal(cue.contentRows?.[0].tr,blocks[0].tr);
+ assert.equal(cue.contentRows?.[0].en,'');
+});
+
+test('bilingual left draft with multiple blocks emits one content row per block in order',()=>{
+ const LEFT='bbd7c98b-f1de-41ee-9719-2bb27a30d0db';
+ const source=sourcePack.sources.find(item=>item.blocks.filter(block=>block.kind==='bilingual').length>=2)!;
+ const blocks=source.blocks.filter(block=>block.kind==='bilingual').slice(0,2);
+ const groups=[{sourceId:source.id,blockIds:[blocks[0].id]},{sourceId:source.id,blockIds:[blocks[1].id]}];
+ const content=parseContent({mode:'bilingual',hebrewGroups:groups,transliterationGroups:groups});
+ const editable=parseEditable({name:'Left multi',title:'Left multi',layout:'left',templateCueId:LEFT,content,presentation:{}}) as EditableDraft;
+ const now=Date.now();
+ const draft:Draft={...editable,id:'left-multi-test',version:1,sourcePin:sourcePinFor(content),activeRevision:null,activeDraftVersion:null,createdAt:now,updatedAt:now,createdBy:'test',updatedBy:'test'};
+ const cue=buildCue(draft);
+ assert.equal(cue.contentRows?.length,2);
+ assert.deepEqual(cue.contentRows?.map(row=>row.he),[blocks[0].he,blocks[1].he]);
+ assert.deepEqual(cue.contentRows?.map(row=>row.tr),[blocks[0].tr,blocks[1].tr]);
+ assert.ok(cue.contentRows?.every(row=>row.en===''));
+});
+
+test('bilingual bottom draft never emits content rows',()=>{
+ const source=sourcePack.sources.find(item=>item.blocks.some(block=>block.kind==='bilingual'))!;
+ const block=source.blocks.find(block=>block.kind==='bilingual')!;
+ const groups=[{sourceId:source.id,blockIds:[block.id]}];
+ const content=parseContent({mode:'bilingual',hebrewGroups:groups,transliterationGroups:groups});
+ const editable=parseEditable({name:'Bottom',title:'Bottom',layout:'bottom',templateCueId:BARECHU,content,presentation:{}}) as EditableDraft;
+ const now=Date.now();
+ const draft:Draft={...editable,id:'bottom-test',version:1,sourcePin:sourcePinFor(content),activeRevision:null,activeDraftVersion:null,createdAt:now,updatedAt:now,createdBy:'test',updatedBy:'test'};
+ const cue=buildCue(draft);
+ assert.equal(cue.contentRows,undefined);
+});
+
 test('expanded siddur selections retain their own feed and unit authority pins',()=>{
  const selected=sourcePack.sources.find(source=>source.id.startsWith('library:')&&source.blocks.some(block=>block.kind==='bilingual'))!;
  const block=selected.blocks.find(item=>item.kind==='bilingual')!;const groups=[{sourceId:selected.id,blockIds:[block.id]}];
