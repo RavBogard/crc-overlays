@@ -16,6 +16,7 @@ export type PublicWorkspace = {
   logo: {src: string; alt: string};
   colors: {primary: string; deep: string; accent: string};
   stage: 'trial' | 'production';
+  defaultCompositor: 'vmix' | 'obs';
   setupDownloads: WorkspaceDownload[];
   sharedLibrary: {
     enabled: boolean;
@@ -138,6 +139,10 @@ export function getPublicWorkspace(env: WorkspaceEnvironment = process.env): Pub
   const productName = textValue(resolved.WORKSPACE_PRODUCT_NAME, '', 'Workspace product name');
   const stage = resolved.WORKSPACE_STAGE?.trim() || 'trial';
   if (stage !== 'trial' && stage !== 'production') throw new Error('Workspace stage must be trial or production');
+  // The compositor this congregation is set up for. It drives the default shown on /setup,
+  // so it is congregation configuration rather than a hardcoded workspace comparison.
+  const defaultCompositor = resolved.WORKSPACE_DEFAULT_COMPOSITOR?.trim().toLowerCase() || 'vmix';
+  if (defaultCompositor !== 'vmix' && defaultCompositor !== 'obs') throw new Error('Workspace default compositor must be vmix or obs');
 
   return {
     version: 1,
@@ -157,6 +162,7 @@ export function getPublicWorkspace(env: WorkspaceEnvironment = process.env): Pub
       accent: color(resolved.WORKSPACE_ACCENT_COLOR, '', 'Workspace accent color'),
     },
     stage,
+    defaultCompositor,
     setupDownloads: configuredDownloads(resolved, id === 'crc'),
     sharedLibrary: {
       enabled: id === 'temple-bnai-israel-kalamazoo'

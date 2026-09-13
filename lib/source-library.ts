@@ -144,5 +144,46 @@ const merged: MergedSourcePack={
  library:{generatedFrom:libraryJson.generatedFrom,coverage:libraryJson.coverage},
 };
 
+export type SourceDisplay={bookTitle:string;folio:string|null;sectionTitle:string|null;edition:string|null};
+
+/** Sources a person can see are never named by their slug, so a source whose title is missing falls back to this. */
+const UNTITLED_BOOK='Unlabeled book';
+const SLUG=/^[a-z0-9]+(?:-[a-z0-9]+)+$/;
+const printingLabel=(printing:unknown)=>{
+ if(!printing||typeof printing!=='object')return null;
+ const pages=(printing as {pages?:unknown}).pages;
+ return typeof pages==='number'&&Number.isFinite(pages)&&pages>0?`${pages}-page printing`:null;
+};
+
+/**
+ * The printed provenance of one source, for search results and coverage rows: the book as it
+ * is printed, the folio as a reader would cite it, the printed section, and the edition the
+ * text came from. Never returns a slug identifier such as "legacy-shabbat-morning" — library
+ * sources carry the slug in `book` and the printed title in `metadata.bookTitle`, and legacy
+ * annotated sources carry the printed title in `book` and the slug in `metadata.bookSlug`.
+ */
+export function sourceDisplay(source:{id?:string;book?:string;service?:string;section?:string|number|null;origin?:string;metadata?:Record<string,unknown>}|null|undefined):SourceDisplay{
+ const metadata=(source?.metadata??{}) as Record<string,unknown>;
+ const title=typeof metadata.bookTitle==='string'?metadata.bookTitle.trim():'';
+ const book=typeof source?.book==='string'?source.book.trim():'';
+ const bookSlug=typeof metadata.bookSlug==='string'?metadata.bookSlug.trim():'';
+ const bookTitle=title||((book&&book!==bookSlug&&!SLUG.test(book))?book:'')||UNTITLED_BOOK;
+ const folios=Array.isArray(metadata.folios)?metadata.folios.filter((value):value is number=>typeof value==='number'&&Number.isFinite(value)):[];
+ const ordered=[...new Set(folios)].sort((a,b)=>a-b);
+ const contiguous=ordered.length>1&&ordered.every((value,index)=>index===0||value===ordered[index-1]+1);
+ const folio=!ordered.length?null:ordered.length===1?`p. ${ordered[0]}`:contiguous?`pp. ${ordered[0]}–${ordered[ordered.length-1]}`:`pp. ${ordered.join(', ')}`;
+ const metadataSection=typeof metadata.sectionTitle==='string'?metadata.sectionTitle.trim():'';
+ const rawSection=typeof source?.section==='string'?source.section.trim():'';
+ const sectionTitle=metadataSection||rawSection||null;
+ const edition=(typeof metadata.familyLabel==='string'&&metadata.familyLabel.trim())||printingLabel(authorityPrinting(source?.origin))||null;
+ return {bookTitle,folio,sectionTitle,edition};
+}
+
+function authorityPrinting(origin:string|undefined){
+ if(!origin)return null;
+ if(origin==='legacy:authoring-sources')return legacyJson.authority.printing;
+ return libraryJson.authorities.find(item=>item.id===origin)?.printing??null;
+}
+
 export const siddurLibrary:SiddurLibrary=libraryJson;
 export function loadSourceLibrary():SourcePack{return merged}

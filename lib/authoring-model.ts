@@ -37,8 +37,17 @@ export const sourcePack=loadSourceLibrary();
 export const baselineCues=baselineCueJson as AuthoringCue[];
 
 export class AuthoringError extends Error{
- code:string;status:number;
- constructor(code:string,message:string,status=400){super(message);this.code=code;this.status=status}
+ code:string;status:number;details:Record<string,unknown>;
+ constructor(code:string,message:string,status=400,details:Record<string,unknown>={}){super(message);this.code=code;this.status=status;this.details=details}
+}
+
+/**
+ * Library names are compared the way a person reads them (R6): surrounding and repeated
+ * whitespace, letter case, punctuation, and Hebrew niqqud never make two graphics distinct.
+ * This mirrors normalizeCueSearch so the duplicate warning agrees with what search finds.
+ */
+export function normalizeGraphicName(name:unknown):string{
+ return String(name??'').normalize('NFKD').replace(/[֑-ׇ\p{M}]/gu,'').toLocaleLowerCase().replace(/[^\p{L}\p{N}]+/gu,' ').trim();
 }
 
 function record(value:unknown,label:string):Record<string,unknown>{

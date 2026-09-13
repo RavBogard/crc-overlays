@@ -14,6 +14,7 @@ test('CRC is the complete, validated default workspace', () => {
   assert.equal(workspace.organizationName, 'Central Reform Congregation');
   assert.equal(workspace.productName, 'CRC Overlays');
   assert.equal(workspace.stage, 'trial');
+  assert.equal(workspace.defaultCompositor, 'vmix');
   assert.equal(workspace.deployment.usesDefaultCrcIdentity, true);
   assert.equal(workspace.deployment.isolationVerified, false);
   assert.deepEqual(workspace.setupDownloads.map(item => item.kind), ['module', 'pages', 'pages']);
@@ -68,6 +69,14 @@ test('workspace validation rejects unsafe public configuration', () => {
   assert.throws(() => getPublicWorkspace({WORKSPACE_PRIMARY_COLOR: 'red'}), /hex color/);
   assert.throws(() => getPublicWorkspace({WORKSPACE_SUPPORT_EMAIL: 'not-an-email'}), /support email/);
   assert.throws(() => getPublicWorkspace({WORKSPACE_ID: 'unknown-workspace'}), /Custom workspace is missing/);
+  assert.throws(() => getPublicWorkspace({WORKSPACE_DEFAULT_COMPOSITOR: 'resolume'}), /default compositor/);
+});
+
+test('the setup default compositor is congregation configuration, not a hardcoded workspace comparison', () => {
+  assert.equal(getPublicWorkspace({}).defaultCompositor, 'vmix');
+  assert.equal(getPublicWorkspace({WORKSPACE_DEFAULT_COMPOSITOR: '  OBS '}).defaultCompositor, 'obs');
+  assert.equal(getPublicWorkspace({WORKSPACE_DEFAULT_COMPOSITOR: ''}).defaultCompositor, 'vmix');
+  assert.equal(getPublicWorkspace({WORKSPACE_ID: 'temple-bnai-israel-kalamazoo', WORKSPACE_DEFAULT_COMPOSITOR: 'vmix'}).defaultCompositor, 'vmix', 'a deployment may still override its profile');
 });
 
 test('public workspace endpoint returns only the public contract', async () => {
@@ -89,6 +98,7 @@ test('prepared Temple Bnai Israel profile validates and remains visibly release-
   assert.equal(workspace.shortName, 'TBI');
   assert.equal(workspace.logo.src, '/workspaces/temple-bnai-israel/official-footer.png');
   assert.equal(workspace.deployment.isolationVerified, false);
+  assert.equal(workspace.defaultCompositor, 'obs', "TBI's baseline is OBS with Companion");
   assert.equal(profile.status, 'infrastructure-prepared-release-pending');
   assert.equal(profile.provisioning.isolatedDatabase, true);
   assert.equal(profile.provisioning.isolatedRelay, true);
@@ -106,6 +116,7 @@ test('Temple Bnai Israel is selectable as a complete built-in profile with one d
   assert.equal(workspace.logo.src, '/workspaces/temple-bnai-israel/official-footer.png');
   assert.deepEqual(workspace.setupDownloads.map((item:{kind:string}) => item.kind), ['module', 'pages', 'pages']);
   assert.equal(workspace.sharedLibrary.enabled, false);
+  assert.equal(workspace.defaultCompositor, 'obs', 'the built-in profile carries the compositor default with it');
   assert.deepEqual(outputBranding, {
     name: 'TBI',
     organizationName: "Temple B'nai Israel",

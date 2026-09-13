@@ -97,7 +97,7 @@ test('current-library starter groups only complete numbered sets and marks known
  catalog.cues.splice(0,catalog.cues.length,
   {id:'part-1',name:'Avot — 01 of 02'},
   {id:'part-2',name:'Avot — 02 of 02'},
-  {id:'incomplete',name:'Gevarot (ncomplete)'},
+  {id:'incomplete',name:'Gevarot (Partial)'},
   {id:'single',name:'Kaddish'},
  );
  const value=await manager.createFromLibrary({name:'Starter',service:'Shabbat Morning'},'editor');
@@ -105,5 +105,14 @@ test('current-library starter groups only complete numbered sets and marks known
  assert.equal(value.entries.find(entry=>entry.cueIds.includes('incomplete'))?.type,'cue');
  assert.equal(value.coverage.filter(row=>row.status==='covered').length,3);
  const partial=value.coverage.find(row=>row.cueId==='incomplete');assert.equal(partial?.label,'Gevarot (Partial)');assert.equal(partial?.status,'needs-review');assert.equal(partial?.owner,'Unassigned');
+});
+
+test('a graphic still published with the spelled-out incomplete marker is labeled and reviewed as partial',async()=>{
+ const {manager,catalog}=fixture();
+ catalog.cues.splice(0,catalog.cues.length,{id:'legacy-partial',name:'Gevarot (incomplete)'},{id:'single',name:'Kaddish'});
+ const value=await manager.createFromLibrary({name:'Starter',service:'Shabbat Morning'},'editor');
+ const partial=value.coverage.find(row=>row.cueId==='legacy-partial');
+ assert.equal(partial?.label,'Gevarot (Partial)');assert.equal(partial?.status,'needs-review');
+ assert.equal(value.coverage.find(row=>row.cueId==='single')?.status,'covered');
 });
 test('a version conflict is reported with the code the client refreshes on',()=>{const error=new ServicesConflictError();assert.equal(error.code,'version_conflict');assert.equal(error.status,409)});

@@ -1,4 +1,5 @@
 import {authorizeRequest} from '@/lib/access';
+import {publishedVisibleCount} from '@/lib/catalog-count';
 import {db} from '@/lib/database';
 import {authoringCatalog,json} from '@/lib/server';
 import {relayCatalog,relayConfigured,relaySnapshot} from '@/lib/relay';
@@ -21,7 +22,7 @@ export async function GET(request:Request){
     (SELECT count(*)::int FROM authoring_drafts WHERE active_revision IS NOT NULL) AS "publishedCount",
     (SELECT count(*)::int FROM authoring_revisions) AS "revisionCount",
     (SELECT max(created_at) FROM authoring_revisions) AS "latestPublicationAt",
-    pg_database_size(current_database()) AS "databaseBytes"`)]);const row=metrics.rows[0];return {catalogVersion:catalog.version,publishedCount:Number(row.publishedCount),draftCount:Number(row.draftCount),revisionCount:Number(row.revisionCount),latestPublicationAt:row.latestPublicationAt===null?null:Number(row.latestPublicationAt),databaseBytes:Number(row.databaseBytes)}}),
+    pg_database_size(current_database()) AS "databaseBytes"`)]);const row=metrics.rows[0];return {catalogVersion:catalog.version,publishedCount:Number(row.publishedCount),publishedVisibleCount:publishedVisibleCount(catalog.cues),draftCount:Number(row.draftCount),revisionCount:Number(row.revisionCount),latestPublicationAt:row.latestPublicationAt===null?null:Number(row.latestPublicationAt),databaseBytes:Number(row.databaseBytes)}}),
  ]);
  let usage=providerUsageFromEnvironment(process.env);
  if(member.role==='owner'){const reports=await probe(()=>boundedQuery<{provider:string;used:number;limitValue:number;unit:string;windowLabel:string;measuredAt:number}>('SELECT provider,used,limit_value AS "limitValue",unit,window_label AS "windowLabel",measured_at AS "measuredAt" FROM operations_usage_reports ORDER BY provider'),4500);if(reports.ok)usage=providerUsageFromReports(reports.value.rows)}

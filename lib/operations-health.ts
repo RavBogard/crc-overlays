@@ -1,8 +1,9 @@
 import type {AccessRole} from './access';
+import {friendlyCueName} from './cue-search';
 
 export type Probe<T>={ok:true;value:T;observedAt:number}|{ok:false;observedAt:number};
 export type ProviderUsage={provider:'Vercel'|'Neon'|'Cloudflare';status:'reported'|'unavailable';measuredAt:number|null;window:string|null;used:number|null;limit:number|null;unit:string|null;dashboardUrl:string;note:string};
-export type HealthInputs={now:number;relayConfigured:boolean;relayState:Probe<{revision?:number;cue?:string|null;serverTime?:number;renderers?:Array<{seen?:number}>}>;liveCatalog:Probe<{version:string;cues:unknown[]}>;authoring:Probe<{catalogVersion:string;publishedCount:number;draftCount:number;revisionCount:number;latestPublicationAt:number|null;databaseBytes:number}>;usage:ProviderUsage[]};
+export type HealthInputs={now:number;relayConfigured:boolean;relayState:Probe<{revision?:number;cue?:string|null;serverTime?:number;renderers?:Array<{seen?:number}>}>;liveCatalog:Probe<{version:string;cues:Array<{id?:unknown;name?:unknown}>}>;authoring:Probe<{catalogVersion:string;publishedCount:number;publishedVisibleCount:number;draftCount:number;revisionCount:number;latestPublicationAt:number|null;databaseBytes:number}>;usage:ProviderUsage[]};
 
 export function providerUsageFromEnvironment(env:Record<string,string|undefined>):ProviderUsage[]{
  const definitions=[
@@ -31,13 +32,18 @@ export function summarizeHealth(input:HealthInputs,role:AccessRole){
  const freshOutputs=renderers.filter(item=>typeof item.seen==='number'&&serverTime-item.seen>=0&&serverTime-item.seen<=30_000);
  const playbackStatus=relayAvailable?'available':input.relayConfigured?'unavailable':'not-configured';
  const overall=playbackStatus!=='available'?'unavailable':(!authoringAvailable||synchronized===false||freshOutputs.length===0)?'attention':'ready';
+ const currentCue=input.relayState.ok?input.relayState.value.cue??null:null;
+ // The operator-facing name of what is on air, resolved from the same catalog probe the
+ // rest of this summary uses. Unknown relay state or a cleared output both report null.
+ const currentMatch=currentCue&&input.liveCatalog.ok?input.liveCatalog.value.cues.find(cue=>cue&&typeof cue==='object'&&cue.id===currentCue):undefined;
+ const currentName=currentMatch&&typeof currentMatch.name==='string'?friendlyCueName(currentMatch.name):null;
  const owner=role==='owner';
  const dollarReports=input.usage.filter(item=>item.status==='reported'&&item.unit==='USD'&&item.used!==null),reportedMonthlyUsd=dollarReports.reduce((total,item)=>total+item.used!,0),freshReports=dollarReports.filter(item=>item.measuredAt!==null&&input.now-item.measuredAt>=0&&input.now-item.measuredAt<=45*24*60*60_000),currentMonth=new Date(input.now).toISOString().slice(0,7),sameWindow=freshReports.length===input.usage.length&&freshReports.every(item=>item.window===currentMonth),conclusive=sameWindow,budgetStatus=!conclusive?(freshReports.length<dollarReports.length?'stale-or-future':'incomplete-or-mixed-window'):reportedMonthlyUsd>=50?'review-now':reportedMonthlyUsd>=25?'above-target':'within-target';
  return {
   version:1,generatedAt:input.now,overall,
-  playback:{status:playbackStatus,relay:{configured:input.relayConfigured,status:relayAvailable?'available':input.relayConfigured?'unavailable':'not-configured',observedAt:input.relayState.observedAt},current:{known:input.relayState.ok,revision:input.relayState.ok&&typeof input.relayState.value.revision==='number'?input.relayState.value.revision:null,cue:input.relayState.ok?input.relayState.value.cue??null:null},outputs:{status:relayAvailable?(freshOutputs.length?'connected':'none-seen'):'unavailable',connected:freshOutputs.length,freshnessSeconds:30,observedAt:input.relayState.observedAt},controllers:{status:'unavailable',reason:'Controller presence is not exposed by the live relay.'}},
+  playback:{status:playbackStatus,relay:{configured:input.relayConfigured,status:relayAvailable?'available':input.relayConfigured?'unavailable':'not-configured',observedAt:input.relayState.observedAt},current:{known:input.relayState.ok,revision:input.relayState.ok&&typeof input.relayState.value.revision==='number'?input.relayState.value.revision:null,cue:currentCue,name:currentName},outputs:{status:relayAvailable?(freshOutputs.length?'connected':'none-seen'):'unavailable',connected:freshOutputs.length,freshnessSeconds:30,observedAt:input.relayState.observedAt},controllers:{status:'unavailable',reason:'Controller presence is not exposed by the live relay.'}},
   synchronization:{status:synchronized===true?'current':synchronized===false?'pending':'unavailable',liveVersion:relayAvailable?liveVersion:null,authoringVersion:authoringAvailable?authoringVersion:null,checkedAt:Math.min(input.liveCatalog.observedAt,input.authoring.observedAt)},
-  authoring:{status:authoringAvailable?'available':'unavailable',latestPublicationAt:authoringAvailable?input.authoring.value.latestPublicationAt:null,...(owner&&authoringAvailable?{publishedCount:input.authoring.value.publishedCount,draftCount:input.authoring.value.draftCount,revisionCount:input.authoring.value.revisionCount,databaseBytes:input.authoring.value.databaseBytes}:{}),observedAt:input.authoring.observedAt},
+  authoring:{status:authoringAvailable?'available':'unavailable',latestPublicationAt:authoringAvailable?input.authoring.value.latestPublicationAt:null,publishedVisibleCount:authoringAvailable?input.authoring.value.publishedVisibleCount:null,...(owner&&authoringAvailable?{publishedCount:input.authoring.value.publishedCount,draftCount:input.authoring.value.draftCount,revisionCount:input.authoring.value.revisionCount,databaseBytes:input.authoring.value.databaseBytes}:{}),observedAt:input.authoring.observedAt},
   ...(owner?{providerUsage:input.usage,budget:{scope:'Both congregations combined',targetMonthlyUsd:25,reviewMonthlyUsd:50,reportedMonthlyUsd,budgetStatus,reportedProviders:dollarReports.length,totalProviders:input.usage.length,conclusive,note:'The entered-report sum is compared with the monthly plan only when all providers use the same window and were measured within 45 days.'}}:{}),
  };
 }

@@ -1,7 +1,7 @@
 import assert from 'node:assert/strict';
 import {readFileSync} from 'node:fs';
 import {test} from 'node:test';
-import {loadSourceLibrary,siddurLibrary,type LibrarySource} from '../lib/source-library.ts';
+import {loadSourceLibrary,siddurLibrary,sourceDisplay,type LibrarySource} from '../lib/source-library.ts';
 
 const legacy=JSON.parse(readFileSync(new URL('../content/authoring-sources.json',import.meta.url),'utf8'));
 
@@ -89,4 +89,42 @@ test('source authorities and coverage are complete and internally consistent',()
  assert.ok((totals.skipped as Record<string,number>).unpairedHebrew>0);
  assert.equal((totals.skipped as Record<string,number>).englishWithoutOriginalRole,0);
  assert.ok(siddurLibrary.coverage.books.some(book=>book.unsupportedUnits.length>0));
+});
+
+test('provenance display names the printed book, folio, section, and edition instead of a slug',()=>{
+ for(const source of siddurLibrary.sources as LibrarySource[]){
+  const display=sourceDisplay(source);
+  assert.ok(display.bookTitle);
+  assert.equal(display.bookTitle,source.metadata.bookTitle);
+  assert.notEqual(display.bookTitle,source.book,'the slug carried in book is never shown');
+  assert.doesNotMatch(display.bookTitle,/^[a-z0-9]+(?:-[a-z0-9]+)+$/,`slug leaked for ${source.id}`);
+  if(display.folio!==null)assert.match(display.folio,/^pp?\. /);
+  assert.notEqual(display.edition,null);
+ }
+});
+
+test('folios read as a citation and non-contiguous pages stay enumerated',()=>{
+ const base={id:'library:x:y@x',book:'crc-kol-nidre',origin:'shireishabbat:crc-kol-nidre:dbe6d8c40137cfb0'};
+ assert.equal(sourceDisplay({...base,metadata:{bookTitle:'CRC Kol Nidre',folios:[70]}}).folio,'p. 70');
+ assert.equal(sourceDisplay({...base,metadata:{bookTitle:'CRC Kol Nidre',folios:[5,6]}}).folio,'pp. 5–6');
+ assert.equal(sourceDisplay({...base,metadata:{bookTitle:'CRC Kol Nidre',folios:[6,7,8]}}).folio,'pp. 6–8');
+ assert.equal(sourceDisplay({...base,metadata:{bookTitle:'CRC Kol Nidre',folios:[5,9]}}).folio,'pp. 5, 9');
+ assert.equal(sourceDisplay({...base,metadata:{bookTitle:'CRC Kol Nidre',folios:[]}}).folio,null);
+ assert.equal(sourceDisplay({...base,metadata:{bookTitle:'CRC Kol Nidre'}}).folio,null);
+});
+
+test('legacy annotated sources display their printed title and printing, never the bookSlug',()=>{
+ const legacySource=(loadSourceLibrary().sources as LibrarySource[]).find(source=>!source.id.startsWith('library:'))!;
+ const display=sourceDisplay(legacySource);
+ assert.equal(display.bookTitle,'CRC Shabbat Morning Siddur');
+ assert.equal(display.edition,'54-page printing');
+ assert.notEqual(display.bookTitle,'legacy-shabbat-morning');
+});
+
+test('a source with no usable provenance is still never displayed as a slug',()=>{
+ assert.deepEqual(sourceDisplay({id:'legacy-shabbat-morning',book:'legacy-shabbat-morning'}),{bookTitle:'Unlabeled book',folio:null,sectionTitle:null,edition:null});
+ assert.deepEqual(sourceDisplay(undefined),{bookTitle:'Unlabeled book',folio:null,sectionTitle:null,edition:null});
+ assert.equal(sourceDisplay({id:'x',book:'CRC Shabbat Morning Siddur',metadata:{bookSlug:'legacy-shabbat-morning'}}).bookTitle,'CRC Shabbat Morning Siddur');
+ assert.equal(sourceDisplay({id:'x',section:'Welcome'}).sectionTitle,'Welcome');
+ assert.equal(sourceDisplay({id:'x',section:3}).sectionTitle,null);
 });

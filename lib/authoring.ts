@@ -1,6 +1,8 @@
 import {randomUUID} from 'node:crypto';
 import type {Cue} from './player';
-import {AuthoringError,assertSourcePin,baselineCues,buildCue,cueHash,draftSetSelections,editableFromBaseline,newDraftId,parseEditable,previewValidation,sameStructuredValue,sourceBlockFor,sourcePack,sourcePinFor,sourceReferences,sourceSnapshotsFor,type AuthoringCue,type Draft,type DraftContent,type DraftSetSelection,type EditableDraft,type Layout,type LocalVariantOverride,type VariantChannel,type SourceBlock} from './authoring-model';
+import {AuthoringError,assertSourcePin,baselineCues,buildCue,cueHash,draftSetSelections,editableFromBaseline,newDraftId,normalizeGraphicName,parseEditable,previewValidation,sameStructuredValue,sourceBlockFor,sourcePack,sourcePinFor,sourceReferences,sourceSnapshotsFor,type AuthoringCue,type Draft,type DraftContent,type DraftSetSelection,type EditableDraft,type Layout,type LocalVariantOverride,type VariantChannel,type SourceBlock} from './authoring-model';
+import {layoutLabel} from './layout-label';
+import {sourceDisplay} from './source-library';
 import {sharedLibraryClient,type SharedLibrarySnapshot} from './shared-library';
 import {AssetError,cueAssetId,defaultAssetRepository,importSharedAsset,markCueAssetPublished,type AssetRepository} from './assets';
 
@@ -80,10 +82,37 @@ function sourceSetPages(source:SearchSource,mode:'bilingual'|'original-en'|'sour
  return pages;
 }
 
+// R6 - a library name identifies one graphic. Two graphics that read the same are a
+// warning while drafting and a confirmation before publication, never a silent collision.
+export type DuplicateNameWarning={code:'duplicate-name';suggestedName:string};
+const MAX_GRAPHIC_NAME=80;
+/** Appends a disambiguating suffix while staying inside the stored name limit. */
+function suffixedName(base:string,suffix:string){return `${base.slice(0,Math.max(1,MAX_GRAPHIC_NAME-suffix.length)).trimEnd()}${suffix}`}
+/** "Modeh Ani" plus its layout label, then " · 2", " · 3"... until the name is free. */
+export function suggestGraphicName(name:string,layout:string,taken:ReadonlySet<string>){
+ const label=layoutLabel(layout);
+ let candidate=suffixedName(name,` · ${label}`);
+ for(let attempt=2;taken.has(normalizeGraphicName(candidate))&&attempt<=99;attempt++)candidate=suffixedName(name,` · ${label} · ${attempt}`);
+ return candidate;
+}
+
 export type AuthoringWorkspace={rehearsal:boolean;storage:'memory'|'postgres';label:string|null};
 type SharedLibraryReader={get(force?:boolean):Promise<SharedLibrarySnapshot>};
 export type SharedAssetImporter=(id:string,actor:string)=>Promise<unknown>;
 export function createAuthoringService(repo:AuthoringRepository,workspace:AuthoringWorkspace={rehearsal:false,storage:'postgres',label:null},shared:SharedLibraryReader=sharedLibraryClient,sharedAssetImporter:SharedAssetImporter=(id,actor)=>importSharedAsset(id,actor)){
+ // Every name a person can currently see in the library: live drafts plus published
+ // graphics. Archived drafts and their publications release their names.
+ const libraryNames=async(excludeId?:string)=>{
+  const [drafts,published]=await Promise.all([repo.listDrafts(),repo.published()]);
+  const archived=new Set(drafts.filter(draft=>draft.archivedAt).map(draft=>draft.id));
+  const draftNames=new Set(drafts.filter(draft=>!draft.archivedAt&&draft.id!==excludeId).map(draft=>normalizeGraphicName(draft.name)));
+  const publishedNames=new Set(published.filter(cue=>!archived.has(cue.id)&&cue.id!==excludeId).map(cue=>normalizeGraphicName(cue.name)));
+  return {draftNames,publishedNames,taken:new Set([...draftNames,...publishedNames])};
+ };
+ const duplicateNameWarnings=async(draft:Draft):Promise<DuplicateNameWarning[]>=>{
+  const {taken}=await libraryNames(draft.id);
+  return taken.has(normalizeGraphicName(draft.name))?[{code:'duplicate-name',suggestedName:suggestGraphicName(draft.name,draft.layout,taken)}]:[];
+ };
  const operation=async(operation:string,input:unknown,actor:string):Promise<unknown>=>{
   const who=string(actor,'actor',80); const data=object(input);
   if(operation==='get_workspace'){keys(data,[]);return {workspace};}
@@ -106,9 +135,9 @@ export function createAuthoringService(repo:AuthoringRepository,workspace:Author
   }
   if(operation==='search_sources'){
    keys(data,['query','book','service','limit']);const query=normalized(optionalString(data.query,'query',100));const book=normalized(optionalString(data.book,'book',100));const service=normalized(optionalString(data.service,'service',100));const limit=data.limit===undefined?20:integer(data.limit,'limit',1,50);
-   const matches=browsableSources.map((raw,index)=>{const source=raw as SearchSource,rank=searchRank(source,query);return {source,index,rank}}).filter(item=>item.rank!==null&&(!book||[sourceBook(item.source).value,sourceBook(item.source).label].some(value=>normalized(value)===book))&&(!service||[sourceService(item.source).value,sourceService(item.source).label].some(value=>normalized(value)===service))).sort((a,b)=>a.rank!-b.rank!||a.index-b.index);const summaries=[];for(const {source} of matches){const {blocks,...summary}=source;if(summaries.length>=limit)break;const sourceEnglish=(block:SourceBlock)=>block.kind==='source-en'||(block.kind==='bilingual'&&Boolean(block.en));const coverage={bilingual:blocks.filter(block=>block.kind==='bilingual').length,originalEnglish:blocks.filter(block=>block.kind==='original-en').length,sourceEnglish:blocks.filter(sourceEnglish).length,automaticSourceEnglish:blocks.filter(block=>sourceEnglish(block)&&block.automatic!==false).length,noteLikeEnglish:blocks.filter(block=>block.noteLike===true).length};const candidate={...summary,bookValue:sourceBook(source).value,bookLabel:sourceBook(source).label,blockCount:blocks.length,kinds:[...new Set(blocks.map(b=>b.kind))],coverage};if(jsonBytes({authority:sourcePack.authority,sources:[...summaries,candidate]})>MAX_SOURCE_RESPONSE_BYTES)break;summaries.push(candidate)}return {authority:sourcePack.authority,sources:summaries,truncated:summaries.length<matches.length};
+   const matches=browsableSources.map((raw,index)=>{const source=raw as SearchSource,rank=searchRank(source,query);return {source,index,rank}}).filter(item=>item.rank!==null&&(!book||[sourceBook(item.source).value,sourceBook(item.source).label].some(value=>normalized(value)===book))&&(!service||[sourceService(item.source).value,sourceService(item.source).label].some(value=>normalized(value)===service))).sort((a,b)=>a.rank!-b.rank!||a.index-b.index);const summaries=[];for(const {source} of matches){const {blocks,...summary}=source;if(summaries.length>=limit)break;const sourceEnglish=(block:SourceBlock)=>block.kind==='source-en'||(block.kind==='bilingual'&&Boolean(block.en));const coverage={bilingual:blocks.filter(block=>block.kind==='bilingual').length,originalEnglish:blocks.filter(block=>block.kind==='original-en').length,sourceEnglish:blocks.filter(sourceEnglish).length,automaticSourceEnglish:blocks.filter(block=>sourceEnglish(block)&&block.automatic!==false).length,noteLikeEnglish:blocks.filter(block=>block.noteLike===true).length};const candidate={...summary,bookValue:sourceBook(source).value,bookLabel:sourceBook(source).label,display:sourceDisplay(source),blockCount:blocks.length,kinds:[...new Set(blocks.map(b=>b.kind))],coverage};if(jsonBytes({authority:sourcePack.authority,sources:[...summaries,candidate]})>MAX_SOURCE_RESPONSE_BYTES)break;summaries.push(candidate)}return {authority:sourcePack.authority,sources:summaries,truncated:summaries.length<matches.length};
   }
-  if(operation==='get_source'){keys(data,['sourceId']);const id=string(data.sourceId,'sourceId');const source=sourcePack.sources.find(s=>s.id===id);if(!source)throw new AuthoringError('unknown_source','Unknown authoring source',404);const result={authority:sourcePack.authority,source};if(jsonBytes(result)>MAX_SOURCE_RESPONSE_BYTES)throw new AuthoringError('source_too_large','This source is too large for direct browser authoring',413);return result;}
+  if(operation==='get_source'){keys(data,['sourceId']);const id=string(data.sourceId,'sourceId');const source=sourcePack.sources.find(s=>s.id===id);if(!source)throw new AuthoringError('unknown_source','Unknown authoring source',404);const result={authority:sourcePack.authority,source,display:sourceDisplay(source)};if(jsonBytes(result)>MAX_SOURCE_RESPONSE_BYTES)throw new AuthoringError('source_too_large','This source is too large for direct browser authoring',413);return result;}
   if(operation==='list_templates'){keys(data,[]);return {templates:baselineCues.filter(cue=>!cue.hidden).map(cue=>{let importable=true;try{editableFromBaseline(cue.id)}catch{importable=false}return {id:cue.id,name:cue.name,layout:cue.layout,importable}})};}
   if(operation==='list_catalog'){
    keys(data,[]);const [allDrafts,published]=await Promise.all([repo.listDrafts(),repo.published()]);const archivedIds=new Set(allDrafts.filter(draft=>draft.archivedAt).map(draft=>draft.id));const drafts=allDrafts.filter(draft=>!draft.archivedAt);const active=new Map(baselineCues.filter(cue=>!archivedIds.has(cue.id)).map(cue=>[cue.id,cue]));for(const cue of published)if(!archivedIds.has(cue.id))active.set(cue.id,cue);const byId=new Map(drafts.map(draft=>[draft.id,draft]));
@@ -140,7 +169,8 @@ export function createAuthoringService(repo:AuthoringRepository,workspace:Author
   }
   if(operation==='create_draft'){
    const editable=parseEditable(data) as EditableDraft;const sourceSnapshots=sourceSnapshotsFor(editable.content);const now=Date.now(); const draft:Draft={...editable,id:newDraftId(),version:1,sourcePin:sourcePinFor(editable.content,sourceSnapshots),...(sourceSnapshots.length?{sourceSnapshots}:{}),activeRevision:null,activeDraftVersion:null,createdAt:now,updatedAt:now,createdBy:who,updatedBy:who};
-   return {draft:await repo.insertDraft(draft)};
+   const warnings=await duplicateNameWarnings(draft);
+   return {draft:await repo.insertDraft(draft),warnings};
   }
   if(operation==='create_local_variant'){
    keys(data,['draftId','cueId','label','reason','overrides']);const draftId=optionalString(data.draftId,'draftId'),cueId=optionalString(data.cueId,'cueId');if(Boolean(draftId)===Boolean(cueId))throw new AuthoringError('invalid_input','Provide exactly one of draftId or cueId');let sourceDraft:Draft|undefined,editable:EditableDraft,sourceSnapshots:Draft['sourceSnapshots'];
@@ -173,7 +203,7 @@ export function createAuthoringService(repo:AuthoringRepository,workspace:Author
   if(operation==='update_draft'){
    keys(data,['draftId','expectedVersion','patch']);const id=string(data.draftId,'draftId');const expected=integer(data.expectedVersion,'expectedVersion',1);const current=await requiredDraft(repo,id);if(current.version!==expected)throw conflict();assertSourcePin(current);
    const patch=parseEditable(data.patch,true,current.sourceSnapshots);const merged=parseEditable({...editableOnly(current),...patch},false,current.sourceSnapshots) as EditableDraft;
-   const updated=await repo.updateDraft(id,expected,merged,who);if(!updated)throw conflict();return {draft:updated};
+   const updated=await repo.updateDraft(id,expected,merged,who);if(!updated)throw conflict();return {draft:updated,warnings:await duplicateNameWarnings(updated)};
   }
   if(operation==='preview_draft'){
    keys(data,['draftId','expectedVersion']);const draft=await versionedDraft(repo,string(data.draftId,'draftId'),integer(data.expectedVersion,'expectedVersion',1));assertSourcePin(draft);const cue=buildCue(draft);const validation=previewValidation(cue);const preview:PreviewRecord={id:randomUUID(),draftId:draft.id,draftVersion:draft.version,cueHash:cueHash(cue),cue,validation,review:null,createdAt:Date.now(),createdBy:who};await repo.insertPreview(preview);
@@ -188,7 +218,25 @@ export function createAuthoringService(repo:AuthoringRepository,workspace:Author
    const m=object(data.browserMeasurement,'browserMeasurement');keys(m,['viewportWidth','viewportHeight','fontsReady','overflow','rendererVersion','measuredAt'],'browserMeasurement');if(m.viewportWidth!==1920||m.viewportHeight!==1080||m.fontsReady!==true||m.overflow!==false)throw new AuthoringError('fit_failed','Preview must be measured at 1920x1080 with loaded fonts and no overflow',409);const measurement:BrowserMeasurement={viewportWidth:1920,viewportHeight:1080,fontsReady:true,overflow:false,rendererVersion:string(m.rendererVersion,'rendererVersion',80),measuredAt:integer(m.measuredAt,'measuredAt',1)};const review:ReviewReceipt={humanApproved:true,browserMeasurement:measurement,reviewedAt:Date.now(),reviewedBy:who};await repo.saveReview(preview.id,review);return {draftId:draft.id,draftVersion:draft.version,previewId:preview.id,cueHash:preview.cueHash,review};
   }
   if(operation==='publish_draft'){
-   keys(data,['draftId','expectedVersion','previewId']);const draft=await versionedDraft(repo,string(data.draftId,'draftId'),integer(data.expectedVersion,'expectedVersion',1));assertSourcePin(draft);const revision=await repo.publish(draft.id,draft.version,string(data.previewId,'previewId'),who);return {revision,cue:revision.cue};
+   keys(data,['draftId','expectedVersion','previewId','confirmDuplicateName']);const draft=await versionedDraft(repo,string(data.draftId,'draftId'),integer(data.expectedVersion,'expectedVersion',1));assertSourcePin(draft);
+   if(data.confirmDuplicateName!==undefined&&typeof data.confirmDuplicateName!=='boolean')throw new AuthoringError('invalid_input','confirmDuplicateName must be boolean');
+   const previewId=string(data.previewId,'previewId');
+   const {publishedNames,taken}=await libraryNames(draft.id);
+   if(publishedNames.has(normalizeGraphicName(draft.name))){
+    const suggestedName=suggestGraphicName(draft.name,draft.layout,taken);
+    if(data.confirmDuplicateName!==true)throw new AuthoringError('duplicate_name',`Another published graphic is already named "${draft.name}". Publish anyway as "${suggestedName}"?`,409,{suggestedName});
+    // The name is the library label and is never rendered, so renaming cannot change the
+    // fit verdict. The approved exact-version browser measurement is carried onto the renamed
+    // version rather than discarded, and the draft keeps the name it published under.
+    const approved=await requiredPreview(repo,previewId);validatePublishPreview(draft,approved);
+    const renamed=await repo.updateDraft(draft.id,draft.version,{...editableOnly(draft),name:suggestedName},who);if(!renamed)throw conflict();
+    const renamedCue=buildCue(renamed);
+    const preview:PreviewRecord={id:randomUUID(),draftId:renamed.id,draftVersion:renamed.version,cueHash:cueHash(renamedCue),cue:renamedCue,validation:previewValidation(renamedCue),review:null,createdAt:Date.now(),createdBy:who};
+    await repo.insertPreview(preview);await repo.saveReview(preview.id,approved.review!);
+    const renamedRevision=await repo.publish(renamed.id,renamed.version,preview.id,who);
+    return {revision:renamedRevision,cue:renamedRevision.cue,draft:renamed,renamedFrom:draft.name,previewId:preview.id};
+   }
+   const revision=await repo.publish(draft.id,draft.version,previewId,who);return {revision,cue:revision.cue};
   }
   if(operation==='list_revisions'){keys(data,['draftId']);const id=string(data.draftId,'draftId');await requiredDraft(repo,id);return {revisions:await repo.revisions(id)};}
   if(operation==='rollback_draft'){keys(data,['draftId','expectedVersion','revision']);const id=string(data.draftId,'draftId');const revision=integer(data.revision,'revision',1);const selected=(await repo.revisions(id)).find(row=>row.revision===revision);if(!selected)throw new AuthoringError('unknown_revision','Unknown revision',404);assertRevisionAuthority(selected.cue);const result=await repo.rollback(id,integer(data.expectedVersion,'expectedVersion',1),revision,who);return result;}

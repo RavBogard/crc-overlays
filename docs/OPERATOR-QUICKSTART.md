@@ -44,7 +44,7 @@ Page 2, **CRC Morning Rehearsal**, and page 3, **CRC Morning Continued**, contai
 1. Yotzer Or (short)
 2. Yotzer Or 1
 3. Yotzer Or 2
-4. Ahava Rabbah Ahavtanu (ncomplete)
+4. Ahava Rabbah Ahavtanu (Partial)
 5. Vahavta 1
 6. Vahavta 2
 7. Mi Chamocha (Sat 1)

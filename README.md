@@ -18,7 +18,7 @@ The ordinary web experience does not require AI. The optional MCP authoring inte
 
 Install dependencies and run `npm run dev` (port 5175). Runtime secrets belong in `.env` and must never be committed. See [setup](docs/SETUP.md) and [workspace deployment](docs/WORKSPACE-DEPLOYMENT.md) for current environment and packaging contracts.
 
-For isolated local editor rehearsal without Neon or a live relay, set `CRC_AUTHORING_REHEARSAL=1` with `NODE_ENV=development` and no `RELAY_URL`. The UI labels this temporary memory-backed mode. It fails closed in production or when a relay is configured.
+`CRC_AUTHORING_REHEARSAL=1`, with `NODE_ENV=development` and no `RELAY_URL`, moves four stores into process memory: authoring drafts, previews and revisions; artwork; service collections and beta feedback; and the source-review inbox. Everything else still expects a real Postgres — accounts and sessions, playback state, renderer acknowledgements, and owner usage reports — so `/`, `/output` and `/access` do not work without `DATABASE_URL`, and the console reports live control as disconnected because there is no relay. Changes made in this mode are lost when the process exits, and the editor labels the workspace "Local rehearsal — changes are temporary". It fails closed: setting it in production, or alongside a configured relay, raises an error rather than quietly using memory. A complete agent-facing rehearsal mode — one `npm run rehearsal` command, every store backed locally, and an in-process relay stub so Show, Clear and `/output` work — is planned as Phase A2 and does not exist yet.
 
 ## Live architecture
 
