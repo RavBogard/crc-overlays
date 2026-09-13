@@ -1,0 +1,6 @@
+/* X2b - a real 1920x1080 render, scaled into a tile. The stage holds the broadcast frame at
+   full size so the Player measures exactly what it would measure on air; only the transform
+   is small. */
+.graphic-miniature { position: relative; display: block; width: 100%; max-width: 100%; aspect-ratio: 16 / 9; overflow: hidden; border: 1px solid #45655d; border-radius: 5px; background: radial-gradient(circle at 72% 28%, #405456, #1a2929 48%, #0b1112); box-shadow: inset 0 0 12px #0007; }
+.graphic-miniature-stage { position: absolute; inset: 0; overflow: hidden; }
+.graphic-miniature-canvas { position: absolute; top: 0; left: 0; width: 1920px; height: 1080px; transform-origin: top left; pointer-events: none; }

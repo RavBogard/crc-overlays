@@ -1,3 +1,4 @@
+import { exceedsOnePanel, type PanelBlock, type PanelLayout } from "@/lib/panel-budget";
 import type { ContentMode, Draft, DraftForm, Source, SourceDisplay, SourceGroup } from "./types";
 
 export const emptyForm: DraftForm = {
@@ -172,6 +173,18 @@ export function blocksForMode(source: Source | null, mode: ContentMode) {
   return source.blocks.filter((block) => mode === "source-en"
     ? block.kind === "source-en" || (block.kind === "bilingual" && Boolean(block.en))
     : block.kind === mode);
+}
+
+/**
+ * X2 - panels are an advanced idea, so the editor only names them once this draft actually has
+ * more than one, or once the current selection could not fit in a single panel. The second half
+ * is the server's own splitting rule (lib/panel-budget.ts), so the editor and the server never
+ * disagree about what "one panel" holds.
+ */
+export function shouldShowPanels(groups: readonly unknown[], blocks: readonly PanelBlock[], mode: ContentMode, layout: PanelLayout): boolean {
+  if (groups.length > 1) return true;
+  if (mode === "custom" || mode === "local-variant") return false;
+  return exceedsOnePanel(blocks, mode, layout);
 }
 
 function selectedBlock(draft: Draft, group: SourceGroup | undefined) {

@@ -14,6 +14,7 @@ import {
   parseRecovery,
   routeForDraft,
   selectWholeSource,
+  shouldShowPanels,
   sourceDisplayCopy,
   sourceHeadline,
 } from "./editor-state.ts";
@@ -189,4 +190,28 @@ test("an empty library tab does not blame the search box", () => {
   assert.equal(libraryEmptyMessage("published", true), "No matching published graphics");
   assert.equal(libraryEmptyMessage("archived", true), "No matching archived graphics");
   assert.equal(libraryEmptyMessage("shared", true), "No matching shared graphics");
+});
+
+test("panels are named only once a draft has more than one, or the selection needs one", () => {
+  const short = [{ he: "א", tr: "a" }];
+  assert.equal(shouldShowPanels([], short, "bilingual", "left"), false);
+  assert.equal(shouldShowPanels([{ sourceId: "s", blockIds: ["a"] }], short, "bilingual", "left"), false);
+  assert.equal(
+    shouldShowPanels(
+      [{ sourceId: "s", blockIds: ["a"] }, { sourceId: "s", blockIds: ["b"] }],
+      short,
+      "bilingual",
+      "left",
+    ),
+    true,
+  );
+  // One long block is never split, so it still fits a single panel.
+  assert.equal(shouldShowPanels([], [{ he: "א".repeat(900), tr: "" }], "bilingual", "left"), false);
+  // Four blocks cannot.
+  assert.equal(shouldShowPanels([], [short[0], short[0], short[0], short[0]], "bilingual", "left"), true);
+  // A lower third carries exactly one block.
+  assert.equal(shouldShowPanels([], [short[0], short[0]], "bilingual", "bottom"), true);
+  // Custom and local-variant drafts have no blocks to measure.
+  assert.equal(shouldShowPanels([], [], "custom", "bottom"), false);
+  assert.equal(shouldShowPanels([], [], "local-variant", "left"), false);
 });

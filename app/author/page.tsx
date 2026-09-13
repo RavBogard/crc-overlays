@@ -35,7 +35,7 @@ import type { PublicWorkspace } from "@/lib/workspace";
 import WorkspaceHeader from "@/components/workspace-header";
 import { layoutLabel } from "@/lib/layout-label";
 import { publishedVisibleCount } from "@/lib/catalog-count";
-import { overlayAssetUrl } from "@/lib/overlay-assets";
+import { overlayAssetUrl, waitForRenderedOverlayAssets } from "@/lib/overlay-assets";
 import { AuthoringApiError, authoringCall } from "./api";
 import {
   draftHasUnpublishedWork,
@@ -53,9 +53,10 @@ import {
   recoveryKey,
   routeForDraft,
   selectWholeSource,
+  shouldShowPanels,
   type RecoveryCopy,
 } from "./editor-state";
-import { findFitErrors, waitForPreviewAssets } from "./preview";
+import { findFitErrors, findFitWarnings } from "./preview";
 import type {
   BrowserMeasurement,
   CatalogCue,
@@ -75,7 +76,7 @@ import type {
   VariantChannel,
 } from "./types";
 import { SiddurEditor } from "./siddur-editor";
-import { AppearanceEditor, densityOptions, type WorkspaceAsset } from "./look-drawer";
+import { LookDrawer, densityOptions, type WorkspaceAsset } from "./look-drawer";
 import { CustomTextEditor, DetailsEditor } from "./custom-editor";
 import "./author.css";
 import GraphicThumbnail from "@/components/graphic-thumbnail";
@@ -157,6 +158,7 @@ export default function AuthorPage() {
   const [workingPreview, setWorkingPreview] = useState<EphemeralPreviewResult | null>(null);
   const [exactPreview, setExactPreview] = useState<PreviewResult | null>(null);
   const [fitErrors, setFitErrors] = useState<string[]>([]);
+  const [fitWarnings, setFitWarnings] = useState<string[]>([]);
   const [previewWarnings, setPreviewWarnings] = useState<string[]>([]);
   const [assetsReady, setAssetsReady] = useState(false);
   const [revisions, setRevisions] = useState<PublishedRevision[]>([]);
@@ -199,6 +201,7 @@ export default function AuthorPage() {
   const resetReview = useCallback(() => {
     setExactPreview(null);
     setFitErrors([]);
+    setFitWarnings([]);
     setPreviewWarnings([]);
     setAssetsReady(false);
   }, []);
@@ -408,9 +411,11 @@ export default function AuthorPage() {
     playerRef.current = player;
     setAssetsReady(false);
     setFitErrors([]);
+    setFitWarnings([]);
     if (animate) player.set({ cue: cue.id, revision: ++animationRevision.current, mode: "animate" });
     else player.render(cue, overlayAssetUrl(cue, "preview"));
-    await waitForPreviewAssets(root);
+    // T3 - the book-face stage waits on the book faces, so the fit measured here is the one that ships.
+    await waitForRenderedOverlayAssets(root, undefined, workspace.bookFaces ? "book" : "default");
     if (current !== previewSequence.current) return;
     if (!animate) {
       const box = root.firstElementChild;
@@ -418,6 +423,7 @@ export default function AuthorPage() {
     }
     setAssetsReady(true);
     setFitErrors(findFitErrors(root));
+    setFitWarnings(findFitWarnings(root));
   }, [workspace]);
 
   useEffect(() => {
@@ -483,6 +489,8 @@ export default function AuthorPage() {
   const selectedShared = visibleShared.find((item) => item.id === sharedSelectedId) || null;
   const eligibleBlocks = blocksForMode(source, form.mode);
   const selectedIds = new Set(form.groups[activeGroup]?.blockIds || []);
+  const selectedBlocks = eligibleBlocks.filter((block) => selectedIds.has(block.id));
+  const showPanels = shouldShowPanels(form.groups, selectedBlocks, form.mode, form.layout);
   const previewCue = formReady(form) ? exactPreview?.cue || workingPreview?.cue || null : null;
   const reviewCurrent = !!draft && !dirty && exactPreview?.draftVersion === draft.version;
   const exactPreviewCurrent = reviewCurrent && assetsReady && !fitErrors.length;
@@ -968,7 +976,7 @@ export default function AuthorPage() {
           play={() => { if (sharedPreview) void showCue(sharedPreview, true); }}
           out={() => playerRef.current?.set({ cue: null, revision: ++animationRevision.current, mode: "animate" })}
           fullscreen={() => void viewportRef.current?.requestFullscreen().catch(fail)}
-          fitErrors={fitErrors} warnings={previewWarnings} assetsReady={assetsReady}
+          fitErrors={fitErrors} warnings={previewWarnings} assetsReady={assetsReady} bookFaces={Boolean(workspace?.bookFaces)}
         /> : libraryTab === "archived" ? <ArchivedPanel drafts={archivedItems.flatMap((item) => item.kind === "draft" ? [item.draft] : [])} query={libraryQuery} busy={busy} restore={(item) => void restoreArchived(item)} /> : !editorKind ? <WelcomePanel beginSiddur={beginSiddur} beginCustom={beginCustom} /> : (
           <section className="editor-workspace">
             <EditorTitle
@@ -1002,21 +1010,21 @@ export default function AuthorPage() {
                     makeSlidesFromWholePrayer={() => void makeSlidesFromWholePrayer()}
                     removePanel={() => { const groups = form.groups.filter((_, index) => index !== activeGroup); changeForm({ groups }); setActiveGroup(Math.max(0, activeGroup - 1)); }}
                     changeMode={(mode) => changeForm({ mode, groups: [], includeTranslation: false })}
-                    changeForm={changeForm} busy={busy} controlKey={key}
+                    changeForm={changeForm} busy={busy} controlKey={key} showPanels={showPanels}
                   />
-                ) : <CustomTextEditor form={form} changeForm={changeForm} />}
+                ) : <CustomTextEditor form={form} changeForm={changeForm} templates={templates} />}
 
                 <DetailsEditor form={form} changeForm={changeForm} nameWarning={nameWarning}
                   useSuggestedName={() => { if (nameWarning) changeForm({ name: nameWarning.suggestedName }); }} />
-                <AppearanceEditor form={form} templates={templates} selectedDensity={selectedDensity} changeForm={changeForm}
+                <LookDrawer form={form} templates={templates} selectedDensity={selectedDensity} changeForm={changeForm}
                   workspace={workspace} assets={assets} assetError={assetError} busy={busy} uploadAsset={uploadAsset}
                   setAssetArchived={(asset, archived) => void setAssetArchived(asset, archived)}
-                  showArchivedAssets={showArchivedAssets} setShowArchivedAssets={setShowArchivedAssets} />
+                  showArchivedAssets={showArchivedAssets} setShowArchivedAssets={setShowArchivedAssets} previewCue={previewCue} />
               </div>
 
               <PreviewColumn
                 setViewport={(node) => { viewportRef.current = node; }} setOutput={(node) => { outputRef.current = node; }} previewCue={previewCue} exact={!!exactPreview}
-                fitErrors={fitErrors} warnings={previewWarnings} assetsReady={assetsReady}
+                fitErrors={fitErrors} warnings={[...previewWarnings, ...fitWarnings]} assetsReady={assetsReady} bookFaces={Boolean(workspace?.bookFaces)}
                 play={() => { if (previewCue) void showCue(previewCue, true); }}
                 out={() => playerRef.current?.set({ cue: null, revision: ++animationRevision.current, mode: "animate" })}
                 fullscreen={() => void viewportRef.current?.requestFullscreen().catch(fail)}
@@ -1111,10 +1119,10 @@ function SharedLibraryPanel(props: {
   state: SharedLibraryState; selected: SharedCue | null; previewCue: Cue | null; canCustomize: boolean; busy: string; refreshedAt: number | null; query: string;
   refresh: () => void; customize: () => void; returnLocal: () => void;
   setViewport: (node: HTMLDivElement | null) => void; setOutput: (node: HTMLDivElement | null) => void;
-  play: () => void; out: () => void; fullscreen: () => void; fitErrors: string[]; warnings: string[]; assetsReady: boolean;
+  play: () => void; out: () => void; fullscreen: () => void; fitErrors: string[]; warnings: string[]; assetsReady: boolean; bookFaces: boolean;
 }) {
   if (!props.state.available && !props.state.cues.length) return <section className="shared-library-panel shared-unavailable"><div className="welcome-art"><LibraryBig size={39} /></div><span className="eyebrow">CRC LIBRARY</span><h2>CRC library is temporarily unavailable.</h2><p>{props.state.error || "Your congregation’s own published graphics and drafts remain available."}</p><div className="welcome-actions"><button className="primary-button" onClick={props.refresh} disabled={props.busy === "shared-refresh"}>{props.busy === "shared-refresh" ? <LoaderCircle className="spin" size={17} /> : <RotateCcw size={17} />} Try again</button><button onClick={props.returnLocal}>Return to Published</button></div></section>;
-  return <section className="shared-library-panel"><header className="shared-header"><div><span className="eyebrow">READ-ONLY STARTING POINTS</span><h2>CRC library</h2><p>Choose any current CRC graphic, then make an independent copy for your congregation.</p></div><div className="shared-refresh"><span>{props.state.stale ? "Showing the most recent saved list" : props.refreshedAt ? `Updated ${formatTime(props.refreshedAt)}` : "Ready to refresh"}</span><button onClick={props.refresh} disabled={props.busy === "shared-refresh"}>{props.busy === "shared-refresh" ? <LoaderCircle className="spin" size={16} /> : <RotateCcw size={16} />} Refresh</button></div></header>{props.state.error && <div className="shared-warning"><CircleAlert size={17} />{props.state.error}</div>}{props.selected ? <div className="shared-detail"><div className="shared-information"><span className="status-chip published">CRC published</span><h3>{props.selected.name}</h3><p className="shared-title">{props.selected.title}</p><dl><div><dt>Layout</dt><dd>{layoutLabel(props.selected.layout)}</dd></div><div><dt>Source</dt><dd>{props.selected.sourceIds.length ? `${props.selected.sourceIds.length} referenced source${props.selected.sourceIds.length === 1 ? "" : "s"}` : "Custom CRC graphic"}</dd></div></dl><div className="shared-copy-note"><Copy size={18} /><span><strong>Your copy stays independent</strong><small>CRC additions appear here on refresh. CRC changes never overwrite the draft you customize.</small></span></div><button className="primary-button shared-customize" onClick={props.customize} disabled={!props.state.available || !props.canCustomize || props.busy === "shared-customize"}>{props.busy === "shared-customize" ? <LoaderCircle className="spin" size={17} /> : <Sparkles size={17} />} {props.canCustomize ? "Customize for our congregation" : "Loading exact preview…"}</button></div><PreviewColumn setViewport={props.setViewport} setOutput={props.setOutput} previewCue={props.previewCue} exact={true} fitErrors={props.fitErrors} warnings={props.warnings} assetsReady={props.assetsReady} play={props.play} out={props.out} fullscreen={props.fullscreen} statusLabel={props.previewCue ? "CRC published preview · read only" : "Loading CRC preview"} /></div> : <div className="shared-empty"><LibraryBig size={28} /><h3>{libraryEmptyMessage("shared", Boolean(props.query.trim()))}</h3><p>{props.query.trim() ? "Clear the search or refresh the library." : "Refresh the library to look again."}</p></div>}</section>;
+  return <section className="shared-library-panel"><header className="shared-header"><div><span className="eyebrow">READ-ONLY STARTING POINTS</span><h2>CRC library</h2><p>Choose any current CRC graphic, then make an independent copy for your congregation.</p></div><div className="shared-refresh"><span>{props.state.stale ? "Showing the most recent saved list" : props.refreshedAt ? `Updated ${formatTime(props.refreshedAt)}` : "Ready to refresh"}</span><button onClick={props.refresh} disabled={props.busy === "shared-refresh"}>{props.busy === "shared-refresh" ? <LoaderCircle className="spin" size={16} /> : <RotateCcw size={16} />} Refresh</button></div></header>{props.state.error && <div className="shared-warning"><CircleAlert size={17} />{props.state.error}</div>}{props.selected ? <div className="shared-detail"><div className="shared-information"><span className="status-chip published">CRC published</span><h3>{props.selected.name}</h3><p className="shared-title">{props.selected.title}</p><dl><div><dt>Layout</dt><dd>{layoutLabel(props.selected.layout)}</dd></div><div><dt>Source</dt><dd>{props.selected.sourceIds.length ? `${props.selected.sourceIds.length} referenced source${props.selected.sourceIds.length === 1 ? "" : "s"}` : "Custom CRC graphic"}</dd></div></dl><div className="shared-copy-note"><Copy size={18} /><span><strong>Your copy stays independent</strong><small>CRC additions appear here on refresh. CRC changes never overwrite the draft you customize.</small></span></div><button className="primary-button shared-customize" onClick={props.customize} disabled={!props.state.available || !props.canCustomize || props.busy === "shared-customize"}>{props.busy === "shared-customize" ? <LoaderCircle className="spin" size={17} /> : <Sparkles size={17} />} {props.canCustomize ? "Customize for our congregation" : "Loading exact preview…"}</button></div><PreviewColumn setViewport={props.setViewport} setOutput={props.setOutput} previewCue={props.previewCue} exact={true} fitErrors={props.fitErrors} warnings={props.warnings} assetsReady={props.assetsReady} bookFaces={props.bookFaces} play={props.play} out={props.out} fullscreen={props.fullscreen} statusLabel={props.previewCue ? "CRC published preview · read only" : "Loading CRC preview"} /></div> : <div className="shared-empty"><LibraryBig size={28} /><h3>{libraryEmptyMessage("shared", Boolean(props.query.trim()))}</h3><p>{props.query.trim() ? "Clear the search or refresh the library." : "Refresh the library to look again."}</p></div>}</section>;
 }
 
 function EditorTitle(props: { form: DraftForm; draft: Draft | null; dirty: boolean; busy: string; undo: () => void; redo: () => void; canUndo: boolean; canRedo: boolean; duplicate: () => void; archive: () => void; createVariant: () => void; history: () => void; setPosition: number; setCount: number; previousSlide: () => void; nextSlide: () => void }) {
@@ -1152,7 +1160,7 @@ function VariantCreator(props: { draft: Draft; label: string; reason: string; va
   return <div className="variant-backdrop" role="dialog" aria-modal="true" aria-labelledby="variant-title"><section className="variant-dialog"><header><div><span className="eyebrow">EXPLICIT LOCAL COPY</span><h3 id="variant-title">Create local wording</h3><p>The original source graphic and its exact words remain unchanged.</p></div><button className="icon-button" aria-label="Close local wording editor" onClick={props.close}>×</button></header><div className="variant-dialog-body"><div className="variant-fields"><label>Variant label<input value={props.label} maxLength={80} onChange={(event) => props.setLabel(event.target.value)} placeholder="Example: Our congregation’s responsive reading" /></label><label>Reason <span>optional</span><input value={props.reason} maxLength={500} onChange={(event) => props.setReason(event.target.value)} placeholder="Why this wording is used locally" /></label></div><div className="variant-source-note"><BookOpenText size={17} /><span><strong>{props.draft.name}</strong><small>Each editable line below starts as the exact pinned source text.</small></span></div><div className="variant-candidates">{candidates.map((item) => { const value = props.values[variantKey(item)] ?? item.sourceText; const isChanged = value.trim() !== item.sourceText; return <article key={variantKey(item)} className={isChanged ? "changed" : ""}><header><span>{item.sourceName} · passage {item.blockNumber}</span><em>{channelLabel[item.channel]}</em></header><label><span className="sr-only">Local {channelLabel[item.channel]} wording for passage {item.blockNumber}</span><textarea lang={item.channel === "he" ? "he" : undefined} dir={item.channel === "he" ? "rtl" : undefined} value={value} maxLength={4000} onChange={(event) => props.setValue(item, event.target.value)} /></label><footer>{isChanged ? <span><PencilLine size={13} /> Local change</span> : <span>Matches source</span>}<button className="text-button" disabled={!isChanged} onClick={() => props.setValue(item, item.sourceText)}>Reset to source</button></footer></article>; })}</div></div><footer><span>{changed ? `${changed} changed ${changed === 1 ? "line" : "lines"}` : "Change at least one line to continue."}</span><div><button onClick={props.close}>Cancel</button><button className="primary-button" onClick={props.create} disabled={!changed || !props.label.trim() || props.busy === "create-variant"}>{props.busy === "create-variant" ? <LoaderCircle className="spin" size={17} /> : <PencilLine size={17} />} Create independent variant</button></div></footer></section></div>;
 }
 
-function PreviewColumn(props: { setViewport: (node: HTMLDivElement | null) => void; setOutput: (node: HTMLDivElement | null) => void; previewCue: Cue | null; exact: boolean; fitErrors: string[]; warnings: string[]; assetsReady: boolean; play: () => void; out: () => void; fullscreen: () => void; statusLabel?: string }) {
+function PreviewColumn(props: { setViewport: (node: HTMLDivElement | null) => void; setOutput: (node: HTMLDivElement | null) => void; previewCue: Cue | null; exact: boolean; fitErrors: string[]; warnings: string[]; assetsReady: boolean; bookFaces: boolean; play: () => void; out: () => void; fullscreen: () => void; statusLabel?: string }) {
   // X4 (1) - the close affordance belongs to the full-screen preview only, so it is not in the
   // page at all otherwise; the stylesheet keeps it hidden as a second guard.
   const [fullscreen, setFullscreen] = useState(false);
@@ -1163,7 +1171,7 @@ function PreviewColumn(props: { setViewport: (node: HTMLDivElement | null) => vo
     return () => document.removeEventListener("fullscreenchange", sync);
   }, []);
   // eslint-disable-next-line react-hooks/refs -- Callback refs expose the two DOM hosts required by the imperative Player renderer; no ref value is read during render.
-  return <aside className="preview-column"><div className="preview-heading"><div><span className="eyebrow">ISOLATED PREVIEW</span><h3>Broadcast frame</h3></div><span>1920 × 1080</span></div><div ref={props.setViewport} className="preview-viewport"><div className="preview-stage-label">PREVIEW ONLY</div>{fullscreen && <button className="preview-fullscreen-close" aria-label="Close full-screen preview" onClick={() => { if (document.fullscreenElement) void document.exitFullscreen(); }}>× <span>Close preview</span></button>}<div ref={props.setOutput} id="output" className="author-output" />{!props.previewCue && <div className="preview-placeholder"><Sparkles size={26} /><strong>Your graphic will appear here</strong><span>Add content, a title, and a visual template.</span></div>}</div><div className="preview-toolbar"><button onClick={props.play} disabled={!props.previewCue}><Play size={15} /> Play in</button><button onClick={props.out} disabled={!props.previewCue}><Square size={14} /> Play out</button><button onClick={props.fullscreen} disabled={!props.previewCue}><Maximize2 size={14} /> Full screen</button><span>{props.statusLabel || (props.exact ? "Exact saved preview" : props.previewCue ? "Working preview" : "Waiting for content")}</span></div><div className={`preview-readiness ${props.fitErrors.length ? "problem" : props.assetsReady ? "ready" : "waiting"}`}>{props.fitErrors.length ? <CircleAlert size={18} /> : props.assetsReady ? <Check size={18} /> : <Clock3 size={18} />}<div><strong>{props.fitErrors.length ? "Needs attention" : props.assetsReady ? "Fits this frame" : props.previewCue ? "Preparing preview" : "Waiting for content"}</strong>{props.fitErrors.map((item) => <small key={item}>{item}</small>)}{!props.fitErrors.length && props.warnings.map((item) => <small key={item}>{item}</small>)}{!props.fitErrors.length && props.assetsReady && <small>Fonts and artwork loaded. Review readability before publishing.</small>}</div></div><div className="preview-note"><span /> This preview cannot issue live commands. A graphic already on screen remains unchanged.</div></aside>;
+  return <aside className="preview-column"><div className="preview-heading"><div><span className="eyebrow">ISOLATED PREVIEW</span><h3>Broadcast frame</h3></div><span>1920 × 1080</span></div><div ref={props.setViewport} className="preview-viewport"><div className="preview-stage-label">PREVIEW ONLY</div>{fullscreen && <button className="preview-fullscreen-close" aria-label="Close full-screen preview" onClick={() => { if (document.fullscreenElement) void document.exitFullscreen(); }}>× <span>Close preview</span></button>}<div ref={props.setOutput} id="output" className={props.bookFaces ? "author-output faces-book" : "author-output"} />{!props.previewCue && <div className="preview-placeholder"><Sparkles size={26} /><strong>Your graphic will appear here</strong><span>Add content, a title, and a visual template.</span></div>}</div><div className="preview-toolbar"><button onClick={props.play} disabled={!props.previewCue}><Play size={15} /> Play in</button><button onClick={props.out} disabled={!props.previewCue}><Square size={14} /> Play out</button><button onClick={props.fullscreen} disabled={!props.previewCue}><Maximize2 size={14} /> Full screen</button><span>{props.statusLabel || (props.exact ? "Exact saved preview" : props.previewCue ? "Working preview" : "Waiting for content")}</span></div><div className={`preview-readiness ${props.fitErrors.length ? "problem" : props.warnings.length ? "caution" : props.assetsReady ? "ready" : "waiting"}`}>{props.fitErrors.length ? <CircleAlert size={18} /> : props.assetsReady ? <Check size={18} /> : <Clock3 size={18} />}<div><strong>{props.fitErrors.length ? "Needs attention" : props.assetsReady ? "Fits this frame" : props.previewCue ? "Preparing preview" : "Waiting for content"}</strong>{props.fitErrors.map((item) => <small key={item}>{item}</small>)}{!props.fitErrors.length && props.warnings.map((item) => <small key={item}>{item}</small>)}{!props.fitErrors.length && props.assetsReady && <small>Fonts and artwork loaded. Review readability before publishing.</small>}</div></div><div className="preview-note"><span /> This preview cannot issue live commands. A graphic already on screen remains unchanged.</div></aside>;
 }
 
 function PublishDock(props: { dirty: boolean; draft: Draft | null; recoveryStoredAt: number | null; busy: string; ready: boolean; exactPreviewCurrent: boolean; fitBlocked: boolean; publishedVersion: number | null; duplicate: () => void; backToLibrary: () => void; save: () => void; review: () => void; publish: () => void }) {
