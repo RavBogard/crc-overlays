@@ -1,3 +1,5 @@
+> **NEXT BUILD (2026-09-13, approved by Daniel):** `docs/planning/2026-09-13-product-review/HANDOFF-CODE-2026-09-13.md` — the five-phase product-review build. Read it after the release-state section below.
+
 # Claude handoff — CRC and TBI Overlays
 
 Updated September 13, 2026 (Claude session, after the Codex build stopped). **Read this first.** The feature expansion is now verified, built, and committed on `codex/product-expansion`. The section "Release state" below says exactly what has and has not reached production; do not infer it from git alone.
@@ -14,7 +16,7 @@ Updated September 13, 2026 (Claude session, after the Codex build stopped). **Re
 ## Release state (update this section whenever it changes)
 
 - Production baseline before this pass: `180b88a` on both workspaces. CRC production read-only state at 2026-09-13 08:59 CT: cue clear, revision 1789055589982, catalog d37d122359b9920d, zero connected renderers. TBI: not probed (CRC key is not valid there); TBI has no operator accounts yet.
-- **Deployed 2026-09-13 08:59 CT: both workspaces serve `fbce9c15a632a8d81348c291f71672b69c953d01`** (see "Deploy record" at the end of this file). Both production databases were migrated first (17 → 22 tables each, additive, drafts preserved). Any commit after `fbce9c1` on this branch is documentation only unless the Deploy record says otherwise.
+- **Deployed 2026-09-13 14:35 CT: both workspaces serve `5117d328f1f69995c362b9548d7ca21d0eb97d12`** (Companion module 1.3.0 release; second deploy record at the end of this file). Earlier the same day, 08:59 CT: `fbce9c15a632a8d81348c291f71672b69c953d01` (see "Deploy record" at the end of this file). Both production databases were migrated first (17 → 22 tables each, additive, drafts preserved). Any commit after `fbce9c1` on this branch is documentation only unless the Deploy record says otherwise.
 
 ## What was done in this pass (2026-09-13)
 
@@ -36,6 +38,14 @@ Automated evidence: `tsc --noEmit` clean; `npm test` 207 tests, 201 pass, 0 fail
 Browser evidence (Playwright-driven, synthetic owner `qa-claude-2026-09-13@example.invalid`): invitation redeem; role nav; library thumbnails; Add from siddur clears `?draft=`; English-only retrieval; passage and template selection; alignment/spacing live and Reset; save writes draft id to URL; reload preserves presentation; SVG rejected server-side, PNG accepted as content-addressed asset; unpublished content 404 / authenticated preview 200; publish gated on zero fit errors; after publish the content route is 200 public immutable and the catalog carries `imageAssetId` only; archive keeps historical content serving, restore works, archiving the selected artwork marks the draft unsaved and falls back to the logo; console Inspect never sends a command and Show/Clear stay disabled without the relay; health page states; services degraded entries and optional collections; source review scan, exact comparison, Accept into a new unpublished draft (original untouched); multipart: whole-prayer set of 3, Move later, Duplicate slide to 4, Review flags "duplicated (2)"; full-screen preview enter/exit via the close button.
 
 Recovery drill: export 19 files, verified, restored into `recovery_1789306559735_c9c2c2d7` — 9 drafts, 7 revisions, 2 collections, 1 feedback, 1 usage report, 1 asset byte-exact (sha matches id) with published flag. No existing table touched. Cleanup statement is in the evidence file; not yet run.
+
+## Companion module 1.3.0 (afternoon of 2026-09-13, Daniel present)
+
+- TBI now downloads its own module package `tbi-overlays-1.3.0.tgz` (manifest id `tbi-overlays`, name "TBI Overlays", default base URL tbi-overlays.vercel.app). It is derived deterministically from the reviewed CRC package by `scripts/build-tbi-companion-module.mjs`; `scripts/audit-companion-packages.mjs` re-derives and compares. Distinct ids let CRC and TBI modules be installed in one Companion (Daniel's testing setup). Protocol identifiers (`crc-overlays-v1`, `X-CRC-Catalog-Version`) are unchanged.
+- New action `toggle_cue`: press shows the cue, press again animates it out (decided by the requested cue on the relay, never by rendered state; unknown state shows). Presets and both checked-in button pages use it; `show_cue`/`animate_out` still exist for hand-built buttons. Colours are the existing feedbacks: amber requested, green rendered, default idle.
+- Red "disconnected" indicator now waits 3 s before painting; `rendered` is not graced and the command gate is unchanged. Close code/reason are logged in the Companion connection log.
+- Red-pulse root cause is NOT confirmed. Read-only probes against the CRC relay (control subscription; simulated output + controller, 75 s each) showed no closes and stable presence. The pulse reported by Daniel (every ~10 s, 1-2 s) must originate in his output browser or Companion environment. Next time it happens: read the Companion connection log for "Realtime closed (code reason)" and note whether a graphics browser was open. Solid red = no graphics browser; pulsing red = flapping presence.
+- Relay renderer-expiry off-by-one fixed in `relay/src` (tests pass) but the Cloudflare relay was NOT redeployed; deploy it on a weekday with `wrangler` from `relay/`.
 
 ## Known limitations and decisions
 
@@ -87,3 +97,16 @@ Post-deploy verification (read-only, no live command sent):
 Rollback: promote the previous production deployment (`180b88a`) in the Vercel dashboard for each project. The migrations are additive, so the old build runs against the migrated schema.
 
 Not done in this pass: no invitations created or emails sent; rehearsal data left in `crc_authoring_rehearsal` and the recovery schema `recovery_1789306559735_c9c2c2d7` (cleanup statement in `work/recovery/rehearsal-drill-20260913/`, not run); `main` on `origin` fast-forwarded to this branch. Security follow-up: `npm audit --omit=dev` reports a critical advisory in `next` 16.2.6 fixed in 16.3.5. The app has no middleware/proxy file, no Server Actions, and no i18n config, so the published vector does not apply as deployed; schedule the patch release on a weekday with the same gate.
+
+## Deploy record 2 — Companion module 1.3.0
+
+**2026-09-13, 14:32–14:36 CT.** Gate: CRC `/api/state` renderers 0 (a test cue "As We Bless" was live from Daniel's own Companion; no graphics browser connected); TBI `/api/state` revision 4, cue null, renderers 0. No production DB migration was needed (no schema change).
+
+`node scripts/deploy-workspaces.mjs --commit 5117d328f1f69995c362b9548d7ca21d0eb97d12 --confirm-production`, exit 0. Release record `work/deploy-staging/releases/5117d328…/release.json`.
+- CRC: `https://crc-overlays-zwljenlne-ravbogards-projects.vercel.app` (dpl_3mYabSEkdsFeAmFBsweBjAnHTg21) aliased to crc-overlays.vercel.app.
+- TBI: `https://tbi-overlays-n6ucdpk9z-ravbogards-projects.vercel.app` (dpl_HfnNmGrvxJzawdfAMCd4eP8YtfNc) aliased to tbi-overlays.vercel.app.
+
+Post-deploy (read-only): CRC state unchanged; `/api/health` 200, outputs 0, synchronization current. `/downloads/crc-overlays-1.3.0.tgz` 200 sha256 f728364a…; TBI `/workspaces/temple-bnai-israel/downloads/tbi-overlays-1.3.0.tgz` 200 sha256 62903419…; both 1.2.0 paths 404; `/api/workspace` download links point at 1.3.0 on both; served TBI page 1 decodes to module `tbi-overlays` 1.3.0, base URL tbi, 16 toggle_cue / 0 show_cue. `/setup` and `/author` 200 on both.
+
+Rollback: promote the previous production deployment (`fbce9c1` build) in Vercel for each project. Operators who already installed module 1.2.0 keep working; the new pages require 1.3.0 because they use `toggle_cue`.
+

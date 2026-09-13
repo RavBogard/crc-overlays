@@ -93,6 +93,8 @@ Text fit is now measured after bundled fonts and artwork settle, with an idempot
 
 ### Released 2026-09-13
 
+- 14:35 CT: Companion module 1.3.0 (toggle buttons, 3 s disconnected grace, close diagnostics) and the TBI-branded module `tbi-overlays` deployed from `5117d328f1f69995c362b9548d7ca21d0eb97d12`. Details in `CLAUDE-HANDOFF.md` → "Deploy record 2".
+
 - Committed as `fbce9c1` on `codex/product-expansion`; `main` fast-forwarded.
 - Both production databases migrated (additive, 17 → 22 tables) and both workspaces deployed from `fbce9c15a632a8d81348c291f71672b69c953d01` with zero connected outputs at deploy time. Details: `CLAUDE-HANDOFF.md` → "Deploy record".
 
