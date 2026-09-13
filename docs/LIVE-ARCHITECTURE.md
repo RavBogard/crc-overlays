@@ -150,3 +150,10 @@ Michael's rollout is a one-month parallel trial: import new Companion pages into
 unused slots, add a separate CRC browser input, and retain all Singular pages,
 connections, camera controls, and graphics inputs. Physical switcher/Stream Deck
 rehearsal is still required; protocol acknowledgment does not establish program tally.
+
+## Relay release
+
+The relay's two Cloudflare workers — `crc-live-relay` and `tbi-overlays-live-relay`, one
+`relay/wrangler.jsonc` with a `tbi` environment — ship on their own schedule, separate from
+any web deploy, behind the same read-only renderers-0 gate. Procedure and rollback:
+`docs/RELAY-RELEASE.md`; the command is `node scripts/deploy-relays.mjs`.

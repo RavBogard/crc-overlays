@@ -8,10 +8,31 @@
       { "name": "LIVE_ROOM", "class_name": "LiveRoom" }
     ]
   },
+  // `exports` is inherited by named environments, so the Durable Object class
+  // declaration below applies unchanged to every environment. Declaring it once
+  // keeps both deployed workers on the same already-created `LiveRoom` class:
+  // no rename, no delete, no migration. (`exports` and `migrations` are mutually
+  // exclusive; this worker uses `exports`.)
   "exports": {
     "LiveRoom": { "type": "durable-object", "storage": "sqlite" }
   },
   "vars": {
     "ALLOWED_ORIGINS": "https://crc-overlays.vercel.app,http://localhost:5175"
+  },
+  // Each congregation runs its own worker with its own Durable Object storage and
+  // its own RELAY_SECRET (a Worker secret, never configuration). `durable_objects`
+  // and `vars` are NOT inherited by named environments and must be repeated here.
+  "env": {
+    "tbi": {
+      "name": "tbi-overlays-live-relay",
+      "durable_objects": {
+        "bindings": [
+          { "name": "LIVE_ROOM", "class_name": "LiveRoom" }
+        ]
+      },
+      "vars": {
+        "ALLOWED_ORIGINS": "https://tbi-overlays.vercel.app,http://localhost:5175"
+      }
+    }
   }
 }
