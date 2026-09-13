@@ -61,7 +61,7 @@ Recovery drill: export 19 files, verified, restored into `recovery_1789306559735
 ## Known limitations and decisions
 
 - Publication fit gate is client-side only; MCP or direct API publishes are not fit-checked (rendering needs a browser).
-- `lib/cues.json` contains a real cue named "Ahava Rabbah Ahavtanu (ncomplete)"; the operator label maps it to "(Partial)". Renaming is a content decision for Daniel.
+- T4 landed on `phase-a` (1cc5f74): the cue is now named "Ahava Rabbah Ahavtanu (Partial)" in `lib/cues.json`, the TBI copies and the legacy sources; the `(ncomplete)` mapping is gone from `lib/cue-search.ts`. Cue ids unchanged; the catalog version changes, so every Companion needs one "Refresh cue catalog" after the Phase A deploy.
 - Feedback records are readable by any signed-in member (dashboard and CSV); tightening is a product decision.
 - Source review defer/reject were not browser-exercised (covered by tests).
 - Escape-to-exit full screen could not be exercised by automation; the Close preview button was.

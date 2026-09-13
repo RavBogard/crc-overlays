@@ -33,7 +33,7 @@ function InspectPreview({cue,workspace}:{cue:Cue|null;workspace:PublicWorkspace|
 }
 
 function SignInPanel({draft,onDraft,onConnect}:{draft:string;onDraft:(value:string)=>void;onConnect:()=>void}){
- return <section className="access"><h2>Open your graphics workspace</h2><p><a className="access-signin" href="/access">Sign in</a></p><p><a href="/access">Sign in with your invitation link</a></p><details className="access-admin"><summary>Administrator connection</summary><form onSubmit={e=>{e.preventDefault();onConnect()}}><label>Control key<input type="password" autoComplete="off" value={draft} onChange={e=>onDraft(e.target.value)} required/></label><button>Connect</button></form></details></section>
+ return <section className="access"><h2>Sign in to continue</h2><p>Use your account, or the one-time invitation link an administrator sent you. Both open on the Account page.</p><p><a className="access-signin" href="/access">Open account</a></p><details className="access-admin"><summary>Administrator connection</summary><form onSubmit={e=>{e.preventDefault();onConnect()}}><label>Control key<input type="password" autoComplete="off" value={draft} onChange={e=>onDraft(e.target.value)} required/></label><button>Connect</button></form></details></section>
 }
 
 function StatusBlock({chip,name,layout,message}:{chip:ChipState;name:string;layout:string|null;message:string}){
