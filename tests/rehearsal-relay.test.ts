@@ -1,8 +1,9 @@
 import test,{after} from 'node:test';
 import assert from 'node:assert/strict';
 import {randomUUID} from 'node:crypto';
-import {PROTOCOL,STALE_MS} from '../relay/src/protocol.ts';
-import {startRehearsalRelay,type RehearsalRelay} from '../scripts/rehearsal-relay.ts';
+import {WebSocket as WsClient} from 'ws';
+import {MAX_MESSAGE_BYTES,MAX_SNAPSHOT_BYTES,PROTOCOL,STALE_MS} from '../relay/src/protocol.ts';
+import {HttpError,RehearsalRoom,startRehearsalRelay,type RehearsalRelay} from '../scripts/rehearsal-relay.ts';
 import {relayTicket,type RelayRole} from '../lib/relay.ts';
 
 const SECRET=`rehearsal-${randomUUID()}`;
@@ -239,4 +240,130 @@ test('unknown routes are 404 and unauthenticated routes are 401',async()=>{
  assert.equal((await request(relay,'/nope')).status,404);
  assert.equal((await request(relay,'/state',undefined,false)).status,401);
  assert.equal((await fetch(`${relay.url}/connect`)).status,426);
+});
+
+// --- worker-parity gaps (audit F10) -----------------------------------------
+// The global WebSocket cannot set Origin or expose a refused upgrade's status
+// line, so these use the `ws` client, which can do both.
+type Refused={status:number;body:string};
+function upgradeWith(relay:RehearsalRelay,ticket:string,headers:Record<string,string>={}){
+ const socket=new WsClient(`${relay.url.replace(/^http/,'ws')}/connect`,[PROTOCOL,`ticket.${ticket}`],{headers});
+ const outcome=new Promise<'open'|Refused>(resolve=>{
+  socket.on('open',()=>resolve('open'));
+  socket.on('error',()=>{});
+  socket.on('unexpected-response',(_request,response)=>{
+   const chunks:Buffer[]=[];
+   response.on('data',(chunk:Buffer)=>chunks.push(chunk));
+   response.on('end',()=>resolve({status:response.statusCode??0,body:Buffer.concat(chunks).toString('utf8')}));
+  });
+ });
+ return {socket,outcome};
+}
+const command=(overrides:Record<string,unknown>={})=>({action:'in',cue:'cue-one',commandId:randomUUID(),clientId:null,sequence:null,...overrides});
+
+test('a replayed ticket is refused with HTTP 409 and the worker body',async()=>{
+ const relay=await initializedRelay();
+ const ticket=relayTicket('control');
+ const first=upgradeWith(relay,ticket);
+ assert.equal(await first.outcome,'open');
+ const replay=upgradeWith(relay,ticket);
+ const refused=await replay.outcome as Refused;
+ assert.equal(refused.status,409);
+ assert.deepEqual(JSON.parse(refused.body),{error:'Ticket already used'});
+ first.socket.close();
+});
+
+test('a server event above the snapshot ceiling closes the socket with 4409',async()=>{
+ const relay=await initializedRelay();
+ const {socket,opened,recorder}=connect(relay,'control');
+ assert.equal(await opened,'open');
+ await recorder.next(frame=>frame.type==='snapshot');
+ const [server]=[...relay.room.sockets.keys()];
+ relay.room.send(server,{type:'snapshot',snapshot:{padding:'x'.repeat(MAX_SNAPSHOT_BYTES)}});
+ assert.equal(await recorder.closed,4409);
+ socket.close();
+});
+
+test('an oversized command body is 413 and does not consume the controller sequence',async()=>{
+ const relay=await initializedRelay();
+ const clientId=randomUUID();
+ const oversized=await request(relay,'/command',command({clientId,sequence:1,note:'x'.repeat(MAX_MESSAGE_BYTES)}));
+ assert.equal(oversized.status,413);
+ assert.deepEqual(await oversized.json(),{error:'Request too large'});
+ assert.equal(relay.room.sequences.has(clientId),false);
+ const retried=await request(relay,'/command',command({clientId,sequence:1}));
+ assert.equal(retried.status,200);
+ assert.equal((await retried.json()).revision,1);
+ assert.equal(relay.room.sequences.get(clientId),1);
+});
+
+test('a 413 from the snapshot size check rolls the controller sequence back like the worker transaction',()=>{
+ const room=new RehearsalRoom();
+ room.initialize(INITIALIZE);
+ const clientId=randomUUID();
+ const guard=Reflect.get(room,'ensureSnapshotSize') as (snapshot:unknown)=>void;
+ Reflect.set(room,'ensureSnapshotSize',()=>{throw new HttpError(413,'Snapshot too large')});
+ assert.throws(()=>room.command(command({clientId,sequence:7})),(error:unknown)=>error instanceof HttpError&&error.status===413&&error.message==='Snapshot too large');
+ Reflect.set(room,'ensureSnapshotSize',guard);
+ assert.equal(room.sequences.has(clientId),false);
+ assert.equal(room.state?.revision,0);
+ const [accepted]=room.command(command({clientId,sequence:7})) as [Frame,number];
+ assert.equal(accepted.revision,1);
+ assert.equal(room.sequences.get(clientId),7);
+});
+
+test('a stale controller sequence is ignored: 200, commandId echoed, state unchanged',async()=>{
+ const relay=await initializedRelay();
+ const clientId=randomUUID();
+ assert.equal((await (await request(relay,'/command',command({clientId,sequence:5}))).json()).revision,1);
+ for(const sequence of [3,5]){
+  const staleId=randomUUID();
+  const stale=await request(relay,'/command',command({cue:'cue-two',commandId:staleId,clientId,sequence}));
+  assert.equal(stale.status,200);
+  const body=await stale.json();
+  assert.equal(body.commandId,staleId);
+  assert.equal(body.revision,1);
+  assert.equal(body.cue,'cue-one');
+ }
+ assert.equal(relay.room.sequences.get(clientId),5);
+ assert.equal((await (await request(relay,'/command',command({cue:'cue-two',clientId,sequence:6}))).json()).revision,2);
+});
+
+test('HTTP POST /ack with the bearer secret registers a renderer',async()=>{
+ const relay=await initializedRelay();
+ const id=randomUUID();
+ const acked=await request(relay,'/ack',{id,revision:0,cue:null,phase:'settled'});
+ assert.equal(acked.status,200);
+ assert.deepEqual(await acked.json(),{ok:true});
+ const state=await (await request(relay,'/state')).json();
+ assert.equal(state.renderers.length,1);
+ assert.equal(state.renderers[0].id,id);
+ assert.equal(state.renderers[0].phase,'settled');
+ const mismatched=await request(relay,'/ack',{id:randomUUID(),revision:9,cue:null,phase:'settled'});
+ assert.equal(mismatched.status,409);
+ assert.deepEqual(await mismatched.json(),{error:'Acknowledgment does not match current state'});
+});
+
+test('the upgrade Origin policy admits local origins and no Origin, and refuses others with 403',async()=>{
+ const relay=await initializedRelay();
+ const local=upgradeWith(relay,relayTicket('control'),{Origin:'http://localhost:5175'});
+ assert.equal(await local.outcome,'open');
+ const absent=upgradeWith(relay,relayTicket('control'));
+ assert.equal(await absent.outcome,'open');
+ const foreign=upgradeWith(relay,relayTicket('control'),{Origin:'https://evil.example'});
+ const refused=await foreign.outcome as Refused;
+ assert.equal(refused.status,403);
+ assert.deepEqual(JSON.parse(refused.body),{error:'Origin not allowed'});
+ local.socket.close();absent.socket.close();
+});
+
+test('the presence sweep stays silent while the renderer set is unchanged',async()=>{
+ const relay=await initializedRelay();
+ const {socket,opened,recorder}=connect(relay,'control');
+ assert.equal(await opened,'open');
+ await recorder.next(frame=>frame.type==='snapshot');
+ await recorder.next(frame=>frame.type==='presence');
+ await new Promise(resolve=>setTimeout(resolve,700));
+ assert.deepEqual(recorder.frames.filter(frame=>frame.type==='presence'),[]);
+ socket.close();
 });

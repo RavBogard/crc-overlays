@@ -18,7 +18,7 @@ The ordinary web experience does not require AI. The optional MCP authoring inte
 
 Install dependencies and run `npm run dev` (port 5175). Runtime secrets belong in `.env` and must never be committed. See [setup](docs/SETUP.md) and [workspace deployment](docs/WORKSPACE-DEPLOYMENT.md) for current environment and packaging contracts.
 
-Run `npm run rehearsal` for a complete, disposable local instance — every store backed locally plus an in-process relay stub, so authoring, Show/Clear, and `/output` all work with zero calls to Neon or Cloudflare; see [agent-facing rehearsal mode](docs/REHEARSAL-MODE.md) for the one-command flow, what is real versus fake, and API recipes. The legacy `CRC_AUTHORING_REHEARSAL=1` (with `NODE_ENV=development` and no `RELAY_URL`), used without the script, still works for authoring-only rehearsal.
+Run `npm run rehearsal` for a complete, disposable local instance — every store backed locally plus an in-process relay stub, so authoring, Show and Animate out, and `/output` all work with zero calls to Neon or Cloudflare; see [agent-facing rehearsal mode](docs/REHEARSAL-MODE.md) for the one-command flow, what is real versus fake, and API recipes. Setting `CRC_AUTHORING_REHEARSAL=1` by hand (with `NODE_ENV=development` and no `RELAY_URL=memory`) now puts accounts, setup progress, drafts, artwork, services, and the source-review inbox in memory too (only the seeded rehearsal owner can sign in), but `/api/state`, `/api/command`, and `/api/ack` still need Postgres because no relay is configured — prefer `npm run rehearsal`.
 
 ## Live architecture
 

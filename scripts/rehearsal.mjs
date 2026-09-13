@@ -30,6 +30,7 @@ const POLL_MS=500;
 const INHERITED_ENV=['PATH','SYSTEMROOT','TEMP','TMP','HOME','USERPROFILE','APPDATA','LOCALAPPDATA','COMSPEC','PATHEXT','NODE_PATH'];
 
 export class RehearsalStartError extends Error{constructor(code,message){super(message);this.exitCode=code}}
+export class RehearsalAbortedError extends RehearsalStartError{constructor(){super(0,'rehearsal aborted by signal')}}
 
 const key=()=>randomBytes(32).toString('base64url');
 const sleep=ms=>new Promise(resolve=>setTimeout(resolve,ms));
@@ -75,6 +76,7 @@ function childEnv({relayPort,relaySecret,controlKey,outputKey}){
   RELAY_SECRET:relaySecret,
   CONTROL_KEY:controlKey,
   OUTPUT_KEY:outputKey,
+  NEXT_TELEMETRY_DISABLED:'1',
   // @next/env only applies a .env* key whose initial value is undefined, so a defined
   // empty string blocks any file from injecting these.
   DATABASE_URL:'',
@@ -83,11 +85,11 @@ function childEnv({relayPort,relaySecret,controlKey,outputKey}){
  return env;
 }
 
-async function waitForNext(baseUrl,child,stderrTail){
+async function waitForNext(baseUrl,getExited,stderrTail,signal){
  const deadline=Date.now()+READY_TIMEOUT_MS;
- let exited=null;
- child.once('exit',code=>{exited=code??1});
  while(Date.now()<deadline){
+  if(signal?.aborted)throw new RehearsalAbortedError();
+  const exited=getExited();
   if(exited!==null)throw new RehearsalStartError(5,`next dev exited with code ${exited} before it was ready\n${stderrTail()}`);
   try{
    const response=await fetch(`${baseUrl}/api/workspace`,{cache:'no-store',signal:AbortSignal.timeout(2000)});
@@ -133,44 +135,59 @@ export async function startRehearsal(options={}){
  const port=options.port??DEFAULT_REHEARSAL_PORT;
  const relayPort=options.relayPort??DEFAULT_REHEARSAL_RELAY_PORT;
  const log=options.log===undefined?line=>process.stdout.write(`${line}\n`):options.log;
+ const signal=options.signal;
+ const throwIfAborted=()=>{if(signal?.aborted)throw new RehearsalAbortedError()};
  const forbidden=inheritedCredential();
  if(forbidden)throw new RehearsalStartError(2,`${forbidden} is set in this shell; rehearsal never holds production credentials; unset it or run from a clean shell`);
+ throwIfAborted();
  for(const [label,candidate] of [['next dev',port],['relay stub',relayPort]]){
   if(!Number.isInteger(candidate)||candidate<1||candidate>65535)throw new RehearsalStartError(3,`${label} port ${candidate} is not a valid TCP port`);
   if(!await portFree(candidate))throw new RehearsalStartError(3,`port ${candidate} (${label}) is already in use; free it or kill a leftover rehearsal process`);
  }
+ throwIfAborted();
  const relaySecret=key(),controlKey=key(),outputKey=key();
- const relay=await startRehearsalRelay({port:relayPort,secret:relaySecret});
- // Next dev reports request.url with hostname `localhost` whatever Host was sent, and
- // same-site writes compare Origin against it, so clients must use this exact origin.
- const baseUrl=`http://localhost:${port}`;
- const stderrLines=[];
- const remember=chunk=>{for(const line of String(chunk).split(/\r?\n/))if(line.trim()){stderrLines.push(line);if(stderrLines.length>40)stderrLines.shift()}};
- const child=spawn(process.execPath,[NEXT_BIN,'dev','--port',String(port)],{cwd:ROOT,env:childEnv({relayPort,relaySecret,controlKey,outputKey}),stdio:['ignore','pipe','pipe'],windowsHide:true});
- const forward=stream=>{let rest='';stream.setEncoding('utf8');stream.on('data',chunk=>{rest+=chunk;const lines=rest.split(/\r?\n/);rest=lines.pop()??'';for(const line of lines)if(line.trim()&&log)log(`[next] ${line}`)})};
- forward(child.stdout);
- child.stderr.on('data',remember);
- forward(child.stderr);
- let stopped=false;
+ // relay/child/stop are wired up before anything is spawned so a signal that lands
+ // mid-boot (see main()) always has something concrete to tear down.
+ let relay=null,child=null,stopped=false;
  const stop=async()=>{
   if(stopped)return;stopped=true;
-  await killTree(child);
-  await relay.close();
+  if(child)await killTree(child);
+  if(relay)await relay.close();
   await rm(STATE_FILE,{force:true});
  };
  try{
-  await waitForNext(baseUrl,child,()=>stderrLines.join('\n'));
+  relay=await startRehearsalRelay({port:relayPort,secret:relaySecret});
+  throwIfAborted();
+  // Next dev reports request.url with hostname `localhost` whatever Host was sent, and
+  // same-site writes compare Origin against it, so clients must use this exact origin.
+  const baseUrl=`http://localhost:${port}`;
+  const stderrLines=[];
+  const remember=chunk=>{for(const line of String(chunk).split(/\r?\n/))if(line.trim()){stderrLines.push(line);if(stderrLines.length>40)stderrLines.shift()}};
+  child=spawn(process.execPath,[NEXT_BIN,'dev','--port',String(port)],{cwd:ROOT,env:childEnv({relayPort,relaySecret,controlKey,outputKey}),stdio:['ignore','pipe','pipe'],windowsHide:true});
+  // Observed from the instant the child exists, not only once main() attaches its own
+  // listener after this function returns.
+  let childExited=null;
+  child.once('exit',code=>{childExited=code??1});
+  const forward=stream=>{let rest='';stream.setEncoding('utf8');stream.on('data',chunk=>{rest+=chunk;const lines=rest.split(/\r?\n/);rest=lines.pop()??'';for(const line of lines)if(line.trim()&&log)log(`[next] ${line}`)})};
+  forward(child.stdout);
+  child.stderr.on('data',remember);
+  forward(child.stderr);
+  await waitForNext(baseUrl,()=>childExited,()=>stderrLines.join('\n'),signal);
+  throwIfAborted();
   const initialized=await initializeRelay(relay.url,relaySecret);
-  if(log)log(initialized.initialized?`relay stub initialized with the ${initialized.cues}-cue baseline catalog`:'relay stub was already initialized');
+  if(log)log(initialized.initialized?`relay stub initialized with the ${initialized.cues}-graphic baseline catalog`:'relay stub was already initialized');
+  throwIfAborted();
   // Turbopack and tsx serialize cues.json floats differently (0.21000000000000002 vs
   // 0.21), so the catalog version hashed here never matches Next's. Let Next push its own
   // authoring catalog so /health reports synchronization as current.
   const synced=await fetch(`${baseUrl}/api/live-catalog`,{method:'POST',headers:{Authorization:`Bearer ${controlKey}`},signal:AbortSignal.timeout(10_000)});
   if(!synced.ok)throw new Error(`live catalog synchronization failed (${synced.status})`);
   if(log)log(`live catalog synchronized from Next (version ${(await synced.json()).version})`);
+  throwIfAborted();
   const startedAt=new Date().toISOString();
   await mkdir(path.dirname(STATE_FILE),{recursive:true});
   await writeFile(STATE_FILE,`${JSON.stringify({baseUrl,relayUrl:relay.url,controlKey,outputKey,pid:process.pid,nextPid:child.pid,startedAt},null,1)}\n`);
+  throwIfAborted();
   return {baseUrl,relayUrl:relay.url,controlKey,outputKey,pid:process.pid,nextPid:child.pid,startedAt,child,stop};
  }catch(error){
   await stop();
@@ -217,20 +234,29 @@ async function main(){
  }
  let options;
  try{options=parseArgs(process.argv.slice(2))}catch(error){console.error(`rehearsal refused: ${error.message}`);process.exit(error.exitCode??2)}
- let instance;
- try{instance=await startRehearsal(options)}
+ const controller=new AbortController();
+ let instance=null,exiting=false;
+ const finish=async code=>{
+  if(exiting)return;exiting=true;
+  if(instance)await instance.stop();
+  process.exit(code);
+ };
+ // Registered before startRehearsal spawns anything (exit codes unchanged: 2 credential,
+ // 3 port, 5 not ready, 0 on signal), so a signal during the up-to-90 s boot still stops
+ // the next dev tree and relay stub instead of orphaning them.
+ for(const signal of ['SIGINT','SIGTERM','SIGHUP'])process.on(signal,()=>{
+  process.stdout.write(`\n${signal} received; stopping rehearsal\n`);
+  controller.abort();
+  if(instance)void finish(0);
+ });
+ try{instance=await startRehearsal({...options,signal:controller.signal})}
  catch(error){
+  if(error instanceof RehearsalAbortedError)process.exit(0);
   console.error(`rehearsal failed: ${error.message}`);
   process.exit(error instanceof RehearsalStartError?error.exitCode:1);
  }
+ if(exiting)return;
  process.stdout.write(banner(instance,options.port));
- let exiting=false;
- const finish=async code=>{
-  if(exiting)return;exiting=true;
-  await instance.stop();
-  process.exit(code);
- };
- for(const signal of ['SIGINT','SIGTERM','SIGHUP'])process.on(signal,()=>{process.stdout.write(`\n${signal} received; stopping rehearsal\n`);void finish(0)});
  instance.child.on('exit',code=>{if(!exiting)process.stdout.write(`next dev exited (${code ?? 'signal'}); stopping rehearsal\n`);void finish(code??0)});
 }
 

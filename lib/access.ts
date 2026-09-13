@@ -86,10 +86,12 @@ export class MemoryAccessStore implements AccessStore{
  async redeem(hash:string,now:number,sessionHash:string,expires:number){
   const link=this.links.get(hash);
   if(!link||link.usedAt!==null||link.expiresAt<=now)return null;
-  link.usedAt=now;
   const member=this.members.get(link.memberId);
+  // Mirror the Postgres transaction: an invariant failure ROLLBACKs the used_at
+  // update, so the link stays redeemable once another administrator exists.
+  if(member&&member.role==='owner'&&member.enabled&&link.pendingRole!=='owner'&&this.enabledOwners()<=1)throw new AccessInvariantError('Keep at least one enabled administrator.');
+  link.usedAt=now;
   if(!member)return null;
-  if(member.role==='owner'&&member.enabled&&link.pendingRole!=='owner'&&this.enabledOwners()<=1)throw new AccessInvariantError('Keep at least one enabled administrator.');
   member.name=link.pendingName;member.role=link.pendingRole;member.enabled=true;
   // A reset invitation clears the password and every live session, exactly as the
   // Postgres transaction does; the spent link itself is kept so it stays single-use.

@@ -2,7 +2,6 @@ import assert from 'node:assert/strict';
 import {test} from 'node:test';
 import {
  REHEARSAL_RELAY,
- assertRehearsalAllowed,
  liveRelayConfigured,
  rehearsalMode,
  rehearsalRelayOrigin,
@@ -17,7 +16,6 @@ import {
  tokenHash,
  verifyPassword,
 } from '../lib/access.ts';
-import {AuthoringError} from '../lib/authoring-model.ts';
 
 const dev={CRC_AUTHORING_REHEARSAL:'1',NODE_ENV:'development'} as const;
 
@@ -45,32 +43,34 @@ test('only a real relay URL counts as a live relay',()=>{
  assert.equal(liveRelayConfigured({RELAY_URL:'http://127.0.0.1:8788'}),true);
 });
 
-test('requesting rehearsal outside local development fails closed',()=>{
- assert.doesNotThrow(()=>assertRehearsalAllowed({...dev}));
- assert.doesNotThrow(()=>assertRehearsalAllowed({...dev,RELAY_URL:REHEARSAL_RELAY}));
- assert.doesNotThrow(()=>assertRehearsalAllowed({NODE_ENV:'production'}));
- for(const unsafe of [{...dev,NODE_ENV:'production' as const},{...dev,VERCEL:'1'},{...dev,RELAY_URL:'https://relay.example'}])
-  assert.throws(()=>assertRehearsalAllowed(unsafe),(error)=>error instanceof AuthoringError&&error.code==='unsafe_rehearsal_config'&&error.status===503&&error.message==='In-memory authoring is allowed only in development with no live relay configured');
-});
-
 test('the rehearsal relay origin is loopback on the configured port',()=>{
  assert.equal(rehearsalRelayOrigin({}),'http://127.0.0.1:8788');
  assert.equal(rehearsalRelayOrigin({CRC_REHEARSAL_RELAY_PORT:'9001'}),'http://127.0.0.1:9001');
  assert.equal(rehearsalRelayOrigin({CRC_REHEARSAL_RELAY_PORT:'evil.example'}),'http://127.0.0.1:8788');
 });
 
+const rehearsalProcess={CRC_AUTHORING_REHEARSAL:'1',NODE_ENV:'development',VERCEL:undefined,RELAY_URL:REHEARSAL_RELAY,RELAY_SECRET:'rehearsal-secret'};
+
 test('RELAY_URL=memory routes every relay call to the in-process stub',async()=>{
- await withEnv({RELAY_URL:REHEARSAL_RELAY,RELAY_SECRET:'rehearsal-secret',CRC_REHEARSAL_RELAY_PORT:undefined},()=>{
+ await withEnv({...rehearsalProcess,CRC_REHEARSAL_RELAY_PORT:undefined},()=>{
   assert.equal(relayOrigin(),'http://127.0.0.1:8788');
   const connection=relayConnection('control');
   assert.equal(connection.url,'ws://127.0.0.1:8788/connect');
   assert.match(connection.ticket,/^[A-Za-z0-9_-]+\.[A-Za-z0-9_-]+$/);
   assert.equal(connection.heartbeatMs,10_000);
  });
- await withEnv({RELAY_URL:REHEARSAL_RELAY,RELAY_SECRET:'rehearsal-secret',CRC_REHEARSAL_RELAY_PORT:'9100'},()=>{
+ await withEnv({...rehearsalProcess,CRC_REHEARSAL_RELAY_PORT:'9100'},()=>{
   assert.equal(relayOrigin(),'http://127.0.0.1:9100');
   assert.equal(relayConnection('output').url,'ws://127.0.0.1:9100/connect');
  });
+});
+
+test('RELAY_URL=memory outside rehearsal fails loudly instead of pointing clients at loopback',async()=>{
+ for(const unsafe of [{NODE_ENV:'production'},{VERCEL:'1'},{CRC_AUTHORING_REHEARSAL:undefined}])
+  await withEnv({...rehearsalProcess,...unsafe},()=>{
+   assert.throws(()=>relayOrigin(),/Invalid live relay origin/);
+   assert.throws(()=>relayConnection('output'),/Invalid live relay origin/);
+  });
 });
 
 test('the rehearsal owner signs in with its documented local password',async()=>{

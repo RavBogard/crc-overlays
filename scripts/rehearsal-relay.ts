@@ -46,6 +46,13 @@ function sendJson(response:ServerResponse,value:unknown,status=200){
  response.writeHead(status,{...HEADERS,'Content-Length':Buffer.byteLength(body)});
  response.end(body);
 }
+// Identity of a presence set for change detection: which renderers are current and
+// what they acknowledge. `seen` is deliberately excluded (it moves on every heartbeat,
+// and heartbeats already broadcast presence themselves); order-insensitive so two
+// renderers swapping recency rank is not a change.
+function presenceKey(renderers:Renderer[]){
+ return JSON.stringify(renderers.map(renderer=>[renderer.id,renderer.revision,renderer.cue,renderer.phase]).sort((a,b)=>String(a[0])<String(b[0])?-1:1));
+}
 function refuseUpgrade(socket:Duplex,status:number,message:string){
  const body=JSON.stringify({error:message});
  const head=[`HTTP/1.1 ${status} ${STATUS_TEXT[status]??'Error'}`,...Object.entries(HEADERS).map(([key,value])=>`${key}: ${value}`),`Content-Length: ${Buffer.byteLength(body)}`,'Connection: close','',''].join('\r\n');
@@ -60,6 +67,7 @@ export class RehearsalRoom{
  readonly sequences=new Map<string,number>();
  readonly tickets=new Map<string,number>();
  readonly legacyPresence=new Map<string,Renderer>();
+ private lastPresenceKey=presenceKey([]);
  constructor(private readonly now:()=>number=Date.now){}
 
  // --- ticket single use -----------------------------------------------------
@@ -132,15 +140,14 @@ export class RehearsalRoom{
   const selected=command.cue===null?null:catalog.cues.find(cue=>cue.id===command.cue)??null;
   if((command.action==='in'||command.action==='out')&&!selected)throw new HttpError(400,'Unknown cue');
   let accepted=true;
-  if(command.clientId!==null){
-   const prior=this.sequences.get(command.clientId)??-1;
-   accepted=command.sequence!>prior;
-   if(accepted)this.sequences.set(command.clientId,command.sequence!);
-  }
+  if(command.clientId!==null)accepted=command.sequence!>(this.sequences.get(command.clientId)??-1);
   if(accepted){
    const next=nextState(current,command,selected,this.now());
+   // The worker runs applyCommand inside one transaction, so a 413 here rolls the
+   // sequence back; record it only once the size check has passed.
    this.ensureSnapshotSize({...next,renderers:[],serverTime:this.now()});
    this.state=next;
+   if(command.clientId!==null)this.sequences.set(command.clientId,command.sequence!);
   }
   this.receipts.set(command.commandId,{action:command.action,cue:command.cue,createdAt:this.now()});
   const excess=this.receipts.size-MAX_RECEIPTS;
@@ -237,14 +244,28 @@ export class RehearsalRoom{
   const ack=parseAck(value,helloId);
   return ack?{...ack,seen:this.now()}:null;
  }
- sweep(){this.broadcastPresence()}
+ // The worker broadcasts presence on events and when its expiry alarm fires. The
+ // polling sweep mirrors that: it always runs currentRenderers() (which closes
+ // stale outputs with 4408 and prunes legacy presence) but only broadcasts when
+ // the renderer set changed since the last presence frame.
+ sweep(){
+  const renderers=this.currentRenderers();
+  const key=presenceKey(renderers);
+  if(key===this.lastPresenceKey)return;
+  this.lastPresenceKey=key;
+  this.broadcast({type:'presence',renderers,serverTime:this.now()});
+ }
  send(socket:RelaySocket,event:unknown){
   const encoded=JSON.stringify(event);
   if(Buffer.byteLength(encoded)>MAX_SNAPSHOT_BYTES){socket.close(4409,'Server event too large');return}
   try{socket.send(encoded)}catch{}
  }
  broadcast(event:unknown,exclude?:RelaySocket){for(const socket of [...this.sockets.keys()])if(socket!==exclude)this.send(socket,event)}
- broadcastPresence(exclude?:RelaySocket){this.broadcast({type:'presence',renderers:this.currentRenderers(exclude),serverTime:this.now()},exclude)}
+ broadcastPresence(exclude?:RelaySocket){
+  const renderers=this.currentRenderers(exclude);
+  this.lastPresenceKey=presenceKey(renderers);
+  this.broadcast({type:'presence',renderers,serverTime:this.now()},exclude);
+ }
  private closeProtocol(socket:RelaySocket,reason:string){socket.close(4400,reason)}
 }
 

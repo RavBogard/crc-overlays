@@ -8,8 +8,6 @@
  * downgrade to Postgres — a rehearsal process must never hold production credentials.
  */
 
-import {AuthoringError} from './authoring-model';
-
 /** The sentinel `RELAY_URL` that selects the in-process relay stub. */
 export const REHEARSAL_RELAY='memory';
 
@@ -35,14 +33,4 @@ export function rehearsalRelayOrigin(env:RehearsalEnv=process.env){
  const raw=env.CRC_REHEARSAL_RELAY_PORT??'';
  const port=/^\d{1,5}$/.test(raw)&&Number(raw)>0?raw:DEFAULT_REHEARSAL_RELAY_PORT;
  return `http://127.0.0.1:${port}`;
-}
-
-/**
- * Throws when rehearsal was requested but the environment cannot safely provide it
- * (production, a Vercel deployment, or a live relay). Silent about a process that never
- * asked for rehearsal.
- */
-export function assertRehearsalAllowed(env:RehearsalEnv=process.env){
- if(env.CRC_AUTHORING_REHEARSAL!=='1')return;
- if(!rehearsalMode(env))throw new AuthoringError('unsafe_rehearsal_config','In-memory authoring is allowed only in development with no live relay configured',503);
 }

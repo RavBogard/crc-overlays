@@ -1,6 +1,6 @@
 // End-to-end check of rehearsal mode (docs/REHEARSAL-MODE.md): opens a fake output
 // renderer, publishes a throwaway graphic, shows it, asserts the renderer acknowledged
-// it, then clears it. Runs under tsx:
+// it, then animates it out. Runs under tsx:
 //   npm run rehearsal:check              attach to work/rehearsal/current.json if it answers, else boot
 //   npm run rehearsal:check -- --attach  attach only; fail if nothing is running
 //   npm run rehearsal:check -- --boot    always boot a private instance on the default ports
@@ -155,7 +155,7 @@ async function run(instance,booted){
    const catalog=await api.expect('/api/catalog');
    assert(Array.isArray(catalog)&&catalog.length,'catalog is empty');
    const template=catalog.find(cue=>cue.layout==='bottom'&&!cue.hidden&&!cue.authoring);
-   assert(template,'no baseline cue with layout bottom in the live catalog');
+   assert(template,'no baseline graphic with layout bottom in the live catalog');
    const stamp=new Date().toISOString().slice(11,19).replace(/:/g,'');
    const name=`Rehearsal check ${stamp}`;
    const {draft}=await api.authoring('create_draft',{name,title:'Rehearsal check',layout:'bottom',templateCueId:template.id,content:{mode:'custom',text:`Rehearsal check ${stamp} — this graphic was published by npm run rehearsal:check.`},presentation:{}});
@@ -165,23 +165,23 @@ async function run(instance,booted){
    assert(preview.validation?.valid!==false,`preview validation failed: ${JSON.stringify(preview.validation?.errors??preview.validation)}`);
    await api.authoring('review_draft',{draftId:draft.id,expectedVersion:draft.version,previewId:preview.previewId,humanApproved:true,browserMeasurement:{viewportWidth:1920,viewportHeight:1080,fontsReady:true,overflow:false,rendererVersion:'rehearsal-check',measuredAt:Date.now()}});
    const published=await api.authoring('publish_draft',{draftId:draft.id,expectedVersion:draft.version,previewId:preview.previewId});
-   assert(published.cue?.id===draft.id,'publish_draft did not return the published cue');
+   assert(published.cue?.id===draft.id,'publish_draft did not return the published graphic');
    assert(!published.liveRefreshPending,'publication did not reach the relay catalog (liveRefreshPending)');
    const live=await api.expect('/api/catalog');
-   assert(live.some(cue=>cue.id===draft.id),'published cue is missing from the live catalog');
+   assert(live.some(cue=>cue.id===draft.id),'published graphic is missing from the live catalog');
    cueId=draft.id;
    return `${name} as ${cueId}`;
   });
   await step('show graphic',async()=>{
    const response=await api.expect('/api/command',{method:'POST',body:{commandId:randomUUID(),clientId:null,sequence:null,action:'in',cue:cueId}});
-   assert(response.cue===cueId,`command in returned cue ${response.cue}`);
-   const state=await api.until('cue on air with renderer ack',current=>current.cue===cueId&&rendererFor(current,renderer.id)?.revision===current.revision);
+   assert(response.cue===cueId,`command in returned graphic ${response.cue}`);
+   const state=await api.until('graphic on air with renderer ack',current=>current.cue===cueId&&rendererFor(current,renderer.id)?.revision===current.revision);
    return `revision ${state.revision} acknowledged`;
   });
-  await step('clear graphic',async()=>{
+  await step('animate out graphic',async()=>{
    const response=await api.expect('/api/command',{method:'POST',body:{commandId:randomUUID(),clientId:null,sequence:null,action:'out',cue:cueId}});
-   assert(response.cue===null,`command out left cue ${response.cue}`);
-   const state=await api.until('cleared output with renderer ack',current=>current.cue===null&&rendererFor(current,renderer.id)?.revision===current.revision);
+   assert(response.cue===null,`command out left graphic ${response.cue}`);
+   const state=await api.until('output animated out with renderer ack',current=>current.cue===null&&rendererFor(current,renderer.id)?.revision===current.revision);
    return `revision ${state.revision} acknowledged`;
   });
   console.log('REHEARSAL CHECK PASSED');

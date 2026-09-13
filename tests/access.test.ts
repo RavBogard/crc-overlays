@@ -5,6 +5,8 @@ import {
  ACCESS_COOKIE,
  ACCESS_ATTEMPT_SQL,
  AccessInvariantError,
+ MemoryAccessStore,
+ REHEARSAL_OWNER,
  PgAccessStore,
  accessStore,
  authorizeRequest,
@@ -378,4 +380,31 @@ test('legacy playback credentials bypass membership without giving the output ke
   if(before.control===undefined)delete process.env.CONTROL_KEY;else process.env.CONTROL_KEY=before.control;
   if(before.output===undefined)delete process.env.OUTPUT_KEY;else process.env.OUTPUT_KEY=before.output;
  }
+});
+
+// --- MemoryAccessStore (rehearsal) parity with the Postgres transaction -----------
+test('memory store: a redemption refused by the administrator invariant leaves the link redeemable',async()=>{
+ const store=new MemoryAccessStore();
+ const now=Date.now(),expires=now+60_000;
+ const second={email:'second-owner@rehearsal.invalid',name:'Second Owner'};
+ // Two enabled owners, so the seeded owner may be invited to a lesser role.
+ await store.invite(second.email,second.name,'owner',tokenHash('second-1'),expires);
+ const secondOwner=await store.redeem(tokenHash('second-1'),now,tokenHash('session-second-1'),expires);
+ assert.equal(secondOwner?.role,'owner');
+ const demote=tokenHash('demote-seeded-owner');
+ await store.invite(REHEARSAL_OWNER.email,REHEARSAL_OWNER.name,'editor',demote,expires);
+ await store.disable(secondOwner!.id);
+ // Delayed redemption: the seeded owner is now the only enabled administrator.
+ await assert.rejects(store.redeem(demote,now,tokenHash('session-demote-1'),expires),AccessInvariantError);
+ assert.equal(store.links.get(demote)?.usedAt,null,'the refused link is not consumed');
+ assert.equal(store.sessions.has(tokenHash('session-demote-1')),false,'no session is issued for the refused redemption');
+ const seeded=(await store.list()).find(member=>member.id===REHEARSAL_OWNER.id);
+ assert.deepEqual({role:seeded?.role,enabled:seeded?.enabled},{role:'owner',enabled:true});
+ // Once another administrator exists the same link redeems.
+ await store.invite(second.email,second.name,'owner',tokenHash('second-2'),expires);
+ assert.equal((await store.redeem(tokenHash('second-2'),now,tokenHash('session-second-2'),expires))?.role,'owner');
+ const demoted=await store.redeem(demote,now,tokenHash('session-demote-2'),expires);
+ assert.deepEqual({id:demoted?.id,role:demoted?.role,enabled:demoted?.enabled},{id:REHEARSAL_OWNER.id,role:'editor',enabled:true});
+ assert.equal(store.links.get(demote)?.usedAt,now);
+ assert.equal(await store.redeem(demote,now,tokenHash('session-demote-3'),expires),null,'a spent link stays single-use');
 });

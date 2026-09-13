@@ -27,10 +27,7 @@ This runs `scripts/rehearsal.mjs` (under tsx), which:
   imports `relay/src/protocol.ts` verbatim, so the wire protocol is not reimplemented.
 - Spawns `next dev --port 5175` with `CRC_AUTHORING_REHEARSAL=1 NODE_ENV=development
   RELAY_URL=memory CRC_REHEARSAL_RELAY_PORT=8788` plus the generated keys.
-- Waits up to 90 s for `/api/workspace` (exit 5 with Next's last stderr lines),
-  initializes the relay stub with the 29-cue baseline from `lib/cues.json` (revision
-  0, cue `null`), then calls `POST /api/live-catalog` so Next pushes its own catalog
-  version (Turbopack and tsx serialize one `cues.json` float differently).
+- Waits up to 90 s for `/api/workspace` (exit 5 with Next's last stderr lines), initializes the relay stub with the 29-graphic baseline catalog from `lib/cues.json` (revision 0, no graphic on air — `cue: null` in the API), then calls `POST /api/live-catalog` so Next pushes its own catalog version (Turbopack and tsx serialize one `cues.json` float differently).
 - Writes gitignored `work/rehearsal/current.json` (`baseUrl`, `relayUrl`, keys, pids,
   `startedAt`) so `rehearsal:check` can attach; deletes it on exit.
 - Prints: `http://localhost:5175/` (console), `http://localhost:5175/output#key=<outputKey>`,
@@ -79,7 +76,7 @@ authoring operations; the sequence to get a graphic on `/output` is
 need `Origin: http://localhost:5175` (Next dev reports `request.url` as `localhost`).
 
 **1. Create a draft** — `operation: 'create_draft'`, `input` requires `name`, `title`,
-`layout` (`bottom`/`left`/`right`), `templateCueId` (a baseline cue with the same
+`layout` (`bottom`/`left`/`right`), `templateCueId` (a baseline graphic with the same
 layout), `content`, `presentation` (`{}` is valid). For plain custom text, `content`
 is `{mode:'custom', text:'...'}`. Keep the returned `draft.id` and `draft.version`.
 
@@ -98,7 +95,7 @@ expectedVersion, previewId, humanApproved: true, browserMeasurement:
 {viewportWidth:1920, viewportHeight:1080, fontsReady:true, overflow:false,
 rendererVersion:'rehearsal', measuredAt:<epoch ms>}}`.
 **4. Publish it** — `operation: 'publish_draft'`, `input: {draftId,
-expectedVersion, previewId}`. The published cue id equals `draftId`.
+expectedVersion, previewId}`. The published graphic's id equals `draftId`.
 **5. Show it:**
 
 ```
@@ -128,3 +125,4 @@ each acknowledged by the renderer; then `REHEARSAL CHECK PASSED`.
   is not exactly `memory`.
 - **Stale `work/rehearsal/current.json`** (hard kill): `rehearsal:check` ignores it
   when the recorded `baseUrl` does not answer.
+- **Setting `CRC_AUTHORING_REHEARSAL=1` by hand, without `RELAY_URL=memory`:** accounts, setup progress, drafts, artwork, services, and the source-review inbox still move into memory (only the seeded rehearsal owner can sign in), but `/api/state`, `/api/command`, and `/api/ack` still need Postgres because no relay is configured — prefer `npm run rehearsal`.

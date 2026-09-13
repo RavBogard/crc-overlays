@@ -1,13 +1,15 @@
 import {createHmac,randomUUID} from 'node:crypto';
 import type {Cue} from './player';
-import {REHEARSAL_RELAY,rehearsalRelayOrigin} from './rehearsal';
+import {REHEARSAL_RELAY,rehearsalMode,rehearsalRelayOrigin} from './rehearsal';
 
 export type RelayRole='control'|'output'|'preview';
 export function relayConfigured(){return Boolean(process.env.RELAY_URL&&process.env.RELAY_SECRET)}
 export function relayOrigin(){
  const raw=process.env.RELAY_URL;if(!raw)throw Error('Live relay is not configured');
  // Rehearsal points every relay call at the in-process stub, which speaks the same
- // contract over loopback. Everything downstream is unchanged.
+ // contract over loopback. Outside rehearsal the sentinel is a misconfiguration and
+ // fails loudly, so a deployment can never hand browsers a ticket for someone's loopback.
+ if(raw===REHEARSAL_RELAY&&!rehearsalMode())throw Error('Invalid live relay origin');
  const url=new URL(raw===REHEARSAL_RELAY?rehearsalRelayOrigin():raw);
  if((url.protocol!=='https:'&&!(url.protocol==='http:'&&['localhost','127.0.0.1','[::1]'].includes(url.hostname)))||url.username||url.password||url.search||url.hash||url.pathname!=='/')throw Error('Invalid live relay origin');
  return url.origin;
