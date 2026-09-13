@@ -42,6 +42,15 @@ export class AuthoringError extends Error{
 }
 
 /**
+ * Only these error details cross the wire. AuthoringError carries a free-form details bag,
+ * so without an allowlist a future thrower could leak an unreviewed field into an HTTP body.
+ */
+export const PUBLIC_ERROR_DETAILS=['suggestedName'] as const;
+export function publicErrorDetails(details:Record<string,unknown>):Record<string,unknown>{
+ return Object.fromEntries(PUBLIC_ERROR_DETAILS.filter(key=>Object.hasOwn(details,key)).map(key=>[key,details[key]]));
+}
+
+/**
  * Library names are compared the way a person reads them (R6): surrounding and repeated
  * whitespace, letter case, punctuation, and Hebrew niqqud never make two graphics distinct.
  * This mirrors normalizeCueSearch so the duplicate warning agrees with what search finds.

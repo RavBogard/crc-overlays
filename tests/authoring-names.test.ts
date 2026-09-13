@@ -1,7 +1,7 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
 import {POST} from '../app/api/authoring/route.ts';
-import {AuthoringError,editableFromBaseline,normalizeGraphicName,type Draft} from '../lib/authoring-model.ts';
+import {AuthoringError,editableFromBaseline,normalizeGraphicName,publicErrorDetails,type Draft} from '../lib/authoring-model.ts';
 import {MemoryAuthoringRepository,createAuthoringService,suggestGraphicName,type DuplicateNameWarning,type Revision} from '../lib/authoring.ts';
 
 const BARECHU='efa9fad4-f7d5-4091-a708-82103028861b';
@@ -137,4 +137,45 @@ test('the authoring route carries error details into the body without adding fie
   assert.equal(body.code,'unknown_operation');
   assert.equal(Object.hasOwn(body,'suggestedName'),false,'details are only present when an error carries them');
  }finally{if(saveControl===undefined)delete process.env.CONTROL_KEY;else process.env.CONTROL_KEY=saveControl}
+});
+
+test('a baseline catalog name is already taken: saving warns and publishing needs confirmation',async()=>{
+ const api=service();
+ const draft=await api.operation('create_draft',{...editableFromBaseline(BARECHU),name:'Barechu'},'tester') as SaveResult;
+ assert.deepEqual(draft.warnings,[{code:'duplicate-name',suggestedName:`Barechu ${MIDDOT} Lower third`}],'the shipped catalog already shows a Barechu');
+ await assert.rejects(publish(api,draft.draft),(error)=>{
+  const failure=error as AuthoringError;
+  assert.equal(failure.code,'duplicate_name');
+  assert.equal(failure.status,409);
+  assert.deepEqual(failure.details,{suggestedName:`Barechu ${MIDDOT} Lower third`});
+  return true;
+ });
+ const confirmed=await publish(api,draft.draft,{confirmDuplicateName:true});
+ assert.equal(confirmed.cue.name,`Barechu ${MIDDOT} Lower third`);
+ assert.equal(confirmed.renamedFrom,'Barechu');
+});
+
+test('publishing over a baseline cue under its own id keeps the baseline name free',async()=>{
+ const api=service();
+ const imported=(await api.operation('import_cue',{cueId:BARECHU},'tester') as {draft:Draft}).draft;
+ assert.equal(imported.name,'Barechu');
+ const republished=await publish(api,imported);
+ assert.equal(republished.cue.name,'Barechu','a baseline cue publishes under its own name without a rename');
+});
+
+test('republishing a graphic under its own unchanged name is not a duplicate',async()=>{
+ const api=service();
+ const first=await saved(api,'Modeh Ani');
+ assert.equal((await publish(api,first)).cue.name,'Modeh Ani');
+ const edited=(await api.operation('update_draft',{draftId:first.id,expectedVersion:first.version,patch:{title:'Second thoughts'}},'tester') as SaveResult).draft;
+ const again=await publish(api,edited);
+ assert.equal(again.cue.name,'Modeh Ani','the draft never collides with its own publication');
+ assert.equal(again.renamedFrom,undefined);
+ assert.equal(again.revision.revision,2);
+});
+
+test('only allowlisted error details reach the HTTP body',()=>{
+ assert.deepEqual(publicErrorDetails({suggestedName:`Modeh Ani ${MIDDOT} Lower third`}),{suggestedName:`Modeh Ani ${MIDDOT} Lower third`});
+ assert.deepEqual(publicErrorDetails({}),{});
+ assert.deepEqual(publicErrorDetails({connectionString:'postgres://secret',suggestedName:'Modeh Ani'}),{suggestedName:'Modeh Ani'},'an unknown detail key is dropped');
 });

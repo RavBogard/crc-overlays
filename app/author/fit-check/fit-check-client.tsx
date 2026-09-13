@@ -9,6 +9,7 @@ import type { AccessRole } from "@/lib/access";
 import { fetchAccessUser } from "@/lib/access-client";
 import type { PublicWorkspace } from "@/lib/workspace";
 import WorkspaceHeader from "@/components/workspace-header";
+import SignInCard from "@/components/sign-in-card";
 import { layoutLabel } from "@/lib/layout-label";
 import { publishedVisibleCount } from "@/lib/catalog-count";
 import { findFitErrors, waitForPreviewAssets } from "../preview";
@@ -61,6 +62,9 @@ export default function FitCheckClient() {
       const cues = (await response.json() as Cue[]).filter((cue) => !cue.hidden && !cue.aliasOf);
       // U5 - the same "published, visible" number the console footer, library tab and health show.
       setTotal(publishedVisibleCount(cues));
+      // The measurement stage is mounted only while `busy`, so the ref is empty when run()
+      // starts. Reading it after the await above is deliberate: by then React has committed
+      // the render that setBusy(true) queued and outputRef.current points at the real node.
       const root = outputRef.current;
       if (!root) throw Error("The measurement stage is not ready.");
       const branding = overlayBrandingFromWorkspace(identity);
@@ -153,7 +157,7 @@ export default function FitCheckClient() {
       <WorkspaceHeader compact current="/author" title="Fit check" role={role} workspace={workspace} aside={<Link className="header-link" href="/author">Back to library</Link>} />
       <div className={styles.wrap}>
         <p className={styles.notice}><b>Read-only check.</b> Nothing is published or sent to output.</p>
-        {resolved && !controlKey && <section className={styles.signIn}><h2>Sign in to continue</h2><p>The fit check renders this congregation&rsquo;s published graphics, so it needs an account with editor access.</p><Link href="/access">Open account</Link></section>}
+        {resolved && !controlKey && <SignInCard description="The fit check renders this congregation’s published graphics, so it needs an account with editor access." />}
         {error && <p className={styles.error}>{error}</p>}
         {controlKey && <>
           <p className={styles.summary}>

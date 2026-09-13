@@ -3,7 +3,7 @@
 import {ArrowLeft,Check,Clock3,RefreshCw,ShieldCheck,X} from 'lucide-react';
 import Link from 'next/link';
 import WorkspaceHeader from '@/components/workspace-header';
-import SignInCard from '@/app/health/sign-in-card';
+import SignInCard from '@/components/sign-in-card';
 import {useCallback,useEffect,useState} from 'react';
 import './source-review.css';
 

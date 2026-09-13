@@ -4,7 +4,7 @@ import Link from 'next/link';
 import {useCallback,useEffect,useMemo,useState} from 'react';
 import {layoutLabel} from '@/lib/layout-label';
 import WorkspaceHeader from '@/components/workspace-header';
-import SignInCard from '@/app/health/sign-in-card';
+import SignInCard from '@/components/sign-in-card';
 import {fetchAccessUser} from '@/lib/access-client';
 import {publishedVisibleCount} from '@/lib/catalog-count';
 import type {SourceDisplay} from '@/lib/source-library';

@@ -1,5 +1,5 @@
 import {authorizeRequest} from '@/lib/access';
-import {AuthoringError} from '@/lib/authoring-model';
+import {AuthoringError,publicErrorDetails} from '@/lib/authoring-model';
 import {authoringOperation} from '@/lib/authoring';
 import {json} from '@/lib/server';
 
@@ -15,7 +15,7 @@ export async function POST(request:Request){
   if(typeof input.operation!=='string'||!input.operation)throw new AuthoringError('invalid_input','operation is required');
   return json(await authoringOperation(input.operation,input.input??{},actor.id));
  }catch(error){
-  if(error instanceof AuthoringError)return json({error:error.message,code:error.code,...error.details},error.status);
+  if(error instanceof AuthoringError)return json({error:error.message,code:error.code,...publicErrorDetails(error.details)},error.status);
   console.error('Authoring operation failed');return json({error:'Authoring service unavailable',code:'authoring_unavailable'},503);
  }
 }

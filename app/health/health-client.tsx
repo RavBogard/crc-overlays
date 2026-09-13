@@ -1,7 +1,7 @@
 'use client';
 import Link from 'next/link';
 import {useCallback,useEffect,useState,type FormEvent} from 'react';
-import SignInCard from './sign-in-card';
+import SignInCard from '@/components/sign-in-card';
 import styles from './health.module.css';
 
 type StatusPayload={generatedAt:number;overall:'ready'|'attention'|'unavailable';playback:{status:string;relay:{status:string};current:{known:boolean;cue:string|null;name:string|null;revision:number|null};outputs:{status:string;connected:number;freshnessSeconds:number};controllers:{status:string;reason:string}};synchronization:{status:string;liveVersion:string|null;authoringVersion:string|null;checkedAt:number};authoring:{status:string;latestPublicationAt:number|null;publishedVisibleCount:number|null;publishedCount?:number;draftCount?:number;revisionCount?:number;databaseBytes?:number};providerUsage?:Array<{provider:string;status:string;measuredAt:number|null;window:string|null;used:number|null;limit:number|null;unit:string|null;dashboardUrl:string;note:string}>;budget?:{scope:string;targetMonthlyUsd:number;reviewMonthlyUsd:number;reportedMonthlyUsd:number;budgetStatus:string;reportedProviders:number;totalProviders:number;conclusive:boolean;note:string}};

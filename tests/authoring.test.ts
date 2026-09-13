@@ -44,7 +44,8 @@ test('template discovery exposes stable IDs and importability',async()=>{
 
 test('optimistic updates, reviewed publish, immutable revisions, and rollback',async()=>{
  const repo=new MemoryAuthoringRepository();const service=createAuthoringService(repo);const editable=editableFromBaseline(BARECHU);
- const created=await service.operation('create_draft',editable,'tester') as DraftResult;const id=created.draft.id;
+ // A name of its own: a new graphic that reuses the baseline "Barechu" name is a R6 duplicate.
+ const created=await service.operation('create_draft',{...editable,name:'Reviewed Barechu'},'tester') as DraftResult;const id=created.draft.id;
  await service.operation('update_draft',{draftId:id,expectedVersion:1,patch:{title:'Reviewed title'}},'tester');
  await assert.rejects(service.operation('update_draft',{draftId:id,expectedVersion:1,patch:{title:'stale'}},'tester'),(e)=>e instanceof AuthoringError&&e.code==='version_conflict');
  const preview=await service.operation('preview_draft',{draftId:id,expectedVersion:2},'tester') as PreviewDraftResult;
@@ -80,7 +81,7 @@ test('preview_content is ephemeral and cannot satisfy stored review publication'
  const before=(await service.operation('list_drafts',{},'tester') as ListDraftsResult).drafts.length;
  const preview=await service.operation('preview_content',{...editable,title:'Unsaved title'},'tester') as PreviewContentResult;
  assert.equal(preview.ephemeral,true);assert.equal(preview.cue.texts.textTitle,'Unsaved title');assert.equal(preview.validation.valid,true);assert.equal((await service.operation('list_drafts',{},'tester') as ListDraftsResult).drafts.length,before);
- const saved=(await service.operation('create_draft',editable,'tester') as DraftResult).draft;
+ const saved=(await service.operation('create_draft',{...editable,name:'Ephemeral Barechu'},'tester') as DraftResult).draft;
  await assert.rejects(service.operation('publish_draft',{draftId:saved.id,expectedVersion:1,previewId:preview.cue.id},'tester'),(e)=>(e as AuthoringError).code==='unknown_preview');
 });
 

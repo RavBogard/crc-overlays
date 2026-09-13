@@ -2,8 +2,8 @@
 
 /* One sign-in story (I2). Every gated page that gets a 401 shows this same card, so the
    account path — not a control key, not a blank page — is the visible way back in.
-   It lives here rather than in components/ because that directory is owned elsewhere;
-   /services and /sources-review import it from this path. */
+   One card, one place: /health, /services, /sources-review and the author fit check all
+   import it from here, so the sign-in wording can never drift between them. */
 import Link from 'next/link';
 import './sign-in-card.css';
 

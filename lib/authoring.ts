@@ -2,6 +2,7 @@ import {randomUUID} from 'node:crypto';
 import type {Cue} from './player';
 import {AuthoringError,assertSourcePin,baselineCues,buildCue,cueHash,draftSetSelections,editableFromBaseline,newDraftId,normalizeGraphicName,parseEditable,previewValidation,sameStructuredValue,sourceBlockFor,sourcePack,sourcePinFor,sourceReferences,sourceSnapshotsFor,type AuthoringCue,type Draft,type DraftContent,type DraftSetSelection,type EditableDraft,type Layout,type LocalVariantOverride,type VariantChannel,type SourceBlock} from './authoring-model';
 import {layoutLabel} from './layout-label';
+import {baselineCatalogForWorkspace} from './workspace-catalog';
 import {sourceDisplay} from './source-library';
 import {sharedLibraryClient,type SharedLibrarySnapshot} from './shared-library';
 import {AssetError,cueAssetId,defaultAssetRepository,importSharedAsset,markCueAssetPublished,type AssetRepository} from './assets';
@@ -100,13 +101,20 @@ export type AuthoringWorkspace={rehearsal:boolean;storage:'memory'|'postgres';la
 type SharedLibraryReader={get(force?:boolean):Promise<SharedLibrarySnapshot>};
 export type SharedAssetImporter=(id:string,actor:string)=>Promise<unknown>;
 export function createAuthoringService(repo:AuthoringRepository,workspace:AuthoringWorkspace={rehearsal:false,storage:'postgres',label:null},shared:SharedLibraryReader=sharedLibraryClient,sharedAssetImporter:SharedAssetImporter=(id,actor)=>importSharedAsset(id,actor)){
- // Every name a person can currently see in the library: live drafts plus published
- // graphics. Archived drafts and their publications release their names.
+ // Every name a person can currently see in the library: the baseline catalog this
+ // workspace ships with, live drafts, and published graphics. The catalog a viewer
+ // actually sees is baseline + published (lib/server.ts authoringCatalog), so uniqueness
+ // is measured against that same set. Hidden aliases never appear under their own name,
+ // and a published draft replaces the baseline cue whose id it overrides. Archived drafts
+ // and their publications release their names.
  const libraryNames=async(excludeId?:string)=>{
   const [drafts,published]=await Promise.all([repo.listDrafts(),repo.published()]);
   const archived=new Set(drafts.filter(draft=>draft.archivedAt).map(draft=>draft.id));
+  const live=published.filter(cue=>!archived.has(cue.id));
+  const overridden=new Set(live.map(cue=>cue.id));
   const draftNames=new Set(drafts.filter(draft=>!draft.archivedAt&&draft.id!==excludeId).map(draft=>normalizeGraphicName(draft.name)));
-  const publishedNames=new Set(published.filter(cue=>!archived.has(cue.id)&&cue.id!==excludeId).map(cue=>normalizeGraphicName(cue.name)));
+  const catalogNames=baselineCatalogForWorkspace().filter(cue=>!cue.hidden&&!cue.aliasOf&&!overridden.has(cue.id)&&cue.id!==excludeId).concat(live.filter(cue=>cue.id!==excludeId));
+  const publishedNames=new Set(catalogNames.map(cue=>normalizeGraphicName(cue.name)));
   return {draftNames,publishedNames,taken:new Set([...draftNames,...publishedNames])};
  };
  const duplicateNameWarnings=async(draft:Draft):Promise<DuplicateNameWarning[]>=>{
