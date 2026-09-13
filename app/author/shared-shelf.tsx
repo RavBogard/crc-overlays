@@ -3,6 +3,7 @@
 import { useState, type ReactNode } from "react";
 import { CircleAlert, Columns2, FilePlus2, LibraryBig, LoaderCircle, PencilLine, RotateCcw, Sparkles } from "lucide-react";
 import { layoutLabel } from "@/lib/layout-label";
+import type { SharedCompareResult } from "./types";
 import GraphicThumbnail from "@/components/graphic-thumbnail";
 import {
   compareFlags,
@@ -14,8 +15,6 @@ import {
   newestLocalDraft,
   partitionShelf,
   wholePrayerLabel,
-  type CompareChanged,
-  type ComparableCue,
   type SharedLocalDraft,
   type SharedShelfCard,
   type SharedShelfEntry,
@@ -26,7 +25,8 @@ import "./shared-shelf.css";
 export * from "./shared-shelf-model";
 
 export type SharedShelfFeed = { available: boolean; entries: SharedShelfEntry[]; stale: boolean; refreshedAt: number | null; error: string | null };
-export type SharedComparison = { before?: ComparableCue; after: ComparableCue; changed: CompareChanged; beforeAvailable: boolean };
+/** The client reads the server's compare_shared_cue result (SharedCompareResult); the lines are rebuilt client-side by compareRows. */
+export type SharedComparison = Pick<SharedCompareResult, "before" | "after" | "changed" | "beforeAvailable">;
 
 const CHIP_LABEL: Record<SharedShelfState, string> = { new: "New from CRC", updated: "Updated from CRC", customized: "In your library" };
 const formatTime = (value?: number | null) => value ? new Date(value).toLocaleString([], { dateStyle: "medium", timeStyle: "short" }) : "";
@@ -178,7 +178,7 @@ function ShelfDetail(props: {
 
 function CompareTable(props: { comparison: SharedComparison }) {
   const { before, after, changed, beforeAvailable } = props.comparison;
-  const rows = compareRows(after, beforeAvailable ? before : undefined);
+  const rows = compareRows(after, beforeAvailable ? before ?? undefined : undefined);
   return (
     <div className="shelf-compare">
       <p className="shelf-compare-summary">{compareSummary(changed, beforeAvailable)}</p>

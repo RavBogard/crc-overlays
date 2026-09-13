@@ -2,22 +2,12 @@
 // compare-table rows. Kept free of JSX and CSS imports so `node:test` can load it
 // directly (a .tsx module that imports its stylesheet cannot be loaded by the runner).
 
-/** Client-side mirrors of the shared-library server shapes. The lead reconciles these
- *  with app/author/types.ts once the server half lands. */
-export type SharedShelfState = "new" | "updated" | "customized";
-export type SharedShelfSet = { id: string; index: number; count: number; title: string };
-export type SharedLocalDraft = { id: string; name: string; activeRevision: number | null; cueHash: string };
-export type SharedShelfEntry = {
-  id: string;
-  name: string;
-  title: string;
-  layout: string;
-  sourceIds: string[];
-  cueHash: string;
-  state: SharedShelfState;
-  set?: SharedShelfSet;
-  local: { starterCueId?: string; drafts: SharedLocalDraft[] };
-};
+import type { SharedShelfEntry, SharedShelfLocal, SharedShelfSetRef, SharedShelfState } from "./types";
+
+/** The shelf uses the server shapes from app/author/types.ts directly; the aliases below keep WB-C names. */
+export type { SharedShelfEntry, SharedShelfState };
+export type SharedShelfSet = SharedShelfSetRef;
+export type SharedLocalDraft = SharedShelfLocal["drafts"][number];
 
 /** One card on the shelf. A whole prayer is a single card carrying its slides in order. */
 export type SharedShelfCard = {
