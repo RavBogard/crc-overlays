@@ -91,10 +91,10 @@ The check was then re-run with the dev server started as `WORKSPACE_ID=temple-bn
 
 Text fit is now measured after bundled fonts and artwork settle, with an idempotent `applyFit` and one shared 8 s asset deadline. Artwork load failure falls back to the congregation logo instead of an error state. The MCP draft schema accepts `alignment`, `lineSpacing` and `imageAssetId`. Workspace navigation filters by role and resolves the role itself. Health never renders unknown output presence as zero. The services **409** conflict refreshes the collection while keeping typed input. The prepared-collection selector defaults to "No prepared service". The console Inspect preview renders uploaded artwork, and prayer text ink color is now defined at the overlay level — a pre-existing production bug that made the Inspect stage render text white-on-cream. Alignment and line-spacing controls were relabelled (Template default / Logical start / Centered; Template default / Compact / Spacious) with `aria-pressed`. New-draft route clearing was extracted into a tested helper. The asset picker gained Archive, Restore and Show archived, and the quota message now says archived artwork counts. The publish dock says "Fix fit issues to publish" when a reviewed version has fit errors, and starting new work clears the stale preview. Shared-asset import tolerates malformed remote labels.
 
-### Not yet done
+### Released 2026-09-13
 
-- Production migration and the paired deployment of both workspaces.
-- Commit of this work. Nothing is deployed.
+- Committed as `fbce9c1` on `codex/product-expansion`; `main` fast-forwarded.
+- Both production databases migrated (additive, 17 → 22 tables) and both workspaces deployed from `fbce9c15a632a8d81348c291f71672b69c953d01` with zero connected outputs at deploy time. Details: `CLAUDE-HANDOFF.md` → "Deploy record".
 
 **Known limitation:** the publication fit gate is client-side only. MCP and API publishes are not fit-checked server-side, because rendering requires a browser.
 

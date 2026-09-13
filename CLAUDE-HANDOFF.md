@@ -14,7 +14,7 @@ Updated September 13, 2026 (Claude session, after the Codex build stopped). **Re
 ## Release state (update this section whenever it changes)
 
 - Production baseline before this pass: `180b88a` on both workspaces. CRC production read-only state at 2026-09-13 08:59 CT: cue clear, revision 1789055589982, catalog d37d122359b9920d, zero connected renderers. TBI: not probed (CRC key is not valid there); TBI has no operator accounts yet.
-- This pass: see git log for the commit(s) after `180b88a`. Whether production migration and paired deployment have run is recorded in the final section "Deploy record". If that section says "not run", production still serves `180b88a`.
+- **Deployed 2026-09-13 08:59 CT: both workspaces serve `fbce9c15a632a8d81348c291f71672b69c953d01`** (see "Deploy record" at the end of this file). Both production databases were migrated first (17 → 22 tables each, additive, drafts preserved). Any commit after `fbce9c1` on this branch is documentation only unless the Deploy record says otherwise.
 
 ## What was done in this pass (2026-09-13)
 
@@ -68,4 +68,22 @@ Rehearsal dev server: load `.env.authoring-test.local` into the shell without ec
 
 ## Deploy record
 
-See the end of this file after the deployment step; if absent, production migration and deployment have **not** been run in this pass.
+**2026-09-13, Saturday, 08:40–09:01 CT. Production migration and paired deployment were run.**
+
+Pre-deploy gate (read-only, Bearer control key): CRC `/api/state` cue null, revision 1789055589982, catalog d37d122359b9920d, renderers 0. TBI `/api/state` (TBI key, pulled with `vercel env pull` into scratch and deleted afterward) revision 0, cue null, renderers 0. No browser output connected on either workspace, so no service could be interrupted.
+
+Migration: `scripts/migrate-authoring.mjs` run once per workspace with only that workspace's `DATABASE_URL` set (no `PGOPTIONS`, no relay vars). CRC: schema `public`, 17 tables → 22, existing drafts preserved. TBI: same, 17 → 22. Idempotent; a re-run is a no-op.
+
+Deployment: `node scripts/deploy-workspaces.mjs --commit fbce9c15a632a8d81348c291f71672b69c953d01 --confirm-production`, exit 0, 3 min 5 s. Release record: `work/deploy-staging/releases/fbce9c15a632a8d81348c291f71672b69c953d01/release.json` (`status: deployed`, completed 2026-09-13T13:59:32Z).
+- CRC: `https://crc-overlays-qbt7xw3h9-ravbogards-projects.vercel.app` aliased to `https://crc-overlays.vercel.app`.
+- TBI: `https://tbi-overlays-5cnud7vbz-ravbogards-projects.vercel.app` (dpl_7Pagd4GE2HHJwEZ713U3jVy7riva) aliased to `https://tbi-overlays.vercel.app`.
+
+Post-deploy verification (read-only, no live command sent):
+- CRC `/api/state` unchanged (cue null, revision 1789055589982, renderers 0). CRC `/api/health` now exists: 200, overall `attention` (provider usage unavailable, not zero), playback relay available, outputs none-seen, synchronization current d37d122359b9920d, authoring 1 published / 1 draft / 1 revision.
+- TBI `/api/state` unchanged (revision 0, cue null, renderers 0). TBI `/api/health` 200, synchronization current 2e9a7e975d4923dd, authoring 2 published / 2 drafts / 2 revisions.
+- `/api/workspace`: CRC id `crc`, shared library disabled, `usesDefaultCrcIdentity: true`; TBI id `temple-bnai-israel-kalamazoo`, "Temple B'nai Israel", shared library enabled (label "CRC library"), `usesDefaultCrcIdentity: false`. `isolationVerified: false` on both, as required until the physical rehearsal.
+- Unauthenticated: `/`, `/author`, `/access`, `/health` return 200 on both; `/api/state` and `/api/health` return 401 without a key on TBI.
+
+Rollback: promote the previous production deployment (`180b88a`) in the Vercel dashboard for each project. The migrations are additive, so the old build runs against the migrated schema.
+
+Not done in this pass: no invitations created or emails sent; rehearsal data left in `crc_authoring_rehearsal` and the recovery schema `recovery_1789306559735_c9c2c2d7` (cleanup statement in `work/recovery/rehearsal-drill-20260913/`, not run); `main` on `origin` fast-forwarded to this branch. Security follow-up: `npm audit --omit=dev` reports a critical advisory in `next` 16.2.6 fixed in 16.3.5. The app has no middleware/proxy file, no Server Actions, and no i18n config, so the published vector does not apply as deployed; schedule the patch release on a weekday with the same gate.
