@@ -47,9 +47,12 @@ export type WorkspaceHeaderProps = {
   aside?: ReactNode;
   /** Bar layout for the editor shell: eyebrow above one product/title row. */
   compact?: boolean;
+  /** Called after a sign-out so a page that holds its own session state can reset itself.
+   *  The console needs this: sign-out routes to '/', which is a no-op when it is already there. */
+  onSignedOut?: () => void;
 };
 
-export default function WorkspaceHeader({current, title, lede, role, user, workspace, aside, compact}: WorkspaceHeaderProps) {
+export default function WorkspaceHeader({current, title, lede, role, user, workspace, aside, compact, onSignedOut}: WorkspaceHeaderProps) {
   const router = useRouter();
   const [identity, setIdentity] = useState<Identity>(user ? {kind: 'session', user} : {kind: 'none'});
   const [resolvedWorkspace, setResolvedWorkspace] = useState<PublicWorkspace | null>(workspace ?? null);
@@ -104,6 +107,7 @@ export default function WorkspaceHeader({current, title, lede, role, user, works
     resetAccessUserCache();
     setIdentity({kind: 'none'});
     setBusy(false);
+    onSignedOut?.();
     router.push('/');
     router.refresh();
   }
