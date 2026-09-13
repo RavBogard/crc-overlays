@@ -1,5 +1,6 @@
 import {createHash} from 'node:crypto';
 import {db} from './database';
+import {liveRelayConfigured} from './rehearsal';
 
 export const ASSET_MAX_BYTES=512*1024,ASSET_MAX_DIMENSION=4096,ASSET_MAX_PIXELS=16_000_000,ASSET_MAX_ITEMS=500;
 export type AssetMime='image/png'|'image/jpeg'|'image/webp';
@@ -35,7 +36,7 @@ export class PgAssetRepository implements AssetRepository{
 }
 
 const rehearsalAssets=new MemoryAssetRepository();
-export function defaultAssetRepository():AssetRepository{if(process.env.CRC_AUTHORING_REHEARSAL==='1'){if(process.env.NODE_ENV!=='development'||Boolean(process.env.RELAY_URL))throw new Error('Asset rehearsal storage is allowed only in local development without a relay.');return rehearsalAssets}return new PgAssetRepository()}
+export function defaultAssetRepository():AssetRepository{if(process.env.CRC_AUTHORING_REHEARSAL==='1'){if(process.env.NODE_ENV!=='development'||liveRelayConfigured())throw new Error('Asset rehearsal storage is allowed only in local development without a relay.');return rehearsalAssets}return new PgAssetRepository()}
 
 function pngSize(data:Uint8Array){if(data.length<45||Buffer.from(data.subarray(0,8)).toString('hex')!=='89504e470d0a1a0a'||Buffer.from(data.subarray(12,16)).toString()!=='IHDR'||Buffer.from(data.subarray(data.length-8,data.length-4)).toString()!=='IEND'||Buffer.from(data).includes(Buffer.from('acTL')))return null;const view=new DataView(data.buffer,data.byteOffset,data.byteLength);return {mimeType:'image/png' as const,width:view.getUint32(16),height:view.getUint32(20)}}
 function jpegSize(data:Uint8Array){if(data.length<4||data[0]!==0xff||data[1]!==0xd8||data[data.length-2]!==0xff||data[data.length-1]!==0xd9)return null;for(let offset=2;offset+9<data.length;){if(data[offset]!==0xff){offset++;continue}const marker=data[offset+1];if(marker===0xd9||marker===0xda)break;if(marker>=0xd0&&marker<=0xd7){offset+=2;continue}const length=(data[offset+2]<<8)|data[offset+3];if(length<2||offset+2+length>data.length)return null;if([0xc0,0xc1,0xc2,0xc3,0xc5,0xc6,0xc7,0xc9,0xca,0xcb,0xcd,0xce,0xcf].includes(marker))return {mimeType:'image/jpeg' as const,width:(data[offset+7]<<8)|data[offset+8],height:(data[offset+5]<<8)|data[offset+6]};offset+=2+length}return null}

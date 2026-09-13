@@ -1,5 +1,6 @@
 import {randomUUID} from 'node:crypto';
 import {db} from './database';
+import {liveRelayConfigured} from './rehearsal';
 import type {AccessPermission} from './access';
 import {friendlyCueName} from './cue-search';
 import {sourcePack} from './authoring-model';
@@ -52,7 +53,7 @@ export class PgServicesRepository implements ServicesRepository{
 const rehearsalRepository=new MemoryServicesRepository();
 export function defaultServicesRepository():ServicesRepository{
  if(process.env.CRC_AUTHORING_REHEARSAL==='1'){
-  if(process.env.NODE_ENV!=='development'||Boolean(process.env.RELAY_URL))throw new Error('Services rehearsal storage is allowed only in local development without a relay.');
+  if(process.env.NODE_ENV!=='development'||liveRelayConfigured())throw new Error('Services rehearsal storage is allowed only in local development without a relay.');
   return rehearsalRepository;
  }
  return new PgServicesRepository();

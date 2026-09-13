@@ -6,6 +6,7 @@ import {baselineCatalogForWorkspace} from './workspace-catalog';
 import {sourceDisplay} from './source-library';
 import {sharedLibraryClient,type SharedLibrarySnapshot} from './shared-library';
 import {AssetError,cueAssetId,defaultAssetRepository,importSharedAsset,markCueAssetPublished,type AssetRepository} from './assets';
+import {liveRelayConfigured} from './rehearsal';
 
 export type BrowserMeasurement={viewportWidth:number;viewportHeight:number;fontsReady:true;overflow:false;rendererVersion:string;measuredAt:number};
 export type ReviewReceipt={humanApproved:true;browserMeasurement:BrowserMeasurement;reviewedAt:number;reviewedBy:string};
@@ -349,9 +350,11 @@ export class PgAuthoringRepository implements AuthoringRepository{
  async published(){return this.publishedCache()}
 }
 
-export function authoringRepositoryMode(env:Partial<Pick<NodeJS.ProcessEnv,'CRC_AUTHORING_REHEARSAL'|'NODE_ENV'|'RELAY_URL'>>):AuthoringWorkspace{
+export function authoringRepositoryMode(env:Partial<Pick<NodeJS.ProcessEnv,'CRC_AUTHORING_REHEARSAL'|'NODE_ENV'|'RELAY_URL'|'VERCEL'>>):AuthoringWorkspace{
  if(env.CRC_AUTHORING_REHEARSAL!=='1')return {rehearsal:false,storage:'postgres',label:null};
- if(env.NODE_ENV!=='development'||Boolean(env.RELAY_URL))throw new AuthoringError('unsafe_rehearsal_config','In-memory authoring is allowed only in development with no live relay configured',503);
+ // RELAY_URL=memory is the in-process rehearsal stub, not a live relay, so it does not
+ // trip the fail-closed check.
+ if(env.NODE_ENV!=='development'||env.VERCEL||liveRelayConfigured(env))throw new AuthoringError('unsafe_rehearsal_config','In-memory authoring is allowed only in development with no live relay configured',503);
  return {rehearsal:true,storage:'memory',label:'Local rehearsal — changes are temporary'};
 }
 let defaultService:ReturnType<typeof createAuthoringService>|undefined;

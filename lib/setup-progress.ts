@@ -7,6 +7,8 @@
  * the route reports that with persisted:false rather than inventing a member identity.
  */
 
+import {rehearsalMode} from './rehearsal';
+
 export const SETUP_STEP_KEY=/^[a-z][a-z0-9-]{0,40}$/;
 export const MAX_SETUP_STEPS=32;
 
@@ -64,7 +66,7 @@ export class MemorySetupProgressStore implements SetupProgressStore{
  async set(memberId:string,steps:SetupSteps,now:number){this.rows.set(memberId,{steps:{...steps},updatedAt:now})}
 }
 
-export const setupProgressStore:SetupProgressStore=new PgSetupProgressStore();
+export const setupProgressStore:SetupProgressStore=rehearsalMode()?new MemorySetupProgressStore():new PgSetupProgressStore();
 
 /** Legacy Companion and output credentials resolve to these synthetic actors; they have no member row. */
 export const LEGACY_ACTOR_IDS=new Set(['legacy-control','legacy-output']);

@@ -205,6 +205,10 @@ test('in-memory authoring is development-only, relay-free, and visibly labeled',
  const memory=authoringRepositoryMode({CRC_AUTHORING_REHEARSAL:'1',NODE_ENV:'development'});assert.deepEqual(memory,{rehearsal:true,storage:'memory',label:'Local rehearsal — changes are temporary'});
  assert.throws(()=>authoringRepositoryMode({CRC_AUTHORING_REHEARSAL:'1',NODE_ENV:'production'}),(e)=>(e as AuthoringError).code==='unsafe_rehearsal_config');
  assert.throws(()=>authoringRepositoryMode({CRC_AUTHORING_REHEARSAL:'1',NODE_ENV:'development',RELAY_URL:'https://relay.example'}),(e)=>(e as AuthoringError).code==='unsafe_rehearsal_config');
+ assert.throws(()=>authoringRepositoryMode({CRC_AUTHORING_REHEARSAL:'1',NODE_ENV:'production',RELAY_URL:'memory'}),(e)=>(e as AuthoringError).code==='unsafe_rehearsal_config');
+ assert.throws(()=>authoringRepositoryMode({CRC_AUTHORING_REHEARSAL:'1',NODE_ENV:'development',VERCEL:'1'}),(e)=>(e as AuthoringError).code==='unsafe_rehearsal_config');
+ // RELAY_URL=memory is the in-process rehearsal stub, not a live relay.
+ assert.deepEqual(authoringRepositoryMode({CRC_AUTHORING_REHEARSAL:'1',NODE_ENV:'development',RELAY_URL:'memory'}),{rehearsal:true,storage:'memory',label:'Local rehearsal — changes are temporary'});
  assert.deepEqual(authoringRepositoryMode({NODE_ENV:'production'}),{rehearsal:false,storage:'postgres',label:null});
  const service=createAuthoringService(new MemoryAuthoringRepository(),memory);const result=await service.operation('get_workspace',{},'tester') as GetWorkspaceResult;assert.deepEqual(result.workspace,memory);
 });
