@@ -3,6 +3,7 @@ import test from 'node:test';
 import {GET as sharedLibraryGET} from '../app/api/shared-library/route.ts';
 import {baselineCues} from '../lib/authoring-model.ts';
 import {SHARED_LIBRARY_MAX_BYTES,SharedLibraryClient,TBI_WORKSPACE_ID,buildSharedLibraryPayload} from '../lib/shared-library.ts';
+import {sharedAssetFeedUrl} from '../lib/assets.ts';
 
 const EXPORT_KEY='export_'.padEnd(43,'e');
 const IMPORT_KEY='import_'.padEnd(43,'i');
@@ -61,4 +62,21 @@ test('a loopback http CRC library is refused off rehearsal and accepted on it',a
  }
  for(const url of ['http://crc.example.test/api/shared-library','http://127.0.0.1/api/shared-library','http://127.0.0.1.attacker.example.test:5175/api/shared-library'])assert.equal(new SharedLibraryClient({...base,...rehearsal,CRC_SHARED_LIBRARY_URL:url},fetcher as typeof fetch).configured(),false,url);
  assert.equal(calls,0);
+});
+
+// The artwork feed carries the identical decision: https anywhere, loopback http with an explicit
+// port only under the rehearsal gate. Same matrix as the library feed above.
+test('the shared asset feed URL refuses loopback http off rehearsal and accepts it on it',()=>{
+ const id='asset_'+'a'.repeat(64);
+ const rehearsal={CRC_AUTHORING_REHEARSAL:'1',NODE_ENV:'development'} as const;
+ for(const url of ['http://127.0.0.1:5175/api/shared-library','http://localhost:5175/api/shared-library']){
+  assert.throws(()=>sharedAssetFeedUrl({CRC_SHARED_LIBRARY_URL:url},id),'plain process');
+  assert.throws(()=>sharedAssetFeedUrl({...rehearsal,NODE_ENV:'production',CRC_SHARED_LIBRARY_URL:url},id),'production');
+  assert.throws(()=>sharedAssetFeedUrl({...rehearsal,VERCEL:'1',CRC_SHARED_LIBRARY_URL:url},id),'vercel');
+  assert.throws(()=>sharedAssetFeedUrl({...rehearsal,RELAY_URL:'https://relay.example.test',CRC_SHARED_LIBRARY_URL:url},id),'live relay');
+  assert.equal(sharedAssetFeedUrl({...rehearsal,CRC_SHARED_LIBRARY_URL:url},id).href,`${url}/assets/${id}`,'rehearsal');
+ }
+ for(const url of ['http://crc.example.test/api/shared-library','http://127.0.0.1/api/shared-library','http://127.0.0.1.attacker.example.test:5175/api/shared-library'])assert.throws(()=>sharedAssetFeedUrl({...rehearsal,CRC_SHARED_LIBRARY_URL:url},id),url);
+ assert.equal(sharedAssetFeedUrl({CRC_SHARED_LIBRARY_URL:'https://crc-overlays.vercel.app/api/shared-library'},id).href,`https://crc-overlays.vercel.app/api/shared-library/assets/${id}`);
+ assert.throws(()=>sharedAssetFeedUrl({CRC_SHARED_LIBRARY_URL:'https://crc-overlays.vercel.app/api/other'},id),'wrong path');
 });

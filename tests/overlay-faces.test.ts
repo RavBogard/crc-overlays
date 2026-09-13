@@ -50,15 +50,29 @@ test('waitForOverlayFonts additionally loads the book faces when faces==="book"'
   ]);
 });
 
-test('waitForOverlayFonts rejects when a book face fails to load, same as an existing face', async () => {
+test('a book face that fails to load never blocks the output page: the wait resolves and only the required faces are checked', async () => {
+  const checks: string[] = [];
   (globalThis as unknown as {document: unknown}).document = {
     fonts: {
-      load: async (spec: string) => { if (spec.includes('David Libre')) throw Error('font load failed'); return []; },
+      load: async (spec: string) => { if (spec.includes('David Libre') || spec.includes('Frank Ruhl Libre')) throw Error('font load failed'); return []; },
+      ready: Promise.resolve(),
+      check: (spec: string) => { checks.push(spec); return true; },
+    },
+  };
+  await waitForOverlayFonts(undefined, 'book');
+  assert.deepEqual(checks, ['400 40px "Noto Sans Hebrew"', '400 40px "WorkRefresh"']);
+});
+
+test('a required face that fails to load still rejects, with or without the book faces', async () => {
+  (globalThis as unknown as {document: unknown}).document = {
+    fonts: {
+      load: async (spec: string) => { if (spec.includes('Noto Sans Hebrew')) throw Error('font load failed'); return []; },
       ready: Promise.resolve(),
       check: () => true,
     },
   };
   await assert.rejects(waitForOverlayFonts(undefined, 'book'));
+  await assert.rejects(waitForOverlayFonts(undefined, 'default'));
 });
 
 test('each book face font file exists, is non-empty, and has an OFL license beside it', () => {

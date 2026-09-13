@@ -108,3 +108,13 @@ test('the TBI client accepts CRC payloads both with and without set information'
   if(snapshot.available)assert.equal(snapshot.payload.cues[0].set?.id,payload.cues[0].set?.id);
  }
 });
+
+test('a set title edited after publishing does not reach the export until it is published again',()=>{
+ const cue=baselineCues.find(item=>item.id===BARECHU)!;
+ const base={id:cue.id,draftSetId:'set-title',setIndex:1,setCount:1};
+ const published=buildSharedLibraryPayload({cues:[cue],version:'v'},[{...base,title:'Published title',version:3,activeDraftVersion:3}]);
+ assert.equal(published.cues[0].set!.title,'Published title');
+ const edited=buildSharedLibraryPayload({cues:[cue],version:'v'},[{...base,title:'Renamed mid-edit',version:4,activeDraftVersion:3}]);
+ assert.equal(edited.cues[0].set!.title,cue.texts.textTitle??cue.name);
+ assert.notEqual(edited.cues[0].set!.title,'Renamed mid-edit');
+});

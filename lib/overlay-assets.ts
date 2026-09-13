@@ -65,26 +65,23 @@ export async function waitForOverlayFonts(signal?: AbortSignal, faces: 'default'
       document.fonts.load('400 40px "WorkRefresh"', "Shabbat Shalom"),
       document.fonts.load('500 40px "WorkRefresh"', "Shabbat Shalom"),
     ];
-    if (faces === 'book') {
-      loads.push(
-        document.fonts.load('400 40px "David Libre"', HEBREW_SAMPLE),
-        document.fonts.load('500 40px "David Libre"', HEBREW_SAMPLE),
-        document.fonts.load('400 40px "Frank Ruhl Libre"', "Shabbat Shalom"),
-        document.fonts.load('500 40px "Frank Ruhl Libre"', "Shabbat Shalom"),
-      );
-    }
-    await bounded(Promise.all(loads), "Overlay font loading", deadline);
+    // The book faces are a typography trial layered over the required faces. A missing or
+    // broken book face must never keep the output page from starting, so their loads are
+    // awaited but swallowed: the CSS font stack falls back to the default faces.
+    const bookLoads = faces === 'book'
+      ? [
+          document.fonts.load('400 40px "David Libre"', HEBREW_SAMPLE),
+          document.fonts.load('500 40px "David Libre"', HEBREW_SAMPLE),
+          document.fonts.load('400 40px "Frank Ruhl Libre"', "Shabbat Shalom"),
+          document.fonts.load('500 40px "Frank Ruhl Libre"', "Shabbat Shalom"),
+        ].map((load) => load.catch(() => []))
+      : [];
+    await bounded(Promise.all([...loads, ...bookLoads]), "Overlay font loading", deadline);
     await bounded(document.fonts.ready, "Overlay font readiness", deadline);
     if (!document.fonts.check('400 40px "Noto Sans Hebrew"', HEBREW_SAMPLE))
       throw Error("The Hebrew overlay font is not ready.");
     if (!document.fonts.check('400 40px "WorkRefresh"', "Shabbat Shalom"))
       throw Error("The overlay font is not ready.");
-    if (faces === 'book') {
-      if (!document.fonts.check('400 40px "David Libre"', HEBREW_SAMPLE))
-        throw Error("The David Libre overlay font is not ready.");
-      if (!document.fonts.check('400 40px "Frank Ruhl Libre"', "Shabbat Shalom"))
-        throw Error("The Frank Ruhl Libre overlay font is not ready.");
-    }
   });
 }
 

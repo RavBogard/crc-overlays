@@ -13,7 +13,9 @@ const SHARED_LIBRARY_TIMEOUT_MS=7_000;
 /** A CRC whole-prayer set travels as N entries that name the same set, so TBI can copy the whole prayer in one move. */
 export type SharedLibrarySet={id:string;index:number;count:number;title:string};
 export type SharedLibraryEntry={id:string;name:string;title:string;layout:string;sourceIds:string[];cueHash:string;set?:SharedLibrarySet;cue:Cue;copySpec:SharedCueCopySpec};
-export type SharedLibraryDraftSummary=Pick<Draft,'id'|'draftSetId'|'setIndex'|'setCount'|'title'>;
+export type SharedLibraryDraftSummary=Pick<Draft,'id'|'draftSetId'|'setIndex'|'setCount'|'title'>&Partial<Pick<Draft,'version'|'activeDraftVersion'>>;
+/** A draft title is exported only when the live draft is exactly what was published; otherwise the published cue speaks for itself. */
+function publishedSetTitle(draft:SharedLibraryDraftSummary,cue:Cue):string{const published=draft.version===undefined||draft.activeDraftVersion===undefined||draft.activeDraftVersion===draft.version;return published?draft.title:(cue.texts.textTitle??cue.name)}
 export type SharedLibraryPayload={schemaVersion:1;sourceWorkspace:'crc';generatedAt:number;catalogVersion:string;cues:SharedLibraryEntry[];sources:AuthoringSource[]};
 export type SharedLibrarySnapshot={available:true;configured:true;stale:boolean;refreshedAt:number;payload:SharedLibraryPayload}|{available:false;configured:boolean;stale:false;refreshedAt?:number;error:string};
 type SharedLibraryEnvironment=Partial<Pick<NodeJS.ProcessEnv,'WORKSPACE_ID'|'CRC_SHARED_LIBRARY_URL'|'SHARED_LIBRARY_IMPORT_KEY'|'SHARED_LIBRARY_EXPORT_KEY'|'CONTROL_KEY'|'OUTPUT_KEY'|'ACCESS_BOOTSTRAP_KEY'>>&RehearsalEnv;
@@ -36,7 +38,7 @@ export function exportableCue(cue:Cue):Cue{const exported=structuredClone(cue) a
 export function sharedCueHash(cue:Cue):string{return sha(exportableCue(cue))}
 
 export function buildSharedLibraryPayload(catalog:{cues:Cue[];version:string},drafts:SharedLibraryDraftSummary[]=[],generatedAt=Date.now()):SharedLibraryPayload{
- const setOf=new Map(drafts.filter(draft=>draft.draftSetId&&draft.setIndex&&draft.setCount).map(draft=>[draft.id,{id:draft.draftSetId!,index:draft.setIndex!,count:draft.setCount!,title:draft.title}] as const));
+ const setOf=new Map(drafts.filter(draft=>draft.draftSetId&&draft.setIndex&&draft.setCount).map(draft=>[draft.id,draft] as const));
  const entries:SharedLibraryEntry[]=[];const selectedSources=new Map<string,AuthoringSource>();
  for(const cue of catalog.cues){
   if(cue.hidden)continue;
@@ -47,7 +49,7 @@ export function buildSharedLibraryPayload(catalog:{cues:Cue[];version:string},dr
   const pinnedSources=embedded?.sourceSnapshots??[];
   for(const id of sourceIds){const source=pinnedSources.find(item=>item.id===id)??sourcePack.sources.find(item=>item.id===id);if(!source)throw new Error(`Published cue ${cue.id} references unavailable source ${id}`);selectedSources.set(id,source)}
   const resolvedSources=sourceIds.map(id=>selectedSources.get(id)!);if(!sameStructuredValue(sourcePinFor(editable.content,resolvedSources,pin.feedSha256),pin))throw new Error(`Published cue ${cue.id} source snapshot no longer matches its approved pin`);
-  const exportedCue=exportableCue(cue);const set=setOf.get(cue.id);
+  const exportedCue=exportableCue(cue);const member=setOf.get(cue.id);const set=member?{id:member.draftSetId!,index:member.setIndex!,count:member.setCount!,title:publishedSetTitle(member,cue)}:undefined;
   entries.push({id:cue.id,name:cue.name,title:cue.texts.textTitle??cue.name,layout:cue.layout,sourceIds,cueHash:sha(exportedCue),...(set?{set:{...set}}:{}),cue:exportedCue,copySpec:{...structuredClone(editable),sourcePin:structuredClone(pin)}});
  }
  const payload:SharedLibraryPayload={schemaVersion:1,sourceWorkspace:'crc',generatedAt,catalogVersion:catalog.version,cues:entries,sources:[...selectedSources.values()].map(source=>structuredClone(source))};

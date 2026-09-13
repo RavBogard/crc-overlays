@@ -181,13 +181,16 @@ function ShelfDetail(props: {
 function CompareTable(props: { comparison: SharedComparison }) {
   const { before, after, changed, beforeAvailable } = props.comparison;
   const rows = compareRows(after, beforeAvailable ? before ?? undefined : undefined);
+  // The summary and the flags describe the same rows the table marks, so they can never
+  // disagree with it; the server's line diff feeds only its own wording verdict.
+  const shown = { ...changed, wording: beforeAvailable ? rows.some((row) => row.changed) : changed.wording };
   return (
     <div className="shelf-compare">
-      <p className="shelf-compare-summary">{compareSummary(changed, beforeAvailable)}</p>
-      <ul className="shelf-compare-flags">{compareFlags(changed).map((flag) => <li key={flag.key} className={flag.changed ? "changed" : ""}>{flag.label}: {flag.changed ? "changed" : "unchanged"}</li>)}</ul>
+      <p className="shelf-compare-summary">{compareSummary(shown, beforeAvailable)}</p>
+      <ul className="shelf-compare-flags">{compareFlags(shown).map((flag) => <li key={flag.key} className={flag.changed ? "changed" : ""}>{flag.label}: {flag.changed ? "changed" : "unchanged"}</li>)}</ul>
       <div className="shelf-compare-scroll">
         <table>
-          <thead><tr><th scope="col">Line</th>{beforeAvailable && <th scope="col">Your draft</th>}<th scope="col">CRC now</th></tr></thead>
+          <thead><tr><th scope="col">Line</th>{beforeAvailable && <th scope="col">CRC when you copied it</th>}<th scope="col">CRC now</th></tr></thead>
           <tbody>
             {rows.map((row) => <tr key={row.key} className={row.changed ? "changed" : ""}>
               <th scope="row">{row.label}{row.changed && <span className="shelf-changed-mark">Changed</span>}</th>

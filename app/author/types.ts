@@ -53,7 +53,7 @@ export type Draft = {
   setIndex?: number;
   setCount?: number;
   sourceSnapshots?: Source[];
-  sharedFrom?: { workspaceId: string; cueId: string; cueHash: string };
+  sharedFrom?: SharedCueOrigin;
   archivedAt?: number;
   archivedBy?: string;
   updatedAt: number;
@@ -208,6 +208,14 @@ export type DraftForm = {
 };
 
 /** Where one CRC graphic stands in this workspace: never taken, taken and current, or changed upstream since. */
+/** Where a copied graphic came from. Mirrors SharedCueOrigin in lib/authoring-model.ts: `upstream` is the CRC wording recorded at import, read server-side by compare_shared_cue. */
+export type SharedCueOrigin = {
+  workspaceId: string;
+  cueId: string;
+  cueHash: string;
+  importedAt?: number;
+  upstream?: SharedUpstreamSnapshot;
+};
 export type SharedShelfState = "new" | "updated" | "customized";
 /** A CRC whole prayer travels as N graphics that name the same set. */
 export type SharedShelfSetRef = { id: string; index: number; count: number; title: string };
@@ -263,5 +271,5 @@ export type SharedCompareResult = {
 export type CustomizeSharedSetResult = {
   drafts: Draft[];
   set: { id: string; name: string; count: number; draftIds: string[] };
-  sharedFrom: ({ workspaceId: string; cueId: string; cueHash: string } | undefined)[];
+  sharedFrom: (SharedCueOrigin | undefined)[];
 };
