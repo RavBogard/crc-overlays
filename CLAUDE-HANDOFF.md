@@ -18,6 +18,17 @@ Updated September 13, 2026 (Claude session, after the Codex build stopped). **Re
 - Production baseline before this pass: `180b88a` on both workspaces. CRC production read-only state at 2026-09-13 08:59 CT: cue clear, revision 1789055589982, catalog d37d122359b9920d, zero connected renderers. TBI: not probed (CRC key is not valid there); TBI has no operator accounts yet.
 - **Deployed 2026-09-13 14:35 CT: both workspaces serve `5117d328f1f69995c362b9548d7ca21d0eb97d12`** (Companion module 1.3.0 release; second deploy record at the end of this file). Earlier the same day, 08:59 CT: `fbce9c15a632a8d81348c291f71672b69c953d01` (see "Deploy record" at the end of this file). Both production databases were migrated first (17 → 22 tables each, additive, drafts preserved). Any commit after `fbce9c1` on this branch is documentation only unless the Deploy record says otherwise.
 
+## Phase A built, not deployed (2026-09-13 afternoon/evening)
+
+Nothing was deployed today past the 14:35 CT release above. Two branches are built and gated:
+
+- **`r2-nextjs-16.3.5` = `3c27d94`**: Next.js 16.2.6 → 16.3.5 + eslint-config-next 16.3.5; post-login redirect on `/access` uses `router.push` (new lint rule). Its own release, first in the deploy order. Gate: `tsc` 0; tests 202/0/6; lint 0/0; build ok.
+- **`phase-a` = `c79252d`**, ten commits on `3c27d94` (layoutLabel helper; R8 relay release procedure; shared header/dark system/names X1 U3 I1; GraphicThumbnail shared; data/API groundwork T4 X4(7) R6 U5/X6 I5 S6 X4(6); console I2 U2 U4 U5 X4(4); services/health/setup/sources-review/access I2 U4 U5 X6 X4(7) I5 S6; `agentRules:false`; editor/fit-check R6 X3 X4(1,2,3,5) U5 I5; browser-pass fixes). Gate: `tsc` 0; tests 238/0/6; lint 0/0; Companion audit unchanged (crc/tbi both 1.3.0, same shas); `next build` exit 0; relay 15/15 + `tsc` clean. Browser pass (Playwright MCP, rehearsal schema, signed in/out) at 1440×900, 1024×768, 390×844 on all nine pages: no overflow, nav one row at 1440, every page dark. Screenshots: `work/handoffs/phase-a/screenshots/`.
+
+Deploy plan (weekday, renderers 0 on both `/api/state`): 1) deploy `3c27d94` paired (R2, own release); 2) run `node scripts/migrate-authoring.mjs` against both production DBs (adds `access_member_setup_progress`, additive), then deploy phase-a HEAD paired; 3) Companion users press "Refresh cue catalog" (T4 changed the catalog version; cue ids unchanged); 4) first relay release per `docs/RELAY-RELEASE.md` (pending `rendererExpired` fix) once Daniel names who deploys the relay; 5) fast-forward `codex/product-expansion` and `main` to what is deployed.
+
+See `work/handoffs/RETURN-CODE-A-2026-09-13.md` and the ledger `docs/planning/2026-09-product-expansion/APPROVED-BACKLOG.md` for full evidence.
+
 ## What was done in this pass (2026-09-13)
 
 Everything below was verified against the isolated rehearsal schema with the relay unset, so no live command was ever possible. Product docs updated: `docs/planning/2026-09-product-expansion/APPROVED-BACKLOG.md` (ledger with (a) automated / (b) browser-verified / (c) implemented-not-browser-verified / (d) beta-only), `BETA-BUILD.md` ("Build evidence 2026-09-13"), new `BETA-TASK-GUIDE.md` (Daniel / Michael / Simone tasks).
