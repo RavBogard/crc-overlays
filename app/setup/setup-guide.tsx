@@ -132,7 +132,7 @@ export default function SetupGuide({workspace}: {workspace: PublicWorkspace}) {
           <span className={styles.kicker}>Companion + Stream Deck</span>
           <h2>Add the controls</h2>
           {moduleDownload && pageDownloads.length ? <>
-            <p>First import the module package from Companion’s <strong>Modules</strong> page. {workspace.id === 'crc' ? <>Add a <strong>{workspace.productName}</strong> connection.</> : <>The installed module is named <strong>CRC Overlays</strong>; that is its technical name. Add a connection and label it <strong>{workspace.productName}</strong> so operators see this congregation’s name.</>} Then import each button page into one of the empty pages you chose.</p>
+            <p>First import the module package from Companion’s <strong>Modules</strong> page. Add a <strong>{workspace.productName}</strong> connection. Then import each button page into one of the empty pages you chose.</p>
             <div className={styles.downloads}>
               <a className={styles.primaryDownload} href={moduleDownload.href} download>{moduleDownload.label}<small>{moduleDownload.description}</small></a>
               {pageDownloads.map(download => <a href={download.href} download key={download.href}>{download.label}<small>{download.description}</small></a>)}

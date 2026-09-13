@@ -18,7 +18,8 @@ Singular stays available the whole time. Falling back to it is a normal, expecte
 3. **Verify `/health` on both productions.** Confirm the relay state, output presence, and usage figures read honestly — an unknown value must say unavailable, never zero. Do not send any command from this page.
 4. **Run `/author/fit-check` on both productions.** It renders every published cue at 1920×1080 with the real renderer and reports fit errors. It is read-only: it never publishes and never sends output. Against the rehearsal schema, CRC-branded came back 26 of 26 fitting and TBI-branded 29 of 29, both with 0 needing attention — but **these production runs are the first against the real published catalogs**, so treat their numbers as new information.
 5. **Create invitations from `/access`.** One per person, in that person's own workspace. **Nothing is emailed automatically** — copy each invitation link and send it yourself, however you normally reach Michael and Simone.
-6. **Do not upgrade Neon.** Budget target is under $25/month, $50 acceptable.
+6. **Testing both congregations from one Companion.** Install the CRC module from `crc-overlays.vercel.app/setup` and the TBI module from `tbi-overlays.vercel.app/setup`. They install side by side and appear as **CRC Overlays** and **TBI Overlays**. Add one connection per module, and give each connection only that workspace's own control key. Import each workspace's button pages and map them to the matching connection. Never paste one workspace's control key into the other workspace's connection.
+7. **Do not upgrade Neon.** Budget target is under $25/month, $50 acceptable.
 
 ## For Michael (CRC)
 

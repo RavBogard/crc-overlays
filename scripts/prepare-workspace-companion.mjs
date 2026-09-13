@@ -1,6 +1,8 @@
-import { copyFileSync, mkdirSync, readFileSync, writeFileSync } from 'node:fs';
+import { existsSync, mkdirSync, readFileSync, rmSync, writeFileSync } from 'node:fs';
 import { dirname, resolve } from 'node:path';
 import { gunzipSync, gzipSync } from 'node:zlib';
+
+import { deriveTbiPackage } from './build-tbi-companion-module.mjs';
 
 const repoRoot = resolve(import.meta.dirname, '..');
 const workspaceRoot = resolve(repoRoot, 'public', 'workspaces', 'temple-bnai-israel');
@@ -55,12 +57,13 @@ for (const [sourceName, destinationName, pageName] of sourcePages) {
   if (instances.length !== 1) fail(`${sourceName} must contain exactly one module connection template`);
   const instance = instances[0];
   if (instance.moduleId !== 'crc-overlays') fail(`${sourceName} uses an unexpected Companion module`);
+  instance.moduleId = 'tbi-overlays';
   instance.label = 'TBI_Overlays';
   instance.config = { ...instance.config, baseUrl: 'https://tbi-overlays.vercel.app' };
   instance.secrets = { controlKey: '' };
   instance.enabled = false;
   const serialized = JSON.stringify(data);
-  if (serialized.includes('https://crc-overlays.vercel.app') || serialized.includes('CRC Morning')) {
+  if (serialized.includes('https://crc-overlays.vercel.app') || serialized.includes('CRC Morning') || serialized.includes('"crc-overlays"')) {
     fail(`${sourceName} retained CRC operator-facing configuration`);
   }
   writeFileSync(resolve(downloadsRoot, destinationName), gzipSync(Buffer.from(serialized), { mtime: 0 }));
@@ -71,7 +74,9 @@ if (usedCueIds.size !== 24 || [...cueIds.keys()].some(id => !usedCueIds.has(id))
 }
 
 const moduleSource = resolve(repoRoot, 'public', 'downloads', 'crc-overlays-1.2.0.tgz');
-const moduleDestination = resolve(downloadsRoot, 'companion-module-1.2.0.tgz');
+const moduleDestination = resolve(downloadsRoot, 'tbi-overlays-1.2.0.tgz');
+const legacyModuleDestination = resolve(downloadsRoot, 'companion-module-1.2.0.tgz');
 mkdirSync(dirname(moduleDestination), { recursive: true });
-copyFileSync(moduleSource, moduleDestination);
-console.log('Prepared two TBI Companion pages and the compatible module package.');
+writeFileSync(moduleDestination, deriveTbiPackage(readFileSync(moduleSource)));
+if (existsSync(legacyModuleDestination)) rmSync(legacyModuleDestination);
+console.log('Prepared two TBI Companion pages and the TBI Overlays module package derived from the reviewed CRC package.');
