@@ -9,12 +9,23 @@ export const emptyForm: DraftForm = {
   mode: "bilingual",
   groups: [],
   customText: "",
+  variantLabel: "",
+  variantReason: "",
+  variantOverrides: [],
   presentation: {},
 };
 
+export function routeForDraft(draftId: string | null | undefined): string {
+  return draftId ? `/author?draft=${encodeURIComponent(draftId)}` : "/author";
+}
+
 export function formFromDraft(draft: Draft): DraftForm {
   const groups =
-    draft.content.mode === "bilingual"
+    draft.content.mode === "local-variant"
+      ? draft.content.base.mode === "bilingual"
+        ? draft.content.base.hebrewGroups
+        : draft.content.base.englishGroups
+      : draft.content.mode === "bilingual"
       ? draft.content.hebrewGroups
       : draft.content.mode === "original-en" || draft.content.mode === "source-en"
         ? draft.content.englishGroups
@@ -30,6 +41,10 @@ export function formFromDraft(draft: Draft): DraftForm {
       draft.content.mode === "bilingual" && draft.content.includeTranslation,
     groups: structuredClone(groups),
     customText: draft.content.mode === "custom" ? draft.content.text : "",
+    variantLabel: draft.content.mode === "local-variant" ? draft.content.label : "",
+    variantReason: draft.content.mode === "local-variant" ? draft.content.reason || "" : "",
+    variantBase: draft.content.mode === "local-variant" ? structuredClone(draft.content.base) : undefined,
+    variantOverrides: draft.content.mode === "local-variant" ? structuredClone(draft.content.overrides) : [],
     presentation: { ...draft.presentation },
   };
 }
@@ -46,6 +61,14 @@ export function editableFromForm(form: DraftForm) {
         }
       : form.mode === "original-en" || form.mode === "source-en"
         ? { mode: form.mode, englishGroups: groups }
+        : form.mode === "local-variant" && form.variantBase
+          ? {
+              mode: "local-variant" as const,
+              label: form.variantLabel.trim(),
+              ...(form.variantReason.trim() ? { reason: form.variantReason.trim() } : {}),
+              base: structuredClone(form.variantBase),
+              overrides: structuredClone(form.variantOverrides),
+            }
         : { mode: "custom" as const, text: form.customText.trim() };
   return {
     name: form.name.trim(),
@@ -62,6 +85,8 @@ export function formReady(form: DraftForm) {
   const hasContent =
     form.mode === "custom"
       ? Boolean(form.customText.trim())
+      : form.mode === "local-variant"
+        ? Boolean(form.variantBase && form.variantLabel.trim() && form.variantOverrides.length && form.variantOverrides.every((item) => item.localText.trim()))
       : form.groups.some((group) => group.blockIds.length);
   return Boolean(
     form.name.trim() &&
@@ -78,11 +103,97 @@ export function selectWholeSource(
   return blockIds.length ? [{ sourceId, blockIds: [...blockIds] }] : [];
 }
 
+export function moveDraftId(ids: string[], id: string, direction: -1 | 1) {
+  const index = ids.indexOf(id);
+  const destination = index + direction;
+  if (index < 0 || destination < 0 || destination >= ids.length) return [...ids];
+  const ordered = [...ids];
+  [ordered[index], ordered[destination]] = [ordered[destination], ordered[index]];
+  return ordered;
+}
+
 export function blocksForMode(source: Source | null, mode: ContentMode) {
-  if (!source || mode === "custom") return [];
+  if (!source || mode === "custom" || mode === "local-variant") return [];
   return source.blocks.filter((block) => mode === "source-en"
     ? block.kind === "source-en" || (block.kind === "bilingual" && Boolean(block.en))
     : block.kind === mode);
+}
+
+function selectedBlock(draft: Draft, group: SourceGroup | undefined) {
+  if (!group) return undefined;
+  return draft.sourceSnapshots?.find((source) => source.id === group.sourceId)?.blocks.find((block) => block.id === group.blockIds[0]);
+}
+
+export function draftThumbnailCopy(draft: Draft) {
+  if (draft.content.mode === "custom") return { title: draft.title, accent: draft.accentTitle, body: draft.content.text };
+  const content = draft.content.mode === "local-variant" ? draft.content.base : draft.content;
+  if (content.mode === "bilingual") {
+    const block = selectedBlock(draft, content.hebrewGroups[0]);
+    const override = draft.content.mode === "local-variant" ? draft.content.overrides.find((item) => item.sourceId === content.hebrewGroups[0]?.sourceId && item.blockId === content.hebrewGroups[0]?.blockIds[0] && (item.channel === "he" || item.channel === "tr")) : undefined;
+    if (override) return { title: draft.title, accent: draft.accentTitle, body: override.localText };
+    return { title: draft.title, accent: draft.accentTitle, body: block?.he || block?.tr || "" };
+  }
+  const block = selectedBlock(draft, content.englishGroups[0]);
+  const override = draft.content.mode === "local-variant" ? draft.content.overrides.find((item) => item.sourceId === content.englishGroups[0]?.sourceId && item.blockId === content.englishGroups[0]?.blockIds[0] && item.channel === "en") : undefined;
+  return { title: draft.title, accent: draft.accentTitle, body: override?.localText || block?.en || "" };
+}
+
+export function draftReadableText(draft: Draft) {
+  if (draft.content.mode === "custom") return draft.content.text;
+  const content = draft.content.mode === "local-variant" ? draft.content.base : draft.content;
+  const overrideFor = (sourceId: string, blockId: string, channel: "he" | "tr" | "en", fallback?: string) =>
+    draft.content.mode === "local-variant"
+      ? draft.content.overrides.find((item) => item.sourceId === sourceId && item.blockId === blockId && item.channel === channel)?.localText || fallback || ""
+      : fallback || "";
+  const groups = content.mode === "bilingual" ? content.hebrewGroups : content.englishGroups;
+  return groups.flatMap((group) => {
+    const source = draft.sourceSnapshots?.find((item) => item.id === group.sourceId);
+    return group.blockIds.flatMap((blockId) => {
+      const block = source?.blocks.find((item) => item.id === blockId);
+      if (!block) return [];
+      if (content.mode === "bilingual") return [overrideFor(group.sourceId, blockId, "he", block.he), overrideFor(group.sourceId, blockId, "tr", block.tr)].filter(Boolean);
+      return [overrideFor(group.sourceId, blockId, "en", block.en)];
+    });
+  }).filter(Boolean).join("\n");
+}
+
+export type DraftSetAudit = {
+  complete: boolean;
+  duplicateCount: number;
+  missingCount: number;
+  unexpectedCount: number;
+  sourceOrder: boolean;
+  selectedCount: number;
+  expectedCount: number;
+};
+
+export function auditDraftSet(drafts: Draft[]): DraftSetAudit | null {
+  if (!drafts.length || !drafts.every((draft) => draft.draftSetId === drafts[0].draftSetId)) return null;
+  const firstContent = drafts[0].content.mode === "local-variant" ? drafts[0].content.base : drafts[0].content;
+  if (firstContent.mode === "custom") return null;
+  const firstGroup = firstContent.mode === "bilingual" ? firstContent.hebrewGroups[0] : firstContent.englishGroups[0];
+  const source = drafts[0].sourceSnapshots?.find((item) => item.id === firstGroup?.sourceId);
+  if (!source) return null;
+  const expected = source.blocks.filter((block) => firstContent.mode === "bilingual"
+    ? block.kind === "bilingual"
+    : firstContent.mode === "source-en"
+      ? (block.kind === "source-en" || (block.kind === "bilingual" && Boolean(block.en))) && block.automatic !== false
+      : block.kind === "original-en").map((block) => block.id);
+  const actual = drafts.flatMap((draft) => {
+    const content = draft.content.mode === "local-variant" ? draft.content.base : draft.content;
+    if (content.mode !== firstContent.mode) return [];
+    const groups = content.mode === "bilingual" ? content.hebrewGroups : content.englishGroups;
+    return groups.filter((group) => group.sourceId === source.id).flatMap((group) => group.blockIds);
+  });
+  const counts = new Map<string, number>();
+  actual.forEach((id) => counts.set(id, (counts.get(id) || 0) + 1));
+  const expectedSet = new Set(expected);
+  const duplicateCount = [...counts.values()].reduce((total, count) => total + Math.max(0, count - 1), 0);
+  const missingCount = expected.filter((id) => !counts.has(id)).length;
+  const unexpectedCount = actual.filter((id) => !expectedSet.has(id)).length;
+  const presentExpected = expected.filter((id) => counts.has(id));
+  const sourceOrder = actual.filter((id) => expectedSet.has(id)).every((id, index) => id === presentExpected[index]);
+  return { complete: !duplicateCount && !missingCount && !unexpectedCount && sourceOrder && actual.length === expected.length, duplicateCount, missingCount, unexpectedCount, sourceOrder, selectedCount: actual.length, expectedCount: expected.length };
 }
 
 export function draftHasUnpublishedWork(draft: Draft) {

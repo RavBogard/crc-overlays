@@ -4,6 +4,7 @@ import Image from 'next/image';
 import Link from 'next/link';
 import {useMemo, useState} from 'react';
 import type {PublicWorkspace} from '@/lib/workspace';
+import WorkspaceNav from '@/components/workspace-nav';
 import styles from './setup.module.css';
 
 type Application = 'vmix' | 'obs';
@@ -103,10 +104,7 @@ export default function SetupGuide({workspace}: {workspace: PublicWorkspace}) {
           <p>Add {workspace.productName} beside your current graphics system. Your existing Singular setup, camera controls, and Companion pages stay in place during the trial.</p>
         </div>
       </div>
-      <nav aria-label="Setup links">
-        <Link href="/">Overlay control</Link>
-        <Link href="/author">Create and edit</Link>
-      </nav>
+      <WorkspaceNav current="/setup"/>
     </header>
 
     <section className={styles.intro}>

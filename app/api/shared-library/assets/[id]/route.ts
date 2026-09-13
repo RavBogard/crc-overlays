@@ -1,0 +1,6 @@
+import {secretEqual} from '@/lib/access';
+import {defaultAssetRepository} from '@/lib/assets';
+import {CRC_WORKSPACE_ID,sharedLibraryExportSecret} from '@/lib/shared-library';
+import {json} from '@/lib/server';
+
+export async function GET(request:Request,{params}:{params:Promise<{id:string}>}){if((process.env.WORKSPACE_ID?.trim().toLowerCase()||CRC_WORKSPACE_ID)!==CRC_WORKSPACE_ID)return json({error:'Not found'},404);const expected=sharedLibraryExportSecret(),match=request.headers.get('authorization')?.match(/^Bearer ([A-Za-z0-9_-]+)$/);if(!expected)return json({error:'Shared library is unavailable'},503);if(!match||!secretEqual(match[1],expected))return json({error:'Unauthorized'},401);try{const {id}=await params,asset=await defaultAssetRepository().get(id);if(!asset?.published)return json({error:'Not found'},404);return new Response(Uint8Array.from(asset.data).buffer,{headers:{'Content-Type':asset.mimeType,'Content-Length':String(asset.bytes),'Cache-Control':'private, no-store','X-Content-Type-Options':'nosniff','X-Asset-Name':encodeURIComponent(asset.name),'X-Asset-Alt':encodeURIComponent(asset.altText)}})}catch{return json({error:'Shared artwork is temporarily unavailable'},503)}}

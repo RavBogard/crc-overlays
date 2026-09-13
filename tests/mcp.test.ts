@@ -48,3 +48,20 @@ test('MCP HTTP guard rejects foreign browser origins and bounds chunked bodies',
  await assert.rejects(()=>boundedMcpRequest(oversized),/request_too_large/);
 });
 
+
+test('MCP accepts the canonical presentation fields and still rejects values outside them',async()=>{
+ const calls:{operation:string;input:unknown}[]=[];const handler=createAuthoringMcpHandler(async(operation,input)=>{calls.push({operation,input});return {draft:{id:'draft-1'}}});
+ const presentation={hebrewFontSize:40,transliterationFontSize:32,titleFontSize:30,alignment:'center',lineSpacing:'spacious',imageAssetId:`asset_${'a'.repeat(64)}`};
+ const draft={name:'Prayer',title:'Prayer',layout:'bottom',templateCueId:'template-bottom',content:{mode:'bilingual',hebrewGroups:[{sourceId:'source',blockIds:['block']}],transliterationGroups:[{sourceId:'source',blockIds:['block']}]},presentation};
+ const created=await payload(await handler.fetch(request({jsonrpc:'2.0',id:20,method:'tools/call',params:{name:'create_draft',arguments:draft}}),{authInfo})) as {result:{content:{text:string}[]}};
+ assert.match(created.result.content[0].text,/draft-1/);
+ assert.deepEqual((calls[0].input as {presentation:unknown}).presentation,presentation);
+ const patched=await payload(await handler.fetch(request({jsonrpc:'2.0',id:21,method:'tools/call',params:{name:'update_draft',arguments:{draftId:'draft-1',expectedVersion:1,patch:{presentation}}}}),{authInfo})) as {result:{content:{text:string}[]}};
+ assert.match(patched.result.content[0].text,/draft-1/);
+ assert.deepEqual(calls.map(call=>call.operation),['create_draft','update_draft']);
+ for(const invalid of [{alignment:'right'},{lineSpacing:'roomy'},{imageAssetId:'not-an-asset'},{imageAssetUrl:'https://example.test/image.png'}]){
+  const rejected=await payload(await handler.fetch(request({jsonrpc:'2.0',id:22,method:'tools/call',params:{name:'create_draft',arguments:{...draft,presentation:invalid}}}),{authInfo})) as {error?:unknown;result?:{isError?:boolean}};
+  assert.ok(rejected.error||rejected.result?.isError,`${JSON.stringify(invalid)} is refused before the backend call`);
+ }
+ assert.equal(calls.length,2);
+});

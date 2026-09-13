@@ -4,6 +4,7 @@ import {Check,Copy,KeyRound,LibraryBig,LoaderCircle,LogOut,MonitorUp,ShieldCheck
 import Link from 'next/link';
 import {useCallback,useEffect,useState} from 'react';
 import './access.css';
+import WorkspaceNav from '@/components/workspace-nav';
 
 type Role='owner'|'editor'|'operator';
 type Member={id:string;name:string;email:string;role:Role;enabled:boolean;hasPassword?:boolean};
@@ -125,7 +126,7 @@ export default function AccessPage(){
  return <main className="access-page">
   <header className="access-header">
    <div className="access-brand"><span className="access-brand-mark"><LibraryBig size={20}/></span><span><small>CONGREGATION GRAPHICS</small><strong>Workspace access</strong></span></div>
-   <Link href="/">Live control</Link>
+   {user?<WorkspaceNav current="/access" role={user.role}/>:<Link href="/">Live control</Link>}
   </header>
 
   <div className="access-stage">

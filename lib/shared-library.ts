@@ -1,6 +1,6 @@
 import {createHash} from 'node:crypto';
 import {authoringCatalog} from './server';
-import {baselineCues,editableFromBaseline,sourcePack,sourcePinFor,type AuthoringCue,type AuthoringSource,type DraftContent,type EditableDraft,type SharedCueCopySpec} from './authoring-model';
+import {baselineCues,editableFromBaseline,sameStructuredValue,sourcePack,sourcePinFor,type AuthoringCue,type AuthoringSource,type DraftContent,type EditableDraft,type SharedCueCopySpec} from './authoring-model';
 import type {Cue} from './player';
 
 export const CRC_WORKSPACE_ID='crc';
@@ -15,7 +15,7 @@ export type SharedLibrarySnapshot={available:true;configured:true;stale:boolean;
 type SharedLibraryEnvironment=Partial<Pick<NodeJS.ProcessEnv,'WORKSPACE_ID'|'CRC_SHARED_LIBRARY_URL'|'SHARED_LIBRARY_IMPORT_KEY'|'SHARED_LIBRARY_EXPORT_KEY'|'CONTROL_KEY'|'OUTPUT_KEY'|'ACCESS_BOOTSTRAP_KEY'>>;
 
 const sha=(value:unknown)=>createHash('sha256').update(JSON.stringify(value)).digest('hex');
-const sourceIdsFor=(content:DraftContent)=>[...new Set((content.mode==='bilingual'?[...content.hebrewGroups,...content.transliterationGroups]:content.mode==='original-en'||content.mode==='source-en'?content.englishGroups:[]).map(group=>group.sourceId))].sort();
+const sourceIdsFor=(content:DraftContent):string[]=>content.mode==='local-variant'?sourceIdsFor(content.base):[...new Set((content.mode==='bilingual'?[...content.hebrewGroups,...content.transliterationGroups]:content.mode==='original-en'||content.mode==='source-en'?content.englishGroups:[]).map(group=>group.sourceId))].sort();
 const baseEditable=(cue:Cue):EditableDraft|null=>{
  const authored=(cue as AuthoringCue).authoring?.copySpec;
  if(authored)return {name:authored.name,title:authored.title,accentTitle:authored.accentTitle,layout:authored.layout,templateCueId:authored.templateCueId,content:structuredClone(authored.content),presentation:structuredClone(authored.presentation)};
@@ -37,7 +37,7 @@ export function buildSharedLibraryPayload(catalog:{cues:Cue[];version:string},ge
   const sourceIds=sourceIdsFor(editable.content);
   const pinnedSources=embedded?.sourceSnapshots??[];
   for(const id of sourceIds){const source=pinnedSources.find(item=>item.id===id)??sourcePack.sources.find(item=>item.id===id);if(!source)throw new Error(`Published cue ${cue.id} references unavailable source ${id}`);selectedSources.set(id,source)}
-  const resolvedSources=sourceIds.map(id=>selectedSources.get(id)!);if(JSON.stringify(sourcePinFor(editable.content,resolvedSources,pin.feedSha256))!==JSON.stringify(pin))throw new Error(`Published cue ${cue.id} source snapshot no longer matches its approved pin`);
+  const resolvedSources=sourceIds.map(id=>selectedSources.get(id)!);if(!sameStructuredValue(sourcePinFor(editable.content,resolvedSources,pin.feedSha256),pin))throw new Error(`Published cue ${cue.id} source snapshot no longer matches its approved pin`);
   const exportedCue=structuredClone(cue) as AuthoringCue;if(exportedCue.authoring?.copySpec)delete exportedCue.authoring.copySpec.sourceSnapshots;
   entries.push({id:cue.id,name:cue.name,title:cue.texts.textTitle??cue.name,layout:cue.layout,sourceIds,cueHash:sha(exportedCue),cue:exportedCue,copySpec:{...structuredClone(editable),sourcePin:structuredClone(pin)}});
  }

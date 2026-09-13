@@ -8,13 +8,17 @@ const sourceMapJson=require('../content/legacy-crc-shabbat-morning.sources.json'
 const baselineCueJson=require('./cues.json');
 
 export type Layout='bottom'|'left'|'right';
-export type Presentation={hebrewFontSize?:number;transliterationFontSize?:number;titleFontSize?:number};
+export type Presentation={hebrewFontSize?:number;transliterationFontSize?:number;titleFontSize?:number;alignment?:'start'|'center';lineSpacing?:'compact'|'spacious';imageAssetId?:string};
 export type SourceGroup={sourceId:string;blockIds:string[]};
 export type BilingualContent={mode:'bilingual';hebrewGroups:SourceGroup[];transliterationGroups:SourceGroup[];includeTranslation?:boolean};
 export type OriginalEnglishContent={mode:'original-en';englishGroups:SourceGroup[]};
 export type SourceEnglishContent={mode:'source-en';englishGroups:SourceGroup[]};
+export type CanonicalContent=BilingualContent|OriginalEnglishContent|SourceEnglishContent;
+export type VariantChannel='he'|'tr'|'en';
+export type LocalVariantOverride={sourceId:string;blockId:string;channel:VariantChannel;sourceText:string;localText:string};
+export type LocalVariantContent={mode:'local-variant';label:string;reason?:string;base:CanonicalContent;overrides:LocalVariantOverride[]};
 export type CustomContent={mode:'custom';text:string};
-export type DraftContent=BilingualContent|OriginalEnglishContent|SourceEnglishContent|CustomContent;
+export type DraftContent=CanonicalContent|LocalVariantContent|CustomContent;
 export type EditableDraft={name:string;title:string;accentTitle?:string;layout:Layout;templateCueId:string;content:DraftContent;presentation:Presentation};
 export type SourceAuthorityPin={id:string;feedSha256:string;unitSha256:string;sourceSha256:string};
 export type SourcePin={feedSha256:string;unitSha256:Record<string,string>;blockSha256:Record<string,string>;sourceAuthority?:Record<string,SourceAuthorityPin>};
@@ -23,8 +27,10 @@ export type SourceBlock={id:string;index:number;kind:'bilingual'|'original-en'|'
 export type AuthoringSource={id:string;name:string;section:string|number|null;unitSha256:string;blocks:SourceBlock[];origin?:string;sourceSha256?:string;book?:string;service?:string;aliases?:string[];openingWords?:string[];metadata?:Record<string,unknown>;authority?:{id:string;repository:string;repositoryCommit:string;feed:string;feedSha256:string;unitId:string;unitSha256:string}};
 export type SharedCueCopySpec=EditableDraft&{sourcePin:SourcePin;sourceSnapshots?:AuthoringSource[]};
 export type SharedCueOrigin={workspaceId:'crc';cueId:string;cueHash:string};
-export type Draft=EditableDraft&{id:string;version:number;sourcePin:SourcePin;activeRevision:number|null;activeDraftVersion:number|null;createdAt:number;updatedAt:number;createdBy:string;updatedBy:string;draftSetId?:string;setIndex?:number;setCount?:number;sourceSnapshots?:AuthoringSource[];sharedFrom?:SharedCueOrigin};
-export type AuthoringCue=Cue&{presentation?:Presentation;authoring:{draftId:string;draftVersion:number;origin:'canonical'|'local';sourceIds:string[];feedSha256:string;unitSha256:Record<string,string>;sourceAuthority?:Record<string,SourceAuthorityPin>;copySpec?:SharedCueCopySpec}};
+export type DraftSetSelection={sourceId:string;blockId:string;channels:VariantChannel[]};
+export type DraftSetManifest={version:1;selections:DraftSetSelection[]};
+export type Draft=EditableDraft&{id:string;version:number;sourcePin:SourcePin;activeRevision:number|null;activeDraftVersion:number|null;createdAt:number;updatedAt:number;createdBy:string;updatedBy:string;draftSetId?:string;setIndex?:number;setCount?:number;draftSetManifest?:DraftSetManifest;sourceSnapshots?:AuthoringSource[];sharedFrom?:SharedCueOrigin;archivedAt?:number;archivedBy?:string};
+export type AuthoringCue=Cue&{presentation?:Presentation;authoring:{draftId:string;draftVersion:number;origin:'canonical'|'variant'|'local';sourceIds:string[];feedSha256:string;unitSha256:Record<string,string>;sourceAuthority?:Record<string,SourceAuthorityPin>;copySpec?:SharedCueCopySpec}};
 export type SourcePack={schemaVersion:number;authority:{repository:string;repositoryCommit:string;feed:string;feedSha256:string;license:unknown;printing:unknown};sources:AuthoringSource[];authorities?:unknown[];library?:unknown};
 
 export const sourcePack=loadSourceLibrary();
@@ -106,11 +112,20 @@ export function parseContent(value:unknown,snapshots:AuthoringSource[]=[]):Draft
   if(new Set(sequence).size!==sequence.length)throw new AuthoringError('repeated_source_block','A source block may be selected only once');
   return {mode:'source-en',englishGroups};
  }
+ if(input.mode==='local-variant'){
+  onlyKeys(input,['mode','label','reason','base','overrides'],'content');
+  const base=parseContent(input.base,snapshots);
+  if(base.mode==='custom'||base.mode==='local-variant')throw new AuthoringError('invalid_variant_base','A local variant must retain a canonical source selection');
+  if(!Array.isArray(input.overrides)||input.overrides.length<1||input.overrides.length>96)throw new AuthoringError('invalid_input','content.overrides must contain 1-96 deviations');
+  const selected=new Set(selectedPairs(base,snapshots).map(pair=>JSON.stringify([pair.sourceId,pair.blockId])));const seen=new Set<string>();
+  const overrides=input.overrides.map((raw,index)=>{const item=record(raw,`content.overrides[${index}]`);onlyKeys(item,['sourceId','blockId','channel','sourceText','localText'],`content.overrides[${index}]`);const sourceId=text(item.sourceId,`content.overrides[${index}].sourceId`,160)!,blockId=text(item.blockId,`content.overrides[${index}].blockId`,220)!,channel=String(item.channel) as VariantChannel;if(!['he','tr','en'].includes(channel))throw new AuthoringError('invalid_input',`content.overrides[${index}].channel must be he, tr, or en`);if(!selected.has(JSON.stringify([sourceId,blockId])))throw new AuthoringError('invalid_variant_target','A local deviation must target a selected canonical source block');const key=JSON.stringify([sourceId,blockId,channel]);if(seen.has(key))throw new AuthoringError('repeated_variant_override','A source channel may be overridden only once');seen.add(key);const canonical=source(sourceId,snapshots).blocks.find(block=>block.id===blockId)?.[channel];if(typeof canonical!=='string'||!canonical)throw new AuthoringError('missing_source_channel',`Source block ${blockId} lacks ${channel}`);const sourceText=text(item.sourceText,`content.overrides[${index}].sourceText`,4000)!,localText=text(item.localText,`content.overrides[${index}].localText`,4000)!;if(sourceText!==canonical)throw new AuthoringError('variant_source_changed','The recorded source text no longer matches its pinned source');return {sourceId,blockId,channel,sourceText,localText}});
+  return {mode:'local-variant',label:text(input.label,'content.label',80)!,reason:text(input.reason,'content.reason',500,true),base,overrides};
+ }
  if(input.mode==='custom'){
   onlyKeys(input,['mode','text'],'content');
   return {mode:'custom',text:text(input.text,'content.text',4000)!};
  }
- throw new AuthoringError('invalid_input','content.mode must be bilingual, original-en, source-en, or custom');
+ throw new AuthoringError('invalid_input','content.mode must be bilingual, original-en, source-en, local-variant, or custom');
 }
 
 // Only whole, explicitly paired canonical blessings can gain a translation.
@@ -147,11 +162,14 @@ export function parseEditable(value:unknown,partial=false,snapshots:AuthoringSou
  if(!partial||input.content!==undefined)result.content=parseContent(input.content,snapshots);
  if(!partial||input.presentation!==undefined){
   const p=record(input.presentation??{},'presentation');
-  onlyKeys(p,['hebrewFontSize','transliterationFontSize','titleFontSize'],'presentation');
+  onlyKeys(p,['hebrewFontSize','transliterationFontSize','titleFontSize','alignment','lineSpacing','imageAssetId'],'presentation');
   const presentation:Presentation={};
   if(p.hebrewFontSize!==undefined)presentation.hebrewFontSize=integer(p.hebrewFontSize,'hebrewFontSize',24,52);
   if(p.transliterationFontSize!==undefined)presentation.transliterationFontSize=integer(p.transliterationFontSize,'transliterationFontSize',20,48);
   if(p.titleFontSize!==undefined)presentation.titleFontSize=integer(p.titleFontSize,'titleFontSize',20,42);
+  if(p.alignment!==undefined){if(p.alignment!=='start'&&p.alignment!=='center')throw new AuthoringError('invalid_input','alignment must be start or center');presentation.alignment=p.alignment}
+  if(p.lineSpacing!==undefined){if(p.lineSpacing!=='compact'&&p.lineSpacing!=='spacious')throw new AuthoringError('invalid_input','lineSpacing must be compact or spacious');presentation.lineSpacing=p.lineSpacing}
+  if(p.imageAssetId!==undefined){if(typeof p.imageAssetId!=='string'||!/^asset_[a-f0-9]{64}$/.test(p.imageAssetId))throw new AuthoringError('invalid_input','imageAssetId must identify a workspace asset');presentation.imageAssetId=p.imageAssetId}
   result.presentation=presentation;
  }
  if(!partial){
@@ -161,10 +179,10 @@ export function parseEditable(value:unknown,partial=false,snapshots:AuthoringSou
  return result;
 }
 
-function renderGroup(group:SourceGroup,channel:'he'|'tr'|'en',snapshots:AuthoringSource[]=[]){
+function renderGroup(group:SourceGroup,channel:'he'|'tr'|'en',snapshots:AuthoringSource[]=[],overrides:LocalVariantOverride[]=[]){
  const selected=source(group.sourceId,snapshots);
  return group.blockIds.map(id=>{
-  const value=selected.blocks.find(block=>block.id===id)?.[channel];
+  const value=overrides.find(item=>item.sourceId===group.sourceId&&item.blockId===id&&item.channel===channel)?.localText??selected.blocks.find(block=>block.id===id)?.[channel];
   if(typeof value!=='string'||!value)throw new AuthoringError('missing_source_channel',`Source block ${id} lacks ${channel}`);
   return value;
  }).join(' ');
@@ -175,26 +193,25 @@ export function buildCue(draft:Draft):AuthoringCue{
  const template=baselineCues.find(cue=>cue.id===draft.templateCueId);
  if(!template)throw new AuthoringError('unknown_template','Draft template is unavailable',409);
  if(template.layout!==draft.layout)throw new AuthoringError('template_layout_mismatch','Template cue layout must match the draft layout');
- if(draft.content.mode==='bilingual'&&draft.content.includeTranslation&&draft.layout==='bottom')throw new AuthoringError('translation_layout','Use a left or right panel for translated blessing rows');
+ const content=draft.content.mode==='local-variant'?draft.content.base:draft.content;const overrides=draft.content.mode==='local-variant'?draft.content.overrides:[];
+ if(content.mode==='bilingual'&&content.includeTranslation&&draft.layout==='bottom')throw new AuthoringError('translation_layout','Use a left or right panel for translated blessing rows');
  const texts:Record<string,string>={textTitle:draft.title};
  if(draft.accentTitle)texts.accentTextTitle=draft.accentTitle;
- const groups=draft.content.mode==='bilingual'
-  ?[...draft.content.hebrewGroups,...draft.content.transliterationGroups]
-  :draft.content.mode==='original-en'||draft.content.mode==='source-en'?draft.content.englishGroups:[];
- if(draft.content.mode==='bilingual'){
-  texts.textMainheb=draft.content.hebrewGroups.map(group=>renderGroup(group,'he',draft.sourceSnapshots)).join('\n');
-  texts.textMainEng=draft.content.transliterationGroups.map(group=>renderGroup(group,'tr',draft.sourceSnapshots)).join('\n');
- }else if(draft.content.mode==='original-en'||draft.content.mode==='source-en')texts.textMain=draft.content.englishGroups.map(group=>renderGroup(group,'en',draft.sourceSnapshots)).join('\n');
- else texts.textMain=draft.content.text;
+ const groups=content.mode==='bilingual'?[...content.hebrewGroups,...content.transliterationGroups]:content.mode==='original-en'||content.mode==='source-en'?content.englishGroups:[];
+ if(content.mode==='bilingual'){
+  texts.textMainheb=content.hebrewGroups.map(group=>renderGroup(group,'he',draft.sourceSnapshots,overrides)).join('\n');
+  texts.textMainEng=content.transliterationGroups.map(group=>renderGroup(group,'tr',draft.sourceSnapshots,overrides)).join('\n');
+ }else if(content.mode==='original-en'||content.mode==='source-en')texts.textMain=content.englishGroups.map(group=>renderGroup(group,'en',draft.sourceSnapshots,overrides)).join('\n');
+ else texts.textMain=content.text;
  const sourceIds=[...new Set(groups.map(group=>group.sourceId))].sort();
  const animations=structuredClone(template.animations);
- if(draft.content.mode==='bilingual'&&!animations.some(track=>track.element==='textMainheb'||track.element==='textMainEng')){
+ if(content.mode==='bilingual'&&!animations.some(track=>track.element==='textMainheb'||track.element==='textMainEng')){
   const combined=animations.filter(track=>track.element==='textMain');
   if(combined.length){
    for(let index=animations.length-1;index>=0;index--)if(animations[index].element==='textMain')animations.splice(index,1);
    animations.push(...combined.flatMap(track=>[{...structuredClone(track),element:'textMainheb'},{...structuredClone(track),element:'textMainEng'}]));
   }
- }else if(draft.content.mode!=='bilingual'&&!animations.some(track=>track.element==='textMain')){
+ }else if(content.mode!=='bilingual'&&!animations.some(track=>track.element==='textMain')){
   const single=animations.filter(track=>track.element==='textMainEng');
   const fallback=single.length?single:animations.filter(track=>track.element==='textMainheb');
   if(fallback.length){
@@ -204,16 +221,16 @@ export function buildCue(draft:Draft):AuthoringCue{
  }
  return {
   id:draft.id,name:draft.name,layout:draft.layout,texts,
-  ...(draft.content.mode==='bilingual'&&draft.content.includeTranslation
-   ?{contentRows:translationSelections(draft.content,draft.sourceSnapshots).map(({sourceId,block,pairIds})=>({he:renderGroup({sourceId,blockIds:pairIds},'he',draft.sourceSnapshots),tr:renderGroup({sourceId,blockIds:pairIds},'tr',draft.sourceSnapshots),en:block.en!}))}
-   :draft.content.mode==='bilingual'&&draft.draftSetId&&(draft.layout==='left'||draft.layout==='right')
-    ?{contentRows:draft.content.hebrewGroups.flatMap(group=>group.blockIds.map(blockId=>({he:renderGroup({sourceId:group.sourceId,blockIds:[blockId]},'he',draft.sourceSnapshots),tr:renderGroup({sourceId:group.sourceId,blockIds:[blockId]},'tr',draft.sourceSnapshots),en:''})))}
+  ...(content.mode==='bilingual'&&content.includeTranslation
+   ?{contentRows:translationSelections(content,draft.sourceSnapshots).map(({sourceId,block,pairIds})=>({he:renderGroup({sourceId,blockIds:pairIds},'he',draft.sourceSnapshots,overrides),tr:renderGroup({sourceId,blockIds:pairIds},'tr',draft.sourceSnapshots,overrides),en:overrides.find(item=>item.sourceId===sourceId&&item.blockId===block.id&&item.channel==='en')?.localText??block.en!}))}
+   :content.mode==='bilingual'&&draft.draftSetId&&(draft.layout==='left'||draft.layout==='right')
+    ?{contentRows:content.hebrewGroups.flatMap(group=>group.blockIds.map(blockId=>({he:renderGroup({sourceId:group.sourceId,blockIds:[blockId]},'he',draft.sourceSnapshots,overrides),tr:renderGroup({sourceId:group.sourceId,blockIds:[blockId]},'tr',draft.sourceSnapshots,overrides),en:''})))}
     :{}),
   animations,duration:structuredClone(template.duration),
   ...(template.template?{template:structuredClone(template.template)}:{}),
   ...(Object.keys(draft.presentation).length?{presentation:structuredClone(draft.presentation)}:{}),
   authoring:{
-   draftId:draft.id,draftVersion:draft.version,origin:draft.content.mode==='custom'?'local':'canonical',sourceIds,feedSha256:draft.content.mode==='custom'?'local':draft.sourcePin.feedSha256,
+   draftId:draft.id,draftVersion:draft.version,origin:draft.content.mode==='custom'?'local':draft.content.mode==='local-variant'?'variant':'canonical',sourceIds,feedSha256:draft.content.mode==='custom'?'local':draft.sourcePin.feedSha256,
    unitSha256:Object.fromEntries(sourceIds.map(id=>[id,source(id,draft.sourceSnapshots).unitSha256])),
    ...(draft.sourcePin.sourceAuthority?{sourceAuthority:structuredClone(draft.sourcePin.sourceAuthority)}:{}),
    copySpec:{...structuredClone(editableOnly(draft)),sourcePin:structuredClone(draft.sourcePin),...(sourceIds.length?{sourceSnapshots:sourceIds.map(id=>structuredClone(source(id,draft.sourceSnapshots)))}:{})},
@@ -224,11 +241,16 @@ export function buildCue(draft:Draft):AuthoringCue{
 function editableOnly(draft:Draft):EditableDraft{return {name:draft.name,title:draft.title,accentTitle:draft.accentTitle,layout:draft.layout,templateCueId:draft.templateCueId,content:structuredClone(draft.content),presentation:structuredClone(draft.presentation)}}
 function selectedPairs(content:DraftContent,snapshots:AuthoringSource[]=[]){
  if(content.mode==='custom')return [];
+ if(content.mode==='local-variant')return selectedPairs(content.base,snapshots);
  const groups=content.mode==='bilingual'?content.hebrewGroups:content.englishGroups;
  const pairs=groups.flatMap(group=>group.blockIds.map(blockId=>({sourceId:group.sourceId,blockId})));
  if(content.mode==='bilingual'&&content.includeTranslation)pairs.push(...translationSelections(content,snapshots).map(({sourceId,block})=>({sourceId,blockId:block.id})));
  return pairs;
 }
+export function sourceReferences(content:DraftContent,snapshots:AuthoringSource[]=[]){return selectedPairs(content,snapshots)}
+export function draftSetSelections(content:DraftContent,snapshots:AuthoringSource[]=[]):DraftSetSelection[]{if(content.mode==='local-variant')return draftSetSelections(content.base,snapshots);if(content.mode==='custom')return [];if(content.mode==='bilingual'){const base=content.hebrewGroups.flatMap(group=>group.blockIds.map(blockId=>({sourceId:group.sourceId,blockId,channels:['he','tr'] as VariantChannel[]})));if(!content.includeTranslation)return base;const baseKeys=new Set(base.map(item=>JSON.stringify([item.sourceId,item.blockId])));return [...base,...selectedPairs(content,snapshots).filter(item=>!baseKeys.has(JSON.stringify([item.sourceId,item.blockId]))).map(item=>({...item,channels:['en'] as VariantChannel[]}))]}return content.englishGroups.flatMap(group=>group.blockIds.map(blockId=>({sourceId:group.sourceId,blockId,channels:['en'] as VariantChannel[]})))}
+export function sourceSnapshotsFor(content:DraftContent,snapshots:AuthoringSource[]=[]){return [...new Set(selectedPairs(content,snapshots).map(pair=>pair.sourceId))].sort().map(id=>structuredClone(source(id,snapshots)))}
+export function sourceBlockFor(sourceId:string,blockId:string,snapshots:AuthoringSource[]=[]){const block=source(sourceId,snapshots).blocks.find(item=>item.id===blockId);if(!block)throw new AuthoringError('unknown_block',`Block ${blockId} does not belong to ${sourceId}`,400);return block}
 export function sourcePinFor(content:DraftContent,snapshots:AuthoringSource[]=[],feedSha256=sourcePack.authority.feedSha256):SourcePin{
  if(content.mode==='custom')return {feedSha256:'local',unitSha256:{},blockSha256:{}};
  const pairs=selectedPairs(content,snapshots);
@@ -248,9 +270,15 @@ export function sourcePinFor(content:DraftContent,snapshots:AuthoringSource[]=[]
   ...(Object.keys(sourceAuthority).length?{sourceAuthority}:{}),
  };
 }
+function canonicalValue(value:unknown):unknown{
+ if(Array.isArray(value))return value.map(canonicalValue);
+ if(value&&typeof value==='object')return Object.fromEntries(Object.keys(value as Record<string,unknown>).sort().map(key=>[key,canonicalValue((value as Record<string,unknown>)[key])]));
+ return value;
+}
+export function sameStructuredValue(left:unknown,right:unknown){return JSON.stringify(canonicalValue(left))===JSON.stringify(canonicalValue(right))}
 export function assertSourcePin(draft:Draft){
  const current=sourcePinFor(draft.content,draft.sourceSnapshots,draft.sourceSnapshots?.length?draft.sourcePin.feedSha256:undefined);
- if(JSON.stringify(current)!==JSON.stringify(draft.sourcePin))throw new AuthoringError('source_pin_mismatch','Pinned source authority has changed; explicit source rebase and review are required',409);
+ if(!sameStructuredValue(current,draft.sourcePin))throw new AuthoringError('source_pin_mismatch','Pinned source authority has changed; explicit source rebase and review are required',409);
 }
 
 export function cueHash(cue:AuthoringCue){return createHash('sha256').update(JSON.stringify(cue)).digest('hex')}

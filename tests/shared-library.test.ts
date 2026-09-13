@@ -1,12 +1,20 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
-import {baselineCues,buildCue,editableFromBaseline,newDraftId,sourcePack,sourcePinFor,type AuthoringSource,type Draft} from '../lib/authoring-model.ts';
+import {baselineCues,buildCue,editableFromBaseline,newDraftId,sourcePack,sourcePinFor,type AuthoringCue,type AuthoringError,type AuthoringSource,type BilingualContent,type Draft,type LocalVariantContent,type SourceBlock} from '../lib/authoring-model.ts';
 import {MemoryAuthoringRepository,createAuthoringService} from '../lib/authoring.ts';
 import {SHARED_LIBRARY_MAX_BYTES,SharedLibraryClient,TBI_WORKSPACE_ID,buildSharedLibraryPayload,type SharedLibrarySnapshot} from '../lib/shared-library.ts';
 
 const BARECHU='efa9fad4-f7d5-4091-a708-82103028861b';
 const KEY='s'.repeat(43);
 const env={WORKSPACE_ID:TBI_WORKSPACE_ID,CRC_SHARED_LIBRARY_URL:'https://crc.example.test/api/shared-library',SHARED_LIBRARY_IMPORT_KEY:KEY};
+
+// Real return shapes for authoringOperation('operation', ...), which is typed Promise<unknown> by design
+// (its return value depends on the string `operation` name). These narrow just the fields these tests read.
+type DraftResult={draft:Draft};
+type SharedLibraryListEntry={id:string;name:string;title:string;layout:string;sourceIds:string[];cueHash:string};
+type SharedLibraryListAvailable={available:true;configured:true;stale:boolean;refreshedAt:number;total:number;truncated:boolean;cues:SharedLibraryListEntry[]};
+type SharedLibraryUnavailable=Extract<SharedLibrarySnapshot,{available:false}>;
+type SharedCuePreview={available:true;configured:true;stale:boolean;refreshedAt:number;cueHash:string;cue:AuthoringCue};
 
 test('CRC export contains every visible published baseline and only required source snapshots',()=>{
  const visible=baselineCues.filter(cue=>!cue.hidden);const payload=buildSharedLibraryPayload({cues:baselineCues,version:'catalog-v1'},1234);
@@ -31,9 +39,9 @@ test('embedded source snapshots preserve an older feed through export, import, u
  const cue=buildCue(draft);assert.equal(cue.authoring.feedSha256,oldFeed);assert.equal(cue.texts.textMain,seedBlock.en);assert.equal(sourcePack.sources.some(source=>source.id===sourceId),false,'snapshot source is deliberately absent from the current corpus');
  const payload=buildSharedLibraryPayload({cues:[cue],version:'old-feed'});assert.equal(payload.sources[0].id,sourceId);assert.equal(payload.cues[0].copySpec.sourcePin.feedSha256,oldFeed);
  const snapshot:SharedLibrarySnapshot={available:true,configured:true,stale:false,refreshedAt:now,payload};const service=createAuthoringService(new MemoryAuthoringRepository(),undefined,{get:async()=>snapshot});
- const imported=await service.operation('customize_shared_cue',{cueId:draft.id,expectedCueHash:payload.cues[0].cueHash},'simone') as any;assert.equal(imported.draft.sourcePin.feedSha256,oldFeed);assert.equal(buildCue(imported.draft).texts.textMain,seedBlock.en);
- const updated=await service.operation('update_draft',{draftId:imported.draft.id,expectedVersion:1,patch:{title:'TBI title'}},'simone') as any;assert.equal(updated.draft.sourcePin.feedSha256,oldFeed);assert.equal(buildCue(updated.draft).texts.textMain,seedBlock.en);
- const duplicated=await service.operation('duplicate_draft',{draftId:updated.draft.id},'simone') as any;assert.equal(duplicated.draft.sourcePin.feedSha256,oldFeed);assert.equal(buildCue(duplicated.draft).texts.textMain,seedBlock.en);
+ const imported=await service.operation('customize_shared_cue',{cueId:draft.id,expectedCueHash:payload.cues[0].cueHash},'simone') as DraftResult;assert.equal(imported.draft.sourcePin.feedSha256,oldFeed);assert.equal(buildCue(imported.draft).texts.textMain,seedBlock.en);
+ const updated=await service.operation('update_draft',{draftId:imported.draft.id,expectedVersion:1,patch:{title:'TBI title'}},'simone') as DraftResult;assert.equal(updated.draft.sourcePin.feedSha256,oldFeed);assert.equal(buildCue(updated.draft).texts.textMain,seedBlock.en);
+ const duplicated=await service.operation('duplicate_draft',{draftId:updated.draft.id},'simone') as DraftResult;assert.equal(duplicated.draft.sourcePin.feedSha256,oldFeed);assert.equal(buildCue(duplicated.draft).texts.textMain,seedBlock.en);
 });
 
 test('TBI client deduplicates refreshes, serves a sixty-second cache, and falls back to last good data',async()=>{
@@ -45,16 +53,21 @@ test('TBI client deduplicates refreshes, serves a sixty-second cache, and falls 
 
 test('shared library operations preview exact CRC cues and create independent unpublished TBI drafts',async()=>{
  const payload=buildSharedLibraryPayload({cues:baselineCues,version:'catalog-v1'});const snapshot:SharedLibrarySnapshot={available:true,configured:true,stale:false,refreshedAt:456,payload};const repo=new MemoryAuthoringRepository();const service=createAuthoringService(repo,undefined,{get:async()=>snapshot});
- const list=await service.operation('list_shared_library',{query:'Barechu',limit:1000},'simone') as any;assert.equal(list.available,true);assert.equal(list.cues.length,1);assert.equal(list.total,1);assert.equal(list.truncated,false);assert.equal(list.cues[0].id,BARECHU);assert.equal(list.refreshedAt,456);
- const preview=await service.operation('preview_shared_cue',{cueId:BARECHU},'simone') as any;assert.deepEqual(preview.cue,payload.cues.find(entry=>entry.id===BARECHU)!.cue);assert.equal(preview.cueHash,list.cues[0].cueHash);
- await assert.rejects(service.operation('customize_shared_cue',{cueId:BARECHU,expectedCueHash:'0'.repeat(64)},'simone'),(error:any)=>error.code==='shared_cue_changed');
- const customized=await service.operation('customize_shared_cue',{cueId:BARECHU,expectedCueHash:preview.cueHash},'simone') as any;assert.notEqual(customized.draft.id,BARECHU);assert.equal(customized.draft.activeRevision,null);assert.equal(customized.draft.sharedFrom.cueId,BARECHU);assert.ok(customized.draft.sourceSnapshots.length>0);assert.deepEqual(buildCue(customized.draft).texts,preview.cue.texts);assert.deepEqual(await service.publishedCues(),[]);
- const updated=await service.operation('update_draft',{draftId:customized.draft.id,expectedVersion:1,patch:{title:'TBI wording'}},'simone') as any;assert.equal(updated.draft.title,'TBI wording');assert.equal(updated.draft.sharedFrom.cueId,BARECHU);
+ const list=await service.operation('list_shared_library',{query:'Barechu',limit:1000},'simone') as SharedLibraryListAvailable;assert.equal(list.available,true);assert.equal(list.cues.length,1);assert.equal(list.total,1);assert.equal(list.truncated,false);assert.equal(list.cues[0].id,BARECHU);assert.equal(list.refreshedAt,456);
+ const preview=await service.operation('preview_shared_cue',{cueId:BARECHU},'simone') as SharedCuePreview;assert.deepEqual(preview.cue,payload.cues.find(entry=>entry.id===BARECHU)!.cue);assert.equal(preview.cueHash,list.cues[0].cueHash);
+ await assert.rejects(service.operation('customize_shared_cue',{cueId:BARECHU,expectedCueHash:'0'.repeat(64)},'simone'),(error)=>(error as AuthoringError).code==='shared_cue_changed');
+ const customized=await service.operation('customize_shared_cue',{cueId:BARECHU,expectedCueHash:preview.cueHash},'simone') as DraftResult;assert.notEqual(customized.draft.id,BARECHU);assert.equal(customized.draft.activeRevision,null);assert.equal(customized.draft.sharedFrom!.cueId,BARECHU);assert.ok(customized.draft.sourceSnapshots!.length>0);assert.deepEqual(buildCue(customized.draft).texts,preview.cue.texts);assert.deepEqual(await service.publishedCues(),[]);
+ const updated=await service.operation('update_draft',{draftId:customized.draft.id,expectedVersion:1,patch:{title:'TBI wording'}},'simone') as DraftResult;assert.equal(updated.draft.title,'TBI wording');assert.equal(updated.draft.sharedFrom!.cueId,BARECHU);
+});
+
+test('published local variants share as pinned variants without becoming custom text',async()=>{
+ const crcRepo=new MemoryAuthoringRepository(),crc=createAuthoringService(crcRepo);const imported=await crc.operation('import_cue',{cueId:BARECHU},'crc-editor') as DraftResult;const base=imported.draft,group=(base.content as BilingualContent).hebrewGroups[0],source=base.sourceSnapshots!.find((item:AuthoringSource)=>item.id===group.sourceId)!,block=source.blocks.find((item:SourceBlock)=>item.id===group.blockIds[0])!;const variant=await crc.operation('create_local_variant',{draftId:base.id,label:'CRC local wording',overrides:[{sourceId:group.sourceId,blockId:block.id,channel:'he',localText:`${block.he}׃`}]},'crc-editor') as DraftResult;const cue=buildCue(variant.draft),payload=buildSharedLibraryPayload({cues:[cue],version:'variant'});assert.equal(payload.cues[0].copySpec.content.mode,'local-variant');assert.equal((payload.cues[0].cue as unknown as {authoring:{origin:string}}).authoring.origin,'variant');
+ const snapshot:SharedLibrarySnapshot={available:true,configured:true,stale:false,refreshedAt:Date.now(),payload},tbi=createAuthoringService(new MemoryAuthoringRepository(),undefined,{get:async()=>snapshot});const copied=await tbi.operation('customize_shared_cue',{cueId:cue.id,expectedCueHash:payload.cues[0].cueHash},'simone') as DraftResult;assert.equal(copied.draft.content.mode,'local-variant');assert.equal((copied.draft.content as LocalVariantContent).overrides[0].sourceText,block.he);assert.equal((buildCue(copied.draft) as unknown as {authoring:{origin:string}}).authoring.origin,'variant');assert.equal(copied.draft.activeRevision,null);
 });
 
 test('an unavailable CRC library does not disrupt local TBI authoring',async()=>{
  const unavailable:SharedLibrarySnapshot={available:false,configured:true,stale:false,error:'CRC library is temporarily unavailable.'};const repo=new MemoryAuthoringRepository();const service=createAuthoringService(repo,undefined,{get:async()=>unavailable});
- const list=await service.operation('list_shared_library',{},'simone') as any;assert.equal(list.available,false);
- await assert.rejects(service.operation('customize_shared_cue',{cueId:BARECHU,expectedCueHash:'0'.repeat(64)},'simone'),(error:any)=>error.code==='shared_library_unavailable');
- const editable=editableFromBaseline(BARECHU);const local=await service.operation('create_draft',editable,'simone') as any;assert.ok(local.draft.id);
+ const list=await service.operation('list_shared_library',{},'simone') as SharedLibraryUnavailable;assert.equal(list.available,false);
+ await assert.rejects(service.operation('customize_shared_cue',{cueId:BARECHU,expectedCueHash:'0'.repeat(64)},'simone'),(error)=>(error as AuthoringError).code==='shared_library_unavailable');
+ const editable=editableFromBaseline(BARECHU);const local=await service.operation('create_draft',editable,'simone') as DraftResult;assert.ok(local.draft.id);
 });

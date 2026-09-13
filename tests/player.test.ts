@@ -1,7 +1,9 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
 import {acceptsRevision,effectFrames,incomingStillDesired,measuredBottomTextHeight,textParts,tracksFor,type AnimationTrack} from '../lib/player-motion.ts';
-import {panelRowChannels,panelRowGap,panelStackGeometry,usesPanelRows,type ContentRow} from '../lib/player.ts';
+import {Player,panelRowChannels,panelRowGap,panelStackGeometry,presentationTextStyles,usesPanelRows,type ContentRow,type Cue} from '../lib/player.ts';
+import {OVERLAY_ASSET_TIMEOUT_MS,waitForRenderedOverlayAssets} from '../lib/overlay-assets.ts';
+import {branding} from '../lib/branding.ts';
 
 test('scale y and translate tracks keep their actual transform axis',()=>{
  assert.deepEqual(effectFrames({effect:'scale',property:'y'},'In'),[{transform:'scaleY(0)'},{transform:'scale(1)'}]);
@@ -19,6 +21,12 @@ test('structured rows use bounded inter-row spacing that preserves four-row fit'
  assert.equal(panelRowGap([207,207,207,207],842,4,24),4);
  assert.equal(panelRowGap([100,100]),56);
  assert.equal(panelRowGap([420,420]),4);
+});
+
+test('bounded presentation choices map to measured text styles',()=>{
+ assert.deepEqual(presentationTextStyles(undefined),{textAlign:undefined,lineHeight:undefined});
+ assert.deepEqual(presentationTextStyles({alignment:'start',lineSpacing:'compact'}),{textAlign:'start',lineHeight:'1.12'});
+ assert.deepEqual(presentationTextStyles({alignment:'center',lineSpacing:'spacious'}),{textAlign:'center',lineHeight:'1.42'});
 });
 
 test('transition state rejects stale and duplicate revisions',()=>{
@@ -72,4 +80,157 @@ test('structured source rows replace aggregate panel text without changing lower
   {element:'textMainEng',animationElement:'textMainEng',text:'Transliteration'},
   {element:'textTranslation',animationElement:'textMainEng',text:'Translation'},
  ]);
+});
+
+/* ---------------------------------------------------------------------------
+ * Asset-aware auto-fit: fonts and artwork must settle before text is measured.
+ * ------------------------------------------------------------------------ */
+
+type FitStyle={fontSize:string;height:string;properties:Record<string,string>;setProperty(name:string,value:string):void};
+type FitNode={classes:string[];base:number;style:FitStyle;dataset:Record<string,string>;readonly scrollHeight:number;readonly offsetHeight:number};
+
+const fitStyle=():FitStyle=>{const properties:Record<string,string>={};return {fontSize:'',height:'',properties,setProperty(name:string,value:string){properties[name]=value}}};
+const fontOf=(node:FitNode)=>node.style.fontSize?parseFloat(node.style.fontSize):node.base;
+const matchesSelector=(node:FitNode,selector:string)=>selector.split(',').some(part=>node.classes.includes(part.trim().replace(/^\./,'')));
+
+/** Four structured rows whose measured height tracks the live font sizes times `metrics.factor`. */
+function panelRowsFixture(metrics:{factor:number}){
+ const channels:FitNode[]=[],rows:FitNode[]=[];
+ for(let index=0;index<4;index++){
+  const members:FitNode[]=[];
+  for(const [className,base] of [['row-hebrew',44],['row-transliteration',36],['row-translation',28]] as const){
+   const channel:FitNode={classes:['prayer',className],base,style:fitStyle(),dataset:{},scrollHeight:0,offsetHeight:0};
+   members.push(channel);channels.push(channel);
+  }
+  const height=()=>Math.ceil(members.reduce((sum,member)=>sum+fontOf(member),0)*metrics.factor);
+  rows.push({classes:['content-row'],base:0,style:fitStyle(),dataset:{},get scrollHeight(){return height()},get offsetHeight(){return height()}});
+ }
+ const container={classes:['panel-rows'],base:0,style:fitStyle(),dataset:{} as Record<string,string>,scrollHeight:0,offsetHeight:0,querySelectorAll:(selector:string)=>[...rows,...channels].filter(node=>matchesSelector(node,selector))};
+ const all=[container as unknown as FitNode,...rows,...channels];
+ const box={classes:['overlay','left'],base:0,style:fitStyle(),dataset:{} as Record<string,string>,scrollHeight:0,offsetHeight:0,
+  querySelector:(selector:string)=>selector==='.panel-rows'?container:null,
+  querySelectorAll:(selector:string)=>all.filter(node=>matchesSelector(node,selector))};
+ return {box:box as unknown as HTMLElement,fonts:()=>channels.slice(0,3).map(fontOf),fit:()=>box.dataset.fit,gap:()=>container.style.properties['--panel-row-gap']};
+}
+
+(globalThis as unknown as {getComputedStyle:(element:unknown)=>{fontSize:string}}).getComputedStyle=element=>({fontSize:(element as FitNode).style.fontSize||`${(element as FitNode).base}px`});
+
+const rowsCue:Cue={id:'rows',name:'Structured rows',layout:'left',texts:{},animations:[],duration:{},contentRows:[
+ {he:'א',tr:'a',en:'A'},{he:'ב',tr:'b',en:'B'},{he:'ג',tr:'c',en:'C'},{he:'ד',tr:'d',en:'D'},
+]};
+
+test('applyFit is idempotent and always re-fits from the template base sizes',()=>{
+ const player=new Player({} as unknown as HTMLElement,[rowsCue]);
+ const settled=panelRowsFixture({factor:2});
+ player.applyFit(settled.box,rowsCue);
+ const expected=settled.fonts();
+ assert.deepEqual(expected,[42,34,26],'fitting shrinks the fixture, so the test exercises the loop');
+ player.applyFit(settled.box,rowsCue);
+ assert.deepEqual(settled.fonts(),expected,'a repeated fit against the same metrics changes nothing');
+
+ // Fallback metrics measure larger; once the real fonts and artwork land the second fit
+ // must reach the settled sizes, not shrink cumulatively from the provisional ones.
+ const metrics={factor:2.2},provisional=panelRowsFixture(metrics);
+ player.applyFit(provisional.box,rowsCue);
+ assert.deepEqual(provisional.fonts(),[39,31,23],'fallback metrics force a deeper provisional shrink');
+ metrics.factor=2;
+ player.applyFit(provisional.box,rowsCue);
+ assert.deepEqual(provisional.fonts(),expected);
+ assert.equal(provisional.fit(),settled.fit());
+ assert.equal(provisional.gap(),settled.gap());
+});
+
+function displayFixture(logo:{src:string;complete:boolean;naturalWidth:number}):HTMLDivElement{
+ const box={querySelector:(selector:string)=>selector==='img.logo'?logo:null};
+ return box as unknown as HTMLDivElement;
+}
+
+function stubbedPlayer(cue:Cue,options:{waitForAssets:(root:HTMLElement)=>Promise<void>;box:HTMLDivElement}){
+ const order:string[]=[];
+ const player=new Player({} as unknown as HTMLElement,[cue],branding,{
+  resolveAssetUrl:()=>'/api/assets/artwork/content',
+  waitForAssets:async root=>{order.push('wait');await options.waitForAssets(root)},
+ });
+ player.render=()=>{order.push('render');return options.box};
+ player.applyFit=()=>{order.push('fit')};
+ player.animate=async()=>{order.push('animate')};
+ return {player,order};
+}
+
+test('the display path fits only after the asset wait resolves and before animate-in',async()=>{
+ const logo={src:'/api/assets/artwork/content',complete:true,naturalWidth:120};
+ const {player,order}=stubbedPlayer(rowsCue,{box:displayFixture(logo),waitForAssets:async()=>{}});
+ player.desired={cue:'rows',revision:1,mode:'animate'};
+ await player.drain();
+ assert.deepEqual(order,['render','wait','fit','animate']);
+ assert.equal(player.phase,'settled');
+ assert.equal(player.current?.id,'rows');
+});
+
+test('unusable artwork falls back to the branding logo and still shows the text cue',async()=>{
+ const logo={src:'/api/assets/artwork/content',complete:false,naturalWidth:0};
+ const {player,order}=stubbedPlayer(rowsCue,{box:displayFixture(logo),waitForAssets:async root=>{
+  const rendered=(root as unknown as {querySelector:(selector:string)=>{src:string}}).querySelector('img.logo');
+  if(rendered.src!==branding.logo)throw Error('Workspace artwork unavailable');
+ }});
+ player.desired={cue:'rows',revision:1,mode:'animate'};
+ await player.drain();
+ assert.equal(logo.src,branding.logo);
+ assert.deepEqual(order,['render','wait','wait','fit','animate']);
+ assert.equal(player.phase,'settled');
+ assert.equal(player.current?.id,'rows');
+});
+
+test('a font or layout failure on a loaded logo is not disguised as an artwork fallback',async()=>{
+ const logo={src:'/api/assets/artwork/content',complete:true,naturalWidth:120};
+ const {player,order}=stubbedPlayer(rowsCue,{box:displayFixture(logo),waitForAssets:async()=>{throw Error('The Hebrew overlay font is not ready.')}});
+ player.desired={cue:'rows',revision:1,mode:'animate'};
+ await player.drain();
+ assert.equal(player.phase,'error');
+ assert.equal(logo.src,'/api/assets/artwork/content');
+ assert.deepEqual(order,['render','wait']);
+});
+
+/* ---------------------------------------------------------------------------
+ * Overlay asset waiting: one shared deadline, cleanup on every exit path.
+ * ------------------------------------------------------------------------ */
+
+type StubbedListener={type:string;handler:()=>void};
+
+function stubDocument(fonts:{load?:()=>Promise<unknown>;ready?:Promise<void>}){
+ (globalThis as unknown as {document:unknown}).document={fonts:{
+  load:fonts.load??(async()=>[]),
+  ready:fonts.ready??Promise.resolve(),
+  check:()=>true,
+ }};
+}
+(globalThis as unknown as {requestAnimationFrame:(callback:()=>void)=>number}).requestAnimationFrame=callback=>{queueMicrotask(callback);return 0};
+
+function stubLogo(){
+ const listeners:StubbedListener[]=[];let peak=0;
+ const logo={complete:false,naturalWidth:0,decode:async()=>{},
+  addEventListener(type:string,handler:()=>void){listeners.push({type,handler});peak=Math.max(peak,listeners.length)},
+  removeEventListener(type:string,handler:()=>void){const index=listeners.findIndex(item=>item.type===type&&item.handler===handler);if(index>=0)listeners.splice(index,1)}};
+ return {logo,listeners,peak:()=>peak,root:{querySelector:()=>logo} as unknown as HTMLElement};
+}
+
+test('a timed-out overlay asset wait removes every listener it attached',async()=>{
+ stubDocument({});
+ const target=stubLogo();
+ await assert.rejects(waitForRenderedOverlayAssets(target.root,AbortSignal.timeout(40)),/timed out/);
+ assert.equal(target.peak(),2,'the logo load stage attaches a load and an error listener');
+ assert.deepEqual(target.listeners,[],'the timeout path runs the same cleanup as load and error');
+});
+
+test('one shared deadline bounds the whole overlay asset wait instead of each stage',async()=>{
+ assert.equal(OVERLAY_ASSET_TIMEOUT_MS,8000);
+ const slow=()=>new Promise<void>(resolve=>setTimeout(resolve,200));
+ stubDocument({load:slow,ready:slow()});
+ const target=stubLogo();
+ const started=Date.now();
+ await assert.rejects(waitForRenderedOverlayAssets(target.root,AbortSignal.timeout(300)),/timed out/);
+ const elapsed=Date.now()-started;
+ // Per-stage budgets would have spent 200 + 200 + 300 ms here.
+ assert.ok(elapsed<500,`the shared deadline bounded the wait (${elapsed}ms)`);
+ assert.deepEqual(target.listeners,[]);
 });

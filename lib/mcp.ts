@@ -6,11 +6,16 @@ export type AuthoringOperation=(operation:string,input:unknown,actor:string)=>Pr
 
 const id=z.string().min(1).max(200);
 const version=z.number().int().nonnegative();
-const presentation=z.object({hebrewFontSize:z.number().int().min(24).max(52).optional(),transliterationFontSize:z.number().int().min(20).max(48).optional(),titleFontSize:z.number().int().min(20).max(42).optional()}).strict();
+const presentation=z.object({hebrewFontSize:z.number().int().min(24).max(52).optional(),transliterationFontSize:z.number().int().min(20).max(48).optional(),titleFontSize:z.number().int().min(20).max(42).optional(),alignment:z.enum(['start','center']).optional(),lineSpacing:z.enum(['compact','spacious']).optional(),imageAssetId:z.string().regex(/^asset_[a-f0-9]{64}$/).optional()}).strict();
 const sourceGroup=z.object({sourceId:z.string().min(1).max(160),blockIds:z.array(z.string().min(1).max(220)).min(1).max(48)}).strict();
 const bilingual=z.object({mode:z.literal('bilingual'),hebrewGroups:z.array(sourceGroup).min(1).max(24),transliterationGroups:z.array(sourceGroup).min(1).max(24),includeTranslation:z.boolean().optional()}).strict();
 const originalEnglish=z.object({mode:z.literal('original-en'),englishGroups:z.array(sourceGroup).min(1).max(24)}).strict();
-const content=z.discriminatedUnion('mode',[bilingual,originalEnglish]);
+const sourceEnglish=z.object({mode:z.literal('source-en'),englishGroups:z.array(sourceGroup).min(1).max(24)}).strict();
+const canonicalContent=z.discriminatedUnion('mode',[bilingual,originalEnglish,sourceEnglish]);
+const variantOverride=z.object({sourceId:z.string().min(1).max(160),blockId:z.string().min(1).max(220),channel:z.enum(['he','tr','en']),sourceText:z.string().min(1).max(4000),localText:z.string().min(1).max(4000)}).strict();
+const localVariant=z.object({mode:z.literal('local-variant'),label:z.string().min(1).max(80),reason:z.string().min(1).max(500).optional(),base:canonicalContent,overrides:z.array(variantOverride).min(1).max(96)}).strict();
+const custom=z.object({mode:z.literal('custom'),text:z.string().min(1).max(4000)}).strict();
+const content=z.union([canonicalContent,localVariant,custom]);
 const draftFields=z.object({name:z.string().min(1).max(80),title:z.string().min(1).max(100),accentTitle:z.string().max(60).optional(),layout:z.enum(['left','bottom','right']),templateCueId:z.string().min(1).max(80),content,presentation:presentation.optional()}).strict();
 
 function actor(authInfo:AuthInfo|undefined){const stored=authInfo?.extra?.actor;return typeof stored==='string'?stored:`mcp:${authInfo?.clientId??'unknown'}`}
@@ -25,9 +30,18 @@ export function createAuthoringMcpHandler(authoringOperation:AuthoringOperation)
   register('get_source','Get one authorized source by ID.',z.object({sourceId:id}).strict(),{readOnlyHint:true});
   register('list_templates','List baseline cue templates and whether each can be imported.',z.object({}).strict(),{readOnlyHint:true});
   register('list_drafts','List authoring drafts.',z.object({}).strict(),{readOnlyHint:true});
+  register('list_archived_drafts','List recoverable archived authoring drafts.',z.object({}).strict(),{readOnlyHint:true});
   register('get_draft','Get one draft and its current version.',z.object({draftId:id}).strict(),{readOnlyHint:true});
   register('import_cue','Idempotently create or return a source-reference draft for an existing baseline cue. No plaintext prayer content is accepted.',z.object({cueId:id}).strict(),{readOnlyHint:false,idempotentHint:true});
   register('create_draft','Create a source-reference draft with a new stable ID.',draftFields,{readOnlyHint:false});
+  register('create_local_variant','Create an unpublished local liturgical variant while retaining exact source text and pins.',z.object({draftId:id.optional(),cueId:id.optional(),label:z.string().min(1).max(80),reason:z.string().min(1).max(500).optional(),overrides:z.array(z.object({sourceId:z.string().min(1).max(160),blockId:z.string().min(1).max(220),channel:z.enum(['he','tr','en']),localText:z.string().min(1).max(4000)}).strict()).min(1).max(96)}).strict(),{readOnlyHint:false});
+  register('archive_draft','Archive a standalone draft without changing its published output.',z.object({draftId:id,expectedVersion:version.min(1)}).strict(),{readOnlyHint:false,idempotentHint:true});
+  register('restore_draft','Restore a standalone archived draft.',z.object({draftId:id,expectedVersion:version.min(1)}).strict(),{readOnlyHint:false,idempotentHint:true});
+  register('archive_draft_set','Atomically archive a complete multipart draft set without changing published output.',z.object({setId:id,expectedDraftIds:z.array(id).min(1).max(200)}).strict(),{readOnlyHint:false,idempotentHint:true});
+  register('restore_draft_set','Atomically restore a complete multipart draft set.',z.object({setId:id,expectedDraftIds:z.array(id).min(1).max(200)}).strict(),{readOnlyHint:false,idempotentHint:true});
+  register('reorder_draft_set','Atomically reorder every slide in a multipart draft set.',z.object({setId:id,expectedDraftIds:z.array(id).min(1).max(200),orderedDraftIds:z.array(id).min(1).max(200)}).strict(),{readOnlyHint:false,idempotentHint:true});
+  register('duplicate_draft_in_set','Duplicate one multipart slide with a new identity and contiguous set order.',z.object({draftId:id,expectedVersion:version.min(1),expectedDraftIds:z.array(id).min(1).max(200)}).strict(),{readOnlyHint:false});
+  register('review_draft_set','Verify exact-once source blocks, language channels, and order for a multipart draft set.',z.object({setId:id}).strict(),{readOnlyHint:true});
   register('update_draft','Update a draft using optimistic version matching.',z.object({draftId:id,expectedVersion:version.min(1),patch:draftFields.partial().strict()}).strict(),{readOnlyHint:false,idempotentHint:true});
   register('preview_draft','Create a version-bound preview and return its authenticated preview path and fit contract. A human must review it in the web UI before publishing.',z.object({draftId:id,expectedVersion:version.min(1)}).strict(),{readOnlyHint:false,idempotentHint:true});
   register('publish_draft','Publish only a preview with a stored, exact-version human review receipt.',z.object({draftId:id,expectedVersion:version.min(1),previewId:id}).strict(),{readOnlyHint:false});

@@ -1,6 +1,6 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
-import {AuthoringError,baselineCues,buildCue,editableFromBaseline,parseContent,parseEditable,sourcePack,sourcePinFor,type Draft} from '../lib/authoring-model.ts';
+import {AuthoringError,baselineCues,buildCue,editableFromBaseline,parseContent,parseEditable,sourcePack,sourcePinFor,type Draft,type EditableDraft} from '../lib/authoring-model.ts';
 
 const BARECHU='efa9fad4-f7d5-4091-a708-82103028861b';
 
@@ -64,7 +64,7 @@ test('translated baseline import retains all three source channels',()=>{
 test('source English renders exact neutral text without claiming it is original',()=>{
  const selected=sourcePack.sources.flatMap(source=>source.blocks.map(block=>({source,block}))).find(item=>item.block.kind==='source-en'&&item.block.englishRole==='unclassified')!;
  const content=parseContent({mode:'source-en',englishGroups:[{sourceId:selected.source.id,blockIds:[selected.block.id]}]});const now=Date.now();
- const editable=parseEditable({name:'Source English',title:selected.source.name,layout:'bottom',templateCueId:BARECHU,content,presentation:{}}) as any;
+ const editable=parseEditable({name:'Source English',title:selected.source.name,layout:'bottom',templateCueId:BARECHU,content,presentation:{}}) as EditableDraft;
  const draft:Draft={...editable,id:'source-en-test',version:1,sourcePin:sourcePinFor(content),activeRevision:null,activeDraftVersion:null,createdAt:now,updatedAt:now,createdBy:'test',updatedBy:'test'};
  const cue=buildCue(draft);assert.equal(cue.texts.textMain,selected.block.en);assert.equal(cue.authoring.origin,'canonical');assert.equal(cue.authoring.copySpec?.content.mode,'source-en');
  assert.throws(()=>parseContent({mode:'original-en',englishGroups:[{sourceId:selected.source.id,blockIds:[selected.block.id]}]}),/not original-en/);
@@ -77,7 +77,7 @@ test('custom announcements are local, strictly validated, and render without sou
  assert.throws(()=>parseContent({mode:'custom',text:'Hello',sourceId:'not-allowed'}),/unsupported fields/);
  assert.throws(()=>parseContent({mode:'custom',text:'   '}),/1-4000 characters/);
  assert.throws(()=>parseContent({mode:'custom',text:'x'.repeat(4001)}),/1-4000 characters/);
- const editable=parseEditable({name:'Welcome',title:'Central Reform Congregation',layout:'right',templateCueId:'09f50803-3288-4b78-bcc7-560025668e1a',content,presentation:{}}) as any;
+ const editable=parseEditable({name:'Welcome',title:'Central Reform Congregation',layout:'right',templateCueId:'09f50803-3288-4b78-bcc7-560025668e1a',content,presentation:{}}) as EditableDraft;
  const now=Date.now();const draft:Draft={...editable,id:'local-test',version:1,sourcePin:sourcePinFor(content),activeRevision:null,activeDraftVersion:null,createdAt:now,updatedAt:now,createdBy:'test',updatedBy:'test'};
  const cue=buildCue(draft);
  assert.equal(cue.texts.textMain,'Welcome to tonight’s gathering.');
@@ -85,7 +85,7 @@ test('custom announcements are local, strictly validated, and render without sou
  assert.equal(cue.authoring.origin,'local');
  assert.equal(cue.authoring.feedSha256,'local');
  const split=baselineCues.find(item=>item.animations.some(track=>track.element==='textMainEng')&&!item.animations.some(track=>track.element==='textMain'))!;
- const splitEditable=parseEditable({name:'Welcome',title:'CRC',layout:split.layout,templateCueId:split.id,content,presentation:{}}) as any;
+ const splitEditable=parseEditable({name:'Welcome',title:'CRC',layout:split.layout,templateCueId:split.id,content,presentation:{}}) as EditableDraft;
  const splitCue=buildCue({...draft,...splitEditable});assert.ok(splitCue.animations.some(track=>track.element==='textMain'),'custom text receives a usable body animation from split-language templates');
 });
 

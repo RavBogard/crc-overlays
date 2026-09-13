@@ -1,22 +1,37 @@
 import type { Cue } from "@/lib/player";
 
 export type Layout = "bottom" | "left" | "right";
-export type ContentMode = "bilingual" | "source-en" | "original-en" | "custom";
+export type CanonicalContentMode = "bilingual" | "source-en" | "original-en";
+export type ContentMode = CanonicalContentMode | "local-variant" | "custom";
 export type SourceEnglishRole = "translation" | "interpretation" | "translation-interpretation" | "reading" | "kavannah" | "rubric" | "note" | "unclassified";
 export type Presentation = {
   hebrewFontSize?: number;
   transliterationFontSize?: number;
   titleFontSize?: number;
+  alignment?: "start" | "center";
+  lineSpacing?: "compact" | "spacious";
+  imageAssetId?: string;
 };
 export type SourceGroup = { sourceId: string; blockIds: string[] };
-export type DraftContent =
+export type CanonicalDraftContent =
   | {
       mode: "bilingual";
       hebrewGroups: SourceGroup[];
       transliterationGroups: SourceGroup[];
       includeTranslation?: boolean;
     }
-  | { mode: "source-en" | "original-en"; englishGroups: SourceGroup[] }
+  | { mode: "source-en" | "original-en"; englishGroups: SourceGroup[] };
+export type VariantChannel = "he" | "tr" | "en";
+export type LocalVariantOverride = {
+  sourceId: string;
+  blockId: string;
+  channel: VariantChannel;
+  sourceText: string;
+  localText: string;
+};
+export type DraftContent =
+  | CanonicalDraftContent
+  | { mode: "local-variant"; label: string; reason?: string; base: CanonicalDraftContent; overrides: LocalVariantOverride[] }
   | { mode: "custom"; text: string };
 export type Draft = {
   id: string;
@@ -35,12 +50,14 @@ export type Draft = {
   setCount?: number;
   sourceSnapshots?: Source[];
   sharedFrom?: { workspaceId: string; cueId: string; cueHash: string };
+  archivedAt?: number;
+  archivedBy?: string;
   updatedAt: number;
 };
 export type SourceBlock = {
   id: string;
   index: number;
-  kind: Exclude<ContentMode, "custom"> | "translation-en";
+  kind: CanonicalContentMode | "translation-en";
   pairedBlockIds?: string[];
   he?: string;
   tr?: string;
@@ -63,11 +80,26 @@ export type Source = {
   origin?: string;
   aliases?: string[];
   openingWords?: string[];
+  unitSha256?: string;
+  sourceSha256?: string;
+  metadata?: {
+    bookTitle?: string;
+    familyLabel?: string;
+    sectionTitle?: string;
+    folios?: Array<string | number>;
+  };
+  authority?: {
+    repository?: string;
+    repositoryCommit?: string;
+    feed?: string;
+    unitId?: string;
+    unitSha256?: string;
+  };
   blocks: SourceBlock[];
 };
 export type SourceSummary = Omit<Source, "blocks"> & {
   blockCount: number;
-  kinds: Exclude<ContentMode, "custom">[];
+  kinds: CanonicalContentMode[];
   coverage?: {
     bilingual: number;
     originalEnglish: number;
@@ -100,7 +132,7 @@ export type CatalogCue = {
   title: string;
   layout: Layout;
   hidden: boolean;
-  origin: "canonical" | "local" | "legacy";
+  origin: "canonical" | "local" | "legacy" | "variant";
   draftId: string | null;
   draftVersion: number | null;
   activeRevision: number | null;
@@ -138,5 +170,9 @@ export type DraftForm = {
   mode: ContentMode;
   groups: SourceGroup[];
   customText: string;
+  variantLabel: string;
+  variantReason: string;
+  variantBase?: CanonicalDraftContent;
+  variantOverrides: LocalVariantOverride[];
   presentation: Presentation;
 };

@@ -1,6 +1,6 @@
 import {OAuthError,OAuthErrorCode,type AuthInfo,type OAuthTokenVerifier} from '@modelcontextprotocol/server';
 import {db} from './database';
-import {AUTHORING_SCOPE,AUTH_REQUEST_TTL_MS,CODE_TTL_MS,REFRESH_TOKEN_TTL_MS,TOKEN_TTL_MS,hashOpaque,normalizeScope,opaque,pkceChallenge,validPkceVerifier} from './oauth-core';
+import {AUTH_REQUEST_TTL_MS,CODE_TTL_MS,REFRESH_TOKEN_TTL_MS,TOKEN_TTL_MS,hashOpaque,normalizeScope,opaque,pkceChallenge,validPkceVerifier} from './oauth-core';
 
 type ClientRow={client_id_hash:string;redirect_uris:string[];client_name:string};
 type AuthRequestRow={client_id_hash:string;redirect_uri:string;code_challenge:string;scope:string;resource:string;state:string|null};

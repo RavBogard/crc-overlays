@@ -2,11 +2,16 @@ import assert from "node:assert/strict";
 import test from "node:test";
 import {
   blocksForMode,
+  auditDraftSet,
   draftHasUnpublishedWork,
+  draftReadableText,
+  draftThumbnailCopy,
   editableFromForm,
   emptyForm,
   formReady,
+  moveDraftId,
   parseRecovery,
+  routeForDraft,
   selectWholeSource,
 } from "./editor-state.ts";
 import type { Source } from "./types.ts";
@@ -31,6 +36,22 @@ test("whole-prayer selection preserves source order", () => {
   assert.deepEqual(selectWholeSource("siddur-1", ["a", "b", "c"]), [
     { sourceId: "siddur-1", blockIds: ["a", "b", "c"] },
   ]);
+});
+
+test("whole-prayer slide ordering moves one ID without losing the complete set", () => {
+  assert.deepEqual(moveDraftId(["one", "two", "three"], "two", -1), ["two", "one", "three"]);
+  assert.deepEqual(moveDraftId(["one", "two", "three"], "one", -1), ["one", "two", "three"]);
+});
+
+test("whole-prayer audit detects duplicate, missing, and out-of-source-order passages", () => {
+  const source = { id: "source-1", name: "Prayer", section: null, blocks: ["a", "b", "c"].map((id, index) => ({ id, index, kind: "source-en" as const, en: id.toUpperCase(), automatic: true })) };
+  const make = (id: string, index: number, blockIds: string[]) => ({ id, name: id, title: "Prayer", layout: "left" as const, templateCueId: "template-1", content: { mode: "source-en" as const, englishGroups: [{ sourceId: source.id, blockIds }] }, presentation: {}, version: 1, activeRevision: null, activeDraftVersion: null, updatedAt: 1, draftSetId: "set-1", setIndex: index, setCount: 2, sourceSnapshots: [source] });
+  assert.deepEqual(auditDraftSet([make("one", 1, ["a", "b"]), make("two", 2, ["c"])]), { complete: true, duplicateCount: 0, missingCount: 0, unexpectedCount: 0, sourceOrder: true, selectedCount: 3, expectedCount: 3 });
+  const broken = auditDraftSet([make("two", 1, ["c"]), make("one", 2, ["a", "a"])]);
+  assert.equal(broken?.complete, false);
+  assert.equal(broken?.duplicateCount, 1);
+  assert.equal(broken?.missingCount, 1);
+  assert.equal(broken?.sourceOrder, false);
 });
 
 test("English from the siddur stays distinct from an original English reading", () => {
@@ -64,6 +85,38 @@ test("source English includes exact English embedded in a paired source block", 
   assert.deepEqual(blocksForMode(source, "original-en").map((block) => block.id), ["original"]);
 });
 
+test("library thumbnails use exact draft words without changing source text", () => {
+  const draft = {
+    id: "draft-1", name: "Mah Tovu", title: "Mah Tovu", layout: "left", templateCueId: "template-1",
+    content: { mode: "bilingual", hebrewGroups: [{ sourceId: "source-1", blockIds: ["block-1"] }], transliterationGroups: [{ sourceId: "source-1", blockIds: ["block-1"] }] },
+    presentation: {}, version: 1, activeRevision: null, activeDraftVersion: null, updatedAt: 1,
+    sourceSnapshots: [{ id: "source-1", name: "Mah Tovu", section: "Morning", blocks: [{ id: "block-1", index: 0, kind: "bilingual", he: "מַה טֹּבוּ", tr: "Mah tovu" }] }],
+  } satisfies import("./types.ts").Draft;
+  assert.deepEqual(draftThumbnailCopy(draft), { title: "Mah Tovu", accent: undefined, body: "מַה טֹּבוּ" });
+  assert.equal(draftReadableText(draft), "מַה טֹּבוּ\nMah tovu");
+});
+
+test("local variant editing retains exact source text beside local wording", () => {
+  const sourceText = "מַה טֹּבוּ";
+  const form = {
+    ...emptyForm,
+    name: "Our Mah Tovu",
+    title: "Mah Tovu",
+    templateCueId: "template-1",
+    mode: "local-variant" as const,
+    groups: [{ sourceId: "source-1", blockIds: ["block-1"] }],
+    variantLabel: "Our congregation wording",
+    variantBase: { mode: "bilingual" as const, hebrewGroups: [{ sourceId: "source-1", blockIds: ["block-1"] }], transliterationGroups: [{ sourceId: "source-1", blockIds: ["block-1"] }] },
+    variantOverrides: [{ sourceId: "source-1", blockId: "block-1", channel: "he" as const, sourceText, localText: "מה טובו" }],
+  };
+  const content = editableFromForm(form).content;
+  assert.equal(content.mode, "local-variant");
+  if (content.mode !== "local-variant") return;
+  assert.equal(content.overrides[0].sourceText, sourceText);
+  assert.equal(content.overrides[0].localText, "מה טובו");
+  assert.equal(formReady(form), true);
+});
+
 test("recovery parser rejects incomplete browser data", () => {
   assert.equal(parseRecovery('{"savedAt":1}'), null);
   assert.equal(parseRecovery("not json"), null);
@@ -85,4 +138,19 @@ test("published drafts reveal newer unpublished work", () => {
   };
   assert.equal(draftHasUnpublishedWork(draft), true);
   assert.equal(draftHasUnpublishedWork({ ...draft, activeDraftVersion: 3 }), false);
+});
+
+test("routeForDraft returns the plain author route when no draft is open", () => {
+  assert.equal(routeForDraft(null), "/author");
+  assert.equal(routeForDraft(undefined), "/author");
+  assert.equal(routeForDraft(""), "/author");
+});
+
+test("routeForDraft points at the given draft", () => {
+  assert.equal(routeForDraft("draft_123"), "/author?draft=draft_123");
+});
+
+test("routeForDraft encodes identifiers that need escaping", () => {
+  assert.equal(routeForDraft("draft 1&2?x=3"), "/author?draft=draft%201%262%3Fx%3D3");
+  assert.equal(routeForDraft("שבת/1"), `/author?draft=${encodeURIComponent("שבת/1")}`);
 });
