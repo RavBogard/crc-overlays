@@ -1,7 +1,7 @@
 'use client';
 
 import Link from 'next/link';
-import {useMemo, useState} from 'react';
+import {useEffect, useMemo, useRef, useState} from 'react';
 import type {PublicWorkspace} from '@/lib/workspace';
 import WorkspaceHeader from '@/components/workspace-header';
 import styles from './setup.module.css';
@@ -9,6 +9,11 @@ import styles from './setup.module.css';
 type Application = 'vmix' | 'obs';
 type RequestResult = {response: Response; body: Record<string, unknown>} | {needsKey: true};
 type Renderer = {seen?: number; phase?: string};
+type ProgressBody = {steps?: Record<string, boolean>; persisted?: boolean};
+
+/** Step keys stored per member by /api/setup-progress. Add a key here when the guide learns a new completion. */
+const BACKUP_STEP = 'backup-confirmed';
+const COMPANION_STEP = 'companion-confirmed';
 
 async function readJson(response: Response) {
   try { return await response.json() as Record<string, unknown>; }
@@ -16,13 +21,58 @@ async function readJson(response: Response) {
 }
 
 export default function SetupGuide({workspace}: {workspace: PublicWorkspace}) {
-  const [application, setApplication] = useState<Application>(workspace.id === 'crc' ? 'vmix' : 'obs');
+  const [application, setApplication] = useState<Application>(workspace.defaultCompositor);
   const [legacyKey, setLegacyKey] = useState('');
   const [showLegacyAccess, setShowLegacyAccess] = useState(false);
   const [copyStatus, setCopyStatus] = useState('');
-  const [connectionStatus, setConnectionStatus] = useState<'idle'|'checking'|'connected'|'missing'|'unavailable'>('idle');
+  const [connectionStatus, setConnectionStatus] = useState<'idle'|'checking'|'connected'|'missing'|'unavailable'|'signin'>('idle');
   const [backupConfirmed, setBackupConfirmed] = useState(false);
   const [companionConfirmed, setCompanionConfirmed] = useState(false);
+  // null until the first read answers. false means this browser is a legacy key or signed out,
+  // so the checklist still works but is remembered only for this page load.
+  const [progressPersisted, setProgressPersisted] = useState<boolean | null>(null);
+  const [progressSaved, setProgressSaved] = useState(false);
+  const savedTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
+
+  // Reading progress never blocks the guide: a failure simply leaves the boxes unticked.
+  useEffect(() => {
+    let live = true;
+    void (async () => {
+      try {
+        const response = await fetch('/api/setup-progress', {cache: 'no-store'});
+        if (!live) return;
+        if (response.status === 401) { setProgressPersisted(false); return; }
+        if (!response.ok) return;
+        const body = await response.json() as ProgressBody;
+        if (!live) return;
+        setProgressPersisted(body.persisted === true);
+        setBackupConfirmed(body.steps?.[BACKUP_STEP] === true);
+        setCompanionConfirmed(body.steps?.[COMPANION_STEP] === true);
+      } catch {}
+    })();
+    return () => {
+      live = false;
+      if (savedTimer.current) clearTimeout(savedTimer.current);
+    };
+  }, []);
+
+  async function saveProgress(steps: Record<string, boolean>) {
+    try {
+      const response = await fetch('/api/setup-progress', {
+        method: 'PUT',
+        headers: {'Content-Type': 'application/json'},
+        body: JSON.stringify({steps}),
+      });
+      if (response.status === 401) { setProgressPersisted(false); return; }
+      if (!response.ok) return;
+      const body = await response.json() as ProgressBody;
+      setProgressPersisted(body.persisted === true);
+      if (body.persisted !== true) return;
+      setProgressSaved(true);
+      if (savedTimer.current) clearTimeout(savedTimer.current);
+      savedTimer.current = setTimeout(() => setProgressSaved(false), 2500);
+    } catch {}
+  }
 
   async function authenticatedGet(path: string): Promise<RequestResult> {
     const first = await fetch(path, {cache: 'no-store', signal: AbortSignal.timeout(5000)});
@@ -62,11 +112,12 @@ export default function SetupGuide({workspace}: {workspace: PublicWorkspace}) {
       const result = await authenticatedGet('/api/state');
       if ('needsKey' in result) {
         setShowLegacyAccess(true);
-        setConnectionStatus('unavailable');
+        setConnectionStatus('signin');
         return;
       }
       if (!result.response.ok) {
-        setConnectionStatus('unavailable');
+        // Sign-in has a way out for the reader; every other failure keeps the general wording.
+        setConnectionStatus(result.response.status === 401 || result.response.status === 403 ? 'signin' : 'unavailable');
         return;
       }
       const renderers = Array.isArray(result.body.renderers) ? result.body.renderers as Renderer[] : [];
@@ -109,7 +160,7 @@ export default function SetupGuide({workspace}: {workspace: PublicWorkspace}) {
           <h2>Protect the setup you already use</h2>
           <p>In Companion, open <strong>Import / Export</strong> and save a full backup. Choose two pages that are completely empty. Do not replace or rename your Singular connection.</p>
           <label className={styles.confirm}>
-            <input type="checkbox" checked={backupConfirmed} onChange={event => setBackupConfirmed(event.target.checked)}/>
+            <input type="checkbox" checked={backupConfirmed} onChange={event => {setBackupConfirmed(event.target.checked); void saveProgress({[BACKUP_STEP]: event.target.checked});}}/>
             <span>I saved a backup and found two empty pages.</span>
           </label>
         </div>
@@ -129,7 +180,7 @@ export default function SetupGuide({workspace}: {workspace: PublicWorkspace}) {
             <p className={styles.caution}>During page import, map the page’s {workspace.productName} placeholder to the connection you just added. Never choose “Full Reset then Import.”</p>
           </> : <p className={styles.notice}>The Companion files for this congregation have not been published yet. The congregation’s operator can finish this step when its reviewed module and button pages are ready.</p>}
           <label className={styles.confirm}>
-            <input type="checkbox" checked={companionConfirmed} onChange={event => setCompanionConfirmed(event.target.checked)}/>
+            <input type="checkbox" checked={companionConfirmed} onChange={event => {setCompanionConfirmed(event.target.checked); void saveProgress({[COMPANION_STEP]: event.target.checked});}}/>
             <span>Companion shows the {workspace.productName} connection as OK.</span>
           </label>
         </div>
@@ -142,8 +193,8 @@ export default function SetupGuide({workspace}: {workspace: PublicWorkspace}) {
           <h2>Add a separate browser input</h2>
           <fieldset className={styles.applicationPicker}>
             <legend>Which application is on this computer?</legend>
-            <label className={application === 'vmix' ? styles.selected : ''}><input type="radio" name="application" value="vmix" checked={application === 'vmix'} onChange={() => setApplication('vmix')}/><span><strong>vMix</strong><small>{workspace.id === 'crc' ? 'Michael’s current setup' : 'Web Browser input'}</small></span></label>
-            <label className={application === 'obs' ? styles.selected : ''}><input type="radio" name="application" value="obs" checked={application === 'obs'} onChange={() => setApplication('obs')}/><span><strong>OBS</strong><small>{workspace.id === 'crc' ? 'Browser Source' : `${workspace.shortName}’s current setup`}</small></span></label>
+            <label className={application === 'vmix' ? styles.selected : ''}><input type="radio" name="application" value="vmix" checked={application === 'vmix'} onChange={() => setApplication('vmix')}/><span><strong>vMix</strong><small>{workspace.defaultCompositor === 'vmix' ? 'Default for this congregation' : 'Web Browser input'}</small></span></label>
+            <label className={application === 'obs' ? styles.selected : ''}><input type="radio" name="application" value="obs" checked={application === 'obs'} onChange={() => setApplication('obs')}/><span><strong>OBS</strong><small>{workspace.defaultCompositor === 'obs' ? 'Default for this congregation' : 'Browser source'}</small></span></label>
           </fieldset>
           <div className={styles.appCard}>
             <div><span>In {appInstructions.name}</span><strong>{appInstructions.path}</strong></div>
@@ -172,17 +223,21 @@ export default function SetupGuide({workspace}: {workspace: PublicWorkspace}) {
             {connectionStatus === 'checking' && 'Looking for the graphics browser…'}
             {connectionStatus === 'connected' && <><strong>Graphics browser connected</strong><span>Confirm the picture on the {appInstructions.name} program monitor before service.</span></>}
             {connectionStatus === 'missing' && <><strong>No graphics browser found</strong><span>Open or refresh the new {appInstructions.name} browser input, then check again.</span></>}
+            {connectionStatus === 'signin' && <span>Sign in or connect a control key to check the graphics connection.</span>}
             {connectionStatus === 'unavailable' && <><strong>Could not check the connection</strong><span>Check your access and internet connection, then try again.</span></>}
           </div>
         </div>
       </li>
     </ol>
 
+    {progressPersisted === false && <p className={styles.progressNote} role="status">Progress is saved for signed-in accounts.</p>}
+    {progressSaved && <p className={styles.progressNote} role="status">Saved.</p>}
+
     <section className={styles.finish}>
       <div>
         <span className={styles.kicker}>Rehearsal</span>
         <h2>Test before using it in a service</h2>
-        <p>With the new input off air, test one cue, a fast cue change, Animate Out, and Clear Now. Restart Companion and the browser input once. To return to Singular, take this input off air and use the unchanged Singular input.</p>
+        <p>With the new input off air, test one graphic, a fast graphic change, Animate Out, and Clear Now. Restart Companion and the browser input once. To return to Singular, take this input off air and use the unchanged Singular input.</p>
       </div>
       <Link href="/">Open Live control</Link>
     </section>

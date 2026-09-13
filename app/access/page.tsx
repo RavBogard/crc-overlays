@@ -1,6 +1,6 @@
 'use client';
 
-import {Check,Copy,KeyRound,LibraryBig,LoaderCircle,LogOut,MonitorUp,ShieldCheck,UserMinus,Users} from 'lucide-react';
+import {Check,Copy,KeyRound,LibraryBig,LoaderCircle,MonitorUp,ShieldCheck,UserMinus,Users} from 'lucide-react';
 import Link from 'next/link';
 import {useRouter} from 'next/navigation';
 import {useCallback,useEffect,useState} from 'react';
@@ -100,11 +100,6 @@ export default function AccessPage(){
     router.push('/author');
     return;
    }
-   if(payload.action==='logout'){
-    setUser(null);setMembers([]);setInvite('');
-    notice('Signed out on this browser.');
-    return;
-   }
    if(body.url){
     setInvite(body.url);
     setName('');setEmail('');setRole('editor');
@@ -143,7 +138,6 @@ export default function AccessPage(){
    :user?<div className="access-dashboard">
     <section className="access-welcome">
      <div><div className="access-eyebrow">SIGNED IN</div><h1>Welcome, {user.name}</h1><p>{roleLabel[user.role]} · This browser remains signed in for 30 days. Access is checked on every request.</p></div>
-     <button className="access-quiet" disabled={busy} onClick={()=>void act({action:'logout'})}><LogOut size={16}/>Sign out</button>
     </section>
     <nav className="access-destinations" aria-label="Workspace destinations">
      <Link href="/author"><LibraryBig size={20}/><span><strong>Library</strong><small>Create, review, and publish overlays</small></span></Link>

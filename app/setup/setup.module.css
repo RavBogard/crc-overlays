@@ -56,7 +56,8 @@
 .result strong {color: var(--text);}
 .result span {font-size: 14px;}
 .result.connected {background: #16271f; border-color: #3f6f5c; color: #8fe0b4;}
-.result.missing, .result.unavailable {background: #241f14; border-color: #7a6330; color: var(--gold);}
+.result.missing, .result.unavailable, .result.signin {background: #241f14; border-color: #7a6330; color: var(--gold);}
+.progressNote {margin: 12px 4px 0; color: var(--muted); font-size: 13px;}
 .result.checking {color: var(--mint);}
 
 .finish {display: flex; justify-content: space-between; align-items: center; gap: 30px; background: var(--panel); border: 1px solid var(--line); border-radius: 18px; padding: 28px;}

@@ -18,6 +18,7 @@ This foundation provides public branding and setup labels. It does not by itself
 | `WORKSPACE_PRIMARY_COLOR` | Six-digit hex highlight | CRC turquoise |
 | `WORKSPACE_DEEP_COLOR` | Six-digit hex panel color | CRC blue |
 | `WORKSPACE_ACCENT_COLOR` | Six-digit hex focus/accent | CRC gold |
+| `WORKSPACE_DEFAULT_COMPOSITOR` | Compositor this congregation is set up for (`vmix` or `obs`) | `vmix` |
 | `WORKSPACE_STAGE` | `trial` or `production` | `trial` |
 | `WORKSPACE_SUPPORT_EMAIL` | Optional public support address | unset |
 | `WORKSPACE_COMPANION_MODULE_PATH` | Optional local public module package | reviewed CRC package |

@@ -1,0 +1,6 @@
+.sign-in-card{max-width:1500px;margin:0 auto;background:var(--panel);border:1px solid var(--line);border-radius:16px;padding:35px;color:var(--text)}
+.sign-in-card h2{margin:0 0 8px;font-size:25px}
+.sign-in-card p{margin:0 0 18px;color:var(--muted);line-height:1.5;max-width:56ch}
+.sign-in-card a{display:inline-block;background:var(--mint);color:#082d37;text-decoration:none;padding:12px 16px;border-radius:9px;font-weight:900}
+.sign-in-card button{margin-left:8px;border:1px solid var(--strong,var(--line));background:#20332e;color:var(--text);padding:11px 15px;border-radius:9px;font:inherit;font-weight:800;cursor:pointer}
+.sign-in-card button:hover{background:#294139}
