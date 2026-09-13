@@ -53,14 +53,11 @@ import {
   recoveryKey,
   routeForDraft,
   selectWholeSource,
-  sourceDisplayCopy,
-  sourceHeadline,
   type RecoveryCopy,
 } from "./editor-state";
 import { findFitErrors, waitForPreviewAssets } from "./preview";
 import type {
   BrowserMeasurement,
-  CanonicalContentMode,
   CatalogCue,
   Draft,
   DraftForm,
@@ -73,11 +70,13 @@ import type {
   Source,
   SourceDisplay,
   SourceFacet,
-  SourceEnglishRole,
   SourceSummary,
   TemplateSummary,
   VariantChannel,
 } from "./types";
+import { SiddurEditor } from "./siddur-editor";
+import { AppearanceEditor, densityOptions, type WorkspaceAsset } from "./look-drawer";
+import { CustomTextEditor, DetailsEditor } from "./custom-editor";
 import "./author.css";
 import GraphicThumbnail from "@/components/graphic-thumbnail";
 
@@ -86,14 +85,7 @@ type EditorKind = "siddur" | "custom" | "edit";
 type LibraryItem = { kind: "catalog"; cue: CatalogCue } | { kind: "draft"; draft: Draft };
 type SharedCue = { id: string; name: string; title: string; layout: Layout; sourceIds: string[]; cueHash: string };
 type SharedLibraryState = { available: boolean; cues: SharedCue[]; stale: boolean; refreshedAt: number | null; error: string | null };
-type WorkspaceAsset = { id: string; name: string; altText: string; mimeType: string; bytes: number; width: number; height: number; version: number; archived: boolean; published: boolean; privatePreviewUrl: string; publicUrl?: string };
 type DraftSetReview = { status: "complete" | "needs-review" | "unknown"; message: string; issues: Array<{ kind: "missing" | "duplicated" | "unknown" | "out-of-order"; selections: unknown[] }> };
-
-const densityOptions = [
-  { id: "comfortable", label: "Comfortable", value: {} },
-  { id: "large", label: "Large print", value: { hebrewFontSize: 42, transliterationFontSize: 35, titleFontSize: 34 } },
-  { id: "compact", label: "Compact", value: { hebrewFontSize: 34, transliterationFontSize: 28, titleFontSize: 28 } },
-] as const;
 
 const formatTime = (value?: number) => value ? new Date(value).toLocaleString([], { dateStyle: "medium", timeStyle: "short" }) : "";
 const itemName = (item: LibraryItem) => item.kind === "draft" ? item.draft.name : item.cue.name;
@@ -125,17 +117,6 @@ function variantCandidates(draft: Draft): VariantCandidate[] {
   }
   return result;
 }
-const englishRoleLabel: Record<SourceEnglishRole, string> = {
-  translation: "Translation",
-  interpretation: "Interpretation",
-  "translation-interpretation": "Translation / interpretation",
-  reading: "Reading",
-  kavannah: "Kavannah",
-  rubric: "Service direction",
-  note: "Source note",
-  unclassified: "English text",
-};
-
 export default function AuthorPage() {
   const [key, setKey] = useState("");
   const [role, setRole] = useState<AccessRole | undefined>(undefined);
@@ -327,6 +308,15 @@ export default function AuthorPage() {
 
   const canLeave = useCallback(() => !dirtyRef.current || confirm("Leave these unsaved changes? A browser recovery copy will remain available."), []);
 
+  // I4 - every path that opens a saved draft sets the picker source the same way, so a duplicate
+  // of a source-backed graphic opens on its ticked passage list instead of the search results.
+  const showDraftSource = useCallback(async (controlKey: string, next: Draft) => {
+    const first = sourceGroups(next)[0];
+    if (!first) return setSource(null);
+    const snapshot = next.sourceSnapshots?.find((item) => item.id === first.sourceId);
+    if (snapshot) setSource(snapshot); else await loadSource(controlKey, first.sourceId);
+  }, [loadSource]);
+
   const openDraft = useCallback(async (controlKey: string, draftId: string) => {
     setBusy("load");
     setError("");
@@ -335,18 +325,13 @@ export default function AuthorPage() {
       const response = await authoringCall<{ draft: Draft }>(controlKey, "get_draft", { draftId });
       const next = response.draft;
       applyLoadedDraft(next);
-      const first = sourceGroups(next)[0];
-      if (first) {
-        const snapshot = next.sourceSnapshots?.find((item) => item.id === first.sourceId);
-        if (snapshot) setSource(snapshot); else await loadSource(controlKey, first.sourceId);
-      }
-      else setSource(null);
+      await showDraftSource(controlKey, next);
       checkRecovery(next);
       history.replaceState(null, "", routeForDraft(next.id));
       setMessage(`Opened “${next.name}”. Published output is unchanged.`);
     } catch (value) { fail(value); }
     finally { setBusy(""); }
-  }, [applyLoadedDraft, checkRecovery, fail, loadSource]);
+  }, [applyLoadedDraft, checkRecovery, fail, showDraftSource]);
 
   useEffect(() => {
     let cancelled = false;
@@ -586,8 +571,7 @@ export default function AuthorPage() {
     try {
       const response = await authoringCall<{ draft: Draft }>(key, "import_cue", { cueId: cue.id });
       applyLoadedDraft(response.draft);
-      const first = sourceGroups(response.draft)[0];
-      if (first) await loadSource(key, first.sourceId);
+      await showDraftSource(key, response.draft);
       setDrafts((items) => [response.draft, ...items.filter((item) => item.id !== response.draft.id)]);
       history.replaceState(null, "", routeForDraft(response.draft.id));
       setMessage(`Opened “${response.draft.name}” for editing. Its Companion button remains linked.`);
@@ -604,6 +588,7 @@ export default function AuthorPage() {
     try {
       const response = await authoringCall<{ draft: Draft }>(key, "duplicate_draft", input);
       applyLoadedDraft(response.draft);
+      await showDraftSource(key, response.draft);
       setDrafts((items) => [response.draft, ...items.filter((entry) => entry.id !== response.draft.id)]);
       setLibraryTab("drafts");
       history.replaceState(null, "", routeForDraft(response.draft.id));
@@ -743,7 +728,7 @@ export default function AuthorPage() {
     finally { setBusy(""); }
   }
 
-  async function selectSource(item: SourceSummary) {
+  async function selectSource(item: Pick<SourceSummary, "id" | "name" | "kinds">) {
     setBusy("source"); setError("");
     try {
       const next = await loadSource(key, item.id);
@@ -1017,7 +1002,7 @@ export default function AuthorPage() {
                     makeSlidesFromWholePrayer={() => void makeSlidesFromWholePrayer()}
                     removePanel={() => { const groups = form.groups.filter((_, index) => index !== activeGroup); changeForm({ groups }); setActiveGroup(Math.max(0, activeGroup - 1)); }}
                     changeMode={(mode) => changeForm({ mode, groups: [], includeTranslation: false })}
-                    changeForm={changeForm} busy={busy}
+                    changeForm={changeForm} busy={busy} controlKey={key}
                   />
                 ) : <CustomTextEditor form={form} changeForm={changeForm} />}
 
@@ -1151,44 +1136,6 @@ function RecoveryBanner({ recovery, restore, discard }: { recovery: RecoveryCopy
   return <div className="recovery-banner"><RotateCcw size={19} /><div><strong>Unsaved browser changes are available</strong><small>Stored {formatTime(recovery.savedAt)}. They have not replaced the saved draft.</small></div><button onClick={restore}>Restore</button><button className="text-button" onClick={discard}>Discard</button></div>;
 }
 
-type SiddurEditorProps = {
-  query: string; setQuery: (value: string) => void; results: SourceSummary[]; source: Source | null; form: DraftForm;
-  truncated: boolean;
-  books: SourceFacet[]; services: SourceFacet[]; bookFilter: string; serviceFilter: string;
-  setBookFilter: (value: string) => void; setServiceFilter: (value: string) => void; search: () => void;
-  selectSource: (item: SourceSummary) => void; clearSource: () => void; eligibleBlocks: Source["blocks"];
-  selectedIds: Set<string>; activeGroup: number; setActiveGroup: (index: number) => void;
-  chooseWholePrayer: () => void; toggleBlock: (id: string, checked: boolean) => void; addPanel: () => void; removePanel: () => void;
-  makeSlidesFromWholePrayer: () => void;
-  changeMode: (mode: CanonicalContentMode) => void; changeForm: (patch: Partial<DraftForm>) => void; busy: string;
-};
-
-function SiddurEditor(props: SiddurEditorProps) {
-  const omittedFromAutomatic = props.form.mode === "source-en"
-    ? props.eligibleBlocks.filter((block) => block.automatic === false).length
-    : 0;
-  return <section className="form-section siddur-section"><div className="section-heading"><span>1</span><div><h3>Choose from the siddur</h3><p>Search by prayer, Hebrew, common spelling, or opening words.</p></div></div>
-    <div className="siddur-search-row"><label className="source-search"><span className="sr-only">Search siddur library</span><Search size={17} /><input aria-label="Search siddur library" value={props.query} onChange={(event) => props.setQuery(event.target.value)} onKeyDown={(event) => { if (event.key === "Enter") { event.preventDefault(); props.search(); } }} placeholder="Search prayers and readings" /></label><button onClick={props.search} disabled={props.busy === "search"}>{props.busy === "search" ? <LoaderCircle className="spin" size={17} /> : "Search"}</button></div>
-    {(props.books.length > 0 || props.services.length > 0) && <div className="source-filters"><label>Book<select value={props.bookFilter} onChange={(event) => props.setBookFilter(event.target.value)}><option value="">All books</option>{props.books.map((book) => <option key={book.value} value={book.value}>{book.label} ({book.count})</option>)}</select></label><label>Service<select value={props.serviceFilter} onChange={(event) => props.setServiceFilter(event.target.value)}><option value="">All services</option>{props.services.map((service) => <option key={service.value} value={service.value}>{service.label} ({service.count})</option>)}</select></label></div>}
-    {!props.source ? <div className="source-results">{props.truncated && <p className="results-note">Showing the first {props.results.length}. Choose a book or service, or search to narrow the list.</p>}{props.results.map((item) => { const display = sourceDisplayCopy(item); return <button key={item.id} onClick={() => props.selectSource(item)}><span className="source-book"><BookOpenText size={18} /></span><span><strong>{item.name}</strong><small>{sourceHeadline(display)}</small>{display.sectionTitle && <small className="source-section">{display.sectionTitle}</small>}{item.openingWords?.[0] && <em>{item.openingWords[0]}</em>}</span><ChevronRight size={17} /></button>; })}{!props.results.length && <div className="source-empty"><BookOpenText size={24} /><p>Browse the library or search for a prayer.</p></div>}</div> : <div className="passage-picker">
-      <div className="passage-header"><button className="icon-button" title="Back to results" onClick={props.clearSource}><ChevronLeft size={17} /></button><div><small>{sourceHeadline(sourceDisplayCopy(props.source))}</small><h4>{props.source.name}</h4></div><div className="whole-prayer-actions"><button onClick={props.chooseWholePrayer}>Select all passages</button><button className="primary-button" onClick={props.makeSlidesFromWholePrayer} disabled={props.busy === "make-set"}>{props.busy === "make-set" ? <LoaderCircle className="spin" size={16} /> : <FilePlus2 size={16} />} Make slides from whole prayer</button></div></div>
-      <SourceProvenance source={props.source} />
-      <div className="content-mode-toggle">{props.source.blocks.some((block) => block.kind === "bilingual") && <button className={props.form.mode === "bilingual" ? "active" : ""} onClick={() => props.changeMode("bilingual")}>Hebrew + transliteration</button>}{blocksForMode(props.source, "source-en").length > 0 && <button className={props.form.mode === "source-en" ? "active" : ""} onClick={() => props.changeMode("source-en")}>English from siddur</button>}{props.source.blocks.some((block) => block.kind === "original-en") && <button className={props.form.mode === "original-en" ? "active" : ""} onClick={() => props.changeMode("original-en")}>Original English reading</button>}</div>
-      {props.source.blocks.some((block) => block.kind === "translation-en") && props.form.mode === "bilingual" && <label className="translation-choice"><input type="checkbox" checked={!!props.form.includeTranslation} onChange={(event) => props.changeForm({ includeTranslation: event.target.checked })} /> Include approved English where available</label>}
-      {omittedFromAutomatic > 0 && <p className="source-mode-note">{omittedFromAutomatic} service {omittedFromAutomatic === 1 ? "note is" : "notes are"} available for manual selection below. Automatic slides use the prayer and reading text.</p>}
-      <div className="panel-tabs">{props.form.groups.map((group, index) => <button key={`${group.sourceId}-${index}`} className={props.activeGroup === index ? "active" : ""} onClick={() => props.setActiveGroup(index)}>Section {index + 1}<small>{group.blockIds.length} passages</small></button>)}<button onClick={props.addPanel}>+ Add section</button></div>
-      <div className="passage-list">{props.eligibleBlocks.map((block) => <label key={block.id} className={props.selectedIds.has(block.id) ? "selected" : ""}><input type="checkbox" checked={props.selectedIds.has(block.id)} onChange={(event) => props.toggleBlock(block.id, event.target.checked)} /><span className="passage-number">{block.index + 1}</span><span>{props.form.mode === "bilingual" ? <><b lang="he" dir="rtl">{block.he}</b><small>{block.tr}</small></> : <><b>{block.en}</b>{props.form.mode === "source-en" && <small className="passage-meta">{englishRoleLabel[block.englishRole || "unclassified"]}{block.automatic === false ? " · manual selection" : ""}</small>}</>}</span></label>)}</div>
-      {props.form.groups.length > 1 && <button className="remove-panel" onClick={props.removePanel}>Remove section {props.activeGroup + 1}</button>}
-    </div>}
-  </section>;
-}
-
-function SourceProvenance({ source }: { source: Source }) {
-  const display = sourceDisplayCopy(source);
-  const revision = source.authority?.repositoryCommit?.slice(0, 10) || source.unitSha256?.slice(0, 10);
-  return <details className="source-provenance"><summary><BookOpenText size={15} /><span><strong>{sourceHeadline(display)}</strong><small>Exact source text · view edition details</small></span></summary><dl><div><dt>Prayer or reading</dt><dd>{source.name}</dd></div>{display.sectionTitle && <div><dt>Section</dt><dd>{display.sectionTitle}</dd></div>}<div><dt>Book</dt><dd>{display.bookTitle}</dd></div>{display.folio && <div><dt>Pages</dt><dd>{display.folio}</dd></div>}{display.edition && <div><dt>Edition</dt><dd>{display.edition}</dd></div>}{revision && <div><dt>Source revision</dt><dd>{revision}</dd></div>}</dl><p>The selected words are copied exactly from this maintained source. Local changes require an explicitly labeled variant.</p></details>;
-}
-
 const channelLabel: Record<VariantChannel, string> = { he: "Hebrew", tr: "Transliteration", en: "English" };
 
 function VariantEditor({ form, changeForm }: { form: DraftForm; changeForm: (patch: Partial<DraftForm>) => void }) {
@@ -1203,30 +1150,6 @@ function VariantCreator(props: { draft: Draft; label: string; reason: string; va
   const candidates = variantCandidates(props.draft);
   const changed = candidates.filter((item) => (props.values[variantKey(item)] || "").trim() !== item.sourceText).length;
   return <div className="variant-backdrop" role="dialog" aria-modal="true" aria-labelledby="variant-title"><section className="variant-dialog"><header><div><span className="eyebrow">EXPLICIT LOCAL COPY</span><h3 id="variant-title">Create local wording</h3><p>The original source graphic and its exact words remain unchanged.</p></div><button className="icon-button" aria-label="Close local wording editor" onClick={props.close}>×</button></header><div className="variant-dialog-body"><div className="variant-fields"><label>Variant label<input value={props.label} maxLength={80} onChange={(event) => props.setLabel(event.target.value)} placeholder="Example: Our congregation’s responsive reading" /></label><label>Reason <span>optional</span><input value={props.reason} maxLength={500} onChange={(event) => props.setReason(event.target.value)} placeholder="Why this wording is used locally" /></label></div><div className="variant-source-note"><BookOpenText size={17} /><span><strong>{props.draft.name}</strong><small>Each editable line below starts as the exact pinned source text.</small></span></div><div className="variant-candidates">{candidates.map((item) => { const value = props.values[variantKey(item)] ?? item.sourceText; const isChanged = value.trim() !== item.sourceText; return <article key={variantKey(item)} className={isChanged ? "changed" : ""}><header><span>{item.sourceName} · passage {item.blockNumber}</span><em>{channelLabel[item.channel]}</em></header><label><span className="sr-only">Local {channelLabel[item.channel]} wording for passage {item.blockNumber}</span><textarea lang={item.channel === "he" ? "he" : undefined} dir={item.channel === "he" ? "rtl" : undefined} value={value} maxLength={4000} onChange={(event) => props.setValue(item, event.target.value)} /></label><footer>{isChanged ? <span><PencilLine size={13} /> Local change</span> : <span>Matches source</span>}<button className="text-button" disabled={!isChanged} onClick={() => props.setValue(item, item.sourceText)}>Reset to source</button></footer></article>; })}</div></div><footer><span>{changed ? `${changed} changed ${changed === 1 ? "line" : "lines"}` : "Change at least one line to continue."}</span><div><button onClick={props.close}>Cancel</button><button className="primary-button" onClick={props.create} disabled={!changed || !props.label.trim() || props.busy === "create-variant"}>{props.busy === "create-variant" ? <LoaderCircle className="spin" size={17} /> : <PencilLine size={17} />} Create independent variant</button></div></footer></section></div>;
-}
-
-function CustomTextEditor({ form, changeForm }: { form: DraftForm; changeForm: (patch: Partial<DraftForm>) => void }) {
-  return <section className="form-section custom-section"><div className="section-heading"><span>1</span><div><h3>Write the graphic</h3><p>For announcements, welcome messages, names, and community-specific readings.</p></div></div><label>Custom text <span>{form.customText.length} / 4000</span><textarea value={form.customText} maxLength={4000} onChange={(event) => changeForm({ customText: event.target.value })} placeholder="Type the words that should appear on screen…" /></label><div className="provenance-note"><Sparkles size={17} /><span><strong>Custom congregation text</strong><small>This text is separate from the authorized siddur library.</small></span></div></section>;
-}
-
-function DetailsEditor({ form, changeForm, nameWarning, useSuggestedName }: { form: DraftForm; changeForm: (patch: Partial<DraftForm>) => void; nameWarning: DuplicateNameWarning | null; useSuggestedName: () => void }) {
-  return <section className="form-section details-section"><div className="section-heading"><span>2</span><div><h3>Name and title</h3><p>Names help the operator find the right graphic.</p></div></div><label>Library name<input value={form.name} maxLength={80} onChange={(event) => changeForm({ name: event.target.value })} placeholder="Example: Welcome to Shabbat" /></label>{nameWarning && <p className="name-warning"><CircleAlert size={15} /><span>Another graphic is already named this. Suggested: “{nameWarning.suggestedName}”.</span><button type="button" onClick={useSuggestedName}>Use suggested name</button></p>}<div className="field-pair"><label>On-screen title<input value={form.title} maxLength={100} onChange={(event) => changeForm({ title: event.target.value })} /></label><label>Hebrew accent <span>optional</span><input dir="rtl" value={form.accentTitle} maxLength={60} onChange={(event) => changeForm({ accentTitle: event.target.value })} /></label></div></section>;
-}
-
-function AppearanceEditor({ form, templates, selectedDensity, changeForm, workspace, assets, assetError, busy, uploadAsset, setAssetArchived, showArchivedAssets, setShowArchivedAssets }: { form: DraftForm; templates: TemplateSummary[]; selectedDensity: string; changeForm: (patch: Partial<DraftForm>) => void; workspace: PublicWorkspace | null; assets: WorkspaceAsset[]; assetError: string; busy: string; uploadAsset: (file: File, name: string, altText: string) => Promise<WorkspaceAsset>; setAssetArchived: (asset: WorkspaceAsset, archived: boolean) => void; showArchivedAssets: boolean; setShowArchivedAssets: (value: boolean) => void }) {
-  const setPresentation = (patch: Partial<DraftForm["presentation"]>) => changeForm({ presentation: { ...form.presentation, ...patch } });
-  const clearField = (field: keyof DraftForm["presentation"]) => { const next = { ...form.presentation }; delete next[field]; changeForm({ presentation: next }); };
-  return <section className="form-section appearance-section"><div className="section-heading"><span>3</span><div><h3>Choose a look</h3><p>Every option uses approved motion and safe areas.</p></div></div><div className="layout-toggle" role="group" aria-label="Graphic layout">{(["left", "bottom", "right"] as Layout[]).map((layout) => <button key={layout} className={form.layout === layout ? "active" : ""} onClick={() => { const template = templates.find((item) => item.layout === layout && item.importable); changeForm({ layout, templateCueId: template?.id || "" }); }}>{layoutLabel(layout)}</button>)}</div>{form.mode === "custom" ? <p className="automatic-style">The broadcast-safe house style is selected automatically for this layout.</p> : <div className="template-gallery">{templates.filter((item) => item.layout === form.layout && item.importable).slice(0, 6).map((item) => <button key={item.id} className={form.templateCueId === item.id ? "selected" : ""} onClick={() => changeForm({ templateCueId: item.id })}><span className={`template-thumb ${item.layout}`}><span><i>כותרת</i><b>{form.title || "Prayer title"}</b><small>{form.mode === "bilingual" ? "Hebrew · Transliteration" : "English reading"}</small></span></span><span><strong>{item.name}</strong><small>{layoutLabel(item.layout)}</small></span>{form.templateCueId === item.id && <Check size={16} />}</button>)}</div>}
-    <div className="appearance-controls"><fieldset><legend>Text density</legend><div>{densityOptions.map((option) => <button key={option.id} type="button" aria-pressed={selectedDensity === option.id} className={selectedDensity === option.id ? "active" : ""} onClick={() => changeForm({ presentation: { ...form.presentation, ...option.value, ...(option.id === "comfortable" ? { hebrewFontSize: undefined, transliterationFontSize: undefined, titleFontSize: undefined } : {}) } })}>{option.label}</button>)}</div></fieldset><fieldset><legend>Alignment</legend><div><button type="button" aria-pressed={!form.presentation.alignment} className={!form.presentation.alignment ? "active" : ""} onClick={() => clearField("alignment")}>Template default</button><button type="button" aria-pressed={form.presentation.alignment === "start"} className={form.presentation.alignment === "start" ? "active" : ""} onClick={() => setPresentation({ alignment: "start" })}>Logical start</button><button type="button" aria-pressed={form.presentation.alignment === "center"} className={form.presentation.alignment === "center" ? "active" : ""} onClick={() => setPresentation({ alignment: "center" })}>Centered</button></div><p className="control-note">Logical start keeps Hebrew reading from the right and Latin text from the left.</p></fieldset><fieldset><legend>Line spacing</legend><div><button type="button" aria-pressed={!form.presentation.lineSpacing} className={!form.presentation.lineSpacing ? "active" : ""} onClick={() => clearField("lineSpacing")}>Template default</button><button type="button" aria-pressed={form.presentation.lineSpacing === "compact"} className={form.presentation.lineSpacing === "compact" ? "active" : ""} onClick={() => setPresentation({ lineSpacing: "compact" })}>Compact</button><button type="button" aria-pressed={form.presentation.lineSpacing === "spacious"} className={form.presentation.lineSpacing === "spacious" ? "active" : ""} onClick={() => setPresentation({ lineSpacing: "spacious" })}>Spacious</button></div></fieldset></div>
-    <ArtworkPicker workspace={workspace} assets={assets} selectedId={form.presentation.imageAssetId} error={assetError} busy={busy} select={(id) => id ? setPresentation({ imageAssetId: id }) : clearField("imageAssetId")} uploadAsset={uploadAsset} setAssetArchived={setAssetArchived} showArchived={showArchivedAssets} setShowArchived={setShowArchivedAssets} />
-    <button className="reset-appearance" onClick={() => changeForm({ presentation: {} })}><RotateCcw size={15} /> Reset visual settings to template</button>
-  </section>;
-}
-
-function ArtworkPicker({ workspace, assets, selectedId, error, busy, select, uploadAsset, setAssetArchived, showArchived, setShowArchived }: { workspace: PublicWorkspace | null; assets: WorkspaceAsset[]; selectedId?: string; error: string; busy: string; select: (id?: string) => void; uploadAsset: (file: File, name: string, altText: string) => Promise<WorkspaceAsset>; setAssetArchived: (asset: WorkspaceAsset, archived: boolean) => void; showArchived: boolean; setShowArchived: (value: boolean) => void }) {
-  const [file, setFile] = useState<File | null>(null), [name, setName] = useState(""), [altText, setAltText] = useState(""), [uploadError, setUploadError] = useState("");
-  // eslint-disable-next-line @next/next/no-img-element -- Asset thumbnails use authenticated, no-store URLs and must not pass through Next's public image optimizer.
-  return <div className="artwork-picker"><div className="artwork-heading"><span><strong>Upper-right artwork</strong><small>Replaces the congregation logo only. Images stay inside the approved region.</small></span><button type="button" className="artwork-archived-toggle" aria-pressed={showArchived} onClick={() => setShowArchived(!showArchived)}>{showArchived ? "Hide archived" : "Show archived"}</button></div><div className="artwork-grid"><button className={!selectedId ? "selected" : ""} onClick={() => select()}>{workspace?.logo.src ? <img src={workspace.logo.src} alt="" /> : <span className="artwork-placeholder" />}<span><strong>Congregation logo</strong><small>Template default</small></span>{!selectedId && <Check size={15} />}</button>{assets.map((asset) => <div key={asset.id} className={`artwork-tile${selectedId === asset.id ? " selected" : ""}${asset.archived ? " archived" : ""}`}><button className="artwork-choice" onClick={() => select(asset.id)} disabled={asset.archived}><img src={asset.privatePreviewUrl} alt="" /><span><strong>{asset.name}</strong><small>{asset.archived ? "Archived · " : ""}{asset.width} × {asset.height} · {Math.ceil(asset.bytes / 1024)} KB</small></span>{selectedId === asset.id && <Check size={15} />}</button><button className="icon-button artwork-action" aria-label={`${asset.archived ? "Restore" : "Archive"} ${asset.name}`} title={asset.archived ? "Restore" : "Archive"} disabled={busy === "archive-asset" || busy === "restore-asset"} onClick={() => setAssetArchived(asset, !asset.archived)}>{asset.archived ? <ArchiveRestore size={14} /> : <Archive size={14} />}</button></div>)}</div>{error && <p className="asset-error">{error}</p>}<details className="asset-upload"><summary>Upload approved artwork</summary><p>PNG, JPEG, or WebP · up to 512 KB and 4096 pixels. Still images only.</p><div className="asset-upload-fields"><label>Image<input type="file" accept="image/png,image/jpeg,image/webp" onChange={(event) => { const next = event.target.files?.[0] || null; setFile(next); if (next && !name) setName(next.name.replace(/\.[^.]+$/, "")); }} /></label><label>Name<input value={name} maxLength={80} onChange={(event) => setName(event.target.value)} /></label><label>Accessible description<input value={altText} maxLength={180} onChange={(event) => setAltText(event.target.value)} placeholder="Describe the image itself" /></label><button className="primary-button" disabled={!file || !name.trim() || !altText.trim() || busy === "upload-asset"} onClick={() => { if (!file) return; setUploadError(""); void uploadAsset(file, name, altText).then(() => { setFile(null); setName(""); setAltText(""); }).catch((value) => setUploadError(value instanceof Error ? value.message : "Artwork upload failed.")); }}>{busy === "upload-asset" ? <LoaderCircle className="spin" size={16} /> : <FilePlus2 size={16} />} Upload and select</button></div>{uploadError && <p className="asset-error">{uploadError}</p>}</details></div>;
 }
 
 function PreviewColumn(props: { setViewport: (node: HTMLDivElement | null) => void; setOutput: (node: HTMLDivElement | null) => void; previewCue: Cue | null; exact: boolean; fitErrors: string[]; warnings: string[]; assetsReady: boolean; play: () => void; out: () => void; fullscreen: () => void; statusLabel?: string }) {
