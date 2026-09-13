@@ -23,6 +23,8 @@ Shipped on 2026-09-13 after the review was written; the review's picture of thes
 
 ## Daniel's rulings
 
+**Additional ruling, 2026-09-13, S1:** Daniel: “pairing needs to be close to bulletproof and permanent.” Pair once and stay paired indefinitely in normal use; the short code expires, the established device relationship does not routinely expire. This supersedes S1's proposed `sessionStorage`-only persistence below. Use durable host configuration/storage and automatic reconnect; preserve pairing across computer/compositor/Companion restarts, browser-source reloads, ordinary updates/deployments, inactivity and network interruptions, independently of human sign-in expiry. Any credential renewal must be automatic and interruption-tolerant. Keep explicit device revocation and simple self-service replacement after storage loss. Verify the lifecycle on OBS, vMix and Companion, including authoring-store outage/reconnect, before declaring pairing complete. See `CODEX-PARTNER-REVIEW-2026-09-13.md`, amendment 1, for the acceptance contract.
+
 Approved: everything in the review **except** the items below. Treat the review artifact as the spec of record and this file as the build order.
 
 Declined — do not build:
