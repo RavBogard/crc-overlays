@@ -1,0 +1,76 @@
+/* WB-C - the CRC shelf. Tokens (--line, --panel, --muted, --quiet, --mint) come from author.css. */
+
+.shared-shelf { min-width: 0; padding: 22px 24px 42px; }
+.shared-shelf-down { padding: 32px 24px; color: var(--muted); }
+.shared-shelf-down p { margin: 0; }
+
+.shared-shelf-header { display: flex; align-items: flex-end; justify-content: space-between; gap: 22px; margin-bottom: 18px; flex-wrap: wrap; }
+.shared-shelf-header h2 { margin: 5px 0; font-size: 27px; }
+.shared-shelf-header p { margin: 0; color: var(--muted); font-size: 13px; }
+.shared-shelf-refresh { display: flex; align-items: center; gap: 10px; flex-wrap: wrap; color: var(--quiet); font-size: 10px; }
+.shared-shelf-refresh button { padding: 8px 10px; background: transparent; }
+.shared-shelf-refresh small { flex-basis: 100%; color: var(--quiet); font-size: 10px; }
+
+.shared-shelf-body { display: grid; grid-template-columns: minmax(0, 1fr) minmax(320px, 38%); gap: 18px; align-items: start; }
+.shared-shelf-sections { display: grid; gap: 22px; min-width: 0; }
+.shared-shelf-detail { display: grid; gap: 14px; min-width: 0; }
+
+.shelf-section header { margin-bottom: 10px; }
+.shelf-section h3 { display: flex; align-items: center; gap: 8px; margin: 0 0 3px; font-size: 16px; }
+.shelf-section p { margin: 0; color: var(--muted); font-size: 12px; }
+.shelf-count { padding: 1px 7px; border: 1px solid var(--line); border-radius: 999px; color: var(--quiet); font-size: 10px; }
+.shelf-section-empty { margin: 0; padding: 12px 14px; border: 1px dashed var(--line); border-radius: 10px; color: var(--quiet); font-size: 12px; }
+
+.shelf-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(180px, 1fr)); gap: 12px; }
+.shelf-card { min-width: 0; border: 1px solid var(--line); border-radius: 12px; background: var(--panel); }
+.shelf-card.active { border-color: var(--mint, #6fd6b4); }
+.shelf-card-main { display: grid; gap: 9px; width: 100%; padding: 11px; border: 0; border-radius: 12px; background: transparent; color: inherit; text-align: left; cursor: pointer; }
+.shelf-card-main:focus-visible { outline: 2px solid var(--mint, #6fd6b4); outline-offset: 2px; }
+.shelf-card-body { display: grid; gap: 4px; min-width: 0; }
+.shelf-card-body strong { font-size: 14px; line-height: 1.25; overflow-wrap: anywhere; }
+.shelf-card-body small { color: var(--muted); font-size: 11px; }
+.shelf-slides { color: var(--quiet); }
+
+.shelf-chip { justify-self: start; padding: 2px 9px; border: 1px solid var(--line); border-radius: 999px; font-size: 10px; letter-spacing: .02em; }
+.shelf-chip.new { border-color: #3f7f68; background: #12261f; color: #9fe3c6; }
+.shelf-chip.updated { border-color: #7f6a2d; background: #2a2415; color: #ecd28b; }
+.shelf-chip.customized { border-color: var(--line); background: #131d1b; color: var(--muted); }
+
+.shared-shelf .shared-information { padding: 20px; border: 1px solid var(--line); border-radius: 12px; background: linear-gradient(145deg, rgba(20,32,30,.97), rgba(16,27,25,.97)); }
+.shared-shelf .shared-information h3 { margin: 12px 0 5px; font-size: 22px; line-height: 1.15; }
+.shared-shelf .shared-information h4 { margin: 0 0 8px; font-size: 13px; }
+
+.shelf-update { display: grid; gap: 10px; margin-top: 14px; }
+.shelf-update-note { display: flex; align-items: center; gap: 7px; margin: 0; color: #ecd28b; font-size: 12px; }
+.shelf-update button, .shelf-local button { display: flex; align-items: center; gap: 7px; }
+.shelf-update button:focus-visible, .shelf-local button:focus-visible { outline: 2px solid var(--mint, #6fd6b4); outline-offset: 2px; }
+.shelf-compare-error { display: flex; align-items: center; gap: 6px; margin: 0; color: #f0b7b7; font-size: 12px; }
+
+.shelf-compare { display: grid; gap: 9px; }
+.shelf-compare-summary { margin: 0; color: var(--text); font-size: 12px; }
+.shelf-compare-flags { display: flex; flex-wrap: wrap; gap: 8px; margin: 0; padding: 0; list-style: none; }
+.shelf-compare-flags li { padding: 2px 8px; border: 1px solid var(--line); border-radius: 999px; color: var(--quiet); font-size: 10px; }
+.shelf-compare-flags li.changed { border-color: #7f6a2d; color: #ecd28b; }
+.shelf-compare-scroll { max-height: 340px; overflow: auto; border: 1px solid var(--line); border-radius: 10px; }
+.shelf-compare-scroll table { width: 100%; border-collapse: collapse; font-size: 11px; }
+.shelf-compare-scroll th, .shelf-compare-scroll td { padding: 7px 9px; border-bottom: 1px solid var(--line); text-align: left; vertical-align: top; overflow-wrap: anywhere; }
+.shelf-compare-scroll thead th { position: sticky; top: 0; background: #101b19; color: var(--quiet); font-size: 10px; }
+.shelf-compare-scroll tbody th { color: var(--muted); font-weight: 500; white-space: nowrap; }
+.shelf-compare-scroll tr.changed td { color: #ecd28b; }
+.shelf-changed-mark { display: block; margin-top: 3px; color: #ecd28b; font-size: 9px; letter-spacing: .04em; text-transform: uppercase; }
+
+.shelf-local { margin-top: 14px; }
+.shelf-draft-list { display: grid; gap: 7px; margin: 0; padding: 0; list-style: none; }
+.shelf-draft-list button { width: 100%; padding: 9px 11px; border: 1px solid var(--line); border-radius: 9px; background: transparent; color: inherit; font-size: 12px; text-align: left; cursor: pointer; }
+.shelf-draft-list small { margin-left: auto; color: var(--quiet); font-size: 10px; }
+.shelf-slide-list { margin: 14px 0 0; padding-left: 18px; color: var(--muted); font-size: 11px; }
+.shelf-slide-list li { margin-bottom: 3px; }
+
+@media (max-width: 1180px) {
+  .shared-shelf-body { grid-template-columns: 1fr; }
+}
+@media (max-width: 620px) {
+  .shared-shelf { padding: 18px 14px 34px; }
+  .shelf-grid { grid-template-columns: repeat(auto-fit, minmax(150px, 1fr)); }
+  .shared-shelf-header { align-items: flex-start; }
+}

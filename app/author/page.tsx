@@ -64,7 +64,6 @@ import type {
   DraftForm,
   DuplicateNameWarning,
   EphemeralPreviewResult,
-  Layout,
   PreviewResult,
   PublishedRevision,
   ReviewReceipt,
@@ -80,11 +79,12 @@ import { LookDrawer, densityOptions, type WorkspaceAsset } from "./look-drawer";
 import { CustomTextEditor, DetailsEditor } from "./custom-editor";
 import "./author.css";
 import GraphicThumbnail from "@/components/graphic-thumbnail";
+import SharedShelf, { expectedCueHashes, groupSharedEntries, matchesShelfQuery, shelfBadgeCount, type SharedComparison, type SharedShelfCard, type SharedShelfEntry } from "./shared-shelf";
 
 type LibraryTab = "published" | "drafts" | "archived" | "shared";
 type EditorKind = "siddur" | "custom" | "edit";
 type LibraryItem = { kind: "catalog"; cue: CatalogCue } | { kind: "draft"; draft: Draft };
-type SharedCue = { id: string; name: string; title: string; layout: Layout; sourceIds: string[]; cueHash: string };
+type SharedCue = SharedShelfEntry;
 type SharedLibraryState = { available: boolean; cues: SharedCue[]; stale: boolean; refreshedAt: number | null; error: string | null };
 type DraftSetReview = { status: "complete" | "needs-review" | "unknown"; message: string; issues: Array<{ kind: "missing" | "duplicated" | "unknown" | "out-of-order"; selections: unknown[] }> };
 
@@ -136,7 +136,6 @@ export default function AuthorPage() {
   const [sharedLibrary, setSharedLibrary] = useState<SharedLibraryState>({ available: false, cues: [], stale: false, refreshedAt: null, error: null });
   const [sharedSelectedId, setSharedSelectedId] = useState<string | null>(null);
   const [sharedPreview, setSharedPreview] = useState<Cue | null>(null);
-  const [sharedPreviewHash, setSharedPreviewHash] = useState<string | null>(null);
   const [draft, setDraft] = useState<Draft | null>(null);
   const [form, setForm] = useState<DraftForm>(emptyForm);
   const [editorKind, setEditorKind] = useState<EditorKind | null>(null);
@@ -275,7 +274,6 @@ export default function AuthorPage() {
       const response = await authoringCall<{ available: boolean; cues?: SharedCue[]; total?: number; truncated?: boolean; stale?: boolean; refreshedAt?: number; error?: string }>(controlKey, "list_shared_library", { limit: 1000, ...(force ? { refresh: true } : {}) });
       const cues = response.cues || [];
       setSharedPreview(null);
-      setSharedPreviewHash(null);
       setSharedLibrary({ available: response.available, cues, stale: Boolean(response.stale), refreshedAt: response.refreshedAt || Date.now(), error: response.error || null });
       setSharedSelectedId((current) => current && cues.some((cue) => cue.id === current) ? current : cues[0]?.id || null);
     } catch (value) {
@@ -442,7 +440,6 @@ export default function AuthorPage() {
         if (cancelled) return;
         if (!response.available || !response.cue || !response.cueHash) throw Error(response.error || "CRC library is temporarily unavailable.");
         setSharedPreview(response.cue);
-        setSharedPreviewHash(response.cueHash);
         setSharedLibrary((current) => ({ ...current, available: true, stale: Boolean(response.stale), refreshedAt: response.refreshedAt || current.refreshedAt, error: null }));
         return showCue(response.cue);
       })
@@ -485,8 +482,8 @@ export default function AuthorPage() {
     }).map((item) => ({ kind: "draft", draft: item }));
   }, [archivedDrafts]);
   const visibleLibrary = (libraryTab === "published" ? publishedItems : libraryTab === "archived" ? archivedItems : draftItems).filter((item) => itemName(item).toLocaleLowerCase().includes(libraryQuery.trim().toLocaleLowerCase()));
-  const visibleShared = sharedLibrary.cues.filter((item) => `${item.name} ${item.title}`.toLocaleLowerCase().includes(libraryQuery.trim().toLocaleLowerCase()));
-  const selectedShared = visibleShared.find((item) => item.id === sharedSelectedId) || null;
+  const sharedCards = groupSharedEntries(sharedLibrary.cues);
+  const visibleShared = sharedCards.filter((card) => matchesShelfQuery(card, libraryQuery));
   const eligibleBlocks = blocksForMode(source, form.mode);
   const selectedIds = new Set(form.groups[activeGroup]?.blockIds || []);
   const selectedBlocks = eligibleBlocks.filter((block) => selectedIds.has(block.id));
@@ -720,18 +717,25 @@ export default function AuthorPage() {
     finally { setBusy(""); }
   }
 
-  async function customizeSharedCue() {
-    if (!sharedSelectedId || !sharedPreviewHash || !canLeave()) return;
+  // WB-C - the shelf never edits an existing draft: New and "Start a new draft from the update"
+  // both mint an independent draft, pinned to the hash the shelf listed.
+  async function customizeSharedCard(card: SharedShelfCard, name?: string) {
+    if (!canLeave()) return;
     setBusy("shared-customize"); setError("");
     try {
-      const response = await authoringCall<{ draft: Draft; sharedFrom: { workspaceId: string; cueId: string; cueHash: string } }>(key, "customize_shared_cue", { cueId: sharedSelectedId, expectedCueHash: sharedPreviewHash });
-      applyLoadedDraft(response.draft);
-      const firstGroup = sourceGroups(response.draft)[0];
-      setSource(firstGroup ? response.draft.sourceSnapshots?.find((item) => item.id === firstGroup.sourceId) || null : null);
-      setDrafts((items) => [response.draft, ...items.filter((item) => item.id !== response.draft.id)]);
+      const created = card.kind === "set" && card.lead.set
+        ? (await authoringCall<{ drafts: Draft[] }>(key, "customize_shared_set", { setId: card.lead.set.id, expectedCueHashes: expectedCueHashes(card) })).drafts
+        : [(await authoringCall<{ draft: Draft; sharedFrom?: { workspaceId: string; cueId: string; cueHash: string } }>(key, "customize_shared_cue", { cueId: card.lead.id, expectedCueHash: card.lead.cueHash, ...(name ? { name } : {}) })).draft];
+      const first = created[0];
+      if (!first) throw Error("CRC library is temporarily unavailable.");
+      applyLoadedDraft(first);
+      const firstGroup = sourceGroups(first)[0];
+      setSource(firstGroup ? first.sourceSnapshots?.find((item) => item.id === firstGroup.sourceId) || null : null);
+      const mintedIds = new Set(created.map((item) => item.id));
+      setDrafts((items) => [...created, ...items.filter((item) => !mintedIds.has(item.id))]);
       setLibraryTab("drafts");
-      history.replaceState(null, "", routeForDraft(response.draft.id));
-      setMessage(`Created an independent draft from “${response.draft.name}”. Future CRC updates will not overwrite your changes.`);
+      history.replaceState(null, "", routeForDraft(first.id));
+      setMessage(`Created an independent draft from “${first.name}”. Future CRC updates will not overwrite your changes.`);
     } catch (value) { fail(value); }
     finally { setBusy(""); }
   }
@@ -957,7 +961,7 @@ export default function AuthorPage() {
           allDrafts={drafts}
           libraryTab={libraryTab} setLibraryTab={chooseLibraryTab} libraryQuery={libraryQuery} setLibraryQuery={setLibraryQuery}
           sharedEnabled={Boolean(workspace?.sharedLibrary.enabled)} sharedLabel={workspace?.sharedLibrary.label || "CRC library"}
-          sharedItems={visibleShared} sharedTotal={sharedLibrary.cues.length} sharedSelectedId={sharedSelectedId} selectShared={(id) => { setSharedPreview(null); setSharedPreviewHash(null); setSharedSelectedId(id); }}
+          sharedItems={visibleShared} sharedBadge={shelfBadgeCount(sharedCards)} sharedSelectedId={sharedSelectedId} selectShared={(id) => { setSharedPreview(null); setSharedSelectedId(id); }}
           activeDraftId={draft?.id || null} beginSiddur={beginSiddur} beginCustom={beginCustom}
           openItem={(item) => {
             if (item.kind === "draft") { if (canLeave()) void openDraft(key, item.draft.id); }
@@ -967,16 +971,23 @@ export default function AuthorPage() {
           archiveItem={(item) => void archiveItem(item)} restoreItem={(item) => void restoreArchived(item)}
         />
 
-        {libraryTab === "shared" ? <SharedLibraryPanel
-          state={sharedLibrary} selected={selectedShared} previewCue={sharedPreview} busy={busy} query={libraryQuery}
-          canCustomize={Boolean(sharedPreview && sharedPreviewHash)}
-          refreshedAt={sharedLibrary.refreshedAt} refresh={() => void refreshSharedLibrary(key, true)} customize={() => void customizeSharedCue()}
-          returnLocal={() => setLibraryTab("published")}
-          setViewport={(node) => { viewportRef.current = node; }} setOutput={(node) => { outputRef.current = node; }}
-          play={() => { if (sharedPreview) void showCue(sharedPreview, true); }}
-          out={() => playerRef.current?.set({ cue: null, revision: ++animationRevision.current, mode: "animate" })}
-          fullscreen={() => void viewportRef.current?.requestFullscreen().catch(fail)}
-          fitErrors={fitErrors} warnings={previewWarnings} assetsReady={assetsReady} bookFaces={Boolean(workspace?.bookFaces)}
+        {libraryTab === "shared" ? <SharedShelf
+          label={workspace?.sharedLibrary.label || "CRC library"}
+          feed={{ available: sharedLibrary.available, entries: sharedLibrary.cues, stale: sharedLibrary.stale, refreshedAt: sharedLibrary.refreshedAt, error: sharedLibrary.error }}
+          query={libraryQuery} busy={busy} selectedId={sharedSelectedId}
+          selectCard={(card) => { setSharedPreview(null); setSharedSelectedId(card.lead.id); }}
+          refresh={() => void refreshSharedLibrary(key, true)}
+          customize={(card) => void customizeSharedCard(card)}
+          startUpdateDraft={(card) => void customizeSharedCard(card, `${card.lead.name} · CRC update`)}
+          compare={(cueId, draftId) => authoringCall<SharedComparison>(key, "compare_shared_cue", { cueId, draftId })}
+          openDraft={(draftId) => { if (canLeave()) void openDraft(key, draftId); }}
+          preview={<PreviewColumn
+            setViewport={(node) => { viewportRef.current = node; }} setOutput={(node) => { outputRef.current = node; }}
+            previewCue={sharedPreview} exact={true} fitErrors={fitErrors} warnings={previewWarnings} assetsReady={assetsReady} bookFaces={Boolean(workspace?.bookFaces)}
+            play={() => { if (sharedPreview) void showCue(sharedPreview, true); }}
+            out={() => playerRef.current?.set({ cue: null, revision: ++animationRevision.current, mode: "animate" })}
+            fullscreen={() => void viewportRef.current?.requestFullscreen().catch(fail)}
+            statusLabel={sharedPreview ? "Preview with TBI branding · nothing is published" : "Loading CRC preview"} />}
         /> : libraryTab === "archived" ? <ArchivedPanel drafts={archivedItems.flatMap((item) => item.kind === "draft" ? [item.draft] : [])} query={libraryQuery} busy={busy} restore={(item) => void restoreArchived(item)} /> : !editorKind ? <WelcomePanel beginSiddur={beginSiddur} beginCustom={beginCustom} /> : (
           <section className="editor-workspace">
             <EditorTitle
@@ -1070,7 +1081,7 @@ function LibrarySidebar(props: {
   publishedItems: LibraryItem[]; draftItems: LibraryItem[]; archivedItems: LibraryItem[]; visibleLibrary: LibraryItem[];
   allDrafts: Draft[];
   libraryTab: LibraryTab; setLibraryTab: (tab: LibraryTab) => void; libraryQuery: string; setLibraryQuery: (query: string) => void;
-  sharedEnabled: boolean; sharedLabel: string; sharedItems: SharedCue[]; sharedTotal: number; sharedSelectedId: string | null; selectShared: (id: string) => void;
+  sharedEnabled: boolean; sharedLabel: string; sharedItems: SharedShelfCard[]; sharedBadge: number; sharedSelectedId: string | null; selectShared: (id: string) => void;
   activeDraftId: string | null; beginSiddur: () => void; beginCustom: () => void;
   openItem: (item: LibraryItem) => void; duplicateItem: (item: LibraryItem) => void; archiveItem: (item: LibraryItem) => void; restoreItem: (item: Draft) => void;
 }) {
@@ -1084,11 +1095,11 @@ function LibrarySidebar(props: {
       <button role="tab" aria-selected={props.libraryTab === "published"} className={props.libraryTab === "published" ? "active" : ""} onClick={() => props.setLibraryTab("published")}>Published <span title="published, visible">{publishedCount}</span></button>
       <button role="tab" aria-selected={props.libraryTab === "drafts"} className={props.libraryTab === "drafts" ? "active" : ""} onClick={() => props.setLibraryTab("drafts")}>Drafts <span>{props.draftItems.length}</span></button>
       <button role="tab" aria-selected={props.libraryTab === "archived"} className={props.libraryTab === "archived" ? "active" : ""} onClick={() => props.setLibraryTab("archived")}>Archived <span>{props.archivedItems.length}</span></button>
-      {props.sharedEnabled && <button role="tab" aria-selected={props.libraryTab === "shared"} className={props.libraryTab === "shared" ? "active" : ""} onClick={() => props.setLibraryTab("shared")}>{props.sharedLabel} <span>{props.sharedTotal}</span></button>}
+      {props.sharedEnabled && <button role="tab" aria-selected={props.libraryTab === "shared"} className={props.libraryTab === "shared" ? "active" : ""} onClick={() => props.setLibraryTab("shared")}>{props.sharedLabel}{props.sharedBadge > 0 && <span title="new and updated from CRC">{props.sharedBadge}</span>}</button>}
     </div>
     <label className="library-search"><Search size={16} /><input aria-label={`Search ${props.libraryTab}`} value={props.libraryQuery} onChange={(event) => props.setLibraryQuery(event.target.value)} placeholder={`Search ${props.libraryTab}`} /></label>
     <div className="library-list">
-      {props.libraryTab === "shared" ? props.sharedItems.map((item) => <article key={item.id} className={`library-card shared-card ${props.sharedSelectedId === item.id ? "active" : ""}`}><button className="library-card-main" onClick={() => props.selectShared(item.id)}><GraphicThumbnail layout={item.layout} title={item.title} /><span><strong>{item.name}</strong><small>CRC published · {layoutLabel(item.layout)}</small></span></button></article>) : props.visibleLibrary.map((item) => {
+      {props.libraryTab === "shared" ? props.sharedItems.map((card) => <article key={card.key} className={`library-card shared-card ${card.members.some((entry) => entry.id === props.sharedSelectedId) ? "active" : ""}`}><button className="library-card-main" onClick={() => props.selectShared(card.lead.id)}><GraphicThumbnail layout={card.layout} title={card.title} /><span><strong>{card.title}</strong><small>CRC published · {layoutLabel(card.layout)}</small></span></button></article>) : props.visibleLibrary.map((item) => {
         const id = item.kind === "draft" ? item.draft.id : item.cue.id;
         const active = item.kind === "draft" ? props.activeDraftId === item.draft.id : props.activeDraftId === item.cue.draftId;
         const layout = item.kind === "draft" ? item.draft.layout : item.cue.layout;
@@ -1113,16 +1124,6 @@ function WelcomePanel({ beginSiddur, beginCustom }: { beginSiddur: () => void; b
 function ArchivedPanel({ drafts, query, busy, restore }: { drafts: Draft[]; query: string; busy: string; restore: (draft: Draft) => void }) {
   const visible = drafts.filter((draft) => draft.name.toLocaleLowerCase().includes(query.trim().toLocaleLowerCase()));
   return <section className="archived-panel"><header><div><span className="eyebrow">RECOVERABLE LIBRARY</span><h2>Archived graphics</h2><p>Archived drafts stay here until restored. Published Companion cues and live output are unchanged.</p></div><span>{drafts.length} archived</span></header>{visible.length ? <div className="archived-grid">{visible.map((draft) => <article key={draft.id}><GraphicThumbnail layout={draft.layout} {...draftThumbnailCopy(draft)} /><div><strong>{draft.draftSetId ? draft.title : draft.name}</strong><small>{draft.draftSetId ? `${draft.setCount || "Multiple"} slides · ` : ""}Archived {formatTime(draft.archivedAt)}</small><p>{draft.draftSetId ? "Whole prayer set" : draft.title}</p></div><button onClick={() => restore(draft)} disabled={busy === "restore"}><ArchiveRestore size={16} /> Restore {draft.draftSetId ? "set" : "to library"}</button></article>)}</div> : <div className="shared-empty"><Archive size={28} /><h3>{query ? "No archived graphics match this search." : "Nothing is archived."}</h3><p>{query ? "Clear the search to see all archived graphics." : "Graphics you archive can be recovered here."}</p></div>}</section>;
-}
-
-function SharedLibraryPanel(props: {
-  state: SharedLibraryState; selected: SharedCue | null; previewCue: Cue | null; canCustomize: boolean; busy: string; refreshedAt: number | null; query: string;
-  refresh: () => void; customize: () => void; returnLocal: () => void;
-  setViewport: (node: HTMLDivElement | null) => void; setOutput: (node: HTMLDivElement | null) => void;
-  play: () => void; out: () => void; fullscreen: () => void; fitErrors: string[]; warnings: string[]; assetsReady: boolean; bookFaces: boolean;
-}) {
-  if (!props.state.available && !props.state.cues.length) return <section className="shared-library-panel shared-unavailable"><div className="welcome-art"><LibraryBig size={39} /></div><span className="eyebrow">CRC LIBRARY</span><h2>CRC library is temporarily unavailable.</h2><p>{props.state.error || "Your congregation’s own published graphics and drafts remain available."}</p><div className="welcome-actions"><button className="primary-button" onClick={props.refresh} disabled={props.busy === "shared-refresh"}>{props.busy === "shared-refresh" ? <LoaderCircle className="spin" size={17} /> : <RotateCcw size={17} />} Try again</button><button onClick={props.returnLocal}>Return to Published</button></div></section>;
-  return <section className="shared-library-panel"><header className="shared-header"><div><span className="eyebrow">READ-ONLY STARTING POINTS</span><h2>CRC library</h2><p>Choose any current CRC graphic, then make an independent copy for your congregation.</p></div><div className="shared-refresh"><span>{props.state.stale ? "Showing the most recent saved list" : props.refreshedAt ? `Updated ${formatTime(props.refreshedAt)}` : "Ready to refresh"}</span><button onClick={props.refresh} disabled={props.busy === "shared-refresh"}>{props.busy === "shared-refresh" ? <LoaderCircle className="spin" size={16} /> : <RotateCcw size={16} />} Refresh</button></div></header>{props.state.error && <div className="shared-warning"><CircleAlert size={17} />{props.state.error}</div>}{props.selected ? <div className="shared-detail"><div className="shared-information"><span className="status-chip published">CRC published</span><h3>{props.selected.name}</h3><p className="shared-title">{props.selected.title}</p><dl><div><dt>Layout</dt><dd>{layoutLabel(props.selected.layout)}</dd></div><div><dt>Source</dt><dd>{props.selected.sourceIds.length ? `${props.selected.sourceIds.length} referenced source${props.selected.sourceIds.length === 1 ? "" : "s"}` : "Custom CRC graphic"}</dd></div></dl><div className="shared-copy-note"><Copy size={18} /><span><strong>Your copy stays independent</strong><small>CRC additions appear here on refresh. CRC changes never overwrite the draft you customize.</small></span></div><button className="primary-button shared-customize" onClick={props.customize} disabled={!props.state.available || !props.canCustomize || props.busy === "shared-customize"}>{props.busy === "shared-customize" ? <LoaderCircle className="spin" size={17} /> : <Sparkles size={17} />} {props.canCustomize ? "Customize for our congregation" : "Loading exact preview…"}</button></div><PreviewColumn setViewport={props.setViewport} setOutput={props.setOutput} previewCue={props.previewCue} exact={true} fitErrors={props.fitErrors} warnings={props.warnings} assetsReady={props.assetsReady} bookFaces={props.bookFaces} play={props.play} out={props.out} fullscreen={props.fullscreen} statusLabel={props.previewCue ? "CRC published preview · read only" : "Loading CRC preview"} /></div> : <div className="shared-empty"><LibraryBig size={28} /><h3>{libraryEmptyMessage("shared", Boolean(props.query.trim()))}</h3><p>{props.query.trim() ? "Clear the search or refresh the library." : "Refresh the library to look again."}</p></div>}</section>;
 }
 
 function EditorTitle(props: { form: DraftForm; draft: Draft | null; dirty: boolean; busy: string; undo: () => void; redo: () => void; canUndo: boolean; canRedo: boolean; duplicate: () => void; archive: () => void; createVariant: () => void; history: () => void; setPosition: number; setCount: number; previousSlide: () => void; nextSlide: () => void }) {
