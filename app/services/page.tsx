@@ -2,6 +2,7 @@
 
 import Link from 'next/link';
 import {useCallback,useEffect,useMemo,useState} from 'react';
+import {layoutLabel} from '@/lib/layout-label';
 import WorkspaceHeader from '@/components/workspace-header';
 import SignInCard from '@/app/health/sign-in-card';
 import {fetchAccessUser} from '@/lib/access-client';
@@ -61,7 +62,7 @@ export default function ServicesPage(){
   {!dashboard&&needsSignIn&&!busy?<SignInCard description="Prepared services list the graphics your congregation has ready and the source material behind them. Sign in to open the service workspace." onRetry={()=>{setNeedsSignIn(false);void load()}}/>:!dashboard?<p className="services-loading">{busy?'Loading service workspace…':'Unable to load.'}</p>:<>
    <section className="cue-finder" aria-labelledby="cue-finder-heading"><div className="section-heading"><div><p className="services-eyebrow">ALWAYS AVAILABLE</p><h2 id="cue-finder-heading">Global graphic finder</h2><p>Inspect any graphic without sending it live. Add selected graphics to the open collection when useful.</p></div><span>{publishedVisibleCount(dashboard.catalog.cues)} graphics published, visible</span></div>
     <label className="search-label">Search every published graphic<input type="search" value={query} onChange={e=>setQuery(e.target.value)} placeholder="Prayer, title, or graphic ID"/></label>
-    <div className="cue-grid">{filtered.map(cue=><article className="cue-card" key={cue.id}><label><input type="checkbox" checked={selected.includes(cue.id)} disabled={!dashboard.permissions.editCollections} onChange={e=>setSelected(current=>e.target.checked?[...current,cue.id]:current.filter(id=>id!==cue.id))}/><span><strong>{cue.name}</strong><small>{cue.title||cue.layout||cue.id}</small></span></label><Link href={`/?inspect=${encodeURIComponent(cue.id)}`}>Inspect</Link></article>)}</div>
+    <div className="cue-grid">{filtered.map(cue=><article className="cue-card" key={cue.id}><label><input type="checkbox" checked={selected.includes(cue.id)} disabled={!dashboard.permissions.editCollections} onChange={e=>setSelected(current=>e.target.checked?[...current,cue.id]:current.filter(id=>id!==cue.id))}/><span><strong>{cue.name}</strong><small>{cue.layout?layoutLabel(cue.layout):cue.title||''}</small></span></label><Link href={`/?inspect=${encodeURIComponent(cue.id)}`}>Inspect</Link></article>)}</div>
     {dashboard.permissions.editCollections&&<div className="selection-bar"><span>{selected.length} selected</span><button disabled={!active||selected.length!==1||busy} onClick={()=>addSelection('cue')}>Add graphic</button><button disabled={!active||selected.length<2||busy} onClick={()=>addSelection('alternates')}>Add as alternates</button><button disabled={!active||selected.length<2||busy} onClick={()=>addSelection('multipart')}>Add as multipart</button></div>}
    </section>
    <div className="services-columns"><aside className="collections-panel"><div className="section-heading"><div><p className="services-eyebrow">OPTIONAL PREPARATION</p><h2>Service collections</h2></div><label className="archive-toggle"><input type="checkbox" checked={showArchived} onChange={e=>setShowArchived(e.target.checked)}/>Show archived</label></div>

@@ -9,6 +9,7 @@ import type { AccessRole } from "@/lib/access";
 import type { PublicWorkspace } from "@/lib/workspace";
 import WorkspaceHeader from "@/components/workspace-header";
 import { layoutLabel } from "@/lib/layout-label";
+import { publishedVisibleCount } from "@/lib/catalog-count";
 import { findFitErrors, waitForPreviewAssets } from "../preview";
 import "../author.css";
 import styles from "./fit-check.module.css";
@@ -50,15 +51,17 @@ export default function FitCheckClient() {
   const [error, setError] = useState("");
 
   const run = useCallback(async (key: string, identity: PublicWorkspace) => {
-    const root = outputRef.current;
-    if (!root || runningRef.current) return;
+    if (runningRef.current) return;
     runningRef.current = true;
     setBusy(true); setError(""); setRows([]); setTotal(0);
     try {
       const response = await fetch("/api/catalog", { cache: "no-store", headers: key === "session" ? {} : { Authorization: `Bearer ${key}` } });
       if (!response.ok) throw Error(response.status === 401 ? "The catalog rejected this session." : "The published catalog is unavailable.");
       const cues = (await response.json() as Cue[]).filter((cue) => !cue.hidden && !cue.aliasOf);
-      setTotal(cues.length);
+      // U5 - the same "published, visible" number the console footer, library tab and health show.
+      setTotal(publishedVisibleCount(cues));
+      const root = outputRef.current;
+      if (!root) throw Error("The measurement stage is not ready.");
       const branding = overlayBrandingFromWorkspace(identity);
       for (const cue of cues) {
         const player = new Player(root, [cue], branding, { resolveAssetUrl: (next) => overlayAssetUrl(next, "preview") });
@@ -114,7 +117,6 @@ export default function FitCheckClient() {
           setRole(body.user.role as AccessRole);
           setControlKey("session");
           setResolved(true);
-          await run("session", identity);
           return;
         }
       }
@@ -123,14 +125,20 @@ export default function FitCheckClient() {
       if (!saved || cancelled) return;
       setRole("owner");
       setControlKey(saved);
-      await run(saved, identity);
     };
     void start().catch((value) => {
       setError(value instanceof Error ? value.message : "The fit check could not start.");
       setResolved(true);
     });
     return () => { cancelled = true; };
-  }, [run]);
+  }, []);
+
+  useEffect(() => {
+    if (!controlKey || !workspace) return;
+    // Deferred by one tick: the check is started by this effect, not run inside it.
+    const start = setTimeout(() => void run(controlKey, workspace), 0);
+    return () => clearTimeout(start);
+  }, [controlKey, run, workspace]);
 
   const workspaceStyle = workspace ? {
     "--workspace-primary": workspace.colors.primary,
@@ -146,7 +154,7 @@ export default function FitCheckClient() {
       <WorkspaceHeader compact current="/author" title="Fit check" role={role} workspace={workspace} aside={<Link className="header-link" href="/author">Back to library</Link>} />
       <div className={styles.wrap}>
         <p className={styles.notice}><b>Read-only check.</b> Nothing is published or sent to output.</p>
-        {resolved && !controlKey && <p className={styles.summary}>Sign in from the Library first. <Link href="/author">Open the Library</Link>, connect there, then return to this page.</p>}
+        {resolved && !controlKey && <section className={styles.signIn}><h2>Sign in to continue</h2><p>The fit check renders this congregation&rsquo;s published graphics, so it needs an account with editor access.</p><Link href="/access">Open account</Link></section>}
         {error && <p className={styles.error}>{error}</p>}
         {controlKey && <>
           <p className={styles.summary}>
@@ -158,7 +166,7 @@ export default function FitCheckClient() {
           <p><button onClick={() => { if (workspace) void run(controlKey, workspace); }} disabled={busy || !workspace}>{busy ? "Checking…" : "Run again"}</button></p>
           <div className={styles.tableScroll}>
             <table className={styles.table}>
-              <caption>Every published cue rendered once with the real renderer and measured at true 1920 &times; 1080 CSS pixels. Graphics needing attention are listed first.</caption>
+              <caption>Every published graphic rendered once with the real renderer and measured at true 1920 &times; 1080 CSS pixels. Graphics needing attention are listed first.</caption>
               <thead>
                 <tr>
                   <th scope="col">Graphic</th>
@@ -193,10 +201,10 @@ export default function FitCheckClient() {
             <textarea readOnly value={report} aria-label="Fit check JSON report" spellCheck={false} />
           </details>
         </>}
-        <div className={styles.stageRow}>
+        {busy && <div className={styles.stageRow}>
           <div className={styles.stage}><div ref={outputRef} className={styles.output} /></div>
           <span>Measurement stage &mdash; one 1920 &times; 1080 frame, scaled for display only.</span>
-        </div>
+        </div>}
       </div>
     </main>
   );

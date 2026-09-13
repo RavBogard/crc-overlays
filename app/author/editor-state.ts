@@ -1,4 +1,4 @@
-import type { ContentMode, Draft, DraftForm, Source, SourceGroup } from "./types";
+import type { ContentMode, Draft, DraftForm, Source, SourceDisplay, SourceGroup } from "./types";
 
 export const emptyForm: DraftForm = {
   name: "",
@@ -14,6 +14,61 @@ export const emptyForm: DraftForm = {
   variantOverrides: [],
   presentation: {},
 };
+
+/**
+ * I5 - a person never sees a slug or a feed name. `search_sources` and `get_source` already
+ * return the printed `display` block (lib/source-library.ts `sourceDisplay`); this only covers
+ * the one client-side case the server cannot answer: a source snapshot stored inside an older
+ * draft, which carries the same printed metadata but no `display`. The slug shape is dropped
+ * rather than shown.
+ */
+const UNTITLED_BOOK = "Unlabeled book";
+const SLUG = /^[a-z0-9]+(?:-[a-z0-9]+)+$/;
+
+export function sourceDisplayCopy(
+  source: Partial<Pick<Source, "display" | "book" | "section" | "metadata">> | null | undefined,
+): SourceDisplay {
+  if (source?.display) return source.display;
+  const metadata = source?.metadata || {};
+  const title = typeof metadata.bookTitle === "string" ? metadata.bookTitle.trim() : "";
+  const book = typeof source?.book === "string" ? source.book.trim() : "";
+  const bookTitle = title || (book && !SLUG.test(book) ? book : "") || UNTITLED_BOOK;
+  const pages = [...new Set((metadata.folios || [])
+    .map((value) => (typeof value === "number" ? value : Number(value)))
+    .filter((value) => Number.isFinite(value)))].sort((a, b) => a - b);
+  const contiguous = pages.length > 1 && pages.every((value, index) => index === 0 || value === pages[index - 1] + 1);
+  const folio = !pages.length ? null
+    : pages.length === 1 ? `p. ${pages[0]}`
+    : contiguous ? `pp. ${pages[0]}–${pages[pages.length - 1]}`
+    : `pp. ${pages.join(", ")}`;
+  const section = typeof metadata.sectionTitle === "string" ? metadata.sectionTitle.trim()
+    : typeof source?.section === "string" ? source.section.trim() : "";
+  const edition = typeof metadata.familyLabel === "string" ? metadata.familyLabel.trim() : "";
+  return { bookTitle, folio, sectionTitle: section || null, edition: edition || null };
+}
+
+/** The one-line printed provenance shown beside a source: "Mishkan T’filah · p. 70". */
+export function sourceHeadline(display: SourceDisplay): string {
+  return [display.bookTitle, display.folio].filter(Boolean).join(" · ");
+}
+
+export type LibraryTabName = "published" | "drafts" | "archived" | "shared";
+
+/**
+ * X4 (5) - an empty tab and a search with no hits are different things, and only the second
+ * one is about the search.
+ */
+export function libraryEmptyMessage(tab: LibraryTabName, hasQuery: boolean): string {
+  if (hasQuery)
+    return tab === "published" ? "No matching published graphics"
+      : tab === "drafts" ? "No matching drafts"
+      : tab === "archived" ? "No matching archived graphics"
+      : "No matching shared graphics";
+  return tab === "published" ? "No published graphics yet"
+    : tab === "drafts" ? "No drafts yet"
+    : tab === "archived" ? "No archived graphics"
+    : "Nothing shared yet";
+}
 
 export function routeForDraft(draftId: string | null | undefined): string {
   return draftId ? `/author?draft=${encodeURIComponent(draftId)}` : "/author";

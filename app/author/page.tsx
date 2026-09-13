@@ -26,6 +26,7 @@ import {
   Square,
   Undo2,
 } from "lucide-react";
+import { usePathname } from "next/navigation";
 import { useCallback, useEffect, useMemo, useRef, useState, type CSSProperties } from "react";
 import { Player, type Cue } from "@/lib/player";
 import { overlayBrandingFromWorkspace } from "@/lib/branding";
@@ -33,8 +34,9 @@ import type { AccessRole } from "@/lib/access";
 import type { PublicWorkspace } from "@/lib/workspace";
 import WorkspaceHeader from "@/components/workspace-header";
 import { layoutLabel } from "@/lib/layout-label";
+import { publishedVisibleCount } from "@/lib/catalog-count";
 import { overlayAssetUrl } from "@/lib/overlay-assets";
-import { authoringCall } from "./api";
+import { AuthoringApiError, authoringCall } from "./api";
 import {
   draftHasUnpublishedWork,
   auditDraftSet,
@@ -45,11 +47,14 @@ import {
   emptyForm,
   formFromDraft,
   formReady,
+  libraryEmptyMessage,
   moveDraftId,
   parseRecovery,
   recoveryKey,
   routeForDraft,
   selectWholeSource,
+  sourceDisplayCopy,
+  sourceHeadline,
   type RecoveryCopy,
 } from "./editor-state";
 import { findFitErrors, waitForPreviewAssets } from "./preview";
@@ -59,12 +64,14 @@ import type {
   CatalogCue,
   Draft,
   DraftForm,
+  DuplicateNameWarning,
   EphemeralPreviewResult,
   Layout,
   PreviewResult,
   PublishedRevision,
   ReviewReceipt,
   Source,
+  SourceDisplay,
   SourceFacet,
   SourceEnglishRole,
   SourceSummary,
@@ -89,16 +96,6 @@ const densityOptions = [
 ] as const;
 
 const formatTime = (value?: number) => value ? new Date(value).toLocaleString([], { dateStyle: "medium", timeStyle: "short" }) : "";
-const sourceLabel = (item: SourceSummary | Source) => {
-  const seen = new Set<string>();
-  const parts = [item.bookLabel, item.service, item.section, item.book].filter((value): value is string | number => value !== undefined && value !== null && String(value).trim() !== "");
-  const unique = parts.filter((value) => {
-    const key = String(value).toLocaleLowerCase().replace(/^crc\b/, "").replace(/[^\p{L}\p{N}]+/gu, "").trim();
-    if (seen.has(key)) return false;
-    seen.add(key); return true;
-  });
-  return unique.join(" · ") || "Siddur library";
-};
 const itemName = (item: LibraryItem) => item.kind === "draft" ? item.draft.name : item.cue.name;
 const sourceGroups = (draft: Draft) => {
   const content = draft.content.mode === "local-variant" ? draft.content.base : draft.content;
@@ -194,6 +191,10 @@ export default function AuthorPage() {
   const [busy, setBusy] = useState("");
   const [message, setMessage] = useState("");
   const [error, setError] = useState("");
+  const [nameWarning, setNameWarning] = useState<DuplicateNameWarning | null>(null);
+  const [duplicateNamePrompt, setDuplicateNamePrompt] = useState<{ message: string; suggestedName: string } | null>(null);
+  const [publishedState, setPublishedState] = useState<{ version: number } | null>(null);
+  const pathname = usePathname();
 
   const viewportRef = useRef<HTMLDivElement>(null);
   const outputRef = useRef<HTMLDivElement>(null);
@@ -202,6 +203,12 @@ export default function AuthorPage() {
   const animationRevision = useRef(0);
 
   useEffect(() => { dirtyRef.current = dirty; }, [dirty]);
+
+  // X3 - a toast describes the thing that was in front of the operator when it was raised, so
+  // it never survives a move to another page. The selected-graphic and library-tab cases are
+  // cleared where that navigation happens (openDraft, beginNew, backToLibrary, chooseLibraryTab)
+  // because those same handlers raise the next toast in the same commit.
+  useEffect(() => { setMessage(""); setError(""); }, [pathname]);
 
   const fail = useCallback((value: unknown) => {
     setError(value instanceof Error ? value.message : "Something went wrong.");
@@ -231,6 +238,8 @@ export default function AuthorPage() {
     setDirty(true);
     resetReview();
     setRecovery(null);
+    setPublishedState(null);
+    if (patch.name !== undefined) setNameWarning(null);
   }, [resetReview]);
 
   const applyLoadedDraft = useCallback((next: Draft) => {
@@ -245,6 +254,9 @@ export default function AuthorPage() {
     setRevisions([]);
     setShowHistory(false);
     setRecoveryStoredAt(null);
+    setNameWarning(null);
+    setPublishedState(null);
+    setDuplicateNamePrompt(null);
   }, [resetHistory, resetReview]);
 
   const refreshLists = useCallback(async (controlKey: string) => {
@@ -297,9 +309,11 @@ export default function AuthorPage() {
   }, []);
 
   const loadSource = useCallback(async (controlKey: string, sourceId: string) => {
-    const response = await authoringCall<{ source: Source }>(controlKey, "get_source", { sourceId });
-    setSource(response.source);
-    return response.source;
+    const response = await authoringCall<{ source: Source; display?: SourceDisplay }>(controlKey, "get_source", { sourceId });
+    // I5 - the printed provenance travels with the source so no view falls back to a slug.
+    const next: Source = response.display ? { ...response.source, display: response.display } : response.source;
+    setSource(next);
+    return next;
   }, []);
 
   const checkRecovery = useCallback((target: Draft | null) => {
@@ -316,6 +330,7 @@ export default function AuthorPage() {
   const openDraft = useCallback(async (controlKey: string, draftId: string) => {
     setBusy("load");
     setError("");
+    setMessage("");
     try {
       const response = await authoringCall<{ draft: Draft }>(controlKey, "get_draft", { draftId });
       const next = response.draft;
@@ -529,6 +544,7 @@ export default function AuthorPage() {
     playerRef.current?.dispose(); playerRef.current = null;
     outputRef.current?.replaceChildren();
     setWorkingPreview(null); resetReview(); resetHistory(); setRevisions([]); setShowHistory(false);
+    setNameWarning(null); setPublishedState(null); setDuplicateNamePrompt(null); setMessage(""); setError("");
     history.replaceState(null, "", routeForDraft(null)); checkRecovery(null);
     return true;
   }
@@ -546,6 +562,22 @@ export default function AuthorPage() {
     setLibraryTab("drafts");
   }
 
+  // X3 - "Back to library" leaves the editor without touching anything published.
+  function backToLibrary() {
+    if (!canLeave()) return;
+    const wasPublished = Boolean(draft?.activeRevision);
+    setDraft(null); setEditorKind(null); setSource(null);
+    setSourceResults([]); setSourceTruncated(false);
+    previewSequence.current += 1;
+    playerRef.current?.dispose(); playerRef.current = null;
+    outputRef.current?.replaceChildren();
+    setWorkingPreview(null); resetReview(); resetHistory(); setRevisions([]); setShowHistory(false);
+    setNameWarning(null); setPublishedState(null); setDuplicateNamePrompt(null);
+    setMessage(""); setError("");
+    setLibraryTab(wasPublished ? "published" : "drafts");
+    history.replaceState(null, "", routeForDraft(null));
+  }
+
   async function openCatalogCue(cue: CatalogCue) {
     if (!canLeave()) return;
     if (cue.editAction === "open" && cue.draftId) return openDraft(key, cue.draftId);
@@ -558,7 +590,7 @@ export default function AuthorPage() {
       if (first) await loadSource(key, first.sourceId);
       setDrafts((items) => [response.draft, ...items.filter((item) => item.id !== response.draft.id)]);
       history.replaceState(null, "", routeForDraft(response.draft.id));
-      setMessage(`Opened “${response.draft.name}” for editing. Its Companion cue remains linked.`);
+      setMessage(`Opened “${response.draft.name}” for editing. Its Companion button remains linked.`);
     } catch (value) { fail(value); }
     finally { setBusy(""); }
   }
@@ -587,7 +619,7 @@ export default function AuthorPage() {
     if (target.id === draft?.id && !canLeave()) return;
     const setMembers = target.draftSetId ? drafts.filter((item) => item.draftSetId === target.draftSetId).sort((a, b) => (a.setIndex || 0) - (b.setIndex || 0)) : [];
     const subject = setMembers.length ? `all ${setMembers.length} slides in “${target.title}”` : `“${target.name}”`;
-    if (!confirm(`Archive ${subject}? ${setMembers.length ? "The prayer set" : "It"} will leave this editor library until restored. Any published Companion cue and the graphic already on screen remain unchanged.`)) return;
+    if (!confirm(`Archive ${subject}? ${setMembers.length ? "The prayer set" : "It"} will leave this editor library until restored. The published graphic and anything already on screen remain unchanged.`)) return;
     setBusy("archive"); setError("");
     try {
       if (target.draftSetId) await authoringCall(key, "archive_draft_set", { setId: target.draftSetId, expectedDraftIds: setMembers.map((item) => item.id) });
@@ -820,13 +852,15 @@ export default function AuthorPage() {
     setBusy("save"); setError("");
     try {
       const response = draft
-        ? await authoringCall<{ draft: Draft }>(key, "update_draft", { draftId: draft.id, expectedVersion: draft.version, patch: editableFromForm(form) })
-        : await authoringCall<{ draft: Draft }>(key, "create_draft", editableFromForm(form));
+        ? await authoringCall<{ draft: Draft; warnings?: DuplicateNameWarning[] }>(key, "update_draft", { draftId: draft.id, expectedVersion: draft.version, patch: editableFromForm(form) })
+        : await authoringCall<{ draft: Draft; warnings?: DuplicateNameWarning[] }>(key, "create_draft", editableFromForm(form));
       if (!draft) localStorage.removeItem(recoveryKey(null));
       localStorage.removeItem(recoveryKey(response.draft.id));
       applyLoadedDraft(response.draft);
       setDrafts((items) => [response.draft, ...items.filter((item) => item.id !== response.draft.id)]);
       history.replaceState(null, "", routeForDraft(response.draft.id));
+      // R6 - a duplicate library name is a warning while drafting, never a blocked save.
+      setNameWarning((response.warnings || []).find((item) => item.code === "duplicate-name") || null);
       setMessage(`Draft saved as version ${response.draft.version}. Published output is unchanged.`);
     } catch (value) { fail(value); }
     finally { setBusy(""); }
@@ -844,19 +878,32 @@ export default function AuthorPage() {
     finally { setBusy(""); }
   }
 
-  async function publishReviewedVersion() {
+  async function publishReviewedVersion(confirmDuplicateName = false) {
     if (!draft || !exactPreview || !exactPreviewCurrent) return;
     setBusy("publish"); setError("");
     const browserMeasurement: BrowserMeasurement = { viewportWidth: 1920, viewportHeight: 1080, fontsReady: true, overflow: false, rendererVersion: "crc-author-preview-v2", measuredAt: Date.now() };
     try {
       await authoringCall<ReviewReceipt>(key, "review_draft", { draftId: draft.id, expectedVersion: draft.version, previewId: exactPreview.previewId, browserMeasurement, humanApproved: true });
-      const response = await authoringCall<{ revision: PublishedRevision; warning?: string }>(key, "publish_draft", { draftId: draft.id, expectedVersion: draft.version, previewId: exactPreview.previewId });
-      const latest = (await authoringCall<{ draft: Draft }>(key, "get_draft", { draftId: draft.id })).draft;
+      const response = await authoringCall<{ revision: PublishedRevision; draft?: Draft; renamedFrom?: string; warning?: string }>(key, "publish_draft", {
+        draftId: draft.id, expectedVersion: draft.version, previewId: exactPreview.previewId,
+        ...(confirmDuplicateName ? { confirmDuplicateName: true } : {}),
+      });
+      setDuplicateNamePrompt(null);
+      // R6 - a confirmed duplicate publishes under the suggested name and increments the draft
+      // version, so the editor takes the draft the server returned rather than the held version.
+      const latest = response.draft || (await authoringCall<{ draft: Draft }>(key, "get_draft", { draftId: draft.id })).draft;
       applyLoadedDraft(latest);
       setDrafts((items) => [latest, ...items.filter((item) => item.id !== latest.id)]);
       await refreshLists(key);
-      setMessage(response.warning || `Published reviewed version ${response.revision.draftVersion}. The graphic already on screen is unchanged.`);
-    } catch (value) { fail(value); }
+      setPublishedState({ version: response.revision.draftVersion });
+      setMessage(response.warning
+        || (response.renamedFrom ? `Published as “${latest.name}”. The graphic already on screen is unchanged.` : `Published reviewed version ${response.revision.draftVersion}. The graphic already on screen is unchanged.`));
+    } catch (value) {
+      if (value instanceof AuthoringApiError && value.code === "duplicate_name" && value.suggestedName) {
+        setDuplicateNamePrompt({ message: value.message, suggestedName: value.suggestedName });
+        setMessage("");
+      } else fail(value);
+    }
     finally { setBusy(""); }
   }
 
@@ -894,6 +941,7 @@ export default function AuthorPage() {
 
   function chooseLibraryTab(tab: LibraryTab) {
     if (tab === "shared" && !canLeave()) return;
+    if (tab !== libraryTab) { setMessage(""); setError(""); }
     setLibraryTab(tab);
   }
 
@@ -927,7 +975,7 @@ export default function AuthorPage() {
         />
 
         {libraryTab === "shared" ? <SharedLibraryPanel
-          state={sharedLibrary} selected={selectedShared} previewCue={sharedPreview} busy={busy}
+          state={sharedLibrary} selected={selectedShared} previewCue={sharedPreview} busy={busy} query={libraryQuery}
           canCustomize={Boolean(sharedPreview && sharedPreviewHash)}
           refreshedAt={sharedLibrary.refreshedAt} refresh={() => void refreshSharedLibrary(key, true)} customize={() => void customizeSharedCue()}
           returnLocal={() => setLibraryTab("published")}
@@ -973,7 +1021,8 @@ export default function AuthorPage() {
                   />
                 ) : <CustomTextEditor form={form} changeForm={changeForm} />}
 
-                <DetailsEditor form={form} changeForm={changeForm} />
+                <DetailsEditor form={form} changeForm={changeForm} nameWarning={nameWarning}
+                  useSuggestedName={() => { if (nameWarning) changeForm({ name: nameWarning.suggestedName }); }} />
                 <AppearanceEditor form={form} templates={templates} selectedDensity={selectedDensity} changeForm={changeForm}
                   workspace={workspace} assets={assets} assetError={assetError} busy={busy} uploadAsset={uploadAsset}
                   setAssetArchived={(asset, archived) => void setAssetArchived(asset, archived)}
@@ -992,8 +1041,14 @@ export default function AuthorPage() {
             <PublishDock
               dirty={dirty} draft={draft} recoveryStoredAt={recoveryStoredAt} busy={busy}
               ready={formReady(form)} exactPreviewCurrent={exactPreviewCurrent} fitBlocked={fitBlocked}
+              publishedVersion={dirty ? null : publishedState?.version ?? null}
+              duplicate={() => void duplicateItem()} backToLibrary={backToLibrary}
               save={() => void save()} review={() => void reviewSavedVersion()} publish={() => void publishReviewedVersion()}
             />
+            {duplicateNamePrompt && <DuplicateNameDialog
+              message={duplicateNamePrompt.message} suggestedName={duplicateNamePrompt.suggestedName} busy={busy}
+              cancel={() => setDuplicateNamePrompt(null)} confirm={() => void publishReviewedVersion(true)}
+            />}
             {showHistory && <HistoryDrawer revisions={revisions} activeRevision={draft?.activeRevision || null} close={() => setShowHistory(false)} activate={(revision) => void activateRevision(revision)} />}
             {showSetOverview && <SetOverview drafts={draftSet} review={draftSetReview} activeId={draft?.id || null} close={() => setShowSetOverview(false)} open={(item) => { setShowSetOverview(false); if (canLeave()) void openDraft(key, item.id); }} />}
             {showVariantCreator && draft && <VariantCreator
@@ -1027,10 +1082,13 @@ function LibrarySidebar(props: {
   openItem: (item: LibraryItem) => void; duplicateItem: (item: LibraryItem) => void; archiveItem: (item: LibraryItem) => void; restoreItem: (item: Draft) => void;
 }) {
   const tabCount = 3 + (props.sharedEnabled ? 1 : 0);
+  // U5 - the one "published, visible" number, the same helper the console footer and health use.
+  const publishedCount = publishedVisibleCount(props.publishedItems.flatMap((item) => item.kind === "catalog" ? [item.cue] : []));
+  const hasQuery = Boolean(props.libraryQuery.trim());
   return <aside className="library-sidebar">
     <div className="create-stack"><button className="siddur-button" onClick={props.beginSiddur}><BookOpenText size={19} /><span><strong>Add from siddur</strong><small>Find a prayer or reading</small></span></button><button className="secondary-create" onClick={props.beginCustom}><FilePlus2 size={17} /> New custom graphic</button></div>
     <div className={`library-tabs tabs-${tabCount}`} role="tablist" aria-label="Library">
-      <button role="tab" aria-selected={props.libraryTab === "published"} className={props.libraryTab === "published" ? "active" : ""} onClick={() => props.setLibraryTab("published")}>Published <span>{props.publishedItems.length}</span></button>
+      <button role="tab" aria-selected={props.libraryTab === "published"} className={props.libraryTab === "published" ? "active" : ""} onClick={() => props.setLibraryTab("published")}>Published <span title="published, visible">{publishedCount}</span></button>
       <button role="tab" aria-selected={props.libraryTab === "drafts"} className={props.libraryTab === "drafts" ? "active" : ""} onClick={() => props.setLibraryTab("drafts")}>Drafts <span>{props.draftItems.length}</span></button>
       <button role="tab" aria-selected={props.libraryTab === "archived"} className={props.libraryTab === "archived" ? "active" : ""} onClick={() => props.setLibraryTab("archived")}>Archived <span>{props.archivedItems.length}</span></button>
       {props.sharedEnabled && <button role="tab" aria-selected={props.libraryTab === "shared"} className={props.libraryTab === "shared" ? "active" : ""} onClick={() => props.setLibraryTab("shared")}>{props.sharedLabel} <span>{props.sharedTotal}</span></button>}
@@ -1049,7 +1107,7 @@ function LibrarySidebar(props: {
         const canArchive = item.kind === "draft" || Boolean(item.cue.draftId && archiveDraft);
         return <article key={`${item.kind}-${id}`} className={`library-card ${active ? "active" : ""}`}><button className="library-card-main" onClick={() => props.openItem(item)}><GraphicThumbnail layout={layout} {...copy} /><span><strong>{itemName(item)}</strong><small>{subtitle}</small></span></button><span className="card-actions"><button className="icon-button card-action" aria-label={`Duplicate ${itemName(item)}`} title="Duplicate" onClick={() => props.duplicateItem(item)}><Copy size={14} /></button>{canArchive && <button className="icon-button card-action" aria-label={`Archive ${itemName(item)}`} title="Archive" onClick={() => props.archiveItem(item)}><Archive size={14} /></button>}</span></article>;
       })}
-      {!(props.libraryTab === "shared" ? props.sharedItems.length : props.visibleLibrary.length) && <div className="library-empty"><LibraryBig size={24} /><p>No matching {props.libraryTab === "shared" ? props.sharedLabel : props.libraryTab}.</p></div>}
+      {!(props.libraryTab === "shared" ? props.sharedItems.length : props.visibleLibrary.length) && <div className="library-empty"><LibraryBig size={24} /><p>{libraryEmptyMessage(props.libraryTab, hasQuery)}</p></div>}
     </div>
   </aside>;
 }
@@ -1065,13 +1123,13 @@ function ArchivedPanel({ drafts, query, busy, restore }: { drafts: Draft[]; quer
 }
 
 function SharedLibraryPanel(props: {
-  state: SharedLibraryState; selected: SharedCue | null; previewCue: Cue | null; canCustomize: boolean; busy: string; refreshedAt: number | null;
+  state: SharedLibraryState; selected: SharedCue | null; previewCue: Cue | null; canCustomize: boolean; busy: string; refreshedAt: number | null; query: string;
   refresh: () => void; customize: () => void; returnLocal: () => void;
   setViewport: (node: HTMLDivElement | null) => void; setOutput: (node: HTMLDivElement | null) => void;
   play: () => void; out: () => void; fullscreen: () => void; fitErrors: string[]; warnings: string[]; assetsReady: boolean;
 }) {
   if (!props.state.available && !props.state.cues.length) return <section className="shared-library-panel shared-unavailable"><div className="welcome-art"><LibraryBig size={39} /></div><span className="eyebrow">CRC LIBRARY</span><h2>CRC library is temporarily unavailable.</h2><p>{props.state.error || "Your congregation’s own published graphics and drafts remain available."}</p><div className="welcome-actions"><button className="primary-button" onClick={props.refresh} disabled={props.busy === "shared-refresh"}>{props.busy === "shared-refresh" ? <LoaderCircle className="spin" size={17} /> : <RotateCcw size={17} />} Try again</button><button onClick={props.returnLocal}>Return to Published</button></div></section>;
-  return <section className="shared-library-panel"><header className="shared-header"><div><span className="eyebrow">READ-ONLY STARTING POINTS</span><h2>CRC library</h2><p>Choose any current CRC graphic, then make an independent copy for your congregation.</p></div><div className="shared-refresh"><span>{props.state.stale ? "Showing the most recent saved list" : props.refreshedAt ? `Updated ${formatTime(props.refreshedAt)}` : "Ready to refresh"}</span><button onClick={props.refresh} disabled={props.busy === "shared-refresh"}>{props.busy === "shared-refresh" ? <LoaderCircle className="spin" size={16} /> : <RotateCcw size={16} />} Refresh</button></div></header>{props.state.error && <div className="shared-warning"><CircleAlert size={17} />{props.state.error}</div>}{props.selected ? <div className="shared-detail"><div className="shared-information"><span className="status-chip published">CRC published</span><h3>{props.selected.name}</h3><p className="shared-title">{props.selected.title}</p><dl><div><dt>Layout</dt><dd>{layoutLabel(props.selected.layout)}</dd></div><div><dt>Source</dt><dd>{props.selected.sourceIds.length ? `${props.selected.sourceIds.length} referenced source${props.selected.sourceIds.length === 1 ? "" : "s"}` : "Custom CRC graphic"}</dd></div></dl><div className="shared-copy-note"><Copy size={18} /><span><strong>Your copy stays independent</strong><small>CRC additions appear here on refresh. CRC changes never overwrite the draft you customize.</small></span></div><button className="primary-button shared-customize" onClick={props.customize} disabled={!props.state.available || !props.canCustomize || props.busy === "shared-customize"}>{props.busy === "shared-customize" ? <LoaderCircle className="spin" size={17} /> : <Sparkles size={17} />} {props.canCustomize ? "Customize for our congregation" : "Loading exact preview…"}</button></div><PreviewColumn setViewport={props.setViewport} setOutput={props.setOutput} previewCue={props.previewCue} exact={true} fitErrors={props.fitErrors} warnings={props.warnings} assetsReady={props.assetsReady} play={props.play} out={props.out} fullscreen={props.fullscreen} statusLabel={props.previewCue ? "CRC published preview · read only" : "Loading CRC preview"} /></div> : <div className="shared-empty"><LibraryBig size={28} /><h3>No CRC graphics match this search.</h3><p>Clear the search or refresh the library.</p></div>}</section>;
+  return <section className="shared-library-panel"><header className="shared-header"><div><span className="eyebrow">READ-ONLY STARTING POINTS</span><h2>CRC library</h2><p>Choose any current CRC graphic, then make an independent copy for your congregation.</p></div><div className="shared-refresh"><span>{props.state.stale ? "Showing the most recent saved list" : props.refreshedAt ? `Updated ${formatTime(props.refreshedAt)}` : "Ready to refresh"}</span><button onClick={props.refresh} disabled={props.busy === "shared-refresh"}>{props.busy === "shared-refresh" ? <LoaderCircle className="spin" size={16} /> : <RotateCcw size={16} />} Refresh</button></div></header>{props.state.error && <div className="shared-warning"><CircleAlert size={17} />{props.state.error}</div>}{props.selected ? <div className="shared-detail"><div className="shared-information"><span className="status-chip published">CRC published</span><h3>{props.selected.name}</h3><p className="shared-title">{props.selected.title}</p><dl><div><dt>Layout</dt><dd>{layoutLabel(props.selected.layout)}</dd></div><div><dt>Source</dt><dd>{props.selected.sourceIds.length ? `${props.selected.sourceIds.length} referenced source${props.selected.sourceIds.length === 1 ? "" : "s"}` : "Custom CRC graphic"}</dd></div></dl><div className="shared-copy-note"><Copy size={18} /><span><strong>Your copy stays independent</strong><small>CRC additions appear here on refresh. CRC changes never overwrite the draft you customize.</small></span></div><button className="primary-button shared-customize" onClick={props.customize} disabled={!props.state.available || !props.canCustomize || props.busy === "shared-customize"}>{props.busy === "shared-customize" ? <LoaderCircle className="spin" size={17} /> : <Sparkles size={17} />} {props.canCustomize ? "Customize for our congregation" : "Loading exact preview…"}</button></div><PreviewColumn setViewport={props.setViewport} setOutput={props.setOutput} previewCue={props.previewCue} exact={true} fitErrors={props.fitErrors} warnings={props.warnings} assetsReady={props.assetsReady} play={props.play} out={props.out} fullscreen={props.fullscreen} statusLabel={props.previewCue ? "CRC published preview · read only" : "Loading CRC preview"} /></div> : <div className="shared-empty"><LibraryBig size={28} /><h3>{libraryEmptyMessage("shared", Boolean(props.query.trim()))}</h3><p>{props.query.trim() ? "Clear the search or refresh the library." : "Refresh the library to look again."}</p></div>}</section>;
 }
 
 function EditorTitle(props: { form: DraftForm; draft: Draft | null; dirty: boolean; busy: string; undo: () => void; redo: () => void; canUndo: boolean; canRedo: boolean; duplicate: () => void; archive: () => void; createVariant: () => void; history: () => void; setPosition: number; setCount: number; previousSlide: () => void; nextSlide: () => void }) {
@@ -1112,8 +1170,8 @@ function SiddurEditor(props: SiddurEditorProps) {
   return <section className="form-section siddur-section"><div className="section-heading"><span>1</span><div><h3>Choose from the siddur</h3><p>Search by prayer, Hebrew, common spelling, or opening words.</p></div></div>
     <div className="siddur-search-row"><label className="source-search"><span className="sr-only">Search siddur library</span><Search size={17} /><input aria-label="Search siddur library" value={props.query} onChange={(event) => props.setQuery(event.target.value)} onKeyDown={(event) => { if (event.key === "Enter") { event.preventDefault(); props.search(); } }} placeholder="Search prayers and readings" /></label><button onClick={props.search} disabled={props.busy === "search"}>{props.busy === "search" ? <LoaderCircle className="spin" size={17} /> : "Search"}</button></div>
     {(props.books.length > 0 || props.services.length > 0) && <div className="source-filters"><label>Book<select value={props.bookFilter} onChange={(event) => props.setBookFilter(event.target.value)}><option value="">All books</option>{props.books.map((book) => <option key={book.value} value={book.value}>{book.label} ({book.count})</option>)}</select></label><label>Service<select value={props.serviceFilter} onChange={(event) => props.setServiceFilter(event.target.value)}><option value="">All services</option>{props.services.map((service) => <option key={service.value} value={service.value}>{service.label} ({service.count})</option>)}</select></label></div>}
-    {!props.source ? <div className="source-results">{props.truncated && <p className="results-note">Showing the first {props.results.length}. Choose a book or service, or search to narrow the list.</p>}{props.results.map((item) => <button key={item.id} onClick={() => props.selectSource(item)}><span className="source-book"><BookOpenText size={18} /></span><span><strong>{item.name}</strong><small>{sourceLabel(item)}</small>{item.openingWords?.[0] && <em>{item.openingWords[0]}</em>}</span><ChevronRight size={17} /></button>)}{!props.results.length && <div className="source-empty"><BookOpenText size={24} /><p>Browse the library or search for a prayer.</p></div>}</div> : <div className="passage-picker">
-      <div className="passage-header"><button className="icon-button" title="Back to results" onClick={props.clearSource}><ChevronLeft size={17} /></button><div><small>{sourceLabel(props.source)}</small><h4>{props.source.name}</h4></div><div className="whole-prayer-actions"><button onClick={props.chooseWholePrayer}>Select all passages</button><button className="primary-button" onClick={props.makeSlidesFromWholePrayer} disabled={props.busy === "make-set"}>{props.busy === "make-set" ? <LoaderCircle className="spin" size={16} /> : <FilePlus2 size={16} />} Make slides from whole prayer</button></div></div>
+    {!props.source ? <div className="source-results">{props.truncated && <p className="results-note">Showing the first {props.results.length}. Choose a book or service, or search to narrow the list.</p>}{props.results.map((item) => { const display = sourceDisplayCopy(item); return <button key={item.id} onClick={() => props.selectSource(item)}><span className="source-book"><BookOpenText size={18} /></span><span><strong>{item.name}</strong><small>{sourceHeadline(display)}</small>{display.sectionTitle && <small className="source-section">{display.sectionTitle}</small>}{item.openingWords?.[0] && <em>{item.openingWords[0]}</em>}</span><ChevronRight size={17} /></button>; })}{!props.results.length && <div className="source-empty"><BookOpenText size={24} /><p>Browse the library or search for a prayer.</p></div>}</div> : <div className="passage-picker">
+      <div className="passage-header"><button className="icon-button" title="Back to results" onClick={props.clearSource}><ChevronLeft size={17} /></button><div><small>{sourceHeadline(sourceDisplayCopy(props.source))}</small><h4>{props.source.name}</h4></div><div className="whole-prayer-actions"><button onClick={props.chooseWholePrayer}>Select all passages</button><button className="primary-button" onClick={props.makeSlidesFromWholePrayer} disabled={props.busy === "make-set"}>{props.busy === "make-set" ? <LoaderCircle className="spin" size={16} /> : <FilePlus2 size={16} />} Make slides from whole prayer</button></div></div>
       <SourceProvenance source={props.source} />
       <div className="content-mode-toggle">{props.source.blocks.some((block) => block.kind === "bilingual") && <button className={props.form.mode === "bilingual" ? "active" : ""} onClick={() => props.changeMode("bilingual")}>Hebrew + transliteration</button>}{blocksForMode(props.source, "source-en").length > 0 && <button className={props.form.mode === "source-en" ? "active" : ""} onClick={() => props.changeMode("source-en")}>English from siddur</button>}{props.source.blocks.some((block) => block.kind === "original-en") && <button className={props.form.mode === "original-en" ? "active" : ""} onClick={() => props.changeMode("original-en")}>Original English reading</button>}</div>
       {props.source.blocks.some((block) => block.kind === "translation-en") && props.form.mode === "bilingual" && <label className="translation-choice"><input type="checkbox" checked={!!props.form.includeTranslation} onChange={(event) => props.changeForm({ includeTranslation: event.target.checked })} /> Include approved English where available</label>}
@@ -1126,10 +1184,9 @@ function SiddurEditor(props: SiddurEditorProps) {
 }
 
 function SourceProvenance({ source }: { source: Source }) {
-  const edition = source.metadata?.bookTitle || source.bookLabel || source.service || source.book || "Maintained siddur source";
-  const section = source.metadata?.sectionTitle || source.section;
+  const display = sourceDisplayCopy(source);
   const revision = source.authority?.repositoryCommit?.slice(0, 10) || source.unitSha256?.slice(0, 10);
-  return <details className="source-provenance"><summary><BookOpenText size={15} /><span><strong>{edition}</strong><small>Exact source text · view edition details</small></span></summary><dl><div><dt>Prayer or reading</dt><dd>{source.name}</dd></div>{section !== undefined && section !== null && <div><dt>Section</dt><dd>{String(section)}</dd></div>}{source.metadata?.familyLabel && <div><dt>Collection</dt><dd>{source.metadata.familyLabel}</dd></div>}{source.metadata?.folios?.length && <div><dt>Pages</dt><dd>{source.metadata.folios.join(", ")}</dd></div>}{revision && <div><dt>Source revision</dt><dd>{revision}</dd></div>}</dl><p>The selected words are copied exactly from this maintained source. Local changes require an explicitly labeled variant.</p></details>;
+  return <details className="source-provenance"><summary><BookOpenText size={15} /><span><strong>{sourceHeadline(display)}</strong><small>Exact source text · view edition details</small></span></summary><dl><div><dt>Prayer or reading</dt><dd>{source.name}</dd></div>{display.sectionTitle && <div><dt>Section</dt><dd>{display.sectionTitle}</dd></div>}<div><dt>Book</dt><dd>{display.bookTitle}</dd></div>{display.folio && <div><dt>Pages</dt><dd>{display.folio}</dd></div>}{display.edition && <div><dt>Edition</dt><dd>{display.edition}</dd></div>}{revision && <div><dt>Source revision</dt><dd>{revision}</dd></div>}</dl><p>The selected words are copied exactly from this maintained source. Local changes require an explicitly labeled variant.</p></details>;
 }
 
 const channelLabel: Record<VariantChannel, string> = { he: "Hebrew", tr: "Transliteration", en: "English" };
@@ -1152,8 +1209,8 @@ function CustomTextEditor({ form, changeForm }: { form: DraftForm; changeForm: (
   return <section className="form-section custom-section"><div className="section-heading"><span>1</span><div><h3>Write the graphic</h3><p>For announcements, welcome messages, names, and community-specific readings.</p></div></div><label>Custom text <span>{form.customText.length} / 4000</span><textarea value={form.customText} maxLength={4000} onChange={(event) => changeForm({ customText: event.target.value })} placeholder="Type the words that should appear on screen…" /></label><div className="provenance-note"><Sparkles size={17} /><span><strong>Custom congregation text</strong><small>This text is separate from the authorized siddur library.</small></span></div></section>;
 }
 
-function DetailsEditor({ form, changeForm }: { form: DraftForm; changeForm: (patch: Partial<DraftForm>) => void }) {
-  return <section className="form-section details-section"><div className="section-heading"><span>2</span><div><h3>Name and title</h3><p>Names help the operator find the right graphic.</p></div></div><label>Library name<input value={form.name} maxLength={80} onChange={(event) => changeForm({ name: event.target.value })} placeholder="Example: Welcome to Shabbat" /></label><div className="field-pair"><label>On-screen title<input value={form.title} maxLength={100} onChange={(event) => changeForm({ title: event.target.value })} /></label><label>Hebrew accent <span>optional</span><input dir="rtl" value={form.accentTitle} maxLength={60} onChange={(event) => changeForm({ accentTitle: event.target.value })} /></label></div></section>;
+function DetailsEditor({ form, changeForm, nameWarning, useSuggestedName }: { form: DraftForm; changeForm: (patch: Partial<DraftForm>) => void; nameWarning: DuplicateNameWarning | null; useSuggestedName: () => void }) {
+  return <section className="form-section details-section"><div className="section-heading"><span>2</span><div><h3>Name and title</h3><p>Names help the operator find the right graphic.</p></div></div><label>Library name<input value={form.name} maxLength={80} onChange={(event) => changeForm({ name: event.target.value })} placeholder="Example: Welcome to Shabbat" /></label>{nameWarning && <p className="name-warning"><CircleAlert size={15} /><span>Another graphic is already named this. Suggested: “{nameWarning.suggestedName}”.</span><button type="button" onClick={useSuggestedName}>Use suggested name</button></p>}<div className="field-pair"><label>On-screen title<input value={form.title} maxLength={100} onChange={(event) => changeForm({ title: event.target.value })} /></label><label>Hebrew accent <span>optional</span><input dir="rtl" value={form.accentTitle} maxLength={60} onChange={(event) => changeForm({ accentTitle: event.target.value })} /></label></div></section>;
 }
 
 function AppearanceEditor({ form, templates, selectedDensity, changeForm, workspace, assets, assetError, busy, uploadAsset, setAssetArchived, showArchivedAssets, setShowArchivedAssets }: { form: DraftForm; templates: TemplateSummary[]; selectedDensity: string; changeForm: (patch: Partial<DraftForm>) => void; workspace: PublicWorkspace | null; assets: WorkspaceAsset[]; assetError: string; busy: string; uploadAsset: (file: File, name: string, altText: string) => Promise<WorkspaceAsset>; setAssetArchived: (asset: WorkspaceAsset, archived: boolean) => void; showArchivedAssets: boolean; setShowArchivedAssets: (value: boolean) => void }) {
@@ -1173,12 +1230,27 @@ function ArtworkPicker({ workspace, assets, selectedId, error, busy, select, upl
 }
 
 function PreviewColumn(props: { setViewport: (node: HTMLDivElement | null) => void; setOutput: (node: HTMLDivElement | null) => void; previewCue: Cue | null; exact: boolean; fitErrors: string[]; warnings: string[]; assetsReady: boolean; play: () => void; out: () => void; fullscreen: () => void; statusLabel?: string }) {
+  // X4 (1) - the close affordance belongs to the full-screen preview only, so it is not in the
+  // page at all otherwise; the stylesheet keeps it hidden as a second guard.
+  const [fullscreen, setFullscreen] = useState(false);
+  useEffect(() => {
+    const sync = () => setFullscreen(Boolean(document.fullscreenElement));
+    sync();
+    document.addEventListener("fullscreenchange", sync);
+    return () => document.removeEventListener("fullscreenchange", sync);
+  }, []);
   // eslint-disable-next-line react-hooks/refs -- Callback refs expose the two DOM hosts required by the imperative Player renderer; no ref value is read during render.
-  return <aside className="preview-column"><div className="preview-heading"><div><span className="eyebrow">ISOLATED PREVIEW</span><h3>Broadcast frame</h3></div><span>1920 × 1080</span></div><div ref={props.setViewport} className="preview-viewport"><div className="preview-stage-label">PREVIEW ONLY</div><button className="preview-fullscreen-close" aria-label="Close full-screen preview" onClick={() => { if (document.fullscreenElement) void document.exitFullscreen(); }}>× <span>Close preview</span></button><div ref={props.setOutput} id="output" className="author-output" />{!props.previewCue && <div className="preview-placeholder"><Sparkles size={26} /><strong>Your graphic will appear here</strong><span>Add content, a title, and a visual template.</span></div>}</div><div className="preview-toolbar"><button onClick={props.play} disabled={!props.previewCue}><Play size={15} /> Play in</button><button onClick={props.out} disabled={!props.previewCue}><Square size={14} /> Play out</button><button onClick={props.fullscreen} disabled={!props.previewCue}><Maximize2 size={14} /> Full screen</button><span>{props.statusLabel || (props.exact ? "Exact saved preview" : props.previewCue ? "Working preview" : "Waiting for content")}</span></div><div className={`preview-readiness ${props.fitErrors.length ? "problem" : props.assetsReady ? "ready" : "waiting"}`}>{props.fitErrors.length ? <CircleAlert size={18} /> : props.assetsReady ? <Check size={18} /> : <Clock3 size={18} />}<div><strong>{props.fitErrors.length ? "Needs attention" : props.assetsReady ? "Fits this frame" : props.previewCue ? "Preparing preview" : "Waiting for content"}</strong>{props.fitErrors.map((item) => <small key={item}>{item}</small>)}{!props.fitErrors.length && props.warnings.map((item) => <small key={item}>{item}</small>)}{!props.fitErrors.length && props.assetsReady && <small>Fonts and artwork loaded. Review readability before publishing.</small>}</div></div><div className="preview-note"><span /> This preview cannot issue live commands. A graphic already on screen remains unchanged.</div></aside>;
+  return <aside className="preview-column"><div className="preview-heading"><div><span className="eyebrow">ISOLATED PREVIEW</span><h3>Broadcast frame</h3></div><span>1920 × 1080</span></div><div ref={props.setViewport} className="preview-viewport"><div className="preview-stage-label">PREVIEW ONLY</div>{fullscreen && <button className="preview-fullscreen-close" aria-label="Close full-screen preview" onClick={() => { if (document.fullscreenElement) void document.exitFullscreen(); }}>× <span>Close preview</span></button>}<div ref={props.setOutput} id="output" className="author-output" />{!props.previewCue && <div className="preview-placeholder"><Sparkles size={26} /><strong>Your graphic will appear here</strong><span>Add content, a title, and a visual template.</span></div>}</div><div className="preview-toolbar"><button onClick={props.play} disabled={!props.previewCue}><Play size={15} /> Play in</button><button onClick={props.out} disabled={!props.previewCue}><Square size={14} /> Play out</button><button onClick={props.fullscreen} disabled={!props.previewCue}><Maximize2 size={14} /> Full screen</button><span>{props.statusLabel || (props.exact ? "Exact saved preview" : props.previewCue ? "Working preview" : "Waiting for content")}</span></div><div className={`preview-readiness ${props.fitErrors.length ? "problem" : props.assetsReady ? "ready" : "waiting"}`}>{props.fitErrors.length ? <CircleAlert size={18} /> : props.assetsReady ? <Check size={18} /> : <Clock3 size={18} />}<div><strong>{props.fitErrors.length ? "Needs attention" : props.assetsReady ? "Fits this frame" : props.previewCue ? "Preparing preview" : "Waiting for content"}</strong>{props.fitErrors.map((item) => <small key={item}>{item}</small>)}{!props.fitErrors.length && props.warnings.map((item) => <small key={item}>{item}</small>)}{!props.fitErrors.length && props.assetsReady && <small>Fonts and artwork loaded. Review readability before publishing.</small>}</div></div><div className="preview-note"><span /> This preview cannot issue live commands. A graphic already on screen remains unchanged.</div></aside>;
 }
 
-function PublishDock(props: { dirty: boolean; draft: Draft | null; recoveryStoredAt: number | null; busy: string; ready: boolean; exactPreviewCurrent: boolean; fitBlocked: boolean; save: () => void; review: () => void; publish: () => void }) {
+function PublishDock(props: { dirty: boolean; draft: Draft | null; recoveryStoredAt: number | null; busy: string; ready: boolean; exactPreviewCurrent: boolean; fitBlocked: boolean; publishedVersion: number | null; duplicate: () => void; backToLibrary: () => void; save: () => void; review: () => void; publish: () => void }) {
+  if (props.publishedVersion !== null)
+    return <div className="publish-dock"><div className="save-state published"><Check size={18} /><span><strong>Published · version {props.publishedVersion} · live on next Show</strong><small>Nothing changed on screen. The operator decides when to show it.</small></span></div><div className="publish-actions"><button onClick={props.duplicate} disabled={!!props.busy}><Copy size={17} /> Duplicate</button><button className="review-button" onClick={props.backToLibrary} disabled={!!props.busy}><LibraryBig size={17} /> Back to library</button></div></div>;
   return <div className="publish-dock"><div className="save-state">{props.dirty ? <><CircleAlert size={18} /><span><strong>Unsaved changes</strong><small>{props.recoveryStoredAt ? `Recovery copy stored ${formatTime(props.recoveryStoredAt)}` : "A recovery copy will be stored in this browser."}</small></span></> : <><Check size={18} /><span><strong>{props.draft ? `Saved version ${props.draft.version}` : "Ready to save"}</strong><small>Published output has not changed.</small></span></>}</div><div className="publish-actions"><button onClick={props.save} disabled={!props.ready || !!props.busy || (!props.dirty && !!props.draft)}><Save size={17} /> {props.busy === "save" ? "Saving…" : props.draft ? "Save draft" : "Save new draft"}</button>{props.exactPreviewCurrent ? <button className="publish-button" onClick={props.publish} disabled={!!props.busy}>{props.busy === "publish" ? <LoaderCircle className="spin" size={17} /> : <Check size={17} />} Publish this version</button> : props.fitBlocked ? <div className="publish-blocked"><button className="review-button" disabled><CircleAlert size={17} /> Fix fit issues to publish</button><small>Publication is blocked while the preview reports fit problems.</small></div> : <button className="review-button" onClick={props.review} disabled={!props.draft || props.dirty || !!props.busy}>{props.busy === "review" ? <LoaderCircle className="spin" size={17} /> : <Sparkles size={17} />} Review saved version</button>}</div></div>;
+}
+
+function DuplicateNameDialog(props: { message: string; suggestedName: string; busy: string; cancel: () => void; confirm: () => void }) {
+  return <div className="set-overview-backdrop" role="dialog" aria-modal="true" aria-labelledby="duplicate-name-title"><section className="duplicate-name-dialog"><header><div><span className="eyebrow">LIBRARY NAME</span><h3 id="duplicate-name-title">Another graphic uses this name</h3><p>{props.message}</p></div><button className="icon-button" aria-label="Close duplicate name confirmation" onClick={props.cancel}>×</button></header><footer><span>The graphic already on screen is unchanged.</span><div><button onClick={props.cancel}>Cancel</button><button className="primary-button" onClick={props.confirm} disabled={props.busy === "publish"}>{props.busy === "publish" ? <LoaderCircle className="spin" size={17} /> : <Check size={17} />} Publish as “{props.suggestedName}”</button></div></footer></section></div>;
 }
 
 function HistoryDrawer({ revisions, activeRevision, close, activate }: { revisions: PublishedRevision[]; activeRevision: number | null; close: () => void; activate: (revision: number) => void }) {

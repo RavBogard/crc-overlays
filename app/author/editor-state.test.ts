@@ -9,10 +9,13 @@ import {
   editableFromForm,
   emptyForm,
   formReady,
+  libraryEmptyMessage,
   moveDraftId,
   parseRecovery,
   routeForDraft,
   selectWholeSource,
+  sourceDisplayCopy,
+  sourceHeadline,
 } from "./editor-state.ts";
 import type { Source } from "./types.ts";
 
@@ -153,4 +156,37 @@ test("routeForDraft points at the given draft", () => {
 test("routeForDraft encodes identifiers that need escaping", () => {
   assert.equal(routeForDraft("draft 1&2?x=3"), "/author?draft=draft%201%262%3Fx%3D3");
   assert.equal(routeForDraft("שבת/1"), `/author?draft=${encodeURIComponent("שבת/1")}`);
+});
+
+test("a source keeps the printed display block the server sent", () => {
+  const display = { bookTitle: "Mishkan T\u2019filah", folio: "p. 70", sectionTitle: "Evening service", edition: "1,024-page printing" };
+  assert.deepEqual(sourceDisplayCopy({ display, book: "legacy-shabbat-morning" }), display);
+  assert.equal(sourceHeadline(display), "Mishkan T\u2019filah \u00b7 p. 70");
+});
+
+test("a stored source snapshot never falls back to a slug", () => {
+  const display = sourceDisplayCopy({ book: "legacy-shabbat-morning", metadata: { folios: [5, 6] } });
+  assert.equal(display.bookTitle, "Unlabeled book");
+  assert.equal(display.folio, "pp. 5\u20136");
+  assert.equal(sourceHeadline(display), "Unlabeled book \u00b7 pp. 5\u20136");
+});
+
+test("a stored source snapshot reads its printed metadata", () => {
+  assert.deepEqual(sourceDisplayCopy({
+    book: "mishkan-tfilah",
+    section: "17",
+    metadata: { bookTitle: "Mishkan T\u2019filah", sectionTitle: "Evening service", familyLabel: "CRC printing", folios: [70] },
+  }), { bookTitle: "Mishkan T\u2019filah", folio: "p. 70", sectionTitle: "Evening service", edition: "CRC printing" });
+  assert.equal(sourceDisplayCopy({ metadata: { folios: [3, 9] } }).folio, "pp. 3, 9");
+});
+
+test("an empty library tab does not blame the search box", () => {
+  assert.equal(libraryEmptyMessage("drafts", false), "No drafts yet");
+  assert.equal(libraryEmptyMessage("published", false), "No published graphics yet");
+  assert.equal(libraryEmptyMessage("archived", false), "No archived graphics");
+  assert.equal(libraryEmptyMessage("shared", false), "Nothing shared yet");
+  assert.equal(libraryEmptyMessage("drafts", true), "No matching drafts");
+  assert.equal(libraryEmptyMessage("published", true), "No matching published graphics");
+  assert.equal(libraryEmptyMessage("archived", true), "No matching archived graphics");
+  assert.equal(libraryEmptyMessage("shared", true), "No matching shared graphics");
 });

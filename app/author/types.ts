@@ -13,6 +13,10 @@ export type Presentation = {
   imageAssetId?: string;
 };
 export type SourceGroup = { sourceId: string; blockIds: string[] };
+/** Printed provenance for one source, as `search_sources` / `get_source` return it (lib/source-library.ts). */
+export type SourceDisplay = { bookTitle: string; folio: string | null; sectionTitle: string | null; edition: string | null };
+/** A save-time warning that another library graphic already carries this name (R6). */
+export type DuplicateNameWarning = { code: "duplicate-name"; suggestedName: string };
 export type CanonicalDraftContent =
   | {
       mode: "bilingual";
@@ -88,6 +92,7 @@ export type Source = {
     sectionTitle?: string;
     folios?: Array<string | number>;
   };
+  display?: SourceDisplay;
   authority?: {
     repository?: string;
     repositoryCommit?: string;
@@ -108,6 +113,7 @@ export type SourceSummary = Omit<Source, "blocks"> & {
     noteLikeEnglish: number;
   };
 };
+export type SourceDisplayResult = { source: Source; display?: SourceDisplay };
 export type SourceFacet = { value: string; label: string; count: number };
 export type TemplateSummary = {
   id: string;

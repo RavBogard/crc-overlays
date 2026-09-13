@@ -2,6 +2,8 @@ export class AuthoringApiError extends Error {
   constructor(
     message: string,
     public code?: string,
+    /** Set when the server answers `duplicate_name` (409) with the free name it would publish under. */
+    public suggestedName?: string,
   ) {
     super(message);
     this.name = "AuthoringApiError";
@@ -33,6 +35,7 @@ export async function authoringCall<T>(
         ? value.error
         : `The authoring request failed (${response.status}).`,
       typeof value.code === "string" ? value.code : undefined,
+      typeof value.suggestedName === "string" ? value.suggestedName : undefined,
     );
   }
   return body as T;

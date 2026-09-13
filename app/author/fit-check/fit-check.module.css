@@ -19,3 +19,7 @@
 .stageRow { display: flex; align-items: center; gap: 12px; color: var(--quiet); font-size: 11px; }
 .stage { position: relative; width: 480px; height: 270px; flex: 0 0 auto; overflow: hidden; border: 1px solid var(--line); border-radius: 8px; background: #0a0f10; }
 .output { position: absolute; inset: 0 auto auto 0; width: 1920px; height: 1080px; transform-origin: top left; transform: scale(0.25); }
+.signIn { display: grid; justify-items: start; gap: 9px; padding: 22px; border: 1px solid var(--line); border-radius: 11px; background: var(--panel); }
+.signIn h2 { margin: 0; font-size: 20px; }
+.signIn p { margin: 0; color: var(--muted); font-size: 13px; line-height: 1.5; }
+.signIn a { color: var(--mint); font-size: 13px; }
