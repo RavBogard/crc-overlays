@@ -2,6 +2,7 @@
 
 import {Check,Copy,KeyRound,LibraryBig,LoaderCircle,LogOut,MonitorUp,ShieldCheck,UserMinus,Users} from 'lucide-react';
 import Link from 'next/link';
+import {useRouter} from 'next/navigation';
 import {useCallback,useEffect,useState} from 'react';
 import './access.css';
 import WorkspaceNav from '@/components/workspace-nav';
@@ -17,6 +18,7 @@ async function bodyOf(response:Response):Promise<ApiBody>{
 }
 
 export default function AccessPage(){
+ const router=useRouter();
  const [user,setUser]=useState<Member|null>(null);
  const [members,setMembers]=useState<Member[]>([]);
  const [token,setToken]=useState('');
@@ -92,7 +94,7 @@ export default function AccessPage(){
    }
    if(payload.action==='login'){
     setSignInPassword('');
-    location.assign('/author');
+    router.push('/author');
     return;
    }
    if(payload.action==='logout'){
