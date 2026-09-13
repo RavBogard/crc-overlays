@@ -19,3 +19,9 @@
 .stageRow { display: flex; align-items: center; gap: 12px; color: var(--quiet); font-size: 11px; }
 .stage { position: relative; width: 480px; height: 270px; flex: 0 0 auto; overflow: hidden; border: 1px solid var(--line); border-radius: 8px; background: #0a0f10; }
 .output { position: absolute; inset: 0 auto auto 0; width: 1920px; height: 1080px; transform-origin: top left; transform: scale(0.25); }
+.controls { display: flex; flex-wrap: wrap; align-items: center; gap: 10px 14px; margin: 0; }
+.toggle { display: inline-flex; align-items: center; gap: 6px; color: var(--text); font-size: 12px; }
+.hint { flex: 1 1 260px; min-width: 0; color: var(--quiet); font-size: 11px; }
+.sparse { display: inline-block; padding: 1px 6px; border: 1px solid var(--line-strong); border-radius: 999px; color: var(--muted); font-size: 10px; letter-spacing: 0.4px; text-transform: uppercase; }
+.needs { color: #e0b166; }
+.code { color: var(--danger); font-family: ui-monospace, monospace; font-size: 11px; }
