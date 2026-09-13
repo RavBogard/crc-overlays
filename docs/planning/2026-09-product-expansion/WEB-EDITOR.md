@@ -1,6 +1,6 @@
 # Web creation and editing for Michael
 
-Status: approved experience with CRC manual authoring deployed; TBI CRC Library and Customize rollout in progress.
+Status: implemented foundation in release review; Michael and TBI operator acceptance still required.
 
 ## Product requirement
 
@@ -12,11 +12,13 @@ The user's further explicit requirement is easy retrieval from the siddur librar
 
 ## Evidence and limits
 
-The current editor was reviewed through its page structure, interaction handlers, supported content model, and operator documentation. Hosted authoring returned 503 during the preceding product review. Therefore this analysis does not claim a successful current end-to-end authoring session, usability timing, or a visual audit of every editor state. Actual Michael/OBS operator task sessions remain acceptance work.
+The hosted editor returned 503 during the initial product review; that is historical evidence from before Neon service recovery and the current implementation. The current build has local browser evidence for custom drafting, exact review and publication, whole-prayer seven-slide creation, true duplication, isolated preview, and source browsing. Automated coverage verifies source-backed English, exact source snapshots, publication invariants, and independent TBI customization. These checks do not establish Michael usability timing, physical Companion/Stream Deck operation, OBS/vMix program output, or TBI operator acceptance.
 
 Relevant evidence: `app/author/page.tsx`, `app/author/types.ts`, `app/author/preview.ts`, `app/author/author.css`, `lib/authoring-model.ts`, `docs/OPERATOR-QUICKSTART.md`, and `docs/AUTHORING-RELEASE.md`. See also [Singular comparison](SINGULAR-AUTHORING-COMPARISON.md) for externally researched familiar workflows.
 
-## Current experience and gaps
+## Historical baseline that motivated the implementation
+
+The table below records the pre-expansion experience. Several rows are now implemented foundations; it remains here to preserve the problem statement rather than describe the current UI.
 
 | Task | What exists | Gap for Michael |
 | --- | --- | --- |
@@ -33,6 +35,10 @@ Relevant evidence: `app/author/page.tsx`, `app/author/types.ts`, `app/author/pre
 | Understand state | Version numbers, revisions, sync notices | Needs clear Draft, Saved, Ready for buttons, Update pending, and Currently displayed distinctions |
 
 The existing review, source pairing, preview isolation, revision history, and pinned active graphic should be preserved. They are foundations to make simpler, not obstacles to remove.
+
+## Current implemented foundation
+
+The current release candidate provides invited-person sessions and returning email/password sign-in; a unified published/draft library; true independent duplication; typed custom content; continuous unsaved preview; undo/redo and recovery; exact-version review and publication; whole-prayer draft sets; and a 677-unit source browser across 12 books. Source English is distinct from original English, same-record bilingual English remains selectable, and 293 note-like blocks stay manually available while automatic whole-prayer creation omits them. TBI's CRC Library is read-only upstream content; Customize creates a TBI-owned draft with an embedded source snapshot, so future source-feed changes do not rewrite that copy.
 
 ## Proposed information architecture
 

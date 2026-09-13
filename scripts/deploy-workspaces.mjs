@@ -1,5 +1,5 @@
 import {execFileSync} from 'node:child_process';
-import {mkdirSync,writeFileSync} from 'node:fs';
+import {mkdirSync,readFileSync,writeFileSync} from 'node:fs';
 import {dirname,resolve} from 'node:path';
 
 const repoRoot=resolve(import.meta.dirname,'..');
@@ -11,7 +11,10 @@ const run=(file,args,{cwd=repoRoot,env={},capture=false}={})=>execFileSync(file,
 const git=(...args)=>run('git',args,{capture:true}).trim();
 const npmCli=resolve(dirname(process.execPath),'node_modules','npm','bin','npm-cli.js');
 const globalNodeModules=run(process.execPath,[npmCli,'root','--global'],{capture:true}).trim();
-const vercelCli=resolve(globalNodeModules,'vercel','dist','index.js');
+const vercelPackageRoot=resolve(globalNodeModules,'vercel');
+const vercelPackage=JSON.parse(readFileSync(resolve(vercelPackageRoot,'package.json'),'utf8'));
+if(typeof vercelPackage.bin?.vercel!=='string')throw new Error('Installed Vercel package does not declare its CLI entry point');
+const vercelCli=resolve(vercelPackageRoot,vercelPackage.bin.vercel);
 const head=git('rev-parse','HEAD');
 if(!/^[0-9a-f]{40}$/.test(requestedCommit)||head!==requestedCommit)throw new Error(`Checked-out commit ${head} does not match the requested release commit`);
 if(git('status','--porcelain','--untracked-files=all'))throw new Error('Release checkout must be clean so both deployments use one exact source revision');

@@ -129,6 +129,15 @@ test('source English sets include automatic text while note-like English remains
  assert.equal(buildCue(manual.draft).texts.textMain,note.en);assert.equal(manual.draft.sourcePin.blockSha256[JSON.stringify([source.id,note.id])],note.sourceBlockSha256);
 });
 
+test('long source English uses a conservative side-panel page budget without splitting canonical blocks',async()=>{
+ const service=createAuthoringService(new MemoryAuthoringRepository());const sourceId='library:crc-neilah:neilah.neila-sim-shalom@crc-neilah';
+ const source=sourcePack.sources.find(item=>item.id===sourceId)!;const automatic=source.blocks.filter(block=>block.kind==='source-en'&&block.automatic!==false);
+ const result=await service.operation('create_source_draft_set',{sourceId,mode:'source-en',layout:'left',templateCueId:LEFT_PANEL},'tester') as any;
+ assert.equal(result.drafts.length,2);assert.deepEqual(result.drafts.map((draft:any)=>draft.content.englishGroups.length),[1,2]);
+ assert.deepEqual(result.drafts.flatMap((draft:any)=>draft.content.englishGroups.flatMap((group:any)=>group.blockIds)),automatic.map(block=>block.id),'canonical blocks remain intact and ordered');
+ for(const draft of result.drafts){const length=draft.content.englishGroups.flatMap((group:any)=>group.blockIds).reduce((sum:number,id:string)=>sum+(source.blocks.find(block=>block.id===id)?.en?.length??0),0);assert.ok(length<=400||draft.content.englishGroups.length===1,'only an indivisible canonical block may exceed the conservative budget')}
+});
+
 test('memory draft-set insertion preflights the complete batch',async()=>{
  const repo=new MemoryAuthoringRepository();const service=createAuthoringService(repo);
  const result=await service.operation('create_source_draft_set',{sourceId:KOL_NIDRE,mode:'bilingual',layout:'left',templateCueId:LEFT_PANEL},'tester') as any;const draft=result.drafts[0];

@@ -38,6 +38,7 @@ const sourceFacets=(field:'book'|'service')=>{const facets=new Map<string,{value
 const searchRank=(source:SearchSource,query:string)=>{if(!query)return 0;const name=normalized(source.name),opening=normalized((source.openingWords??[]).join(' ')),body=normalized(source.blocks.flatMap(block=>[block.he,block.tr,block.en]).join(' ')),metadata=normalized([source.id,source.section,...(source.aliases??[]),sourceBook(source).value,sourceBook(source).label,source.service].join(' '));if(name===query)return 0;if(name.startsWith(query))return 1;if(name.includes(query))return 2;if(opening.includes(query))return 3;if(body.includes(query))return 4;if(metadata.includes(query))return 5;return null};
 const PANEL_BLOCK_LIMIT=3;
 const PANEL_CHAR_BUDGET=600;
+const PANEL_ENGLISH_CHAR_BUDGET=400;
 
 function blockCharacters(block:SourceBlock,mode:'bilingual'|'original-en'|'source-en'){
  return mode==='bilingual'?(block.he?.length??0)+(block.tr?.length??0):(block.en?.length??0);
@@ -62,11 +63,12 @@ function sourceSetSegments(source:SearchSource,mode:'bilingual'|'original-en'|'s
 function sourceSetPages(source:SearchSource,mode:'bilingual'|'original-en'|'source-en',includeTranslation:boolean,layout:Layout){
  const segments=sourceSetSegments(source,mode,includeTranslation);
  if(layout==='bottom')return segments.flatMap(segment=>segment.map(block=>[block]));
+ const characterBudget=mode==='source-en'?PANEL_ENGLISH_CHAR_BUDGET:PANEL_CHAR_BUDGET;
  const pages:SourceBlock[][]=[];let page:SourceBlock[]=[];let characters=0;
  for(const segment of segments){
   const translationCharacters=includeTranslation?(source.blocks.find(block=>block.kind==='translation-en'&&block.pairedBlockIds?.[0]===segment[0].id)?.en?.length??0):0;
   const nextCharacters=segment.reduce((sum,block)=>sum+blockCharacters(block,mode),translationCharacters);
-  if(page.length&&(page.length+segment.length>PANEL_BLOCK_LIMIT||characters+nextCharacters>PANEL_CHAR_BUDGET)){pages.push(page);page=[];characters=0}
+  if(page.length&&(page.length+segment.length>PANEL_BLOCK_LIMIT||characters+nextCharacters>characterBudget)){pages.push(page);page=[];characters=0}
   page.push(...segment);characters+=nextCharacters;
  }
  if(page.length)pages.push(page);

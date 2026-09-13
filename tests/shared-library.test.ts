@@ -1,6 +1,6 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
-import {baselineCues,buildCue,editableFromBaseline,newDraftId,sourcePinFor,type Draft} from '../lib/authoring-model.ts';
+import {baselineCues,buildCue,editableFromBaseline,newDraftId,sourcePack,sourcePinFor,type AuthoringSource,type Draft} from '../lib/authoring-model.ts';
 import {MemoryAuthoringRepository,createAuthoringService} from '../lib/authoring.ts';
 import {SHARED_LIBRARY_MAX_BYTES,SharedLibraryClient,TBI_WORKSPACE_ID,buildSharedLibraryPayload,type SharedLibrarySnapshot} from '../lib/shared-library.ts';
 
@@ -18,6 +18,22 @@ test('CRC export contains every visible published baseline and only required sou
 test('newly published cue definitions carry immutable copy specifications for future sharing',()=>{
  const editable=editableFromBaseline(BARECHU);const now=Date.now();const draft:Draft={...editable,id:newDraftId(),version:3,sourcePin:sourcePinFor(editable.content),activeRevision:2,activeDraftVersion:3,createdAt:now,updatedAt:now,createdBy:'crc',updatedBy:'crc'};const cue=buildCue(draft);
  const payload=buildSharedLibraryPayload({cues:[cue],version:'future'});assert.equal(payload.cues[0].copySpec.title,editable.title);assert.deepEqual(payload.cues[0].copySpec.content,editable.content);assert.deepEqual(payload.cues[0].copySpec.sourcePin,draft.sourcePin);
+});
+
+test('embedded source snapshots preserve an older feed through export, import, update, and duplicate',async()=>{
+ const seed=sourcePack.sources.find(source=>source.blocks.some(block=>block.kind==='source-en'&&block.automatic!==false))!;
+ const seedBlock=seed.blocks.find(block=>block.kind==='source-en'&&block.automatic!==false)!;
+ const sourceId=`library:test-old-feed:${seed.id.replace(/^library:/,'')}`;
+ const sourceSnapshot:AuthoringSource={...structuredClone(seed),id:sourceId};
+ const oldFeed='1'.repeat(64);const content={mode:'source-en' as const,englishGroups:[{sourceId,blockIds:[seedBlock.id]}]};
+ const editable={name:'Pinned old feed',title:'Pinned old feed',layout:'bottom' as const,templateCueId:BARECHU,content,presentation:{}};const now=Date.now();
+ const sourcePin=sourcePinFor(content,[sourceSnapshot],oldFeed);const draft:Draft={...editable,id:newDraftId(),version:1,sourcePin,sourceSnapshots:[sourceSnapshot],activeRevision:1,activeDraftVersion:1,createdAt:now,updatedAt:now,createdBy:'crc',updatedBy:'crc'};
+ const cue=buildCue(draft);assert.equal(cue.authoring.feedSha256,oldFeed);assert.equal(cue.texts.textMain,seedBlock.en);assert.equal(sourcePack.sources.some(source=>source.id===sourceId),false,'snapshot source is deliberately absent from the current corpus');
+ const payload=buildSharedLibraryPayload({cues:[cue],version:'old-feed'});assert.equal(payload.sources[0].id,sourceId);assert.equal(payload.cues[0].copySpec.sourcePin.feedSha256,oldFeed);
+ const snapshot:SharedLibrarySnapshot={available:true,configured:true,stale:false,refreshedAt:now,payload};const service=createAuthoringService(new MemoryAuthoringRepository(),undefined,{get:async()=>snapshot});
+ const imported=await service.operation('customize_shared_cue',{cueId:draft.id,expectedCueHash:payload.cues[0].cueHash},'simone') as any;assert.equal(imported.draft.sourcePin.feedSha256,oldFeed);assert.equal(buildCue(imported.draft).texts.textMain,seedBlock.en);
+ const updated=await service.operation('update_draft',{draftId:imported.draft.id,expectedVersion:1,patch:{title:'TBI title'}},'simone') as any;assert.equal(updated.draft.sourcePin.feedSha256,oldFeed);assert.equal(buildCue(updated.draft).texts.textMain,seedBlock.en);
+ const duplicated=await service.operation('duplicate_draft',{draftId:updated.draft.id},'simone') as any;assert.equal(duplicated.draft.sourcePin.feedSha256,oldFeed);assert.equal(buildCue(duplicated.draft).texts.textMain,seedBlock.en);
 });
 
 test('TBI client deduplicates refreshes, serves a sixty-second cache, and falls back to last good data',async()=>{

@@ -51,7 +51,7 @@ These contracts let this backlog remain usable while the detailed installation a
 | **DEP-HARDWARE** | Complete staffed acceptance using Michael's actual Companion/Stream Deck and chosen vMix or OBS workstation, including program monitor evidence. | Blocks claiming CRC service readiness or replacement readiness. |
 | **DEP-INSTALL** | Provide a Michael installation/onboarding path comparable in simplicity to opening a hosted service: establish identity/access, copy a congregation-scoped output URL into OBS/vMix, connect Companion, install a reviewed page package, verify health, and make recovery discoverable. OAuth is a candidate mechanism, not a predetermined requirement. The same path must account for the invited congregation's known OBS plus Companion/Stream Deck environment. | Blocks rollout beyond the current manually configured workstation and informs setup/status UX. |
 | **DEP-TENANT** | Maintain the verified two-deployment boundary: separate invitation, identity, role, database, output/control authorization, draft ownership, offboarding, and support state for CRC and TBI; one exact source release builds both. Exercise the boundary with each congregation before regular use. | Deployment architecture is implemented; blocks operational acceptance. |
-| **DEP-SOURCES** | Expose the complete 647-source current CRC library and future published additions to TBI as a bounded read-only upstream with retained attribution. Customization creates local TBI drafts and later upstream changes never overwrite them. | Blocks full-library browsing and safe customization evidence. |
+| **DEP-SOURCES** | Expose the complete 677-unit current CRC source library and future published overlay additions to TBI as a bounded read-only upstream with retained attribution. Customization creates local TBI drafts and later upstream changes never overwrite them. | Implementation has automated evidence; operational two-workspace acceptance remains. |
 | **DEP-WEB-EDITOR** | Deliver the manual web-authoring epic below: familiar library/create/duplicate entry points, clear sacred-source versus local-variant treatment, resilient editing, exact visual review, and unambiguous publication. | Blocks treating authoring as a usable product for Michael or the invited congregation. |
 
 ## Cross-cutting enabling epic: manual web authoring
@@ -437,7 +437,7 @@ Items may begin earlier, but they cannot be accepted before their dependencies a
 
 **Approved outcome:** Make additional CRC services and the invited congregation's authorized sources available through the same review workflow.
 
-**Known baseline:** Authoring now searches a bounded 647-source CRC library. Daniel has authorized full current and future read-only library access for Simone and TBI; cross-workspace credentials, drafts, publications, control, and live state still require isolation evidence.
+**Known baseline:** Authoring now searches 677 usable source units across 12 books, including 4,188 bilingual blocks, 194 original-English blocks, and 2,330 blocks with source English. Daniel has authorized full current and future read-only library access for Simone and TBI; cross-workspace credentials, drafts, publications, control, and live state still require operational isolation evidence.
 
 **New work:** Make current and future published CRC library additions appear automatically in TBI's read-only CRC Library, with retained attribution and bounded fetches. One-click Customize creates an independent TBI draft and never overwrites local edits.
 

@@ -238,6 +238,9 @@
 .source-results { max-height: 430px; overflow-y: auto; overscroll-behavior: contain; scrollbar-color: #3b544d transparent; }
 .results-note { position: sticky; top: 0; z-index: 2; margin: 0; padding: 9px 11px; border-bottom: 1px solid var(--line); background: #13201e; color: var(--muted); font-size: 10px; line-height: 1.4; }
 .preview-stage-label { position: absolute; top: 8px; left: 8px; z-index: 4; padding: 4px 6px; border-radius: 4px; background: #0a1110bb; color: #789088; font-size: 8px; letter-spacing: 1.1px; }
+.preview-fullscreen-close { display: none; }
+.preview-viewport:fullscreen .preview-fullscreen-close { position: absolute; top: 22px; right: 22px; z-index: 8; display: inline-flex; align-items: center; gap: 7px; padding: 9px 13px; border: 1px solid #b8cdc6aa; border-radius: 8px; background: #07100fe6; color: #f3faf7; font-size: 13px; font-weight: 700; box-shadow: 0 6px 20px #0008; }
+.preview-viewport:fullscreen .preview-fullscreen-close:hover, .preview-viewport:fullscreen .preview-fullscreen-close:focus-visible { border-color: #f3faf7; background: #14231f; }
 .preview-placeholder { position: absolute; inset: 0; display: grid; place-content: center; justify-items: center; gap: 6px; color: #71857f; text-align: center; }
 .preview-placeholder strong { margin-top: 3px; color: #9caea8; font-size: 13px; }
 .preview-placeholder span { font-size: 10px; }
