@@ -45,8 +45,36 @@ needs only that workspace.
 
 The script checks HEAD against `<full-sha>`, that `git status --porcelain --untracked-files=all`
 is empty, that `cd relay && npm test && npm run check` pass, then the gate, then deploys both
-with the relay-local wrangler. It writes `work/deploy-staging/releases/<sha>/relay.json`
-(workers, gate reading, `completedAt`) and leaves any `release.json` there untouched.
+with the relay-local wrangler. It leaves any `release.json` there untouched.
+
+### The release record
+
+Before either worker is touched, the script writes `work/deploy-staging/releases/<sha>/relay.json`
+with `status:"in-progress"`, the commit, the gate reading it validated, and each worker at
+`status:"pending"`. It refreshes the read-only gate check again immediately before *each* worker's
+deploy (not just once up front), since the earlier reading can go stale while the previous worker
+was deploying. As each worker's `wrangler deploy` finishes, its own entry is updated in place with
+`status:"deployed"` or `"failed"`, the wrangler version id when it can be parsed from the output
+(`null` otherwise), a timestamp, and — on failure — the tail of wrangler's output.
+
+The top-level `status` is decided once every requested worker has been attempted or the gate has
+blocked one:
+
+- `"complete"` — every requested worker deployed.
+- `"partial"` — at least one worker deployed and at least one did not (its own deploy failed, or
+  the refreshed gate blocked it before it started). The record gets a `recovery` string naming the
+  worker(s) still owed a decision.
+- `"aborted"` — the gate blocked the release before any worker deployed (no partial state exists).
+
+The exit code is non-zero for anything other than `"complete"`.
+
+### Recovery from a partial release
+
+`recovery` says exactly what to do: re-verify the gate is idle and rerun this same script with
+`--only <worker>` for whatever did not deploy, using the same commit; or, to undo a worker that did
+deploy, run `npx wrangler rollback [--env tbi]` from `relay/` and note the version id you rolled
+back to. The two workers are independent, so leaving one deployed while you retry or roll back the
+other is a valid intermediate state — the record says which is which.
 
 ## What live clients see
 
