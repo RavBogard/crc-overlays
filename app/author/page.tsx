@@ -72,6 +72,7 @@ import type {
   VariantChannel,
 } from "./types";
 import "./author.css";
+import GraphicThumbnail from "@/components/graphic-thumbnail";
 
 type LibraryTab = "published" | "drafts" | "archived" | "shared";
 type EditorKind = "siddur" | "custom" | "edit";
@@ -1053,9 +1054,6 @@ function LibrarySidebar(props: {
   </aside>;
 }
 
-function GraphicThumbnail({ layout, title, body = "", accent }: { layout: Layout; title: string; body?: string; accent?: string }) {
-  return <span className={`mini-frame ${layout}`} aria-hidden="true"><span className="mini-graphic-content">{accent && <i>{accent}</i>}<b>{title}</b>{body && <small>{body}</small>}</span></span>;
-}
 
 function WelcomePanel({ beginSiddur, beginCustom }: { beginSiddur: () => void; beginCustom: () => void }) {
   return <section className="welcome-panel"><div className="welcome-art"><BookOpenText size={42} /></div><span className="eyebrow">READY WHEN YOU ARE</span><h2>Prepare a graphic without touching live output.</h2><p>Start with an authorized passage from the siddur library, or open a published graphic to edit or duplicate it.</p><div className="welcome-actions"><button className="primary-button" onClick={beginSiddur}><BookOpenText size={18} /> Add from siddur</button><button onClick={beginCustom}><FilePlus2 size={18} /> New custom graphic</button></div></section>;
