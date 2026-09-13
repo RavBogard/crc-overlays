@@ -98,3 +98,8 @@ test("a republish with no wording change says so and still lists the other flags
     { key: "presentation", label: "Presentation", changed: false },
   ]);
 });
+
+test("a custom graphic's single text block is labelled Text, never by its storage key", () => {
+  const rows = compareRows({ layout: "bottom", texts: { textTitle: "Check", textMain: "New line" } }, { layout: "bottom", texts: { textTitle: "Check", textMain: "Old line" } });
+  assert.deepEqual(rows.map((row) => [row.label, row.changed]), [["Title", false], ["Text", true]]);
+});

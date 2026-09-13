@@ -168,7 +168,9 @@ function ShelfDetail(props: {
         <h4>In your library</h4>
         {drafts.length
           ? <ul className="shelf-draft-list">{drafts.map((item: SharedLocalDraft) => <li key={item.id}><button type="button" onClick={() => props.openDraft(item.id)}><PencilLine size={15} /> {item.name}<small>{item.activeRevision ? `Published revision ${item.activeRevision}` : "Draft"}</small></button></li>)}</ul>
-          : <p className="shelf-section-empty">Your copy is no longer in this library.</p>}
+          : card.lead.local.starterCueId
+            ? <p className="shelf-section-empty">Already published in your library.</p>
+            : <p className="shelf-section-empty">Your copy is no longer in this library.</p>}
       </div>}
 
       {slides > 1 && <ol className="shelf-slide-list">{card.members.map((entry) => <li key={entry.id}>{entry.name}</li>)}</ol>}

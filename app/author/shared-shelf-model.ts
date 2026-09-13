@@ -34,8 +34,9 @@ const TEXT_LABELS: Record<string, string> = {
   textMainheb: "Hebrew",
   textMainEng: "Transliteration",
   textTranslation: "Translation",
+  textMain: "Text",
 };
-const TEXT_ORDER = ["textTitle", "accentTextTitle", "textMainheb", "textMainEng", "textTranslation"];
+const TEXT_ORDER = ["textTitle", "accentTextTitle", "textMainheb", "textMainEng", "textTranslation", "textMain"];
 const ROW_CHANNELS: Array<{ channel: "he" | "tr" | "en"; label: string }> = [
   { channel: "he", label: "Hebrew" },
   { channel: "tr", label: "Transliteration" },
