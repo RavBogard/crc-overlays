@@ -33,6 +33,8 @@ export type SiddurEditorProps = {
   makeSlidesFromWholePrayer: () => void;
   changeMode: (mode: CanonicalContentMode) => void; changeForm: (patch: Partial<DraftForm>) => void; busy: string;
   controlKey: string;
+  /** X2: the Panels row is shown only when the selection needs more than one panel (or already has one). Default true. */
+  showPanels?: boolean;
 };
 
 export function SiddurEditor(props: SiddurEditorProps) {
