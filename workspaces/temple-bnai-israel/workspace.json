@@ -1,6 +1,6 @@
 {
   "version": 1,
-  "status": "prepared-not-provisioned",
+  "status": "infrastructure-prepared-release-pending",
   "confirmedRabbi": "Rabbi Simone Schicker",
   "assetUseStatus": "official-public-reference-prepared-for-congregation-review",
   "officialSources": [
@@ -28,6 +28,8 @@
     "WORKSPACE_PRIMARY_COLOR": "#2b5672",
     "WORKSPACE_DEEP_COLOR": "#183646",
     "WORKSPACE_ACCENT_COLOR": "#e55c5e",
+    "WORKSPACE_COMPANION_MODULE_PATH": "/workspaces/temple-bnai-israel/downloads/companion-module-1.2.0.tgz",
+    "WORKSPACE_COMPANION_PAGE_PATHS": "/workspaces/temple-bnai-israel/downloads/tbi-morning-page-1.companionconfig,/workspaces/temple-bnai-israel/downloads/tbi-morning-page-2.companionconfig",
     "WORKSPACE_STAGE": "trial",
     "WORKSPACE_ISOLATION_VERIFIED": "false"
   },

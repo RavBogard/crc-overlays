@@ -40,7 +40,7 @@ if(relativeDestination.startsWith(`..${sep}`)||relativeDestination==='..'||relat
 if(existsSync(destination))fail(`Staging already exists at ${destination}; preserve it or move it before preparing another package`);
 
 const starter=readJson(resolve(directory,'starter-collection.json'));
-if(starter.destinationWorkspace!==id||starter.sourceWorkspace!=='crc'||starter.status!=='approved-selection-prepared-not-imported')fail('Starter collection is not approved for this destination');
+if(starter.destinationWorkspace!==id||starter.sourceWorkspace!=='crc'||starter.status!=='approved-starter-prepared-not-imported')fail('Starter collection is not approved for this destination');
 const sourceCatalog=readJson(resolve(repoRoot,'lib','cues.json'));
 const sourceById=new Map(sourceCatalog.map(cue=>[cue.id,cue]));
 const visibleIds=new Set(sourceCatalog.filter(cue=>!cue.hidden).map(cue=>cue.id));
@@ -99,15 +99,17 @@ files.push(write(resolve(destination,'.env.example'),[
  'OUTPUT_KEY=',
  'RELAY_URL=',
  'RELAY_SECRET=',
+ 'CRC_SHARED_LIBRARY_URL=https://crc-overlays.vercel.app/api/shared-library',
+ 'SHARED_LIBRARY_IMPORT_KEY=',
  'PUBLIC_BASE_URL=',
  '',
 ].join('\n')));
 files.push(write(resolve(destination,'README.md'),`# ${profile.environment.WORKSPACE_PRODUCT_NAME} deployment staging
 
-Prepared ${preparedAt} from the approved CRC visible baseline. This directory is staging only. It has independent destination cue IDs and retains every source cue's provenance and license metadata.
+Prepared ${preparedAt} from the approved CRC visible baseline for the initial Companion buttons. This directory is staging only. It has independent destination cue IDs and retains every source cue's provenance and license metadata. TBI library access includes the complete current CRC library and future owner-authorized additions; TBI-owned edits remain independent.
 
 No live database, relay, credentials, domain, membership, or deployment was created. Fill secrets only in the deployment provider; never write them into this directory. Keep \`WORKSPACE_ISOLATION_VERIFIED=false\` until cross-workspace isolation and the actual OBS/Companion/Stream Deck rehearsal pass.
 `));
-const packageManifest={version:1,workspaceId:id,preparedAt,cueCount:destinationCatalog.length,files};
+const packageManifest={version:1,workspaceId:id,preparedAt,cueCount:destinationCatalog.length,sharedLibraryPolicy:'complete-current-library-and-owner-authorized-future-crc-additions',files};
 write(resolve(destination,'manifest.json'),packageManifest);
 console.log(JSON.stringify({destination,cueCount:destinationCatalog.length,workspaceId:id},null,2));

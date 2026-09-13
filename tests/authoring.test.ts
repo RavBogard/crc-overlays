@@ -1,6 +1,6 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
-import {AuthoringError,baselineCues,editableFromBaseline,sourcePack} from '../lib/authoring-model.ts';
+import {AuthoringError,baselineCues,buildCue,editableFromBaseline,sourcePack} from '../lib/authoring-model.ts';
 import {MemoryAuthoringRepository,authoringRepositoryMode,createAuthoringService,type AuthoringWorkspace} from '../lib/authoring.ts';
 
 const BARECHU='efa9fad4-f7d5-4091-a708-82103028861b';
@@ -78,15 +78,18 @@ test('list_catalog exposes effective cues for edit or duplicate without mutating
 test('source search supports browsing, canonical text, and strict filters',async()=>{
  const service=createAuthoringService(new MemoryAuthoringRepository());
  const facets=await service.operation('source_facets',{},'tester') as {books:Array<{value:string;label:string;count:number}>;services:Array<{value:string;label:string;count:number}>};assert.ok(facets.books.length>1);assert.ok(facets.services.length>1);assert.ok(facets.books.every(item=>item.value&&item.label&&item.count>0));assert.ok(Buffer.byteLength(JSON.stringify(facets))<16*1024);
- assert.equal(facets.books.reduce((sum,item)=>sum+item.count,0),647,'legacy/expanded equivalents are counted once in browse facets');
+ assert.equal(facets.books.reduce((sum,item)=>sum+item.count,0),677,'legacy/expanded equivalents are counted once and English-only units remain browsable');
  const browse=await service.operation('search_sources',{query:'',limit:3},'tester') as any;assert.equal(browse.sources.length,3);
  assert.ok(Buffer.byteLength(JSON.stringify(await service.operation('search_sources',{query:'',limit:50},'tester')))<=128*1024);
  const hebrew=await service.operation('search_sources',{query:'הריני'},'tester') as any;assert.ok(hebrew.sources.some((source:any)=>source.name==='Hareini'));
  const opening=await service.operation('search_sources',{query:'m’kabeil alai'},'tester') as any;assert.ok(opening.sources.some((source:any)=>source.name==='Hareini'));
  const ranked=await service.operation('search_sources',{query:'Hareini',limit:10},'tester') as any;assert.equal(ranked.sources[0].name,'Hareini');
- const legacyEquivalent=await service.operation('search_sources',{query:'Hareini',book:'legacy-shabbat-morning',limit:10},'tester') as any;assert.ok(legacyEquivalent.sources.some((source:any)=>source.id==='awakening.hareini@legacy-shabbat-morning'));assert.ok(!legacyEquivalent.sources.some((source:any)=>source.id==='library:legacy-shabbat-morning:awakening.hareini@legacy-shabbat-morning'));
+ const legacyEquivalent=await service.operation('search_sources',{query:'Hareini',book:'legacy-shabbat-morning',limit:10},'tester') as any;assert.ok(legacyEquivalent.sources.some((source:any)=>source.id==='library:legacy-shabbat-morning:awakening.hareini@legacy-shabbat-morning'));assert.ok(!legacyEquivalent.sources.some((source:any)=>source.id==='awakening.hareini@legacy-shabbat-morning'));
+ const modehAni=await service.operation('search_sources',{query:'Modeh Ani',book:'legacy-shabbat-morning',limit:10},'tester') as any;const richModehAni=modehAni.sources.find((source:any)=>source.name==='Modeh Ani');assert.ok(richModehAni.id.startsWith('library:legacy-shabbat-morning:'));assert.equal(richModehAni.coverage.sourceEnglish,1);
+ const modehSource=await service.operation('get_source',{sourceId:richModehAni.id},'tester') as any;assert.ok(modehSource.source.blocks.some((block:any)=>block.kind==='source-en'&&block.en));const legacyModeh=await service.operation('get_source',{sourceId:'awakening.modeh-ani@legacy-shabbat-morning'},'tester') as any;assert.equal(legacyModeh.source.id,'awakening.modeh-ani@legacy-shabbat-morning','legacy source ID remains directly resolvable');
  const friendlyBook=facets.books.find(item=>item.label==='CRC Kabbalat Shabbat');if(friendlyBook){const byValue=await service.operation('search_sources',{book:friendlyBook.value,limit:2},'tester') as any;const byLabel=await service.operation('search_sources',{book:friendlyBook.label,limit:2},'tester') as any;assert.deepEqual(byValue.sources.map((source:any)=>source.id),byLabel.sources.map((source:any)=>source.id))}
  const filtered=await service.operation('search_sources',{book:'CRC Shabbat Morning Siddur',service:'Shabbat Morning',limit:50},'tester') as any;assert.ok(filtered.sources.length);assert.ok(filtered.sources.every((source:any)=>source.book==='CRC Shabbat Morning Siddur'&&source.service==='Shabbat Morning'));
+ const sourceEnglish=await service.operation('search_sources',{query:'April 6, 2019',limit:10},'tester') as any;assert.ok(sourceEnglish.sources.some((source:any)=>source.coverage.sourceEnglish>0&&source.coverage.noteLikeEnglish>0));
  await assert.rejects(service.operation('search_sources',{query:'welcome',unknown:true},'tester'),(e:any)=>e.code==='invalid_input');
 });
 
@@ -113,6 +116,17 @@ test('bottom sets use one canonical block per draft and mode availability is str
  assert.ok(english.set.count>1);assert.ok(english.drafts.flatMap((draft:any)=>draft.content.englishGroups).every((group:any)=>group.blockIds.length===1));
  await assert.rejects(service.operation('create_source_draft_set',{sourceId:OPENING_PRAYER,mode:'bilingual',layout:'left',templateCueId:LEFT_PANEL},'tester'),(error:any)=>error.code==='source_mode_unavailable');
  await assert.rejects(service.operation('create_source_draft_set',{sourceId:KOL_NIDRE,mode:'bilingual',includeTranslation:true,layout:'bottom',templateCueId:BARECHU},'tester'),(error:any)=>error.code==='translation_layout');
+});
+
+test('source English sets include automatic text while note-like English remains manually selectable',async()=>{
+ const repo=new MemoryAuthoringRepository();const service=createAuthoringService(repo);
+ const source=sourcePack.sources.find(item=>item.blocks.some(block=>block.kind==='source-en'&&block.automatic===true)&&item.blocks.some(block=>block.kind==='source-en'&&block.automatic===false))!;
+ const expected=source.blocks.filter(block=>block.kind==='source-en'&&block.automatic!==false).map(block=>block.id);
+ const generated=await service.operation('create_source_draft_set',{sourceId:source.id,mode:'source-en',layout:'bottom',templateCueId:BARECHU},'tester') as any;
+ assert.deepEqual(generated.drafts.flatMap((draft:any)=>draft.content.englishGroups.flatMap((group:any)=>group.blockIds)),expected);
+ const note=source.blocks.find(block=>block.kind==='source-en'&&block.automatic===false)!;
+ const manual=await service.operation('create_draft',{name:'Manual source note',title:source.name,layout:'bottom',templateCueId:BARECHU,content:{mode:'source-en',englishGroups:[{sourceId:source.id,blockIds:[note.id]}]},presentation:{}},'tester') as any;
+ assert.equal(buildCue(manual.draft).texts.textMain,note.en);assert.equal(manual.draft.sourcePin.blockSha256[JSON.stringify([source.id,note.id])],note.sourceBlockSha256);
 });
 
 test('memory draft-set insertion preflights the complete batch',async()=>{

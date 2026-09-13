@@ -30,7 +30,7 @@ The complete siddur corpus stays server-side. Browser source search receives bou
 
 Canonical liturgical text retains source, feed, unit, and block provenance. Hebrew, transliteration, translation, and explicitly original English roles are validated rather than inferred. Custom announcements and readings are labeled local content. Publishing requires review of the exact saved version; edits invalidate stale review evidence.
 
-The expanded source library currently contains the imported CRC-authorized siddur collections. Sharing content with the second congregation still depends on confirmed permission and congregation isolation. Canonical text must never be silently rewritten or copied between language roles.
+The expanded source library contains 647 imported CRC sources. Daniel has authorized Simone and TBI to use the complete current and future CRC overlay and source library through a read-only upstream. TBI customization creates independent local drafts; canonical text must never be silently rewritten or copied between language roles.
 
 ## Companion and service safety
 
@@ -40,6 +40,6 @@ Follow [setup](docs/SETUP.md) for installation and [broadcast rehearsal](docs/RE
 
 ## Planning and evidence
 
-The [approved product backlog](docs/planning/2026-09-product-expansion/APPROVED-BACKLOG.md) tracks the thirty approved outcomes and the additional manual-authoring work. Implemented foundations are marked separately from acceptance that still needs operators, hardware, program output, permissions, or two-workspace evidence.
+The [approved product backlog](docs/planning/2026-09-product-expansion/APPROVED-BACKLOG.md) tracks the thirty approved outcomes and the additional manual-authoring work. Implemented foundations are marked separately from acceptance that still needs operators, hardware, program output, automatic full-library sharing, or two-workspace isolation evidence.
 
 Primary repository: `https://github.com/RavBogard/crc-overlays` (private). Live CRC controller: `https://crc-overlays.vercel.app`. Deployments use independent runtime credentials, relay rooms, databases, output URLs, and workspace branding while sharing one maintained release.

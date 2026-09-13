@@ -1,10 +1,10 @@
 #!/usr/bin/env python3
 """Build the server-only overlay authoring library from maintained siddur feeds.
 
-Only blocks which carry both Hebrew and transliteration in the same canonical feed
-record are admitted as bilingual blocks. English is admitted only when the feed
-explicitly marks the block ``role: original``. The builder never aligns adjacent
-blocks or infers a relationship between language channels.
+Hebrew and transliteration are paired only when they share one canonical feed
+record. Every exact English channel is retained: author-marked original work stays
+distinct, while source English carries its explicit semantic label or a neutral
+unclassified role. The builder never aligns adjacent blocks.
 """
 
 from __future__ import annotations
@@ -12,6 +12,7 @@ from __future__ import annotations
 import argparse
 import hashlib
 import json
+import re
 import subprocess
 import sys
 from pathlib import Path
@@ -58,6 +59,65 @@ def repository_commit(source_root: Path) -> str:
 
 def nonempty(value: Any) -> str | None:
     return value if isinstance(value, str) and value else None
+
+
+def exact_text(value: Any) -> str | None:
+    if isinstance(value, str):
+        return value if value else None
+    if isinstance(value, list):
+        parts: list[str] = []
+        for item in value:
+            if not isinstance(item, dict) or not isinstance(item.get("t"), str):
+                return None
+            parts.append(item["t"])
+        rendered = "".join(parts)
+        return rendered if rendered else None
+    return None
+
+
+def english_role(unit: dict[str, Any], block: dict[str, Any]) -> str:
+    label = " ".join(
+        value for value in (nonempty(block.get("label")), nonempty(unit.get("name"))) if value
+    ).casefold()
+    has_translation = "translation" in label
+    has_interpretation = "interpretation" in label
+    if has_translation and has_interpretation:
+        return "translation-interpretation"
+    if has_translation:
+        return "translation"
+    if has_interpretation:
+        return "interpretation"
+    if "kavannah" in label or "kavannot" in label:
+        return "kavannah"
+    name = nonempty(unit.get("name")) or ""
+    if name.startswith("Reading of ") or name.endswith("— Reading"):
+        return "reading"
+    if "rubric" in label or block.get("type") == "rubric":
+        return "rubric"
+    if name.endswith(" Note") or "editorial note" in label:
+        return "note"
+    return "unclassified"
+
+
+def note_like(unit: dict[str, Any], block: dict[str, Any], value: str, role: str) -> bool:
+    if role in ("rubric", "note"):
+        return True
+    label = (nonempty(block.get("label")) or "").casefold()
+    if any(word in label for word in ("instruction", "stage direction", "editorial")):
+        return True
+    stripped = value.strip()
+    service_direction = stripped.casefold() in {
+        "silently:", "together:", "leader:", "reader:", "congregation:", "all:",
+        "please rise", "please rise:", "please be seated", "please be seated:",
+    }
+    dated_note = bool(re.fullmatch(r"\(?[A-Z][a-z]+ \d{1,2}, \d{4}\)?", stripped))
+    music_note = bool(re.match(r"^[~*]?\s*(melody|music|tune|words)(\s+and\s+(melody|music|tune|words))?\s+by\b", stripped, re.IGNORECASE))
+    return (
+        (len(stripped) >= 2 and stripped.startswith("[") and stripped.endswith("]"))
+        or service_direction
+        or dated_note
+        or music_note
+    )
 
 
 def opening_words(value: str, limit: int = 12) -> str:
@@ -132,7 +192,7 @@ def build_library(source_root: Path) -> dict[str, Any]:
     authorities: list[dict[str, Any]] = []
     coverage_books: list[dict[str, Any]] = []
     all_source_ids: set[str] = set()
-    total_units = total_blocks = total_paired = total_original = 0
+    total_units = total_blocks = total_paired = total_original = total_source_english = total_note_like = 0
     total_unpaired_hebrew = total_unmarked_english = total_other = 0
 
     for raw_book in books:
@@ -155,7 +215,7 @@ def build_library(source_root: Path) -> dict[str, Any]:
 
         usable_units = 0
         unsupported_units: list[dict[str, Any]] = []
-        book_blocks = book_paired = book_original = 0
+        book_blocks = book_paired = book_original = book_source_english = book_note_like = 0
         book_unpaired_hebrew = book_unmarked_english = book_other = 0
 
         for unit in feed["units"]:
@@ -176,19 +236,21 @@ def build_library(source_root: Path) -> dict[str, Any]:
                 if not isinstance(block, dict):
                     raise LibraryError(f"non-object block in {unit_id} at index {index}")
                 book_blocks += 1
-                he, tr, en = nonempty(block.get("he")), nonempty(block.get("tr")), nonempty(block.get("en"))
+                he, tr = nonempty(block.get("he")), nonempty(block.get("tr"))
+                en = exact_text(block.get("en")) or (exact_text(block.get("text")) if block.get("type") == "rubric" else None)
                 block_id = f"{source_id}#block-{index}"
                 if he and tr:
-                    blocks.append(
-                        {
-                            "id": block_id,
-                            "index": index,
-                            "kind": "bilingual",
-                            "he": he,
-                            "tr": tr,
-                            "sourceBlockSha256": object_sha256(block),
-                        }
-                    )
+                    generated = {"id": block_id, "index": index, "kind": "bilingual", "he": he, "tr": tr, "sourceBlockSha256": object_sha256(block)}
+                    if en:
+                        role = english_role(unit, block)
+                        is_note = note_like(unit, block, en, role)
+                        generated.update({"en": en, "englishRole": role, "automatic": not is_note, "noteLike": is_note})
+                        if nonempty(block.get("label")):
+                            generated["sourceLabel"] = block["label"]
+                        book_source_english += 1
+                        if is_note:
+                            book_note_like += 1
+                    blocks.append(generated)
                     book_paired += 1
                     openings.extend([opening_words(he), opening_words(tr)])
                 elif block.get("role") == "original" and en:
@@ -204,12 +266,32 @@ def build_library(source_root: Path) -> dict[str, Any]:
                     )
                     book_original += 1
                     openings.append(opening_words(en))
+                elif en:
+                    role = english_role(unit, block)
+                    is_note = note_like(unit, block, en, role)
+                    generated = {
+                        "id": block_id,
+                        "index": index,
+                        "kind": "source-en",
+                        "en": en,
+                        "englishRole": role,
+                        "automatic": not is_note,
+                        "noteLike": is_note,
+                        "sourceBlockSha256": object_sha256(block),
+                    }
+                    if nonempty(block.get("label")):
+                        generated["sourceLabel"] = block["label"]
+                    blocks.append(generated)
+                    book_source_english += 1
+                    if is_note:
+                        book_note_like += 1
+                    openings.append(opening_words(en))
+                    if he and not tr:
+                        skipped["unpairedHebrew"] += 1
+                        book_unpaired_hebrew += 1
                 elif he and not tr:
                     skipped["unpairedHebrew"] += 1
                     book_unpaired_hebrew += 1
-                elif en:
-                    skipped["englishWithoutOriginalRole"] += 1
-                    book_unmarked_english += 1
                 else:
                     skipped["unsupportedOther"] += 1
                     book_other += 1
@@ -284,6 +366,8 @@ def build_library(source_root: Path) -> dict[str, Any]:
             "blocks": book_blocks,
             "pairedBilingualBlocks": book_paired,
             "originalEnglishBlocks": book_original,
+            "sourceEnglishBlocks": book_source_english,
+            "noteLikeEnglishBlocks": book_note_like,
             "skipped": {
                 "unpairedHebrew": book_unpaired_hebrew,
                 "englishWithoutOriginalRole": book_unmarked_english,
@@ -295,6 +379,8 @@ def build_library(source_root: Path) -> dict[str, Any]:
         total_blocks += book_blocks
         total_paired += book_paired
         total_original += book_original
+        total_source_english += book_source_english
+        total_note_like += book_note_like
         total_unpaired_hebrew += book_unpaired_hebrew
         total_unmarked_english += book_unmarked_english
         total_other += book_other
@@ -318,6 +404,8 @@ def build_library(source_root: Path) -> dict[str, Any]:
                 "blocks": total_blocks,
                 "pairedBilingualBlocks": total_paired,
                 "originalEnglishBlocks": total_original,
+                "sourceEnglishBlocks": total_source_english,
+                "noteLikeEnglishBlocks": total_note_like,
                 "skipped": {
                     "unpairedHebrew": total_unpaired_hebrew,
                     "englishWithoutOriginalRole": total_unmarked_english,
@@ -327,7 +415,10 @@ def build_library(source_root: Path) -> dict[str, Any]:
             "rules": [
                 "Bilingual blocks require non-empty he and tr fields on the same feed block.",
                 "Original English requires a non-empty en field and role:original on the same feed block.",
-                "Translations, rubrics, trope without transliteration, and all other unmatched channels are excluded.",
+                "All other exact English fields are retained as source-en; explicit labels determine semantic roles and otherwise remain unclassified.",
+                "Rubric token arrays are joined in canonical token order and remain manual-only source English.",
+                "Note-like and rubric English remains manually selectable but is excluded from automatic whole-prayer sets.",
+                "Same-record he+tr+en stays one bilingual record; no adjacent English is paired.",
                 "No adjacency, verse label, page position, or render segment is used to infer language alignment.",
             ],
         },

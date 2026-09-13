@@ -1,6 +1,7 @@
 import assert from 'node:assert/strict';
 import test from 'node:test';
 import {readFileSync} from 'node:fs';
+import {gunzipSync} from 'node:zlib';
 import {GET} from '../app/api/workspace/route';
 import {getPublicWorkspace} from '../lib/workspace';
 import {overlayBrandingFromWorkspace} from '../lib/branding';
@@ -16,6 +17,7 @@ test('CRC is the complete, validated default workspace', () => {
   assert.equal(workspace.deployment.usesDefaultCrcIdentity, true);
   assert.equal(workspace.deployment.isolationVerified, false);
   assert.deepEqual(workspace.setupDownloads.map(item => item.kind), ['module', 'pages', 'pages']);
+  assert.equal(workspace.sharedLibrary.enabled, false);
 });
 
 test('a second deployment can supply its own public identity without inheriting CRC downloads', () => {
@@ -79,7 +81,7 @@ test('public workspace endpoint returns only the public contract', async () => {
   assert.equal(Object.hasOwn(body, 'relay'), false);
 });
 
-test('prepared Temple Bnai Israel profile validates and remains visibly unprovisioned', () => {
+test('prepared Temple Bnai Israel profile validates and remains visibly release-pending', () => {
   const profile = JSON.parse(readFileSync(new URL('../workspaces/temple-bnai-israel/workspace.json', import.meta.url), 'utf8'));
   const workspace = getPublicWorkspace(profile.environment);
   assert.equal(workspace.id, 'temple-bnai-israel-kalamazoo');
@@ -87,14 +89,14 @@ test('prepared Temple Bnai Israel profile validates and remains visibly unprovis
   assert.equal(workspace.shortName, 'TBI');
   assert.equal(workspace.logo.src, '/workspaces/temple-bnai-israel/official-footer.png');
   assert.equal(workspace.deployment.isolationVerified, false);
-  assert.equal(profile.status, 'prepared-not-provisioned');
+  assert.equal(profile.status, 'infrastructure-prepared-release-pending');
   assert.equal(profile.provisioning.isolatedDatabase, true);
   assert.equal(profile.provisioning.isolatedRelay, true);
   assert.equal(profile.provisioning.isolatedCredentials, true);
   assert.equal(profile.provisioning.isolatedDeployment, false);
   assert.equal(profile.provisioning.membersInvited, false);
   assert.equal(profile.provisioning.publicSiteCreated, false);
-  assert.deepEqual(workspace.setupDownloads, []);
+  assert.deepEqual(workspace.setupDownloads.map((item:{kind:string}) => item.kind), ['module', 'pages', 'pages']);
 });
 
 test('Temple Bnai Israel is selectable as a complete built-in profile with one deployment setting', () => {
@@ -102,7 +104,8 @@ test('Temple Bnai Israel is selectable as a complete built-in profile with one d
   const outputBranding = overlayBrandingFromWorkspace(workspace);
   assert.equal(workspace.organizationName, "Temple B'nai Israel");
   assert.equal(workspace.logo.src, '/workspaces/temple-bnai-israel/official-footer.png');
-  assert.deepEqual(workspace.setupDownloads, []);
+  assert.deepEqual(workspace.setupDownloads.map((item:{kind:string}) => item.kind), ['module', 'pages', 'pages']);
+  assert.equal(workspace.sharedLibrary.enabled, false);
   assert.deepEqual(outputBranding, {
     name: 'TBI',
     organizationName: "Temple B'nai Israel",
@@ -114,10 +117,40 @@ test('Temple Bnai Israel is selectable as a complete built-in profile with one d
   });
 });
 
+test('workspace exposes only a safe availability signal for the configured TBI shared library', () => {
+  const workspace = getPublicWorkspace({
+    WORKSPACE_ID: 'temple-bnai-israel-kalamazoo',
+    CRC_SHARED_LIBRARY_URL: 'https://crc-overlays.vercel.app/api/shared-library',
+    SHARED_LIBRARY_IMPORT_KEY: 'server-only-test-key',
+  });
+  assert.deepEqual(workspace.sharedLibrary, {enabled: true, label: 'CRC library'});
+  const serialized = JSON.stringify(workspace);
+  assert.equal(serialized.includes('server-only-test-key'), false);
+  assert.equal(serialized.includes('/api/shared-library'), false);
+});
+
+test('TBI Companion pages target only the TBI deployment and its independent starter IDs', () => {
+  const workspace = getPublicWorkspace({WORKSPACE_ID: 'temple-bnai-israel-kalamazoo'});
+  const mappedIds = new Set(baselineCatalogForWorkspace('temple-bnai-israel-kalamazoo').map(cue => cue.id));
+  const pageDownloads = workspace.setupDownloads.filter(item => item.kind === 'pages');
+  const foundIds = new Set<string>();
+  for (const download of pageDownloads) {
+    const path = new URL(`../public${download.href}`, import.meta.url);
+    const raw = gunzipSync(readFileSync(path)).toString('utf8');
+    assert.equal(raw.includes('https://crc-overlays.vercel.app'), false);
+    assert.equal(raw.includes('CRC Morning'), false);
+    assert.equal(raw.includes('https://tbi-overlays.vercel.app'), true);
+    assert.equal(raw.includes('"controlKey":""'), true);
+    for (const id of mappedIds) if (raw.includes(id)) foundIds.add(id);
+  }
+  assert.deepEqual(foundIds, mappedIds);
+});
+
 test('prepared TBI starter selection exactly tracks the visible CRC baseline and its rights evidence', () => {
   const starter = JSON.parse(readFileSync(new URL('../workspaces/temple-bnai-israel/starter-collection.json', import.meta.url), 'utf8'));
   const visible = (cues as Array<{id:string; hidden?:boolean; provenance?:{liturgy?:{license?:unknown}}}>).filter(cue => !cue.hidden);
-  assert.equal(starter.status, 'approved-selection-prepared-not-imported');
+  assert.equal(starter.status, 'approved-starter-prepared-not-imported');
+  assert.match(starter.libraryAccess, /complete current CRC overlay and source library plus future CRC additions/);
   assert.equal(starter.items.length, 24);
   assert.deepEqual(new Set(starter.items.map((item:{sourceCueId:string}) => item.sourceCueId)), new Set(visible.map(cue => cue.id)));
   for (const cue of visible) {

@@ -1,6 +1,6 @@
 # Web creation and editing for Michael
 
-Status: product analysis and planned experience, September 12, 2026. No implementation or live publication in this workstream.
+Status: approved experience with CRC manual authoring deployed; TBI CRC Library and Customize rollout in progress.
 
 ## Product requirement
 
@@ -8,7 +8,7 @@ Michael uses Singular and does not currently use AI. He must be able to create a
 
 This is a first-class authoring product. It is not an administrative backend for a developer or AI agent.
 
-The user's further explicit requirement is easy retrieval from the siddur library. **Add from siddur** is a primary creation/editing action and must reach the congregation's permitted siddur collection, not only prayers already represented by overlay templates or the initial morning source pack.
+The user's further explicit requirement is easy retrieval from the siddur library. **Add from siddur** is a primary creation/editing action and must reach the congregation's available siddur collection, not only prayers already represented by overlay templates or the initial morning source pack.
 
 ## Evidence and limits
 
@@ -50,7 +50,7 @@ New graphic offers three starting points:
 2. **From a template**: choose a welcome/announcement, speaker name, reading, or other approved graphic template; type local content.
 3. **Duplicate a graphic**: copy an existing graphic or multipart prayer into an independent draft.
 
-For the friend, add **From shared starters** showing only the selected CRC materials approved for that congregation. Accepting a starter creates a local draft with independent identity and provenance.
+For TBI, add **CRC Library** showing the complete current and future published CRC overlay library. Shared items remain read-only. **Customize** creates a local TBI draft with independent identity and retained provenance; upstream updates never overwrite it.
 
 ### Editor
 
@@ -66,15 +66,15 @@ Use opaque reading surfaces, real source text, and the actual renderer in previe
 
 The entry point is available from New graphic, an existing graphic's text field, and the panel strip. Open a readable library browser rather than a technical source selector:
 
-1. Choose a siddur and service, or search across the congregation's permitted library. Search prayer names, common transliterations, Hebrew, and opening words; filter to a service when names repeat.
+1. Choose a siddur and service, or search across the congregation's available library. Search prayer names, common transliterations, Hebrew, and opening words; filter to a service when names repeat.
 2. See prayer names, opening lines, source/service identity, and available language channels. A prayer does not need an existing overlay to appear here.
 3. Read the prayer and choose **Whole prayer**, complete stanzas/blessings, or a continuous passage with obvious start/end points. The interface keeps corresponding Hebrew/transliteration blocks together without asking Michael to select both independently.
-4. Choose the available languages/presentation and see suggested panel breaks using the actual overlay template. English is offered when the source provides permitted English; missing translations are stated, never silently generated. An original English reading is clearly distinguished from translation.
+4. Choose the available languages/presentation and see suggested panel breaks using the actual overlay template. English is offered when the source provides available English; missing translations are stated, never silently generated. An original English reading is clearly distinguished from translation.
 5. Choose **Insert as new graphic**, **Add panels**, or **Replace this passage** according to the entry point. Replacement shows what will change, preserves undo, and never affects current program output.
 
 Show normal source labels in the editor, with edition/revision details available on demand. If multiple siddurs contain similar prayers, identify them instead of silently choosing one. Retrieval should show the exact authorized version and preserve phrase/paragraph boundaries. Suggestions about panel count must meet the readability floor and remain adjustable; shortening must not omit content.
 
-Search and insertion are manual browser capabilities. Optional AI may help find a passage, but both operators must be able to perform every step without it. Shared starters grant the friend access only to the selected permitted source material; they do not implicitly grant the whole CRC siddur library. The friend's additional own siddurs use the same browser once added to that workspace.
+Search and insertion are manual browser capabilities. Optional AI may help find a passage, but both operators must be able to perform every step without it. TBI's CRC Library exposes all current and future published CRC material as a read-only upstream. TBI's own siddurs use the same browser once added to that workspace and remain private.
 
 Because the current authoring source pack is bounded, full collection browsing requires inventorying and connecting the existing maintained siddur repositories. Treat retrieval coverage as a product acceptance matrix by siddur/service/language, not an assumption that a search box already exposes all available books.
 
@@ -96,7 +96,7 @@ Support three clear content origins without requiring AI:
 
 The ordinary editor can preserve source text by default without making custom slides impossible. A local variant is distinguishable from verbatim canonical content in the editor and publication history. All review rights are assigned through the small membership role model; Michael may have editor/publisher rights if the owner wants him to author independently.
 
-Images/logos used in custom graphics should come from the congregation's asset library or a supported upload action with immediate visual feedback. Keep a bounded set of file formats and size limits in the design acceptance; don't require Michael to supply hosted image URLs, CSS, or repository paths. Shared starter packages include only selected permitted assets and sources.
+Images/logos used in custom graphics should come from the congregation's asset library or a supported upload action with immediate visual feedback. Keep a bounded set of file formats and size limits in the design acceptance; don't require Michael to supply hosted image URLs, CSS, or repository paths. CRC Library items retain their source and attribution metadata. TBI-private assets and sources never enter the CRC upstream.
 
 ## Planned stories and acceptance
 
@@ -112,9 +112,9 @@ Images/logos used in custom graphics should come from the congregation's asset l
 | WEB-08 | Adjust design without becoming a designer | Visual templates/defaults, accessible field controls, alignment/spacing, reset, and motion preview cover representative custom-graphic tasks |
 | WEB-09 | Finish with one coherent review journey | Exact saved-version final preview, actionable fit issues, publication and device-delivery state; no stale preview can be approved/published |
 | WEB-10 | Return to an earlier version | Visual comparison and readable history identify the old content; restore preserves identity and doesn't unexpectedly change the currently displayed frame |
-| WEB-11 | Customize a selected CRC starter in the friend's workspace | Copy gets local identity and history, accepts own branding/text, and offers later starter changes for review without overwriting local edits |
+| WEB-11 | Customize a CRC Library item in TBI | The complete upstream library is searchable; one-click Customize creates a local identity and history, accepts TBI branding/text, and later upstream changes never overwrite local edits |
 | WEB-12 | Operate without AI and prove usability | Michael completes benchmark tasks unaided in-browser; optional AI creates/updates the same draft model without privileged publishing shortcuts |
-| WEB-13 | Pull text directly from the siddur library | Browse/search permitted siddurs and services, locate a prayer without an existing overlay, select a whole prayer or passage, insert paired text with readable proposed panel breaks, and retain provenance entirely in browser |
+| WEB-13 | Pull text directly from the siddur library | Browse/search available siddurs and services, locate a prayer without an existing overlay, select a whole prayer or passage, insert paired text with readable proposed panel breaks, and retain provenance entirely in browser |
 
 ## Benchmark tasks
 
@@ -127,7 +127,7 @@ Measure these with Michael on his ordinary editing computer after authoring is r
 5. Preview and publish while another cue is selected on the output; prove the active frame did not change.
 6. Encounter a fit warning and correct it using readable guidance; no developer knowledge or numerically guessed CSS required.
 7. Lose connectivity during editing; recover the draft without false publication success or silent loss of typing.
-8. Have the second congregation customize a starter and verify CRC's original, published content, and buttons remain unchanged.
+8. Have the second congregation customize a CRC Library item and verify CRC's original, published content, and buttons remain unchanged.
 9. Find a prayer by its opening words in a different siddur/service, select a passage, and create an overlay in under three minutes after source availability is established; demonstrate Hebrew/transliteration pairing and correct source identity without AI.
 
 ## Delivery priority

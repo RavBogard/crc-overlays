@@ -6,8 +6,8 @@ import {useCallback,useEffect,useState} from 'react';
 import './access.css';
 
 type Role='owner'|'editor'|'operator';
-type Member={id:string;name:string;email:string;role:Role;enabled:boolean};
-type ApiBody={user?:Member|null;members?:Member[];member?:Member;url?:string;error?:string};
+type Member={id:string;name:string;email:string;role:Role;enabled:boolean;hasPassword?:boolean};
+type ApiBody={user?:Member|null;members?:Member[];member?:Member;url?:string;hasPassword?:boolean;error?:string};
 
 const roleLabel:Record<Role,string>={owner:'Administrator',editor:'Editor',operator:'Operator'};
 
@@ -28,6 +28,13 @@ export default function AccessPage(){
  const [email,setEmail]=useState('');
  const [role,setRole]=useState<Role>('editor');
  const [key,setKey]=useState('');
+ const [bootstrapPassword,setBootstrapPassword]=useState('');
+ const [bootstrapConfirm,setBootstrapConfirm]=useState('');
+ const [signInEmail,setSignInEmail]=useState('');
+ const [signInPassword,setSignInPassword]=useState('');
+ const [currentPassword,setCurrentPassword]=useState('');
+ const [newPassword,setNewPassword]=useState('');
+ const [confirmPassword,setConfirmPassword]=useState('');
 
  const notice=(text:string,kind:'error'|'success'='success')=>{setMessage(text);setMessageKind(kind)};
 
@@ -73,6 +80,13 @@ export default function AccessPage(){
    if(!response.ok)throw Error(body.error||'This action could not be completed.');
    if(payload.action==='redeem'){
     setToken('');
+    setUser(body.user??null);
+    notice('Invitation accepted. Set a password below so you can sign in again later.');
+    await refresh();
+    return;
+   }
+   if(payload.action==='login'){
+    setSignInPassword('');
     location.assign('/author');
     return;
    }
@@ -85,7 +99,11 @@ export default function AccessPage(){
     setInvite(body.url);
     setName('');setEmail('');setRole('editor');
     notice('Private sign-in link ready. It expires in 24 hours and works once.');
+   }else if(payload.action==='set_password'){
+    setCurrentPassword('');setNewPassword('');setConfirmPassword('');setUser(previous=>previous?{...previous,hasPassword:true}:previous);
+    notice('Password saved. You can use your email and password to sign in again. Other sessions and old invitation links were revoked.');
    }else if(body.user){
+    setBootstrapPassword('');setBootstrapConfirm('');
     setUser(body.user);
     notice('Administrator account ready.');
    }
@@ -125,6 +143,16 @@ export default function AccessPage(){
      <Link href="/setup"><MonitorUp size={20}/><span><strong>Set up this computer</strong><small>Connect Companion, Stream Deck, and video</small></span></Link>
     </nav>
 
+    <section className="access-panel access-password-panel">
+     <div className="access-panel-heading"><span><KeyRound size={18}/></span><div><h2>{user.hasPassword?'Change your password':'Set a password'}</h2><p>{user.hasPassword?'Enter your current password, or open a fresh invitation link to reset it.':'Set this once so you can return without requesting another invitation.'} Use a password manager for ordinary sign-in.</p></div></div>
+     <form onSubmit={event=>{event.preventDefault();if(newPassword!==confirmPassword){notice('The new passwords do not match.','error');return}void act({action:'set_password',currentPassword,newPassword})}}>
+      {user.hasPassword&&<label>Current password<input required type="password" autoComplete="current-password" value={currentPassword} onChange={event=>setCurrentPassword(event.target.value)} minLength={12} maxLength={200}/></label>}
+      <label>New password<input required type="password" autoComplete="new-password" value={newPassword} onChange={event=>setNewPassword(event.target.value)} minLength={12} maxLength={200}/></label>
+      <label>Confirm new password<input required type="password" autoComplete="new-password" value={confirmPassword} onChange={event=>setConfirmPassword(event.target.value)} minLength={12} maxLength={200}/></label>
+      <button className="access-primary" disabled={busy}>{busy?<><LoaderCircle className="spin" size={17}/>Saving…</>:<>Save password</>}</button>
+     </form>
+    </section>
+
     {user.role==='owner'&&<div className="access-owner-grid">
      <section className="access-panel">
       <div className="access-panel-heading"><span><Users size={18}/></span><div><h2>Invite someone</h2><p>Create a private, one-time link. Nothing is sent automatically.</p></div></div>
@@ -144,10 +172,12 @@ export default function AccessPage(){
     </div>}
    </div>
    :<section className="access-card">
-    <span className="access-hero-icon"><KeyRound size={29}/></span><div className="access-eyebrow">WORKSPACE SIGN-IN</div><h1>Use your private link</h1>
-    <p>Ask your congregation’s administrator for a private sign-in link. Opening it keeps this browser signed in for 30 days.</p>
+    <span className="access-hero-icon"><KeyRound size={29}/></span><div className="access-eyebrow">WORKSPACE SIGN-IN</div><h1>Sign in again</h1>
+    <p>Use the email and password you set on your account. Your password manager can fill these in.</p>
+    <form onSubmit={event=>{event.preventDefault();void act({action:'login',email:signInEmail,password:signInPassword})}}><label>Email<input required type="email" autoComplete="email" value={signInEmail} onChange={event=>setSignInEmail(event.target.value)} maxLength={200}/></label><label>Password<input required type="password" autoComplete="current-password" value={signInPassword} onChange={event=>setSignInPassword(event.target.value)} minLength={12} maxLength={200}/></label><button className="access-primary" disabled={busy}>{busy?<><LoaderCircle className="spin" size={17}/>Signing in…</>:<>Sign in</>}</button></form>
+    <div className="access-divider"><span>INVITATION OR RESET</span></div><p>First visit or forgot your password? Ask your congregation’s administrator for a private, one-time invitation link.</p>
     <div className="access-divider"><span>FIRST-TIME ADMINISTRATOR</span></div>
-    <details><summary>Set up the first administrator</summary><p>This works once, before any administrator account exists.</p><form onSubmit={event=>{event.preventDefault();void act({action:'bootstrap',key,name,email})}}><label>Your name<input required value={name} onChange={event=>setName(event.target.value)} maxLength={80} autoComplete="name"/></label><label>Your email<input required type="email" value={email} onChange={event=>setEmail(event.target.value)} maxLength={200} autoComplete="email"/></label><label>Administrator setup key<input required type="password" autoComplete="off" value={key} onChange={event=>setKey(event.target.value)}/></label><button className="access-primary" disabled={busy}>{busy?<><LoaderCircle className="spin" size={17}/>Opening…</>:<>Create administrator account</>}</button></form></details>
+    <details><summary>Set up the first administrator</summary><p>This works once, before any administrator account exists. Choose a password now so you can sign in even if this browser closes during setup.</p><form onSubmit={event=>{event.preventDefault();if(bootstrapPassword!==bootstrapConfirm){notice('The passwords do not match.','error');return}void act({action:'bootstrap',key,name,email,newPassword:bootstrapPassword})}}><label>Your name<input required value={name} onChange={event=>setName(event.target.value)} maxLength={80} autoComplete="name"/></label><label>Your email<input required type="email" value={email} onChange={event=>setEmail(event.target.value)} maxLength={200} autoComplete="email"/></label><label>Administrator setup key<input required type="password" autoComplete="off" value={key} onChange={event=>setKey(event.target.value)}/></label><label>Your password<input required type="password" autoComplete="new-password" minLength={12} maxLength={200} value={bootstrapPassword} onChange={event=>setBootstrapPassword(event.target.value)}/></label><label>Confirm your password<input required type="password" autoComplete="new-password" minLength={12} maxLength={200} value={bootstrapConfirm} onChange={event=>setBootstrapConfirm(event.target.value)}/></label><button className="access-primary" disabled={busy}>{busy?<><LoaderCircle className="spin" size={17}/>Opening…</>:<>Create administrator account</>}</button></form></details>
    </section>}
   </div>
  </main>;

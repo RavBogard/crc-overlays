@@ -61,6 +61,15 @@ test('translated baseline import retains all three source channels',()=>{
  try{english.sourceBlockSha256='changed';assert.throws(()=>buildCue(draft),/source rebase/)}finally{english.sourceBlockSha256=prior}
 });
 
+test('source English renders exact neutral text without claiming it is original',()=>{
+ const selected=sourcePack.sources.flatMap(source=>source.blocks.map(block=>({source,block}))).find(item=>item.block.kind==='source-en'&&item.block.englishRole==='unclassified')!;
+ const content=parseContent({mode:'source-en',englishGroups:[{sourceId:selected.source.id,blockIds:[selected.block.id]}]});const now=Date.now();
+ const editable=parseEditable({name:'Source English',title:selected.source.name,layout:'bottom',templateCueId:BARECHU,content,presentation:{}}) as any;
+ const draft:Draft={...editable,id:'source-en-test',version:1,sourcePin:sourcePinFor(content),activeRevision:null,activeDraftVersion:null,createdAt:now,updatedAt:now,createdBy:'test',updatedBy:'test'};
+ const cue=buildCue(draft);assert.equal(cue.texts.textMain,selected.block.en);assert.equal(cue.authoring.origin,'canonical');assert.equal(cue.authoring.copySpec?.content.mode,'source-en');
+ assert.throws(()=>parseContent({mode:'original-en',englishGroups:[{sourceId:selected.source.id,blockIds:[selected.block.id]}]}),/not original-en/);
+});
+
 test('custom announcements are local, strictly validated, and render without source claims',()=>{
  const content=parseContent({mode:'custom',text:'  Welcome to tonight’s gathering.  '});
  assert.deepEqual(content,{mode:'custom',text:'Welcome to tonight’s gathering.'});

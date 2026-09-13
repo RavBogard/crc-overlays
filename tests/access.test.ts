@@ -1,8 +1,9 @@
 import assert from 'node:assert/strict';
 import {test} from 'node:test';
-import {POST} from '../app/api/access/route.ts';
+import {GET,POST} from '../app/api/access/route.ts';
 import {
  ACCESS_COOKIE,
+ AccessInvariantError,
  PgAccessStore,
  accessStore,
  authorizeRequest,
@@ -10,15 +11,20 @@ import {
  cookieToken,
  currentMember,
  issueSession,
+ hashPassword,
  sameSiteWrite,
  sessionCookie,
  secretEqual,
  tokenHash,
+ validPassword,
+ verifyPassword,
  type AccessMember,
+ type AccessSessionMember,
  type AccessStore,
 } from '../lib/access.ts';
 
 const owner:AccessMember={id:'owner-1',email:'owner@example.test',name:'Owner',role:'owner',enabled:true};
+const ownerSession:AccessSessionMember={...owner,authMethod:'invite',authenticatedAt:Date.now()};
 const editor:AccessMember={id:'editor-1',email:'editor@example.test',name:'Editor',role:'editor',enabled:true};
 const operator:AccessMember={id:'operator-1',email:'operator@example.test',name:'Operator',role:'operator',enabled:true};
 const validToken='a'.repeat(43);
@@ -29,6 +35,8 @@ async function withStoreMethods<T>(overrides:Partial<TestStore>,run:()=>Promise<
   memberForSession:accessStore.memberForSession,
   createSession:accessStore.createSession,
   deleteSession:accessStore.deleteSession,
+  credentialForEmail:accessStore.credentialForEmail,
+  setPassword:accessStore.setPassword,
   redeem:accessStore.redeem,
   invite:accessStore.invite,
   list:accessStore.list,
@@ -73,7 +81,7 @@ test('cookie writes require the exact origin and session cookies are tightly sco
 test('access POST rejects cross-site state changes before consulting access storage',async()=>{
  let touched=false;
  await withStoreMethods({
-  memberForSession:async()=>{touched=true;return owner},
+  memberForSession:async()=>{touched=true;return ownerSession},
   deleteSession:async()=>{touched=true},
  },async()=>{
   const response=await POST(jsonRequest({action:'logout'},'https://evil.test'));
@@ -88,12 +96,12 @@ test('invitation redemption creates one session and the same link cannot be rede
  const sessions:string[]=[];
  await withStoreMethods({
   allowAttempt:async()=>true,
-  redeem:async(hash:string)=>{
+  redeem:async(hash:string,_now:number,sessionHash:string)=>{
    if(redeemed.has(hash))return null;
    redeemed.add(hash);
+   sessions.push(sessionHash);
    return editor;
   },
-  createSession:async(hash:string)=>{sessions.push(hash)},
  },async()=>{
   const first=await POST(jsonRequest({action:'redeem',token:validToken}));
   assert.equal(first.status,200);
@@ -115,27 +123,28 @@ test('Postgres redemption uses an atomic one-time update before loading the memb
  const client={
   async query(sql:string,params?:unknown[]){
    statements.push(sql);
-   if(sql==='BEGIN'||sql==='COMMIT'||sql==='ROLLBACK')return {rows:[]};
+   if(sql==='BEGIN'||sql==='COMMIT'||sql==='ROLLBACK'||sql.startsWith('LOCK TABLE'))return {rows:[]};
    if(sql.startsWith('UPDATE access_links SET used_at=')){
     assert.match(sql,/used_at IS NULL/);
     assert.match(sql,/expires_at>\$2/);
     if(used)return {rows:[]};
     used=true;
-    return {rows:[{member_id:editor.id}]};
+    return {rows:[{member_id:editor.id,pending_name:editor.name,pending_role:editor.role,reset_password:false}]};
    }
-   if(sql.startsWith('SELECT id,email,name,role,enabled FROM access_members')){
-    assert.match(sql,/enabled=true/);
-    assert.deepEqual(params,[editor.id]);
+   if(sql.startsWith('UPDATE access_members SET name=')){
+    assert.deepEqual(params,[editor.id,editor.name,editor.role,false]);
     return {rows:[editor]};
    }
+   if(sql.startsWith('SELECT id,email,name,role,enabled FROM access_members WHERE id='))return {rows:[editor]};
+   if(sql.startsWith('INSERT INTO access_sessions'))return {rows:[]};
    throw new Error(`unexpected SQL: ${sql}`);
   },
   release(){},
  };
  const store=new PgAccessStore();
  Reflect.set(store,'db',async()=>({connect:async()=>client}));
- assert.equal((await store.redeem(tokenHash(validToken),1000))?.id,editor.id);
- assert.equal(await store.redeem(tokenHash(validToken),1001),null);
+ assert.equal((await store.redeem(tokenHash(validToken),1000,'session-hash',2000))?.id,editor.id);
+ assert.equal(await store.redeem(tokenHash(validToken),1001,'session-hash-2',2001),null);
  assert.equal(statements.filter(sql=>sql==='COMMIT').length,2);
 });
 
@@ -149,18 +158,26 @@ test('bootstrap is serialized and permanently closes after the first owner',asyn
    if(sql==='BEGIN'||sql==='COMMIT'||sql==='ROLLBACK'||sql.startsWith('LOCK TABLE'))return {rows:[]};
    if(sql.startsWith("SELECT id FROM access_members WHERE role='owner'"))return {rows:ownerExists?[{id:owner.id}]:[]};
    if(sql.startsWith('INSERT INTO access_members')){ownerExists=true;inserts++;return {rows:[owner]}}
-   if(sql.startsWith('DELETE FROM access_sessions')||sql.startsWith('DELETE FROM access_links'))return {rows:[]};
+   if(sql.startsWith('DELETE FROM access_sessions')||sql.startsWith('DELETE FROM access_links')||sql.startsWith('INSERT INTO access_sessions'))return {rows:[]};
    throw new Error(`unexpected SQL: ${sql}`);
   },
   release(){},
  };
  const store=new PgAccessStore();
  Reflect.set(store,'db',async()=>({connect:async()=>client}));
- assert.equal((await store.bootstrap(owner.email,owner.name))?.id,owner.id);
- assert.equal(await store.bootstrap('second@example.test','Second'),null);
+ assert.equal((await store.bootstrap(owner.email,owner.name,'scrypt$record','session-hash',1000,2000))?.id,owner.id);
+ assert.equal(await store.bootstrap('second@example.test','Second','scrypt$record','session-hash-2',1001,2001),null);
  assert.equal(inserts,1);
  assert.equal(statements.filter(sql=>sql.startsWith('LOCK TABLE access_members')).length,2);
  assert.equal(statements.at(-1),'ROLLBACK');
+});
+
+test('bootstrap stores the owner password and password session in the same transaction',async()=>{
+ const statements:Array<{sql:string;params?:unknown[]}>=[];
+ const client={async query(sql:string,params?:unknown[]){statements.push({sql,params});if(sql.startsWith("SELECT id FROM access_members WHERE role='owner'"))return {rows:[]};if(sql.startsWith('INSERT INTO access_members'))return {rows:[owner]};return {rows:[]}},release(){}};
+ const store=new PgAccessStore();Reflect.set(store,'db',async()=>({connect:async()=>client}));
+ const result=await store.bootstrap(owner.email,owner.name,'scrypt$record','password-session-hash',1000,2000);
+ assert.equal(result?.id,owner.id);assert.equal(statements[0].sql,'BEGIN');assert.match(statements.find(item=>item.sql.startsWith('INSERT INTO access_members'))!.sql,/password_hash/);const session=statements.find(item=>item.sql.startsWith('INSERT INTO access_sessions'))!;assert.match(session.sql,/'password'/);assert.deepEqual(session.params,['password-session-hash',owner.id,1000,2000]);assert.equal(statements.at(-1)?.sql,'COMMIT');
 });
 
 test('dedicated bootstrap key takes precedence over the legacy control key',async()=>{
@@ -171,12 +188,11 @@ test('dedicated bootstrap key takes precedence over the legacy control key',asyn
   await withStoreMethods({
    allowAttempt:async()=>true,
    bootstrap:async()=>{calls++;return owner},
-   createSession:async()=>{},
   },async()=>{
-   const legacy=await POST(jsonRequest({action:'bootstrap',key:'legacy-control',email:owner.email,name:owner.name}));
+   const legacy=await POST(jsonRequest({action:'bootstrap',key:'legacy-control',email:owner.email,name:owner.name,newPassword:'owner password manager value'}));
    assert.equal(legacy.status,401);
    assert.equal(calls,0);
-   const dedicated=await POST(jsonRequest({action:'bootstrap',key:'bootstrap-only',email:owner.email,name:owner.name}));
+   const dedicated=await POST(jsonRequest({action:'bootstrap',key:'bootstrap-only',email:owner.email,name:owner.name,newPassword:'owner password manager value'}));
    assert.equal(dedicated.status,200);
    assert.equal(calls,1);
   });
@@ -218,11 +234,33 @@ test('disable revokes sessions and links, and a new invitation invalidates prior
  assert.ok(deleteIndex>0&&insertIndex>deleteIndex,'old links are removed before the replacement is inserted');
 });
 
+test('database mutations preserve at least one enabled administrator',async()=>{
+ const statements:string[]=[];const client={async query(sql:string){statements.push(sql);if(sql.startsWith('SELECT role,enabled'))return {rows:[{role:'owner',enabled:true}]};if(sql.startsWith("SELECT count(*)::int"))return {rows:[{count:1}]};return {rows:[]}},release(){}};const store=new PgAccessStore();Reflect.set(store,'db',async()=>({connect:async()=>client}));
+ await assert.rejects(store.disable(owner.id),AccessInvariantError);assert.equal(statements.at(-1),'ROLLBACK');assert.equal(statements.some(sql=>sql.startsWith('UPDATE access_members SET enabled=false')),false);
+ const inviteStatements:string[]=[];const inviteClient={async query(sql:string){inviteStatements.push(sql);if(sql.startsWith('SELECT id,email,name,role,enabled'))return {rows:[owner]};if(sql.startsWith("SELECT count(*)::int"))return {rows:[{count:1}]};return {rows:[]}},release(){}};const inviteStore=new PgAccessStore();Reflect.set(inviteStore,'db',async()=>({connect:async()=>inviteClient}));
+ await assert.rejects(inviteStore.invite(owner.email,owner.name,'editor',tokenHash(validToken),2000),AccessInvariantError);assert.equal(inviteStatements.at(-1),'ROLLBACK');assert.equal(inviteStatements.some(sql=>sql.startsWith('INSERT INTO access_members')),false);
+});
+
+test('re-invitation keeps ordinary access stable and defers risky reauthorization until redemption',async()=>{
+ for(const scenario of [
+  {member:editor,role:'editor' as const,reset:false},
+  {member:{...editor,enabled:false},role:'editor' as const,reset:true},
+  {member:editor,role:'owner' as const,reset:true},
+ ]){
+  const statements:Array<{sql:string;params?:unknown[]}>=[];const client={async query(sql:string,params?:unknown[]){statements.push({sql,params});if(sql.startsWith('SELECT id,email,name,role,enabled'))return {rows:[scenario.member]};return {rows:[]}},release(){}};const store=new PgAccessStore();Reflect.set(store,'db',async()=>({connect:async()=>client}));const result=await store.invite(editor.email,editor.name,scenario.role,tokenHash(validToken),2000);assert.equal(result.enabled,scenario.member.enabled);assert.equal(statements.some(item=>item.sql.startsWith('UPDATE access_members')),false);assert.equal(statements.some(item=>item.sql.startsWith('DELETE FROM access_sessions')),false);const link=statements.find(item=>item.sql.startsWith('INSERT INTO access_links'))!;assert.equal(link.params?.at(-1),scenario.reset);
+ }
+ const redeemStatements:Array<{sql:string;params?:unknown[]}>=[];const redeemClient={async query(sql:string,params?:unknown[]){redeemStatements.push({sql,params});if(sql.startsWith('UPDATE access_links'))return {rows:[{member_id:editor.id,pending_name:editor.name,pending_role:'editor',reset_password:true}]};if(sql.startsWith('SELECT id,email,name,role,enabled FROM access_members WHERE id='))return {rows:[{...editor,enabled:false}]};if(sql.startsWith('UPDATE access_members'))return {rows:[editor]};return {rows:[]}},release(){}};const store=new PgAccessStore();Reflect.set(store,'db',async()=>({connect:async()=>redeemClient}));await store.redeem(tokenHash(validToken),1000,'new-session',2000);assert.ok(redeemStatements.some(item=>item.sql.startsWith('DELETE FROM access_sessions')));assert.equal(redeemStatements.find(item=>item.sql.startsWith('UPDATE access_members'))?.params?.at(-1),true);
+});
+
+test('delayed invitation redemption cannot remove the final enabled administrator',async()=>{
+ const statements:string[]=[];const client={async query(sql:string){statements.push(sql);if(sql.startsWith('UPDATE access_links'))return {rows:[{member_id:owner.id,pending_name:owner.name,pending_role:'editor',reset_password:true}]};if(sql.startsWith('SELECT id,email,name,role,enabled FROM access_members WHERE id='))return {rows:[owner]};if(sql.startsWith("SELECT count(*)::int"))return {rows:[{count:1}]};return {rows:[]}},release(){}};const store=new PgAccessStore();Reflect.set(store,'db',async()=>({connect:async()=>client}));await assert.rejects(store.redeem(tokenHash(validToken),1000,'new-session',2000),AccessInvariantError);assert.equal(statements.at(-1),'ROLLBACK');assert.equal(statements.some(sql=>sql.startsWith('UPDATE access_members SET name=')),false);
+});
+
 test('expired, disabled, or deleted sessions cannot produce a current member',async()=>{
  const hashes:string[]=[];
  const store:AccessStore={
-  memberForSession:async(hash)=>{hashes.push(hash);return null},
-  createSession:async()=>{},deleteSession:async()=>{},redeem:async()=>null,
+ memberForSession:async(hash)=>{hashes.push(hash);return null},
+  createSession:async()=>{},deleteSession:async()=>{},credentialForEmail:async()=>null,setPassword:async()=>{},redeem:async()=>null,
   invite:async()=>owner,list:async()=>[],disable:async()=>{},bootstrap:async()=>null,allowAttempt:async()=>true,
  };
  const request=new Request('https://graphics.test/author',{headers:{cookie:`${ACCESS_COOKIE}=${validToken}`}});
@@ -241,11 +279,11 @@ test('expired, disabled, or deleted sessions cannot produce a current member',as
 });
 
 test('session issuance stores only a hash and uses a fixed thirty-day expiry',async()=>{
- let recorded:{hash:string;memberId:string;now:number;expires:number}|undefined;
+ let recorded:{hash:string;memberId:string;now:number;expires:number;method?:string}|undefined;
  const store:AccessStore={
-  memberForSession:async()=>null,
-  createSession:async(hash,memberId,now,expires)=>{recorded={hash,memberId,now,expires}},
-  deleteSession:async()=>{},redeem:async()=>null,invite:async()=>owner,list:async()=>[],disable:async()=>{},bootstrap:async()=>null,allowAttempt:async()=>true,
+ memberForSession:async()=>null,
+  createSession:async(hash,memberId,now,expires,method)=>{recorded={hash,memberId,now,expires,method}},
+  deleteSession:async()=>{},credentialForEmail:async()=>null,setPassword:async()=>{},redeem:async()=>null,invite:async()=>owner,list:async()=>[],disable:async()=>{},bootstrap:async()=>null,allowAttempt:async()=>true,
  };
  const token=await issueSession(owner,store);
  assert.match(token,/^[A-Za-z0-9_-]{43}$/);
@@ -253,6 +291,70 @@ test('session issuance stores only a hash and uses a fixed thirty-day expiry',as
  assert.equal(recorded?.hash,tokenHash(token));
  assert.equal(recorded?.memberId,owner.id);
  assert.equal(recorded!.expires-recorded!.now,30*24*60*60_000);
+ assert.equal(recorded?.method,'invite');
+});
+
+test('scrypt password records are salted, bounded, and verified without plaintext storage',async()=>{
+ assert.equal(validPassword('short'),false);assert.equal(validPassword('x'.repeat(201)),false);assert.equal(validPassword('correct horse battery staple'),true);
+ const first=await hashPassword('correct horse battery staple'),second=await hashPassword('correct horse battery staple');
+ assert.notEqual(first,second);assert.doesNotMatch(first,/correct|horse|battery|staple/);assert.match(first,/^scrypt\$16384\$8\$1\$/);
+ assert.equal(await verifyPassword('correct horse battery staple',first),true);assert.equal(await verifyPassword('wrong password value',first),false);assert.equal(await verifyPassword('correct horse battery staple','malformed'),false);
+});
+
+test('email login is generic, rate-limited by IP and account, and issues a password session',async()=>{
+ const encoded=await hashPassword('correct horse battery staple');const attempts:string[]=[];let method='';
+ await withStoreMethods({allowAttempt:async identity=>{attempts.push(identity);return true},credentialForEmail:async email=>email===editor.email?{...editor,passwordHash:encoded}:null,createSession:async(_hash,_id,_now,_expires,nextMethod)=>{method=nextMethod}},async()=>{
+  const accepted=await POST(jsonRequest({action:'login',email:editor.email,password:'correct horse battery staple'}));assert.equal(accepted.status,200);assert.equal(method,'password');assert.match(accepted.headers.get('set-cookie')||'',new RegExp(`^${ACCESS_COOKIE}=`));
+  const unknown=await POST(jsonRequest({action:'login',email:'missing@example.test',password:'correct horse battery staple'}));const wrong=await POST(jsonRequest({action:'login',email:editor.email,password:'wrong password value'}));assert.equal(unknown.status,401);assert.equal(wrong.status,401);assert.equal((await unknown.json()).error,(await wrong.json()).error);
+  assert.ok(attempts.some(value=>value.startsWith('login:ip:')));assert.ok(attempts.includes(`login:account:${editor.email}`));
+ });
+ let credentialsRead=false;await withStoreMethods({allowAttempt:async identity=>!identity.startsWith('login:account:'),credentialForEmail:async()=>{credentialsRead=true;return null}},async()=>{const limited=await POST(jsonRequest({action:'login',email:editor.email,password:'correct horse battery staple'}));assert.equal(limited.status,429);assert.equal(credentialsRead,false)});
+ const blockedAttempts:string[]=[];await withStoreMethods({allowAttempt:async identity=>{blockedAttempts.push(identity);return false}},async()=>{const limited=await POST(jsonRequest({action:'login',email:'unique@example.test',password:'correct horse battery staple'}));assert.equal(limited.status,429);assert.equal(blockedAttempts.length,1);assert.match(blockedAttempts[0],/^login:ip:/)});
+});
+
+test('production rate limiting trusts only Vercel-provided client identity',async()=>{
+ const before=process.env.VERCEL;process.env.VERCEL='1';const identities:string[]=[];try{await withStoreMethods({allowAttempt:async identity=>{identities.push(identity);return false}},async()=>{await POST(new Request('https://graphics.test/api/access',{method:'POST',headers:{Origin:'https://graphics.test','Content-Type':'application/json','x-forwarded-for':'spoofed','x-real-ip':'spoofed'},body:JSON.stringify({action:'login',email:editor.email,password:'correct horse battery staple'})}));assert.equal(identities[0],'login:ip:unknown');identities.length=0;await POST(new Request('https://graphics.test/api/access',{method:'POST',headers:{Origin:'https://graphics.test','Content-Type':'application/json','x-vercel-forwarded-for':'198.51.100.8','x-forwarded-for':'spoofed'},body:JSON.stringify({action:'login',email:editor.email,password:'correct horse battery staple'})}));assert.equal(identities[0],'login:ip:198.51.100.8')})}finally{if(before===undefined)delete process.env.VERCEL;else process.env.VERCEL=before}
+});
+
+test('access request bodies are bounded before password work',async()=>{
+ let touched=false;await withStoreMethods({allowAttempt:async()=>{touched=true;return true},credentialForEmail:async()=>{touched=true;return null}},async()=>{const response=await POST(new Request('https://graphics.test/api/access',{method:'POST',headers:{Origin:'https://graphics.test','Content-Type':'application/json'},body:JSON.stringify({action:'login',email:'a@example.test',password:'x'.repeat(9000)})}));assert.equal(response.status,413);assert.equal(touched,false)});
+});
+
+test('attempt storage prunes expired identities while updating the bounded window',async()=>{
+ let statement='';const store=new PgAccessStore();Reflect.set(store,'db',async()=>({query:async(sql:string)=>{statement=sql;return {rows:[{attempts:1}]}}}));assert.equal(await store.allowAttempt('login:ip:local',1000),true);assert.match(statement,/DELETE FROM access_attempts WHERE window_start<\$2-60000/);assert.match(statement,/RETURNING attempts/);
+});
+
+test('password setup rotates the session and never serializes a hash',async()=>{
+ let stored:{id:string;encoded:string;session:string}|undefined;const sessions=new Map([[tokenHash(validToken),ownerSession]]);
+ await withStoreMethods({memberForSession:async hash=>sessions.get(hash)??null,credentialForEmail:async()=>({...owner,passwordHash:null}),allowAttempt:async()=>true,setPassword:async(id,encoded,session)=>{stored={id,encoded,session};sessions.clear();sessions.set(session,{...owner,authMethod:'password',authenticatedAt:Date.now()})}},async()=>{
+  const response=await POST(new Request('https://graphics.test/api/access',{method:'POST',headers:{Origin:'https://graphics.test','Content-Type':'application/json',Cookie:`${ACCESS_COOKIE}=${validToken}`},body:JSON.stringify({action:'set_password',newPassword:'owner password manager value'})}));assert.equal(response.status,200);assert.equal(stored?.id,owner.id);assert.notEqual(stored?.session,tokenHash(validToken));assert.doesNotMatch(stored?.encoded??'',/owner password/);
+  const rawCookie=response.headers.get('set-cookie')??'';const newToken=rawCookie.match(new RegExp(`^${ACCESS_COOKIE}=([^;]+)`))?.[1]??'';assert.equal(tokenHash(newToken),stored?.session);
+  const oldProfile=await GET(new Request('https://graphics.test/api/access',{headers:{Cookie:`${ACCESS_COOKIE}=${validToken}`}}));assert.equal(oldProfile.status,401);
+  const profile=await GET(new Request('https://graphics.test/api/access',{headers:{Cookie:`${ACCESS_COOKIE}=${newToken}`}}));const text=await profile.text();assert.equal(profile.status,200);assert.match(text,/"hasPassword":false/);assert.doesNotMatch(text,/passwordHash|scrypt\$/);
+ });
+});
+
+test('an existing password needs the current password or a fresh invitation proof',async()=>{
+ const encoded=await hashPassword('current password value');let changes=0;const request=(currentPassword?:string)=>new Request('https://graphics.test/api/access',{method:'POST',headers:{Origin:'https://graphics.test','Content-Type':'application/json',Cookie:`${ACCESS_COOKIE}=${validToken}`},body:JSON.stringify({action:'set_password',currentPassword,newPassword:'replacement password value'})});
+ await withStoreMethods({memberForSession:async()=>({...ownerSession,authenticatedAt:Date.now()-16*60_000}),credentialForEmail:async()=>({...owner,passwordHash:encoded}),allowAttempt:async()=>true,setPassword:async()=>{changes++}},async()=>{const denied=await POST(request());assert.equal(denied.status,401);assert.equal(changes,0);const accepted=await POST(request('current password value'));assert.equal(accepted.status,200);assert.equal(changes,1)});
+ await withStoreMethods({memberForSession:async()=>({...ownerSession,authenticatedAt:Date.now()}),credentialForEmail:async()=>({...owner,passwordHash:encoded}),allowAttempt:async()=>true,setPassword:async()=>{changes++}},async()=>{const reset=await POST(request());assert.equal(reset.status,200);assert.equal(changes,2)});
+});
+
+test('a password reset consumes fresh-invite proof and requires the new current password afterward',async()=>{
+ let encoded=await hashPassword('current password value');const sessions=new Map([[tokenHash(validToken),ownerSession]]);let latestToken='';
+ await withStoreMethods({memberForSession:async hash=>sessions.get(hash)??null,credentialForEmail:async()=>({...owner,passwordHash:encoded}),allowAttempt:async()=>true,setPassword:async(_id,next,sessionHash)=>{encoded=next;sessions.clear();sessions.set(sessionHash,{...owner,authMethod:'password',authenticatedAt:Date.now()})}},async()=>{
+  const reset=await POST(new Request('https://graphics.test/api/access',{method:'POST',headers:{Origin:'https://graphics.test','Content-Type':'application/json',Cookie:`${ACCESS_COOKIE}=${validToken}`},body:JSON.stringify({action:'set_password',newPassword:'replacement password value'})}));assert.equal(reset.status,200);latestToken=(reset.headers.get('set-cookie')??'').match(new RegExp(`^${ACCESS_COOKIE}=([^;]+)`))?.[1]??'';
+  const repeat=await POST(new Request('https://graphics.test/api/access',{method:'POST',headers:{Origin:'https://graphics.test','Content-Type':'application/json',Cookie:`${ACCESS_COOKIE}=${latestToken}`},body:JSON.stringify({action:'set_password',newPassword:'another replacement value'})}));assert.equal(repeat.status,401);
+  const withCurrent=await POST(new Request('https://graphics.test/api/access',{method:'POST',headers:{Origin:'https://graphics.test','Content-Type':'application/json',Cookie:`${ACCESS_COOKIE}=${latestToken}`},body:JSON.stringify({action:'set_password',currentPassword:'replacement password value',newPassword:'another replacement value'})}));assert.equal(withCurrent.status,200);
+ });
+});
+
+test('Postgres password change atomically revokes other sessions and old links',async()=>{
+ const statements:Array<{sql:string;params?:unknown[]}>=[];const client={async query(sql:string,params?:unknown[]){statements.push({sql,params});if(sql.startsWith('UPDATE access_members'))return {rows:[{id:owner.id}]};return {rows:[]}},release(){}};const store=new PgAccessStore();Reflect.set(store,'db',async()=>({connect:async()=>client}));await store.setPassword(owner.id,'scrypt$record','new-session-hash',1000,2000);assert.equal(statements[0].sql,'BEGIN');assert.match(statements[1].sql,/password_hash=\$2/);assert.equal(statements[2].sql,'DELETE FROM access_sessions WHERE member_id=$1');assert.match(statements[3].sql,/DELETE FROM access_links/);assert.match(statements[4].sql,/auth_method,authenticated_at/);assert.deepEqual(statements[4].params,['new-session-hash',owner.id,1000,2000]);assert.equal(statements.at(-1)?.sql,'COMMIT');
+});
+
+test('legacy CONTROL_KEY cannot bootstrap or recover an owner account',async()=>{
+ const before={bootstrap:process.env.ACCESS_BOOTSTRAP_KEY,control:process.env.CONTROL_KEY};delete process.env.ACCESS_BOOTSTRAP_KEY;process.env.CONTROL_KEY='legacy-control';let calls=0;try{await withStoreMethods({allowAttempt:async()=>true,bootstrap:async()=>{calls++;return owner}},async()=>{const response=await POST(jsonRequest({action:'bootstrap',key:'legacy-control',email:owner.email,name:owner.name}));assert.equal(response.status,401);assert.equal(calls,0)})}finally{if(before.bootstrap===undefined)delete process.env.ACCESS_BOOTSTRAP_KEY;else process.env.ACCESS_BOOTSTRAP_KEY=before.bootstrap;if(before.control===undefined)delete process.env.CONTROL_KEY;else process.env.CONTROL_KEY=before.control}
 });
 
 test('legacy playback credentials bypass membership without giving the output key control',async()=>{

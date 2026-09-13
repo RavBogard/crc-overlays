@@ -17,6 +17,10 @@ export type PublicWorkspace = {
   colors: {primary: string; deep: string; accent: string};
   stage: 'trial' | 'production';
   setupDownloads: WorkspaceDownload[];
+  sharedLibrary: {
+    enabled: boolean;
+    label: string;
+  };
   deployment: {
     usesDefaultCrcIdentity: boolean;
     isolationVerified: boolean;
@@ -154,6 +158,12 @@ export function getPublicWorkspace(env: WorkspaceEnvironment = process.env): Pub
     },
     stage,
     setupDownloads: configuredDownloads(resolved, id === 'crc'),
+    sharedLibrary: {
+      enabled: id === 'temple-bnai-israel-kalamazoo'
+        && Boolean(env.CRC_SHARED_LIBRARY_URL?.trim())
+        && Boolean(env.SHARED_LIBRARY_IMPORT_KEY?.trim()),
+      label: 'CRC library',
+    },
     deployment: {
       usesDefaultCrcIdentity: crcDefault,
       isolationVerified: resolved.WORKSPACE_ISOLATION_VERIFIED === 'true',

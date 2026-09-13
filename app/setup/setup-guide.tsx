@@ -16,7 +16,7 @@ async function readJson(response: Response) {
 }
 
 export default function SetupGuide({workspace}: {workspace: PublicWorkspace}) {
-  const [application, setApplication] = useState<Application>('vmix');
+  const [application, setApplication] = useState<Application>(workspace.id === 'crc' ? 'vmix' : 'obs');
   const [legacyKey, setLegacyKey] = useState('');
   const [showLegacyAccess, setShowLegacyAccess] = useState(false);
   const [copyStatus, setCopyStatus] = useState('');
@@ -94,9 +94,9 @@ export default function SetupGuide({workspace}: {workspace: PublicWorkspace}) {
   const pageDownloads = workspace.setupDownloads.filter(item => item.kind === 'pages');
 
   return <>
-    <header className={styles.hero}>
+    <header className={`${styles.hero} ${workspace.id === 'crc' ? '' : styles.communityHero}`}>
       <div className={styles.identity}>
-        <Image src={workspace.logo.src} alt={workspace.logo.alt} width={82} height={82}/>
+        <Image className={workspace.id === 'crc' ? styles.identityMark : styles.identityBanner} src={workspace.logo.src} alt={workspace.logo.alt} width={workspace.id === 'crc' ? 82 : 164} height={workspace.id === 'crc' ? 82 : 70}/>
         <div>
           <span className={styles.eyebrow}>{workspace.organizationName}</span>
           <h1>Connect your sanctuary</h1>
@@ -134,7 +134,7 @@ export default function SetupGuide({workspace}: {workspace: PublicWorkspace}) {
           <span className={styles.kicker}>Companion + Stream Deck</span>
           <h2>Add the controls</h2>
           {moduleDownload && pageDownloads.length ? <>
-            <p>First import the module package from Companion’s <strong>Modules</strong> page. Add a <strong>{workspace.productName}</strong> connection. Then import each button page into one of the empty pages you chose.</p>
+            <p>First import the module package from Companion’s <strong>Modules</strong> page. {workspace.id === 'crc' ? <>Add a <strong>{workspace.productName}</strong> connection.</> : <>The installed module is named <strong>CRC Overlays</strong>; that is its technical name. Add a connection and label it <strong>{workspace.productName}</strong> so operators see this congregation’s name.</>} Then import each button page into one of the empty pages you chose.</p>
             <div className={styles.downloads}>
               <a className={styles.primaryDownload} href={moduleDownload.href} download>{moduleDownload.label}<small>{moduleDownload.description}</small></a>
               {pageDownloads.map(download => <a href={download.href} download key={download.href}>{download.label}<small>{download.description}</small></a>)}
@@ -155,8 +155,8 @@ export default function SetupGuide({workspace}: {workspace: PublicWorkspace}) {
           <h2>Add a separate browser input</h2>
           <fieldset className={styles.applicationPicker}>
             <legend>Which application is on this computer?</legend>
-            <label className={application === 'vmix' ? styles.selected : ''}><input type="radio" name="application" value="vmix" checked={application === 'vmix'} onChange={() => setApplication('vmix')}/><span><strong>vMix</strong><small>Michael’s CRC setup</small></span></label>
-            <label className={application === 'obs' ? styles.selected : ''}><input type="radio" name="application" value="obs" checked={application === 'obs'} onChange={() => setApplication('obs')}/><span><strong>OBS</strong><small>Browser Source</small></span></label>
+            <label className={application === 'vmix' ? styles.selected : ''}><input type="radio" name="application" value="vmix" checked={application === 'vmix'} onChange={() => setApplication('vmix')}/><span><strong>vMix</strong><small>{workspace.id === 'crc' ? 'Michael’s current setup' : 'Web Browser input'}</small></span></label>
+            <label className={application === 'obs' ? styles.selected : ''}><input type="radio" name="application" value="obs" checked={application === 'obs'} onChange={() => setApplication('obs')}/><span><strong>OBS</strong><small>{workspace.id === 'crc' ? 'Browser Source' : `${workspace.shortName}’s current setup`}</small></span></label>
           </fieldset>
           <div className={styles.appCard}>
             <div><span>In {appInstructions.name}</span><strong>{appInstructions.path}</strong></div>

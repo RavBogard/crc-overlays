@@ -8,35 +8,35 @@ Updated: 2026-09-12
 
 This backlog turns the thirty approved product recommendations into bounded, testable outcomes. It plans the product experience rather than prescribing an implementation. An item is complete only when its acceptance evidence exists; passing protocol or browser tests cannot substitute for operator, program-output, or viewer evidence where those are required.
 
-The current baseline is the September 12 product-expansion build. Neon service has been restored on Launch, and the relay still serves the last synchronized approved catalog without depending on Neon. Push clients, session access, setup, workspace identity, expanded source browsing, manual authoring, and local cue inspection now have implementation foundations. Physical Stream Deck operation, vMix/OBS compositing, camera-linked controls, restart/network recovery, a complete service-order run, and cross-workspace isolation remain unverified.
+The current baseline is the September 12 product-expansion build. Neon service has been restored on Launch, and the relay still serves the last synchronized approved catalog without depending on Neon. Push clients, returning-user session access, setup, workspace identity, expanded source browsing, manual authoring, local cue inspection, and the read-only CRC-to-TBI library feed now have implementation and automated evidence. Physical Stream Deck operation, vMix/OBS compositing, camera-linked controls, restart/network recovery, a complete service-order run, and operational cross-workspace isolation remain unverified.
 
 The initial expansion is intentionally limited to two congregations: CRC and one invited congregation led by the user's rabbi friend. Details of tenancy, invitation, identity, and installation are defined in companion planning workstreams. This backlog names their product dependencies without deciding those workstreams' design.
 
-The invited congregation's known operating baseline is OBS plus Companion/Stream Deck. Its starting content model is a deliberately selected set of CRC materials that it may customize within established permission and provenance boundaries. The current deployment assumption is two isolated congregation deployments of one maintained product release, rather than two forked codebases. That remains a planning assumption until DEP-TENANT selects and validates the isolation model; this backlog does not authorize either deployment.
+The invited congregation's known operating baseline is OBS plus Companion/Stream Deck. Its starting content model is the complete current and future published CRC overlay and source library, authorized by Daniel for Simone and Temple Bnai Israel. Shared records are read-only upstream items; customization creates an independent TBI draft. CRC and TBI now run as two isolated deployments of one maintained product release, with separate live control, credentials, drafts, and databases. The shared library uses a separate read-only server credential. A paired-release check builds both workspaces from one exact commit so configuration cannot become a code fork.
 
 The following product constraints apply throughout:
 
 - Michael's normal workflow remains spontaneous: stable Stream Deck locations, one-press cue selection, and immediate recovery. Preparing a weekly run of show is optional.
 - Michael can create, edit, duplicate, and publish through a polished web experience without using AI. AI assistance remains optional and cannot be a prerequisite for any ordinary authoring task.
-- **Add from siddur** is a primary manual action: browse/search the permitted siddur collection, select a prayer or passage, and insert paired language content with suggested readable panels. It must reach beyond prayers that already have overlays; see WEB-13 in `WEB-EDITOR.md`.
+- **Add from siddur** is a primary manual action: browse/search the available siddur collection, select a prayer or passage, and insert paired language content with suggested readable panels. It must reach beyond prayers that already have overlays; see WEB-13 in `WEB-EDITOR.md`.
 - Canonical prayer text is selected from an authorized source and is never silently rewritten, synthesized, or copied between language roles.
 - Full-height side panels and the upper-right logo placement remain part of the accepted visual direction.
 - Renderer acknowledgement means the browser matched requested state; it never claims that vMix/OBS placed the graphic on air.
-- Sharing with the second congregation requires content permission and congregation/account isolation before its material is enabled.
+- Daniel has authorized Simone and Temple Bnai Israel to use all current and future CRC overlays and materials. Attribution stays attached to shared content; congregation/account isolation remains required for credentials, drafts, publications, control, and live output.
 - Existing Singular controls and graphics inputs remain available during CRC's parallel trial.
 
 ## Implementation status ledger
 
-“Foundation” means the product behavior exists in the working tree and has automated evidence. It does not satisfy acceptance criteria that explicitly require Michael, the invited congregation, physical hardware, program output, viewing-distance review, permissions, or recovery drills.
+“Foundation” means the product behavior exists in the working tree and has automated evidence. It does not satisfy acceptance criteria that explicitly require Michael, the invited congregation, physical hardware, program output, viewing-distance review, operational isolation, or recovery drills.
 
 | Outcome IDs | Current evidence | Status / remaining gate |
 | --- | --- | --- |
 | MANUAL-01–04, FEAT-03 | Web library, create/duplicate, canonical and custom content modes, autosave/conflict state, unsaved preview, exact-version review, publish, history, and rollback are implemented. | Foundation; complete Michael usability walkthrough and second-congregation access evidence. |
-| FEAT-01 | Source-backed whole-prayer draft-set creation is in active implementation, with conservative block-preserving pagination planned. | In progress; multipart operating controls and operator validation remain. |
+| FEAT-01 | Source-backed whole-prayer draft-set creation produces ordered unpublished sets with conservative block-preserving pagination and paired bilingual rows. | Foundation; multipart operating controls and operator validation remain. |
 | FEAT-02, USE-03, UX-01 | Search now normalizes Hebrew niqqud and punctuation; source results rank familiar names/opening words; the console separates local **Inspect** from live **Show**. | Foundation; validate recognition and error rate with Michael. |
 | USE-02, UX-02 | Web control exposes immediate cut/animate-out and distinguishes requested, rendered, disconnected, and no-output states. | Partial; emergency control on every physical page and operator comprehension remain. |
 | UX-03, OWN-02, OWN-03 | Invitation/session access, workspace identity, setup/account links, scoped output URL, downloadable Companion assets, setup documentation, and sign-out are implemented. | Foundation; complete clean-machine install, package recovery, version-drift, and handoff drills. |
-| ADAPT-01–02, LIT-01 | Server-side source library spans the imported authorized collections with source/feed/unit pins, exact blocks, book/service facets, presentation variants, and bounded browser responses. | Foundation; permissions for sharing, reviewer-facing provenance, and two-workspace evidence remain. |
+| ADAPT-01–02, LIT-01 | Server-side source library spans all imported collections with source/feed/unit pins, exact blocks, book/service facets, presentation variants, and bounded browser responses. TBI receives current and future CRC publications through a dedicated read-only feed and customizes them into independent local drafts. | Foundation; reviewer-facing provenance and operational two-workspace isolation evidence remain. |
 | REL-01, OWN-01 | Neon has recovered; relay playback remains independent; push replaces steady state polling; payload limits, cost range, and operating alerts are documented in `HOSTING-COST-AND-RELIABILITY.md`. | Foundation; provider-dashboard monitoring, membership-query optimization, and outage drill remain. |
 | GAP-01–03, USE-01, VIS-01–03, REL-02–03, LIT-02–03, A11Y-01–03 | Planning and acceptance criteria exist. Renderer/browser checks cover fit and protocol behavior. | Acceptance or implementation remains; do not report these outcomes complete. |
 | ADAPT-03 | Reusable service collections remain optional. | Backlog; weekly preparation cannot become mandatory for live operation. |
@@ -50,8 +50,8 @@ These contracts let this backlog remain usable while the detailed installation a
 | **DEP-AUTHORING** | Restore dependable authoring, preview, approval, publication, history, and rollback. When unavailable, the product accurately reports that synchronized playback still works. | Blocks authoring-dependent acceptance and any second-congregation content publication. |
 | **DEP-HARDWARE** | Complete staffed acceptance using Michael's actual Companion/Stream Deck and chosen vMix or OBS workstation, including program monitor evidence. | Blocks claiming CRC service readiness or replacement readiness. |
 | **DEP-INSTALL** | Provide a Michael installation/onboarding path comparable in simplicity to opening a hosted service: establish identity/access, copy a congregation-scoped output URL into OBS/vMix, connect Companion, install a reviewed page package, verify health, and make recovery discoverable. OAuth is a candidate mechanism, not a predetermined requirement. The same path must account for the invited congregation's known OBS plus Companion/Stream Deck environment. | Blocks rollout beyond the current manually configured workstation and informs setup/status UX. |
-| **DEP-TENANT** | Define invitation, identity, role, congregation isolation, output/control authorization, content ownership, offboarding, and support boundaries for exactly two congregations. Evaluate the working model of two isolated deployments on one maintained release without allowing configuration or code forks to drift. | Blocks enabling the invited congregation. |
-| **DEP-SOURCES** | Establish the invited congregation's authorized source corpus, permissions, attribution, and change authority. | Blocks its prayer authoring and publication. |
+| **DEP-TENANT** | Maintain the verified two-deployment boundary: separate invitation, identity, role, database, output/control authorization, draft ownership, offboarding, and support state for CRC and TBI; one exact source release builds both. Exercise the boundary with each congregation before regular use. | Deployment architecture is implemented; blocks operational acceptance. |
+| **DEP-SOURCES** | Expose the complete 647-source current CRC library and future published additions to TBI as a bounded read-only upstream with retained attribution. Customization creates local TBI drafts and later upstream changes never overwrite them. | Blocks full-library browsing and safe customization evidence. |
 | **DEP-WEB-EDITOR** | Deliver the manual web-authoring epic below: familiar library/create/duplicate entry points, clear sacred-source versus local-variant treatment, resilient editing, exact visual review, and unambiguous publication. | Blocks treating authoring as a usable product for Michael or the invited congregation. |
 
 ## Cross-cutting enabling epic: manual web authoring
@@ -68,7 +68,7 @@ This epic is additional enabling work discovered while planning the approved rec
 - Creating begins by choosing a useful content/layout starting point; duplicating begins from the exact visible approved graphic and never alters it.
 - Prayer/source graphics, local variants, and custom non-liturgical slides are distinct choices with a short explanation at the point of choice.
 - Michael creates one source-backed prayer variant and one custom non-liturgical slide from the web UI without AI or developer assistance.
-- The invited congregation can start from the selected shareable CRC materials without seeing unshared CRC content.
+- The invited congregation can browse every current and future published CRC library item without gaining access to CRC credentials, unpublished drafts, control, or live state.
 
 **Priority / phase / dependencies:** P1; Phase 2, required before Phase 3; DEP-AUTHORING, DEP-TENANT, DEP-SOURCES. Enables FEAT-02, FEAT-03, ADAPT-01, and ADAPT-02.
 
@@ -79,7 +79,7 @@ This epic is additional enabling work discovered while planning the approved rec
 **Acceptance criteria:**
 
 - Canonical source text is visibly protected from inline rewriting and retains the provenance required by LIT-01.
-- A congregation may create a labeled local liturgical variant only through the permission and review path defined for that source; the label remains visible through review and history.
+- A congregation may create a labeled local liturgical variant only through the review path defined for that source; the label remains visible through review and history.
 - An editor can create non-liturgical custom text such as an announcement, welcome, or authorized reading without pretending it came from the sacred source corpus.
 - Duplicating a source-backed cue does not silently convert its text into unrestricted custom text.
 - Reviewers can tell canonical, authorized translation/original, local variant, and non-liturgical custom content apart before publication.
@@ -239,7 +239,7 @@ Items may begin earlier, but they cannot be accepted before their dependencies a
 
 - An editor can start from an approved cue, choose what is shared, and create a distinct draft without altering the source cue or its current button.
 - The new variant receives its own stable identifier and records the cue/revision from which it began.
-- Canonical text selectors, language roles, and permissions remain explicit; presentation changes never imply text rewriting.
+- Canonical text selectors, language roles, and provenance remain explicit; presentation changes never imply text rewriting.
 - Preview, approval, publication, rollback, and live-library sync apply independently to each variant.
 - Library and operator surfaces show a human-readable relationship among variants without presenting them as duplicate prayers.
 
@@ -437,17 +437,17 @@ Items may begin earlier, but they cannot be accepted before their dependencies a
 
 **Approved outcome:** Make additional CRC services and the invited congregation's authorized sources available through the same review workflow.
 
-**Known baseline:** Authoring searches a bounded legacy CRC Shabbat-morning source map. The release is CRC-only; another congregation's permissions and isolation are not established.
+**Known baseline:** Authoring now searches a bounded 647-source CRC library. Daniel has authorized full current and future read-only library access for Simone and TBI; cross-workspace credentials, drafts, publications, control, and live state still require isolation evidence.
 
-**New work:** Define how source collections are added, named, permissioned, reviewed, and exposed to editors without carrying CRC assumptions into the invited congregation.
+**New work:** Make current and future published CRC library additions appear automatically in TBI's read-only CRC Library, with retained attribution and bounded fetches. One-click Customize creates an independent TBI draft and never overwrites local edits.
 
 **Acceptance criteria:**
 
 - At least one additional CRC service collection and one authorized invited-congregation collection can be searched through the same source-to-draft workflow.
-- Every collection identifies congregation, service, source authority, permission basis, version/revision, language roles, and change owner.
+- Every collection identifies congregation, service, source authority, attribution/license metadata, version/revision, language roles, and change owner.
 - Editors see only collections allowed by their role and congregation; a cross-congregation access test demonstrates isolation.
 - Adding a collection cannot silently publish cues or expose raw server-only source packages to the relay.
-- Source and role validation fails closed when a requested block or permission is missing.
+- Source and role validation fails closed when a requested block or required source metadata is missing.
 
 **Priority / phase / dependencies:** P2; Phase 3; DEP-AUTHORING, DEP-WEB-EDITOR, DEP-TENANT, DEP-SOURCES, LIT-01.
 
@@ -559,7 +559,7 @@ Items may begin earlier, but they cannot be accepted before their dependencies a
 - Review shows the prior and proposed text in context, including language-pair relationships and pagination impact.
 - Reviewers can accept, defer with a reason, or reject as inapplicable; no choice changes live output by itself.
 - Accepted changes create new draft/review work and require the normal exact-preview approval and publication path.
-- Each congregation's authorized reviewer sees and decides only its permitted source changes, with a retained audit record.
+- Each congregation's authorized reviewer sees changes to its available sources, with shared CRC attribution and workspace-private additions clearly distinguished in the retained audit record.
 
 **Priority / phase / dependencies:** P2; Phases 2–3; DEP-AUTHORING, ADAPT-01, ADAPT-02, LIT-01, DEP-TENANT.
 
@@ -667,7 +667,7 @@ Items may begin earlier, but they cannot be accepted before their dependencies a
 
 **Acceptance criteria:**
 
-- The recovery inventory covers application release/configuration, approved content and revisions, canonical-source references/packages according to permission, artwork/licenses, relay catalog/state recovery, Companion page exports, tenant/account configuration, and operator/setup guides.
+- The recovery inventory covers application release/configuration, approved content and revisions, canonical-source references/packages with retained attribution, artwork/licenses, relay catalog/state recovery, Companion page exports, tenant/account configuration, and operator/setup guides.
 - Every component names its system of record, backup location, owner, access role, backup cadence, retention, and restore order.
 - Secrets and key-bearing URLs are recoverable through an approved secret process and are absent from ordinary documentation and shared screenshots.
 - A clean recovery exercise restores a non-production rehearsal instance and verifies one approved cue per congregation without affecting live outputs.

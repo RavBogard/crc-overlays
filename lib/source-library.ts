@@ -49,6 +49,8 @@ export type CoverageBook={
  blocks:number;
  pairedBilingualBlocks:number;
  originalEnglishBlocks:number;
+ sourceEnglishBlocks:number;
+ noteLikeEnglishBlocks:number;
  skipped:Record<string,number>;
 };
 
@@ -98,11 +100,7 @@ function validate(){
  if(libraryJson.schemaVersion!==1)fail('unsupported schema version');
  if(!Array.isArray(libraryJson.sources))fail('sources are absent');
  if(!Array.isArray(libraryJson.authorities))fail('authorities are absent');
- const emptyExpansion=libraryJson.sources.length===0&&libraryJson.authorities.length===0;
- if(emptyExpansion){
-  const workspaceId='temple-bnai-israel-kalamazoo';
-  if(process.env.WORKSPACE_ID!==workspaceId||libraryJson.scope?.workspaceId!==workspaceId)fail('empty expansion is allowed only for the explicitly scoped TBI workspace');
- }else if(!libraryJson.sources.length||!libraryJson.authorities.length)fail('sources and authorities must both be populated');
+ if(!libraryJson.sources.length||!libraryJson.authorities.length)fail('sources and authorities must both be populated');
  const authorityIds=new Set(libraryJson.authorities.map(item=>item.id));
  if(authorityIds.size!==libraryJson.authorities.length)fail('authority IDs are not unique');
  const sourceIds=new Set(legacyJson.sources.map(item=>item.id));
@@ -119,9 +117,12 @@ function validate(){
    if(blockIds.has(block.id))fail(`duplicate block ID: ${block.id}`);
    blockIds.add(block.id);
    if(block.kind==='bilingual'){
-    if(!block.he||!block.tr||block.en!==undefined)fail(`invalid bilingual block: ${block.id}`);
+    if(!block.he||!block.tr)fail(`invalid bilingual block: ${block.id}`);
+    if(block.en!==undefined&&(!block.englishRole||typeof block.automatic!=='boolean'||typeof block.noteLike!=='boolean'))fail(`bilingual English metadata is absent: ${block.id}`);
    }else if(block.kind==='original-en'){
     if(!block.en||block.role!=='original'||block.he!==undefined||block.tr!==undefined)fail(`invalid original English block: ${block.id}`);
+   }else if(block.kind==='source-en'){
+    if(!block.en||!block.englishRole||typeof block.automatic!=='boolean'||typeof block.noteLike!=='boolean'||block.role==='original')fail(`invalid source English block: ${block.id}`);
    }else fail(`unsupported block kind in expanded library: ${block.id}`);
   }
  }

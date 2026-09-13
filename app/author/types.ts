@@ -1,7 +1,8 @@
 import type { Cue } from "@/lib/player";
 
 export type Layout = "bottom" | "left" | "right";
-export type ContentMode = "bilingual" | "original-en" | "custom";
+export type ContentMode = "bilingual" | "source-en" | "original-en" | "custom";
+export type SourceEnglishRole = "translation" | "interpretation" | "translation-interpretation" | "reading" | "kavannah" | "rubric" | "note" | "unclassified";
 export type Presentation = {
   hebrewFontSize?: number;
   transliterationFontSize?: number;
@@ -15,7 +16,7 @@ export type DraftContent =
       transliterationGroups: SourceGroup[];
       includeTranslation?: boolean;
     }
-  | { mode: "original-en"; englishGroups: SourceGroup[] }
+  | { mode: "source-en" | "original-en"; englishGroups: SourceGroup[] }
   | { mode: "custom"; text: string };
 export type Draft = {
   id: string;
@@ -32,6 +33,8 @@ export type Draft = {
   draftSetId?: string;
   setIndex?: number;
   setCount?: number;
+  sourceSnapshots?: Source[];
+  sharedFrom?: { workspaceId: string; cueId: string; cueHash: string };
   updatedAt: number;
 };
 export type SourceBlock = {
@@ -43,6 +46,11 @@ export type SourceBlock = {
   tr?: string;
   en?: string;
   role?: "original";
+  englishRole?: SourceEnglishRole;
+  automatic?: boolean;
+  parallelBlockIds?: string[];
+  noteLike?: boolean;
+  sourceLabel?: string;
 };
 export type Source = {
   id: string;
@@ -60,6 +68,13 @@ export type Source = {
 export type SourceSummary = Omit<Source, "blocks"> & {
   blockCount: number;
   kinds: Exclude<ContentMode, "custom">[];
+  coverage?: {
+    bilingual: number;
+    originalEnglish: number;
+    sourceEnglish: number;
+    automaticSourceEnglish: number;
+    noteLikeEnglish: number;
+  };
 };
 export type SourceFacet = { value: string; label: string; count: number };
 export type TemplateSummary = {

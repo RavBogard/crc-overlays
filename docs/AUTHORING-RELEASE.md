@@ -31,5 +31,4 @@ acknowledgment is not proof that a graphic is on air.
 Code and templates remain in the private repository. Canonical source packages
 remain server-only and source-pinned. Drafts, publications, and history live in
 the database, so a content edit does not require deploying application code.
-This release is CRC-only; another congregation's content permissions and account
-isolation must be established before enabling shared use.
+Daniel has authorized Simone and Temple Bnai Israel to use the complete current and future CRC overlay and source library. That library is a read-only upstream; congregation account, draft, publication, control, and live-output isolation remain required.

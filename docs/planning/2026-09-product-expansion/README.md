@@ -7,19 +7,19 @@ Date: September 12, 2026
 The user approved all 30 recommendations from the ten-category product review. This planning package preserves those outcomes and adds two concrete requirements:
 
 - Support exactly two congregations: CRC uses vMix with Companion/Stream Deck; the friend congregation uses OBS with Companion/Stream Deck.
-- The friend starts from selected CRC materials and customizes them. Each congregation's changes, controls, live output, and operating habits remain independent.
+- TBI can browse all current and future published CRC overlays and materials, then customize independent local copies. Each congregation's changes, controls, live output, and operating habits remain independent.
 - Installing on an existing production computer should approach Singular's output-URL simplicity. Routine operation should require no repeat setup.
-- Michael must be able to creappate, edit, duplicate, and publish graphics in a polished browser editor without AI, including easy passage retrieval from the permitted siddur library.
+- Michael must be able to create, edit, duplicate, and publish graphics in a polished browser editor without AI, including easy passage retrieval from the available siddur library.
 
-This turn produces investigation, product decisions, acceptance criteria, and a delivery sequence. No production code, accounts, permissions, content sharing, or hosting configuration was changed.
+This package began as investigation and acceptance planning. The implementation ledger now records the foundations deployed to CRC and the full-library sharing work being prepared for TBI; hardware and second-workspace acceptance remain separate gates.
 
 ## Recommended decisions
 
 | Topic | Direction |
 | --- | --- |
 | Product scope | One maintained product, two invitation-only congregation workspaces |
-| Initial isolation | Two isolated deployments/data stores/live realms built from one maintained source revision; each loads only its permitted content and assets |
-| Shared content | An explicit selected starter package, copied into the friend's independent library with provenance; future CRC changes are offered for review, never pushed into their published service |
+| Initial isolation | Two isolated deployments/data stores/live realms built from one maintained source revision; both load the authorized CRC Library while private content, credentials, drafts, and assets remain isolated |
+| Shared content | The complete current and future published CRC library is automatically available read-only; Customize creates an independent TBI draft that upstream changes never overwrite |
 | Identity | Individual human sign-in and small congregation-specific roles |
 | Output connection | A named, independently revocable output URL pasted once into vMix or OBS; no login inside the program source |
 | Companion connection | One generic module, congregation-aware pairing and presets; supported module/page installation flow |
@@ -31,7 +31,7 @@ Two deployments are an initial engineering recommendation rather than the produc
 
 ## Read the plans
 
-- [Two-congregation product plan](TWO-CONGREGATIONS.md): workspace boundaries, starter sharing, customization, deployment options, and cross-congregation acceptance.
+- [Two-congregation product plan](TWO-CONGREGATIONS.md): workspace boundaries, full-library sharing, customization, deployment options, and cross-congregation acceptance.
 - [Installation investigation](INSTALLATION.md): official Companion/vMix/OBS findings, current friction, proposed setup journey, and supported automation limits.
 - [People and devices](AUTH-AND-DEVICE-EXPERIENCE.md): what human sign-in, OAuth, output URLs, and device pairing each solve.
 - [Approved backlog](APPROVED-BACKLOG.md): all original recommendations mapped to acceptance criteria and dependencies.
@@ -50,17 +50,17 @@ Restore authoring availability and distinguish it visibly from playback availabi
 
 Keep CRC's established output and cue IDs stable while the new onboarding is developed. Preserve its Singular parallel trial and independent switcher hide. Define evidence for readiness without calling a synthetic acknowledgement an on-air test.
 
-In parallel, begin typography/visual review, prayer naming, library organization, **Add from siddur** coverage, the manual editor design, and a representative shared starter collection. Those planning/design activities do not depend on the login provider.
+In parallel, begin typography/visual review, prayer naming, library organization, **Add from siddur** coverage, the manual editor design, and the complete shared CRC Library. Those planning/design activities do not depend on the login provider.
 
 Exit: usable authoring, a prioritized service-coverage map, a tested recovery procedure, and an agreed set of setup acceptance tasks.
 
 ### Release gate 1: one product, two explicit congregation configurations
 
-Introduce neutral product identity and congregation-specific brand/source settings. Use synthetic second-congregation content first. Design individual membership, output/device credentials, migration from the current shared keys, and scoped MCP authoring. Prove that the friend's actions cannot affect CRC before granting outside access.
+Introduce neutral product identity and congregation-specific brand/source settings. Use synthetic second-congregation content first. Design individual membership, output/device credentials, migration from the current shared keys, and scoped MCP authoring. Prove that TBI browsing and customization cannot affect CRC before enabling its independent control and publication.
 
-Choose the selected CRC starter materials and record which may be shared. User-owned, explicitly selected materials use the user's sharing authority; externally restricted text/artwork requires its own permission basis. Sharing is a discrete copy into an independent library, not a live dependency on CRC publications.
+Daniel has authorized Simone and TBI to use the complete current and future CRC overlay and source library. Preserve attribution metadata without adding another approval gate. Publish that upstream read-only library automatically; Customize creates an independent TBI draft that later CRC changes never overwrite.
 
-Exit: two distinguishable, isolated rehearsal workspaces, permitted source packages, and a verified old-to-new CRC connection migration.
+Exit: two distinguishable, isolated rehearsal workspaces, a verified complete shared CRC Library, private TBI additions, and a verified old-to-new CRC connection migration.
 
 ### Release gate 2: simple setup on both production stacks
 
@@ -82,9 +82,9 @@ Exit: a whole ordinary CRC service works through its actual Stream Deck/vMix set
 
 ### Release gate 4: friend pilot and maintainable ownership
 
-Invite the friend and their operator into the isolated OBS workspace. Import the approved starter collection, apply their brand, and review their customized text/variants. Complete their required service coverage and rehearse both congregations operating concurrently.
+Invite the friend and their operator into the isolated OBS workspace. Verify the complete CRC Library, customize local copies, apply their brand, and review their customized text/variants. Complete their required service coverage and rehearse both congregations operating concurrently.
 
-Provide named support ownership, bounded incident reports, per-congregation usage visibility, recoverable content/device configuration, and a release procedure exercised against both configurations. Later starter updates show differences and require receiving-congregation review. An update must not move existing buttons or replace local edits silently.
+Provide named support ownership, bounded incident reports, per-congregation usage visibility, recoverable content/device configuration, and a release procedure exercised against both configurations. Later upstream updates may show differences and require receiving-congregation review. An update must not move existing buttons or replace local edits silently.
 
 Exit: the friend can independently customize, publish, run, and recover their own service. Cross-congregation commands, source access, and revocations are denied. Each congregation has a tested backup/restore path and an operator-maintained setup guide.
 
@@ -94,7 +94,7 @@ Exit: the friend can independently customize, publish, run, and recover their ow
 2. Choose a maintained human identity approach based on invitation/email reliability, session behavior, account recovery, cost, and existing OAuth integration. Do not confuse provider sign-in with output access or promise Google/Microsoft setup before configuring it.
 3. Validate how a named output credential survives source reloads and restarts, and how revocation affects active sockets and retained frames. Keep public login errors out of program output.
 4. Measure actual provider usage and shared quota boundaries for two deployments. Confirm authoring recovery and the costs of the second environment without purchasing a plan as part of planning.
-5. Identify exact starter prayers/artwork and the friend's initial service coverage. The known product choice is selected CRC materials followed by customization; the particular selection remains to be made.
+5. Verify that all 647 current sources and all published CRC overlays are visible in TBI's CRC Library, that future additions appear automatically, and that customizing one never grants CRC control or overwrites the TBI copy.
 
 ## Beyond the two-congregation scope
 

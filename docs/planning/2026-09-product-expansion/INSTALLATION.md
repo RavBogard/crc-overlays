@@ -2,7 +2,7 @@
 
 ## Decision
 
-CRC Overlays should become a shared service for two congregations, with a separate workspace, catalog, output state, and set of devices for each congregation. The same renderer, Companion module, and authoring product serve both. CRC owns its catalog; the second congregation begins with explicitly selected CRC material copied into its workspace and can then customize that copy without changing CRC.
+CRC Overlays should become a shared service for two congregations, with a separate workspace, catalog, output state, and set of devices for each congregation. The same renderer, Companion module, and authoring product serve both. CRC remains the publishing authority for the shared upstream library. TBI can browse every current and future published CRC item; one-click Customize creates an independent TBI draft without changing CRC or receiving later overwrites.
 
 OAuth is useful for human sign-in and delegated access. It is not the main solution to Michael's installation problem. The product has three distinct trust relationships and they should not share one credential:
 
@@ -48,7 +48,7 @@ Commands, realtime presence, renderer acknowledgements, catalog queries, and pub
 
 ### Administrator prepares the site
 
-Daniel creates the second congregation, invites the rabbi by email, and selects a CRC starter collection. The rabbi signs in, accepts the invitation, names the congregation, previews the copied material, and confirms the initial import. The product then opens a `Connect your sanctuary` checklist with two cards: **Connect Companion** and **Add graphics output**.
+Daniel creates the second congregation and invites the rabbi by email. The rabbi signs in, accepts the invitation, names the congregation, browses the complete CRC Library, and customizes one item as an independent TBI draft. The product then opens a `Connect your sanctuary` checklist with two cards: **Connect Companion** and **Add graphics output**.
 
 For CRC, the same checklist should recognize already enrolled devices and offer replacement or additional device setup without rotating working credentials.
 
@@ -114,12 +114,12 @@ After successful migration, Michael's weekly use requires no login and no setup 
 
 ### Friend's existing OBS and Companion computer
 
-Target: the rabbi can accept an invitation, copy selected CRC material, connect the existing software, and display a first test cue in **fifteen minutes or less**, without access to CRC's live output or unpublished work.
+Target: the rabbi can accept an invitation, customize an item from the complete read-only CRC Library, connect the existing software, and display a first test cue in **fifteen minutes or less**, without access to CRC's live output or unpublished work.
 
-The underlying existing-workstation connection target is the same ten minutes used for Michael; the additional allowance covers invitation and starter selection. Full rehearsal, visual/content customization, and acceptance are separate from this unmeasured first-connection target.
+The underlying existing-workstation connection target is the same ten minutes used for Michael; the additional allowance covers invitation and creating one independent local copy. Full rehearsal, visual/content customization, and acceptance are separate from this unmeasured first-connection target.
 
 1. Accept the invitation and create/name the second congregation.
-2. Review and import a selected CRC starter collection as independent copies.
+2. Browse the complete CRC Library and customize one item as an independent TBI draft.
 3. Install the same Companion module and pair it to the second congregation.
 4. Import that congregation's starter page pack into empty pages.
 5. Add one 1920 x 1080 OBS Browser Source using its renderer URL and default transparent CSS.
@@ -156,9 +156,9 @@ The product should not ask the friend to install vMix, OBS, Companion, or a Stre
 
 ### Content adaptability
 
-- Copying the starter collection records CRC provenance and creates second-congregation-owned records with new identifiers.
+- Customizing a CRC Library item records CRC provenance and creates a TBI-owned record with a new identifier.
 - The friend can customize and publish copied material without affecting CRC.
-- A later CRC starter update is reviewable item by item and never silently overwrites customized content.
+- A later CRC upstream update never silently overwrites customized content; any comparison or local adoption is optional.
 - Both page packs use the same module binary while showing the correct congregation's names and cues.
 
 ## Delivery sequence

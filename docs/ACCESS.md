@@ -13,11 +13,12 @@ Roles are intentionally small:
 - **Operator** can operate approved graphics.
 - **Output** remains a purpose-specific device credential and cannot control or author.
 
-`ACCESS_BOOTSTRAP_KEY` creates the first named owner only. The database serializes
-that operation and permanently refuses bootstrap after any owner has existed. When a
-dedicated bootstrap key is absent, `CONTROL_KEY` is accepted only for this first-use
-migration. Configure a separate bootstrap key for a new workspace and remove it after
-the initial account is established.
+`ACCESS_BOOTSTRAP_KEY` creates the first named owner only. The owner chooses a password
+as part of that same transaction, so an interrupted browser response cannot leave the
+workspace without a usable sign-in. The database serializes the operation and
+permanently refuses bootstrap after any owner has existed. `CONTROL_KEY` is never an
+owner recovery credential. Configure a separate bootstrap key for a new workspace and
+remove it after the initial account is established.
 
 `CONTROL_KEY` remains a transitional compatibility credential for existing Companion
 and authoring clients. It permits read, live control, and authoring, but cannot manage
@@ -31,6 +32,10 @@ link expires in 24 hours and works once; issuing a replacement invalidates older
 for that member. Removing a member deletes all of that member's sessions and pending
 links in the same transaction.
 
-Email delivery, email self-service, password recovery, passkeys, and OAuth-based human
-sign-in are future product choices. The current OAuth implementation serves MCP
-authoring clients and is not the human account system.
+Members may set a password after accepting an invitation and then return with their
+email and password. A password change rotates the current session and revokes every
+other session and outstanding invitation for that member. A current password or a
+freshly redeemed invitation is required to replace an existing password. Forgotten
+passwords use a new one-time invitation from an owner; automatic email delivery,
+passkeys, and OAuth-based human sign-in remain future choices. The current OAuth
+implementation serves MCP authoring clients and is not the human account system.

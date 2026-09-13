@@ -1,6 +1,7 @@
 import {randomUUID} from 'node:crypto';
 import type {Cue} from './player';
 import {AuthoringError,assertSourcePin,baselineCues,buildCue,cueHash,editableFromBaseline,newDraftId,parseEditable,previewValidation,sourcePack,sourcePinFor,type AuthoringCue,type Draft,type DraftContent,type EditableDraft,type Layout,type SourceBlock} from './authoring-model';
+import {sharedLibraryClient,type SharedLibrarySnapshot} from './shared-library';
 
 export type BrowserMeasurement={viewportWidth:number;viewportHeight:number;fontsReady:true;overflow:false;rendererVersion:string;measuredAt:number};
 export type ReviewReceipt={humanApproved:true;browserMeasurement:BrowserMeasurement;reviewedAt:number;reviewedBy:string};
@@ -27,20 +28,23 @@ const jsonBytes=(value:unknown)=>Buffer.byteLength(JSON.stringify(value));
 type SearchSource=(typeof sourcePack.sources)[number]&{book?:string;service?:string;aliases?:string[];openingWords?:string[];metadata?:Record<string,unknown>};
 const sourceBook=(source:SearchSource)=>{const value=typeof source.metadata?.bookSlug==='string'?source.metadata.bookSlug:source.book??'';const label=typeof source.metadata?.bookTitle==='string'?source.metadata.bookTitle:source.book??value;return {value,label}};
 const sourceService=(source:SearchSource)=>({value:source.service??'',label:source.service??''});
-const browseEquivalence=(source:SearchSource)=>JSON.stringify([sourceBook(source).value,normalized(source.name),source.blocks.filter(block=>block.kind!=='translation-en').map(block=>({kind:block.kind,he:block.he,tr:block.tr,en:block.en,role:block.role}))]);
-const legacyBrowseKeys=new Set(sourcePack.sources.filter(source=>!source.id.startsWith('library:')&&source.blocks.length).map(source=>browseEquivalence(source as SearchSource)));
-const browsableSources=sourcePack.sources.filter(raw=>{const source=raw as SearchSource;return source.blocks.length&&(!source.id.startsWith('library:')||!legacyBrowseKeys.has(browseEquivalence(source)))});
+const browseEquivalence=(source:SearchSource)=>JSON.stringify([sourceBook(source).value,normalized(source.name),source.blocks.filter(block=>block.kind==='bilingual'||block.kind==='original-en').map(block=>block.kind==='bilingual'?{kind:block.kind,he:block.he,tr:block.tr}:{kind:block.kind,en:block.en,role:block.role})]);
+const sourceEnglishCount=(source:SearchSource)=>source.blocks.filter(block=>block.kind==='source-en'||(block.kind==='bilingual'&&Boolean(block.en))).length;
+const legacyBrowseSources=sourcePack.sources.filter(source=>!source.id.startsWith('library:')&&source.blocks.length) as SearchSource[];
+const legacyBrowseByKey=new Map(legacyBrowseSources.map(source=>[browseEquivalence(source),source]));
+const richLibraryKeys=new Set(sourcePack.sources.filter(source=>source.id.startsWith('library:')&&source.blocks.length).filter(raw=>{const source=raw as SearchSource,legacy=legacyBrowseByKey.get(browseEquivalence(source));return legacy&&sourceEnglishCount(source)>sourceEnglishCount(legacy)}).map(source=>browseEquivalence(source as SearchSource)));
+const browsableSources=sourcePack.sources.filter(raw=>{const source=raw as SearchSource;if(!source.blocks.length)return false;const key=browseEquivalence(source),legacy=legacyBrowseByKey.get(key);return source.id.startsWith('library:')?(!legacy||richLibraryKeys.has(key)):!richLibraryKeys.has(key)});
 const sourceFacets=(field:'book'|'service')=>{const facets=new Map<string,{value:string;label:string;count:number}>();for(const raw of browsableSources){const source=raw as SearchSource;const item=field==='book'?sourceBook(source):sourceService(source);if(!item.value)continue;const existing=facets.get(item.value);if(existing)existing.count++;else facets.set(item.value,{...item,count:1})}return [...facets.values()].sort((a,b)=>a.label.localeCompare(b.label)||a.value.localeCompare(b.value))};
 const searchRank=(source:SearchSource,query:string)=>{if(!query)return 0;const name=normalized(source.name),opening=normalized((source.openingWords??[]).join(' ')),body=normalized(source.blocks.flatMap(block=>[block.he,block.tr,block.en]).join(' ')),metadata=normalized([source.id,source.section,...(source.aliases??[]),sourceBook(source).value,sourceBook(source).label,source.service].join(' '));if(name===query)return 0;if(name.startsWith(query))return 1;if(name.includes(query))return 2;if(opening.includes(query))return 3;if(body.includes(query))return 4;if(metadata.includes(query))return 5;return null};
 const PANEL_BLOCK_LIMIT=3;
 const PANEL_CHAR_BUDGET=600;
 
-function blockCharacters(block:SourceBlock,mode:'bilingual'|'original-en'){
- return mode==='original-en'?(block.en?.length??0):(block.he?.length??0)+(block.tr?.length??0);
+function blockCharacters(block:SourceBlock,mode:'bilingual'|'original-en'|'source-en'){
+ return mode==='bilingual'?(block.he?.length??0)+(block.tr?.length??0):(block.en?.length??0);
 }
-function sourceSetSegments(source:SearchSource,mode:'bilingual'|'original-en',includeTranslation:boolean){
- const blocks=source.blocks.filter(block=>block.kind===(mode==='bilingual'?'bilingual':'original-en'));
- if(!blocks.length)throw new AuthoringError('source_mode_unavailable',`This source has no ${mode==='bilingual'?'paired Hebrew and transliteration':'original English'} blocks`,409);
+function sourceSetSegments(source:SearchSource,mode:'bilingual'|'original-en'|'source-en',includeTranslation:boolean){
+ const blocks=source.blocks.filter(block=>mode==='source-en'?(block.kind==='source-en'||(block.kind==='bilingual'&&Boolean(block.en)))&&block.automatic!==false:block.kind===(mode==='bilingual'?'bilingual':'original-en'));
+ if(!blocks.length)throw new AuthoringError('source_mode_unavailable',`This source has no automatic ${mode==='bilingual'?'paired Hebrew and transliteration':mode==='original-en'?'original English':'source English'} blocks`,409);
  if(!includeTranslation)return blocks.map(block=>[block]);
  const translations=source.blocks.filter(block=>block.kind==='translation-en');
  const segments:SourceBlock[][]=[];
@@ -55,7 +59,7 @@ function sourceSetSegments(source:SearchSource,mode:'bilingual'|'original-en',in
  }
  return segments;
 }
-function sourceSetPages(source:SearchSource,mode:'bilingual'|'original-en',includeTranslation:boolean,layout:Layout){
+function sourceSetPages(source:SearchSource,mode:'bilingual'|'original-en'|'source-en',includeTranslation:boolean,layout:Layout){
  const segments=sourceSetSegments(source,mode,includeTranslation);
  if(layout==='bottom')return segments.flatMap(segment=>segment.map(block=>[block]));
  const pages:SourceBlock[][]=[];let page:SourceBlock[]=[];let characters=0;
@@ -70,16 +74,30 @@ function sourceSetPages(source:SearchSource,mode:'bilingual'|'original-en',inclu
 }
 
 export type AuthoringWorkspace={rehearsal:boolean;storage:'memory'|'postgres';label:string|null};
-export function createAuthoringService(repo:AuthoringRepository,workspace:AuthoringWorkspace={rehearsal:false,storage:'postgres',label:null}){
+type SharedLibraryReader={get(force?:boolean):Promise<SharedLibrarySnapshot>};
+export function createAuthoringService(repo:AuthoringRepository,workspace:AuthoringWorkspace={rehearsal:false,storage:'postgres',label:null},shared:SharedLibraryReader=sharedLibraryClient){
  const operation=async(operation:string,input:unknown,actor:string):Promise<unknown>=>{
   const who=string(actor,'actor',80); const data=object(input);
   if(operation==='get_workspace'){keys(data,[]);return {workspace};}
+  if(operation==='list_shared_library'){
+   keys(data,['query','limit','refresh']);const query=normalized(optionalString(data.query,'query',100));const limit=data.limit===undefined?1000:integer(data.limit,'limit',1,1000);if(data.refresh!==undefined&&typeof data.refresh!=='boolean')throw new AuthoringError('invalid_input','refresh must be boolean');const snapshot=await shared.get(data.refresh===true);
+   if(!snapshot.available)return snapshot;const matches=snapshot.payload.cues.filter(entry=>!query||normalized([entry.name,entry.title].join(' ')).includes(query));const cues=matches.slice(0,limit).map(({id,name,title,layout,sourceIds,cueHash})=>({id,name,title,layout,sourceIds,cueHash}));return {available:true,configured:true,stale:snapshot.stale,refreshedAt:snapshot.refreshedAt,total:matches.length,truncated:cues.length<matches.length,cues};
+  }
+  if(operation==='preview_shared_cue'){
+   keys(data,['cueId','refresh']);const cueId=string(data.cueId,'cueId',160);if(data.refresh!==undefined&&typeof data.refresh!=='boolean')throw new AuthoringError('invalid_input','refresh must be boolean');const snapshot=await shared.get(data.refresh===true);if(!snapshot.available)return snapshot;const entry=snapshot.payload.cues.find(item=>item.id===cueId);if(!entry)throw new AuthoringError('unknown_shared_cue','This CRC library item is no longer available',404);return {available:true,configured:true,stale:snapshot.stale,refreshedAt:snapshot.refreshedAt,cueHash:entry.cueHash,cue:structuredClone(entry.cue)};
+  }
+  if(operation==='customize_shared_cue'){
+   keys(data,['cueId','expectedCueHash']);const cueId=string(data.cueId,'cueId',160);const expectedCueHash=string(data.expectedCueHash,'expectedCueHash',64);if(!/^[a-f0-9]{64}$/.test(expectedCueHash))throw new AuthoringError('invalid_input','expectedCueHash must be a SHA-256 hash');const snapshot=await shared.get();if(!snapshot.available)throw new AuthoringError('shared_library_unavailable',snapshot.error,503);const entry=snapshot.payload.cues.find(item=>item.id===cueId);if(!entry)throw new AuthoringError('unknown_shared_cue','This CRC library item is no longer available',404);if(entry.cueHash!==expectedCueHash)throw new AuthoringError('shared_cue_changed','This CRC graphic changed after you opened it. Refresh the CRC library and review the current version before customizing.',409);
+   const sourceSnapshots=entry.sourceIds.map(id=>snapshot.payload.sources.find(source=>source.id===id)).filter((source):source is NonNullable<typeof source>=>Boolean(source)).map(source=>structuredClone(source));if(sourceSnapshots.length!==entry.sourceIds.length)throw new AuthoringError('shared_library_invalid','CRC source snapshots are incomplete',503);
+   const {sourcePin:sharedPin,...sharedEditable}=entry.copySpec;const editable=parseEditable(sharedEditable,false,sourceSnapshots) as EditableDraft;const pin=sourcePinFor(editable.content,sourceSnapshots,sharedPin.feedSha256);if(JSON.stringify(pin)!==JSON.stringify(sharedPin))throw new AuthoringError('shared_library_invalid','CRC source authority could not be verified',503);
+   const now=Date.now();const draft:Draft={...editable,id:newDraftId(),version:1,sourcePin:pin,activeRevision:null,activeDraftVersion:null,createdAt:now,updatedAt:now,createdBy:who,updatedBy:who,...(sourceSnapshots.length?{sourceSnapshots}:{}),sharedFrom:{workspaceId:'crc',cueId:entry.id,cueHash:entry.cueHash}};assertSourcePin(draft);return {draft:await repo.insertDraft(draft),sharedFrom:draft.sharedFrom};
+  }
   if(operation==='source_facets'||operation==='list_source_facets'){
    keys(data,[]);return {books:sourceFacets('book'),services:sourceFacets('service')};
   }
   if(operation==='search_sources'){
    keys(data,['query','book','service','limit']);const query=normalized(optionalString(data.query,'query',100));const book=normalized(optionalString(data.book,'book',100));const service=normalized(optionalString(data.service,'service',100));const limit=data.limit===undefined?20:integer(data.limit,'limit',1,50);
-   const matches=browsableSources.map((raw,index)=>{const source=raw as SearchSource,rank=searchRank(source,query);return {source,index,rank}}).filter(item=>item.rank!==null&&(!book||[sourceBook(item.source).value,sourceBook(item.source).label].some(value=>normalized(value)===book))&&(!service||[sourceService(item.source).value,sourceService(item.source).label].some(value=>normalized(value)===service))).sort((a,b)=>a.rank!-b.rank!||a.index-b.index);const summaries=[];for(const {source} of matches){const {blocks,...summary}=source;if(summaries.length>=limit)break;const candidate={...summary,bookValue:sourceBook(source).value,bookLabel:sourceBook(source).label,blockCount:blocks.length,kinds:[...new Set(blocks.map(b=>b.kind))]};if(jsonBytes({authority:sourcePack.authority,sources:[...summaries,candidate]})>MAX_SOURCE_RESPONSE_BYTES)break;summaries.push(candidate)}return {authority:sourcePack.authority,sources:summaries,truncated:summaries.length<matches.length};
+   const matches=browsableSources.map((raw,index)=>{const source=raw as SearchSource,rank=searchRank(source,query);return {source,index,rank}}).filter(item=>item.rank!==null&&(!book||[sourceBook(item.source).value,sourceBook(item.source).label].some(value=>normalized(value)===book))&&(!service||[sourceService(item.source).value,sourceService(item.source).label].some(value=>normalized(value)===service))).sort((a,b)=>a.rank!-b.rank!||a.index-b.index);const summaries=[];for(const {source} of matches){const {blocks,...summary}=source;if(summaries.length>=limit)break;const sourceEnglish=(block:SourceBlock)=>block.kind==='source-en'||(block.kind==='bilingual'&&Boolean(block.en));const coverage={bilingual:blocks.filter(block=>block.kind==='bilingual').length,originalEnglish:blocks.filter(block=>block.kind==='original-en').length,sourceEnglish:blocks.filter(sourceEnglish).length,automaticSourceEnglish:blocks.filter(block=>sourceEnglish(block)&&block.automatic!==false).length,noteLikeEnglish:blocks.filter(block=>block.noteLike===true).length};const candidate={...summary,bookValue:sourceBook(source).value,bookLabel:sourceBook(source).label,blockCount:blocks.length,kinds:[...new Set(blocks.map(b=>b.kind))],coverage};if(jsonBytes({authority:sourcePack.authority,sources:[...summaries,candidate]})>MAX_SOURCE_RESPONSE_BYTES)break;summaries.push(candidate)}return {authority:sourcePack.authority,sources:summaries,truncated:summaries.length<matches.length};
   }
   if(operation==='get_source'){keys(data,['sourceId']);const id=string(data.sourceId,'sourceId');const source=sourcePack.sources.find(s=>s.id===id);if(!source)throw new AuthoringError('unknown_source','Unknown authoring source',404);const result={authority:sourcePack.authority,source};if(jsonBytes(result)>MAX_SOURCE_RESPONSE_BYTES)throw new AuthoringError('source_too_large','This source is too large for direct browser authoring',413);return result;}
   if(operation==='list_templates'){keys(data,[]);return {templates:baselineCues.filter(cue=>!cue.hidden).map(cue=>{let importable=true;try{editableFromBaseline(cue.id)}catch{importable=false}return {id:cue.id,name:cue.name,layout:cue.layout,importable}})};}
@@ -92,9 +110,9 @@ export function createAuthoringService(repo:AuthoringRepository,workspace:Author
   if(operation==='create_source_draft_set'){
    keys(data,['sourceId','mode','includeTranslation','layout','templateCueId']);
    const sourceId=string(data.sourceId,'sourceId');const source=sourcePack.sources.find(item=>item.id===sourceId) as SearchSource|undefined;if(!source)throw new AuthoringError('unknown_source','Unknown authoring source',404);
-   if(data.mode!=='bilingual'&&data.mode!=='original-en')throw new AuthoringError('invalid_input','mode must be bilingual or original-en');const mode=data.mode;
+   if(data.mode!=='bilingual'&&data.mode!=='original-en'&&data.mode!=='source-en')throw new AuthoringError('invalid_input','mode must be bilingual, original-en, or source-en');const mode=data.mode;
    if(data.includeTranslation!==undefined&&typeof data.includeTranslation!=='boolean')throw new AuthoringError('invalid_input','includeTranslation must be boolean');
-   const includeTranslation=data.includeTranslation===true;if(mode==='original-en'&&includeTranslation)throw new AuthoringError('invalid_input','includeTranslation is available only for bilingual sources');
+   const includeTranslation=data.includeTranslation===true;if(mode!=='bilingual'&&includeTranslation)throw new AuthoringError('invalid_input','includeTranslation is available only for bilingual sources');
    if(!['bottom','left','right'].includes(String(data.layout)))throw new AuthoringError('invalid_input','layout must be bottom, left, or right');const layout=data.layout as Layout;
    if(includeTranslation&&layout==='bottom')throw new AuthoringError('translation_layout','Use a left or right panel for translated blessing rows');
    const templateCueId=string(data.templateCueId,'templateCueId',80);const template=baselineCues.find(cue=>cue.id===templateCueId);if(!template)throw new AuthoringError('unknown_template','Unknown baseline cue template',404);if(template.layout!==layout)throw new AuthoringError('template_layout_mismatch','Template cue layout must match the draft layout');
@@ -113,10 +131,10 @@ export function createAuthoringService(repo:AuthoringRepository,workspace:Author
   }
   if(operation==='duplicate_draft'){
    keys(data,['draftId','cueId','name']);const draftId=optionalString(data.draftId,'draftId');const cueId=optionalString(data.cueId,'cueId');if(Boolean(draftId)===Boolean(cueId))throw new AuthoringError('invalid_input','Provide exactly one of draftId or cueId');
-   let editable:EditableDraft;let sourceKind:'draft'|'cue';let sourceId:string;
-   if(draftId){const sourceDraft=await requiredDraft(repo,draftId);assertSourcePin(sourceDraft);editable=editableOnly(sourceDraft);sourceKind='draft';sourceId=draftId}
+   let editable:EditableDraft;let sourceKind:'draft'|'cue';let sourceId:string;let sourceSnapshots:Draft['sourceSnapshots'];let sharedFrom:Draft['sharedFrom'];let pinnedFeedSha256:string|undefined;
+   if(draftId){const sourceDraft=await requiredDraft(repo,draftId);assertSourcePin(sourceDraft);editable=editableOnly(sourceDraft);sourceSnapshots=structuredClone(sourceDraft.sourceSnapshots);sharedFrom=structuredClone(sourceDraft.sharedFrom);pinnedFeedSha256=sourceDraft.sourcePin.feedSha256;sourceKind='draft';sourceId=draftId}
    else{sourceId=cueId!;sourceKind='cue';const authored=await repo.getDraft(sourceId);if(authored){assertSourcePin(authored);editable=editableOnly(authored)}else editable=editableFromCatalogCue(sourceId)}
-   const requestedName=optionalString(data.name,'name',80);const copyName=requestedName??copyLabel(editable.name);const now=Date.now();const duplicate:Draft={...structuredClone(editable),name:copyName,id:newDraftId(),version:1,sourcePin:sourcePinFor(editable.content),activeRevision:null,activeDraftVersion:null,createdAt:now,updatedAt:now,createdBy:who,updatedBy:who};
+   const requestedName=optionalString(data.name,'name',80);const copyName=requestedName??copyLabel(editable.name);const now=Date.now();const duplicate:Draft={...structuredClone(editable),name:copyName,id:newDraftId(),version:1,sourcePin:sourcePinFor(editable.content,sourceSnapshots,pinnedFeedSha256),activeRevision:null,activeDraftVersion:null,createdAt:now,updatedAt:now,createdBy:who,updatedBy:who,...(sourceSnapshots?{sourceSnapshots}:{}),...(sharedFrom?{sharedFrom}:{})};
    return {draft:await repo.insertDraft(duplicate),duplicatedFrom:{kind:sourceKind,id:sourceId}};
   }
   if(operation==='import_cue'){
@@ -127,7 +145,7 @@ export function createAuthoringService(repo:AuthoringRepository,workspace:Author
   }
   if(operation==='update_draft'){
    keys(data,['draftId','expectedVersion','patch']);const id=string(data.draftId,'draftId');const expected=integer(data.expectedVersion,'expectedVersion',1);const current=await requiredDraft(repo,id);if(current.version!==expected)throw conflict();assertSourcePin(current);
-   const patch=parseEditable(data.patch,true);const merged=parseEditable({...editableOnly(current),...patch}) as EditableDraft;
+   const patch=parseEditable(data.patch,true,current.sourceSnapshots);const merged=parseEditable({...editableOnly(current),...patch},false,current.sourceSnapshots) as EditableDraft;
    const updated=await repo.updateDraft(id,expected,merged,who);if(!updated)throw conflict();return {draft:updated};
   }
   if(operation==='preview_draft'){
@@ -172,7 +190,7 @@ export class MemoryAuthoringRepository implements AuthoringRepository{
  async insertDraft(d:Draft){if(this.drafts.has(d.id))throw new AuthoringError('draft_exists','Draft already exists',409);this.drafts.set(d.id,clone(d));return clone(d)}
  async insertDraftSet(drafts:Draft[]){const ids=drafts.map(draft=>draft.id);if(new Set(ids).size!==ids.length||ids.some(id=>this.drafts.has(id)))throw new AuthoringError('draft_exists','Draft already exists',409);for(const draft of drafts)this.drafts.set(draft.id,clone(draft));return clone(drafts)}
  async insertImportedDraft(d:Draft,cue:AuthoringCue,actor:string){if(this.drafts.has(d.id))throw new AuthoringError('draft_exists','Draft already exists',409);const row:Revision={draftId:d.id,revision:1,draftVersion:1,cueHash:cueHash(cue),cue:clone(cue),previewId:null,review:null,actor,createdAt:Date.now()};d.activeRevision=1;d.activeDraftVersion=1;this.drafts.set(d.id,clone(d));this.revisionRows.set(d.id,[row]);return clone(d)}
- async updateDraft(id:string,v:number,e:EditableDraft,actor:string){const d=this.drafts.get(id);if(!d||d.version!==v)return null;const next={...d,...clone(e),version:v+1,sourcePin:sourcePinFor(e.content),updatedAt:Date.now(),updatedBy:actor};this.drafts.set(id,next);return clone(next)}
+ async updateDraft(id:string,v:number,e:EditableDraft,actor:string){const d=this.drafts.get(id);if(!d||d.version!==v)return null;const next={...d,...clone(e),version:v+1,sourcePin:sourcePinFor(e.content,d.sourceSnapshots,d.sourceSnapshots?.length?d.sourcePin.feedSha256:undefined),updatedAt:Date.now(),updatedBy:actor};this.drafts.set(id,next);return clone(next)}
  async insertPreview(p:PreviewRecord){this.previews.set(p.id,clone(p))} async getPreview(id:string){const p=this.previews.get(id);return p?clone(p):null} async saveReview(id:string,r:ReviewReceipt){const p=this.previews.get(id);if(!p)throw new AuthoringError('unknown_preview','Unknown preview',404);p.review=clone(r)}
  async publish(id:string,v:number,previewId:string,actor:string){const d=this.drafts.get(id);if(!d||d.version!==v)throw conflict();const p=this.previews.get(previewId);validatePublishPreview(d,p);const rows=this.revisionRows.get(id)??[];let row=rows.find(r=>r.draftVersion===v&&r.cueHash===p!.cueHash);if(!row){row={draftId:id,revision:rows.length+1,draftVersion:v,cueHash:p!.cueHash,cue:clone(p!.cue),previewId,review:clone(p!.review!),actor,createdAt:Date.now()};rows.push(row);this.revisionRows.set(id,rows)}d.activeRevision=row.revision;d.activeDraftVersion=row.draftVersion;d.updatedAt=Date.now();d.updatedBy=actor;return clone(row)}
  async revisions(id:string){return clone(this.revisionRows.get(id)??[])}
@@ -229,7 +247,7 @@ class PgAuthoringRepository implements AuthoringRepository{
  async insertDraft(d:Draft){await (await this.db()).query('INSERT INTO authoring_drafts(id,document,version,created_at,updated_at,created_by,updated_by) VALUES($1,$2,$3,$4,$4,$5,$5)',[d.id,d,d.version,d.createdAt,d.createdBy]);return d}
  async insertDraftSet(drafts:Draft[]){const db=await this.db();const client=await db.connect();try{await client.query('BEGIN');for(const draft of drafts)await client.query('INSERT INTO authoring_drafts(id,document,version,created_at,updated_at,created_by,updated_by) VALUES($1,$2,$3,$4,$4,$5,$5)',[draft.id,draft,draft.version,draft.createdAt,draft.createdBy]);await client.query('COMMIT');return drafts}catch(error){await client.query('ROLLBACK');throw error}finally{client.release()}}
  async insertImportedDraft(d:Draft,cue:AuthoringCue,actor:string){const db=await this.db();const client=await db.connect();try{await client.query('BEGIN');d.activeRevision=1;d.activeDraftVersion=1;await client.query('INSERT INTO authoring_drafts(id,document,version,active_revision,active_draft_version,created_at,updated_at,created_by,updated_by) VALUES($1,$2,1,1,1,$3,$3,$4,$4)',[d.id,d,d.createdAt,actor]);await client.query('INSERT INTO authoring_revisions(draft_id,revision,draft_version,cue_hash,cue,preview_id,review,actor,created_at) VALUES($1,1,1,$2,$3,NULL,NULL,$4,$5)',[d.id,cueHash(cue),cue,actor,Date.now()]);await client.query('COMMIT');return d}catch(e){await client.query('ROLLBACK');throw e}finally{client.release()}}
- async updateDraft(id:string,v:number,e:EditableDraft,actor:string){const db=await this.db();const client=await db.connect();try{await client.query('BEGIN');const locked=await client.query('SELECT document FROM authoring_drafts WHERE id=$1 AND version=$2 FOR UPDATE',[id,v]);const current=locked.rows[0]?.document as Draft|undefined;if(!current){await client.query('ROLLBACK');return null}const next:Draft={...current,...e,version:v+1,sourcePin:sourcePinFor(e.content),updatedAt:Date.now(),updatedBy:actor};await client.query('UPDATE authoring_drafts SET document=$2,version=$3,updated_at=$4,updated_by=$5 WHERE id=$1',[id,next,next.version,next.updatedAt,actor]);await client.query('COMMIT');return next}catch(e){await client.query('ROLLBACK');throw e}finally{client.release()}}
+ async updateDraft(id:string,v:number,e:EditableDraft,actor:string){const db=await this.db();const client=await db.connect();try{await client.query('BEGIN');const locked=await client.query('SELECT document FROM authoring_drafts WHERE id=$1 AND version=$2 FOR UPDATE',[id,v]);const current=locked.rows[0]?.document as Draft|undefined;if(!current){await client.query('ROLLBACK');return null}const next:Draft={...current,...e,version:v+1,sourcePin:sourcePinFor(e.content,current.sourceSnapshots,current.sourceSnapshots?.length?current.sourcePin.feedSha256:undefined),updatedAt:Date.now(),updatedBy:actor};await client.query('UPDATE authoring_drafts SET document=$2,version=$3,updated_at=$4,updated_by=$5 WHERE id=$1',[id,next,next.version,next.updatedAt,actor]);await client.query('COMMIT');return next}catch(e){await client.query('ROLLBACK');throw e}finally{client.release()}}
  async insertPreview(p:PreviewRecord){await (await this.db()).query('INSERT INTO authoring_previews(id,draft_id,draft_version,cue_hash,cue,validation,review,created_at,created_by) VALUES($1,$2,$3,$4,$5,$6,NULL,$7,$8)',[p.id,p.draftId,p.draftVersion,p.cueHash,p.cue,p.validation,p.createdAt,p.createdBy])}
  async getPreview(id:string){const r=(await (await this.db()).query('SELECT id,draft_id AS "draftId",draft_version AS "draftVersion",cue_hash AS "cueHash",cue,validation,review,created_at AS "createdAt",created_by AS "createdBy" FROM authoring_previews WHERE id=$1',[id])).rows[0];return r??null}
  async saveReview(id:string,r:ReviewReceipt){await (await this.db()).query('UPDATE authoring_previews SET review=$2 WHERE id=$1',[id,r])}

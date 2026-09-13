@@ -1,4 +1,4 @@
-import type { Draft, DraftForm, SourceGroup } from "./types";
+import type { ContentMode, Draft, DraftForm, Source, SourceGroup } from "./types";
 
 export const emptyForm: DraftForm = {
   name: "",
@@ -16,7 +16,7 @@ export function formFromDraft(draft: Draft): DraftForm {
   const groups =
     draft.content.mode === "bilingual"
       ? draft.content.hebrewGroups
-      : draft.content.mode === "original-en"
+      : draft.content.mode === "original-en" || draft.content.mode === "source-en"
         ? draft.content.englishGroups
         : [];
   return {
@@ -44,8 +44,8 @@ export function editableFromForm(form: DraftForm) {
           transliterationGroups: structuredClone(groups),
           ...(form.includeTranslation ? { includeTranslation: true } : {}),
         }
-      : form.mode === "original-en"
-        ? { mode: "original-en" as const, englishGroups: groups }
+      : form.mode === "original-en" || form.mode === "source-en"
+        ? { mode: form.mode, englishGroups: groups }
         : { mode: "custom" as const, text: form.customText.trim() };
   return {
     name: form.name.trim(),
@@ -76,6 +76,13 @@ export function selectWholeSource(
   blockIds: string[],
 ): SourceGroup[] {
   return blockIds.length ? [{ sourceId, blockIds: [...blockIds] }] : [];
+}
+
+export function blocksForMode(source: Source | null, mode: ContentMode) {
+  if (!source || mode === "custom") return [];
+  return source.blocks.filter((block) => mode === "source-en"
+    ? block.kind === "source-en" || (block.kind === "bilingual" && Boolean(block.en))
+    : block.kind === mode);
 }
 
 export function draftHasUnpublishedWork(draft: Draft) {

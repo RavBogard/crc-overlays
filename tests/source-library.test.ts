@@ -21,7 +21,7 @@ test('expanded source pack preserves the complete legacy pack and appends namesp
  assert.ok(siddurLibrary.sources.every(source=>source.id.startsWith('library:')));
 });
 
-test('every expanded block is exact same-record bilingual text or marked original English',()=>{
+test('every expanded block preserves exact bilingual, original English, or classified source English',()=>{
  const blockIds=new Set<string>();
  for(const source of siddurLibrary.sources){
   assert.match(source.sourceSha256,/^[0-9a-f]{64}$/);
@@ -38,14 +38,15 @@ test('every expanded block is exact same-record bilingual text or marked origina
    if(block.kind==='bilingual'){
     assert.ok(block.he);
     assert.ok(block.tr);
-    assert.equal(block.en,undefined);
-   }else{
-    assert.equal(block.kind,'original-en');
+    if(block.en!==undefined){assert.ok(block.englishRole);assert.equal(typeof block.automatic,'boolean');assert.equal(typeof block.noteLike,'boolean')}
+   }else if(block.kind==='original-en'){
     assert.ok(block.en);
     assert.equal(block.role,'original');
     assert.equal(block.he,undefined);
     assert.equal(block.tr,undefined);
-   }
+   }else if(block.kind==='source-en'){
+    assert.ok(block.en);assert.ok(block.englishRole);assert.equal(typeof block.automatic,'boolean');assert.equal(typeof block.noteLike,'boolean');assert.notEqual(block.role,'original');
+   }else assert.fail(`unexpected expanded block kind ${block.kind}`);
   }
  }
 });
@@ -73,7 +74,19 @@ test('source authorities and coverage are complete and internally consistent',()
   totals.originalEnglishBlocks,
   siddurLibrary.sources.flatMap(source=>source.blocks).filter(block=>block.kind==='original-en').length,
  );
+ assert.equal(totals.originalEnglishBlocks,194,'explicit original English remains distinct');
+ assert.equal(
+  totals.sourceEnglishBlocks,
+  siddurLibrary.sources.flatMap(source=>source.blocks).filter(block=>block.kind==='source-en'||(block.kind==='bilingual'&&Boolean(block.en))).length,
+ );
+ assert.ok((totals.sourceEnglishBlocks as number)>2000,'previously omitted source English is retained');
+ const english=siddurLibrary.sources.flatMap(source=>source.blocks).filter(block=>block.kind==='source-en');
+ for(const value of ['(April 6, 2019)','~ Melody by Bonia Shur','Silently:']){
+  const note=english.find(block=>block.en===value);assert.ok(note,`known note remains manually available: ${value}`);assert.equal(note.automatic,false);assert.equal(note.noteLike,true);
+ }
+ assert.ok(english.some(block=>block.englishRole==='unclassified'&&block.automatic===true),'neutral source English remains available automatically');
+ for(const role of ['translation','interpretation','translation-interpretation','kavannah','reading','rubric'])assert.ok(english.some(block=>block.englishRole===role),`role ${role} is preserved`);
  assert.ok((totals.skipped as Record<string,number>).unpairedHebrew>0);
- assert.ok((totals.skipped as Record<string,number>).englishWithoutOriginalRole>0);
+ assert.equal((totals.skipped as Record<string,number>).englishWithoutOriginalRole,0);
  assert.ok(siddurLibrary.coverage.books.some(book=>book.unsupportedUnits.length>0));
 });

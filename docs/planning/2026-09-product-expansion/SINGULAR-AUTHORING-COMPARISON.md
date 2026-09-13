@@ -77,7 +77,7 @@ This should be the fastest and most familiar path:
 6. Press **Review and publish**, inspect the exact animation, then **Publish**.
 7. The new cue appears in the web library and as a Companion preset after catalog refresh. It does not silently occupy or rearrange a Stream Deck button.
 
-Offer an explicit **Duplicate into another congregation** action only to members with appropriate access to both and only for material included in the permitted sharing selection. Membership alone does not grant access to all source/artwork rights. It must create an independent copy with recorded provenance; later edits must not cross congregation boundaries.
+TBI receives a complete read-only **CRC Library** under Daniel’s standing authorization. **Customize** requires TBI authoring access and creates an independent TBI copy with recorded provenance; later edits never cross congregation boundaries. The shared-library credential itself grants no control, output, membership, draft, or publication access.
 
 ### Edit an existing graphic
 
@@ -119,7 +119,7 @@ This is an AI-free primary workflow, not an advanced source-mapping tool. It sho
 7. Adjust title and panel boundaries; do not retype authoritative wording.
 8. Preview every panel as an ordered sequence, including In, Replace/Next, and Out behavior, then publish.
 
-For the friend's congregation, source results and permissions must reflect that congregation's copied or independently maintained material. CRC's private drafts and non-shared sources do not appear.
+For TBI, source results include the complete current and future CRC Library plus TBI-private additions. CRC credentials, unpublished drafts, control, and live state never appear.
 
 The current editor already searches a CRC source library and preserves paired blocks, but the checked-in authoring sources are a bounded set assembled for the present morning-service work. Product copy and progress reports must not call that the complete siddur library until coverage has been measured. Build and display a coverage index by siddur, service, section, prayer, language pairing, and approved-English availability. Missing material should be labelled `Not yet available for overlays` and create an owner-visible coverage request; it must not silently disappear or invite Michael to work around it by retyping canonical text.
 

@@ -32,9 +32,9 @@ The prepared second profile is `workspaces/temple-bnai-israel/workspace.json`. O
 
 Unknown workspace IDs fail closed unless they supply a complete public identity. They cannot fall back to CRC artwork, colors, names, or downloads. The renderer also refuses to start when `/api/workspace` is unavailable or invalid, preventing a configured non-CRC output from quietly rendering CRC identity.
 
-Its status is `prepared-not-provisioned`. It has no database, relay, credentials, public application deployment, or member invitation. Setup downloads also remain unconfigured so the deployment cannot leak CRC-specific files.
+Its status is `infrastructure-prepared-release-pending`. It has its own database, relay, deployment, and credentials. Its dedicated Companion downloads target only the TBI application and contain no control key. The owner account is prepared separately from any invitation for Rabbi Schicker or Michael.
 
-The companion `starter-collection.json` records the owner's approved private duplicate of the current 24 visible CRC cues. Run `node scripts/prepare-workspace.mjs --workspace temple-bnai-israel-kalamazoo` to produce an ignored staging package under `work/deploy-staging`. The package assigns new destination cue IDs, copies the selected source content, and retains the complete existing source provenance and license language on each cue. It does not change live CRC records and is not a public source-library release.
+The companion `starter-collection.json` records the initial 24-button Companion set. Run `node scripts/prepare-workspace.mjs --workspace temple-bnai-israel-kalamazoo` to produce an ignored staging package under `work/deploy-staging`. The package assigns new destination cue IDs and retains the complete existing source provenance and license language on each cue. The TBI deployment receives the complete current authoring and expanded source libraries plus owner-authorized future CRC additions; TBI-owned edits and publications remain independent. It does not change live CRC records.
 
 ## Provisioning gate for the second deployment
 
@@ -42,8 +42,20 @@ Before inviting anyone or calling the workspace isolated:
 
 1. Create a separate deployment, database, relay namespace, credentials, backups, and monitoring.
 2. Configure and validate the prepared TBI identity.
-3. Add destination-owned source content with suitable rights; do not place the restricted CRC source pack in the deployment bundle.
+3. Include the complete current CRC source library and preserve its existing attribution and license metadata. Future owner-authorized CRC additions must become available without overwriting TBI-owned edits.
 4. Build a TBI-specific Companion page pack whose placeholder targets only the TBI deployment.
 5. Prove that CRC credentials, commands, catalogs, drafts, output URLs, and renderer tickets fail against TBI, and vice versa.
 6. Rehearse the real TBI OBS, Companion, and Stream Deck computer.
 7. Only then set `WORKSPACE_ISOLATION_VERIFIED=true` and invite exact known members through the product's membership flow.
+
+## Keep both congregations on one release
+
+After a release is merged, deploy both workspaces from the same clean commit with:
+
+```powershell
+node scripts/deploy-workspaces.mjs --commit <full-40-character-commit-sha> --confirm-production
+```
+
+The command refuses a dirty checkout or a different `HEAD`, builds a fresh allowlisted TBI source tree containing the complete current library, deploys CRC from that commit, and deploys TBI from the matching staged source. It creates the TBI Vercel link only inside ignored release staging and never replaces the repository's CRC `.vercel` link. The release record under `work/deploy-staging/releases/<sha>/release.json` ties both production deployments to the same source revision.
+
+Use this command for future releases that add CRC overlays or library material. Shared CRC items become discoverable in TBI through the read-only shared-library connection. Choosing **Customize** creates an independent TBI draft; existing TBI drafts and publications remain unchanged.

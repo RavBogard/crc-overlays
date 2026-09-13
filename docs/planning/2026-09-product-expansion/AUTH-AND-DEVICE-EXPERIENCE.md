@@ -1,10 +1,10 @@
 # People, devices, and simple setup
 
-Status: proposed product decisions, September 12, 2026. Planning only; no account, device, deployment, or permission has been changed.
+Status: approved product decisions with CRC account/setup foundations deployed; TBI device acceptance remains pending.
 
 ## Goal
 
-An invited operator can connect an existing production workstation without learning API keys, module development, or infrastructure. CRC uses vMix and Companion/Stream Deck. The second congregation uses OBS and Companion/Stream Deck and starts with selected CRC materials before customizing them. Exactly two congregations are in scope.
+An invited operator can connect an existing production workstation without learning API keys, module development, or infrastructure. CRC uses vMix and Companion/Stream Deck. The second congregation uses OBS and Companion/Stream Deck and can browse the complete current and future published CRC library, then customize independent local copies. Exactly two congregations are in scope.
 
 ## Findings
 

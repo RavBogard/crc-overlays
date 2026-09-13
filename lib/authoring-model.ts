@@ -12,15 +12,19 @@ export type Presentation={hebrewFontSize?:number;transliterationFontSize?:number
 export type SourceGroup={sourceId:string;blockIds:string[]};
 export type BilingualContent={mode:'bilingual';hebrewGroups:SourceGroup[];transliterationGroups:SourceGroup[];includeTranslation?:boolean};
 export type OriginalEnglishContent={mode:'original-en';englishGroups:SourceGroup[]};
+export type SourceEnglishContent={mode:'source-en';englishGroups:SourceGroup[]};
 export type CustomContent={mode:'custom';text:string};
-export type DraftContent=BilingualContent|OriginalEnglishContent|CustomContent;
+export type DraftContent=BilingualContent|OriginalEnglishContent|SourceEnglishContent|CustomContent;
 export type EditableDraft={name:string;title:string;accentTitle?:string;layout:Layout;templateCueId:string;content:DraftContent;presentation:Presentation};
 export type SourceAuthorityPin={id:string;feedSha256:string;unitSha256:string;sourceSha256:string};
 export type SourcePin={feedSha256:string;unitSha256:Record<string,string>;blockSha256:Record<string,string>;sourceAuthority?:Record<string,SourceAuthorityPin>};
-export type Draft=EditableDraft&{id:string;version:number;sourcePin:SourcePin;activeRevision:number|null;activeDraftVersion:number|null;createdAt:number;updatedAt:number;createdBy:string;updatedBy:string;draftSetId?:string;setIndex?:number;setCount?:number};
-export type AuthoringCue=Cue&{presentation?:Presentation;authoring:{draftId:string;draftVersion:number;origin:'canonical'|'local';sourceIds:string[];feedSha256:string;unitSha256:Record<string,string>;sourceAuthority?:Record<string,SourceAuthorityPin>}};
-export type SourceBlock={id:string;index:number;kind:'bilingual'|'original-en'|'translation-en';pairedBlockIds?:string[];he?:string;tr?:string;en?:string;role?:'original';sourceBlockSha256:string};
+export type EnglishRole='translation'|'interpretation'|'translation-interpretation'|'kavannah'|'reading'|'rubric'|'note'|'unclassified';
+export type SourceBlock={id:string;index:number;kind:'bilingual'|'original-en'|'source-en'|'translation-en';pairedBlockIds?:string[];parallelBlockIds?:string[];he?:string;tr?:string;en?:string;role?:'original';englishRole?:EnglishRole;automatic?:boolean;noteLike?:boolean;sourceLabel?:string;sourceBlockSha256:string};
 export type AuthoringSource={id:string;name:string;section:string|number|null;unitSha256:string;blocks:SourceBlock[];origin?:string;sourceSha256?:string;book?:string;service?:string;aliases?:string[];openingWords?:string[];metadata?:Record<string,unknown>;authority?:{id:string;repository:string;repositoryCommit:string;feed:string;feedSha256:string;unitId:string;unitSha256:string}};
+export type SharedCueCopySpec=EditableDraft&{sourcePin:SourcePin;sourceSnapshots?:AuthoringSource[]};
+export type SharedCueOrigin={workspaceId:'crc';cueId:string;cueHash:string};
+export type Draft=EditableDraft&{id:string;version:number;sourcePin:SourcePin;activeRevision:number|null;activeDraftVersion:number|null;createdAt:number;updatedAt:number;createdBy:string;updatedBy:string;draftSetId?:string;setIndex?:number;setCount?:number;sourceSnapshots?:AuthoringSource[];sharedFrom?:SharedCueOrigin};
+export type AuthoringCue=Cue&{presentation?:Presentation;authoring:{draftId:string;draftVersion:number;origin:'canonical'|'local';sourceIds:string[];feedSha256:string;unitSha256:Record<string,string>;sourceAuthority?:Record<string,SourceAuthorityPin>;copySpec?:SharedCueCopySpec}};
 export type SourcePack={schemaVersion:number;authority:{repository:string;repositoryCommit:string;feed:string;feedSha256:string;license:unknown;printing:unknown};sources:AuthoringSource[];authorities?:unknown[];library?:unknown};
 
 export const sourcePack=loadSourceLibrary();
@@ -48,35 +52,36 @@ function integer(value:unknown,label:string,min:number,max:number){
  if(!Number.isInteger(value)||(value as number)<min||(value as number)>max)throw new AuthoringError('invalid_input',`${label} must be an integer from ${min} to ${max}`);
  return value as number;
 }
-function source(id:string){
- const found=sourcePack.sources.find(item=>item.id===id);
+function source(id:string,snapshots:AuthoringSource[]=[]){
+ const found=snapshots.find(item=>item.id===id)??sourcePack.sources.find(item=>item.id===id);
  if(!found)throw new AuthoringError('unknown_source',`Unknown authoring source: ${id}`,404);
  return found;
 }
-function parseGroups(value:unknown,label:string,kind:SourceBlock['kind']){
+function parseGroups(value:unknown,label:string,kind:SourceBlock['kind'],snapshots:AuthoringSource[]=[]){
  if(!Array.isArray(value)||value.length<1||value.length>24)throw new AuthoringError('invalid_input',`${label} must contain 1-24 groups`);
  return value.map((raw,index)=>{
   const item=record(raw,`${label}[${index}]`);
   onlyKeys(item,['sourceId','blockIds'],`${label}[${index}]`);
   const sourceId=text(item.sourceId,`${label}[${index}].sourceId`,160)!;
-  const selected=source(sourceId);
+  const selected=source(sourceId,snapshots);
   if(!Array.isArray(item.blockIds)||item.blockIds.length<1||item.blockIds.length>48)throw new AuthoringError('invalid_input',`${label}[${index}].blockIds must contain 1-48 IDs`);
   const blockIds=item.blockIds.map((id,blockIndex)=>text(id,`${label}[${index}].blockIds[${blockIndex}]`,220)!);
   for(const blockId of blockIds){
    const block=selected.blocks.find(candidate=>candidate.id===blockId);
    if(!block)throw new AuthoringError('unknown_block',`Block ${blockId} does not belong to ${sourceId}`,400);
-   if(block.kind!==kind)throw new AuthoringError('invalid_channel',`Block ${blockId} is not ${kind}`);
+   const matches=kind==='source-en'?(block.kind==='source-en'||(block.kind==='bilingual'&&Boolean(block.en))):block.kind===kind;
+   if(!matches)throw new AuthoringError('invalid_channel',`Block ${blockId} is not ${kind}`);
   }
   return {sourceId,blockIds};
  });
 }
 
-export function parseContent(value:unknown):DraftContent{
+export function parseContent(value:unknown,snapshots:AuthoringSource[]=[]):DraftContent{
  const input=record(value,'content');
  if(input.mode==='bilingual'){
   onlyKeys(input,['mode','hebrewGroups','transliterationGroups','includeTranslation'],'content');
-  const hebrewGroups=parseGroups(input.hebrewGroups,'content.hebrewGroups','bilingual');
-  const transliterationGroups=parseGroups(input.transliterationGroups,'content.transliterationGroups','bilingual');
+  const hebrewGroups=parseGroups(input.hebrewGroups,'content.hebrewGroups','bilingual',snapshots);
+  const transliterationGroups=parseGroups(input.transliterationGroups,'content.transliterationGroups','bilingual',snapshots);
   const sequence=(groups:SourceGroup[])=>groups.flatMap(group=>group.blockIds.map(blockId=>`${group.sourceId}\u0000${blockId}`));
   const hebrewSequence=sequence(hebrewGroups);
   const transliterationSequence=sequence(transliterationGroups);
@@ -84,30 +89,37 @@ export function parseContent(value:unknown):DraftContent{
   if(JSON.stringify(hebrewSequence)!==JSON.stringify(transliterationSequence))throw new AuthoringError('mismatched_source_coverage','Hebrew and transliteration must select the same ordered source blocks');
   if(input.includeTranslation!==undefined&&typeof input.includeTranslation!=='boolean')throw new AuthoringError('invalid_input','includeTranslation must be boolean');
   const content:BilingualContent={mode:'bilingual',hebrewGroups,transliterationGroups,...(input.includeTranslation?{includeTranslation:true}:{})};
-  if(content.includeTranslation)translationSelections(content);
+  if(content.includeTranslation)translationSelections(content,snapshots);
   return content;
  }
  if(input.mode==='original-en'){
   onlyKeys(input,['mode','englishGroups'],'content');
-  const englishGroups=parseGroups(input.englishGroups,'content.englishGroups','original-en');
+  const englishGroups=parseGroups(input.englishGroups,'content.englishGroups','original-en',snapshots);
   const sequence=englishGroups.flatMap(group=>group.blockIds.map(blockId=>`${group.sourceId}\u0000${blockId}`));
   if(new Set(sequence).size!==sequence.length)throw new AuthoringError('repeated_source_block','A source block may be selected only once');
   return {mode:'original-en',englishGroups};
+ }
+ if(input.mode==='source-en'){
+  onlyKeys(input,['mode','englishGroups'],'content');
+  const englishGroups=parseGroups(input.englishGroups,'content.englishGroups','source-en',snapshots);
+  const sequence=englishGroups.flatMap(group=>group.blockIds.map(blockId=>`${group.sourceId}\u0000${blockId}`));
+  if(new Set(sequence).size!==sequence.length)throw new AuthoringError('repeated_source_block','A source block may be selected only once');
+  return {mode:'source-en',englishGroups};
  }
  if(input.mode==='custom'){
   onlyKeys(input,['mode','text'],'content');
   return {mode:'custom',text:text(input.text,'content.text',4000)!};
  }
- throw new AuthoringError('invalid_input','content.mode must be bilingual, original-en, or custom');
+ throw new AuthoringError('invalid_input','content.mode must be bilingual, original-en, source-en, or custom');
 }
 
 // Only whole, explicitly paired canonical blessings can gain a translation.
-function translationSelections(content:BilingualContent){
+function translationSelections(content:BilingualContent,snapshots:AuthoringSource[]=[]){
  const pairs=content.hebrewGroups.flatMap(group=>group.blockIds.map(blockId=>({sourceId:group.sourceId,blockId})));
  const result:Array<{sourceId:string;block:SourceBlock;pairIds:string[]}>=[];
  for(let offset=0;offset<pairs.length;){
   const first=pairs[offset];
-  const matches=source(first.sourceId).blocks.filter(block=>block.kind==='translation-en'&&block.pairedBlockIds?.[0]===first.blockId);
+  const matches=source(first.sourceId,snapshots).blocks.filter(block=>block.kind==='translation-en'&&block.pairedBlockIds?.[0]===first.blockId);
   if(matches.length!==1)throw new AuthoringError('missing_translation','Select complete blessings with authorized English translations');
   const block=matches[0], pairIds=block.pairedBlockIds!;
   if(!block.en||!pairIds.length||pairIds.some((id,index)=>pairs[offset+index]?.sourceId!==first.sourceId||pairs[offset+index]?.blockId!==id))throw new AuthoringError('partial_translation','English requires complete, ordered blessing pairs');
@@ -116,7 +128,7 @@ function translationSelections(content:BilingualContent){
  return result;
 }
 
-export function parseEditable(value:unknown,partial=false):Partial<EditableDraft>{
+export function parseEditable(value:unknown,partial=false,snapshots:AuthoringSource[]=[]):Partial<EditableDraft>{
  const input=record(value,partial?'patch':'draft');
  onlyKeys(input,['name','title','accentTitle','layout','templateCueId','content','presentation'],partial?'patch':'draft');
  const result:Partial<EditableDraft>={};
@@ -132,7 +144,7 @@ export function parseEditable(value:unknown,partial=false):Partial<EditableDraft
   if(!baselineCues.some(cue=>cue.id===templateCueId))throw new AuthoringError('unknown_template','Unknown baseline cue template',404);
   result.templateCueId=templateCueId;
  }
- if(!partial||input.content!==undefined)result.content=parseContent(input.content);
+ if(!partial||input.content!==undefined)result.content=parseContent(input.content,snapshots);
  if(!partial||input.presentation!==undefined){
   const p=record(input.presentation??{},'presentation');
   onlyKeys(p,['hebrewFontSize','transliterationFontSize','titleFontSize'],'presentation');
@@ -149,8 +161,8 @@ export function parseEditable(value:unknown,partial=false):Partial<EditableDraft
  return result;
 }
 
-function renderGroup(group:SourceGroup,channel:'he'|'tr'|'en'){
- const selected=source(group.sourceId);
+function renderGroup(group:SourceGroup,channel:'he'|'tr'|'en',snapshots:AuthoringSource[]=[]){
+ const selected=source(group.sourceId,snapshots);
  return group.blockIds.map(id=>{
   const value=selected.blocks.find(block=>block.id===id)?.[channel];
   if(typeof value!=='string'||!value)throw new AuthoringError('missing_source_channel',`Source block ${id} lacks ${channel}`);
@@ -168,11 +180,11 @@ export function buildCue(draft:Draft):AuthoringCue{
  if(draft.accentTitle)texts.accentTextTitle=draft.accentTitle;
  const groups=draft.content.mode==='bilingual'
   ?[...draft.content.hebrewGroups,...draft.content.transliterationGroups]
-  :draft.content.mode==='original-en'?draft.content.englishGroups:[];
+  :draft.content.mode==='original-en'||draft.content.mode==='source-en'?draft.content.englishGroups:[];
  if(draft.content.mode==='bilingual'){
-  texts.textMainheb=draft.content.hebrewGroups.map(group=>renderGroup(group,'he')).join('\n');
-  texts.textMainEng=draft.content.transliterationGroups.map(group=>renderGroup(group,'tr')).join('\n');
- }else if(draft.content.mode==='original-en')texts.textMain=draft.content.englishGroups.map(group=>renderGroup(group,'en')).join('\n');
+  texts.textMainheb=draft.content.hebrewGroups.map(group=>renderGroup(group,'he',draft.sourceSnapshots)).join('\n');
+  texts.textMainEng=draft.content.transliterationGroups.map(group=>renderGroup(group,'tr',draft.sourceSnapshots)).join('\n');
+ }else if(draft.content.mode==='original-en'||draft.content.mode==='source-en')texts.textMain=draft.content.englishGroups.map(group=>renderGroup(group,'en',draft.sourceSnapshots)).join('\n');
  else texts.textMain=draft.content.text;
  const sourceIds=[...new Set(groups.map(group=>group.sourceId))].sort();
  const animations=structuredClone(template.animations);
@@ -193,49 +205,51 @@ export function buildCue(draft:Draft):AuthoringCue{
  return {
   id:draft.id,name:draft.name,layout:draft.layout,texts,
   ...(draft.content.mode==='bilingual'&&draft.content.includeTranslation
-   ?{contentRows:translationSelections(draft.content).map(({sourceId,block,pairIds})=>({he:renderGroup({sourceId,blockIds:pairIds},'he'),tr:renderGroup({sourceId,blockIds:pairIds},'tr'),en:block.en!}))}
+   ?{contentRows:translationSelections(draft.content,draft.sourceSnapshots).map(({sourceId,block,pairIds})=>({he:renderGroup({sourceId,blockIds:pairIds},'he',draft.sourceSnapshots),tr:renderGroup({sourceId,blockIds:pairIds},'tr',draft.sourceSnapshots),en:block.en!}))}
    :draft.content.mode==='bilingual'&&draft.draftSetId&&(draft.layout==='left'||draft.layout==='right')
-    ?{contentRows:draft.content.hebrewGroups.flatMap(group=>group.blockIds.map(blockId=>({he:renderGroup({sourceId:group.sourceId,blockIds:[blockId]},'he'),tr:renderGroup({sourceId:group.sourceId,blockIds:[blockId]},'tr'),en:''})))}
+    ?{contentRows:draft.content.hebrewGroups.flatMap(group=>group.blockIds.map(blockId=>({he:renderGroup({sourceId:group.sourceId,blockIds:[blockId]},'he',draft.sourceSnapshots),tr:renderGroup({sourceId:group.sourceId,blockIds:[blockId]},'tr',draft.sourceSnapshots),en:''})))}
     :{}),
   animations,duration:structuredClone(template.duration),
   ...(template.template?{template:structuredClone(template.template)}:{}),
   ...(Object.keys(draft.presentation).length?{presentation:structuredClone(draft.presentation)}:{}),
   authoring:{
-   draftId:draft.id,draftVersion:draft.version,origin:draft.content.mode==='custom'?'local':'canonical',sourceIds,feedSha256:draft.content.mode==='custom'?'local':sourcePack.authority.feedSha256,
-   unitSha256:Object.fromEntries(sourceIds.map(id=>[id,source(id).unitSha256])),
+   draftId:draft.id,draftVersion:draft.version,origin:draft.content.mode==='custom'?'local':'canonical',sourceIds,feedSha256:draft.content.mode==='custom'?'local':draft.sourcePin.feedSha256,
+   unitSha256:Object.fromEntries(sourceIds.map(id=>[id,source(id,draft.sourceSnapshots).unitSha256])),
    ...(draft.sourcePin.sourceAuthority?{sourceAuthority:structuredClone(draft.sourcePin.sourceAuthority)}:{}),
+   copySpec:{...structuredClone(editableOnly(draft)),sourcePin:structuredClone(draft.sourcePin),...(sourceIds.length?{sourceSnapshots:sourceIds.map(id=>structuredClone(source(id,draft.sourceSnapshots)))}:{})},
   },
  };
 }
 
-function selectedPairs(content:DraftContent){
+function editableOnly(draft:Draft):EditableDraft{return {name:draft.name,title:draft.title,accentTitle:draft.accentTitle,layout:draft.layout,templateCueId:draft.templateCueId,content:structuredClone(draft.content),presentation:structuredClone(draft.presentation)}}
+function selectedPairs(content:DraftContent,snapshots:AuthoringSource[]=[]){
  if(content.mode==='custom')return [];
  const groups=content.mode==='bilingual'?content.hebrewGroups:content.englishGroups;
  const pairs=groups.flatMap(group=>group.blockIds.map(blockId=>({sourceId:group.sourceId,blockId})));
- if(content.mode==='bilingual'&&content.includeTranslation)pairs.push(...translationSelections(content).map(({sourceId,block})=>({sourceId,blockId:block.id})));
+ if(content.mode==='bilingual'&&content.includeTranslation)pairs.push(...translationSelections(content,snapshots).map(({sourceId,block})=>({sourceId,blockId:block.id})));
  return pairs;
 }
-export function sourcePinFor(content:DraftContent):SourcePin{
+export function sourcePinFor(content:DraftContent,snapshots:AuthoringSource[]=[],feedSha256=sourcePack.authority.feedSha256):SourcePin{
  if(content.mode==='custom')return {feedSha256:'local',unitSha256:{},blockSha256:{}};
- const pairs=selectedPairs(content);
+ const pairs=selectedPairs(content,snapshots);
  const sourceIds=[...new Set(pairs.map(pair=>pair.sourceId))].sort();
  const sourceAuthority=Object.fromEntries(sourceIds.filter(id=>id.startsWith('library:')).map(id=>{
-  const selected=source(id);const authority=selected.authority;
+  const selected=source(id,snapshots);const authority=selected.authority;
   if(!authority||!selected.sourceSha256)throw new AuthoringError('invalid_source_authority',`Expanded source authority is unavailable for ${id}`,409);
   return [id,{id:authority.id,feedSha256:authority.feedSha256,unitSha256:authority.unitSha256,sourceSha256:selected.sourceSha256} satisfies SourceAuthorityPin];
  }));
  return {
-  feedSha256:sourcePack.authority.feedSha256,
-  unitSha256:Object.fromEntries(sourceIds.map(id=>[id,source(id).unitSha256])),
+  feedSha256,
+  unitSha256:Object.fromEntries(sourceIds.map(id=>[id,source(id,snapshots).unitSha256])),
   blockSha256:Object.fromEntries(pairs.map(({sourceId,blockId})=>{
-   const block=source(sourceId).blocks.find(item=>item.id===blockId)!;
+   const block=source(sourceId,snapshots).blocks.find(item=>item.id===blockId)!;
    return [JSON.stringify([sourceId,blockId]),block.sourceBlockSha256];
   })),
   ...(Object.keys(sourceAuthority).length?{sourceAuthority}:{}),
  };
 }
 export function assertSourcePin(draft:Draft){
- const current=sourcePinFor(draft.content);
+ const current=sourcePinFor(draft.content,draft.sourceSnapshots,draft.sourceSnapshots?.length?draft.sourcePin.feedSha256:undefined);
  if(JSON.stringify(current)!==JSON.stringify(draft.sourcePin))throw new AuthoringError('source_pin_mismatch','Pinned source authority has changed; explicit source rebase and review are required',409);
 }
 
