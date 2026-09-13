@@ -3,6 +3,7 @@ import {test} from 'node:test';
 import {GET,POST} from '../app/api/access/route.ts';
 import {
  ACCESS_COOKIE,
+ ACCESS_ATTEMPT_SQL,
  AccessInvariantError,
  PgAccessStore,
  accessStore,
@@ -321,7 +322,11 @@ test('access request bodies are bounded before password work',async()=>{
 });
 
 test('attempt storage prunes expired identities while updating the bounded window',async()=>{
- let statement='';const store=new PgAccessStore();Reflect.set(store,'db',async()=>({query:async(sql:string)=>{statement=sql;return {rows:[{attempts:1}]}}}));assert.equal(await store.allowAttempt('login:ip:local',1000),true);assert.match(statement,/DELETE FROM access_attempts WHERE window_start<\$2-60000/);assert.match(statement,/RETURNING attempts/);
+ let statement='';const store=new PgAccessStore();Reflect.set(store,'db',async()=>({query:async(sql:string)=>{statement=sql;return {rows:[{attempts:1}]}}}));assert.equal(await store.allowAttempt('login:ip:local',Date.now()),true);assert.match(statement,/DELETE FROM access_attempts WHERE window_start<\(\$2::bigint\)-60000/);assert.equal((statement.match(/\$2::bigint/g)??[]).length,3);assert.match(statement,/RETURNING attempts/);
+});
+
+test('current epoch rate-limit SQL executes against PostgreSQL without integer overflow',{skip:process.env.ACCESS_POSTGRES_TEST!=='1'||!process.env.DATABASE_URL},async()=>{
+ const {Pool}=await import('pg');const pool=new Pool({connectionString:process.env.DATABASE_URL});const client=await pool.connect();try{await client.query('BEGIN');const result=await client.query(ACCESS_ATTEMPT_SQL,[tokenHash('rollback-only-integration-probe'),Date.now()]);assert.equal(result.rows[0]?.attempts,1);await client.query('ROLLBACK')}finally{await client.query('ROLLBACK').catch(()=>{});client.release();await pool.end()}
 });
 
 test('password setup rotates the session and never serializes a hash',async()=>{

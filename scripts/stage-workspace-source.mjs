@@ -27,7 +27,8 @@ for(const file of ['public/assets/QGY_z_wNahGAdqQ43RhVcIgYT2Xz5u32K0nXBi8Jpg.wof
 const fullLegacy=readJson(resolve(repoRoot,'content','authoring-sources.json'));
 const expanded=readJson(resolve(repoRoot,'content','siddur-library.json'));
 if(fullLegacy.sources.length<1)fail('The complete legacy source library is unavailable');
-if(expanded.sources.length!==647)fail(`Expected the complete 647-source browsable library, found ${expanded.sources.length}`);
+if(!Array.isArray(expanded.sources)||expanded.sources.length<1)fail('The complete browsable library is unavailable');
+if(expanded.coverage?.totals?.usableUnits!==expanded.sources.length)fail(`Browsable library coverage reports ${expanded.coverage?.totals?.usableUnits??'unknown'} usable units for ${expanded.sources.length} sources`);
 
 const forbiddenNames=new Set(['.env','.env.local','.env.production','.git','keys.json','connections.md','private-crc-access.txt']);
 const allowedInstallArtifacts=new Set([

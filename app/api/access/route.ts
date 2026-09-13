@@ -58,5 +58,5 @@ export async function POST(request:Request){
    await accessStore.disable(input.memberId);return reply({ok:true});
   }
   return reply({error:'Unknown action'},400);
- }catch(error){if(error instanceof SyntaxError)return reply({error:'Invalid request'},400);if(error instanceof Error&&error.message==='request_too_large')return reply({error:'Request is too large'},413);if(error instanceof AccessInvariantError)return reply({error:error.message},409);return reply({error:'Sign-in is temporarily unavailable. Existing graphics devices remain connected.'},503)}
+ }catch(error){if(error instanceof SyntaxError)return reply({error:'Invalid request'},400);if(error instanceof Error&&error.message==='request_too_large')return reply({error:'Request is too large'},413);if(error instanceof AccessInvariantError)return reply({error:error.message},409);const code=typeof (error as {code?:unknown})?.code==='string'?(error as {code:string}).code:'unknown';console.error('access_api_error',{name:error instanceof Error?error.name:'UnknownError',code});return reply({error:'Sign-in is temporarily unavailable. Existing graphics devices remain connected.'},503)}
 }
