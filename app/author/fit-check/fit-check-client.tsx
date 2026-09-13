@@ -6,6 +6,7 @@ import { Player, type Cue } from "@/lib/player";
 import { overlayBrandingFromWorkspace } from "@/lib/branding";
 import { overlayAssetUrl } from "@/lib/overlay-assets";
 import type { AccessRole } from "@/lib/access";
+import { fetchAccessUser } from "@/lib/access-client";
 import type { PublicWorkspace } from "@/lib/workspace";
 import WorkspaceHeader from "@/components/workspace-header";
 import { layoutLabel } from "@/lib/layout-label";
@@ -109,16 +110,14 @@ export default function FitCheckClient() {
       overlayBrandingFromWorkspace(identity);
       if (cancelled) return;
       setWorkspace(identity);
-      const access = await fetch("/api/access", { cache: "no-store" }).catch(() => null);
+      // One shared /api/access probe per page load (the header uses the same cache).
+      const user = await fetchAccessUser().catch(() => null);
       if (cancelled) return;
-      if (access?.ok) {
-        const body = await access.json().catch(() => null) as { user?: { role?: string } } | null;
-        if (body?.user && ["owner", "editor"].includes(body.user.role || "")) {
-          setRole(body.user.role as AccessRole);
-          setControlKey("session");
-          setResolved(true);
-          return;
-        }
+      if (user && ["owner", "editor"].includes(user.role)) {
+        setRole(user.role as AccessRole);
+        setControlKey("session");
+        setResolved(true);
+        return;
       }
       const saved = sessionStorage.getItem("crc-control-key") || "";
       setResolved(true);
