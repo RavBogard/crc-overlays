@@ -59,17 +59,21 @@ export default function AccessPage(){
 
  useEffect(()=>{
   let active=true;
+  function captureInvitation(){
+   const inviteToken=new URLSearchParams(location.hash.slice(1)).get('invite')||'';
+   if(!inviteToken)return;
+   history.replaceState(null,'',location.pathname+location.search);
+   if(active)setToken(inviteToken);
+  }
   async function initialize(){
-   const params=new URLSearchParams(location.hash.slice(1));
-   const inviteToken=params.get('invite')||'';
-   if(inviteToken)history.replaceState(null,'',location.pathname+location.search);
+   captureInvitation();
    await Promise.resolve();
    if(!active)return;
-   if(inviteToken)setToken(inviteToken);
    await refresh();
   }
+  addEventListener('hashchange',captureInvitation);
   void initialize();
-  return()=>{active=false};
+  return()=>{active=false;removeEventListener('hashchange',captureInvitation)};
  },[refresh]);
 
  async function act(payload:Record<string,unknown>){
