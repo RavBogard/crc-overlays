@@ -7,6 +7,7 @@ import {
  rehearsalRelayOrigin,
 } from '../lib/rehearsal.ts';
 import {relayConnection,relayOrigin} from '../lib/relay.ts';
+import {MemoryAssetRepository,importSharedAsset} from '../lib/assets.ts';
 import {
  MemoryAccessStore,
  REHEARSAL_OWNER,
@@ -119,4 +120,52 @@ test('rehearsal sign-in attempts are limited to ten a minute',async()=>{
  assert.equal(await store.allowAttempt('editor@localhost',now),false);
  assert.equal(await store.allowAttempt('someone-else@localhost',now),true);
  assert.equal(await store.allowAttempt('editor@localhost',now+61_000),true);
+});
+
+// Shared artwork is fetched over https everywhere except a local rehearsal, where CRC is a
+// loopback dev server on another port. The allowance is gated on rehearsalMode(), so it is
+// off on Vercel, off outside development, and off whenever a real relay is configured.
+const sharedAssetEnv={
+ CRC_AUTHORING_REHEARSAL:'1',
+ NODE_ENV:'development',
+ RELAY_URL:REHEARSAL_RELAY,
+ WORKSPACE_ID:'temple-bnai-israel-kalamazoo',
+ CRC_SHARED_LIBRARY_URL:'http://127.0.0.1:5175/api/shared-library',
+ SHARED_LIBRARY_IMPORT_KEY:'rehearsal-shared-library-key-0123456789',
+} as const;
+const SHARED_ASSET_ID=`asset_${'a'.repeat(64)}`;
+
+function countingFetcher(){
+ const urls:string[]=[];
+ const fetcher=(async(input:RequestInfo|URL)=>{urls.push(String(input));return new Response(null,{status:404})}) as unknown as typeof fetch;
+ return {urls,fetcher};
+}
+
+test('a rehearsal imports shared artwork from a loopback CRC; anywhere else is https only',async()=>{
+ const {urls,fetcher}=countingFetcher();
+ await assert.rejects(importSharedAsset(SHARED_ASSET_ID,'tester',new MemoryAssetRepository(),{...sharedAssetEnv},fetcher),/temporarily unavailable/);
+ assert.deepEqual(urls,[`http://127.0.0.1:5175/api/shared-library/assets/${SHARED_ASSET_ID}`]);
+ urls.length=0;
+ await assert.rejects(importSharedAsset(SHARED_ASSET_ID,'tester',new MemoryAssetRepository(),{...sharedAssetEnv,CRC_SHARED_LIBRARY_URL:'http://localhost:5175/api/shared-library'},fetcher),/temporarily unavailable/);
+ assert.deepEqual(urls,[`http://localhost:5175/api/shared-library/assets/${SHARED_ASSET_ID}`]);
+ urls.length=0;
+ await assert.rejects(importSharedAsset(SHARED_ASSET_ID,'tester',new MemoryAssetRepository(),{...sharedAssetEnv,CRC_SHARED_LIBRARY_URL:'https://crc.example/api/shared-library'},fetcher),/temporarily unavailable/);
+ assert.deepEqual(urls,[`https://crc.example/api/shared-library/assets/${SHARED_ASSET_ID}`]);
+});
+
+test('loopback shared artwork is refused outside rehearsal, and never fetched',async()=>{
+ const unsafe=[
+  {NODE_ENV:'production' as const},
+  {VERCEL:'1'},
+  {CRC_AUTHORING_REHEARSAL:undefined},
+  {RELAY_URL:'https://relay.example'},
+  // Loopback still has to look like loopback: no other host, and never without a port.
+  {CRC_SHARED_LIBRARY_URL:'http://127.0.0.1/api/shared-library'},
+  {CRC_SHARED_LIBRARY_URL:'http://crc.example:5175/api/shared-library'},
+ ];
+ for(const override of unsafe){
+  const {urls,fetcher}=countingFetcher();
+  await assert.rejects(importSharedAsset(SHARED_ASSET_ID,'tester',new MemoryAssetRepository(),{...sharedAssetEnv,...override},fetcher),/not configured/,JSON.stringify(override));
+  assert.deepEqual(urls,[],`${JSON.stringify(override)} still reached the network`);
+ }
 });

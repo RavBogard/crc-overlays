@@ -6,23 +6,33 @@
 // spawns `next dev` as a child with a minimal, explicit environment. Never loads any
 // .env* file and refuses to start if production-shaped credentials are inherited.
 //
+// `npm run rehearsal -- --pair` boots CRC and TBI together from this one process (two relay
+// stubs, two `next dev` children, one shared library key) — see docs/REHEARSAL-MODE.md.
+//
 // Exit codes: 2 inherited credential, 3 port busy, 4 (reserved: .env file present when
-// the runtime would honour it), 5 Next did not answer /api/workspace within 90 s.
+// the runtime would honour it), 5 Next did not answer /api/workspace within 90 s,
+// 6 the paired rehearsal could not give its two dev servers separate build directories.
 import {execFile,spawn} from 'node:child_process';
 import {createHash,randomBytes} from 'node:crypto';
-import {mkdir,rm,writeFile} from 'node:fs/promises';
+import {mkdir,readFile,rm,writeFile} from 'node:fs/promises';
 import net from 'node:net';
+import {createRequire} from 'node:module';
 import path from 'node:path';
 import {fileURLToPath} from 'node:url';
 import {DEFAULT_REHEARSAL_RELAY_PORT,startRehearsalRelay} from './rehearsal-relay.ts';
 
+export {DEFAULT_REHEARSAL_RELAY_PORT};
 export const DEFAULT_REHEARSAL_PORT=5175;
+export const DEFAULT_REHEARSAL_TBI_PORT=5176;
+export const DEFAULT_REHEARSAL_TBI_RELAY_PORT=8789;
+export const TBI_WORKSPACE_ID='temple-bnai-israel-kalamazoo';
 export const FORBIDDEN_ENV=['DATABASE_URL','RELAY_SECRET','CONTROL_KEY','OUTPUT_KEY','ACCESS_BOOTSTRAP_KEY','VERCEL'];
 export const REHEARSAL_OWNER_EMAIL='rehearsal-owner@rehearsal.invalid';
 export const REHEARSAL_OWNER_PASSWORD='rehearsal-owner-local-2026';
 const ROOT=path.resolve(path.dirname(fileURLToPath(import.meta.url)),'..');
 const NEXT_BIN=path.join(ROOT,'node_modules','next','dist','bin','next');
 export const STATE_FILE=path.join(ROOT,'work','rehearsal','current.json');
+export const STATE_FILE_TBI=path.join(ROOT,'work','rehearsal','current-tbi.json');
 const READY_TIMEOUT_MS=90_000;
 const POLL_MS=500;
 // Variables the Next child may inherit. Everything else is dropped so a shell that
@@ -65,7 +75,18 @@ export async function portFree(port){
  return true;
 }
 
-function childEnv({relayPort,relaySecret,controlKey,outputKey,bookFaces}){
+/**
+ * The Next child's whole environment: an allowlist, never `process.env`.
+ * Paired rehearsal adds `workspaceId`, the two shared-library keys and the TBI feed URL,
+ * and `standaloneConfig` (see isolatedBuildConfig).
+ * @param {{relayPort:number,relaySecret:string,controlKey:string,outputKey:string,
+ *  bookFaces?:boolean,workspaceId?:string,sharedLibraryExportKey?:string,
+ *  sharedLibraryUrl?:string,sharedLibraryImportKey?:string,standaloneConfig?:string}} options
+ * @returns {Record<string,string>}
+ */
+export function childEnv(options){
+ const {relayPort,relaySecret,controlKey,outputKey,bookFaces,workspaceId,sharedLibraryExportKey,sharedLibraryUrl,sharedLibraryImportKey,standaloneConfig}=options;
+ /** @type {Record<string,string>} */
  const env={};
  for(const name of INHERITED_ENV)if(process.env[name]!==undefined)env[name]=process.env[name];
  Object.assign(env,{
@@ -85,8 +106,29 @@ function childEnv({relayPort,relaySecret,controlKey,outputKey,bookFaces}){
  // --book-faces trials the David Libre / Frank Ruhl Libre overlay typography (lib/workspace.ts
  // WORKSPACE_BOOK_FACES); default off, so this key is only set when explicitly requested.
  if(bookFaces)env.WORKSPACE_BOOK_FACES='1';
+ // Paired rehearsal only: TBI runs the same code under a second workspace identity and reads
+ // CRC's shared library over loopback with the one key both children were given.
+ if(workspaceId)env.WORKSPACE_ID=workspaceId;
+ if(sharedLibraryExportKey)env.SHARED_LIBRARY_EXPORT_KEY=sharedLibraryExportKey;
+ if(sharedLibraryUrl)env.CRC_SHARED_LIBRARY_URL=sharedLibraryUrl;
+ if(sharedLibraryImportKey)env.SHARED_LIBRARY_IMPORT_KEY=sharedLibraryImportKey;
+ // Next 16 takes an exclusive lock on <distDir>/lock per checkout, so two dev servers in one
+ // repository need separate build directories. distDir can only come from the resolved Next
+ // config, and this private variable is the one env-shaped way to supply one without editing
+ // next.config.ts (isolatedBuildConfig builds the JSON from Next's own resolved config).
+ if(standaloneConfig)env.__NEXT_PRIVATE_STANDALONE_CONFIG=standaloneConfig;
  return env;
 }
+
+/** `count` distinct keys, each 32+ characters, for one rehearsal. */
+export function distinctKeys(count){
+ const keys=[];
+ while(keys.length<count){const candidate=key();if(!keys.includes(candidate))keys.push(candidate)}
+ return keys;
+}
+
+/** Where a paired TBI child reads CRC's shared library: loopback, explicit port. */
+export const sharedLibraryUrlFor=port=>`http://127.0.0.1:${port}/api/shared-library`;
 
 async function waitForNext(baseUrl,getExited,stderrTail,signal){
  const deadline=Date.now()+READY_TIMEOUT_MS;
@@ -104,14 +146,14 @@ async function waitForNext(baseUrl,getExited,stderrTail,signal){
 }
 
 /** Baseline catalog exactly as Next's `authoringCatalog()` computes it with no publications. */
-async function baselineCatalog(){
+async function baselineCatalog(workspaceId){
  const [{mergePublishedCatalog},{baselineCatalogForWorkspace}]=await Promise.all([import('../lib/server.ts'),import('../lib/workspace-catalog.ts')]);
- const cues=mergePublishedCatalog(baselineCatalogForWorkspace(),[]);
+ const cues=mergePublishedCatalog(baselineCatalogForWorkspace(workspaceId),[]);
  return {cues,version:createHash('sha256').update(JSON.stringify(cues)).digest('hex').slice(0,16)};
 }
 
-async function initializeRelay(relayUrl,secret){
- const catalog=await baselineCatalog();
+async function initializeRelay(relayUrl,secret,workspaceId){
+ const catalog=await baselineCatalog(workspaceId);
  const body={state:{revision:0,cue:null,mode:'animate',updated:0,cuePayload:null},catalogVersion:catalog.version,cues:catalog.cues};
  const response=await fetch(`${relayUrl}/initialize`,{method:'POST',headers:{Authorization:`Bearer ${secret}`,'Content-Type':'application/json'},body:JSON.stringify(body),signal:AbortSignal.timeout(5000)});
  if(response.status===409)return {initialized:false,cues:catalog.cues.length};
@@ -129,6 +171,124 @@ function killTree(child){
  });
 }
 
+const PHASE_DEVELOPMENT_SERVER='phase-development-server';
+const PAIR_ISOLATION_HELP='paired rehearsal needs a private Next build directory for each dev server';
+
+function refuseInheritedCredential(){
+ const forbidden=inheritedCredential();
+ if(forbidden)throw new RehearsalStartError(2,`${forbidden} is set in this shell; rehearsal never holds production credentials; unset it or run from a clean shell`);
+}
+
+/** Every port must be a real TCP port, distinct from the others, and free. */
+async function requireFreePorts(entries){
+ const seen=new Map();
+ for(const [label,candidate] of entries){
+  if(!Number.isInteger(candidate)||candidate<1||candidate>65535)throw new RehearsalStartError(3,`${label} port ${candidate} is not a valid TCP port`);
+  if(seen.has(candidate))throw new RehearsalStartError(3,`port ${candidate} cannot serve both ${seen.get(candidate)} and ${label}`);
+  seen.set(candidate,label);
+ }
+ for(const [label,candidate] of entries)if(!await portFree(candidate))throw new RehearsalStartError(3,`port ${candidate} (${label}) is already in use; free it or kill a leftover rehearsal process`);
+}
+
+/**
+ * A Next config JSON for one paired child, with its own build directory.
+ *
+ * Next 16 holds an exclusive lock on `<distDir>/lock` for the checkout, so the pair's two
+ * `next dev` children cannot share `.next/dev`. `distDir` can only come from the resolved
+ * Next config, so this asks Next for its own resolved development config (next.config.ts
+ * included, untouched), repoints distDir at `.next/rehearsal/<label>` — inside the ignored
+ * `.next`, so nothing new appears in git or lint — and hands it back through the private
+ * standalone-config variable. The TypeScript pointer moves to a generated copy under `work/`
+ * too, because Next appends its own `types` globs to whichever tsconfig the config names and
+ * the repository's tsconfig.json must not grow entries for a rehearsal build directory.
+ */
+async function isolatedBuildConfig(label){
+ // Forward slashes deliberately: Turbopack resolves the tsconfig's `paths` against the
+ // directory it parses out of this value, and a Windows-separated path reads as a root-level
+ // file, which would send `@/*` to the wrong place.
+ const relativeTsconfig=`work/rehearsal/tsconfig.pair-${label}.json`;
+ let config;
+ try{
+  const source=JSON.parse(await readFile(path.join(ROOT,'tsconfig.json'),'utf8'));
+  // Turbopack resolves `@/*` through that same tsconfig, so the copy re-points the alias at
+  // the repository root it now sits two directories below.
+  const generated={...source,compilerOptions:{...source.compilerOptions,paths:{'@/*':['../../*']}},include:['../../next-env.d.ts'],exclude:['../../node_modules']};
+  await mkdir(path.join(ROOT,'work','rehearsal'),{recursive:true});
+  await writeFile(path.join(ROOT,relativeTsconfig),`${JSON.stringify(generated,null,1)}\n`);
+  const loadConfig=createRequire(import.meta.url)('next/dist/server/config.js').default;
+  if(typeof loadConfig!=='function')throw new Error('next/dist/server/config.js exports no config loader');
+  config=await loadConfig(PHASE_DEVELOPMENT_SERVER,ROOT);
+  if(typeof config?.distDir!=='string')throw new Error('the resolved Next config has no distDir');
+ }catch(error){throw new RehearsalStartError(6,`${PAIR_ISOLATION_HELP}, and this Next build does not offer one (${error.message}); run npm run rehearsal without --pair`)}
+ config.distDirRoot=path.join('.next','rehearsal',label);
+ config.distDir=path.join('.next','rehearsal',label,'dev');
+ config.typescript={...config.typescript,tsconfigPath:relativeTsconfig};
+ return JSON.stringify(config);
+}
+
+/**
+ * One rehearsal instance: relay stub in this process, `next dev` as a child, one state file.
+ * Callers check credentials and ports first (a pair checks all four ports together).
+ */
+async function spawnInstance({port,relayPort,stateFile,workspaceId,keys,childOptions={},log,signal}){
+ const throwIfAborted=()=>{if(signal?.aborted)throw new RehearsalAbortedError()};
+ const [relaySecret,controlKey,outputKey]=keys??distinctKeys(3);
+ const prefix=workspaceId?`${workspaceId}: `:'';
+ // relay/child/stop are wired up before anything is spawned so a signal that lands
+ // mid-boot (see main()) always has something concrete to tear down.
+ let relay=null,child=null,stopped=false;
+ const stop=async()=>{
+  if(stopped)return;stopped=true;
+  if(child)await killTree(child);
+  if(relay)await relay.close();
+  await rm(stateFile,{force:true});
+ };
+ try{
+  relay=await startRehearsalRelay({port:relayPort,secret:relaySecret});
+  throwIfAborted();
+  // Next dev reports request.url with hostname `localhost` whatever Host was sent, and
+  // same-site writes compare Origin against it, so clients must use this exact origin.
+  const baseUrl=`http://localhost:${port}`;
+  const stderrLines=[];
+  const remember=chunk=>{for(const line of String(chunk).split(/\r?\n/))if(line.trim()){stderrLines.push(line);if(stderrLines.length>40)stderrLines.shift()}};
+  child=spawn(process.execPath,[NEXT_BIN,'dev','--port',String(port)],{cwd:ROOT,env:childEnv({relayPort,relaySecret,controlKey,outputKey,workspaceId,...childOptions}),stdio:['ignore','pipe','pipe'],windowsHide:true});
+  // Observed from the instant the child exists, not only once main() attaches its own
+  // listener after this function returns.
+  let childExited=null;
+  child.once('exit',code=>{childExited=code??1});
+  const tag=workspaceId?`[next ${workspaceId}]`:'[next]';
+  const forward=stream=>{let rest='';stream.setEncoding('utf8');stream.on('data',chunk=>{rest+=chunk;const lines=rest.split(/\r?\n/);rest=lines.pop()??'';for(const line of lines)if(line.trim()&&log)log(`${tag} ${line}`)})};
+  forward(child.stdout);
+  child.stderr.on('data',remember);
+  forward(child.stderr);
+  try{await waitForNext(baseUrl,()=>childExited,()=>stderrLines.join('\n'),signal)}
+  catch(error){
+   if(stderrLines.some(line=>line.includes('Another next dev server is already running')))throw new RehearsalStartError(6,`${PAIR_ISOLATION_HELP}: another next dev server already holds this checkout, and this one was refused before it could serve ${baseUrl}`);
+   throw error;
+  }
+  throwIfAborted();
+  const initialized=await initializeRelay(relay.url,relaySecret,workspaceId);
+  if(log)log(initialized.initialized?`${prefix}relay stub initialized with the ${initialized.cues}-graphic baseline catalog`:`${prefix}relay stub was already initialized`);
+  throwIfAborted();
+  // Turbopack and tsx serialize cues.json floats differently (0.21000000000000002 vs
+  // 0.21), so the catalog version hashed here never matches Next's. Let Next push its own
+  // authoring catalog so /health reports synchronization as current.
+  const synced=await fetch(`${baseUrl}/api/live-catalog`,{method:'POST',headers:{Authorization:`Bearer ${controlKey}`},signal:AbortSignal.timeout(10_000)});
+  if(!synced.ok)throw new Error(`live catalog synchronization failed (${synced.status})`);
+  if(log)log(`${prefix}live catalog synchronized from Next (version ${(await synced.json()).version})`);
+  throwIfAborted();
+  const startedAt=new Date().toISOString();
+  const record={baseUrl,relayUrl:relay.url,controlKey,outputKey,workspaceId:workspaceId??'crc',pid:process.pid,nextPid:child.pid,startedAt};
+  await mkdir(path.dirname(stateFile),{recursive:true});
+  await writeFile(stateFile,`${JSON.stringify(record,null,1)}\n`);
+  throwIfAborted();
+  return {...record,child,stop};
+ }catch(error){
+  await stop();
+  throw error;
+ }
+}
+
 /**
  * Boots a rehearsal: relay stub in this process, `next dev` as a child.
  * options: {port=5175, relayPort=8788, log=(line)=>void|null}
@@ -139,83 +299,74 @@ export async function startRehearsal(options={}){
  const relayPort=options.relayPort??DEFAULT_REHEARSAL_RELAY_PORT;
  const log=options.log===undefined?line=>process.stdout.write(`${line}\n`):options.log;
  const signal=options.signal;
+ refuseInheritedCredential();
+ if(signal?.aborted)throw new RehearsalAbortedError();
+ await requireFreePorts([['next dev',port],['relay stub',relayPort]]);
+ if(signal?.aborted)throw new RehearsalAbortedError();
+ return spawnInstance({port,relayPort,stateFile:STATE_FILE,childOptions:{bookFaces:options.bookFaces},log,signal});
+}
+
+/**
+ * Boots CRC and TBI together from this one process: two relay stubs, two `next dev` children,
+ * one generated shared-library key (CRC exports with it, TBI imports with it). CRC comes up
+ * first because TBI's library feed points back at it.
+ * options: {port=5175, relayPort=8788, tbiPort=5176, tbiRelayPort=8789, log, signal}
+ * Resolves to {crc, tbi, sharedLibraryUrl, stop()}.
+ */
+export async function startRehearsalPair(options={}){
+ const port=options.port??DEFAULT_REHEARSAL_PORT;
+ const relayPort=options.relayPort??DEFAULT_REHEARSAL_RELAY_PORT;
+ const tbiPort=options.tbiPort??DEFAULT_REHEARSAL_TBI_PORT;
+ const tbiRelayPort=options.tbiRelayPort??DEFAULT_REHEARSAL_TBI_RELAY_PORT;
+ const log=options.log===undefined?line=>process.stdout.write(`${line}\n`):options.log;
+ const signal=options.signal;
  const throwIfAborted=()=>{if(signal?.aborted)throw new RehearsalAbortedError()};
- const forbidden=inheritedCredential();
- if(forbidden)throw new RehearsalStartError(2,`${forbidden} is set in this shell; rehearsal never holds production credentials; unset it or run from a clean shell`);
+ refuseInheritedCredential();
  throwIfAborted();
- for(const [label,candidate] of [['next dev',port],['relay stub',relayPort]]){
-  if(!Number.isInteger(candidate)||candidate<1||candidate>65535)throw new RehearsalStartError(3,`${label} port ${candidate} is not a valid TCP port`);
-  if(!await portFree(candidate))throw new RehearsalStartError(3,`port ${candidate} (${label}) is already in use; free it or kill a leftover rehearsal process`);
- }
+ await requireFreePorts([['CRC next dev',port],['CRC relay stub',relayPort],['TBI next dev',tbiPort],['TBI relay stub',tbiRelayPort]]);
  throwIfAborted();
- const relaySecret=key(),controlKey=key(),outputKey=key();
- // relay/child/stop are wired up before anything is spawned so a signal that lands
- // mid-boot (see main()) always has something concrete to tear down.
- let relay=null,child=null,stopped=false;
+ // Seven keys from one draw: the shared library key can never equal either child's control
+ // key, output key, or relay secret.
+ const [sharedLibraryKey,...instanceKeys]=distinctKeys(7);
+ const sharedLibraryUrl=sharedLibraryUrlFor(port);
+ const crcConfig=await isolatedBuildConfig('crc'),tbiConfig=await isolatedBuildConfig('tbi');
+ let crc=null,tbi=null,stopped=false;
  const stop=async()=>{
   if(stopped)return;stopped=true;
-  if(child)await killTree(child);
-  if(relay)await relay.close();
-  await rm(STATE_FILE,{force:true});
+  if(tbi)await tbi.stop();
+  if(crc)await crc.stop();
  };
  try{
-  relay=await startRehearsalRelay({port:relayPort,secret:relaySecret});
+  crc=await spawnInstance({port,relayPort,stateFile:STATE_FILE,keys:instanceKeys.slice(0,3),childOptions:{bookFaces:options.bookFaces,sharedLibraryExportKey:sharedLibraryKey,standaloneConfig:crcConfig},log,signal});
   throwIfAborted();
-  // Next dev reports request.url with hostname `localhost` whatever Host was sent, and
-  // same-site writes compare Origin against it, so clients must use this exact origin.
-  const baseUrl=`http://localhost:${port}`;
-  const stderrLines=[];
-  const remember=chunk=>{for(const line of String(chunk).split(/\r?\n/))if(line.trim()){stderrLines.push(line);if(stderrLines.length>40)stderrLines.shift()}};
-  child=spawn(process.execPath,[NEXT_BIN,'dev','--port',String(port)],{cwd:ROOT,env:childEnv({relayPort,relaySecret,controlKey,outputKey,bookFaces:options.bookFaces}),stdio:['ignore','pipe','pipe'],windowsHide:true});
-  // Observed from the instant the child exists, not only once main() attaches its own
-  // listener after this function returns.
-  let childExited=null;
-  child.once('exit',code=>{childExited=code??1});
-  const forward=stream=>{let rest='';stream.setEncoding('utf8');stream.on('data',chunk=>{rest+=chunk;const lines=rest.split(/\r?\n/);rest=lines.pop()??'';for(const line of lines)if(line.trim()&&log)log(`[next] ${line}`)})};
-  forward(child.stdout);
-  child.stderr.on('data',remember);
-  forward(child.stderr);
-  await waitForNext(baseUrl,()=>childExited,()=>stderrLines.join('\n'),signal);
+  tbi=await spawnInstance({port:tbiPort,relayPort:tbiRelayPort,stateFile:STATE_FILE_TBI,workspaceId:TBI_WORKSPACE_ID,keys:instanceKeys.slice(3,6),childOptions:{bookFaces:options.bookFaces,sharedLibraryUrl,sharedLibraryImportKey:sharedLibraryKey,standaloneConfig:tbiConfig},log,signal});
   throwIfAborted();
-  const initialized=await initializeRelay(relay.url,relaySecret);
-  if(log)log(initialized.initialized?`relay stub initialized with the ${initialized.cues}-graphic baseline catalog`:'relay stub was already initialized');
-  throwIfAborted();
-  // Turbopack and tsx serialize cues.json floats differently (0.21000000000000002 vs
-  // 0.21), so the catalog version hashed here never matches Next's. Let Next push its own
-  // authoring catalog so /health reports synchronization as current.
-  const synced=await fetch(`${baseUrl}/api/live-catalog`,{method:'POST',headers:{Authorization:`Bearer ${controlKey}`},signal:AbortSignal.timeout(10_000)});
-  if(!synced.ok)throw new Error(`live catalog synchronization failed (${synced.status})`);
-  if(log)log(`live catalog synchronized from Next (version ${(await synced.json()).version})`);
-  throwIfAborted();
-  const startedAt=new Date().toISOString();
-  await mkdir(path.dirname(STATE_FILE),{recursive:true});
-  await writeFile(STATE_FILE,`${JSON.stringify({baseUrl,relayUrl:relay.url,controlKey,outputKey,pid:process.pid,nextPid:child.pid,startedAt},null,1)}\n`);
-  throwIfAborted();
-  return {baseUrl,relayUrl:relay.url,controlKey,outputKey,pid:process.pid,nextPid:child.pid,startedAt,child,stop};
+  return {crc,tbi,sharedLibraryUrl,stop};
  }catch(error){
   await stop();
   throw error;
  }
 }
 
-function parseArgs(argv){
- const options={port:DEFAULT_REHEARSAL_PORT,relayPort:DEFAULT_REHEARSAL_RELAY_PORT};
+export function parseArgs(argv){
+ const options={port:DEFAULT_REHEARSAL_PORT,relayPort:DEFAULT_REHEARSAL_RELAY_PORT,tbiPort:DEFAULT_REHEARSAL_TBI_PORT,tbiRelayPort:DEFAULT_REHEARSAL_TBI_RELAY_PORT,pair:false,bookFaces:false};
  for(let index=0;index<argv.length;index+=1){
   const [flag,inline]=argv[index].split('=');
   if(flag==='--book-faces'){options.bookFaces=true;continue}
+  if(flag==='--pair'){options.pair=true;continue}
   const value=inline??argv[++index];
   if(flag==='--port')options.port=Number(value);
   else if(flag==='--relay-port')options.relayPort=Number(value);
-  else throw new RehearsalStartError(2,`unknown argument ${argv[index]}; supported: --port <n> --relay-port <n> --book-faces`);
+  else if(flag==='--tbi-port')options.tbiPort=Number(value);
+  else if(flag==='--tbi-relay-port')options.tbiRelayPort=Number(value);
+  else throw new RehearsalStartError(2,`unknown argument ${flag}; supported: --port <n> --relay-port <n> --pair --tbi-port <n> --tbi-relay-port <n> --book-faces`);
  }
  return options;
 }
 
-function banner(instance,port){
+function instanceLines(instance,port,stateFile){
  const origin=`http://localhost:${port}`;
  return [
-  '',
-  'CRC overlays rehearsal is ready (memory stores, local relay stub, no production credentials).',
   `  console   ${origin}/`,
   `  output    ${origin}/output#key=${instance.outputKey}`,
   `  author    ${origin}/author`,
@@ -224,7 +375,35 @@ function banner(instance,port){
   `  relay     ${instance.relayUrl}`,
   `  CONTROL_KEY=${instance.controlKey}`,
   `  owner sign-in  ${REHEARSAL_OWNER_EMAIL} / ${REHEARSAL_OWNER_PASSWORD}`,
+  `  state file     ${path.relative(ROOT,stateFile)}`,
+ ];
+}
+
+function banner(instance,port){
+ return [
+  '',
+  'CRC overlays rehearsal is ready (memory stores, local relay stub, no production credentials).',
+  ...instanceLines(instance,port,STATE_FILE).slice(0,-1),
   `  state file     ${path.relative(ROOT,STATE_FILE)} (for npm run rehearsal:check --attach)`,
+  '  Ctrl+C stops everything.',
+  '',
+ ].join('\n');
+}
+
+export function pairBanner(pair,{port,tbiPort}){
+ return [
+  '',
+  'CRC + TBI paired rehearsal is ready (memory stores, two local relay stubs, no production credentials).',
+  '',
+  'CRC (Central Reform Congregation)',
+  ...instanceLines(pair.crc,port,STATE_FILE),
+  '',
+  "TBI (Temple B'nai Israel)",
+  ...instanceLines(pair.tbi,tbiPort,STATE_FILE_TBI),
+  '',
+  `  TBI reads CRC's shared library at ${pair.sharedLibraryUrl} with one generated key held`,
+  '  only by these two children; loopback http is accepted there only in rehearsal mode.',
+  '  npm run rehearsal:check -- --pair attaches to both state files.',
   '  Ctrl+C stops everything.',
   '',
  ].join('\n');
@@ -239,29 +418,35 @@ async function main(){
  let options;
  try{options=parseArgs(process.argv.slice(2))}catch(error){console.error(`rehearsal refused: ${error.message}`);process.exit(error.exitCode??2)}
  const controller=new AbortController();
- let instance=null,exiting=false;
+ let running=null,exiting=false;
  const finish=async code=>{
   if(exiting)return;exiting=true;
-  if(instance)await instance.stop();
+  if(running)await running.stop();
   process.exit(code);
  };
- // Registered before startRehearsal spawns anything (exit codes unchanged: 2 credential,
- // 3 port, 5 not ready, 0 on signal), so a signal during the up-to-90 s boot still stops
- // the next dev tree and relay stub instead of orphaning them.
+ // Registered before anything is spawned (exit codes unchanged: 2 credential, 3 port,
+ // 5 not ready, 6 no private build directory, 0 on signal), so a signal during the up-to-90 s
+ // boot still stops every dev server tree and relay stub instead of orphaning them.
  for(const signal of ['SIGINT','SIGTERM','SIGHUP'])process.on(signal,()=>{
   process.stdout.write(`\n${signal} received; stopping rehearsal\n`);
   controller.abort();
-  if(instance)void finish(0);
+  if(running)void finish(0);
  });
- try{instance=await startRehearsal({...options,signal:controller.signal})}
+ let started;
+ try{started=await (options.pair?startRehearsalPair:startRehearsal)({...options,signal:controller.signal})}
  catch(error){
   if(error instanceof RehearsalAbortedError)process.exit(0);
   console.error(`rehearsal failed: ${error.message}`);
   process.exit(error instanceof RehearsalStartError?error.exitCode:1);
  }
+ running=started;
  if(exiting)return;
- process.stdout.write(banner(instance,options.port));
- instance.child.on('exit',code=>{if(!exiting)process.stdout.write(`next dev exited (${code ?? 'signal'}); stopping rehearsal\n`);void finish(code??0)});
+ const children=options.pair?[['CRC',started.crc.child],['TBI',started.tbi.child]]:[['',started.child]];
+ process.stdout.write(options.pair?pairBanner(started,options):banner(started,options.port));
+ for(const [name,child] of children)child.on('exit',code=>{
+  if(!exiting)process.stdout.write(`${name?`${name} `:''}next dev exited (${code??'signal'}); stopping rehearsal\n`);
+  void finish(code??0);
+ });
 }
 
 const entry=process.argv[1]?path.resolve(process.argv[1]):'';

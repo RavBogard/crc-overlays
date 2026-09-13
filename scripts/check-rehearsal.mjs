@@ -4,12 +4,15 @@
 //   npm run rehearsal:check              attach to work/rehearsal/current.json if it answers, else boot
 //   npm run rehearsal:check -- --attach  attach only; fail if nothing is running
 //   npm run rehearsal:check -- --boot    always boot a private instance on the default ports
+//   npm run rehearsal:check -- --pair    run the CRC -> TBI shared library scenario across a
+//                                        paired rehearsal (both state files, or boot a pair)
 // Prints `ok <step>` per step, `FAIL <step>: <detail>` and exit 1 on the first failure,
 // `REHEARSAL CHECK PASSED` and exit 0 at the end. Keys are never printed.
+import {deepStrictEqual} from 'node:assert/strict';
 import {randomUUID} from 'node:crypto';
 import {readFile} from 'node:fs/promises';
 import {PROTOCOL} from '../relay/src/protocol.ts';
-import {STATE_FILE,startRehearsal} from './rehearsal.mjs';
+import {STATE_FILE,STATE_FILE_TBI,TBI_WORKSPACE_ID,startRehearsal,startRehearsalPair} from './rehearsal.mjs';
 
 const REQUEST_TIMEOUT_MS=5000;
 const CONDITION_TIMEOUT_MS=5000;
@@ -21,17 +24,18 @@ const assert=(condition,message)=>{if(!condition)fail(message)};
 const sleep=ms=>new Promise(resolve=>setTimeout(resolve,ms));
 
 function parseArgs(argv){
- let mode='auto';
+ let mode='auto',pair=false;
  for(const argument of argv){
   if(argument==='--attach')mode='attach';
   else if(argument==='--boot')mode='boot';
-  else fail(`unknown argument ${argument}; supported: --attach, --boot`);
+  else if(argument==='--pair')pair=true;
+  else fail(`unknown argument ${argument}; supported: --attach, --boot, --pair`);
  }
- return mode;
+ return {mode,pair};
 }
 
-async function readState(){
- try{return JSON.parse(await readFile(STATE_FILE,'utf8'))}
+async function readState(file=STATE_FILE){
+ try{return JSON.parse(await readFile(file,'utf8'))}
  catch(error){if(error.code==='ENOENT')return null;throw error}
 }
 async function answers(baseUrl){
@@ -194,9 +198,133 @@ async function run(instance,booted){
  }
 }
 
+/** Returns {pair, booted}. Attaching needs both state files to answer. */
+async function resolvePair(mode){
+ if(mode!=='boot'){
+  const [crc,tbi]=await Promise.all([readState(STATE_FILE),readState(STATE_FILE_TBI)]);
+  if(crc&&tbi&&await answers(crc.baseUrl)&&await answers(tbi.baseUrl))
+   return {pair:{crc:{...crc,stop:async()=>{}},tbi:{...tbi,stop:async()=>{}},stop:async()=>{}},booted:false};
+  if(mode==='attach')fail(crc&&tbi?'the recorded paired rehearsal does not answer any more':`no running paired rehearsal (${STATE_FILE_TBI} is absent); start one with npm run rehearsal -- --pair`);
+ }
+ return {pair:await startRehearsalPair({log:null}),booted:true};
+}
+
+const sameDocument=(actual,expected,message)=>{try{deepStrictEqual(actual,expected)}catch{fail(message)}};
+
+/** create -> preview -> review -> publish, the way docs/REHEARSAL-MODE.md documents it. */
+async function publishDraft(api,draft){
+ const preview=await api.authoring('preview_draft',{draftId:draft.id,expectedVersion:draft.version});
+ assert(typeof preview.previewId==='string','preview_draft returned no previewId');
+ assert(preview.validation?.valid!==false,`preview validation failed: ${JSON.stringify(preview.validation?.errors??preview.validation)}`);
+ await api.authoring('review_draft',{draftId:draft.id,expectedVersion:draft.version,previewId:preview.previewId,humanApproved:true,browserMeasurement:{viewportWidth:1920,viewportHeight:1080,fontsReady:true,overflow:false,rendererVersion:'rehearsal-check',measuredAt:Date.now()}});
+ const published=await api.authoring('publish_draft',{draftId:draft.id,expectedVersion:draft.version,previewId:preview.previewId});
+ assert(published.cue?.id===draft.id,'publish_draft did not return the published graphic');
+ assert(!published.liveRefreshPending,'publication did not reach the relay catalog (liveRefreshPending)');
+ return published;
+}
+
+/**
+ * The paired scenario: CRC publishes, TBI sees it, copies it, edits its copy; CRC changes the
+ * wording and republishes; TBI is told the source moved on and its own copy is left alone.
+ * Never hashes a cue here: cueHash always comes from what TBI actually read.
+ */
+async function runPair(pair){
+ const crc=client(pair.crc),tbi=client(pair.tbi);
+ const steps=[];
+ const step=async(name,work)=>{
+  try{const detail=await work();console.log(`ok ${name}${detail?` (${detail})`:''}`);steps.push(name)}
+  catch(error){console.log(`FAIL ${name}: ${error instanceof Error?error.message:String(error)}`);throw error}
+ };
+ const sharedEntry=async cueId=>{
+  const library=await tbi.authoring('list_shared_library',{refresh:true});
+  assert(library.available,`TBI cannot read the CRC library (${library.error??'unavailable'})`);
+  const entry=library.cues.find(cue=>cue.id===cueId);
+  assert(entry,`${cueId} is not among the ${library.cues.length} graphics TBI can see`);
+  return entry;
+ };
+ const stamp=new Date().toISOString().slice(11,19).replace(/:/g,'');
+ let cueId=null,cueHash=null,crcDraft=null,tbiDraftId=null,tbiDocument=null;
+ try{
+  await step('paired workspaces',async()=>{
+   const [here,there]=await Promise.all([crc.expect('/api/workspace'),tbi.expect('/api/workspace')]);
+   assert(here.id&&there.id&&here.id!==there.id,`both instances report workspace ${here.id}`);
+   assert(there.id===TBI_WORKSPACE_ID,`the second instance is ${there.id}, not ${TBI_WORKSPACE_ID}`);
+   return `${here.id} + ${there.id}`;
+  });
+  await step('crc publishes a graphic',async()=>{
+   const catalog=await crc.expect('/api/catalog');
+   assert(Array.isArray(catalog)&&catalog.length,'CRC catalog is empty');
+   const template=catalog.find(cue=>cue.layout==='bottom'&&!cue.hidden&&!cue.authoring);
+   assert(template,'no baseline graphic with layout bottom in the CRC live catalog');
+   const {draft}=await crc.authoring('create_draft',{name:`Shared library check ${stamp}`,title:'Shared library check',layout:'bottom',templateCueId:template.id,content:{mode:'custom',text:`Shared library check ${stamp} — published by npm run rehearsal:check -- --pair.`},presentation:{}});
+   assert(typeof draft?.id==='string'&&Number.isInteger(draft.version),'create_draft returned no draft');
+   await publishDraft(crc,draft);
+   crcDraft=draft;cueId=draft.id;
+   return cueId;
+  });
+  await step('tbi lists it as new',async()=>{
+   const entry=await sharedEntry(cueId);
+   assert(entry.state==='new',`TBI reports state ${entry.state} for a graphic it has never copied`);
+   assert(typeof entry.cueHash==='string'&&/^[a-f0-9]{64}$/.test(entry.cueHash),`TBI reported cueHash ${entry.cueHash}`);
+   cueHash=entry.cueHash;
+   return `state ${entry.state}`;
+  });
+  await step('tbi customizes it',async()=>{
+   const {draft}=await tbi.authoring('customize_shared_cue',{cueId,expectedCueHash:cueHash});
+   assert(typeof draft?.id==='string','customize_shared_cue returned no draft');
+   const {draft:renamed}=await tbi.authoring('update_draft',{draftId:draft.id,expectedVersion:draft.version,patch:{title:`TBI wording ${stamp}`}});
+   assert(renamed.title===`TBI wording ${stamp}`,`TBI draft title is ${renamed.title}`);
+   tbiDraftId=draft.id;
+   tbiDocument=(await tbi.authoring('get_draft',{draftId:tbiDraftId})).draft;
+   return `draft ${tbiDraftId} v${renamed.version}`;
+  });
+  await step('crc changes the wording and republishes',async()=>{
+   const {draft}=await crc.authoring('update_draft',{draftId:cueId,expectedVersion:crcDraft.version,patch:{content:{mode:'custom',text:`Shared library check ${stamp} — CRC rewrote this line after TBI copied it.`}}});
+   await publishDraft(crc,draft);
+   crcDraft=draft;
+   return `v${draft.version}`;
+  });
+  await step('tbi sees the update without losing its copy',async()=>{
+   const entry=await sharedEntry(cueId);
+   assert(entry.state==='updated',`TBI reports state ${entry.state} after CRC republished`);
+   assert(entry.cueHash!==cueHash,'the CRC library still reports the pre-update cueHash');
+   cueHash=entry.cueHash;
+   const current=(await tbi.authoring('get_draft',{draftId:tbiDraftId})).draft;
+   sameDocument(current,tbiDocument,`the TBI draft changed when CRC republished (version ${current?.version} was ${tbiDocument?.version})`);
+   return `state ${entry.state}, TBI draft untouched`;
+  });
+  await step('tbi compares its copy with crc',async()=>{
+   const comparison=await tbi.authoring('compare_shared_cue',{cueId,draftId:tbiDraftId});
+   assert(comparison.beforeAvailable===true,'compare_shared_cue has no record of the wording TBI copied');
+   assert(comparison.changed?.wording===true,`compare_shared_cue reports changed ${JSON.stringify(comparison.changed)}`);
+   return 'wording changed';
+  });
+  await step('a second copy is a second draft',async()=>{
+   const {draft}=await tbi.authoring('customize_shared_cue',{cueId,expectedCueHash:cueHash});
+   assert(typeof draft?.id==='string','the second customize_shared_cue returned no draft');
+   assert(draft.id!==tbiDraftId,'the second copy reused the first draft');
+   return `${draft.id} alongside ${tbiDraftId}`;
+  });
+  console.log('PAIRED REHEARSAL CHECK PASSED');
+  return 0;
+ }catch(error){
+  if(!(error instanceof CheckFailure)&&!steps.length&&error?.exitCode===undefined)console.log(error?.stack??error);
+  return 1;
+ }
+}
+
 async function main(){
- let mode;
- try{mode=parseArgs(process.argv.slice(2))}catch(error){console.log(`FAIL arguments: ${error.message}`);return 1}
+ let mode,pair;
+ try{({mode,pair}=parseArgs(process.argv.slice(2)))}catch(error){console.log(`FAIL arguments: ${error.message}`);return 1}
+ if(pair){
+  let resolvedPair;
+  try{resolvedPair=await resolvePair(mode)}
+  catch(error){console.log(`FAIL ${mode==='attach'?'attach':'boot'}: ${error instanceof Error?error.message:String(error)}`);return 1}
+  const {crc,tbi}=resolvedPair.pair;
+  console.log(resolvedPair.booted?`booted a private paired rehearsal at ${crc.baseUrl} (CRC) and ${tbi.baseUrl} (TBI)`:`attached to the paired rehearsal at ${crc.baseUrl} (CRC) and ${tbi.baseUrl} (TBI)`);
+  try{return await runPair(resolvedPair.pair)}
+  finally{if(resolvedPair.booted)await resolvedPair.pair.stop()}
+ }
  let resolved;
  try{resolved=await resolveInstance(mode)}
  catch(error){console.log(`FAIL ${mode==='attach'?'attach':'boot'}: ${error instanceof Error?error.message:String(error)}`);return 1}

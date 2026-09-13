@@ -10,6 +10,7 @@ instance to publish and show a graphic.
 
 ```
 npm run rehearsal            # optional: -- --port 5175 --relay-port 8788 --book-faces
+#   add --pair to boot CRC and TBI together (see "Paired rehearsal" below)
 ```
 
 `--book-faces` sets `WORKSPACE_BOOK_FACES=1` in the Next child's environment, trialing the David Libre / Frank Ruhl Libre overlay typography (default off; see `docs/RENDERER.md`).
@@ -38,6 +39,74 @@ This runs `scripts/rehearsal.mjs` (under tsx), which:
 
 Ctrl+C (or SIGTERM/SIGHUP, or Next exiting) stops the dev server tree and the relay
 stub and removes the state file.
+
+## Paired rehearsal (CRC + TBI)
+
+```
+npm run rehearsal -- --pair    # optional: --port 5175 --relay-port 8788 --tbi-port 5176 --tbi-relay-port 8789
+```
+
+One orchestrator process, two congregations: two relay stubs, two `next dev` children, and one
+generated shared-library key. CRC boots first on **5175**/**8788**; TBI boots second on
+**5176**/**8789** with `WORKSPACE_ID=temple-bnai-israel-kalamazoo`. Exit 3 names whichever of
+the four ports is busy (or repeated), and nothing is spawned until all four are free.
+
+- **The shared key** is a fresh 43-character key drawn with every other key of the run, so it
+  can never equal either child's `CONTROL_KEY`, `OUTPUT_KEY`, or relay secret. CRC gets it as
+  `SHARED_LIBRARY_EXPORT_KEY` (it serves `/api/shared-library`); TBI gets the same value as
+  `SHARED_LIBRARY_IMPORT_KEY` plus
+  `CRC_SHARED_LIBRARY_URL=http://127.0.0.1:<crcPort>/api/shared-library`. The key exists only
+  in those two child environments and in the two state files; it is never printed.
+- **Loopback http is a rehearsal-only allowance.** Both the shared library client
+  (`lib/shared-library.ts`) and shared artwork import (`lib/assets.ts`) are https-only unless
+  `rehearsalMode()` is true — that is, `CRC_AUTHORING_REHEARSAL=1`, `NODE_ENV=development`, no
+  `VERCEL`, and no live relay — and even then only for `127.0.0.1`/`localhost` **with an
+  explicit port**. On Vercel, in production, or beside a real relay, an http feed URL is
+  refused before any request is made.
+- **Each relay stub is initialized with its own workspace's baseline catalog**
+  (`baselineCatalogForWorkspace`): 29 graphics for CRC, 24 for TBI, whose ids differ.
+- **Two state files:** `work/rehearsal/current.json` (CRC) and
+  `work/rehearsal/current-tbi.json` (TBI); both carry `workspaceId`, and both are removed on
+  exit. The banner prints both origins, both output/author/access/health links, both control
+  keys, and the same seeded owner sign-in for each.
+- **Separate build directories.** Next 16 takes an exclusive lock on `<distDir>/lock` per
+  checkout, so two `next dev` servers cannot share `.next/dev`. `distDir` can only come from
+  the resolved Next config, so the orchestrator asks Next for its own resolved development
+  config (`next.config.ts` is read normally and never edited), repoints `distDir` at
+  `.next/rehearsal/crc` and `.next/rehearsal/tbi`, and passes it to each child in
+  `__NEXT_PRIVATE_STANDALONE_CONFIG`. It also repoints `typescript.tsconfigPath` at a generated
+  copy of `tsconfig.json` under `work/rehearsal/`, because Next appends its own `types` globs
+  to whichever tsconfig the config names and the repository's `tsconfig.json` must not grow
+  entries for a rehearsal build directory. Both locations are already git- and lint-ignored.
+  If a future Next stops exposing this, the pair exits **6** with that explanation instead of
+  half-starting; single-instance `npm run rehearsal` is unaffected and keeps using `.next/dev`.
+  A pair therefore runs happily beside an unrelated `next dev` in the same checkout.
+
+### The acceptance scenario
+
+```
+npm run rehearsal:check -- --pair
+```
+
+Attaches to both state files (or boots its own pair, `--attach`/`--boot` force either) and
+drives the whole CRC → TBI story over HTTP, printing `ok <step>` / `FAIL <step>: <detail>`:
+
+1. **paired workspaces** — both instances answer `/api/workspace` with different workspace ids.
+2. **crc publishes a graphic** — `create_draft` → `preview_draft` → `review_draft` →
+   `publish_draft` for a throwaway custom graphic.
+3. **tbi lists it as new** — `list_shared_library {refresh:true}` shows it with `state:'new'`.
+4. **tbi customizes it** — `customize_shared_cue {cueId, expectedCueHash}` makes a TBI draft,
+   and `update_draft` gives that draft its own title.
+5. **crc changes the wording and republishes** — `update_draft` → preview → review → publish.
+6. **tbi sees the update without losing its copy** — the same entry now reads `state:'updated'`
+   and `get_draft` of the TBI draft still deep-equals its pre-update document.
+7. **tbi compares its copy with crc** — `compare_shared_cue {cueId, draftId}` reports
+   `changed.wording === true`.
+8. **a second copy is a second draft** — customizing again yields a different draft id.
+
+`cueHash` is never computed by the check: it always comes from what TBI actually read (tsx and
+Turbopack serialize `cues.json` floats differently). Without `--pair` the check is exactly the
+single-instance run described below.
 
 ## What is real
 
@@ -115,11 +184,16 @@ to the instance in `work/rehearsal/current.json` if it answers, else boots a pri
 one and stops it afterwards (`-- --attach` / `-- --boot` force either). It prints
 `ok <step>` or `FAIL <step>: <detail>` (exit 1) for: health, fake output renderer
 over the real socket, renderer presence, publish a throwaway graphic, `in` and `out`
-each acknowledged by the renderer; then `REHEARSAL CHECK PASSED`.
+each acknowledged by the renderer; then `REHEARSAL CHECK PASSED`. `-- --pair` runs the
+CRC → TBI shared library scenario instead (see "Paired rehearsal" above).
 
 ## Troubleshooting
 
-- **Port already in use:** `rehearsal.mjs` names which of 5175/8788 is taken; free it.
+- **Port already in use:** `rehearsal.mjs` names which of 5175/8788 (and 5176/8789 with
+  `--pair`) is taken; free it.
+- **"Another next dev server is already running":** only single-instance rehearsal uses
+  `.next/dev`, so this means another `next dev` holds the checkout. Stop it, or run the pair,
+  which gives each child its own build directory.
 - **Turbopack HMR resets the memory stores mid-session:** editing server code under
   active HMR restarts Next.js and wipes drafts/sessions/etc. Live relay state
   survives — the relay stub runs in the orchestrator's process, not in Next.
