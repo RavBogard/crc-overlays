@@ -22,7 +22,7 @@ mkdirSync(destination,{recursive:true});
 for(const directory of ['app','components','content','hooks','lib','schemas'])copy(directory);
 for(const file of ['package.json','package-lock.json','next.config.ts','tsconfig.json','postcss.config.mjs','vercel.json','next-env.d.ts'])copy(file);
 copy('workspaces/temple-bnai-israel');
-for(const file of ['public/assets/QGY_z_wNahGAdqQ43RhVcIgYT2Xz5u32K0nXBi8Jpg.woff2','public/assets/QGY_z_wNahGAdqQ43RhVcIgYT2Xz5u32K3vXBi8Jpg.woff2','public/assets/NotoSansHebrew-Regular.ttf','public/assets/NotoSansHebrew-Medium.ttf','public/assets/NotoSansHebrew-OFL.txt','public/workspaces/temple-bnai-israel'])copy(file);
+for(const file of ['public/assets/QGY_z_wNahGAdqQ43RhVcIgYT2Xz5u32K0nXBi8Jpg.woff2','public/assets/QGY_z_wNahGAdqQ43RhVcIgYT2Xz5u32K3vXBi8Jpg.woff2','public/assets/NotoSansHebrew-Regular.ttf','public/assets/NotoSansHebrew-Medium.ttf','public/assets/NotoSansHebrew-OFL.txt','public/assets/DavidLibre-Regular.ttf','public/assets/DavidLibre-Medium.ttf','public/assets/DavidLibre-OFL.txt','public/assets/FrankRuhlLibre[wght].ttf','public/assets/FrankRuhlLibre-OFL.txt','public/workspaces/temple-bnai-israel'])copy(file);
 
 const fullLegacy=readJson(resolve(repoRoot,'content','authoring-sources.json'));
 const expanded=readJson(resolve(repoRoot,'content','siddur-library.json'));
