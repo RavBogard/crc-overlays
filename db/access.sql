@@ -24,14 +24,20 @@ ALTER TABLE access_links ALTER COLUMN pending_role SET NOT NULL;
 CREATE TABLE IF NOT EXISTS access_sessions (
  token_hash text PRIMARY KEY, member_id text NOT NULL REFERENCES access_members(id),
  expires_at bigint NOT NULL, created_at bigint NOT NULL,
- auth_method text NOT NULL DEFAULT 'invite' CHECK(auth_method IN ('invite','password','bootstrap')),
+ auth_method text NOT NULL DEFAULT 'invite' CHECK(auth_method IN ('invite','password','bootstrap','google')),
  authenticated_at bigint NOT NULL
 );
 ALTER TABLE access_sessions ADD COLUMN IF NOT EXISTS auth_method text NOT NULL DEFAULT 'invite';
-DO $$ BEGIN
- ALTER TABLE access_sessions ADD CONSTRAINT access_sessions_auth_method_check CHECK(auth_method IN ('invite','password','bootstrap'));
-EXCEPTION WHEN duplicate_object THEN NULL;
+-- Widened for Google sign-in. Drop whatever auth_method check the database actually
+-- holds - the inline CREATE TABLE check is auto-named access_sessions_auth_method_check,
+-- but an older database may carry a differently numbered name - then add the wider one,
+-- so running this file twice is a no-op.
+DO $$ DECLARE constraint_name text; BEGIN
+ FOR constraint_name IN SELECT conname FROM pg_constraint WHERE conrelid='access_sessions'::regclass AND contype='c' AND pg_get_constraintdef(oid) LIKE '%auth_method%' LOOP
+  EXECUTE format('ALTER TABLE access_sessions DROP CONSTRAINT %I',constraint_name);
+ END LOOP;
 END $$;
+ALTER TABLE access_sessions ADD CONSTRAINT access_sessions_auth_method_check CHECK(auth_method IN ('invite','password','bootstrap','google'));
 ALTER TABLE access_sessions ADD COLUMN IF NOT EXISTS authenticated_at bigint;
 UPDATE access_sessions SET authenticated_at=created_at WHERE authenticated_at IS NULL;
 ALTER TABLE access_sessions ALTER COLUMN authenticated_at SET NOT NULL;

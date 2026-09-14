@@ -5,6 +5,7 @@ import {
  ACCESS_COOKIE,
  ACCESS_ATTEMPT_SQL,
  AccessInvariantError,
+ AccessIdentityConflictError,
  MemoryAccessStore,
  REHEARSAL_OWNER,
  PgAccessStore,
@@ -22,6 +23,9 @@ import {
  validPassword,
  verifyPassword,
  type AccessMember,
+ type AccessRole,
+ type GoogleIdentity,
+ type SignInFlow,
  type AccessSessionMember,
  type AccessStore,
 } from '../lib/access.ts';
@@ -31,6 +35,9 @@ const ownerSession:AccessSessionMember={...owner,authMethod:'invite',authenticat
 const editor:AccessMember={id:'editor-1',email:'editor@example.test',name:'Editor',role:'editor',enabled:true};
 const operator:AccessMember={id:'operator-1',email:'operator@example.test',name:'Operator',role:'operator',enabled:true};
 const validToken='a'.repeat(43);
+
+/** The identity half of AccessStore, for literals that only exercise the rest of it. */
+const identityStoreStubs={identityForMember:async()=>null,memberForIdentity:async()=>null,linkIdentity:async()=>{},unlinkIdentity:async()=>{},putSignInFlow:async()=>{},takeSignInFlow:async()=>null};
 
 type TestStore=AccessStore;
 async function withStoreMethods<T>(overrides:Partial<TestStore>,run:()=>Promise<T>){
@@ -46,6 +53,12 @@ async function withStoreMethods<T>(overrides:Partial<TestStore>,run:()=>Promise<
   disable:accessStore.disable,
   allowAttempt:accessStore.allowAttempt,
   bootstrap:accessStore.bootstrap,
+  identityForMember:accessStore.identityForMember,
+  memberForIdentity:accessStore.memberForIdentity,
+  linkIdentity:accessStore.linkIdentity,
+  unlinkIdentity:accessStore.unlinkIdentity,
+  putSignInFlow:accessStore.putSignInFlow,
+  takeSignInFlow:accessStore.takeSignInFlow,
  };
  Object.assign(accessStore,overrides);
  try{return await run()}finally{Object.assign(accessStore,saved)}
@@ -264,7 +277,7 @@ test('expired, disabled, or deleted sessions cannot produce a current member',as
  const store:AccessStore={
  memberForSession:async(hash)=>{hashes.push(hash);return null},
   createSession:async()=>{},deleteSession:async()=>{},credentialForEmail:async()=>null,setPassword:async()=>{},redeem:async()=>null,
-  invite:async()=>owner,list:async()=>[],disable:async()=>{},bootstrap:async()=>null,allowAttempt:async()=>true,
+  invite:async()=>owner,list:async()=>[],disable:async()=>{},bootstrap:async()=>null,allowAttempt:async()=>true,...identityStoreStubs,
  };
  const request=new Request('https://graphics.test/author',{headers:{cookie:`${ACCESS_COOKIE}=${validToken}`}});
  assert.equal(await currentMember(request,store),null);
@@ -286,7 +299,7 @@ test('session issuance stores only a hash and uses a fixed thirty-day expiry',as
  const store:AccessStore={
  memberForSession:async()=>null,
   createSession:async(hash,memberId,now,expires,method)=>{recorded={hash,memberId,now,expires,method}},
-  deleteSession:async()=>{},credentialForEmail:async()=>null,setPassword:async()=>{},redeem:async()=>null,invite:async()=>owner,list:async()=>[],disable:async()=>{},bootstrap:async()=>null,allowAttempt:async()=>true,
+  deleteSession:async()=>{},credentialForEmail:async()=>null,setPassword:async()=>{},redeem:async()=>null,invite:async()=>owner,list:async()=>[],disable:async()=>{},bootstrap:async()=>null,allowAttempt:async()=>true,...identityStoreStubs,
  };
  const token=await issueSession(owner,store);
  assert.match(token,/^[A-Za-z0-9_-]{43}$/);
@@ -407,4 +420,149 @@ test('memory store: a redemption refused by the administrator invariant leaves t
  assert.deepEqual({id:demoted?.id,role:demoted?.role,enabled:demoted?.enabled},{id:REHEARSAL_OWNER.id,role:'editor',enabled:true});
  assert.equal(store.links.get(demote)?.usedAt,now);
  assert.equal(await store.redeem(demote,now,tokenHash('session-demote-3'),expires),null,'a spent link stays single-use');
+});
+
+// --- MemoryAccessStore: Google identities and sign-in flows ----------------------
+const ISSUER='https://accounts.google.com';
+const googleIdentity=(subject:string,email:string,emailVerified=true):GoogleIdentity=>({provider:'google',issuer:ISSUER,subject,email,emailVerified});
+async function memoryMember(store:MemoryAccessStore,email:string,name:string,role:AccessRole='editor'){
+ const now=Date.now(),expires=now+60_000,hash=tokenHash(`invite-${email}`);
+ await store.invite(email,name,role,hash,expires);
+ const member=await store.redeem(hash,now,tokenHash(`session-${email}`),expires);
+ assert.ok(member,`${email} redeemed`);
+ return member;
+}
+
+test('memory store: a linked identity resolves to its member and records the use',async()=>{
+ const store=new MemoryAccessStore();
+ const member=await memoryMember(store,'linked@rehearsal.invalid','Linked Editor');
+ const identity=googleIdentity('google-subject-1','linked@rehearsal.invalid');
+ await store.linkIdentity(member.id,identity,1000);
+ assert.deepEqual(await store.identityForMember(member.id),{provider:'google',email:'linked@rehearsal.invalid',linkedAt:1000,lastUsedAt:null});
+ const resolved=await store.memberForIdentity(identity,2000);
+ assert.deepEqual({id:resolved?.id,role:resolved?.role,enabled:resolved?.enabled},{id:member.id,role:'editor',enabled:true});
+ assert.equal((await store.identityForMember(member.id))?.lastUsedAt,2000);
+ assert.equal(await store.memberForIdentity(googleIdentity('google-subject-unknown','other@rehearsal.invalid'),3000),null);
+});
+
+test('memory store: one Google identity cannot be bound to a second member',async()=>{
+ const store=new MemoryAccessStore();
+ const first=await memoryMember(store,'first@rehearsal.invalid','First Editor');
+ const second=await memoryMember(store,'second@rehearsal.invalid','Second Editor');
+ const identity=googleIdentity('shared-subject','first@rehearsal.invalid');
+ await store.linkIdentity(first.id,identity,1000);
+ await assert.rejects(store.linkIdentity(second.id,identity,2000),AccessIdentityConflictError);
+ assert.equal((await store.memberForIdentity(identity,3000))?.id,first.id,'the first link survives the refusal');
+ assert.equal(await store.identityForMember(second.id),null);
+});
+
+test('memory store: re-linking a member replaces its previous Google identity',async()=>{
+ const store=new MemoryAccessStore();
+ const member=await memoryMember(store,'rotating@rehearsal.invalid','Rotating Editor');
+ const old=googleIdentity('subject-old','rotating@rehearsal.invalid');
+ const next=googleIdentity('subject-new','rotating-new@rehearsal.invalid');
+ await store.linkIdentity(member.id,old,1000);
+ await store.linkIdentity(member.id,next,2000);
+ assert.equal(store.identities.size,1,'a member keeps at most one Google link');
+ assert.equal(await store.memberForIdentity(old,3000),null);
+ assert.equal((await store.memberForIdentity(next,3000))?.id,member.id);
+ assert.deepEqual(await store.identityForMember(member.id),{provider:'google',email:'rotating-new@rehearsal.invalid',linkedAt:2000,lastUsedAt:3000});
+});
+
+test('memory store: a removed member still resolves, is marked disabled, and records no use',async()=>{
+ const store=new MemoryAccessStore();
+ const member=await memoryMember(store,'removed@rehearsal.invalid','Removed Editor');
+ const identity=googleIdentity('subject-removed','removed@rehearsal.invalid');
+ await store.linkIdentity(member.id,identity,1000);
+ await store.disable(member.id);
+ const resolved=await store.memberForIdentity(identity,2000);
+ assert.deepEqual({id:resolved?.id,enabled:resolved?.enabled},{id:member.id,enabled:false});
+ assert.equal((await store.identityForMember(member.id))?.lastUsedAt,null,'a removed member never records a Google sign-in');
+});
+
+test('memory store: unlinking leaves the membership and removes the identity',async()=>{
+ const store=new MemoryAccessStore();
+ const member=await memoryMember(store,'unlink@rehearsal.invalid','Unlinking Editor');
+ const identity=googleIdentity('subject-unlink','unlink@rehearsal.invalid');
+ await store.linkIdentity(member.id,identity,1000);
+ await store.unlinkIdentity(member.id,'google');
+ assert.equal(await store.memberForIdentity(identity,2000),null);
+ assert.equal(await store.identityForMember(member.id),null);
+ assert.equal((await store.list()).find(row=>row.id===member.id)?.enabled,true);
+ await store.unlinkIdentity(member.id,'google');
+});
+
+test('memory store: redemption binds the identity in the same step, or binds nothing',async()=>{
+ const store=new MemoryAccessStore();
+ const now=Date.now(),expires=now+60_000;
+ const identity=googleIdentity('subject-redeem','invited@rehearsal.invalid');
+ const invited=tokenHash('invite-with-google');
+ await store.invite('invited@rehearsal.invalid','Invited Editor','editor',invited,expires);
+ const member=await store.redeem(invited,now,tokenHash('session-with-google'),expires,identity);
+ assert.equal(member?.role,'editor');
+ assert.equal((await store.memberForIdentity(identity,now))?.id,member?.id);
+
+ // An identity already held by somebody else refuses the redemption entirely.
+ const other=tokenHash('invite-conflicting');
+ await store.invite('other@rehearsal.invalid','Other Editor','editor',other,expires);
+ await assert.rejects(store.redeem(other,now,tokenHash('session-conflicting'),expires,identity),AccessIdentityConflictError);
+ assert.equal(store.links.get(other)?.usedAt,null,'the refused invitation stays redeemable');
+ assert.equal(store.sessions.has(tokenHash('session-conflicting')),false);
+ assert.equal((await store.memberForIdentity(identity,now))?.id,member?.id,'the existing link is untouched');
+});
+
+test('memory store: a redemption refused by the administrator invariant writes no identity',async()=>{
+ const store=new MemoryAccessStore();
+ const now=Date.now(),expires=now+60_000;
+ const identity=googleIdentity('subject-invariant','rehearsal-owner@rehearsal.invalid');
+ // Two enabled owners so the seeded owner may be invited down to editor, then one goes.
+ await store.invite('second-owner@rehearsal.invalid','Second Owner','owner',tokenHash('second-owner-1'),expires);
+ const secondOwner=await store.redeem(tokenHash('second-owner-1'),now,tokenHash('session-second-owner'),expires);
+ const demote=tokenHash('demote-with-identity');
+ await store.invite(REHEARSAL_OWNER.email,REHEARSAL_OWNER.name,'editor',demote,expires);
+ await store.disable(secondOwner!.id);
+ await assert.rejects(store.redeem(demote,now,tokenHash('session-demote'),expires,identity),AccessInvariantError);
+ assert.equal(store.identities.size,0,'no identity is bound by a rolled-back redemption');
+ assert.equal(store.links.get(demote)?.usedAt,null,'the invitation stays redeemable');
+});
+
+test('memory store: a sign-in flow is taken once and never after it expires',async()=>{
+ const store=new MemoryAccessStore();
+ const now=1_000_000;
+ const flow:SignInFlow={kind:'signin',createdAt:now,codeVerifier:'verifier-value',state:'state-value',nonce:'nonce-value',redirectUri:'https://graphics.test/api/auth/google/callback'};
+ const hash=tokenHash('flow-token');
+ await store.putSignInFlow(hash,flow,now+600_000);
+ assert.deepEqual(await store.takeSignInFlow(hash,now+1000),flow);
+ assert.equal(await store.takeSignInFlow(hash,now+1000),null,'a second callback finds nothing');
+
+ const expiring=tokenHash('flow-token-expiring');
+ await store.putSignInFlow(expiring,flow,now+1000);
+ assert.equal(await store.takeSignInFlow(expiring,now+2000),null,'an expired flow never completes');
+ assert.equal(store.flows.has(expiring),false,'and is removed on the way out');
+
+ // Insertion prunes whatever has already expired, as ACCESS_ATTEMPT_SQL does.
+ await store.putSignInFlow(expiring,flow,now+1000);
+ await store.putSignInFlow(tokenHash('flow-token-later'),{...flow,createdAt:now+2000},now+602_000);
+ assert.equal(store.flows.has(expiring),false);
+
+ // A held flow is stored by value: later edits to the caller's object do not reach it.
+ const confirming=tokenHash('flow-token-confirm');
+ const held:SignInFlow={...flow,kind:'link',memberId:'member-1',pending:{identity:googleIdentity('subject-held','held@rehearsal.invalid'),status:'confirm'}};
+ await store.putSignInFlow(confirming,held,now+600_000);
+ held.memberId='mutated';
+ assert.equal((await store.takeSignInFlow(confirming,now+1000))?.memberId,'member-1');
+});
+
+test('memory store: each workspace maps the same Google identity independently',async()=>{
+ const crc=new MemoryAccessStore(),tbi=new MemoryAccessStore();
+ const identity=googleIdentity('subject-shared-person','person@example.test');
+ const atCrc=await memoryMember(crc,'person@example.test','Person','owner');
+ const atTbi=await memoryMember(tbi,'person@example.test','Person','operator');
+ await crc.linkIdentity(atCrc.id,identity,1000);
+ await tbi.linkIdentity(atTbi.id,identity,1000);
+ assert.equal((await crc.memberForIdentity(identity,2000))?.role,'owner');
+ assert.equal((await tbi.memberForIdentity(identity,2000))?.role,'operator');
+ await crc.unlinkIdentity(atCrc.id,'google');
+ assert.equal(await crc.memberForIdentity(identity,3000),null);
+ assert.equal((await tbi.memberForIdentity(identity,3000))?.id,atTbi.id,'the other workspace is unaffected');
 });
