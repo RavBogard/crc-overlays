@@ -1,5 +1,6 @@
 import {createHash,randomBytes,randomUUID,scrypt,timingSafeEqual} from 'node:crypto';
 import {rehearsalMode} from './rehearsal';
+import {DEVICE_TOKEN_PREFIX,verifyDeviceToken} from './devices';
 
 export type AccessRole='owner'|'editor'|'operator';
 export type AccessPermission='read'|'control'|'author'|'owner';
@@ -306,6 +307,13 @@ export async function authorizeRequest(request:Request,permission:AccessPermissi
  // after every human author has moved to an individual membership.
  if(permission!=='owner'&&secretEqual(bearer,process.env.CONTROL_KEY))return {id:'legacy-control',email:'',name:'Administrator',role:'owner',enabled:true};
  if(permission==='read'&&secretEqual(bearer,process.env.OUTPUT_KEY))return {id:'legacy-output',email:'',name:'Graphics output',role:'operator',enabled:true};
+ // D3: a paired device. A Companion credential satisfies read and control, a graphics
+ // output credential satisfies read, and neither ever becomes an author or an owner -
+ // so a device token is not even looked up for those two permissions.
+ if(bearer.startsWith(DEVICE_TOKEN_PREFIX)&&permission!=='author'&&permission!=='owner'){
+  const credential=await verifyDeviceToken(bearer);
+  if(credential&&(credential.kind==='companion'||permission==='read'))return {id:`device:${credential.id}`,email:'',name:credential.name,role:'operator',enabled:true};
+ }
  if(!sameSiteWrite(request))return null;
  const member=await currentMember(request);
  return member&&canAccess(member.role,permission)?member:null;

@@ -70,4 +70,5 @@ export const setupProgressStore:SetupProgressStore=rehearsalMode()?new MemorySet
 
 /** Legacy Companion and output credentials resolve to these synthetic actors; they have no member row. */
 export const LEGACY_ACTOR_IDS=new Set(['legacy-control','legacy-output']);
-export const isLegacyActor=(id:string)=>LEGACY_ACTOR_IDS.has(id);
+/** Paired devices (S1) are actors too, with ids `device:<credential id>` and no member row. */
+export const isLegacyActor=(id:string)=>LEGACY_ACTOR_IDS.has(id)||id.startsWith('device:');

@@ -29,6 +29,8 @@ import {
  type AccessSessionMember,
  type AccessStore,
 } from '../lib/access.ts';
+import {MemoryDeviceStore,clearVerifiedDeviceCache,deviceStore} from '../lib/devices.ts';
+import {isLegacyActor} from '../lib/setup-progress.ts';
 
 const owner:AccessMember={id:'owner-1',email:'owner@example.test',name:'Owner',role:'owner',enabled:true};
 const ownerSession:AccessSessionMember={...owner,authMethod:'invite',authenticatedAt:Date.now()};
@@ -680,4 +682,71 @@ test('memory store: setRole keeps one enabled administrator, restore re-enables'
  assert.equal((await store.memberById(other.id))?.enabled,false);
  assert.equal((await store.restore(other.id))?.enabled,true);
  assert.equal(await store.restore('nobody'),null);
+});
+
+// --- Phase C, D3: paired device credentials beside the legacy keys ---
+
+test('a paired device satisfies only its own permissions and never becomes an author',async()=>{
+ const store=new MemoryDeviceStore();
+ const companion=await store.issue({name:'Booth Companion',kind:'companion',memberId:owner.id,now:1_000});
+ const output=await store.issue({name:'Sanctuary PC',kind:'output',memberId:owner.id,now:1_000});
+ let lookups=0;
+ const saved={verify:deviceStore.verify};
+ Object.assign(deviceStore,{verify:async(token:string,now:number)=>{lookups++;return store.verify(token,now)}});
+ clearVerifiedDeviceCache();
+ try{
+  const as=(token:string)=>new Request('https://site.test',{headers:{Authorization:`Bearer ${token}`}});
+  const companionActor=await authorizeRequest(as(companion.token),'read');
+  assert.deepEqual(companionActor,{id:`device:${companion.credential.id}`,email:'',name:'Booth Companion',role:'operator',enabled:true});
+  assert.equal((await authorizeRequest(as(companion.token),'control'))?.id,`device:${companion.credential.id}`);
+  assert.equal(await authorizeRequest(as(companion.token),'author'),null,'a Companion credential is not an author');
+  assert.equal(await authorizeRequest(as(companion.token),'owner'),null,'a Companion credential is not an administrator');
+
+  assert.equal((await authorizeRequest(as(output.token),'read'))?.name,'Sanctuary PC');
+  assert.equal(await authorizeRequest(as(output.token),'control'),null,'a graphics output cannot control graphics');
+  assert.equal(await authorizeRequest(as(output.token),'author'),null);
+  assert.equal(await authorizeRequest(as(output.token),'owner'),null);
+
+  const before=lookups;
+  await authorizeRequest(as(companion.token),'author');
+  await authorizeRequest(as(output.token),'owner');
+  assert.equal(lookups,before,'author and owner never even look a device token up');
+
+  assert.equal(await authorizeRequest(as(`cd_${companion.credential.id}.${'b'.repeat(43)}`),'read'),null,'a wrong secret is refused');
+  assert.equal(await authorizeRequest(as('cd_not-a-token'),'read'),null);
+ }finally{Object.assign(deviceStore,saved);clearVerifiedDeviceCache()}
+});
+
+test('a revoked device is refused and the legacy keys are unchanged beside it',async()=>{
+ const before={control:process.env.CONTROL_KEY,output:process.env.OUTPUT_KEY};
+ process.env.CONTROL_KEY='control-test';process.env.OUTPUT_KEY='output-test';
+ const store=new MemoryDeviceStore();
+ const companion=await store.issue({name:'Booth Companion',kind:'companion',memberId:owner.id,now:1_000});
+ const saved={verify:deviceStore.verify};
+ Object.assign(deviceStore,{verify:async(token:string,now:number)=>store.verify(token,now)});
+ clearVerifiedDeviceCache();
+ try{
+  const as=(token:string)=>new Request('https://site.test',{headers:{Authorization:`Bearer ${token}`}});
+  assert.equal((await authorizeRequest(as(companion.token),'control'))?.id,`device:${companion.credential.id}`);
+  await store.revoke(companion.credential.id,2_000);
+  clearVerifiedDeviceCache();
+  assert.equal(await authorizeRequest(as(companion.token),'control'),null,'a revoked device stops at its next verification');
+  // Nothing existing breaks: the transitional keys behave exactly as before.
+  assert.equal((await authorizeRequest(as('control-test'),'control'))?.id,'legacy-control');
+  assert.equal((await authorizeRequest(as('control-test'),'author'))?.id,'legacy-control');
+  assert.equal(await authorizeRequest(as('control-test'),'owner'),null);
+  assert.equal((await authorizeRequest(as('output-test'),'read'))?.id,'legacy-output');
+  assert.equal(await authorizeRequest(as('output-test'),'control'),null);
+ }finally{
+  Object.assign(deviceStore,saved);clearVerifiedDeviceCache();
+  if(before.control===undefined)delete process.env.CONTROL_KEY;else process.env.CONTROL_KEY=before.control;
+  if(before.output===undefined)delete process.env.OUTPUT_KEY;else process.env.OUTPUT_KEY=before.output;
+ }
+});
+
+test('setup progress treats a paired device as a non-member, like the legacy keys',()=>{
+ assert.equal(isLegacyActor('legacy-control'),true);
+ assert.equal(isLegacyActor('legacy-output'),true);
+ assert.equal(isLegacyActor('device:AbCdEfGhIjKl'),true);
+ assert.equal(isLegacyActor('00000000-0000-4000-8000-000000000000'),false);
 });
