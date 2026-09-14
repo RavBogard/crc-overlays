@@ -515,3 +515,11 @@
   .archived-grid article { grid-template-columns: auto minmax(0,1fr); }
   .archived-grid article > button { grid-column: 1 / -1; }
 }
+
+/* Layout pass (handoff #2 A): the author shell is full-bleed, so the header bar and any page
+   title carry the gutter the padded pages get from their own container. */
+.author-page > header { padding-inline: 22px; }
+
+.library-elsewhere { display: flex; flex-direction: column; gap: 2px; margin-top: 14px; padding-top: 12px; border-top: 1px solid var(--line); }
+.library-elsewhere a { padding: 8px 10px; border-radius: 8px; color: var(--muted); text-decoration: none; font-size: 13px; font-weight: 650; }
+.library-elsewhere a:hover { background: var(--panel-raised); color: var(--text); }

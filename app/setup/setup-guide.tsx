@@ -21,7 +21,8 @@ function Verified({children}: {children: string}) {
   return <p className={styles.verified} role="status"><span aria-hidden>✓</span>{children}</p>;
 }
 
-export default function SetupGuide({workspace}: {workspace: PublicWorkspace}) {
+/** `embedded` renders the guide inside the System page, which already carries the header bar. */
+export default function SetupGuide({workspace, embedded}: {workspace: PublicWorkspace; embedded?: boolean}) {
   const [application, setApplication] = useState<Application>(workspace.defaultCompositor);
   const [legacyKey, setLegacyKey] = useState('');
   const [showLegacyAccess, setShowLegacyAccess] = useState(false);
@@ -250,7 +251,7 @@ export default function SetupGuide({workspace}: {workspace: PublicWorkspace}) {
   const pageDownloads = workspace.setupDownloads.filter(item => item.kind === 'pages');
 
   return <>
-    <WorkspaceHeader current="/setup" title="Setup" workspace={workspace} lede="Connect Companion and the graphics browser on this computer."/>
+    {!embedded && <WorkspaceHeader current="/setup" title="Setup" workspace={workspace} lede="Connect Companion and the graphics browser on this computer."/>}
 
     <section className={styles.intro}>
       <div>

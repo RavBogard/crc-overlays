@@ -944,7 +944,7 @@ export default function AuthorPage() {
 
   return (
     <main className="author-page" style={workspaceStyle}>
-      <WorkspaceHeader compact current="/author" title="Library" role={role} workspace={workspace} aside={<Link className="header-link" href="/author/fit-check">Fit check</Link>} />
+      <WorkspaceHeader current="/author" title="Library" role={role} workspace={workspace} aside={<Link className="header-link" href="/author/fit-check">Fit check</Link>} />
       {workspaceLabel && <div className="workspace-banner"><CircleAlert size={16} />{workspaceLabel}</div>}
 
       <div className="author-shell">
@@ -1105,6 +1105,12 @@ function LibrarySidebar(props: {
       })}
       {!(props.libraryTab === "shared" ? props.sharedItems.length : props.visibleLibrary.length) && <div className="library-empty"><LibraryBig size={24} /><p>{libraryEmptyMessage(props.libraryTab, hasQuery)}</p></div>}
     </div>
+    {/* Layout pass (handoff #2, D3 and D4): source review and prepared services left the top
+        navigation. They live under the library, where the work they belong to is. */}
+    <nav className="library-elsewhere" aria-label="More library work">
+      <Link href="/sources-review">Source changes</Link>
+      <Link href="/services">Prepared services</Link>
+    </nav>
   </aside>;
 }
 

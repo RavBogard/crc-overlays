@@ -273,8 +273,7 @@ export default function FacesClient() {
   return (
     <main className="author-page" style={workspaceStyle}>
       <WorkspaceHeader
-        compact
-        current="/author"
+        current="/author/fit-check/faces"
         title="Fit check — book faces"
         role={role}
         workspace={workspace}

@@ -7,7 +7,7 @@ import {useEffect, useState} from 'react';
 import type {AccessRole} from '@/lib/access';
 import {fetchAccessUser} from '@/lib/access-client';
 import styles from './workspace-nav.module.css';
-import {isCurrentDestination, visibleDestinations} from './workspace-nav-model';
+import {HELP_DESTINATION, isCurrentDestination, visibleDestinations} from './workspace-nav-model';
 
 export default function WorkspaceNav({current, className = '', role}: {current?: string; className?: string; role?: AccessRole}) {
   const [resolvedRole, setResolvedRole] = useState<AccessRole | undefined>(role);
@@ -33,7 +33,9 @@ export default function WorkspaceNav({current, className = '', role}: {current?:
   }, [role]);
 
   const visible = visibleDestinations(resolvedRole);
+  const [helpHref, helpLabel] = HELP_DESTINATION;
   return <nav className={`${styles.nav} ${className}`} aria-label="Workspace">
     {visible.map(([href, label]) => <Link key={href} href={href} aria-current={isCurrentDestination(href, current) ? 'page' : undefined}>{label}</Link>)}
+    <Link className={styles.help} href={helpHref} aria-label={helpLabel} title={helpLabel} aria-current={current === helpHref ? 'page' : undefined}><span aria-hidden>?</span></Link>
   </nav>;
 }

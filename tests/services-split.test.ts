@@ -15,44 +15,40 @@ const helpPage = read('../app/help/page.tsx');
 const preparedPage = read('../app/services/page.tsx');
 const logPage = read('../app/services/log/page.tsx');
 
-/* ---------- the workspace navigation ---------- */
+/* ---------- the workspace navigation (handoff #2, section A) ---------- */
 
-test('the header lists Prepared services and Service log, in that order, next to each other', () => {
-  const hrefs = destinations.map(([href]) => href);
-  const prepared = hrefs.indexOf('/services');
-  const log = hrefs.indexOf('/services/log');
-  assert.ok(prepared >= 0, 'Prepared services is in the navigation');
-  assert.equal(log, prepared + 1, 'Service log follows it immediately');
-  assert.deepEqual(
-    destinations.filter(([href]) => href.startsWith('/services')).map(([, label]) => label),
-    ['Prepared services', 'Service log'],
-  );
+test('the bar carries three destinations in task order: Live, Library, System', () => {
+  assert.deepEqual(destinations.map(([href, label]) => [href, label]), [
+    ['/', 'Live'],
+    ['/author', 'Library'],
+    ['/system', 'System'],
+  ]);
 });
 
-test('both service pages keep the member visibility the one Services page had', () => {
-  for (const role of ['owner', 'editor', 'operator'] as const) {
-    const hrefs = visibleDestinations(role).map(([href]) => href);
-    assert.ok(hrefs.includes('/services'), `${role} sees Prepared services`);
-    assert.ok(hrefs.includes('/services/log'), `${role} sees Service log`);
-  }
-  // Before the role resolves, the navigation shows member pages only; both service pages are member pages.
-  const anonymous = visibleDestinations(undefined).map(([href]) => href);
-  assert.deepEqual(anonymous.filter(href => href.startsWith('/services')), ['/services', '/services/log']);
-  assert.ok(!anonymous.includes('/author'));
+test('an Operator sees Live only; an Editor adds Library; an Administrator adds System', () => {
+  assert.deepEqual(visibleDestinations('operator').map(([href]) => href), ['/']);
+  assert.deepEqual(visibleDestinations('editor').map(([href]) => href), ['/', '/author']);
+  assert.deepEqual(visibleDestinations('owner').map(([href]) => href), ['/', '/author', '/system']);
+  // Before the role resolves the bar shows the member destination only.
+  assert.deepEqual(visibleDestinations(undefined).map(([href]) => href), ['/']);
 });
 
-test('the current page is marked, and Service log never marks Prepared services', () => {
-  assert.equal(isCurrentDestination('/services', '/services'), true);
-  assert.equal(isCurrentDestination('/services/log', '/services/log'), true);
-  assert.equal(isCurrentDestination('/services', '/services/log'), false);
-  assert.equal(isCurrentDestination('/services/log', '/services'), false);
+test('nothing that was reachable disappears: the demoted pages are one level down', () => {
+  const rail = read('../app/author/page.tsx');
+  assert.ok(rail.includes('href="/sources-review"'), 'source review is in the library rail');
+  assert.ok(rail.includes('href="/services"'), 'prepared services is in the library rail');
+  assert.match(read('../app/health/page.tsx'), /redirect\('\/system#status'\)/);
+  assert.match(logPage, /redirect\('\/system#log'\)/);
+  const system = read('../app/system/system-client.tsx');
+  for (const tab of ['Status', 'People', 'Setup', 'Log']) assert.ok(system.includes(`'${tab}'`), `System holds ${tab}`);
 });
 
-test('each page tells the header which pill it is', () => {
-  assert.ok(preparedPage.includes('current="/services"'));
-  assert.ok(preparedPage.includes('title="Prepared services"'));
-  assert.ok(logPage.includes('current="/services/log"'));
-  assert.ok(logPage.includes('title="Service log"'));
+test('a page under a destination lights it, and Setup keeps its own route for an Editor', () => {
+  assert.equal(isCurrentDestination('/', '/'), true);
+  assert.equal(isCurrentDestination('/author', '/author/fit-check'), true, 'the fit check is Library');
+  assert.equal(isCurrentDestination('/system', '/setup'), true, 'Setup is a System tab');
+  assert.equal(isCurrentDestination('/author', '/'), false);
+  assert.equal(isCurrentDestination('/system', '/author'), false);
 });
 
 /* ---------- where a disconnected service sends an operator ---------- */
@@ -68,19 +64,18 @@ test('the console says the output is disconnected exactly once, and offers one w
   assert.equal(consolePage.includes('Trial'), false, 'the trial pill and footer are gone from Live control');
 });
 
-test('Help sends someone recording a service problem to the Service log', () => {
-  assert.ok(helpPage.includes('<a href="/services/log">Record feedback in Service log</a>'));
+test('Help sends someone recording a service problem to the log inside System', () => {
+  assert.ok(helpPage.includes('<a href="/system#log">Open the service log</a>'));
   assert.ok(!helpPage.includes('<a href="/services">'));
 });
 
 /* ---------- the two pages own one panel each ---------- */
 
-test('the fallback form and the CSV export live only on the Service log page', () => {
-  const panel = read('../app/services/service-log-panel.tsx');
-  assert.ok(panel.includes('Record an issue or fallback'));
-  assert.ok(panel.includes('/api/services?export=feedback.csv'));
-  assert.ok(logPage.includes('<ServiceLogPanel'));
-  assert.ok(!preparedPage.includes('ServiceLogPanel'), 'Prepared services no longer carries the log');
+test('the log is a list with its export, and the only way to add to it is the status dot', () => {
+  const list = read('../app/system/service-log-list.tsx');
+  assert.ok(list.includes('/api/services?export=feedback.csv'), 'the export stayed with the log');
+  assert.ok(!list.includes('<form'), 'the entry form is gone from the log itself');
+  assert.ok(read('../components/status-dot.tsx').includes("operation: 'record_feedback'"), 'notes come from the dot');
   assert.ok(!preparedPage.includes('record_feedback'));
   assert.ok(!preparedPage.includes('export=feedback.csv'));
 });

@@ -81,7 +81,8 @@ test('a named output credential counts only while it is unrevoked', () => {
 
 /* ---------- what the /access devices panel actually renders ---------- */
 
-const accessPage = readFileSync(fileURLToPath(new URL('../app/access/page.tsx', import.meta.url)), 'utf8');
+/* Layout pass (handoff #2, D2): the devices panel moved out of Account and onto System > People. */
+const accessPage = readFileSync(fileURLToPath(new URL('../app/access/people-panels.tsx', import.meta.url)), 'utf8');
 
 test('the devices panel renders only unrevoked devices, so a revoked row cannot be revoked again', () => {
   assert.ok(accessPage.includes('activeDevices(devices).map('), 'the rendered rows come from activeDevices');
@@ -95,7 +96,7 @@ test('a revoke button names the kind as well as the device, so two Sanctuary PCs
 });
 
 test('a device action reports inside the devices panel rather than at the top of the page', () => {
-  assert.ok(accessPage.includes('{deviceMessage&&<div className={`access-device-notice ${deviceMessageKind}`} role="status" aria-live="polite">{deviceMessage}</div>}'));
+  assert.ok(accessPage.includes('{deviceMessage && <div className={`access-device-notice ${deviceMessageKind}`} role="status" aria-live="polite">{deviceMessage}</div>}'));
   assert.ok(accessPage.includes('deviceNotice(DEVICE_REVOKED_NOTICE)'), 'the revoke confirmation is the inline notice');
   assert.ok(!accessPage.includes('notice(DEVICE_REVOKED_NOTICE)') || accessPage.includes('deviceNotice(DEVICE_REVOKED_NOTICE)'));
 });

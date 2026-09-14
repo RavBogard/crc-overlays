@@ -29,3 +29,8 @@
 .access-device-notice{margin:0 0 12px;padding:10px 12px;border:1px solid #477263;border-radius:9px;background:#19372f;color:#c9eadf;font-size:12px;line-height:1.45}.access-device-notice.error{border-color:#89504b;background:#3b2321;color:#ffd1cd}
 .access-devices{margin-bottom:16px}.device-row{grid-template-columns:38px minmax(0,1fr) auto}.device-row>div:nth-child(2)>span{color:var(--muted);font-size:10px}.access-devices .member-remove{font-size:11px}
 @media(max-width:760px){.device-row{grid-template-columns:38px minmax(0,1fr)}}
+
+/* Layout pass (handoff #2 D2): the People panels also render inside the System page, which
+   already paints the page. Same tokens and controls, no full-height ground of their own. */
+.access-page.access-embedded{min-height:0;background:none}
+.access-embedded .access-owner-grid{margin-bottom:16px}

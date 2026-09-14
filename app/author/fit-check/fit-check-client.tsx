@@ -229,7 +229,7 @@ export default function FitCheckClient() {
 
   return (
     <main className="author-page" style={workspaceStyle}>
-      <WorkspaceHeader compact current="/author" title="Fit check" role={role} workspace={workspace} aside={<Link className="header-link" href="/author">Back to library</Link>} />
+      <WorkspaceHeader current="/author/fit-check" title="Fit check" role={role} workspace={workspace} aside={<Link className="header-link" href="/author">Back to library</Link>} />
       <div className={styles.wrap}>
         <p className={styles.notice}><b>Read-only check.</b> Nothing is published or sent to output.</p>
         {resolved && !controlKey && <SignInCard description="The fit check renders this congregation’s published graphics, so it needs an account with editor access." />}
