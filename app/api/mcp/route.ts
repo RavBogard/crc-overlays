@@ -6,6 +6,12 @@ import {AUTHORING_SCOPE,canonicalOrigin,mcpResource} from '@/lib/oauth-core';
 import {tokenVerifier} from '@/lib/oauth-store';
 
 export const dynamic='force-dynamic';
+// R7 - fit_check_draft launches headless Chromium, and an MCP client reaches it through this
+// route, not /api/authoring. The two must agree: Node runtime, and room to outlast a cold
+// Chromium start (the operation's own hard deadline is 25 s, lib/server-fit.ts). Without this
+// the platform default cut the invocation off mid-launch and the agent saw a dead call.
+export const runtime='nodejs';
+export const maxDuration=60;
 const handler=createAuthoringMcpHandler(authoringOperation);
 
 function protectedResponse(response:Response){const headers=new Headers(response.headers);headers.set('Access-Control-Expose-Headers','Mcp-Session-Id,WWW-Authenticate');headers.set('Cache-Control','no-store');return new Response(response.body,{status:response.status,statusText:response.statusText,headers})}

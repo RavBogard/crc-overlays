@@ -13,6 +13,7 @@ import { layoutLabel } from "@/lib/layout-label";
 import { publishedVisibleCount } from "@/lib/catalog-count";
 import { overlayAssetUrl, waitForRenderedOverlayAssets } from "@/lib/overlay-assets";
 import { AuthoringApiError, authoringCall } from "./api";
+import { BulkPublish } from "./bulk-publish";
 import {
   draftHasUnpublishedWork,
   auditDraftSet,
@@ -949,6 +950,7 @@ export default function AuthorPage() {
         <LibrarySidebar
           publishedItems={publishedItems} draftItems={draftItems} archivedItems={archivedItems} visibleLibrary={visibleLibrary}
           allDrafts={drafts}
+          apiKey={key} workspace={workspace} refreshAfterPublish={async () => { await refreshLists(key); }}
           libraryTab={activeLibraryTab} setLibraryTab={chooseLibraryTab} libraryQuery={libraryQuery} setLibraryQuery={setLibraryQuery}
           role={role}
           sourceItems={visibleSourceReviews} sourceCount={sourceReview.records.length} sourceSelectedId={sourceReview.selected?.id || null}
@@ -1079,6 +1081,7 @@ function AccessCard({ productName, style, error }: { productName: string; style?
 function LibrarySidebar(props: {
   publishedItems: LibraryItem[]; draftItems: LibraryItem[]; archivedItems: LibraryItem[]; visibleLibrary: LibraryItem[];
   allDrafts: Draft[];
+  apiKey: string; workspace: PublicWorkspace | null; refreshAfterPublish: () => Promise<void>;
   libraryTab: LibraryTab; setLibraryTab: (tab: LibraryTab) => void; libraryQuery: string; setLibraryQuery: (query: string) => void;
   sharedEnabled: boolean; sharedLabel: string; sharedItems: SharedShelfCard[]; sharedBadge: number; sharedSelectedId: string | null; selectShared: (id: string) => void;
   activeDraftId: string | null; beginSiddur: () => void; beginCustom: () => void;
@@ -1123,6 +1126,9 @@ function LibrarySidebar(props: {
         const canArchive = item.kind === "draft" || Boolean(item.cue.draftId && archiveDraft);
         return <article key={`${item.kind}-${id}`} className={`library-card ${active ? "active" : ""}`}><button className="library-card-main" onClick={() => props.openItem(item)}><GraphicThumbnail layout={layout} {...copy} /><span><strong>{itemName(item)}</strong><small>{subtitle}</small></span></button><span className="card-actions"><button className="icon-button card-action" aria-label={`Duplicate ${itemName(item)}`} title="Duplicate" onClick={() => props.duplicateItem(item)}><Copy size={14} /></button>{canArchive && <button className="icon-button card-action" aria-label={`Archive ${itemName(item)}`} title="Archive" onClick={() => props.archiveItem(item)}><Archive size={14} /></button>}</span></article>;
       })}
+      {/* The publish path (2026-09-14, part 2): an import lands its drafts here, and this is
+          where the person looking at them can put the whole batch on air in one click. */}
+      {props.libraryTab === "drafts" && props.workspace && <BulkPublish apiKey={props.apiKey} drafts={props.allDrafts} workspace={props.workspace} onFinished={props.refreshAfterPublish} />}
       {!(props.libraryTab === "sources" ? props.sourceItems.length : props.libraryTab === "shared" ? props.sharedItems.length : props.visibleLibrary.length) && <div className="library-empty"><LibraryBig size={24} /><p>{props.libraryTab === "sources" ? (hasQuery ? "No source change matches this search." : "No source changes need review.") : libraryEmptyMessage(props.libraryTab, hasQuery)}</p></div>}
     </div>
     {/* Layout pass (handoff #2, D4): prepared services left the top navigation for the library

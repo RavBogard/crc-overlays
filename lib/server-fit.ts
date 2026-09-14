@@ -124,6 +124,11 @@ export async function measureCueOnServer(cue:Cue,options:{origin:string;deadline
   if(!measured)return {verdict:'unavailable',reason:'measurement_invalid'};
   return {verdict:measured.fitErrors.length?'fail':'pass',fitErrors:measured.fitErrors,warnings:measured.warnings,fill:measured.fill,artwork:measured.artwork,measuredAt:Date.now(),rendererVersion:serverRendererVersion()};
  }catch(error){
+  // `unavailable` is one word for several very different failures - no Chromium binary in the
+  // function, a launch the kernel killed, a stage this deployment does not serve. None of that
+  // reaches the caller (an MCP client learns only that a human must look), so the only place it
+  // can be read is the function log. Log it there, with what was attempted.
+  if(!(error instanceof DeadlineExpired))console.error('server-fit launch failed',{plan:launchPlan(),origin:options.origin,error:error instanceof Error?(error.stack??error.message):String(error)});
   return {verdict:'unavailable',reason:error instanceof DeadlineExpired?'deadline_exceeded':'browser_unavailable'};
  }finally{
   // The browser is closed on every path, including the deadline: a leaked Chromium would

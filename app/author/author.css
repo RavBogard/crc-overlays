@@ -593,3 +593,18 @@
   .review-decision > div { flex-wrap: wrap; }
   .review-decision > div button { flex: 1; }
 }
+
+/* The publish path (2026-09-14, part 2): one action under the drafts list, and the running
+   account of what it did. The stage it measures in is real layout, so it is moved off screen
+   rather than hidden - a display:none stage measures nothing. */
+.bulk-publish { display: grid; gap: 8px; margin-top: 10px; padding-top: 10px; border-top: 1px solid var(--line); }
+.bulk-publish-button { display: flex; align-items: center; justify-content: center; gap: 8px; width: 100%; padding: 9px 12px; border: 1px solid #477a69; border-radius: 10px; background: linear-gradient(145deg,#244f42,#122922); color: #d8f5ea; font-size: 13px; cursor: pointer; }
+.bulk-publish-button:disabled { cursor: progress; opacity: .7; }
+.bulk-publish-count { margin: 0; color: var(--quiet); font-size: 12px; }
+.bulk-publish-list { display: grid; gap: 3px; max-height: 260px; margin: 0; padding: 0; overflow-y: auto; list-style: none; }
+.bulk-publish-list li { display: grid; gap: 1px; padding: 5px 8px; border-left: 2px solid transparent; border-radius: 0 6px 6px 0; background: #16221f; font-size: 12px; }
+.bulk-publish-list li.bulk-published { border-left-color: #4fae8c; }
+.bulk-publish-list li.bulk-skipped { border-left-color: var(--warning, #d3a74b); }
+.bulk-publish-list li.bulk-failed { border-left-color: var(--danger); }
+.bulk-publish-list small { color: var(--muted); }
+.bulk-publish-stage { position: fixed; left: -20000px; top: 0; width: 1920px; height: 1080px; overflow: hidden; pointer-events: none; }
