@@ -52,6 +52,9 @@ export interface AccessStore {
  unlinkIdentity(memberId:string,provider:'google'):Promise<void>;
  putSignInFlow(tokenHash:string,flow:SignInFlow,expiresAt:number):Promise<void>;
  takeSignInFlow(tokenHash:string,now:number):Promise<SignInFlow|null>;
+ /** Read-only lookups for the Google decision table: a member by id, and who a live invitation is for. Neither consumes anything. */
+ memberById(memberId:string):Promise<AccessMember|null>;
+ invitationTarget(inviteHash:string,now:number):Promise<{memberId:string;email:string}|null>;
 }
 /** Just enough of a pg client for the helpers shared between transactions. */
 type PgTransaction={query:(text:string,values?:unknown[])=>Promise<{rows:Array<{member_id?:string}>}>};
@@ -94,6 +97,8 @@ export class PgAccessStore implements AccessStore {
  async unlinkIdentity(memberId:string,provider:'google'){await (await this.db()).query('DELETE FROM access_identities WHERE member_id=$1 AND provider=$2',[memberId,provider])}
  async putSignInFlow(hash:string,flow:SignInFlow,expiresAt:number){await (await this.db()).query('WITH pruned AS (DELETE FROM access_sign_in_flows WHERE expires_at<=$3) INSERT INTO access_sign_in_flows(token_hash,payload,expires_at) VALUES($1,$2::jsonb,$4) ON CONFLICT(token_hash) DO UPDATE SET payload=EXCLUDED.payload,expires_at=EXCLUDED.expires_at',[hash,JSON.stringify(flow),flow.createdAt,expiresAt])}
  async takeSignInFlow(hash:string,now:number){const row=(await (await this.db()).query('DELETE FROM access_sign_in_flows WHERE token_hash=$1 RETURNING payload,expires_at AS "expiresAt"',[hash])).rows[0];return row&&Number(row.expiresAt)>now?row.payload as SignInFlow:null}
+ async memberById(id:string){return (await (await this.db()).query('SELECT id,email,name,role,enabled FROM access_members WHERE id=$1',[id])).rows[0]??null}
+ async invitationTarget(hash:string,now:number){return (await (await this.db()).query('SELECT l.member_id AS "memberId",m.email FROM access_links l JOIN access_members m ON m.id=l.member_id WHERE l.token_hash=$1 AND l.used_at IS NULL AND l.expires_at>$2',[hash,now])).rows[0]??null}
 }
 
 /**
@@ -216,6 +221,13 @@ export class MemoryAccessStore implements AccessStore{
   if(!row)return null;
   this.flows.delete(hash);
   return row.expiresAt>now?row.flow:null;
+ }
+ async memberById(id:string){await this.seed();const member=this.members.get(id);return member?this.view(member):null}
+ async invitationTarget(hash:string,now:number){
+  const link=this.links.get(hash);
+  if(!link||link.usedAt!==null||link.expiresAt<=now)return null;
+  const member=this.members.get(link.memberId);
+  return member?{memberId:member.id,email:member.email}:null;
  }
 }
 

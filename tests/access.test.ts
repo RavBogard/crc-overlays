@@ -37,7 +37,7 @@ const operator:AccessMember={id:'operator-1',email:'operator@example.test',name:
 const validToken='a'.repeat(43);
 
 /** The identity half of AccessStore, for literals that only exercise the rest of it. */
-const identityStoreStubs={identityForMember:async()=>null,memberForIdentity:async()=>null,linkIdentity:async()=>{},unlinkIdentity:async()=>{},putSignInFlow:async()=>{},takeSignInFlow:async()=>null};
+const identityStoreStubs={identityForMember:async()=>null,memberForIdentity:async()=>null,linkIdentity:async()=>{},unlinkIdentity:async()=>{},putSignInFlow:async()=>{},takeSignInFlow:async()=>null,memberById:async()=>null,invitationTarget:async()=>null};
 
 type TestStore=AccessStore;
 async function withStoreMethods<T>(overrides:Partial<TestStore>,run:()=>Promise<T>){
@@ -59,6 +59,8 @@ async function withStoreMethods<T>(overrides:Partial<TestStore>,run:()=>Promise<
   unlinkIdentity:accessStore.unlinkIdentity,
   putSignInFlow:accessStore.putSignInFlow,
   takeSignInFlow:accessStore.takeSignInFlow,
+  memberById:accessStore.memberById,
+  invitationTarget:accessStore.invitationTarget,
  };
  Object.assign(accessStore,overrides);
  try{return await run()}finally{Object.assign(accessStore,saved)}
@@ -565,4 +567,19 @@ test('memory store: each workspace maps the same Google identity independently',
  await crc.unlinkIdentity(atCrc.id,'google');
  assert.equal(await crc.memberForIdentity(identity,3000),null);
  assert.equal((await tbi.memberForIdentity(identity,3000))?.id,atTbi.id,'the other workspace is unaffected');
+});
+
+test('memory store: memberById and invitationTarget read without consuming anything',async()=>{
+ const store=new MemoryAccessStore();
+ const now=Date.now(),expires=now+60_000;
+ assert.equal((await store.memberById(REHEARSAL_OWNER.id))?.email,REHEARSAL_OWNER.email);
+ assert.equal(await store.memberById('nobody'),null);
+ const invited=tokenHash('invite-target');
+ const pending=await store.invite('Target@rehearsal.invalid','Target Editor','editor',invited,expires);
+ assert.deepEqual(await store.invitationTarget(invited,now),{memberId:pending.id,email:'Target@rehearsal.invalid'});
+ assert.equal(await store.invitationTarget(invited,expires),null,'an expired invitation names nobody');
+ assert.equal(store.links.get(invited)?.usedAt,null,'reading the target never spends the link');
+ await store.redeem(invited,now,tokenHash('session-target'),expires);
+ assert.equal(await store.invitationTarget(invited,now),null,'a spent invitation names nobody');
+ assert.equal(await store.invitationTarget(tokenHash('never-issued'),now),null);
 });
