@@ -21,10 +21,13 @@ owner recovery credential. Configure a separate bootstrap key for a new workspac
 remove it after the initial account is established.
 
 `CONTROL_KEY` remains a transitional compatibility credential for existing Companion
-and authoring clients. It permits read, live control, and authoring, but cannot manage
-members or perform owner operations. Treat it as an authoring secret while this bridge
-exists. Move human authors to memberships, remove the key from operator-facing
-configuration, and rotate or retire it when legacy clients no longer require it.
+and playback clients. It permits read and live control only: since 2026-09-14 it is
+refused for authoring (`/api/authoring`, `/api/services` editing operations,
+`/api/source-review`), exactly as a paired-device token is, and it has never managed
+members or performed owner operations. Authoring is done by a signed-in Administrator or
+Editor, or by an MCP client whose connection such a member approved. Remove the key from
+operator-facing configuration and rotate or retire it when legacy clients no longer
+require it.
 
 Invitations are capability links: the application does not send email or verify the
 recipient's mailbox. An owner copies the link directly to the intended person. Each

@@ -7,9 +7,27 @@ if not BASE.startswith(('http://localhost:', 'http://127.0.0.1:')):
 KEYS = json.loads(pathlib.Path('work/keys.json').read_text(encoding='utf-8'))
 checks = 0
 
-def request(path, body=None, key='CONTROL_KEY'):
-    headers = {'Content-Type': 'application/json'}
-    if key:
+SESSION = None
+
+def sign_in():
+    """Authoring is a member's act: sign in as the rehearsal owner (credential never printed)."""
+    global SESSION
+    body = json.dumps({'action': 'login', 'email': KEYS['REHEARSAL_EMAIL'], 'password': KEYS['REHEARSAL_PASSWORD']}).encode()
+    req = urllib.request.Request(BASE + '/api/access', data=body, headers={'Content-Type': 'application/json', 'Origin': BASE})
+    with urllib.request.urlopen(req, timeout=20) as result:
+        cookies = result.headers.get_all('Set-Cookie') or []
+    value = next((c.split(';', 1)[0].split('=', 1)[1] for c in cookies if c.startswith('crc_access=')), '')
+    if not value:
+        raise SystemExit('rehearsal member sign-in returned no session cookie')
+    SESSION = 'crc_access=' + value
+
+def request(path, body=None, key='SESSION'):
+    headers = {'Content-Type': 'application/json', 'Origin': BASE}
+    if key == 'SESSION':
+        if SESSION is None:
+            sign_in()
+        headers['Cookie'] = SESSION
+    elif key:
         headers['Authorization'] = 'Bearer ' + KEYS[key]
     req = urllib.request.Request(BASE + path, data=None if body is None else json.dumps(body).encode(), headers=headers)
     try:
@@ -43,6 +61,8 @@ def publish(draft):
 
 check(request('/api/authoring', {'operation': 'list_drafts', 'input': {}}, None)[0] == 401, 'anonymous authoring denied')
 check(request('/api/authoring', {'operation': 'list_drafts', 'input': {}}, 'OUTPUT_KEY')[0] == 401, 'output key authoring denied')
+check(request('/api/authoring', {'operation': 'list_drafts', 'input': {}}, 'CONTROL_KEY')[0] == 401, 'shared control key no longer authors')
+check(request('/api/state', None, 'CONTROL_KEY')[0] == 200, 'shared control key still reads live state')
 source = op('search_sources', {'query': 'barchu'})['sources'][0]
 source = op('get_source', {'sourceId': source['id']})['source']
 groups = [{'sourceId': source['id'], 'blockIds': [block['id']]} for block in source['blocks'] if block['kind'] == 'bilingual']

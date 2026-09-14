@@ -16,7 +16,7 @@ export type {GoogleIdentity,SignInFlow};
 /** Fixed by the config record; the Google console holds the matching redirect URIs. */
 export const GOOGLE_CALLBACK_PATH='/api/auth/google/callback';
 /** The only origins whose callback URI is registered with Google. Previews are not. */
-export const REGISTERED_ORIGINS=['https://crc-overlays.vercel.app','https://tbi-overlays.vercel.app','http://localhost:3000','http://localhost:5175'] as const;
+export const REGISTERED_ORIGINS=['https://crc-overlays.vercel.app','https://overlays.centralreform.org','https://tbi-overlays.vercel.app','https://overlays.templebnaiisrael.com','http://localhost:3000','http://localhost:5175'] as const;
 /** The three basic scopes, nothing else, ever. */
 export const GOOGLE_SCOPES='openid email profile';
 export const GOOGLE_ISSUER='https://accounts.google.com';

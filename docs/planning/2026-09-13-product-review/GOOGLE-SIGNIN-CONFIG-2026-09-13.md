@@ -14,7 +14,7 @@ No secret values appear in this file and none may be added to it.
 | Scopes | `openid`, `.../auth/userinfo.email`, `.../auth/userinfo.profile` — nothing else, ever |
 | Client type | Web application, name `Overlays web sign-in` |
 | Callback path | `/api/auth/google/callback`, relative to each workspace's canonical host |
-| Registered redirect URIs | `https://crc-overlays.vercel.app/api/auth/google/callback`<br>`https://tbi-overlays.vercel.app/api/auth/google/callback`<br>`http://localhost:3000/api/auth/google/callback`<br>`http://localhost:5175/api/auth/google/callback` |
+| Registered redirect URIs | `https://crc-overlays.vercel.app/api/auth/google/callback`<br>`https://overlays.centralreform.org/api/auth/google/callback` (added 2026-09-14 for the custom domain; both CRC hosts stay live)<br>`https://tbi-overlays.vercel.app/api/auth/google/callback`<br>`https://overlays.templebnaiisrael.com/api/auth/google/callback` (added 2026-09-14 for the custom domain; both TBI hosts stay live)<br>`http://localhost:3000/api/auth/google/callback`<br>`http://localhost:5175/api/auth/google/callback` |
 | Authorized JavaScript origins | none — the code exchange is server-side |
 | Environment variables | `GOOGLE_OAUTH_CLIENT_ID`, `GOOGLE_OAUTH_CLIENT_SECRET` |
 | Where they live | Vercel project `crc-overlays` and Vercel project `tbi-overlays`, Production + Preview, marked Sensitive. Locally: the existing ignored `.env*.local` paths. Never committed, never printed. |

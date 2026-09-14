@@ -1,4 +1,5 @@
 import test from 'node:test';
+import {accessStore,type AccessSessionMember} from '../lib/access.ts';
 import assert from 'node:assert/strict';
 import {POST} from '../app/api/authoring/route.ts';
 import {AuthoringError,editableFromBaseline,normalizeGraphicName,publicErrorDetails,type Draft} from '../lib/authoring-model.ts';
@@ -125,18 +126,20 @@ test('a unique published name publishes without confirmation and rejects a non-b
 });
 
 test('the authoring route carries error details into the body without adding fields to ordinary errors',async()=>{
- const saveControl=process.env.CONTROL_KEY;process.env.CONTROL_KEY='c'.repeat(43);
+ // Authoring is a member's act: an Editor session, never the shared control key.
+ const editor:AccessSessionMember={id:'member-editor',email:'editor@rehearsal.invalid',name:'Ellie Editor',role:'editor',enabled:true,authMethod:'password',authenticatedAt:0};
+ const savedSession=accessStore.memberForSession;accessStore.memberForSession=async()=>editor;
  try{
   const response=await POST(new Request('https://graphics.test/api/authoring',{
    method:'POST',
-   headers:{Origin:'https://graphics.test','Content-Type':'application/json',Authorization:`Bearer ${process.env.CONTROL_KEY}`},
+   headers:{Origin:'https://graphics.test','Content-Type':'application/json',Cookie:`crc_access=${'B'.repeat(43)}`},
    body:JSON.stringify({operation:'unknown_operation_for_shape_check',input:{}}),
   }));
   assert.equal(response.status,404);
   const body=await response.json();
   assert.equal(body.code,'unknown_operation');
   assert.equal(Object.hasOwn(body,'suggestedName'),false,'details are only present when an error carries them');
- }finally{if(saveControl===undefined)delete process.env.CONTROL_KEY;else process.env.CONTROL_KEY=saveControl}
+ }finally{accessStore.memberForSession=savedSession}
 });
 
 test('a baseline catalog name is already taken: saving warns and publishing needs confirmation',async()=>{

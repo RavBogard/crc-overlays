@@ -307,10 +307,11 @@ export async function currentMember(request:Request,store:AccessStore=accessStor
  */
 export async function authorizeRequest(request:Request,permission:AccessPermission='read',options:{freshDevice?:boolean}={}):Promise<AccessMember|null>{
  const bearer=request.headers.get('authorization')?.replace(/^Bearer /,'')||'';
- // Transitional compatibility for existing Companion and authoring clients. It is
- // deliberately excluded from owner/account administration and should be retired
- // after every human author has moved to an individual membership.
- if(permission!=='owner'&&secretEqual(bearer,process.env.CONTROL_KEY))return {id:'legacy-control',email:'',name:'Administrator',role:'owner',enabled:true};
+ // Transitional compatibility for existing Companion and playback clients: read and live
+ // control only. Authoring moved to individual memberships (the web editor by session, MCP by
+ // consent) on 2026-09-14, so the shared key is refused for `author` exactly as a device token is,
+ // and it has never administered members. Retire it when the last legacy client is paired.
+ if(permission!=='owner'&&permission!=='author'&&secretEqual(bearer,process.env.CONTROL_KEY))return {id:'legacy-control',email:'',name:'Administrator',role:'owner',enabled:true};
  if(permission==='read'&&secretEqual(bearer,process.env.OUTPUT_KEY))return {id:'legacy-output',email:'',name:'Graphics output',role:'operator',enabled:true};
  // D3: a paired device. A Companion credential satisfies read and control, a graphics
  // output credential satisfies read, and neither ever becomes an author or an owner -

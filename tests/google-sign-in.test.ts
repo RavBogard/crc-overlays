@@ -190,7 +190,7 @@ test('availability is limited to registered origins that agree with the canonica
   assert.equal(googleSignInAvailability(new Request(`${CRC_ORIGIN}/api/access`),{GOOGLE_OAUTH_CLIENT_ID:CLIENT_ID}).reason,'unconfigured');
  });
 
- assert.deepEqual([...REGISTERED_ORIGINS],[CRC_ORIGIN,'https://tbi-overlays.vercel.app','http://localhost:3000','http://localhost:5175']);
+ assert.deepEqual([...REGISTERED_ORIGINS],[CRC_ORIGIN,'https://overlays.centralreform.org','https://tbi-overlays.vercel.app','https://overlays.templebnaiisrael.com','http://localhost:3000','http://localhost:5175']);
  assert.equal(googleReturnPath('no_access'),'/access?google=no_access');
 });
 

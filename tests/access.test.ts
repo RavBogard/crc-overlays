@@ -396,7 +396,8 @@ test('legacy playback credentials bypass membership without giving the output ke
  try{
   assert.equal(secretEqual('control-test',process.env.CONTROL_KEY),true);
   assert.equal((await authorizeRequest(new Request('https://site.test',{headers:{Authorization:'Bearer control-test'}}),'control'))?.id,'legacy-control');
-  assert.equal((await authorizeRequest(new Request('https://site.test',{headers:{Authorization:'Bearer control-test'}}),'author'))?.id,'legacy-control');
+  // 2026-09-14: the shared key stopped authoring; only a member session or an MCP consent does.
+  assert.equal(await authorizeRequest(new Request('https://site.test',{headers:{Authorization:'Bearer control-test'}}),'author'),null);
   assert.equal(await authorizeRequest(new Request('https://site.test',{headers:{Authorization:'Bearer control-test'}}),'owner'),null);
   assert.equal((await authorizeRequest(new Request('https://site.test',{headers:{Authorization:'Bearer output-test'}}),'read'))?.id,'legacy-output');
   assert.equal(await authorizeRequest(new Request('https://site.test',{headers:{Authorization:'Bearer output-test'}}),'control'),null);
@@ -733,7 +734,7 @@ test('a revoked device is refused and the legacy keys are unchanged beside it',a
   assert.equal(await authorizeRequest(as(companion.token),'control'),null,'a revoked device stops at its next verification');
   // Nothing existing breaks: the transitional keys behave exactly as before.
   assert.equal((await authorizeRequest(as('control-test'),'control'))?.id,'legacy-control');
-  assert.equal((await authorizeRequest(as('control-test'),'author'))?.id,'legacy-control');
+  assert.equal(await authorizeRequest(as('control-test'),'author'),null,'the shared key stopped authoring on 2026-09-14');
   assert.equal(await authorizeRequest(as('control-test'),'owner'),null);
   assert.equal((await authorizeRequest(as('output-test'),'read'))?.id,'legacy-output');
   assert.equal(await authorizeRequest(as('output-test'),'control'),null);

@@ -36,20 +36,20 @@ jobs:
       HAS_SOURCE_TOKEN: ${{ secrets.SHIREISHABBAT_TOKEN != '' }}
     steps:
       - name: Check out the overlays repository
-        uses: actions/checkout@v4
+        uses: actions/checkout@v5
         with:
           # The source repository's build scripts run later in this job; they must not find a
           # write token in this checkout's git config. create-pull-request authenticates itself.
           persist-credentials: false
 
       - name: Set up Python
-        uses: actions/setup-python@v5
+        uses: actions/setup-python@v6
         with:
           python-version: '3.12'
 
       - name: Check out the shireishabbat source repository
         if: env.HAS_SOURCE_TOKEN == 'true' && inputs.dry_run != true
-        uses: actions/checkout@v4
+        uses: actions/checkout@v5
         with:
           repository: RavBogard/ShireiShabbat
           token: ${{ secrets.SHIREISHABBAT_TOKEN }}
@@ -143,7 +143,7 @@ jobs:
 
       - name: Open the regeneration pull request
         if: env.HAS_SOURCE_TOKEN == 'true' && inputs.dry_run != true && steps.diff.outputs.changed == 'true'
-        uses: peter-evans/create-pull-request@v7
+        uses: peter-evans/create-pull-request@v8
         with:
           branch: siddur-library/regenerate
           base: main

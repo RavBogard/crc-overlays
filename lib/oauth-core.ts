@@ -9,11 +9,28 @@ export const CODE_TTL_MS=5*60_000;
 export const TOKEN_TTL_MS=60*60_000;
 export const REFRESH_TOKEN_TTL_MS=30*24*60*60_000;
 
+function httpsOrigin(value:string,name:string){const url=new URL(value);if(url.protocol!=='https:'||url.username||url.password||url.pathname!=='/'||url.search||url.hash)throw Error(`${name} must be an HTTPS origin`);return url.origin}
+/**
+ * The https origins this deployment answers as itself: `PUBLIC_BASE_URL` first, then each entry of
+ * `PUBLIC_ALTERNATE_ORIGINS` (comma-separated). A custom domain and the Vercel hostname can both be
+ * live at once; the first entry is the one used where no request exists.
+ */
+export function publicOrigins(){
+ const origins:string[]=[];
+ if(process.env.PUBLIC_BASE_URL)origins.push(httpsOrigin(process.env.PUBLIC_BASE_URL,'PUBLIC_BASE_URL'));
+ for(const raw of (process.env.PUBLIC_ALTERNATE_ORIGINS||'').split(',')){const value=raw.trim();if(value&&!origins.includes(httpsOrigin(value,'PUBLIC_ALTERNATE_ORIGINS')))origins.push(httpsOrigin(value,'PUBLIC_ALTERNATE_ORIGINS'))}
+ return origins;
+}
+/**
+ * The origin this deployment speaks as for `request`: the request's own origin when it is one of the
+ * configured public origins (so Google sign-in, MCP consent and the OAuth issuer all follow the host
+ * the person actually arrived on), otherwise the primary. The Host header is never trusted on its
+ * own — an unknown host resolves to the primary, exactly as before.
+ */
 export function canonicalOrigin(request?:Request){
- const configured=process.env.PUBLIC_BASE_URL;
- if(configured){const url=new URL(configured);if(url.protocol!=='https:'||url.username||url.password||url.pathname!=='/'||url.search||url.hash)throw Error('PUBLIC_BASE_URL must be an HTTPS origin');return url.origin}
- if(request){const url=new URL(request.url);if(url.protocol==='http:'&&isLoopback(url.hostname))return url.origin}
- return 'https://crc-overlays.vercel.app';
+ const origins=publicOrigins();
+ if(request){const url=new URL(request.url);if(origins.includes(url.origin))return url.origin;if(!origins.length&&url.protocol==='http:'&&isLoopback(url.hostname))return url.origin}
+ return origins[0]??'https://crc-overlays.vercel.app';
 }
 export function mcpResource(request?:Request){return `${canonicalOrigin(request)}/api/mcp`}
 export function hashOpaque(value:string){return createHash('sha256').update(value).digest('hex')}
