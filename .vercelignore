@@ -5,4 +5,7 @@ work
 dist
 node_modules
 companion
-relay
+# relay ships from relay/ with wrangler, but scripts/rehearsal-relay.ts and its test import relay/src/protocol.ts,
+# and Next type-checks scripts/ and tests/ on Vercel, so the relay source must be uploaded.
+relay/*
+!relay/src
