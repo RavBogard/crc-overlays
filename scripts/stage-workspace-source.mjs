@@ -34,6 +34,7 @@ const forbiddenNames=new Set(['.env','.env.local','.env.production','.git','keys
 const allowedInstallArtifacts=new Set([
  'public/workspaces/temple-bnai-israel/downloads/tbi-overlays-1.3.0.tgz',
  'public/workspaces/temple-bnai-israel/downloads/tbi-overlays-1.4.0.tgz',
+ 'public/workspaces/temple-bnai-israel/downloads/tbi-overlays-1.5.0.tgz',
  'public/workspaces/temple-bnai-israel/downloads/tbi-morning-page-1.companionconfig',
  'public/workspaces/temple-bnai-israel/downloads/tbi-morning-page-2.companionconfig',
 ]);

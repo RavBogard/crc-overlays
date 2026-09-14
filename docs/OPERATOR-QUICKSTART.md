@@ -4,6 +4,8 @@
 
 Do this once per computer, on module 1.4.0 or newer. After it, nothing is pasted again.
 
+Module **1.5.0** is the current package and adds the scan-card and panel actions. A 1.4.0 connection upgrades in place — import 1.5.0 over it and the connection keeps its device token or control key, its base URL and every button you already made; the new actions and presets simply appear.
+
 1. On `/setup`, name the Companion computer under **Name this computer (for example, Sanctuary PC)** and press **Pair this Companion**. The page shows six digits and says **Enter this code in Companion within 10 minutes**.
 2. In Companion, put those six digits in the connection's **Pairing code** field and save. The module stores a **Device token** itself and clears the code. The code is single use and expires after ten minutes; ask for a fresh one if it lapses.
 3. On `/setup`, name the output computer and press **Create an output connection**, then **Copy the graphics URL**. Paste it into the 1920 × 1080 browser input in OBS or vMix, transparency enabled. **It keeps working after restarts** — the compositor's scene file now holds the connection, so nobody re-enters a key after a restart.
@@ -26,6 +28,28 @@ If a code is refused, nothing changes: the previous credential stays and the ref
 - Use **Clear now** when the graphic must disappear immediately.
 - If feedback becomes unavailable, stop issuing cues until the renderer connection is understood. Hide the browser source if a safe recovery is not immediate.
 - Do not edit or publish cues from the live operating surface during a service.
+
+## The scan card
+
+The scan card is the small card with a QR code in the bottom-right corner of the output. It sits **under** the graphics, so a panel or lower third that reaches that corner covers it. It is set up per congregation: Central Reform Congregation has one, **Temple B'nai Israel does not**, and where there is none the control is not shown at all.
+
+- In **Live control**, the **Scan card** block has **Show scan card** / **Hide scan card** and an optional **Page** of at most twelve characters.
+- In Companion, use **Bug on**, **Bug off** and **Set page**. The **Scan card** preset toggles the card and lights while it is visible.
+- **Clear now** removes the scan card along with the graphic. **Animate out** leaves the card alone.
+- **Next panel** and **Previous panel** work on any multipart graphic — names, Mourner's Kaddish, anything named `— 01 of 03`. From panel *n* they go to *n+1* or *n-1* and wrap at each end. From a single-part graphic or a cleared output they show panel 01 of the set chosen in the action's **Panel set** option; with **None** chosen nothing is sent. The **Next panel** preset ships with no set chosen.
+
+## Names for this service
+
+An Editor prepares these before the service, on `/services`, under **Names for this service**.
+
+1. **Name this list (for example, Mi Shebeirach)** — this is what appears on air.
+2. Type a **Hebrew name**, an **English name**, or both, one row per person. Either may be blank; both blank is refused.
+3. **Names per panel** is 4 to 12, 8 by default.
+4. **Put these names in the library**. If a panel is too full the button stays disabled and the page says which one — *Panel 2 of 3 is too full. Shorten a name or lower Names per panel.*
+
+The panels then appear in Live control and in Companion as **Mi Shebeirach — 01 of 03**, **— 02 of 03**, **— 03 of 03**. Show them like any other graphic and use **Next panel** to walk the set.
+
+These names are never saved to the library. **Remove these names** takes them out, and archiving the service removes them in the same write; restoring the service does not bring them back.
 
 ## Button text and presets
 

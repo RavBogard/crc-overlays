@@ -11,6 +11,9 @@
 
 .intro {background: var(--raised); border: 1px solid var(--line); color: var(--text); border-radius: 18px; padding: 20px 24px; display: flex; justify-content: space-between; align-items: center; gap: 20px;}
 .intro p {margin: 0; font-size: 16px; line-height: 1.5;}
+/* G6: the one line saying which of the three parts an operator needs. The two-class
+   selector is deliberate - it has to outrank `.intro p` above. */
+.intro .parts {margin-top: 8px; font-size: 15px; color: var(--muted);}
 .intro span {background: color-mix(in srgb, var(--workspace-primary) 20%, transparent); border: 1px solid var(--strong); border-radius: 999px; padding: 8px 12px; white-space: nowrap; font-weight: 700; font-size: 13px;}
 
 .steps {list-style: none; margin: 34px 0; padding: 0; display: grid; gap: 18px;}

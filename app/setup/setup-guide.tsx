@@ -254,7 +254,10 @@ export default function SetupGuide({workspace}: {workspace: PublicWorkspace}) {
     <WorkspaceHeader current="/setup" title="Setup" workspace={workspace} lede={`Add ${workspace.productName} beside your current graphics system. Your existing Singular setup, camera controls, and Companion pages stay in place during the trial.`}/>
 
     <section className={styles.intro}>
-      <p><strong>Allow about 10 minutes.</strong> You will add one Companion connection and one new browser input. Nothing on this page puts a graphic on air.</p>
+      <div>
+        <p><strong>Allow about 10 minutes.</strong> You will add one Companion connection and one new browser input. Nothing on this page puts a graphic on air.</p>
+        <p className={styles.parts}>You need Overlays. You need centralreform.live only if you import a planned service. The web siddur needs nothing from you.</p>
+      </div>
       <span>{workspace.stage === 'trial' ? 'Parallel trial' : 'Production workspace'}</span>
     </section>
 
