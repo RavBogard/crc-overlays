@@ -21,13 +21,15 @@ on:
     # Monday 09:00 UTC — after the weekend's source edits, before the week's overlay work.
     - cron: '0 9 * * 1'
 
-permissions:
-  contents: write
-  pull-requests: write
+# No workflow-level permissions: the job below declares exactly what it needs.
+permissions: {}
 
 jobs:
   regenerate:
     runs-on: ubuntu-latest
+    permissions:
+      contents: write
+      pull-requests: write
     env:
       # `secrets` may not appear in an `if:`, so the presence of the token is resolved once here
       # and every branch below reads this string.
@@ -35,6 +37,10 @@ jobs:
     steps:
       - name: Check out the overlays repository
         uses: actions/checkout@v4
+        with:
+          # The source repository's build scripts run later in this job; they must not find a
+          # write token in this checkout's git config. create-pull-request authenticates itself.
+          persist-credentials: false
 
       - name: Set up Python
         uses: actions/setup-python@v5
@@ -48,6 +54,7 @@ jobs:
           repository: RavBogard/ShireiShabbat
           token: ${{ secrets.SHIREISHABBAT_TOKEN }}
           path: source
+          persist-credentials: false
           # Full history on purpose. dist-app/ is NOT committed upstream; it is produced by
           # build/build-app.sh, which extracts each printed volume from a git worktree pinned to
           # its press commit. A shallow clone has no such commit and the producer fails.
@@ -126,10 +133,11 @@ jobs:
           print("revision does. Nothing is published by merging.")
           PY
           cat "$RUNNER_TEMP/summary.md" >> "$GITHUB_STEP_SUMMARY"
+          delimiter="EOF_$(openssl rand -hex 16)"
           {
-            echo "body<<SUMMARY_EOF"
+            echo "body<<$delimiter"
             cat "$RUNNER_TEMP/summary.md"
-            echo "SUMMARY_EOF"
+            echo "$delimiter"
             echo "short_sha=$(git -C source rev-parse --short HEAD)"
           } >> "$GITHUB_OUTPUT"
 

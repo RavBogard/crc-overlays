@@ -32,8 +32,14 @@ Only local public paths are accepted for logos and downloads. The public workspa
 | Setting | Purpose | Default |
 | --- | --- | --- |
 | `OVERLAYS_PUBLIC_NOW` | Set to `1` to serve `GET /api/now`, the public, credential-free reading of which unit of which book is on the screen. Unset, the endpoint answers `404`. | unset on both congregations |
+| `CRC_LIVE_BASE_URL` | The https origin of centralreform.live (`https://www.centralreform.live`). With `CRC_LIVE_READ_TOKEN` it enables **Import from centralreform.live** on `/services` and the `prepare_service_from_setlist` MCP tool. | CRC only |
+| `CRC_LIVE_READ_TOKEN` | A `setlist_reader` bearer minted on centralreform.live: read-only, allowed exactly `list_setlists`, `get_setlist` and `get_congregation_context`, no expiry, revocable there. Stored as a sensitive variable; never copied through chat. | CRC only |
 
 `OVERLAYS_PUBLIC_NOW` stays unset until the congregation's web siddur is ready to follow the service and Daniel asks for it. The endpoint publishes a unit, a book, a page number and a timestamp; it never publishes a name, a title, any text, or anything that identifies a person or a graphic. The contract handed to the web siddur is `docs/planning/2026-09-13-product-review/HANDOFF-WEBAPP-FOLLOW-SERVICE.md`.
+
+**CRC only — setlist import (optional).** With either of `CRC_LIVE_BASE_URL` and `CRC_LIVE_READ_TOKEN` unset the import is completely absent — no panel on `/services`, and the MCP tool answers "not set up for this congregation". Temple B'nai Israel does not set them. The token is minted host-side in the centralreform.live repository (`scripts/mint-setlist-reader.mjs` there, run by an administrator's root bearer) and written straight into the Vercel project; the raw value never passes through a person or a chat. Revoke it there with `revoke_setlist_reader_bearer`.
+
+**Siddur library regeneration.** `content/siddur-library.json` is generated, never hand-edited: the **Siddur library** GitHub Actions workflow (`.github/workflows/siddur-library.yml`) runs every Monday at 09:00 UTC and on dispatch, checks out `RavBogard/ShireiShabbat` with the read-only `SHIREISHABBAT_TOKEN` repository secret, rebuilds that repo's `dist-app/` surface with its own `build/build-app.sh` (it is gitignored upstream, so it must be produced rather than fetched), reruns `scripts/build-siddur-library.py`, and opens a pull request on `siddur-library/regenerate` only when the generated file changes — merging that PR feeds the regenerated sources into the source-review inbox and publishes nothing on its own. With the secret absent, or with `dry_run` set on a manual run, the same job builds against the synthetic `tests/fixtures/siddur-source` fixture and opens nothing, so the workflow is safe to dispatch before any credential exists. The builder reads `SIDDUR_SOURCE_ROOT` when `--source-root` is not given.
 
 ## Temple B'nai Israel prepared profile
 

@@ -64,6 +64,8 @@ const MAX_NAMED_CANDIDATES=6;
 /** `parseEntries`/`parseCoverage` bound a label at 160 characters and a reason at 500. */
 const MAX_LABEL=160;
 const MAX_REASON=500;
+/** One coverage row per performance row; the collection parser accepts 200 entries and 300 rows. */
+const MAX_IMPORT_ROWS=200;
 
 const clip=(value:string,max:number)=>value.length<=max?value:`${value.slice(0,max-1)}…`;
 const str=(value:unknown):string|null=>typeof value==='string'&&value?value:null;
@@ -210,11 +212,15 @@ export function matchSetlist(setlist:LiveSetlist,deps:MatchDeps):SetlistMatch{
  const byFolio=liturgyMap(deps);
  const entries:CollectionEntry[]=[],coverage:CoverageItem[]=[],unmatched:UnmatchedRow[]=[];
  const tracks=Array.isArray(setlist.tracks)?setlist.tracks as LiveTrack[]:[];
+ // `parseEntries` accepts 200 entries and `parseCoverage` 300 rows; a longer service is refused
+ // here with a sentence instead of failing deep inside createCollection.
+ const performanceRows=tracks.filter(track=>!NON_PERFORMANCE_TRACK_TYPES.has(str(track.type)??'song')).length;
+ if(performanceRows>MAX_IMPORT_ROWS)throw new LiveSetlistsError('too_many_rows',`This planned service has ${performanceRows} rows; an import handles at most ${MAX_IMPORT_ROWS}.`);
  for(const track of tracks){
   const type=str(track.type)??'song';
   if(NON_PERFORMANCE_TRACK_TYPES.has(type))continue;
   const trackId=typeof track.id==='string'||typeof track.id==='number'?String(track.id):'';
-  const title=str(track.title)??'(untitled row)';
+  const title=str(track.title)?.trim()||'(untitled row)';
   const label=clip(title,MAX_LABEL);
   const ref=(track.liturgyRef&&typeof track.liturgyRef==='object'&&!Array.isArray(track.liturgyRef))?track.liturgyRef as {book?:unknown;folio?:unknown}:null;
   const book=str(ref?.book),folio=typeof ref?.folio==='number'&&Number.isFinite(ref.folio)?ref.folio:null;
