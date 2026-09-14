@@ -35,7 +35,9 @@ test('an Operator sees Live only; an Editor adds Library; an Administrator adds 
 
 test('nothing that was reachable disappears: the demoted pages are one level down', () => {
   const rail = read('../app/author/page.tsx');
-  assert.ok(rail.includes('href="/sources-review"'), 'source review is in the library rail');
+  // D3: source review is a filter in the rail, not a link, and its old route sends bookmarks there.
+  assert.ok(rail.includes('Source changes'), 'source changes is a filter in the library rail');
+  assert.match(read('../app/sources-review/page.tsx'), /redirect\('\/author'\)/);
   assert.ok(rail.includes('href="/services"'), 'prepared services is in the library rail');
   assert.match(read('../app/health/page.tsx'), /redirect\('\/system#status'\)/);
   assert.match(logPage, /redirect\('\/system#log'\)/);

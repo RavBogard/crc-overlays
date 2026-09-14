@@ -3,7 +3,7 @@ import {getPublicWorkspace} from '@/lib/workspace';
 
 export function generateMetadata(): Metadata {
   const workspace = getPublicWorkspace();
-  return {title: `${workspace.productName} · Source review`, description: 'Review exact source wording before it becomes draft work.'};
+  return {title: `${workspace.productName} · Library`, description: 'Review exact source wording before it becomes draft work.'};
 }
 
 export default function SourcesReviewLayout({children}: {children: React.ReactNode}) {

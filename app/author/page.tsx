@@ -1,7 +1,7 @@
 "use client";
 
 import Link from "next/link";
-import { Archive, ArchiveRestore, BookOpenText, Check, ChevronLeft, ChevronRight, CircleAlert, Clock3, Copy, FilePlus2, History, LibraryBig, LoaderCircle, Maximize2, MoreHorizontal, PencilLine, Play, Redo2, RotateCcw, Save, Search, Sparkles, Square, Undo2 } from "lucide-react";
+import { Archive, ArchiveRestore, BookOpenText, Check, ChevronLeft, ChevronRight, CircleAlert, Clock3, Copy, FilePlus2, History, LibraryBig, LoaderCircle, Maximize2, MoreHorizontal, PencilLine, Play, Redo2, RefreshCw, RotateCcw, Save, Search, Sparkles, Square, Undo2 } from "lucide-react";
 import { usePathname } from "next/navigation";
 import { useCallback, useEffect, useMemo, useRef, useState, type CSSProperties, type ReactNode } from "react";
 import { Player, type Cue } from "@/lib/player";
@@ -57,8 +57,9 @@ import { EditorCard } from "./editor-card";
 import "./author.css";
 import GraphicThumbnail from "@/components/graphic-thumbnail";
 import SharedShelf, { expectedCueHashes, groupSharedEntries, matchesShelfQuery, shelfBadgeCount, type SharedComparison, type SharedShelfCard, type SharedShelfEntry } from "./shared-shelf";
+import { SourceReviewPanel, useSourceReview, type SourceReviewSummary } from "./source-review";
 
-type LibraryTab = "published" | "drafts" | "archived" | "shared";
+type LibraryTab = "published" | "drafts" | "archived" | "shared" | "sources";
 type EditorKind = "siddur" | "custom" | "edit";
 type LibraryItem = { kind: "catalog"; cue: CatalogCue } | { kind: "draft"; draft: Draft };
 type SharedCue = SharedShelfEntry;
@@ -67,6 +68,7 @@ type DraftSetReview = { status: "complete" | "needs-review" | "unknown"; message
 
 const formatTime = (value?: number) => value ? new Date(value).toLocaleString([], { dateStyle: "medium", timeStyle: "short" }) : "";
 const itemName = (item: LibraryItem) => item.kind === "draft" ? item.draft.name : item.cue.name;
+const sourceReviewName = (record: SourceReviewSummary) => `${record.sourceName} ${record.affected.draftName}`;
 const sourceGroups = (draft: Draft) => {
   const content = draft.content.mode === "local-variant" ? draft.content.base : draft.content;
   return content.mode === "bilingual" ? content.hebrewGroups
@@ -109,6 +111,8 @@ export default function AuthorPage() {
   const [catalog, setCatalog] = useState<CatalogCue[]>([]);
   const [libraryTab, setLibraryTab] = useState<LibraryTab>("published");
   const [libraryQuery, setLibraryQuery] = useState("");
+  const sourceReview = useSourceReview();
+  const loadSourceReview = sourceReview.load;
   const [sharedLibrary, setSharedLibrary] = useState<SharedLibraryState>({ available: false, cues: [], stale: false, refreshedAt: null, error: null });
   const [sharedSelectedId, setSharedSelectedId] = useState<string | null>(null);
   const [sharedPreview, setSharedPreview] = useState<Cue | null>(null);
@@ -411,6 +415,10 @@ export default function AuthorPage() {
 
   useEffect(() => { if (key) void refreshAssets(key, showArchivedAssets); }, [key, refreshAssets, showArchivedAssets]);
 
+  // D3: the source-change filter appears only when something is waiting, so the count is read
+  // once with the library rather than on a page of its own.
+  useEffect(() => { if (key) void loadSourceReview(); }, [key, loadSourceReview]);
+
   useEffect(() => {
     if (!key || libraryTab !== "shared" || !sharedSelectedId) return;
     let cancelled = false;
@@ -461,7 +469,11 @@ export default function AuthorPage() {
       seenSets.add(item.draftSetId); return true;
     }).map((item) => ({ kind: "draft", draft: item }));
   }, [archivedDrafts]);
-  const visibleLibrary = (libraryTab === "published" ? publishedItems : libraryTab === "archived" ? archivedItems : draftItems).filter((item) => itemName(item).toLocaleLowerCase().includes(libraryQuery.trim().toLocaleLowerCase()));
+  // The source-change filter exists only while it has something in it: deciding the last one
+  // returns the rail to the library rather than leaving an empty filter lit.
+  const activeLibraryTab: LibraryTab = libraryTab === "sources" && !sourceReview.records.length ? "published" : libraryTab;
+  const visibleSourceReviews = sourceReview.records.filter((record) => sourceReviewName(record).toLocaleLowerCase().includes(libraryQuery.trim().toLocaleLowerCase()));
+  const visibleLibrary = (activeLibraryTab === "published" ? publishedItems : activeLibraryTab === "archived" ? archivedItems : draftItems).filter((item) => itemName(item).toLocaleLowerCase().includes(libraryQuery.trim().toLocaleLowerCase()));
   const sharedCards = groupSharedEntries(sharedLibrary.cues);
   const visibleShared = sharedCards.filter((card) => matchesShelfQuery(card, libraryQuery));
   const eligibleBlocks = blocksForMode(source, form.mode);
@@ -914,8 +926,9 @@ export default function AuthorPage() {
   }
 
   function chooseLibraryTab(tab: LibraryTab) {
-    if (tab === "shared" && !canLeave()) return;
+    if ((tab === "shared" || tab === "sources") && !canLeave()) return;
     if (tab !== libraryTab) { setMessage(""); setError(""); }
+    if (tab === "sources") sourceReview.openFilter();
     setLibraryTab(tab);
   }
 
@@ -936,7 +949,16 @@ export default function AuthorPage() {
         <LibrarySidebar
           publishedItems={publishedItems} draftItems={draftItems} archivedItems={archivedItems} visibleLibrary={visibleLibrary}
           allDrafts={drafts}
-          libraryTab={libraryTab} setLibraryTab={chooseLibraryTab} libraryQuery={libraryQuery} setLibraryQuery={setLibraryQuery}
+          libraryTab={activeLibraryTab} setLibraryTab={chooseLibraryTab} libraryQuery={libraryQuery} setLibraryQuery={setLibraryQuery}
+          role={role}
+          sourceItems={visibleSourceReviews} sourceCount={sourceReview.records.length} sourceSelectedId={sourceReview.selected?.id || null}
+          openSourceReview={(id) => void sourceReview.inspect(id)}
+          checkSources={() => {
+            // The menu closes as it runs and a cold scan takes a few seconds, so the notice
+            // stack carries the wait as well as the answer.
+            setMessage("Checking sources…");
+            void sourceReview.scan().then((result) => { if (result.count) chooseLibraryTab("sources"); setMessage(result.message); });
+          }} checkingSources={sourceReview.busy === "scan"}
           sharedEnabled={Boolean(workspace?.sharedLibrary.enabled)} sharedLabel={workspace?.sharedLibrary.label || "CRC library"}
           sharedItems={visibleShared} sharedBadge={shelfBadgeCount(sharedCards)} sharedSelectedId={sharedSelectedId} selectShared={(id) => { setSharedPreview(null); setSharedSelectedId(id); }}
           activeDraftId={draft?.id || null} beginSiddur={beginSiddur} beginCustom={beginCustom}
@@ -948,7 +970,7 @@ export default function AuthorPage() {
           archiveItem={(item) => void archiveItem(item)} restoreItem={(item) => void restoreArchived(item)}
         />
 
-        {libraryTab === "shared" ? <SharedShelf
+        {activeLibraryTab === "sources" ? <SourceReviewPanel state={sourceReview} /> : activeLibraryTab === "shared" ? <SharedShelf
           label={workspace?.sharedLibrary.label || "CRC library"}
           feed={{ available: sharedLibrary.available, entries: sharedLibrary.cues, stale: sharedLibrary.stale, refreshedAt: sharedLibrary.refreshedAt, error: sharedLibrary.error }}
           query={libraryQuery} busy={busy} selectedId={sharedSelectedId}
@@ -965,7 +987,7 @@ export default function AuthorPage() {
             out={() => playerRef.current?.set({ cue: null, revision: ++animationRevision.current, mode: "animate" })}
             fullscreen={() => void viewportRef.current?.requestFullscreen().catch(fail)}
             statusLabel={sharedPreview ? "CRC preview with TBI branding" : "Loading CRC preview"} />}
-        /> : libraryTab === "archived" ? <ArchivedPanel drafts={archivedItems.flatMap((item) => item.kind === "draft" ? [item.draft] : [])} query={libraryQuery} busy={busy} restore={(item) => void restoreArchived(item)} /> : !editorKind ? <WelcomePanel /> : (
+        /> : activeLibraryTab === "archived" ? <ArchivedPanel drafts={archivedItems.flatMap((item) => item.kind === "draft" ? [item.draft] : [])} query={libraryQuery} busy={busy} restore={(item) => void restoreArchived(item)} /> : !editorKind ? <WelcomePanel /> : (
           <section className="editor-workspace">
             <EditorTitle
               form={form} draft={draft} dirty={dirty} busy={busy} undo={undo} redo={redo}
@@ -1061,6 +1083,9 @@ function LibrarySidebar(props: {
   sharedEnabled: boolean; sharedLabel: string; sharedItems: SharedShelfCard[]; sharedBadge: number; sharedSelectedId: string | null; selectShared: (id: string) => void;
   activeDraftId: string | null; beginSiddur: () => void; beginCustom: () => void;
   openItem: (item: LibraryItem) => void; duplicateItem: (item: LibraryItem) => void; archiveItem: (item: LibraryItem) => void; restoreItem: (item: Draft) => void;
+  role: AccessRole | undefined;
+  sourceItems: SourceReviewSummary[]; sourceCount: number; sourceSelectedId: string | null;
+  openSourceReview: (id: string) => void; checkSources: () => void; checkingSources: boolean;
 }) {
   const tabCount = 3 + (props.sharedEnabled ? 1 : 0);
   // U5 - the one "published, visible" number, the same helper the console footer and health use.
@@ -1073,10 +1098,20 @@ function LibrarySidebar(props: {
       <button role="tab" aria-selected={props.libraryTab === "drafts"} className={props.libraryTab === "drafts" ? "active" : ""} onClick={() => props.setLibraryTab("drafts")}>Drafts <span>{props.draftItems.length}</span></button>
       <button role="tab" aria-selected={props.libraryTab === "archived"} className={props.libraryTab === "archived" ? "active" : ""} onClick={() => props.setLibraryTab("archived")}>Archived <span>{props.archivedItems.length}</span></button>
       {props.sharedEnabled && <button role="tab" aria-selected={props.libraryTab === "shared"} className={props.libraryTab === "shared" ? "active" : ""} onClick={() => props.setLibraryTab("shared")}>{props.sharedLabel}{props.sharedBadge > 0 && <span title="new and updated from CRC">{props.sharedBadge}</span>}</button>}
+      {/* D3: a filter only while there is something in it. */}
+      {props.sourceCount > 0 && <button role="tab" className={`tab-wide ${props.libraryTab === "sources" ? "active" : ""}`} aria-selected={props.libraryTab === "sources"} onClick={() => props.setLibraryTab("sources")}>Source changes <span title="source changes waiting for review">{props.sourceCount}</span></button>}
     </div>
-    <label className="library-search"><Search size={16} /><input aria-label={`Search ${props.libraryTab}`} value={props.libraryQuery} onChange={(event) => props.setLibraryQuery(event.target.value)} placeholder={`Search ${props.libraryTab}`} /></label>
+    <div className="library-find">
+      <label className="library-search"><Search size={16} /><input aria-label={searchLabel(props.libraryTab)} value={props.libraryQuery} onChange={(event) => props.setLibraryQuery(event.target.value)} placeholder={searchLabel(props.libraryTab)} /></label>
+      <RailOverflow items={[{ key: "check-sources", label: "Check sources", icon: props.checkingSources ? <LoaderCircle className="spin" size={16} /> : <RefreshCw size={16} />, disabled: props.checkingSources, run: props.checkSources }]} />
+    </div>
     <div className="library-list">
-      {props.libraryTab === "shared" ? props.sharedItems.map((card) => <article key={card.key} className={`library-card shared-card ${card.members.some((entry) => entry.id === props.sharedSelectedId) ? "active" : ""}`}><button className="library-card-main" onClick={() => props.selectShared(card.lead.id)}><GraphicThumbnail layout={card.layout} title={card.title} /><span><strong>{card.title}</strong><small>CRC published · {layoutLabel(card.layout)}</small></span></button></article>) : props.visibleLibrary.map((item) => {
+      {props.libraryTab === "sources" ? props.sourceItems.map((record) => <article key={record.id} className={`library-card review-card ${props.sourceSelectedId === record.id ? "active" : ""}`}>
+        <button className="library-card-main" onClick={() => props.openSourceReview(record.id)}>
+          <span className={`review-status ${record.status}`}>{record.status}</span>
+          <span><strong>{record.sourceName}</strong><small>{record.comparison === "unavailable" ? "Historical text unavailable" : `${record.changeCount} text change${record.changeCount === 1 ? "" : "s"}`}{record.paginationMayChange ? " · slide breaks may change" : ""}</small><small>{record.affected.draftName}{record.affected.published ? " · currently published" : ""}</small></span>
+        </button>
+      </article>) : props.libraryTab === "shared" ? props.sharedItems.map((card) => <article key={card.key} className={`library-card shared-card ${card.members.some((entry) => entry.id === props.sharedSelectedId) ? "active" : ""}`}><button className="library-card-main" onClick={() => props.selectShared(card.lead.id)}><GraphicThumbnail layout={card.layout} title={card.title} /><span><strong>{card.title}</strong><small>CRC published · {layoutLabel(card.layout)}</small></span></button></article>) : props.visibleLibrary.map((item) => {
         const id = item.kind === "draft" ? item.draft.id : item.cue.id;
         const active = item.kind === "draft" ? props.activeDraftId === item.draft.id : props.activeDraftId === item.cue.draftId;
         const layout = item.kind === "draft" ? item.draft.layout : item.cue.layout;
@@ -1088,14 +1123,13 @@ function LibrarySidebar(props: {
         const canArchive = item.kind === "draft" || Boolean(item.cue.draftId && archiveDraft);
         return <article key={`${item.kind}-${id}`} className={`library-card ${active ? "active" : ""}`}><button className="library-card-main" onClick={() => props.openItem(item)}><GraphicThumbnail layout={layout} {...copy} /><span><strong>{itemName(item)}</strong><small>{subtitle}</small></span></button><span className="card-actions"><button className="icon-button card-action" aria-label={`Duplicate ${itemName(item)}`} title="Duplicate" onClick={() => props.duplicateItem(item)}><Copy size={14} /></button>{canArchive && <button className="icon-button card-action" aria-label={`Archive ${itemName(item)}`} title="Archive" onClick={() => props.archiveItem(item)}><Archive size={14} /></button>}</span></article>;
       })}
-      {!(props.libraryTab === "shared" ? props.sharedItems.length : props.visibleLibrary.length) && <div className="library-empty"><LibraryBig size={24} /><p>{libraryEmptyMessage(props.libraryTab, hasQuery)}</p></div>}
+      {!(props.libraryTab === "sources" ? props.sourceItems.length : props.libraryTab === "shared" ? props.sharedItems.length : props.visibleLibrary.length) && <div className="library-empty"><LibraryBig size={24} /><p>{props.libraryTab === "sources" ? (hasQuery ? "No source change matches this search." : "No source changes need review.") : libraryEmptyMessage(props.libraryTab, hasQuery)}</p></div>}
     </div>
-    {/* Layout pass (handoff #2, D3 and D4): source review and prepared services left the top
-        navigation. They live under the library, where the work they belong to is. */}
-    <nav className="library-elsewhere" aria-label="More library work">
-      <Link href="/sources-review">Source changes</Link>
+    {/* Layout pass (handoff #2, D4): prepared services left the top navigation for the library
+        rail, where the work it belongs to is. It is preparation, so operators never see it. */}
+    {(props.role === "owner" || props.role === "editor") && <nav className="library-elsewhere" aria-label="More library work">
       <Link href="/services">Prepared services</Link>
-    </nav>
+    </nav>}
   </aside>;
 }
 
@@ -1116,6 +1150,29 @@ function EditorTitle(props: { form: DraftForm; draft: Draft | null; dirty: boole
     { key: "history", label: "History", icon: <History size={16} />, disabled: false, run: props.history },
     ...(props.setCount <= 1 ? [{ key: "archive", label: "Archive", icon: <Archive size={16} />, disabled: !!props.busy || props.dirty, run: props.archive }] : []),
   ]} />}</div></div>;
+}
+
+const searchLabel = (tab: LibraryTab) => tab === "sources" ? "Search source changes" : `Search ${tab}`;
+
+/* D3: the rail's own overflow. Checking sources is a whole-library action that belongs beside
+   the filters, not on a page of its own, and it is rare enough to sit behind the menu. */
+function RailOverflow({ items }: { items: Array<{ key: string; label: string; icon: ReactNode; disabled: boolean; run: () => void }> }) {
+  const [open, setOpen] = useState(false);
+  const wrapper = useRef<HTMLDivElement>(null);
+  useEffect(() => {
+    if (!open) return;
+    const away = (event: MouseEvent) => { if (!wrapper.current?.contains(event.target as Node)) setOpen(false); };
+    const escape = (event: KeyboardEvent) => { if (event.key === "Escape") setOpen(false); };
+    document.addEventListener("mousedown", away);
+    document.addEventListener("keydown", escape);
+    return () => { document.removeEventListener("mousedown", away); document.removeEventListener("keydown", escape); };
+  }, [open]);
+  return <div className="rail-overflow" ref={wrapper}>
+    <button className="icon-button" aria-label="More library actions" aria-expanded={open} title="More library actions" onClick={() => setOpen((value) => !value)}><MoreHorizontal size={17} /></button>
+    {open && <div className="editor-overflow-menu" role="menu">
+      {items.map((item) => <button key={item.key} role="menuitem" disabled={item.disabled} onClick={() => { setOpen(false); item.run(); }}>{item.icon} {item.label}</button>)}
+    </div>}
+  </div>;
 }
 
 /* C4: Duplicate and Archive are already hover actions on the library cards, and History and

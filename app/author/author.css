@@ -542,3 +542,54 @@
 .editor-overflow-menu { position: absolute; top: calc(100% + 6px); right: 0; z-index: 30; display: flex; flex-direction: column; min-width: 180px; padding: 6px; border: 1px solid var(--line); border-radius: 10px; background: var(--panel); box-shadow: 0 16px 36px rgb(0 0 0 / .34); }
 .editor-overflow-menu button { justify-content: flex-start; width: 100%; border: 0; background: none; }
 .editor-overflow-menu button:hover:not(:disabled) { background: var(--panel-raised); border: 0; }
+
+/* D3 of the 2026-09-14 layout pass: source review is a filter in this rail and a comparison in
+   the centre column. The filter runs the rail's full width because its label is a sentence,
+   not a word, and it only exists while it has something in it. */
+.library-tabs button.tab-wide { grid-column: 1 / -1; }
+.library-find { display: flex; align-items: center; gap: 6px; }
+.library-find .library-search { flex: 1 1 auto; min-width: 0; }
+.rail-overflow { position: relative; display: inline-flex; flex: 0 0 auto; }
+.rail-overflow .editor-overflow-menu { right: auto; left: 0; }
+.review-card .library-card-main { align-items: flex-start; }
+.review-card .library-card-main > span { display: grid; gap: 2px; min-width: 0; }
+.review-status { justify-self: start; padding: 3px 6px; border-radius: 6px; background: #263a35; color: var(--muted); font-size: 10px; font-weight: 800; letter-spacing: .08em; text-transform: uppercase; }
+.review-status.pending { background: #2c2617; color: var(--gold); }
+.review-status.accepted { background: #183026; color: #8fe0b4; }
+.review-status.rejected { background: #2c1c1c; color: var(--danger); }
+.review-status.deferred { background: #241f2f; color: #c6b6ea; }
+
+.source-review-panel { min-width: 0; padding: 22px clamp(14px, 3vw, 30px) 40px; overflow-y: auto; }
+.review-coverage,
+.review-message,
+.review-blocked { margin: 0 0 14px; padding: 12px 15px; border: 1px solid var(--line); border-radius: 11px; background: var(--panel); color: var(--muted); }
+.review-message,
+.review-blocked { border-color: #7a6330; background: #241f14; color: var(--gold); }
+.review-empty { min-height: 60vh; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 4px; color: var(--muted); text-align: center; }
+.review-empty h2 { margin: 12px 0 0; }
+.review-empty p { margin: 0; }
+.review-head { display: flex; align-items: flex-start; justify-content: space-between; gap: 18px; padding-bottom: 16px; border-bottom: 1px solid var(--line); }
+.review-head h2 { margin: 9px 0 5px; font-size: 26px; line-height: 1.12; }
+.review-head p { margin: 0; color: var(--muted); font-size: 13px; }
+.review-revision { display: flex; justify-content: space-between; gap: 10px; padding: 13px 0; border-bottom: 1px solid var(--line); color: var(--muted); font-size: 12px; }
+.review-revision code { padding: 3px 6px; border-radius: 5px; background: var(--panel-raised); color: var(--mint); }
+.review-changes article { padding: 16px 0; border-bottom: 1px solid var(--line); }
+.review-changes article > header { display: flex; justify-content: space-between; gap: 10px; }
+.review-changes article > header span,
+.review-changes article > small { font-size: 12px; color: var(--quiet); }
+.review-comparison { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; margin: 11px 0 0; }
+.review-comparison > div { padding: 12px; border: 1px solid var(--line); border-radius: 10px; background: var(--panel-raised); }
+.review-comparison label { font-size: 11px; font-weight: 800; letter-spacing: .08em; text-transform: uppercase; color: var(--quiet); }
+.review-comparison p { margin: 7px 0 0; line-height: 1.55; white-space: pre-wrap; }
+.review-decision { margin-top: 18px; padding: 18px; border: 1px solid var(--line); border-radius: 12px; background: var(--panel); }
+.review-decision > label { display: block; margin-bottom: 8px; font-weight: 650; }
+.review-decision textarea { width: 100%; min-height: 76px; padding: 10px; box-sizing: border-box; border: 1px solid var(--line-strong); border-radius: 10px; background: #0d1512; color: var(--text); resize: vertical; }
+.review-decision > div { display: flex; justify-content: flex-end; gap: 9px; margin-top: 12px; }
+.review-reject { background: #2c1c1c; color: var(--danger); border-color: #7d4740; }
+.review-defer { background: #241f2f; color: #c6b6ea; border-color: #54497a; }
+.review-accept { background: #244d43; color: #f2fffb; }
+@media (max-width: 900px) {
+  .review-comparison { grid-template-columns: 1fr; }
+  .review-decision > div { flex-wrap: wrap; }
+  .review-decision > div button { flex: 1; }
+}
