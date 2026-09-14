@@ -20,6 +20,8 @@ No secret values appear in this file and none may be added to it.
 | Where they live | Vercel project `crc-overlays` and Vercel project `tbi-overlays`, Production + Preview, marked Sensitive. Locally: the existing ignored `.env*.local` paths. Never committed, never printed. |
 | Owner / recovery | Daniel (daniel@centralreform.org) owns the Google project. Recovery: rotate the secret on the Clients page, update both Vercel projects, redeploy both. Rotation invalidates in-flight sign-ins only; paired devices are unaffected. |
 
+Status note (build, 2026-09-13): the code requests these three scopes by their short aliases, `openid email profile`, which Google treats as identical to the URIs above; the consent screen and the granted scopes are the same. No other scope is ever requested.
+
 The callback path was chosen here because no sign-in code existed when Daniel ran the Google
 setup. It is now fixed: the build matches this file, not the other way round. If the build needs
 a different path, the redirect URIs must be edited in the Google console first and this table
