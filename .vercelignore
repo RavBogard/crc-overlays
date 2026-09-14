@@ -4,7 +4,10 @@ work
 .sites-runtime
 dist
 node_modules
-companion
+# companion ships as a packaged module, but tests/rehearsal-relay.test.ts imports companion/src/client.ts
+# to prove the shipped parser tolerates new presence fields, so the Companion source must be uploaded too.
+companion/*
+!companion/src
 # relay ships from relay/ with wrangler, but scripts/rehearsal-relay.ts and its test import relay/src/protocol.ts,
 # and Next type-checks scripts/ and tests/ on Vercel, so the relay source must be uploaded.
 relay/*
