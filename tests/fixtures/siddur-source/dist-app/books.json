@@ -1,0 +1,19 @@
+[
+  {
+    "slug": "fixture-volume",
+    "title": "Fixture Volume",
+    "title_he": "אבג דהו",
+    "feed": "fixture-volume-feed.json",
+    "family": "fixture",
+    "familyLabel": "Fixture Family",
+    "attribution": "Synthetic fixture. Not a real publication.",
+    "blurb": "Synthetic fixture volume used only to exercise the builder.",
+    "callNumbers": "FIX 1",
+    "listed": true,
+    "pdf": "fixture-volume.pdf",
+    "pdfPublic": false,
+    "pin": "HEAD",
+    "shelf": 1,
+    "when": { "daypart": "evening", "weekday": 5 }
+  }
+]

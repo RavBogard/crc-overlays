@@ -1,0 +1,112 @@
+{
+  "schemaVersion": 1,
+  "volume": "fixture-volume",
+  "title": "Fixture Volume",
+  "blockGranularity": "stanza",
+  "printing": {
+    "gitSha": "0000000",
+    "pages": 4,
+    "builtAt": "2026-01-01T00:00:00Z"
+  },
+  "license": {
+    "spdx": "CC-BY-NC-SA-4.0",
+    "attribution": "Synthetic fixture text. No real liturgy."
+  },
+  "pageIndex": { "1": 1, "2": 2 },
+  "sections": [
+    {
+      "idx": 1,
+      "en": "Fixture Section One",
+      "he": "אבג אבג",
+      "folio": 1,
+      "cue": "fixture cue one",
+      "blurb": "Synthetic section blurb.",
+      "epithet": "fixture epithet",
+      "opener": true
+    },
+    {
+      "idx": 2,
+      "en": "Fixture Section Two",
+      "he": "דהו דהו",
+      "folio": 3,
+      "cue": "fixture cue two",
+      "blurb": "Synthetic section blurb.",
+      "epithet": "fixture epithet",
+      "opener": false
+    }
+  ],
+  "units": [
+    {
+      "id": "fixture-unit-bilingual",
+      "name": "Fixture Bilingual Unit",
+      "caption": "Fixture caption one",
+      "section": 1,
+      "group": "fixture-group",
+      "printedFolio": "1",
+      "folios": [1],
+      "blocks": [
+        {
+          "type": "stanza",
+          "folio": 1,
+          "phys": 1,
+          "he": "אבג דהו זחט",
+          "tr": "placeholder transliteration one",
+          "bare": "אבג דהו זחט"
+        },
+        {
+          "type": "stanza",
+          "folio": 1,
+          "phys": 1,
+          "he": "כלמ נסע פצק",
+          "tr": "placeholder transliteration two",
+          "bare": "כלמ נסע פצק",
+          "en": "Placeholder English translation line.",
+          "label": "Translation"
+        }
+      ]
+    },
+    {
+      "id": "fixture-unit-original",
+      "name": "Fixture Original Unit",
+      "caption": "Fixture caption two",
+      "section": 2,
+      "group": "fixture-group",
+      "printedFolio": "3",
+      "folios": [3],
+      "blocks": [
+        {
+          "type": "english",
+          "folio": 3,
+          "phys": 2,
+          "role": "original",
+          "en": "Placeholder original English composed for this fixture."
+        }
+      ]
+    },
+    {
+      "id": "fixture-unit-rubric",
+      "name": "Fixture Rubric Unit",
+      "caption": "Fixture caption three",
+      "section": 2,
+      "group": "fixture-group",
+      "printedFolio": "4",
+      "folios": [4],
+      "blocks": [
+        {
+          "type": "rubric",
+          "folio": 4,
+          "phys": 2,
+          "text": "Please rise"
+        },
+        {
+          "type": "english",
+          "folio": 4,
+          "phys": 2,
+          "en": "Placeholder unclassified English line.",
+          "label": "Reading",
+          "verse": 1
+        }
+      ]
+    }
+  ]
+}

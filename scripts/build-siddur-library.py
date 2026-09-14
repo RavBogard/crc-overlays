@@ -12,6 +12,7 @@ from __future__ import annotations
 import argparse
 import hashlib
 import json
+import os
 import re
 import subprocess
 import sys
@@ -20,7 +21,21 @@ from typing import Any
 
 ROOT = Path(__file__).resolve().parents[1]
 DEFAULT_OUTPUT = ROOT / "content" / "siddur-library.json"
-DEFAULT_SOURCE_ROOT = ROOT.parent / "shireishabbat"
+SIBLING_SOURCE_ROOT = ROOT.parent / "shireishabbat"
+
+
+def default_source_root() -> Path:
+    """Where the shireishabbat checkout lives.
+
+    CI has no sibling checkout, so SIDDUR_SOURCE_ROOT names the workspace copy.
+    The sibling path stays the default for a local working tree, where it holds.
+    """
+    configured = os.environ.get("SIDDUR_SOURCE_ROOT", "").strip()
+    return Path(configured) if configured else SIBLING_SOURCE_ROOT
+
+
+# Retained for callers that import the module expecting the historical name.
+DEFAULT_SOURCE_ROOT = SIBLING_SOURCE_ROOT
 
 
 class LibraryError(RuntimeError):
@@ -427,13 +442,19 @@ def build_library(source_root: Path) -> dict[str, Any]:
 
 def main() -> int:
     parser = argparse.ArgumentParser(description=__doc__)
-    parser.add_argument("--source-root", type=Path, default=DEFAULT_SOURCE_ROOT)
+    parser.add_argument(
+        "--source-root",
+        type=Path,
+        default=None,
+        help="shireishabbat checkout; defaults to $SIDDUR_SOURCE_ROOT, else the sibling checkout",
+    )
     parser.add_argument("--output", type=Path, default=DEFAULT_OUTPUT)
     parser.add_argument("--check", action="store_true")
     args = parser.parse_args()
+    source_root = args.source_root if args.source_root is not None else default_source_root()
     try:
         rendered = json.dumps(
-            build_library(args.source_root.resolve()), ensure_ascii=False, indent=2
+            build_library(source_root.resolve()), ensure_ascii=False, indent=2
         ) + "\n"
         output = args.output.resolve()
         if args.check:

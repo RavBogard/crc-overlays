@@ -1,0 +1,156 @@
+# Regenerate content/siddur-library.json from the shireishabbat source feeds.
+#
+# The overlay authoring library is generated, never hand-edited: scripts/build-siddur-library.py
+# reads the shireishabbat app surface (dist-app/) and emits the library the source-review inbox
+# draws on. This workflow runs that builder against a fresh checkout of the source repository and
+# opens a pull request when the generated file moves. It touches no deployment target — no Vercel,
+# no Neon, no Cloudflare — and needs exactly one secret, a read-only token for the source repo.
+#
+# Without that secret the job still runs, against tests/fixtures/siddur-source, and proves the
+# builder itself is healthy. That is the mode a first-time dispatch should use.
+name: Siddur library
+
+on:
+  workflow_dispatch:
+    inputs:
+      dry_run:
+        description: Build against the synthetic fixture only; never open a pull request.
+        type: boolean
+        default: false
+  schedule:
+    # Monday 09:00 UTC — after the weekend's source edits, before the week's overlay work.
+    - cron: '0 9 * * 1'
+
+permissions:
+  contents: write
+  pull-requests: write
+
+jobs:
+  regenerate:
+    runs-on: ubuntu-latest
+    env:
+      # `secrets` may not appear in an `if:`, so the presence of the token is resolved once here
+      # and every branch below reads this string.
+      HAS_SOURCE_TOKEN: ${{ secrets.SHIREISHABBAT_TOKEN != '' }}
+    steps:
+      - name: Check out the overlays repository
+        uses: actions/checkout@v4
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+
+      - name: Check out the shireishabbat source repository
+        if: env.HAS_SOURCE_TOKEN == 'true' && inputs.dry_run != true
+        uses: actions/checkout@v4
+        with:
+          repository: RavBogard/ShireiShabbat
+          token: ${{ secrets.SHIREISHABBAT_TOKEN }}
+          path: source
+          # Full history on purpose. dist-app/ is NOT committed upstream; it is produced by
+          # build/build-app.sh, which extracts each printed volume from a git worktree pinned to
+          # its press commit. A shallow clone has no such commit and the producer fails.
+          fetch-depth: 0
+
+      - name: Produce the source app surface (dist-app/)
+        if: env.HAS_SOURCE_TOKEN == 'true' && inputs.dry_run != true
+        working-directory: source
+        run: |
+          # setup.sh unpacks the vendored typst binary and regenerates the licensed-lane
+          # selectors; build-app.sh writes dist-app/. Both are zero-network and use only
+          # python3 and bash, which the runner already has.
+          bash build/setup.sh
+          bash build/build-app.sh
+          test -f dist-app/books.json
+
+      - name: Record the current library
+        if: env.HAS_SOURCE_TOKEN == 'true' && inputs.dry_run != true
+        run: cp content/siddur-library.json "$RUNNER_TEMP/siddur-library-before.json"
+
+      - name: Rebuild the library from source
+        if: env.HAS_SOURCE_TOKEN == 'true' && inputs.dry_run != true
+        env:
+          SIDDUR_SOURCE_ROOT: ${{ github.workspace }}/source
+        run: python scripts/build-siddur-library.py --output content/siddur-library.json
+
+      - name: Detect a change
+        id: diff
+        if: env.HAS_SOURCE_TOKEN == 'true' && inputs.dry_run != true
+        run: |
+          if git diff --quiet -- content/siddur-library.json; then
+            echo "changed=false" >> "$GITHUB_OUTPUT"
+            echo "The regenerated library is identical to the committed one; no pull request." >> "$GITHUB_STEP_SUMMARY"
+          else
+            echo "changed=true" >> "$GITHUB_OUTPUT"
+          fi
+
+      - name: Summarise the coverage change
+        id: summary
+        if: env.HAS_SOURCE_TOKEN == 'true' && inputs.dry_run != true && steps.diff.outputs.changed == 'true'
+        run: |
+          python - > "$RUNNER_TEMP/summary.md" <<'PY'
+          import json, os, subprocess
+
+          def load(path):
+              with open(path, encoding="utf-8") as fh:
+                  return json.load(fh)
+
+          before = load(os.path.join(os.environ["RUNNER_TEMP"], "siddur-library-before.json"))
+          after = load("content/siddur-library.json")
+          old = {s["id"]: s.get("sourceSha256") for s in before.get("sources", [])}
+          new = {s["id"]: s.get("sourceSha256") for s in after.get("sources", [])}
+          added = sorted(set(new) - set(old))
+          removed = sorted(set(old) - set(new))
+          changed = sorted(i for i in set(old) & set(new) if old[i] != new[i])
+          sha = subprocess.run(
+              ["git", "-C", "source", "rev-parse", "HEAD"],
+              check=True, capture_output=True, text=True,
+          ).stdout.strip()
+
+          def listing(title, ids):
+              if not ids:
+                  return "- **%s:** none\n" % title
+              shown = "".join("  - `%s`\n" % i for i in ids[:20])
+              more = "  - ...and %d more\n" % (len(ids) - 20) if len(ids) > 20 else ""
+              return "- **%s:** %d\n%s%s" % (title, len(ids), shown, more)
+
+          print("Regenerated from shireishabbat `%s`.\n" % sha)
+          print("- **Sources:** %d -> %d" % (len(old), len(new)))
+          print(listing("Added", added), end="")
+          print(listing("Removed", removed), end="")
+          print(listing("Changed", changed), end="")
+          print()
+          print("Merging this pull request feeds the existing source-review inbox: the added")
+          print("and changed sources arrive there for review exactly as any other source")
+          print("revision does. Nothing is published by merging.")
+          PY
+          cat "$RUNNER_TEMP/summary.md" >> "$GITHUB_STEP_SUMMARY"
+          {
+            echo "body<<SUMMARY_EOF"
+            cat "$RUNNER_TEMP/summary.md"
+            echo "SUMMARY_EOF"
+            echo "short_sha=$(git -C source rev-parse --short HEAD)"
+          } >> "$GITHUB_OUTPUT"
+
+      - name: Open the regeneration pull request
+        if: env.HAS_SOURCE_TOKEN == 'true' && inputs.dry_run != true && steps.diff.outputs.changed == 'true'
+        uses: peter-evans/create-pull-request@v7
+        with:
+          branch: siddur-library/regenerate
+          base: main
+          title: Regenerate siddur library from shireishabbat ${{ steps.summary.outputs.short_sha }}
+          body: ${{ steps.summary.outputs.body }}
+          commit-message: Regenerate siddur library from shireishabbat ${{ steps.summary.outputs.short_sha }}
+          add-paths: content/siddur-library.json
+          delete-branch: true
+
+      - name: Dry run against the synthetic fixture
+        if: env.HAS_SOURCE_TOKEN != 'true' || inputs.dry_run == true
+        env:
+          SIDDUR_SOURCE_ROOT: tests/fixtures/siddur-source
+        run: |
+          python scripts/build-siddur-library.py --output "$RUNNER_TEMP/siddur-library.json"
+          count="$(python -c 'import json, os; print(len(json.load(open(os.path.join(os.environ["RUNNER_TEMP"], "siddur-library.json"), encoding="utf-8"))["sources"]))')"
+          echo "Dry run: built $count source(s) from tests/fixtures/siddur-source. No pull request was opened." >> "$GITHUB_STEP_SUMMARY"
+          echo "dry run built $count source(s) from the synthetic fixture"
