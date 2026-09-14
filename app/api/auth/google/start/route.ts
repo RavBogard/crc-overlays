@@ -6,7 +6,7 @@
  * Google establishes identity only. Nothing here creates a member, changes a role or changes
  * `enabled` - the flow row this route stores is the whole of its side effects.
  */
-import {accessRequestIdentity,accessStore,accessToken,currentMember,sameSiteWrite,tokenHash,validPassword,verifyPassword} from '@/lib/access';
+import {accessRequestIdentity,accessStore,accessToken,currentMember,sameSiteWrite,tokenHash} from '@/lib/access';
 import {readLimitedBody} from '@/lib/oauth-core';
 import {beginGoogleFlow,googleConfiguration,googleReturnPath,googleSignInAvailability} from '@/lib/google-sign-in';
 
@@ -50,13 +50,7 @@ export async function POST(request:Request){
    // A member already holding a Google link unlinks first; the page never offers this form
    // to a linked member, so a direct post simply lands back on the account page as it is.
    if(await accessStore.identityForMember(member.id))return redirect('/access');
-   // D1: linking from a signed-in session requires the current password when one exists, so
-   // a borrowed browser cannot quietly attach a second way in.
-   const credential=await accessStore.credentialForEmail(member.email);
-   if(credential?.passwordHash){
-    const supplied=form.get('currentPassword')??'';
-    if(!validPassword(supplied)||!await verifyPassword(supplied,credential.passwordHash))return redirect('/access?google=password');
-   }
+   // D1 (Daniel, 2026-09-13): the signed-in session is the proof; no password is re-entered.
    memberId=member.id;
   }
   if(intent==='redeem'){

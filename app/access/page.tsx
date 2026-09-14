@@ -227,7 +227,6 @@ export default function AccessPage(){
       ?<div className="access-google-linked"><span>Linked as {user.google.email}</span><button disabled={busy} onClick={()=>void act({action:'unlink_google'})}>{busy?<><LoaderCircle className="spin" size={15}/>Working…</>:<>Unlink</>}</button></div>
       :<><form method="post" action="/api/auth/google/start">
         <input type="hidden" name="intent" value="link"/>
-        {user.hasPassword&&<label>Current password<input required type="password" name="currentPassword" autoComplete="current-password" minLength={12} maxLength={200}/></label>}
         <button className="access-primary" disabled={google.disabled}>Link Google account</button>
        </form>{googleReason}</>}
     </section>}

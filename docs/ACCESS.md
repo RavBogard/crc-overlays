@@ -51,8 +51,8 @@ What a member sees. The sign-in card offers **Continue with Google** above the e
 password form, separated by a divider. An unopened invitation offers the same button
 beside the existing **Open workspace**, so a new member can accept the invitation with a
 Google account rather than by typing a password. Once signed in, the **Google sign-in**
-panel shows either **Link Google account** — which asks for the current password when the
-member has one — or **Linked as** the linked address, with **Unlink** beside it. If the
+panel shows either **Link Google account** — one click while signed in; no password is
+re-entered — or **Linked as** the linked address, with **Unlink** beside it. If the
 Google address is not the address on the membership, nothing is linked silently: a
 confirmation card names both addresses and asks before anything is written, and **Cancel**
 leaves the membership untouched.

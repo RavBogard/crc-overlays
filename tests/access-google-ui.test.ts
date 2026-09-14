@@ -31,7 +31,6 @@ test("each returned code renders its agreed sentence", () => {
     text("invite_invalid"),
     "This link has expired or was already used. Ask your administrator for a new link.",
   );
-  assert.equal(text("password"), "Enter your current password, or use a fresh invitation link to reset it.");
   assert.equal(text("linked", "rabbi@example.org"), "Google account linked as rabbi@example.org.");
   assert.equal(GOOGLE_UNLINKED_TEXT, "Google account unlinked. Your password still works.");
 });
@@ -51,7 +50,6 @@ test("only cancelled and linked read as good news", () => {
     mismatch: "error",
     unavailable: "error",
     invite_invalid: "error",
-    password: "error",
   });
 });
 

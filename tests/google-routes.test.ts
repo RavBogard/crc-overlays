@@ -187,7 +187,7 @@ test('start is available only on a registered host that agrees with the canonica
  });
 });
 
-test('linking needs a session, and the current password whenever the member has one',async()=>{
+test('linking needs a signed-in session and nothing else (D1: no password re-entry)',async()=>{
  await withGoogle({},async({store})=>{
   const signedOut=await startPOST(startRequest({intent:'link'}));
   assert.equal(location(signedOut),'/access?google=mismatch');
@@ -195,15 +195,12 @@ test('linking needs a session, and the current password whenever the member has 
 
   const member=addMember(store,memberOf('member-1',GOOGLE_EMAIL),await hashPassword(PASSWORD));
   const cookie=await signedInCookie(member);
-  const missing=await startPOST(startRequest({intent:'link'},{cookie}));
-  assert.equal(location(missing),'/access?google=password');
-  const wrong=await startPOST(startRequest({intent:'link',currentPassword:'not-the-password'},{cookie}));
-  assert.equal(location(wrong),'/access?google=password');
-  assert.equal(store.flows.size,0,'a refused link starts no flow');
-
-  const accepted=await startPOST(startRequest({intent:'link',currentPassword:PASSWORD},{cookie}));
+  // A stray currentPassword field is ignored, wrong or not: the session is the proof.
+  const withWrong=await startPOST(startRequest({intent:'link',currentPassword:'not-the-password'},{cookie}));
+  assert.equal(new URL(location(withWrong)).origin,'https://issuer.test');
+  const accepted=await startPOST(startRequest({intent:'link'},{cookie}));
   assert.equal(new URL(location(accepted)).origin,'https://issuer.test');
-  assert.equal(store.flows.size,1);
+  assert.equal(store.flows.size,2);
  });
 });
 
@@ -485,7 +482,7 @@ test('a member who already holds a Google link is sent back to the account page 
  await withGoogle({},async({store})=>{
   const member=addMember(store,memberOf('member-1','owner@crc.example'),await hashPassword(PASSWORD));
   await store.linkIdentity('member-1',identityOf('google-subject-held','owner@crc.example'),Date.now());
-  const response=await startPOST(startRequest({intent:'link',currentPassword:PASSWORD},{cookie:await signedInCookie(member)}));
+  const response=await startPOST(startRequest({intent:'link'},{cookie:await signedInCookie(member)}));
   assert.equal(location(response),'/access');
   assert.equal(store.flows.size,0,'no flow is started');
   assert.equal(store.identities.size,1,'the existing link is untouched');

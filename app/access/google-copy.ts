@@ -5,7 +5,7 @@
  * Everything a member reads about Google lives here; the page only places it.
  */
 
-/** Codes that can arrive as `?google=<code>` after a round trip, plus `password`. */
+/** Codes that can arrive as `?google=<code>` after a round trip. */
 export const GOOGLE_NOTICE_CODES = [
   "signed_in",
   "removed",
@@ -17,7 +17,6 @@ export const GOOGLE_NOTICE_CODES = [
   "cancelled",
   "mismatch",
   "unavailable",
-  "password",
 ] as const;
 
 export type GoogleNoticeCode = (typeof GOOGLE_NOTICE_CODES)[number];
@@ -38,8 +37,6 @@ export type GoogleConfirmDetails = {
   googleEmail: string;
 };
 
-/** The member entered the wrong current password when linking: the page's existing wording. */
-const WRONG_PASSWORD = "Enter your current password, or use a fresh invitation link to reset it.";
 /** The page's existing wording for an invitation that has expired or was already used. */
 const INVITE_INVALID = "This link has expired or was already used. Ask your administrator for a new link.";
 
@@ -63,7 +60,6 @@ const NOTICES: Record<Exclude<GoogleNoticeCode, "signed_in" | "linked" | "confir
   cancelled: { text: "Google sign-in was cancelled. Nothing changed.", kind: "success" },
   unavailable: { text: GOOGLE_UNAVAILABLE_TEXT, kind: "error" },
   invite_invalid: { text: INVITE_INVALID, kind: "error" },
-  password: { text: WRONG_PASSWORD, kind: "error" },
 };
 
 export function isGoogleNoticeCode(value: unknown): value is GoogleNoticeCode {
