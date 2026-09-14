@@ -72,7 +72,7 @@ Button text can show any of these variables. The prefix is the connection's name
 
 ## Author or correct a cue
 
-1. Open `/author` and connect with the CRC authoring key.
+1. Open `/author` signed in as an Administrator or Editor.
 2. Import an existing cue to keep its ID, or create a draft from a supported template.
 3. Select authoritative source blocks. Bilingual drafts require matching Hebrew and transliteration block pairs in the same order. Original-English drafts accept only source blocks marked for that role.
 4. Set the title, layout, and font sizes, then save. Saves use the draft version to prevent one editor from overwriting another.
@@ -89,7 +89,7 @@ An MCP client connects to the hosted `/api/mcp` endpoint through OAuth discovery
 
 MCP preview generation does not replace browser review. Open the returned preview in the web editor, approve the exact saved version there, and publish only while that review receipt is current.
 
-Current connection blockers: the inspected ChatGPT and Claude clients were signed out, and OAuth compatibility for clients that request `offline_access` is being corrected. Do not store the authoring key in an MCP configuration file or this guide.
+Connecting opens a consent page in the browser; approve it signed in as an Administrator or Editor, the same sign-in as the rest of the site. There is no key to store in an MCP configuration file or this guide. `prepare_service_from_setlist` builds a prepared service on `/services` from a planned service on centralreform.live (CRC only; see `docs/MCP.md`).
 
 ## Companion rehearsal pages
 
