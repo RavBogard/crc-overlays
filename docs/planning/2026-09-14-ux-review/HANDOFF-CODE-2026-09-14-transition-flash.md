@@ -91,4 +91,4 @@ Acceptance for Part 2: on Show, the Live window animates the graphic in with the
 
 ## Not in scope
 
-Cross-fading A into B instead of sequencing Out then In. It would remove the empty-frame gap on a direct switch and is worth considering, but it changes the archived Singular timing the graphics were built against, so it should be its own decision, not part of a bug fix.
+Cross-fading A into B. The owner ruled on 2026-09-14 to keep the current sequence — the departing graphic fully out, then the incoming one in — which matches the archived Singular timings. Do not overlap the Out and In tracks.
