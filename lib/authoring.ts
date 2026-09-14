@@ -108,6 +108,14 @@ export function upstreamSnapshot(cue:Cue):SharedCueUpstream{return {layout:cue.l
 // CRC original is the baseline cue it was copied from, hashed the way the CRC feed hashes it,
 // so "CRC changed this" is decided by the same bytes on both sides.
 function starterBaselineHash(starterMap:Map<string,string>){const origins=new Map([...starterMap].map(([source,destination])=>[destination,source]));return (starterCueId:string)=>{const sourceCueId=origins.get(starterCueId);const cue=sourceCueId?baselineCues.find(item=>item.id===sourceCueId):undefined;return cue?sharedCueHash(cue):null}}
+// Every baseline lookup in this file reads CRC's cue list, so one of this workspace's own
+// starter ids is resolved back to the CRC graphic it was copied from before the lookup. CRC's
+// own ids - and anything that is not a starter - pass through unchanged.
+const baselineSourceCueId=(cueId:string)=>{for(const [source,destination] of starterSourceMap())if(destination===cueId)return source;return cueId};
+/** The catalog row this workspace publishes for an id: its own id and name, never CRC's. */
+const workspaceCatalogCue=(cueId:string)=>baselineCatalogForWorkspace().find(cue=>cue.id===cueId)??baselineCues.find(cue=>cue.id===cueId);
+/** CRC's editable model for the graphic behind this workspace's id, under this workspace's name. */
+const editableFromWorkspaceBaseline=(cueId:string):EditableDraft=>{const editable=editableFromBaseline(baselineSourceCueId(cueId));const cue=workspaceCatalogCue(cueId);return cue?{...editable,name:cue.name}:editable};
 
 export type AuthoringWorkspace={rehearsal:boolean;storage:'memory'|'postgres';label:string|null};
 type SharedLibraryReader={get(force?:boolean):Promise<SharedLibrarySnapshot>};
@@ -228,7 +236,7 @@ export function createAuthoringService(repo:AuthoringRepository,workspace:Author
    const includeTranslation=data.includeTranslation===true;if(mode!=='bilingual'&&includeTranslation)throw new AuthoringError('invalid_input','includeTranslation is available only for bilingual sources');
    if(!['bottom','left','right'].includes(String(data.layout)))throw new AuthoringError('invalid_input','layout must be bottom, left, or right');const layout=data.layout as Layout;
    if(includeTranslation&&layout==='bottom')throw new AuthoringError('translation_layout','Use a left or right panel for translated blessing rows');
-   const templateCueId=string(data.templateCueId,'templateCueId',80);const template=baselineCues.find(cue=>cue.id===templateCueId);if(!template)throw new AuthoringError('unknown_template','Unknown baseline cue template',404);if(template.layout!==layout)throw new AuthoringError('template_layout_mismatch','Template cue layout must match the draft layout');
+   const templateCueId=baselineSourceCueId(string(data.templateCueId,'templateCueId',80));const template=baselineCues.find(cue=>cue.id===templateCueId);if(!template)throw new AuthoringError('unknown_template','Unknown baseline cue template',404);if(template.layout!==layout)throw new AuthoringError('template_layout_mismatch','Template cue layout must match the draft layout');
    const pages=sourceSetPages(source,mode,includeTranslation,layout);const setId=randomUUID();const count=pages.length;const width=Math.max(2,String(count).length);const now=Date.now();
    let drafts=pages.map((page,index)=>{
     const groups=page.map(block=>({sourceId,blockIds:[block.id]}));
@@ -268,8 +276,8 @@ export function createAuthoringService(repo:AuthoringRepository,workspace:Author
   }
   if(operation==='import_cue'){
    keys(data,['cueId']);const cueId=string(data.cueId,'cueId',80);const existing=await repo.getDraft(cueId);if(existing)return {draft:existing,created:false};
-   const editable=editableFromBaseline(cueId);const sourceSnapshots=sourceSnapshotsFor(editable.content);const now=Date.now();const draft:Draft={...editable,id:cueId,version:1,sourcePin:sourcePinFor(editable.content,sourceSnapshots),...(sourceSnapshots.length?{sourceSnapshots}:{}),activeRevision:null,activeDraftVersion:null,createdAt:now,updatedAt:now,createdBy:who,updatedBy:who};
-   const baseline=baselineCues.find(cue=>cue.id===cueId)!;
+   const editable=editableFromWorkspaceBaseline(cueId);const sourceSnapshots=sourceSnapshotsFor(editable.content);const now=Date.now();const draft:Draft={...editable,id:cueId,version:1,sourcePin:sourcePinFor(editable.content,sourceSnapshots),...(sourceSnapshots.length?{sourceSnapshots}:{}),activeRevision:null,activeDraftVersion:null,createdAt:now,updatedAt:now,createdBy:who,updatedBy:who};
+   const baseline=workspaceCatalogCue(cueId)! as AuthoringCue;
    try{return {draft:await repo.insertImportedDraft(draft,structuredClone(baseline),who),created:true}}catch(error){const raced=await repo.getDraft(cueId);if(raced)return {draft:raced,created:false};throw error}
   }
   if(operation==='update_draft'){
@@ -288,7 +296,7 @@ export function createAuthoringService(repo:AuthoringRepository,workspace:Author
   // baseline mapping `import_cue` would use, and a baseline the model refuses to manage
   // (a non-liturgical archive copy) refuses here too, with its own error.
   if(operation==='preview_baseline_cue'){
-   keys(data,['cueId']);return ephemeralCue(editableFromBaseline(string(data.cueId,'cueId',160)),who);
+   keys(data,['cueId']);const cueId=string(data.cueId,'cueId',160);return ephemeralCue(editableFromWorkspaceBaseline(cueId),who,cueId);
   }
   if(operation==='review_draft'){
    keys(data,['draftId','expectedVersion','previewId','browserMeasurement','humanApproved']);const draft=await versionedDraft(repo,string(data.draftId,'draftId'),integer(data.expectedVersion,'expectedVersion',1));assertSourcePin(draft);const preview=await requiredPreview(repo,string(data.previewId,'previewId'));if(preview.draftId!==draft.id||preview.draftVersion!==draft.version)throw new AuthoringError('stale_preview','Preview does not match this draft version',409);if(data.humanApproved!==true)throw new AuthoringError('review_required','Human approval is required',400);
@@ -328,19 +336,21 @@ const FIT_CONTRACT={viewport:{width:1920,height:1080},fontsReadyRequired:true,no
  * preview record, nothing a publication could later cite. Every ephemeral preview goes through
  * here so a look at a graphic can never leave a trace in the library.
  */
-function ephemeralCue(editable:EditableDraft,who:string){
+function ephemeralCue(editable:EditableDraft,who:string,cueId?:string){
  const sourceSnapshots=sourceSnapshotsFor(editable.content);const now=Date.now();
  const draft:Draft={...editable,id:newDraftId(),version:1,sourcePin:sourcePinFor(editable.content,sourceSnapshots),...(sourceSnapshots.length?{sourceSnapshots}:{}),activeRevision:null,activeDraftVersion:null,createdAt:now,updatedAt:now,createdBy:who,updatedBy:who};
- const cue=buildCue(draft);
+ // A look at a catalog graphic reports it under the id the catalog publishes it as, so a fit
+ // check measures the graphic a person asked for rather than a throwaway draft id.
+ const cue={...buildCue(draft),...(cueId?{id:cueId}:{})};
  return {cue,validation:previewValidation(cue),ephemeral:true as const,fitContract:structuredClone(FIT_CONTRACT)};
 }
 function editableOnly(draft:Draft):EditableDraft{return {name:draft.name,title:draft.title,accentTitle:draft.accentTitle,layout:draft.layout,templateCueId:draft.templateCueId,content:draft.content,presentation:draft.presentation}}
 function copyLabel(name:string){const prefix='Copy of ';return `${prefix}${name}`.slice(0,80).trim()}
 function editableFromCatalogCue(cueId:string):EditableDraft{
- try{return editableFromBaseline(cueId)}catch(error){
-  const cue=baselineCues.find(item=>item.id===cueId);if(!cue)throw new AuthoringError('unknown_cue','Unknown catalog cue',404);
+ try{return editableFromWorkspaceBaseline(cueId)}catch(error){
+  const cue=workspaceCatalogCue(cueId);if(!cue)throw new AuthoringError('unknown_cue','Unknown catalog cue',404);
   const body=cue.texts.textMain;if(typeof body!=='string'||!body.trim())throw error;
-  return {name:cue.name,title:cue.texts.textTitle,accentTitle:cue.texts.accentTextTitle,layout:cue.layout as EditableDraft['layout'],templateCueId:cue.id,content:{mode:'custom',text:body},presentation:(cue as AuthoringCue).presentation??{}};
+  return {name:cue.name,title:cue.texts.textTitle,accentTitle:cue.texts.accentTextTitle,layout:cue.layout as EditableDraft['layout'],templateCueId:baselineSourceCueId(cue.id),content:{mode:'custom',text:body},presentation:(cue as AuthoringCue).presentation??{}};
  }
 }
 const conflict=()=>new AuthoringError('version_conflict','Draft version changed; reload before editing',409);

@@ -13,6 +13,14 @@ const LEFT_PANEL='bbd7c98b-f1de-41ee-9719-2bb27a30d0db';
 const RIGHT_PANEL='09f50803-3288-4b78-bcc7-560025668e1a';
 const KOL_NIDRE='library:crc-kol-nidre:erev-yk.kol-nidre@crc-kol-nidre';
 const OPENING_PRAYER='library:crc-kol-nidre:erev-yk.opening-prayer@crc-kol-nidre';
+const TBI_WORKSPACE='temple-bnai-israel-kalamazoo';
+// Barechu as TBI's starter catalog publishes it (workspaces/temple-bnai-israel/catalog-map.json).
+const TBI_BARECHU='25694476-68e4-4092-943f-4bce41688370';
+async function withWorkspace(workspaceId:string|undefined,run:()=>Promise<void>){
+ const before=process.env.WORKSPACE_ID;
+ try{if(workspaceId===undefined)Reflect.deleteProperty(process.env,'WORKSPACE_ID');else Reflect.set(process.env,'WORKSPACE_ID',workspaceId);await run()}
+ finally{if(before===undefined)Reflect.deleteProperty(process.env,'WORKSPACE_ID');else Reflect.set(process.env,'WORKSPACE_ID',before)}
+}
 const measurement={viewportWidth:1920,viewportHeight:1080,fontsReady:true,overflow:false,rendererVersion:'test-renderer',measuredAt:Date.now()} as const;
 
 type DraftResult={draft:Draft};
@@ -251,6 +259,41 @@ test('preview_baseline_cue renders a baseline graphic without importing it',asyn
  // The non-liturgical archive copy refuses here exactly as it refuses import.
  await assert.rejects(service.operation('preview_baseline_cue',{cueId:RIGHT_PANEL},'tester'),(error)=>(error as AuthoringError).code==='unmanaged_content');
  await assert.rejects(service.operation('preview_baseline_cue',{cueId:'missing'},'tester'),(error)=>(error as AuthoringError).code==='unknown_cue');
+});
+
+// TBI serves CRC's baseline graphics under its own ids. Rebuilding one resolves the id back to
+// the CRC graphic it was copied from, and reports it as TBI's catalog publishes it.
+test('preview_baseline_cue rebuilds a workspace starter graphic under the workspace id',async()=>{
+ const service=createAuthoringService(new MemoryAuthoringRepository());
+ await withWorkspace(TBI_WORKSPACE,async()=>{
+  const preview=await service.operation('preview_baseline_cue',{cueId:TBI_BARECHU},'tester') as PreviewContentResult;
+  assert.equal(preview.ephemeral,true);assert.equal(preview.validation.valid,true);
+  assert.equal(preview.cue.id,TBI_BARECHU,'the rebuilt graphic keeps the workspace id, not the CRC one');
+  assert.equal(preview.cue.name,baselineCues.find(cue=>cue.id===BARECHU)!.name,'the workspace catalog name is what TBI publishes');
+  assert.equal(preview.cue.texts.textTitle,baselineCues.find(cue=>cue.id===BARECHU)!.texts.textTitle);
+  assert.deepEqual(preview.cue.texts.textMainheb,baselineCues.find(cue=>cue.id===BARECHU)!.texts.textMainheb,'the TBI graphic is the CRC baseline it was copied from');
+  await assert.rejects(service.operation('preview_baseline_cue',{cueId:'no-such-cue'},'tester'),(error)=>(error as AuthoringError).code==='unknown_cue');
+ });
+ await withWorkspace('crc',async()=>{
+  const preview=await service.operation('preview_baseline_cue',{cueId:BARECHU},'tester') as PreviewContentResult;
+  assert.equal(preview.cue.id,BARECHU,'a CRC source id still resolves on CRC');
+  await assert.rejects(service.operation('preview_baseline_cue',{cueId:TBI_BARECHU},'tester'),(error)=>(error as AuthoringError).code==='unknown_cue','a TBI id is not a CRC graphic');
+  await assert.rejects(service.operation('preview_baseline_cue',{cueId:'missing'},'tester'),(error)=>(error as AuthoringError).code==='unknown_cue');
+ });
+});
+
+test('import_cue seeds a workspace starter graphic under the workspace id',async()=>{
+ const repo=new MemoryAuthoringRepository();const service=createAuthoringService(repo);
+ await withWorkspace(TBI_WORKSPACE,async()=>{
+  const first=await service.operation('import_cue',{cueId:TBI_BARECHU},'tester') as ImportCueResult;
+  const second=await service.operation('import_cue',{cueId:TBI_BARECHU},'tester') as ImportCueResult;
+  assert.equal(first.created,true);assert.equal(second.created,false);
+  assert.equal(first.draft.id,TBI_BARECHU);assert.equal(first.draft.name,baselineCues.find(cue=>cue.id===BARECHU)!.name);
+  assert.equal(first.draft.templateCueId,BARECHU,'the layout template is still the CRC baseline cue');
+  const published=await service.publishedCues();
+  assert.deepEqual(published.map(cue=>cue.id),[TBI_BARECHU],'the seeded baseline publication keeps the workspace id');
+  await assert.rejects(service.operation('import_cue',{cueId:'no-such-cue'},'tester'),(error)=>(error as AuthoringError).code==='unknown_cue');
+ });
 });
 
 test('the editor panel budget agrees with the server prayer split',async()=>{
