@@ -6,6 +6,12 @@ export interface CatalogCue {
 }
 
 const UUID = /^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i
+// A names list for a service is materialized into the live catalog only, under the id
+// `names:<collectionId>:<NN>` (lib/names-list.ts). It is a real, showable graphic, so the
+// module has to accept it -- but only in exactly that shape: both forms are bounded, free of
+// path, quote and whitespace characters, and therefore safe inside a preset id.
+const NAMES_CUE_ID = /^names:[A-Za-z0-9_-]{1,80}:\d{1,4}$/
+const validCueId = (value: string): boolean => UUID.test(value) || NAMES_CUE_ID.test(value)
 const SAFE_LAYOUT = /^[a-z][a-z0-9_-]{0,39}$/
 const UNSAFE_NAME = /[<>\u0000-\u001f\u007f]/
 
@@ -14,7 +20,7 @@ export function validateCatalog(value: unknown): CatalogCue[] {
   const cues = value.map((entry): CatalogCue => {
     if (!entry || typeof entry !== 'object') throw new Error('Catalog entry must be an object')
     const candidate = entry as Record<string, unknown>
-    if (typeof candidate.id !== 'string' || !UUID.test(candidate.id)) throw new Error('Catalog cue ID must be a UUID')
+    if (typeof candidate.id !== 'string' || !validCueId(candidate.id)) throw new Error('Catalog cue ID must be a UUID or a names panel ID')
     if (typeof candidate.name !== 'string' || candidate.name.length === 0 || candidate.name.length > 80 || UNSAFE_NAME.test(candidate.name)) throw new Error('Catalog cue name must be safe plain text')
     if (typeof candidate.layout !== 'string' || !SAFE_LAYOUT.test(candidate.layout)) throw new Error('Catalog cue layout is invalid')
     if (candidate.hidden !== undefined && typeof candidate.hidden !== 'boolean') throw new Error('Catalog cue hidden flag must be boolean')

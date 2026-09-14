@@ -29,6 +29,7 @@ Requests time out instead of hanging indefinitely. The module holds a realtime s
 - **Bug off** hides the scan card and its page.
 - **Set page** shows the scan card with the page typed into the action. A page is at most twelve characters of letters, digits, spaces and light punctuation; a longer or unusual page is refused here, before anything is sent.
 - **Next panel** shows the next panel of the multipart graphic on screen, wrapping from the last panel to the first. From a single-part graphic, a cleared output or an unknown graphic it shows panel 01 of the **Panel set** chosen in the action; with **None** chosen it does nothing.
+- A **Panel set** listed as *“Mi Shebeirach (names for this service)”* is a names list an editor typed into one service, not the published graphic of that name. The two never mix: Next and Previous panel stay inside whichever set is on screen, so a names list can share its title with a published set, or with another service's list, without either one stepping into the other.
 - **Previous panel** is the same step backward, wrapping from the first panel to the last.
 
 **Clear now** removes the scan card along with the graphic. **Animate out** leaves the card alone. If the deployment has no scan card set up, these actions are refused and the refusal is shown as the connection status.

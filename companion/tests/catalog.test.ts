@@ -1,5 +1,6 @@
 import { describe, expect, it } from 'vitest'
 import { CatalogStore, cuePresetId, hasCatalogCue, validateCatalog, visibleCatalogCues, type CatalogCue } from '../src/catalog.js'
+import { panelSets, panelTarget } from '../src/panel.js'
 
 const original: CatalogCue[] = [
   { id: 'efa9fad4-f7d5-4091-a708-82103028861b', name: 'Barechu', layout: 'bottom' },
@@ -45,5 +46,49 @@ describe('authenticated catalog state', () => {
     expect(visibleCatalogCues(cues).map(cue => cue.id)).not.toContain(hidden.id)
     expect(visibleCatalogCues(cues)).toEqual(original)
     expect(() => validateCatalog([{ ...added, hidden: 'yes' }])).toThrow(/hidden flag/)
+  })
+})
+
+
+describe('a names list is a real graphic in the live catalog', () => {
+  const names: CatalogCue[] = [
+    { id: 'names:4f1c2a9e-0d3b-4c5a-9e7f-1a2b3c4d5e6f:01', name: 'Mi Shebeirach — 01 of 02', layout: 'left' },
+    { id: 'names:4f1c2a9e-0d3b-4c5a-9e7f-1a2b3c4d5e6f:02', name: 'Mi Shebeirach — 02 of 02', layout: 'left' },
+  ]
+
+  it('validates a catalog that mixes published cues and a service names list', () => {
+    const cues = validateCatalog([...original, ...names])
+    expect(cues).toHaveLength(5)
+    expect(cues.map(cue => cue.id)).toEqual([...original.map(cue => cue.id), ...names.map(cue => cue.id)])
+  })
+
+  it('refuses any id that is neither a UUID nor exactly the names panel shape', () => {
+    for (const id of [
+      'names:',
+      'names:collection:',
+      'names:collection',
+      'names::01',
+      'names:collection:01:02',
+      'names:collection:ab',
+      'names:collection:12345',
+      'names:coll ection:01',
+      'names:coll/ection:01',
+      'names:collection:01 ',
+      'NAMES:collection:01',
+      'not-a-uuid',
+    ]) expect(() => validateCatalog([{ id, name: 'Bad', layout: 'bottom' }])).toThrow()
+  })
+
+  it('derives a preset id and a catalog membership check from a names id unchanged', () => {
+    expect(cuePresetId(names[0]!.id)).toBe('show_names:4f1c2a9e-0d3b-4c5a-9e7f-1a2b3c4d5e6f:01')
+    expect(hasCatalogCue(validateCatalog([...original, ...names]), names[1]!.id)).toBe(true)
+  })
+
+  it('carries a validated names catalog into panel set derivation', () => {
+    const cues = validateCatalog([...original, ...names])
+    expect(panelSets(cues).map(set => ({ id: set.id, label: set.label }))).toEqual([
+      { id: 'names:4f1c2a9e-0d3b-4c5a-9e7f-1a2b3c4d5e6f:Mi Shebeirach', label: 'Mi Shebeirach (names for this service)' },
+    ])
+    expect(panelTarget(cues, names[1]!.id, 1)).toBe(names[0]!.id)
   })
 })

@@ -21,13 +21,17 @@ import {overlayAssetUrl} from '@/lib/overlay-assets';
 import {layoutLabel} from '@/lib/layout-label';
 import {NAMES_NAME_MAX,NAMES_PER_PANEL_MAX,NAMES_PER_PANEL_MIN,NAMES_ROW_MAX,NAMES_TITLE_MAX,namesPanelShapes,panelName,type NameRow,type NamesList} from '@/lib/names-list';
 import type {PublicWorkspace} from '@/lib/workspace';
-import {findFitErrors,findFitWarnings,waitForPreviewAssets} from '../author/preview';
+import {findFitErrors,waitForPreviewAssets} from '../author/preview';
+import {createRunGuard,namesSavedNotice,NAMES_REMOVED_NOTICE} from './names-list-model';
 import './names-list.css';
 
 export type NamesListCollection={id:string;name:string;version:number;archived:boolean;names?:NamesList|null};
 
 type Props={collection:NamesListCollection;canEdit:boolean;onSaved:()=>void|Promise<unknown>};
-type PanelVerdict={fitErrors:string[];warnings:string[]};
+// B-5: only fit errors are read here. A names list is short by nature, so the "Sparse -
+// consider Lower third" fit *warning* is normal for it and would be permanent noise; only an
+// error blocks the save, so only an error is measured and shown.
+type PanelVerdict={fitErrors:string[]};
 
 const emptyRow=():NameRow=>({he:'',en:''});
 const rowsFrom=(names:NamesList|null|undefined):NameRow[]=>names?.rows.length?names.rows.map(row=>({...row})):[emptyRow()];
@@ -49,9 +53,9 @@ async function measurePanel(root:HTMLElement,branding:OverlayBranding,cue:Cue):P
   await waitForPreviewAssets(root);
   const box=root.firstElementChild;
   if(box instanceof HTMLElement)player.applyFit(box,cue);
-  return {fitErrors:findFitErrors(root),warnings:findFitWarnings(root)};
+  return {fitErrors:findFitErrors(root)};
  }catch{
-  return {fitErrors:['Fonts or artwork did not load in time.'],warnings:[]};
+  return {fitErrors:['Fonts or artwork did not load in time.']};
  }finally{
   player.dispose();
  }
@@ -72,6 +76,10 @@ export default function NamesListPanel({collection,canEdit,onSaved}:Props){
  const [verdicts,setVerdicts]=useState<PanelVerdict[]|null>(null);
  const [measuring,setMeasuring]=useState(false);
  const stageRef=useRef<HTMLDivElement|null>(null);
+ // One shared stage, so passes are serialized through one chain and only the newest may
+ // publish. `guard` also supersedes on unmount, so nothing sets state after teardown.
+ const guard=useRef(createRunGuard()).current;
+ const queue=useRef<Promise<void>>(Promise.resolve());
 
  useEffect(()=>{
   let current=true;
@@ -91,18 +99,24 @@ export default function NamesListPanel({collection,canEdit,onSaved}:Props){
 
  useEffect(()=>{
   const root=stageRef.current;
-  if(!root||!branding||!shapes.length){setVerdicts(null);return}
-  let cancelled=false;
+  if(!root||!branding||!shapes.length){guard.supersede();setVerdicts(null);setMeasuring(false);return}
+  const run=guard.begin();
   setMeasuring(true);
-  (async()=>{
+  // `measurePanel` renders into the one hidden stage and awaits fonts and artwork, so two
+  // passes would interleave over the same DOM. Each pass waits for the previous one to let
+  // go of the stage, and a superseded pass publishes nothing - a further edit always
+  // re-measures rather than inheriting a verdict measured from other panels.
+  queue.current=queue.current.then(async()=>{
+   if(!guard.isCurrent(run))return;
    const results:PanelVerdict[]=[];
    for(const shape of shapes){
-    if(cancelled)return;
+    if(!guard.isCurrent(run))return;
     results.push(await measurePanel(root,branding,{...shape,animations:[],duration:{}} as Cue));
    }
-   if(!cancelled){setVerdicts(results);setMeasuring(false)}
-  })().catch(()=>{if(!cancelled){setVerdicts(null);setMeasuring(false)}});
-  return()=>{cancelled=true};
+   if(!guard.isCurrent(run))return;
+   setVerdicts(results);setMeasuring(false);
+  }).catch(()=>{if(guard.isCurrent(run)){setVerdicts(null);setMeasuring(false)}});
+  return()=>{guard.supersede()};
   // `signature` is the value identity of `shapes`; re-measuring on the array identity alone
   // would restart the pass on every keystroke that changes nothing the renderer sees.
   // eslint-disable-next-line react-hooks/exhaustive-deps
@@ -110,7 +124,6 @@ export default function NamesListPanel({collection,canEdit,onSaved}:Props){
 
  const failing=verdicts?verdicts.findIndex(verdict=>verdict.fitErrors.length):-1;
  const tooFull=failing>=0?`Panel ${failing+1} of ${shapes.length} is too full. Shorten a name or lower Names per panel.`:'';
- const warnings=verdicts?[...new Set(verdicts.flatMap(verdict=>verdict.warnings))]:[];
  const canSave=canEdit&&!collection.archived&&ready&&!busy&&!measuring&&failing<0;
 
  const update=useCallback((index:number,patch:Partial<NameRow>)=>{setRows(current=>current.map((row,position)=>position===index?{...row,...patch}:row))},[]);
@@ -118,8 +131,8 @@ export default function NamesListPanel({collection,canEdit,onSaved}:Props){
  async function save(){
   setBusy(true);setError('');setNotice('');
   try{
-   await call('set_names',{id:collection.id,expectedVersion:collection.version,names:{title:title.trim(),perPanel,layout,rows:filled}});
-   setNotice(`These names are now in the library as ${panelName(title.trim(),0,shapes.length)}. Show them from Live control or from Companion.`);
+   const result=await call('set_names',{id:collection.id,expectedVersion:collection.version,names:{title:title.trim(),perPanel,layout,rows:filled}});
+   setNotice(namesSavedNotice(result,panelName(title.trim(),0,shapes.length)));
    await onSaved();
   }catch(value){setError(value instanceof Error?value.message:'Request failed')}
   finally{setBusy(false)}
@@ -129,7 +142,7 @@ export default function NamesListPanel({collection,canEdit,onSaved}:Props){
   setBusy(true);setError('');setNotice('');
   try{
    await call('clear_names',{id:collection.id,expectedVersion:collection.version});
-   setRows([emptyRow()]);setTitle('');
+   setRows([emptyRow()]);setTitle('');setNotice(NAMES_REMOVED_NOTICE);
    await onSaved();
   }catch(value){setError(value instanceof Error?value.message:'Request failed')}
   finally{setBusy(false)}
@@ -152,7 +165,6 @@ export default function NamesListPanel({collection,canEdit,onSaved}:Props){
   {canEdit&&!collection.archived&&<button type="button" className="subtle" disabled={rows.length>=NAMES_ROW_MAX} onClick={()=>setRows(current=>[...current,emptyRow()])}>Add a name</button>}
   {shapes.length>0&&<p className="names-preview">{shapes.length===1?'1 panel':`${shapes.length} panels`}: {shapes.map(shape=>shape.name).join(' · ')}</p>}
   {tooFull&&<p className="names-too-full" role="alert">{tooFull}</p>}
-  {warnings.map(warning=><p className="names-warning" key={warning}>{warning}</p>)}
   {canEdit&&<div className="names-actions">
    <button type="button" disabled={!canSave} onClick={save}>Put these names in the library</button>
    <button type="button" className="subtle" disabled={busy||!saved||collection.archived} onClick={clear}>Remove these names</button>

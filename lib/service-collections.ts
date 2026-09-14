@@ -6,7 +6,7 @@ import {friendlyCueName} from './cue-search';
 import {sourcePack} from './authoring-model';
 import {sourceDisplay} from './source-library';
 import {authoringCatalog} from './server';
-import {parseNames,ServicesError,type NamesList} from './names-list';
+import {isNamesCueId,namesPages,panelName,parseNames,ServicesError,type NamesList} from './names-list';
 
 export type CollectionEntryType='cue'|'alternates'|'multipart';
 export type CoverageStatus='covered'|'needs-cue'|'needs-review'|'intentional-fallback'|'not-needed';
@@ -66,8 +66,12 @@ export function defaultServicesRepository():ServicesRepository{
 
 type CatalogItem={id:string;name:string;title?:string;hidden?:boolean;layout?:string};
 type SourceItem={id:string;name:string;book?:string;service?:string;section?:string|number;origin?:string;blocks?:unknown[];metadata?:Record<string,unknown>&{bookTitle?:string}};
-export type ServicesLoaders={catalog:()=>Promise<{cues:CatalogItem[];version:string}>;sources:()=>SourceItem[];now:()=>number;id:()=>string};
-const defaultLoaders:ServicesLoaders={catalog:authoringCatalog,sources:()=>sourcePack.sources as SourceItem[],now:Date.now,id:randomUUID};
+// `liveCue` reads the live state through the one existing snapshot path. It is a read: a
+// services write never issues a live command, so taking a graphic off air stays the
+// operator's deliberate act on Live control or Companion.
+export type ServicesLoaders={catalog:()=>Promise<{cues:CatalogItem[];version:string}>;sources:()=>SourceItem[];now:()=>number;id:()=>string;liveCue:()=>Promise<string|null>};
+const defaultLiveCue=async():Promise<string|null>=>{try{const {snapshot}=await import('./server');const state=await snapshot() as {cue?:unknown};return typeof state.cue==='string'?state.cue:null}catch{return null}};
+const defaultLoaders:ServicesLoaders={catalog:authoringCatalog,sources:()=>sourcePack.sources as SourceItem[],now:Date.now,id:randomUUID,liveCue:defaultLiveCue};
 
 function object(value:unknown,label:string){if(!value||typeof value!=='object'||Array.isArray(value))throw new ServicesError('invalid_input',`${label} must be an object`);return value as Record<string,unknown>}
 function only(value:Record<string,unknown>,keys:string[],label:string){const extra=Object.keys(value).filter(k=>!keys.includes(k));if(extra.length)throw new ServicesError('invalid_input',`${label} contains unsupported fields: ${extra.join(', ')}`)}
@@ -94,7 +98,36 @@ function enrichCollection(value:ServiceCollection,catalog:CatalogItem[],sources:
 
 export class ServicesManager{
  constructor(private repository:ServicesRepository=defaultServicesRepository(),private loaders:ServicesLoaders=defaultLoaders){}
- private async evidence(){const [catalog,sources]=await Promise.all([this.loaders.catalog(),Promise.resolve(this.loaders.sources())]);const cues=catalog.cues.filter(c=>!c.hidden);return {catalog:{...catalog,cues},sources};}
+ /**
+  * The evidence every collection operation is built from. Names panels are excluded on
+  * purpose: a names list belongs to exactly one service and is materialized into the live
+  * catalog only, so it must never be offered as library evidence, copied into another
+  * service by Create from library, or accepted as an entry or coverage cue id. Excluding it
+  * here is what makes `parseEntries`/`parseCoverage` refuse a `names:` id with the unknown
+  * cue refusal they already have.
+  */
+ private async evidence(){const [catalog,sources]=await Promise.all([this.loaders.catalog(),Promise.resolve(this.loaders.sources())]);const cues=catalog.cues.filter(c=>!c.hidden&&!isNamesCueId(c.id));return {catalog:{...catalog,cues},sources};}
+ /**
+  * The published name of this collection's names panel if one of its panels is the live
+  * graphic, otherwise null. Derived from the list itself rather than the catalog, because
+  * `evidence()` deliberately no longer carries names cues.
+  */
+ private async namesPanelOnAir(collection:ServiceCollection):Promise<string|null>{
+  if(!collection.names)return null;
+  const prefix=`names:${collection.id}:`;
+  let live:string|null=null;try{live=await this.loaders.liveCue()}catch{return null}
+  if(typeof live!=='string'||!live.startsWith(prefix))return null;
+  const index=Number(live.slice(prefix.length)),total=namesPages(collection.names).length;
+  return Number.isInteger(index)&&index>=1&&index<=total?panelName(collection.names.title,index-1,total):live;
+ }
+ // Removing or archiving a list would take its panels out of the catalog while the relay is
+ // still holding one on air, leaving a graphic on screen that nothing can clear by name. The
+ // write is refused instead; the operator clears the output, which is a live command only
+ // they issue.
+ private async refuseWhileOnAir(collection:ServiceCollection){
+  const panel=await this.namesPanelOnAir(collection);
+  if(panel)throw new ServicesError('names_on_air',`Take ${panel} off air first — Clear now on Live control — then remove the names.`,409);
+ }
  async dashboard(raw:unknown={}){const input=object(raw,'input');only(input,['includeArchived'],'input');const includeArchived=input.includeArchived===undefined?false:bool(input.includeArchived,'includeArchived');const [{catalog,sources},collections,feedback]=await Promise.all([this.evidence(),this.repository.listCollections(includeArchived),this.repository.listFeedback(includeArchived)]);return {catalog:{...catalog,cues:catalog.cues.map(cue=>({...cue,name:friendlyCueName(cue.name)}))},collections:collections.map(c=>enrichCollection(c,catalog.cues,sources)),feedback:feedback.slice(0,200)};}
  async searchSources(raw:unknown){const input=object(raw,'input');only(input,['query','limit'], 'input');const query=(text(input.query,'query',160,true)??'').toLocaleLowerCase().normalize('NFKD').replace(/[\u0591-\u05c7]/g,'');const limit=input.limit===undefined?40:version(input.limit);if(limit>100)throw new ServicesError('invalid_input','limit must be at most 100');const results:SourceItem[]=[],seen=new Set<string>();for(const source of this.loaders.sources()){const blocks=source.blocks??[],nonPlanning=/rubric|how to use/i.test(source.name)||/(^|:)frontmatter[.@]/i.test(source.id),hasUsable=blocks.some(block=>!block||typeof block!=='object'||(block as {noteLike?:boolean}).noteLike!==true);if(!blocks.length||nonPlanning||!hasUsable)continue;if(query&&![source.name,source.book,source.metadata?.bookTitle,source.service,source.section,source.id].some(value=>value!==undefined&&String(value).toLocaleLowerCase().normalize('NFKD').replace(/[\u0591-\u05c7]/g,'').includes(query)))continue;const key=`${source.name.toLocaleLowerCase()}|${(source.service??'').toLocaleLowerCase().replace(/^crc\s+/,'')}`;if(seen.has(key))continue;seen.add(key);results.push(source);if(results.length>=limit)break}return results.map(source=>({id:source.id,name:source.name,book:source.metadata?.bookTitle??source.book,service:source.service,section:source.section,display:sourceDisplay(source)}))}
  async createCollection(raw:unknown,actor:string){const input=object(raw,'input');only(input,['name','service','entries','coverage'],'input');const {catalog,sources}=await this.evidence();const now=this.loaders.now();const value:ServiceCollection={id:this.loaders.id(),name:text(input.name,'name',120)!,service:text(input.service,'service',120)!,version:1,archived:false,entries:parseEntries(input.entries??[],new Set(catalog.cues.map(c=>c.id))),coverage:parseCoverage(input.coverage??[],new Set(catalog.cues.map(c=>c.id)),new Set(sources.map(s=>s.id))),createdAt:now,updatedAt:now,createdBy:actor,updatedBy:actor};await this.repository.insertCollection(value);return enrichCollection(value,catalog.cues,sources)}
@@ -109,9 +142,9 @@ export class ServicesManager{
   return this.createCollection({name,service,entries,coverage},actor);
  }
  async updateCollection(raw:unknown,actor:string){const input=object(raw,'input');only(input,['id','expectedVersion','name','service','entries','coverage'],'input');const id=text(input.id,'id',80)!,expected=version(input.expectedVersion);const current=(await this.repository.listCollections(true)).find(x=>x.id===id);if(!current)throw new ServicesError('not_found','Collection not found',404);const {catalog,sources}=await this.evidence();const cueSet=new Set(catalog.cues.map(c=>c.id)),sourceSet=new Set(sources.map(s=>s.id));const next:ServiceCollection={...current,name:input.name===undefined?current.name:text(input.name,'name',120)!,service:input.service===undefined?current.service:text(input.service,'service',120)!,entries:input.entries===undefined?current.entries:parseEntries(input.entries,cueSet,current.entries),coverage:input.coverage===undefined?current.coverage:parseCoverage(input.coverage,cueSet,sourceSet,current.coverage),version:expected+1,updatedAt:this.loaders.now(),updatedBy:actor};if(current.version!==expected||!await this.repository.replaceCollection(next,expected))throw new ServicesConflictError();return enrichCollection(next,catalog.cues,sources)}
- async setCollectionArchived(raw:unknown,actor:string,archived:boolean){const input=object(raw,'input');only(input,['id','expectedVersion'],'input');const id=text(input.id,'id',80)!,expected=version(input.expectedVersion),current=(await this.repository.listCollections(true)).find(x=>x.id===id);if(!current)throw new ServicesError('not_found','Collection not found',404);const next={...current,archived,...(archived?{names:null}:{}),version:expected+1,updatedAt:this.loaders.now(),updatedBy:actor};if(current.version!==expected||!await this.repository.replaceCollection(next,expected))throw new ServicesConflictError();return next}
+ async setCollectionArchived(raw:unknown,actor:string,archived:boolean){const input=object(raw,'input');only(input,['id','expectedVersion'],'input');const id=text(input.id,'id',80)!,expected=version(input.expectedVersion),current=(await this.repository.listCollections(true)).find(x=>x.id===id);if(!current)throw new ServicesError('not_found','Collection not found',404);if(archived&&current.names)await this.refuseWhileOnAir(current);const next={...current,archived,...(archived?{names:null}:{}),version:expected+1,updatedAt:this.loaders.now(),updatedBy:actor};if(current.version!==expected||!await this.repository.replaceCollection(next,expected))throw new ServicesConflictError();return next}
  async setNames(raw:unknown,actor:string){const input=object(raw,'input');only(input,['id','expectedVersion','names'],'input');const id=text(input.id,'id',80)!,expected=version(input.expectedVersion);const current=(await this.repository.listCollections(true)).find(x=>x.id===id);if(!current)throw new ServicesError('not_found','Collection not found',404);if(current.archived)throw new ServicesError('collection_archived','Restore this service before adding names.',409);const now=this.loaders.now();const next:ServiceCollection={...current,names:parseNames(input.names,now,actor),version:expected+1,updatedAt:now,updatedBy:actor};if(current.version!==expected||!await this.repository.replaceCollection(next,expected))throw new ServicesConflictError();const {catalog,sources}=await this.evidence();return enrichCollection(next,catalog.cues,sources)}
- async clearNames(raw:unknown,actor:string){const input=object(raw,'input');only(input,['id','expectedVersion'],'input');const id=text(input.id,'id',80)!,expected=version(input.expectedVersion);const current=(await this.repository.listCollections(true)).find(x=>x.id===id);if(!current)throw new ServicesError('not_found','Collection not found',404);const next:ServiceCollection={...current,names:null,version:expected+1,updatedAt:this.loaders.now(),updatedBy:actor};if(current.version!==expected||!await this.repository.replaceCollection(next,expected))throw new ServicesConflictError();const {catalog,sources}=await this.evidence();return enrichCollection(next,catalog.cues,sources)}
+ async clearNames(raw:unknown,actor:string){const input=object(raw,'input');only(input,['id','expectedVersion'],'input');const id=text(input.id,'id',80)!,expected=version(input.expectedVersion);const current=(await this.repository.listCollections(true)).find(x=>x.id===id);if(!current)throw new ServicesError('not_found','Collection not found',404);await this.refuseWhileOnAir(current);const next:ServiceCollection={...current,names:null,version:expected+1,updatedAt:this.loaders.now(),updatedBy:actor};if(current.version!==expected||!await this.repository.replaceCollection(next,expected))throw new ServicesConflictError();const {catalog,sources}=await this.evidence();return enrichCollection(next,catalog.cues,sources)}
  async recordFeedback(raw:unknown,actor:string){const input=object(raw,'input');only(input,['collectionId','kind','cueId','context','reason','impact','productGap'],'input');const collectionId=text(input.collectionId,'collectionId',80,true);if(collectionId&&!(await this.repository.listCollections(true)).some(x=>x.id===collectionId))throw new ServicesError('not_found','Collection not found',404);const cueId=text(input.cueId,'cueId',160,true);const now=this.loaders.now();const value:BetaFeedback={id:this.loaders.id(),version:1,collectionId,kind:oneOf(input.kind,['issue','fallback','observation'] as const,'kind'),cueId,context:text(input.context,'context',240)!,reason:text(input.reason,'reason',1200)!,impact:oneOf(input.impact,['none','minor','service-affecting'] as const,'impact'),productGap:bool(input.productGap,'productGap'),archived:false,createdAt:now,updatedAt:now,createdBy:actor,updatedBy:actor};await this.repository.insertFeedback(value);return value}
  async updateFeedback(raw:unknown,actor:string){const input=object(raw,'input');only(input,['id','expectedVersion','context','reason','impact','productGap','archived'],'input');const id=text(input.id,'id',80)!,expected=version(input.expectedVersion),current=(await this.repository.listFeedback(true)).find(x=>x.id===id);if(!current)throw new ServicesError('not_found','Feedback not found',404);const next:BetaFeedback={...current,context:input.context===undefined?current.context:text(input.context,'context',240)!,reason:input.reason===undefined?current.reason:text(input.reason,'reason',1200)!,impact:input.impact===undefined?current.impact:oneOf(input.impact,['none','minor','service-affecting'] as const,'impact'),productGap:input.productGap===undefined?current.productGap:bool(input.productGap,'productGap'),archived:input.archived===undefined?current.archived:bool(input.archived,'archived'),version:expected+1,updatedAt:this.loaders.now(),updatedBy:actor};if(current.version!==expected||!await this.repository.replaceFeedback(next,expected))throw new ServicesConflictError();return next}
 }

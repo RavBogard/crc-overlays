@@ -303,6 +303,10 @@ export default class CrcOverlaysInstance extends InstanceBase<Manifest> {
   // A page the relay would refuse never becomes a request: the refusal is the
   // same sentence the console shows, and the live state is left untouched.
   async #setPage(page: string): Promise<void> {
+    // The console trims before it validates, so a field of spaces clears the page there
+    // rather than being refused. Trim here too, or the two surfaces disagree about the
+    // same keystrokes and a blank-looking field is sent as a page the relay refuses.
+    page = page.trim()
     if (!validBugPage(page)) {
       this.log('warn', 'Page must be 12 characters or fewer.')
       this.updateStatus(InstanceStatus.UnknownWarning, 'Page must be 12 characters or fewer.')
@@ -314,7 +318,10 @@ export default class CrcOverlaysInstance extends InstanceBase<Manifest> {
   // The target comes from the live cue's published name and the catalog only.
   // Nothing selected and nothing to derive means nothing is sent.
   async #panelStep(step: 1 | -1, selectedSet: string): Promise<void> {
-    const target = panelTarget(this.#catalog.cues, this.#snapshot?.cue ?? null, step, selectedSet)
+    // Only the cues the operator can choose by hand are navigable: a hidden graphic is
+    // not offered in any dropdown, so Next/Previous panel must not be the one path that
+    // puts it on air.
+    const target = panelTarget(visibleCatalogCues(this.#catalog.cues), this.#snapshot?.cue ?? null, step, selectedSet)
     if (!target) return
     await this.#cueCommand('in', target)
   }
@@ -328,7 +335,7 @@ export default class CrcOverlaysInstance extends InstanceBase<Manifest> {
     const defaultCue = choices[0]?.id ?? FALLBACK_CUES[0]!.id
     // "None" is the resting state of the panel-set option: with nothing chosen,
     // Next panel only ever continues a set that is already on screen.
-    const setChoices = [{ id: '', label: 'None' }, ...panelSets(visibleCatalogCues(this.#catalog.cues)).map(set => ({ id: set.title, label: set.title }))]
+    const setChoices = [{ id: '', label: 'None' }, ...panelSets(visibleCatalogCues(this.#catalog.cues)).map(set => ({ id: set.id, label: set.label }))]
     const defaultSet = ''
     const actions: CompanionActionDefinitions<Manifest['actions']> = {
       show_cue: { name: 'Show cue', description: 'Request a cue with its In animation.', options: [{ type: 'dropdown', id: 'cue', label: 'Cue', choices, default: defaultCue }], callback: async event => this.#cueCommand('in', String(event.options.cue)) },

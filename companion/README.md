@@ -45,13 +45,15 @@ The package command creates a Companion module archive in this directory. In Com
 
 **Next panel** and **Previous panel** work on any multipart graphic, not on one feature. The target is derived from the graphic on screen and the catalog alone: from panel *n* of *m* they show panel *n+1* or *n-1*, wrapping at either end of the set. From a single-part graphic, a cleared output, or a graphic that is not in the catalog, they show panel 01 of the set chosen in the action's **Panel set** option; with **None** chosen there is nothing to derive and nothing is sent. Nothing about the position is stored on the server, so two Companions and the console never disagree about where the set is.
 
+A set is a title *and* the graphics it belongs to, never the title alone. A names list typed into one service appears in the **Panel set** list as *“Mi Shebeirach (names for this service)”*, separately from a published **Mi Shebeirach** and from another service's list of the same name, and navigation never crosses between them.
+
 The **Scan card** preset toggles the card and lights while it is visible; the **Next panel** preset ships with no set chosen.
 
 Each cue preset uses **Toggle cue**, which shows the cue with its In animation or animates it out when it is already the requested cue; **Show cue** and **Animate cue out** remain available as separate actions. The preset section includes every cue in the last validated catalog, animated **Animate out**, and immediate **Clear now**. Use the **Refresh cue catalog** action after publishing newly reviewed cues; a temporary or invalid response retains the previous list.
 
 ## TBI package
 
-The Temple B'nai Israel archive is not built from this source tree. `scripts/build-tbi-companion-module.mjs` derives it deterministically from the reviewed CRC archive (`public/downloads/crc-overlays-1.4.0.tgz`), rebranding the manifest to id `tbi-overlays`, name **TBI Overlays**, and default base URL `https://tbi-overlays.vercel.app`. Wire-protocol identifiers are left untouched. Because Companion keys installed modules by manifest id and the two ids differ, both modules can be installed in one Companion at the same time, each with its own connection and its own workspace control key. `scripts/audit-companion-packages.mjs` re-derives the archive and checks it byte for byte against the committed file.
+The Temple B'nai Israel archive is not built from this source tree. `scripts/build-tbi-companion-module.mjs` derives it deterministically from the reviewed CRC archive (`public/downloads/crc-overlays-1.5.0.tgz`), rebranding the manifest to id `tbi-overlays`, name **TBI Overlays**, and default base URL `https://tbi-overlays.vercel.app`. Wire-protocol identifiers are left untouched. Because Companion keys installed modules by manifest id and the two ids differ, both modules can be installed in one Companion at the same time, each with its own connection and its own workspace control key. `scripts/audit-companion-packages.mjs` re-derives the archive and checks it byte for byte against the committed file.
 
 ## Operator feedback
 

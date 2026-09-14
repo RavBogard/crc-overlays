@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest'
-import { panelSets, panelTarget, parsePanelName } from '../src/panel.js'
+import { panelNamespace, panelSets, panelTarget, parsePanelName } from '../src/panel.js'
 import { connectionLabel, overlayVariables } from '../src/variables.js'
 
 describe('published multipart panel names', () => {
@@ -145,5 +145,87 @@ describe('panel navigation targets', () => {
     const partial = [CUES[0]!, CUES[1]!, CUES[3]!]
     expect(panelTarget(partial, 'a2', 1)).toBeNull()
     expect(panelTarget(partial, 'a2', 1, 'Kaddish')).toBe('b1')
+  })
+})
+
+
+// A names list for a service is published under the operator's own title, so it can
+// collide with a published multipart set and with another service's list. Its identity is
+// the id namespace `names:<collectionId>:` (lib/names-list.ts), not the title.
+const NAMES_A = [
+  { id: 'names:service-a:01', name: 'Mi Shebeirach — 01 of 02' },
+  { id: 'names:service-a:02', name: 'Mi Shebeirach — 02 of 02' },
+]
+const NAMES_B = [
+  { id: 'names:service-b:01', name: 'Mi Shebeirach — 01 of 02' },
+  { id: 'names:service-b:02', name: 'Mi Shebeirach — 02 of 02' },
+]
+const MIXED = [...CUES, ...NAMES_A, ...NAMES_B]
+
+describe('the id namespace a set belongs to', () => {
+  it('puts every published and baseline cue in the one anonymous namespace', () => {
+    expect(panelNamespace('a1')).toBe('')
+    expect(panelNamespace('efa9fad4-f7d5-4091-a708-82103028861b')).toBe('')
+  })
+
+  it('reads a names cue namespace as the prefix up to the last colon', () => {
+    expect(panelNamespace('names:service-a:01')).toBe('names:service-a:')
+    expect(panelNamespace('names:service-b:07')).toBe('names:service-b:')
+  })
+})
+
+describe('panel sets keep a names list apart from a published set of the same title', () => {
+  it('lists the published set and each service names list as separate sets', () => {
+    expect(panelSets(MIXED).map(set => set.id)).toEqual([
+      'Mi Shebeirach', 'Kaddish', 'names:service-a:Mi Shebeirach', 'names:service-b:Mi Shebeirach',
+    ])
+  })
+
+  it('labels a names set so the operator can tell it from the published one', () => {
+    expect(panelSets(MIXED).map(set => set.label)).toEqual([
+      'Mi Shebeirach', 'Kaddish', 'Mi Shebeirach (names for this service)', 'Mi Shebeirach (names for this service)',
+    ])
+  })
+
+  it('keeps the published title on the set, so the label is the only thing that changes', () => {
+    expect(panelSets(NAMES_A)).toEqual([{
+      id: 'names:service-a:Mi Shebeirach',
+      title: 'Mi Shebeirach',
+      namespace: 'names:service-a:',
+      label: 'Mi Shebeirach (names for this service)',
+      cues: NAMES_A,
+    }])
+  })
+})
+
+describe('panel navigation never leaves the live set', () => {
+  it('wraps inside the live names list rather than into the published set of that title', () => {
+    expect(panelTarget(MIXED, 'names:service-a:02', 1)).toBe('names:service-a:01')
+    expect(panelTarget(MIXED, 'names:service-a:01', -1)).toBe('names:service-a:02')
+  })
+
+  it('wraps inside the published set rather than into a names list of that title', () => {
+    expect(panelTarget(MIXED, 'a3', 1)).toBe('a1')
+    expect(panelTarget(MIXED, 'a1', -1)).toBe('a3')
+  })
+
+  it('never crosses between two names lists that share a title', () => {
+    expect(panelTarget(MIXED, 'names:service-b:02', 1)).toBe('names:service-b:01')
+    expect(panelTarget(MIXED, 'names:service-b:01', -1)).toBe('names:service-b:02')
+  })
+
+  it('falls back rather than borrowing an identically titled neighbour from another set', () => {
+    const partial = [...CUES, { id: 'names:service-a:01', name: 'Mi Shebeirach — 01 of 03' }]
+    expect(panelTarget(partial, 'names:service-a:01', 1)).toBeNull()
+  })
+
+  it('takes the fallback panel 01 from the chosen set own namespace', () => {
+    expect(panelTarget(MIXED, 'c1', 1, 'names:service-b:Mi Shebeirach')).toBe('names:service-b:01')
+    expect(panelTarget(MIXED, 'c1', 1, 'names:service-a:Mi Shebeirach')).toBe('names:service-a:01')
+    expect(panelTarget(MIXED, 'c1', 1, 'Mi Shebeirach')).toBe('a1')
+  })
+
+  it('has no target when the chosen set is not in this catalog at all', () => {
+    expect(panelTarget(MIXED, 'c1', 1, 'names:service-c:Mi Shebeirach')).toBeNull()
   })
 })

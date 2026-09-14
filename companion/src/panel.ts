@@ -18,8 +18,47 @@ export interface PanelPosition {
 
 /** The minimum a catalog entry has to look like for panel navigation. */
 export interface PanelCue { id: string; name: string }
-/** A set is every catalog cue that shares one title under the multipart convention. */
-export interface PanelSet { title: string; cues: PanelCue[] }
+/**
+ * A set is every catalog cue that shares one title *and* one id namespace under the
+ * multipart convention. The title alone is not the identity: a names list for a service
+ * is published under the operator's own title, so a list called "Mi Shebeirach" would
+ * otherwise merge with the published multipart set of the same name and Next panel could
+ * step out of the live list and into the library. Two names lists on two services can
+ * carry the same title as well, so the namespace is the whole `names:<collectionId>:`
+ * prefix, not just `names:`.
+ */
+export interface PanelSet {
+  /** The dropdown value the operator's button stores; stable across catalog refreshes. */
+  id: string
+  /** The published title, with the panel suffix removed. */
+  title: string
+  /** '' for published and baseline graphics, `names:<collectionId>:` for a names list. */
+  namespace: string
+  /** What the operator reads in the dropdown; a names list says so. */
+  label: string
+  cues: PanelCue[]
+}
+
+const NAMES_NAMESPACE = 'names:'
+/** How a names set is distinguished from a published set of the same title. */
+const NAMES_SET_SUFFIX = ' (names for this service)'
+
+/**
+ * The id namespace a cue belongs to. Everything published or baseline shares the one
+ * anonymous namespace; a names cue id is `names:<collectionId>:<NN>` (lib/names-list.ts),
+ * so its namespace is the prefix up to and including the last colon.
+ */
+export function panelNamespace(cueId: string): string {
+  if (!cueId.startsWith(NAMES_NAMESPACE)) return ''
+  const lastColon = cueId.lastIndexOf(':')
+  return lastColon < NAMES_NAMESPACE.length ? NAMES_NAMESPACE : cueId.slice(0, lastColon + 1)
+}
+
+/**
+ * The dropdown value for a set. A published set keeps using its bare title, so a button
+ * saved before this distinction existed still resolves to the same published set.
+ */
+function setId(namespace: string, title: string): string { return namespace + title }
 
 export function parsePanelName(value: unknown): PanelPosition | null {
   if (typeof value !== 'string') return null
@@ -46,15 +85,24 @@ export function panelSets(cues: readonly PanelCue[]): PanelSet[] {
   for (const cue of cues) {
     const position = parsePanelName(cue.name)
     if (!position) continue
-    const existing = sets.get(position.name)
+    const namespace = panelNamespace(cue.id)
+    const id = setId(namespace, position.name)
+    const existing = sets.get(id)
     if (existing) existing.cues.push(cue)
-    else sets.set(position.name, { title: position.name, cues: [cue] })
+    else sets.set(id, {
+      id,
+      title: position.name,
+      namespace,
+      label: namespace ? `${position.name}${NAMES_SET_SUFFIX}` : position.name,
+      cues: [cue],
+    })
   }
   return [...sets.values()]
 }
 
-function memberAt(cues: readonly PanelCue[], title: string, index: number): PanelCue | null {
+function memberAt(cues: readonly PanelCue[], namespace: string, title: string, index: number): PanelCue | null {
   for (const cue of cues) {
+    if (panelNamespace(cue.id) !== namespace) continue
     const position = parsePanelName(cue.name)
     if (position && position.name === title && Number(position.panel) === index) return cue
   }
@@ -70,17 +118,25 @@ function memberAt(cues: readonly PanelCue[], title: string, index: number): Pane
  * not in the catalog, or its neighbour is not published, the target is panel 01
  * of `selectedSet`; with no set selected there is no target and the caller sends
  * nothing rather than guessing.
+ *
+ * Navigation never leaves the live cue's own set, and a set is title *and* id
+ * namespace: from panel 03 of a service's names list the step wraps to panel 01 of that
+ * same list, never to panel 01 of an identically titled published set or of another
+ * service's list. `selectedSet` is resolved against the same set identities, so the
+ * fallback lands inside the chosen set's namespace too.
  */
 export function panelTarget(cues: readonly PanelCue[], liveCue: string | null, step: 1 | -1, selectedSet = ''): string | null {
   const live = liveCue ? cues.find(cue => cue.id === liveCue) : undefined
   const position = live ? parsePanelName(live.name) : null
-  if (position) {
+  if (live && position) {
     const total = Number(position.count)
     const index = Number(position.panel)
     const wrapped = ((index - 1 + step + total) % total) + 1
-    const neighbour = memberAt(cues, position.name, wrapped)
+    const neighbour = memberAt(cues, panelNamespace(live.id), position.name, wrapped)
     if (neighbour) return neighbour.id
   }
   if (!selectedSet) return null
-  return memberAt(cues, selectedSet, 1)?.id ?? null
+  const set = panelSets(cues).find(candidate => candidate.id === selectedSet)
+  if (!set) return null
+  return memberAt(cues, set.namespace, set.title, 1)?.id ?? null
 }

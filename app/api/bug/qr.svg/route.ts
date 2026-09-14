@@ -15,6 +15,10 @@ export function GET(){
  if(!workspace.bug.enabled||!workspace.bug.url)return new Response('Not found',{status:404,headers:{'Cache-Control':'no-store','X-Content-Type-Options':'nosniff'}});
  return new Response(qrSvg(workspace.bug.url,{level:'M'}),{status:200,headers:{
   'Content-Type':'image/svg+xml; charset=utf-8',
+  // lib/qr.ts draws the code as plain <rect> elements with `fill` attributes: no inline
+  // style, no script, no external reference. Nothing at all is therefore the correct policy
+  // if this SVG is ever opened as a document rather than as an <img>.
+  'Content-Security-Policy':"default-src 'none'",
   'Cache-Control':'public, max-age=86400, stale-while-revalidate=604800',
   'Referrer-Policy':'no-referrer',
   'X-Content-Type-Options':'nosniff',

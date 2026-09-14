@@ -1,7 +1,8 @@
 import assert from 'node:assert/strict';
 import test from 'node:test';
 import {composeAuthoringCatalog} from '../lib/server.ts';
-import {isNamesCueId,namesPanelCues,namesPanelMotion,namesPages,parseNames,type NamesList} from '../lib/names-list.ts';
+import {isNamesCueId,namesPanelCues,namesPanelMotion,namesPages,panelName,parseNames,type NamesList} from '../lib/names-list.ts';
+import {createRunGuard,namesSavedNotice,NAMES_REMOVED_NOTICE} from '../app/services/names-list-model.ts';
 import {MemoryServicesRepository,ServicesConflictError,ServicesError,ServicesManager,servicesOperation,servicesPermission,type ServicesLoaders} from '../lib/service-collections.ts';
 import type {Cue} from '../lib/player.ts';
 
@@ -36,8 +37,11 @@ const list=(overrides:Partial<NamesList>={}):NamesList=>({
 function fixture(){
  const repository=new MemoryServicesRepository();let now=1000,id=0;
  const catalog:{cues:{id:string;name:string}[];version:string}={cues:[{id:'mah-tovu',name:'Mah Tovu'}],version:'v1'};
- const loaders:ServicesLoaders={catalog:async()=>structuredClone(catalog),sources:()=>[],now:()=>++now,id:()=>`id-${++id}`};
- return {repository,manager:new ServicesManager(repository,loaders)};
+ // The live state is a read-only loader, so a test can put a graphic on air without any
+ // relay and without a services write ever issuing a live command.
+ const live={cue:null as string|null};
+ const loaders:ServicesLoaders={catalog:async()=>structuredClone(catalog),sources:()=>[],now:()=>++now,id:()=>`id-${++id}`,liveCue:async()=>live.cue};
+ return {repository,catalog,live,manager:new ServicesManager(repository,loaders)};
 }
 
 test('17 names at 8 per panel become three panels every parser of the numbered convention reads',()=>{
@@ -132,9 +136,16 @@ test('names operations are author scoped and write only the service collection',
  const saved=await manager.setNames({id:created.id,expectedVersion:created.version,names:{title:'Mi Shebeirach',perPanel:8,layout:'left',rows:[{he:'רבקה',en:'Rebecca'}]}},'editor');
  assert.equal(saved.names?.title,'Mi Shebeirach');
  assert.equal(saved.version,created.version+1);
- // Nothing reached the authoring tables: the published library is still empty.
- const {publishedCues}=await import('../lib/authoring.ts');
+ // Nothing reached the authoring tables: not the published library, and not the drafts,
+ // previews or revisions behind it. The rehearsal store is in memory, so this is the whole
+ // authoring side of the database, asserted empty rather than merely free of names rows.
+ const {publishedCues,authoringRepository,MemoryAuthoringRepository}=await import('../lib/authoring.ts');
  assert.deepEqual((await publishedCues()).filter(cue=>isNamesCueId(cue.id)),[]);
+ const store=authoringRepository();
+ assert.ok(store instanceof MemoryAuthoringRepository);
+ assert.equal((store as InstanceType<typeof MemoryAuthoringRepository>).drafts.size,0);
+ assert.equal((store as InstanceType<typeof MemoryAuthoringRepository>).previews.size,0);
+ assert.equal((store as InstanceType<typeof MemoryAuthoringRepository>).revisionRows.size,0);
  await assert.rejects(()=>manager.setNames({id:created.id,expectedVersion:created.version,names:{title:'Stale',perPanel:8,layout:'left',rows:[{he:'',en:'A'}]}},'editor'),ServicesConflictError);
  const removed=await manager.clearNames({id:created.id,expectedVersion:saved.version},'editor');
  assert.equal(removed.names,null);
@@ -167,4 +178,96 @@ test('an operator credential cannot set names on a service',async()=>{
  const {POST}=await import('../app/api/services/route.ts');
  const request=(key:string)=>new Request('http://localhost/api/services',{method:'POST',headers:{authorization:`Bearer ${key}`,origin:'http://localhost','content-type':'application/json'},body:JSON.stringify({operation:'set_names',input:{id:'nope',expectedVersion:1,names:{title:'List',perPanel:8,layout:'left',rows:[{he:'',en:'Ada'}]}}})});
  assert.equal((await POST(request(process.env.OUTPUT_KEY!))).status,401);
+});
+
+test('a names list never reaches another service: not by Create from library, not as an entry, not as coverage',async()=>{
+ const {manager,catalog}=fixture();
+ // Service A's list is live in the catalog, exactly as lib/server.ts composes it.
+ const namesCues=namesPanelCues('service-a',list({rows:[{he:'',en:'Ada'}]}));
+ catalog.cues.push(...namesCues.map(cue=>({id:cue.id,name:cue.name})));
+ const imported=await manager.createFromLibrary({name:'Service B',service:'Evening'},'editor');
+ assert.deepEqual(imported.entries.flatMap(entry=>entry.cueIds).filter(isNamesCueId),[]);
+ assert.deepEqual(imported.coverage.filter(row=>row.cueId&&isNamesCueId(row.cueId)),[]);
+ assert.deepEqual(imported.coverage.filter(row=>row.label==='Mi Shebeirach'),[]);
+ assert.deepEqual(imported.entries.map(entry=>entry.label),['Mah Tovu']);
+ const refusal=async(run:()=>Promise<unknown>)=>{try{await run();return null}catch(error){assert.ok(error instanceof ServicesError);return error as ServicesError}};
+ const asEntry=await refusal(()=>manager.updateCollection({id:imported.id,expectedVersion:imported.version,entries:[{type:'cue',label:'Names',cueIds:[namesCues[0].id]}]},'editor'));
+ assert.equal(asEntry?.code,'unknown_cue');
+ assert.equal(asEntry?.status,404);
+ assert.equal(asEntry?.message,`Published cue is unavailable: ${namesCues[0].id}`);
+ const asCoverage=await refusal(()=>manager.updateCollection({id:imported.id,expectedVersion:imported.version,coverage:[{label:'Names',status:'covered',cueId:namesCues[0].id}]},'editor'));
+ assert.equal(asCoverage?.code,'unknown_cue');
+ assert.equal(asCoverage?.status,404);
+ const atCreation=await refusal(()=>manager.createCollection({name:'Service C',service:'Evening',entries:[{type:'cue',label:'Names',cueIds:[namesCues[0].id]}],coverage:[]},'editor'));
+ assert.equal(atCreation?.status,404);
+});
+
+test('a names cue id cannot be authored or imported through any authoring operation',async()=>{
+ const {authoringOperation}=await import('../lib/authoring.ts');
+ const cueId='names:service-a:01';
+ const refusal=async(operation:string,input:unknown)=>{try{await authoringOperation(operation,input,'editor');return null}catch(error){return error as {status?:number;code?:string}}};
+ for(const [operation,input] of [
+  ['import_cue',{cueId}],
+  ['preview_baseline_cue',{cueId}],
+  ['duplicate_draft',{cueId,name:'Copy'}],
+ ] as Array<[string,unknown]>){
+  const error=await refusal(operation,input);
+  assert.ok(error,`${operation} accepted a names cue id`);
+  assert.equal(error?.status,404,`${operation} refused with ${error?.status}`);
+ }
+});
+
+test('removing or archiving a names list is refused while one of its panels is on air',async()=>{
+ const {manager,live}=fixture();
+ const created=await manager.createCollection({name:'Friday',service:'Evening',entries:[],coverage:[]},'editor');
+ const saved=await manager.setNames({id:created.id,expectedVersion:created.version,names:{title:'Mi Shebeirach',perPanel:4,layout:'left',rows:[{he:'',en:'Ada'},{he:'',en:'Ben'},{he:'',en:'Cara'},{he:'',en:'Dov'},{he:'',en:'Esti'}]}},'editor');
+ assert.equal(namesPages(saved.names!).length,2);
+ live.cue=`names:${created.id}:02`;
+ const onAir=async(run:()=>Promise<unknown>)=>{try{await run();return null}catch(error){assert.ok(error instanceof ServicesError);return error as ServicesError}};
+ const cleared=await onAir(()=>manager.clearNames({id:created.id,expectedVersion:saved.version},'editor'));
+ assert.equal(cleared?.code,'names_on_air');
+ assert.equal(cleared?.status,409);
+ assert.equal(cleared?.message,`Take ${panelName('Mi Shebeirach',1,2)} off air first — Clear now on Live control — then remove the names.`);
+ const archived=await onAir(()=>manager.setCollectionArchived({id:created.id,expectedVersion:saved.version},'editor',true));
+ assert.equal(archived?.code,'names_on_air');
+ assert.equal(archived?.status,409);
+ // The write really did not happen, and nothing was sent to the live output.
+ assert.equal((await manager.dashboard({includeArchived:true})).collections[0].names?.title,'Mi Shebeirach');
+ // Another service's list is not this service's panel.
+ live.cue='names:another-service:01';
+ assert.equal((await manager.clearNames({id:created.id,expectedVersion:saved.version},'editor')).names,null);
+});
+
+test('a published graphic on air never blocks removing a names list',async()=>{
+ const {manager,live}=fixture();
+ const created=await manager.createCollection({name:'Friday',service:'Evening',entries:[],coverage:[]},'editor');
+ const saved=await manager.setNames({id:created.id,expectedVersion:created.version,names:{title:'Yahrzeit',perPanel:8,layout:'left',rows:[{he:'',en:'Ada'}]}},'editor');
+ live.cue='mah-tovu';
+ const archived=await manager.setCollectionArchived({id:created.id,expectedVersion:saved.version},'editor',true);
+ assert.equal(archived.names,null);
+});
+
+test('the names editor says what the server said about the live library, and what it removed',()=>{
+ const first='Mi Shebeirach — 01 of 03';
+ const success=`These names are now in the library as ${first}. Show them from Live control or from Companion.`;
+ assert.equal(namesSavedNotice({collection:{}},first),success);
+ assert.equal(namesSavedNotice({collection:{},warning:''},first),success);
+ assert.equal(namesSavedNotice(null,first),success);
+ const warning='Saved successfully, but the live library has not received this update. Use Sync live library in the editor after the connection recovers. Live playback continues using the last synchronized version.';
+ assert.equal(namesSavedNotice({collection:{},liveRefreshPending:true,warning},first),warning);
+ assert.equal(NAMES_REMOVED_NOTICE,'Names removed. Nothing else changed.');
+});
+
+test('only the newest measurement pass may publish a verdict, and a further edit re-measures',()=>{
+ const guard=createRunGuard();
+ const first=guard.begin();
+ assert.equal(guard.isCurrent(first),true);
+ const second=guard.begin();
+ assert.equal(guard.isCurrent(first),false,'a superseded pass must publish nothing');
+ assert.equal(guard.isCurrent(second),true);
+ guard.supersede();
+ assert.equal(guard.isCurrent(second),false,'an edit with nothing to measure supersedes too');
+ const third=guard.begin();
+ assert.equal(guard.isCurrent(third),true,'a further edit always re-measures');
+ assert.equal(guard.isCurrent(first),false);
 });

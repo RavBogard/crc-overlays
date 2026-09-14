@@ -15,6 +15,8 @@
 .errors { display: grid; gap: 3px; margin: 0; padding: 0; list-style: none; }
 .ok { color: #89d5b6; }
 .flags { color: var(--muted); }
+/* The scan card column's one-line caveat, readable without hovering. */
+.columnHelp { display: block; max-width: 20ch; margin-top: 4px; color: var(--quiet); font-size: 10px; font-weight: 400; letter-spacing: 0; text-transform: none; }
 .report textarea { width: 100%; min-height: 240px; margin-top: 9px; padding: 10px; border: 1px solid var(--line); border-radius: 8px; background: #0b1413; color: var(--text); font-family: ui-monospace, monospace; font-size: 11px; }
 .stageRow { display: flex; align-items: center; gap: 12px; color: var(--quiet); font-size: 11px; }
 .stage { position: relative; width: 480px; height: 270px; flex: 0 0 auto; overflow: hidden; border: 1px solid var(--line); border-radius: 8px; background: #0a0f10; }

@@ -3,6 +3,7 @@ import assert from 'node:assert/strict';
 import {BUG_RESERVED_RECT,bugViewFor,renderBugLayer,validBugPage,type BugView} from '../lib/bug-layer.ts';
 import {GET as qrRoute} from '../app/api/bug/qr.svg/route.ts';
 import {POST as commandRoute} from '../app/api/command/route.ts';
+import {BUG_PAGE_INPUT_PATTERN,bugPageLengthRefusal,commandErrorMessage,commandRefusal,COMMAND_NOT_CONFIRMED,PAGE_TOO_LONG} from '../lib/console-messages.ts';
 
 /* No DOM library is available to this suite, so the layer is driven through the smallest
    document surface renderBugLayer actually uses. Everything it touches is here; anything it
@@ -141,6 +142,10 @@ test('the QR is served publicly and cached at the edge for the congregation that
  assert.equal(body.includes('<script'),false);
  // The address never appears in the artwork: it is encoded, not printed.
  assert.equal(body.includes('siddur'),false);
+ // F9: the document may load nothing at all. lib/qr.ts draws plain <rect> elements with
+ // fill attributes, so not even inline style is needed and none is allowed.
+ assert.equal(response.headers.get('content-security-policy'),"default-src 'none'");
+ assert.equal(body.includes('style='),false);
 });
 
 test('a congregation with no scan card has no QR to serve',async()=>{
@@ -190,4 +195,36 @@ test('a scan card command with no state is not a command',async()=>{
  const response=await bugCommand({action:'bug'});
  assert.equal(response.status,400);
  assert.deepEqual(await response.json(),{error:'Unknown action or cue'});
+});
+
+test('a refused command is reported in the words the route wrote, not a generic sentence',()=>{
+ // The three sentences /api/command actually answers with (E6, E7, E8).
+ for(const sentence of [
+  'The scan card is not set up for this congregation.',
+  'The scan card needs the live connection.',
+  'Page must be 12 characters or fewer.',
+ ]){
+  assert.equal(commandRefusal({error:sentence}),sentence);
+  assert.equal(commandErrorMessage({error:sentence}),sentence);
+ }
+ // Anything that is not a refusal sentence falls back to the console's own words.
+ for(const body of [null,undefined,'Bad Request',[{error:'x'}],{},{error:''},{error:'   '},{error:404}]){
+  assert.equal(commandRefusal(body),'');
+  assert.equal(commandErrorMessage(body),COMMAND_NOT_CONFIRMED);
+ }
+ assert.equal(COMMAND_NOT_CONFIRMED,'Command not confirmed. Check requested and rendered status.');
+});
+
+test('the console refuses only an over-long page itself and leaves every character to the relay',()=>{
+ assert.equal(bugPageLengthRefusal('1234567890123'),PAGE_TOO_LONG);
+ assert.equal(bugPageLengthRefusal(' '.repeat(4)+'1234567890123'),PAGE_TOO_LONG);
+ assert.equal(PAGE_TOO_LONG,'Page must be 12 characters or fewer.');
+ for(const page of ['','   ','142','p. 142','Shabbat eve','p<142>']) assert.equal(bugPageLengthRefusal(page),'');
+ // The field's pattern is the relay's own character set, so the browser marks a bad page
+ // before it is sent, and the relay is still the one authority that refuses it.
+ const field=new RegExp(`^(?:${BUG_PAGE_INPUT_PATTERN})$`);
+ for(const page of ['','142','p. 142','1-2',String.fromCharCode(8211)]) assert.equal(field.test(page),true,page);
+ for(const page of ['p<142>','142!','\u05d0','1234567890123']) assert.equal(field.test(page),false,page);
+ // Every page the field accepts, the relay accepts too.
+ for(const page of ['142','p. 142','1-2']) assert.equal(validBugPage(page),true);
 });

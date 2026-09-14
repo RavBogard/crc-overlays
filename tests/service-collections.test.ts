@@ -6,7 +6,7 @@ function fixture(){
  const repository=new MemoryServicesRepository();let now=1000,id=0;
  const catalog:{cues:{id:string;name:string;title?:string}[];version:string}={cues:[{id:'mah-tovu',name:'Mah Tovu',title:'Morning prayer'},{id:'kaddish',name:'Kaddish',title:'Mourner’s Kaddish'}],version:'v1'};
  const sources:{id:string;name:string;book?:string;service?:string;section?:string|number;blocks:unknown[]}[]=[{id:'source:mah',name:'Mah Tovu source',book:'Siddur',service:'Morning',blocks:[{}]}];
- const loaders:ServicesLoaders={catalog:async()=>structuredClone(catalog),sources:()=>structuredClone(sources),now:()=>++now,id:()=>`id-${++id}`};
+ const loaders:ServicesLoaders={catalog:async()=>structuredClone(catalog),sources:()=>structuredClone(sources),now:()=>++now,id:()=>`id-${++id}`,liveCue:async()=>null};
  return {repository,catalog,sources,manager:new ServicesManager(repository,loaders)};
 }
 

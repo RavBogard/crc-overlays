@@ -62,6 +62,18 @@ describe('the scan card actions', () => {
     expect(commands(h).map(withoutIdentity)).toEqual([{ action: 'bug', cue: null, bug: { on: true, page: null } }])
   })
 
+  it('a page of nothing but spaces clears the page, exactly as the web console does', async () => {
+    const h = await connected()
+    await h.actions.set_page!.callback({ options: { page: '   ' } })
+    expect(commands(h).map(withoutIdentity)).toEqual([{ action: 'bug', cue: null, bug: { on: true, page: null } }])
+  })
+
+  it('trims a page before sending it, so stray spaces never reach the relay', async () => {
+    const h = await connected()
+    await h.actions.set_page!.callback({ options: { page: '  p. 142  ' } })
+    expect(commands(h).map(withoutIdentity)).toEqual([{ action: 'bug', cue: null, bug: { on: true, page: 'p. 142' } }])
+  })
+
   it('refuses a thirteen character page before any request leaves the module', async () => {
     const h = await connected()
     await h.actions.set_page!.callback({ options: { page: '1234567890123' } })
@@ -163,5 +175,56 @@ describe('generic panel navigation', () => {
       { id: 'Mi Shebeirach', label: 'Mi Shebeirach' },
       { id: 'Kaddish', label: 'Kaddish' },
     ])
+  })
+})
+
+
+// A hidden graphic is offered in no dropdown on any surface. Panel navigation derives its
+// target from the catalog rather than from a dropdown, so it is the one action that could
+// reach one by accident.
+const HIDDEN_SET = [
+  { id: 'aaaaaaaa-1111-4111-8111-aaaaaaaaaaa1', name: 'Kavanah — 01 of 02', layout: 'bottom' },
+  { id: 'aaaaaaaa-1111-4111-8111-aaaaaaaaaaa2', name: 'Kavanah — 02 of 02', layout: 'bottom', hidden: true },
+  { id: 'bbbbbbbb-1111-4111-8111-bbbbbbbbbbb1', name: 'Zemer — 01 of 02', layout: 'bottom', hidden: true },
+  { id: 'bbbbbbbb-1111-4111-8111-bbbbbbbbbbb2', name: 'Zemer — 02 of 02', layout: 'bottom' },
+  { id: 'cccccccc-1111-4111-8111-ccccccccccc1', name: 'Barechu', layout: 'bottom' },
+]
+
+async function connectedWithHidden(cue: string | null): Promise<Harness> {
+  const h = start(harness({ catalog: () => new Response(JSON.stringify(HIDDEN_SET), { status: 200, headers: { 'Content-Type': 'application/json', 'X-CRC-Catalog-Version': 'catalog-hidden' } }) }))
+  await h.instance.init(config(), true, secrets({ deviceToken: PAIRED_TOKEN }))
+  await vi.waitFor(() => expect(h.sockets).toHaveLength(1))
+  h.sockets[0]!.emit('open')
+  h.sockets[0]!.message(snapshotFrame({ catalogVersion: 'catalog-hidden', cue }))
+  // Wait for the real catalog, not the built-in fallback: the fallback holds three cues
+  // too, and none of them is a panel set.
+  await vi.waitFor(() => expect(h.actions.next_panel!.options[0]!.choices).toHaveLength(3))
+  h.requests.length = 0
+  return h
+}
+
+describe('panel navigation and hidden graphics', () => {
+  it('Next panel does not step onto a hidden neighbour', async () => {
+    const h = await connectedWithHidden(HIDDEN_SET[0]!.id)
+    await h.actions.next_panel!.callback({ options: { set: '' } })
+    expect(commands(h)).toEqual([])
+  })
+
+  it('Previous panel does not wrap onto a hidden neighbour', async () => {
+    const h = await connectedWithHidden(HIDDEN_SET[0]!.id)
+    await h.actions.previous_panel!.callback({ options: { set: '' } })
+    expect(commands(h)).toEqual([])
+  })
+
+  it('the fallback to panel 01 of a chosen set does not reach a hidden panel 01', async () => {
+    const h = await connectedWithHidden(HIDDEN_SET[4]!.id)
+    await h.actions.next_panel!.callback({ options: { set: 'Zemer' } })
+    expect(commands(h)).toEqual([])
+  })
+
+  it('still navigates the visible panels of the same catalog', async () => {
+    const h = await connectedWithHidden(HIDDEN_SET[4]!.id)
+    await h.actions.next_panel!.callback({ options: { set: 'Kavanah' } })
+    expect(commands(h).map(withoutIdentity)).toEqual([{ action: 'in', cue: HIDDEN_SET[0]!.id }])
   })
 })

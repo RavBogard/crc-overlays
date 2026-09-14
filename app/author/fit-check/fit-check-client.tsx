@@ -48,6 +48,10 @@ type Measurement = {
   hebrewFontSizePx: number | null;
 };
 
+// D-4: the column measures text boxes, not artwork. A panel or lower-third background can
+// sit over the reserved corner without any text entering it, so a clear verdict here is not
+// a promise that the card is visible.
+const SCAN_CARD_COLUMN_HELP = "Measures text against the card's corner; a panel or lower-third background can still cover the card.";
 const HEBREW = /[֐-׿]/u;
 const cueText = (cue: Cue) => [...Object.values(cue.texts || {}), ...(cue.contentRows || []).flatMap((row) => [row.he, row.tr, row.en])].join(" ");
 const fontSizeOf = (root: HTMLElement, selector: string) => {
@@ -259,7 +263,7 @@ export default function FitCheckClient() {
                   <th scope="col">Main font</th>
                   <th scope="col">Hebrew font</th>
                   <th scope="col">Current</th>
-                  {scanCardColumn && <th scope="col">Scan card corner</th>}
+                  {scanCardColumn && <th scope="col" title={SCAN_CARD_COLUMN_HELP}>Scan card corner<span className={styles.columnHelp}>{SCAN_CARD_COLUMN_HELP}</span></th>}
                   <th scope="col">Paired rows</th>
                   <th scope="col">Verdict</th>
                 </tr>
