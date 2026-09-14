@@ -52,6 +52,32 @@ respectively.
 
 ## Status
 
+Build (settled 2026-09-13 night, branch `google-signin` off `phase-b`; not deployed):
+
+- Built to this contract. Callback path as written, `/api/auth/google/callback`, relative to
+  each workspace's canonical host; the code registers exactly the four origins in the table
+  above and no others (`REGISTERED_ORIGINS` in `lib/google-sign-in.ts`).
+- Scopes requested: `openid email profile` and nothing else. The userinfo endpoint is never
+  called, no Google token is stored, and offline access is never requested.
+- Environment variables read by name only: `GOOGLE_OAUTH_CLIENT_ID`,
+  `GOOGLE_OAUTH_CLIENT_SECRET`. With either missing, the workspace shows nothing about
+  Google. Both must exist on both Vercel projects before the deploy, and `PUBLIC_BASE_URL`
+  must be set on `tbi-overlays` to `https://tbi-overlays.vercel.app` or TBI's Google
+  sign-in fails closed as misconfigured. Verify by variable name; no value belongs here.
+- Migration: `db/access-identities.sql` is applied by `scripts/migrate-authoring.mjs` after
+  `db/access.sql` and must run against both production databases before the Google deploy.
+- Open item (privacy policy): no `/privacy` page was built, on the reading that the three
+  basic scopes let the app publish without one. Still Daniel's to confirm on the Branding
+  page; if Google demands a URL, the page is a new item on both workspaces.
+- Local evidence (a): mocked fake-issuer and route suites, no network. (b): a browser pass
+  of `/access` with dummy variable values in rehearsal. Neither is evidence that the real
+  Google callback works — that is the (d) line below.
+
+Daniel's fields (pending Daniel — no value may be written here, only a date or a yes):
+
 - Setup performed by Daniel on: _____ (fill in)
-- Client ID recorded in Vercel (both projects): _____
+- Client ID recorded in Vercel (both projects): _____ (pending Daniel — record that it is
+  present by variable name, never the value)
 - First real Google callback evidence (record separately from mocked local tests): _____
+  (pending Daniel — the localhost:5175 callback with his own Google account, and the first
+  production callback on each host)
