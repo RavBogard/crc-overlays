@@ -20,6 +20,8 @@ No secret values appear in this file and none may be added to it.
 | Where they live | Vercel project `crc-overlays` and Vercel project `tbi-overlays`, Production + Preview, marked Sensitive. Locally: the existing ignored `.env*.local` paths. Never committed, never printed. |
 | Owner / recovery | Daniel (daniel@centralreform.org) owns the Google project. Recovery: rotate the secret on the Clients page, update both Vercel projects, redeploy both. Rotation invalidates in-flight sign-ins only; paired devices are unaffected. |
 
+Status note (Daniel, 2026-09-13 night): no privacy-policy page is needed for the Google Branding screen — his answer, question closed.
+
 Status note (Daniel, 2026-09-13 night, after the release): "identity ≠ access" is kept, with one addition he asked for — a Google sign-in that matches no member is recorded as a **request to join** (`db/access-requests.sql`: name, address, subject, timestamps) and the person is told an administrator will review it. Only an administrator's Approve on the account page creates the membership (with the role they choose) and binds the identity, in one transaction; Decline deletes the request. Nothing is created from an identity without that click, and no session is issued to a requester.
 
 Status note (build, 2026-09-13): the code requests these three scopes by their short aliases, `openid email profile`, which Google treats as identical to the URIs above; the consent screen and the granted scopes are the same. No other scope is ever requested.
