@@ -406,7 +406,7 @@ test('an unavailable CRC library leaves the shelf empty and local authoring unto
 // launcher whose `page.evaluate` returns what the /author/fit-stage page would return, so the
 // authoring operation is exercised through the real server-fit code path.
 
-type FitCheckResult={verdict:'pass'|'fail'|'unavailable';fitErrors?:string[];warnings?:string[];fill?:number|null;measuredAt?:number;rendererVersion?:string;previewId?:string;message?:string;reason?:string;fitCheckUrl?:string};
+type FitCheckResult={verdict:'pass'|'fail'|'unavailable';fitErrors?:string[];warnings?:string[];fill?:number|null;artwork?:'none'|'loaded'|'not-loaded';measuredAt?:number;rendererVersion?:string;previewId?:string;message?:string;reason?:string;fitCheckUrl?:string};
 const FIT_STAGE_ORIGIN='https://crc-overlays.example';
 const stageLauncher=(measure:()=>Promise<StageMeasurement>|StageMeasurement):StageLauncher=>async()=>({
  async newPage(){return {
@@ -427,23 +427,25 @@ async function previewedDraft(service:ReturnType<typeof createAuthoringService>,
 
 test('fit_check_draft passes a clean cue, stores the server attestation on the preview, and says so',async()=>{
  const repo=new MemoryAuthoringRepository();
- const service=fitService(repo,fitRunner(stageLauncher(()=>({fitErrors:[],warnings:[],fill:0.58}))));
+ const service=fitService(repo,fitRunner(stageLauncher(()=>({fitErrors:[],warnings:[],fill:0.58,artwork:'loaded'}))));
  const {draftId,previewId}=await previewedDraft(service,'Server checked');
  const result=await service.operation('fit_check_draft',{draftId,expectedVersion:1,previewId},'mcp:client') as FitCheckResult;
  assert.equal(result.verdict,'pass');
  assert.deepEqual(result.fitErrors,[]);
  assert.equal(result.fill,0.58);
+ assert.equal(result.artwork,'loaded');
  assert.equal(result.message,'Checked in a browser on the server — no fit problems found.');
  assert.ok(result.rendererVersion?.startsWith('server-chromium/'));
  const stored=await repo.getPreview(previewId);
  assert.equal(stored?.fitCheck?.verdict,'pass');
+ assert.equal(stored?.fitCheck?.artwork,'loaded','the attestation records what the server could see of the artwork');
  assert.equal(stored?.fitCheck?.rendererVersion,result.rendererVersion);
 });
 
 test('fit_check_draft fails with the same sentences findFitErrors produces',async()=>{
  const errors=['Graphic does not fit its box.','Prayer overlaps Workspace logo.'];
  const repo=new MemoryAuthoringRepository();
- const service=fitService(repo,fitRunner(stageLauncher(()=>({fitErrors:errors,warnings:['Sparse — consider Lower third'],fill:0.19}))));
+ const service=fitService(repo,fitRunner(stageLauncher(()=>({fitErrors:errors,warnings:['Sparse — consider Lower third'],fill:0.19,artwork:'none'}))));
  const {draftId,previewId}=await previewedDraft(service,'Server overflow');
  const result=await service.operation('fit_check_draft',{draftId,expectedVersion:1,previewId},'mcp:client') as FitCheckResult;
  assert.equal(result.verdict,'fail');
@@ -469,9 +471,45 @@ test('a launch failure and a deadline both return unavailable with the fit-check
  }
 });
 
+test('A4: the artwork the server could see is carried, and a pass that never loaded it says so',async()=>{
+ // Labelling, not gating. The stage loads artwork through the author-only asset route, which
+ // a headless browser on the server cannot pass, so a `pass` must not imply the artwork was
+ // seen. findFitErrors never evaluates artwork, so the verdict is identical in all three.
+ const expected={
+  none:'Checked in a browser on the server — no fit problems found.',
+  loaded:'Checked in a browser on the server — no fit problems found.',
+  'not-loaded':'Checked in a browser on the server — no fit problems found. The artwork was not loaded on the server; confirm it in the editor.',
+ } as const;
+ for(const artwork of ['none','loaded','not-loaded'] as const){
+  const repo=new MemoryAuthoringRepository();
+  const service=fitService(repo,fitRunner(stageLauncher(()=>({fitErrors:[],warnings:[],fill:0.5,artwork}))));
+  const {draftId,previewId}=await previewedDraft(service,`Artwork ${artwork}`);
+  const result=await service.operation('fit_check_draft',{draftId,expectedVersion:1,previewId},'mcp:client') as FitCheckResult;
+  assert.equal(result.verdict,'pass',`${artwork} is never what decides the verdict`);
+  assert.equal(result.artwork,artwork);
+  assert.equal(result.message,expected[artwork]);
+  assert.equal((await repo.getPreview(previewId))?.fitCheck?.artwork,artwork,'the stored attestation carries it too');
+ }
+});
+
+test('A8: a stored fail attestation does not satisfy review_draft for an MCP actor',async()=>{
+ // Only a stored `pass` counts. A `fail` is a real server measurement of this exact preview,
+ // so it is not `unavailable` - but it is the opposite of a reason to accept the review.
+ const repo=new MemoryAuthoringRepository();
+ const service=fitService(repo,fitRunner(stageLauncher(()=>({fitErrors:['Graphic does not fit its box.'],warnings:[],fill:0.93,artwork:'none'}))));
+ const {draftId,previewId}=await previewedDraft(service,'Attested failure');
+ assert.equal((await service.operation('fit_check_draft',{draftId,expectedVersion:1,previewId},'mcp:client') as FitCheckResult).verdict,'fail');
+ assert.equal((await repo.getPreview(previewId))?.fitCheck?.verdict,'fail','the failing attestation really is stored');
+ await assert.rejects(
+  service.operation('review_draft',{draftId,expectedVersion:1,previewId,browserMeasurement:measurement,humanApproved:true},'mcp:client'),
+  (e)=>e instanceof AuthoringError&&e.code==='review_required'&&e.status===409&&e.message==='Exact-version browser fit review is required',
+ );
+ await assert.rejects(service.operation('publish_draft',{draftId,expectedVersion:1,previewId},'mcp:client'),(e)=>(e as AuthoringError).code==='review_required');
+});
+
 test('D18: an MCP actor cannot hand-assert a browser measurement, but the web dock path is unchanged',async()=>{
  const repo=new MemoryAuthoringRepository();
- const service=fitService(repo,fitRunner(stageLauncher(()=>({fitErrors:[],warnings:[],fill:0.5}))));
+ const service=fitService(repo,fitRunner(stageLauncher(()=>({fitErrors:[],warnings:[],fill:0.5,artwork:'none'}))));
  const {draftId,previewId}=await previewedDraft(service,'Attested review');
  // Before any server measurement, an MCP actor's asserted measurement is refused outright.
  await assert.rejects(

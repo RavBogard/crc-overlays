@@ -15,6 +15,9 @@ const published=cue({id:'published',name:'Barechu',layout:'left',texts:{textTitl
 const namesPanel=namesPanelCues('col-1',{title:'Mi Shebeirach',perPanel:8,layout:'left',rows:[{he:'',en:'A name'}],updatedAt:1,updatedBy:'editor'})[0];
 const deps=(live:string|null,cues:Cue[]=[published,namesPanel],updated=1_757_000_000_000)=>({snapshot:async()=>({cue:live,updated,revision:7,mode:'animate',cuePayload:{texts:{he:'a name'}},catalogVersion:'abc123'}),catalog:async()=>({cues})});
 
+const NOW_URL='https://crc-overlays.example/api/now';
+const request=(search='')=>new Request(`${NOW_URL}${search}`);
+
 const walk=(value:unknown,seen:string[]=[]):string[]=>{
  if(Array.isArray(value))for(const item of value)walk(item,seen);
  else if(value&&typeof value==='object')for(const [key,item] of Object.entries(value)){seen.push(key);walk(item,seen)}
@@ -23,12 +26,24 @@ const walk=(value:unknown,seen:string[]=[]):string[]=>{
 
 test('the endpoint does not advertise itself when the flag is unset',async()=>{
  resetPublicNowMemo();delete process.env.OVERLAYS_PUBLIC_NOW;
- const response=await GET();
+ const response=await GET(request());
  assert.equal(response.status,404);
  assert.deepEqual(await response.json(),{error:'not_found'});
  assert.equal(response.headers.get('Cache-Control'),'no-store');
  process.env.OVERLAYS_PUBLIC_NOW='0';
- assert.equal((await GET()).status,404,'only the exact value 1 turns it on');
+ assert.equal((await GET(request())).status,404,'only the exact value 1 turns it on');
+});
+
+test('a query string is refused so exactly one edge cache key can ever exist',async()=>{
+ // `?x=<random>` would otherwise miss the edge cache on every request and put every one of
+ // those misses on the relay. The endpoint takes no parameters, so any are a 404 `no-store`.
+ resetPublicNowMemo();process.env.OVERLAYS_PUBLIC_NOW='1';
+ for(const search of ['?x=1','?include=liturgy','?x=1&y=2']){
+  const response=await GET(request(search));
+  assert.equal(response.status,404,`${search||'(empty query)'} must not be answered`);
+  assert.deepEqual(await response.json(),{error:'not_found'});
+  assert.equal(response.headers.get('Cache-Control'),'no-store');
+ }
 });
 
 test('a library-backed cue answers its liturgical position and nothing else',async()=>{
@@ -53,7 +68,7 @@ test('a names panel and a cleared output are all nulls with a live updatedAt',as
 test('the response can never carry a name, a title or anything else about the graphic',async()=>{
  resetPublicNowMemo();process.env.OVERLAYS_PUBLIC_NOW='1';
  await publicNow(deps(namesPanel.id));                       // primes the memo so the route reads no relay
- const response=await GET();
+ const response=await GET(request());
  assert.equal(response.status,200);
  const body=await response.json();
  const keys=walk(body);
@@ -73,7 +88,7 @@ test('a failed read is a 503 that is never cached, and is never memoized',async(
  await assert.rejects(publicNow(failing));
  await assert.rejects(publicNow(failing));   // a failure is retried rather than served from the memo
  assert.equal(reads,2);
- const response=await GET();                                  // the default deps have no relay and no database here
+ const response=await GET(request());                                  // the default deps have no relay and no database here
  assert.equal(response.status,503);
  assert.equal(response.headers.get('Cache-Control'),'no-store');
  assert.equal(response.headers.get('Access-Control-Allow-Origin'),'*');

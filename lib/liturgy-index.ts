@@ -24,7 +24,10 @@ import type {Cue} from './player';
  * reports as `LiturgyRef.unitId`. One moment may name several units (repeat the
  * `momentId`); the first entry for a unit wins. Unknown fields are ignored and a
  * malformed entry is skipped rather than failing a page load — a mapping table is a
- * convenience, and losing it must never take the live catalog down.
+ * convenience, and losing it must never take the live catalog down. That tolerance
+ * extends to the read itself: the file is data the shireishabbat producer commits, so
+ * invalid JSON must not 503 `/api/catalog?include=liturgy` or `/api/now` at runtime.
+ * A throwing read is one `console.warn` and an empty table.
  */
 export type LiturgyRef={unitId:string|null;momentId:string|null;book:string|null;folio:number|null};
 export type MomentEntry={momentId:string;unitId:string};
@@ -50,9 +53,25 @@ function readMoments(value:unknown):MomentEntry[]{
 }
 
 let committedMoments:MomentEntry[]|undefined;
-/** The committed `content/moments.json`, tolerating the empty list it ships with today. */
-export function loadMoments():MomentEntry[]{
- if(!committedMoments)committedMoments=readMoments(require('../content/moments.json'));
+let warnedAboutMoments=false;
+/** How `loadMoments` reads the file; a test injects one that throws to prove the tolerance. */
+export type MomentsReader=()=>unknown;
+const readCommittedMoments:MomentsReader=()=>require('../content/moments.json');
+function momentsFrom(read:MomentsReader):MomentEntry[]{
+ try{return readMoments(read())}
+ catch(error){
+  if(!warnedAboutMoments){warnedAboutMoments=true;console.warn('content/moments.json could not be read; no moment is named for any cue',error)}
+  return [];
+ }
+}
+/**
+ * The committed `content/moments.json`, tolerating the empty list it ships with today and
+ * an unreadable file tomorrow. Only the committed read is memoized; an injected reader is
+ * always run, so a test never poisons or reads the module-level cache.
+ */
+export function loadMoments(read:MomentsReader=readCommittedMoments):MomentEntry[]{
+ if(read!==readCommittedMoments)return momentsFrom(read);
+ if(!committedMoments)committedMoments=momentsFrom(read);
  return committedMoments;
 }
 

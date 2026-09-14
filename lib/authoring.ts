@@ -11,14 +11,19 @@ import {sharedCueHash,sharedLibraryClient,type SharedLibraryEntry,type SharedLib
 import {compareUpstream,groupSets,setState,shelfState} from './shared-shelf';
 import {AssetError,cueAssetId,defaultAssetRepository,importSharedAsset,markCueAssetPublished,type AssetRepository} from './assets';
 import {liveRelayConfigured} from './rehearsal';
-import {SERVER_RENDERER_PREFIX,type ServerFitResult} from './server-fit';
+// Only the contract, never the browser: lib/server-fit.ts is reached exclusively through the
+// dynamic import in defaultServerFitRunner, so playwright-core and the Chromium pack stay out
+// of the function trace of every entrypoint that touches the authoring service.
+import {SERVER_RENDERER_PREFIX,type ServerFitArtwork,type ServerFitResult} from './server-fit-contract';
 
 export type BrowserMeasurement={viewportWidth:number;viewportHeight:number;fontsReady:true;overflow:false;rendererVersion:string;measuredAt:number};
 export type ReviewReceipt={humanApproved:true;browserMeasurement:BrowserMeasurement;reviewedAt:number;reviewedBy:string};
 // D17/D18 - the server-attested fit measurement `fit_check_draft` writes onto the preview it
 // measured. It is version-bound by construction: it lives on one preview, which is already
 // bound to one draft version and one cue hash.
-export type ServerFitCheck={verdict:'pass'|'fail';fitErrors:string[];warnings:string[];fill:number|null;measuredAt:number;rendererVersion:string};
+// `artwork` is a label, not a gate: the stage cannot load artwork through the author-only
+// asset route, so a server `pass` says nothing about it and the attestation records that.
+export type ServerFitCheck={verdict:'pass'|'fail';fitErrors:string[];warnings:string[];fill:number|null;artwork:ServerFitArtwork;measuredAt:number;rendererVersion:string};
 export type PreviewRecord={id:string;draftId:string;draftVersion:number;cueHash:string;cue:AuthoringCue;validation:ReturnType<typeof previewValidation>;review:ReviewReceipt|null;fitCheck?:ServerFitCheck|null;createdAt:number;createdBy:string};
 export type Revision={draftId:string;revision:number;draftVersion:number;cueHash:string;cue:AuthoringCue;previewId:string|null;review:ReviewReceipt|null;actor:string;createdAt:number};
 
@@ -325,9 +330,12 @@ export function createAuthoringService(repo:AuthoringRepository,workspace:Author
    const result=await serverFit(preview.cue);
    if(result.verdict==='unavailable')
     return {verdict:'unavailable',reason:result.reason,fitCheckUrl:`/author/fit-check?draft=${encodeURIComponent(draft.id)}`,message:FIT_CHECK_UNAVAILABLE};
-   const fitCheck:ServerFitCheck={verdict:result.verdict,fitErrors:result.fitErrors,warnings:result.warnings,fill:result.fill,measuredAt:result.measuredAt,rendererVersion:result.rendererVersion};
+   const fitCheck:ServerFitCheck={verdict:result.verdict,fitErrors:result.fitErrors,warnings:result.warnings,fill:result.fill,artwork:result.artwork,measuredAt:result.measuredAt,rendererVersion:result.rendererVersion};
    await repo.saveFitCheck(preview.id,fitCheck);
-   return {draftId:draft.id,draftVersion:draft.version,previewId:preview.id,cueHash:preview.cueHash,...fitCheck,...(fitCheck.verdict==='pass'?{message:FIT_CHECK_PASSED}:{})};
+   // A pass whose artwork never loaded on the server is still a pass - findFitErrors never
+   // evaluates artwork - but it says what it did not see rather than implying it did.
+   const passMessage=fitCheck.artwork==='not-loaded'?FIT_CHECK_PASSED_NO_ARTWORK:FIT_CHECK_PASSED;
+   return {draftId:draft.id,draftVersion:draft.version,previewId:preview.id,cueHash:preview.cueHash,...fitCheck,...(fitCheck.verdict==='pass'?{message:passMessage}:{})};
   }
   if(operation==='review_draft'){
    keys(data,['draftId','expectedVersion','previewId','browserMeasurement','humanApproved']);const draft=await versionedDraft(repo,string(data.draftId,'draftId'),integer(data.expectedVersion,'expectedVersion',1));assertSourcePin(draft);const preview=await requiredPreview(repo,string(data.previewId,'previewId'));if(preview.draftId!==draft.id||preview.draftVersion!==draft.version)throw new AuthoringError('stale_preview','Preview does not match this draft version',409);if(data.humanApproved!==true)throw new AuthoringError('review_required','Human approval is required',400);
@@ -373,6 +381,7 @@ export function createAuthoringService(repo:AuthoringRepository,workspace:Author
 const FIT_CONTRACT={viewport:{width:1920,height:1080},fontsReadyRequired:true,noOverflowRequired:true,browserReported:true,humanReviewRequired:true} as const;
 // Phase D section E, strings 39 and 40. Neither has precedent; both are quoted from the plan.
 const FIT_CHECK_PASSED='Checked in a browser on the server — no fit problems found.';
+const FIT_CHECK_PASSED_NO_ARTWORK='Checked in a browser on the server — no fit problems found. The artwork was not loaded on the server; confirm it in the editor.';
 const FIT_CHECK_UNAVAILABLE='The server could not open a browser to check this graphic. Open Fit check and review it yourself.';
 /**
  * Builds the cue an editable draft would produce without storing anything: no draft row, no

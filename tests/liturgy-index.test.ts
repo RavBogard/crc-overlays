@@ -39,6 +39,17 @@ test('the committed moments file is an empty list and the loader tolerates it',(
  assert.deepEqual(loadMoments(),[]);
 });
 
+test('a moments.json that cannot be read is an empty table, not a 503',()=>{
+ // Invalid JSON committed by the shireishabbat producer would otherwise throw out of the
+ // require and take `/api/catalog?include=liturgy` and `/api/now` down at runtime.
+ const moments=loadMoments(()=>{throw Error('Unexpected token } in JSON')});
+ assert.deepEqual(moments,[]);
+ const index=liturgyIndex([authored('published',[librarySource.id])],{moments});
+ assert.equal(index.published.momentId,null);
+ assert.equal(index.published.unitId,librarySource.authority.unitId,'the rest of the reference still resolves');
+ assert.equal(liturgyForCue(authored('published',[librarySource.id]),{moments}).momentId,null);
+});
+
 test('liturgyIndex keys every cue in the catalog, referenced or not',()=>{
  const cues=[authored('published',[librarySource.id]),cue({id:'baseline',name:'Barechu',layout:'left',texts:{}})];
  const index=liturgyIndex(cues,{moments:[{momentId:'welcome',unitId:librarySource.authority.unitId}]});
