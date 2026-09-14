@@ -997,8 +997,8 @@ export default function AuthorPage() {
                     chooseWholePrayer={chooseWholePrayer} toggleBlock={toggleBlock} addPanel={addPanel}
                     makeSlidesFromWholePrayer={() => void makeSlidesFromWholePrayer()}
                     removePanel={() => { const groups = form.groups.filter((_, index) => index !== activeGroup); changeForm({ groups }); setActiveGroup(Math.max(0, activeGroup - 1)); }}
-                    changeMode={(mode) => changeForm({ mode, groups: [], includeTranslation: false })}
-                    changeForm={changeForm} busy={busy} controlKey={key} showPanels={showPanels}
+                    changeMode={(mode) => changeForm({ mode, groups: [], includeTranslation: false, layers: ["he", "tr"], arrangement: "together" })}
+                    changeForm={changeForm} busy={busy} controlKey={key} showPanels={showPanels} fitErrors={fitErrors}
                   />
                 ) : <CustomTextEditor form={form} changeForm={changeForm} templates={templates} />}
 

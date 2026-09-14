@@ -13,6 +13,9 @@ export type Presentation = {
   imageAssetId?: string;
 };
 export type SourceGroup = { sourceId: string; blockIds: string[] };
+/** C6: which text layers a graphic shows, and how they sit on the slide. */
+export type TextLayer = "he" | "tr" | "en";
+export type TextArrangement = "together" | "blocks";
 /** Printed provenance for one source, as `search_sources` / `get_source` return it (lib/source-library.ts). */
 export type SourceDisplay = { bookTitle: string; folio: string | null; sectionTitle: string | null; edition: string | null };
 /** A save-time warning that another library graphic already carries this name (R6). */
@@ -23,6 +26,8 @@ export type CanonicalDraftContent =
       hebrewGroups: SourceGroup[];
       transliterationGroups: SourceGroup[];
       includeTranslation?: boolean;
+      layers?: TextLayer[];
+      arrangement?: TextArrangement;
     }
   | { mode: "source-en" | "original-en"; englishGroups: SourceGroup[] };
 export type VariantChannel = "he" | "tr" | "en";
@@ -192,6 +197,8 @@ export type PublishedRevision = {
 };
 export type DraftForm = {
   includeTranslation?: boolean;
+  layers: TextLayer[];
+  arrangement: TextArrangement;
   name: string;
   title: string;
   accentTitle: string;

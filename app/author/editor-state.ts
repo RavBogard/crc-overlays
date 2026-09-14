@@ -1,5 +1,43 @@
 import { exceedsOnePanel, type PanelBlock, type PanelLayout } from "@/lib/panel-budget";
-import type { ContentMode, Draft, DraftForm, Source, SourceDisplay, SourceGroup } from "./types";
+import type { ContentMode, Draft, DraftForm, Source, SourceDisplay, SourceGroup, TextArrangement, TextLayer } from "./types";
+
+export const LAYER_ORDER: readonly TextLayer[] = ["he", "tr", "en"];
+export const LAYER_NAMES: Record<TextLayer, string> = { he: "Hebrew", tr: "Transliteration", en: "Translation" };
+
+/**
+ * C6. The stored draft says which layers it shows only when that differs from what the older
+ * translation flag already implied, so a graphic authored before this change reads back exactly
+ * as it was written: Hebrew and transliteration, together, plus translation when it had it.
+ */
+export function layersOf(content: Draft["content"]): { layers: TextLayer[]; arrangement: TextArrangement } {
+  const base = content.mode === "local-variant" ? content.base : content;
+  if (base.mode !== "bilingual") return { layers: ["he", "tr"], arrangement: "together" };
+  const layers = base.layers?.length
+    ? LAYER_ORDER.filter((layer) => base.layers!.includes(layer))
+    : base.includeTranslation
+      ? (["he", "tr", "en"] as TextLayer[])
+      : (["he", "tr"] as TextLayer[]);
+  return { layers, arrangement: base.arrangement === "blocks" ? "blocks" : "together" };
+}
+
+function layerFormFields(draft: Draft) {
+  return layersOf(draft.content);
+}
+
+/** Mirrors layerFields() in lib/authoring-model.ts: write nothing the default already says. */
+export function layerContentFields(form: DraftForm) {
+  // Translation needs the room of a panel; a graphic moved to a lower third keeps its chip but
+  // saves without it rather than failing the save.
+  const kept = LAYER_ORDER.filter((layer) => form.layers.includes(layer) && !(layer === "en" && form.layout === "bottom"));
+  const layers = kept.length ? kept : (["he"] as TextLayer[]);
+  const translation = layers.includes("en");
+  const implicit = translation ? ["he", "tr", "en"] : ["he", "tr"];
+  return {
+    ...(translation ? { includeTranslation: true as const } : {}),
+    ...(JSON.stringify(layers) === JSON.stringify(implicit) ? {} : { layers }),
+    ...(form.arrangement === "blocks" ? { arrangement: "blocks" as const } : {}),
+  };
+}
 
 export const emptyForm: DraftForm = {
   name: "",
@@ -8,6 +46,8 @@ export const emptyForm: DraftForm = {
   layout: "left",
   templateCueId: "",
   mode: "bilingual",
+  layers: ["he", "tr"],
+  arrangement: "together",
   groups: [],
   customText: "",
   variantLabel: "",
@@ -95,6 +135,7 @@ export function formFromDraft(draft: Draft): DraftForm {
     mode: draft.content.mode,
     includeTranslation:
       draft.content.mode === "bilingual" && draft.content.includeTranslation,
+    ...layerFormFields(draft),
     groups: structuredClone(groups),
     customText: draft.content.mode === "custom" ? draft.content.text : "",
     variantLabel: draft.content.mode === "local-variant" ? draft.content.label : "",
@@ -113,7 +154,7 @@ export function editableFromForm(form: DraftForm) {
           mode: "bilingual" as const,
           hebrewGroups: groups,
           transliterationGroups: structuredClone(groups),
-          ...(form.includeTranslation ? { includeTranslation: true } : {}),
+          ...layerContentFields(form),
         }
       : form.mode === "original-en" || form.mode === "source-en"
         ? { mode: form.mode, englishGroups: groups }

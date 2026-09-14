@@ -90,3 +90,13 @@
 }
 
 .author-page .shelf-retry { margin-left: 6px; padding: 4px 9px; background: transparent; font-size: 10px; }
+
+/* C6: the layer chips and the arrangement switch, directly above the passage list. */
+.text-layers{display:flex;flex-wrap:wrap;align-items:center;gap:10px 16px;margin:2px 0 10px}
+.text-layers .chip{border:1px solid var(--line,#d5dee5);background:transparent;color:inherit;border-radius:999px;padding:5px 13px;font-size:13px;cursor:pointer}
+.text-layers .chip:hover:not(:disabled){border-color:var(--mint,#4bb7a4)}
+.text-layers .chip.on{border-color:var(--mint,#4bb7a4);background:color-mix(in srgb,var(--mint,#4bb7a4) 16%,transparent);font-weight:600}
+.text-layers .chip:disabled{opacity:.45;cursor:not-allowed}
+.layer-chips,.layer-arrangement{display:flex;gap:8px}
+.layer-arrangement{padding-left:16px;border-left:1px solid var(--line,#d5dee5)}
+.layer-fit{display:flex;align-items:center;gap:6px;margin:0;flex-basis:100%;font-size:12.5px;color:#9a4b2e}

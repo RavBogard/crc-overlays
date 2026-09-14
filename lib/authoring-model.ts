@@ -10,7 +10,31 @@ const baselineCueJson=require('./cues.json');
 export type Layout='bottom'|'left'|'right';
 export type Presentation={hebrewFontSize?:number;transliterationFontSize?:number;titleFontSize?:number;alignment?:'start'|'center';lineSpacing?:'compact'|'spacious';imageAssetId?:string};
 export type SourceGroup={sourceId:string;blockIds:string[]};
-export type BilingualContent={mode:'bilingual';hebrewGroups:SourceGroup[];transliterationGroups:SourceGroup[];includeTranslation?:boolean};
+/**
+ * C6: which text layers a graphic shows, and how they are arranged. `layers` and `arrangement`
+ * are written only when they differ from what `includeTranslation` alone already implies, so
+ * every graphic authored before this change keeps its exact stored shape, its pin and its hash.
+ */
+export type TextLayer='he'|'tr'|'en';
+export type TextArrangement='together'|'blocks';
+export const LAYER_ORDER=['he','tr','en'] as const;
+export type BilingualContent={mode:'bilingual';hebrewGroups:SourceGroup[];transliterationGroups:SourceGroup[];includeTranslation?:boolean;layers?:TextLayer[];arrangement?:TextArrangement};
+export function textLayers(content:BilingualContent):TextLayer[]{
+ if(content.layers?.length)return LAYER_ORDER.filter(layer=>content.layers!.includes(layer));
+ return content.includeTranslation?['he','tr','en']:['he','tr'];
+}
+export function textArrangement(content:BilingualContent):TextArrangement{return content.arrangement==='blocks'?'blocks':'together'}
+/** The stored form: the default pair (or trio) is left implicit, so old drafts never gain a field. */
+export function layerFields(layers:TextLayer[],arrangement:TextArrangement){
+ const ordered=LAYER_ORDER.filter(layer=>layers.includes(layer));
+ const translation=ordered.includes('en');
+ const implicit=translation?['he','tr','en']:['he','tr'];
+ return {
+  ...(translation?{includeTranslation:true as const}:{}),
+  ...(JSON.stringify(ordered)===JSON.stringify(implicit)?{}:{layers:ordered}),
+  ...(arrangement==='blocks'?{arrangement:'blocks' as const}:{}),
+ };
+}
 export type OriginalEnglishContent={mode:'original-en';englishGroups:SourceGroup[]};
 export type SourceEnglishContent={mode:'source-en';englishGroups:SourceGroup[]};
 export type CanonicalContent=BilingualContent|OriginalEnglishContent|SourceEnglishContent;
@@ -109,7 +133,7 @@ function parseGroups(value:unknown,label:string,kind:SourceBlock['kind'],snapsho
 export function parseContent(value:unknown,snapshots:AuthoringSource[]=[]):DraftContent{
  const input=record(value,'content');
  if(input.mode==='bilingual'){
-  onlyKeys(input,['mode','hebrewGroups','transliterationGroups','includeTranslation'],'content');
+  onlyKeys(input,['mode','hebrewGroups','transliterationGroups','includeTranslation','layers','arrangement'],'content');
   const hebrewGroups=parseGroups(input.hebrewGroups,'content.hebrewGroups','bilingual',snapshots);
   const transliterationGroups=parseGroups(input.transliterationGroups,'content.transliterationGroups','bilingual',snapshots);
   const sequence=(groups:SourceGroup[])=>groups.flatMap(group=>group.blockIds.map(blockId=>`${group.sourceId}\u0000${blockId}`));
@@ -118,8 +142,17 @@ export function parseContent(value:unknown,snapshots:AuthoringSource[]=[]):Draft
   if(new Set(hebrewSequence).size!==hebrewSequence.length||new Set(transliterationSequence).size!==transliterationSequence.length)throw new AuthoringError('repeated_source_block','A source block may be selected only once per language');
   if(JSON.stringify(hebrewSequence)!==JSON.stringify(transliterationSequence))throw new AuthoringError('mismatched_source_coverage','Hebrew and transliteration must select the same ordered source blocks');
   if(input.includeTranslation!==undefined&&typeof input.includeTranslation!=='boolean')throw new AuthoringError('invalid_input','includeTranslation must be boolean');
-  const content:BilingualContent={mode:'bilingual',hebrewGroups,transliterationGroups,...(input.includeTranslation?{includeTranslation:true}:{})};
-  if(content.includeTranslation)translationSelections(content,snapshots);
+  let layers:TextLayer[]=input.includeTranslation?['he','tr','en']:['he','tr'];
+  if(input.layers!==undefined){
+   if(!Array.isArray(input.layers))throw new AuthoringError('invalid_input','layers must be a list');
+   const values=input.layers as unknown[];
+   for(const value of values)if(value!=='he'&&value!=='tr'&&value!=='en')throw new AuthoringError('invalid_input','layers may only be he, tr or en');
+   layers=LAYER_ORDER.filter(layer=>values.includes(layer));
+   if(!layers.length)throw new AuthoringError('empty_layers','A graphic shows at least one text layer');
+  }
+  if(input.arrangement!==undefined&&input.arrangement!=='together'&&input.arrangement!=='blocks')throw new AuthoringError('invalid_input','arrangement must be together or blocks');
+  const content:BilingualContent={mode:'bilingual',hebrewGroups,transliterationGroups,...layerFields(layers,input.arrangement==='blocks'?'blocks':'together')};
+  if(layers.includes('en'))translationSelections(content,snapshots);
   return content;
  }
  if(input.mode==='original-en'){
@@ -154,7 +187,10 @@ export function parseContent(value:unknown,snapshots:AuthoringSource[]=[]):Draft
 
 // Only whole, explicitly paired canonical blessings can gain a translation.
 function translationSelections(content:BilingualContent,snapshots:AuthoringSource[]=[]){
- const pairs=content.hebrewGroups.flatMap(group=>group.blockIds.map(blockId=>({sourceId:group.sourceId,blockId})));
+ return translationRuns(content.hebrewGroups.flatMap(group=>group.blockIds.map(blockId=>({sourceId:group.sourceId,blockId}))),snapshots);
+}
+/** Walks a run of selected blocks and returns the authorized English that covers it, or throws. */
+function translationRuns(pairs:Array<{sourceId:string;blockId:string}>,snapshots:AuthoringSource[]=[]){
  const result:Array<{sourceId:string;block:SourceBlock;pairIds:string[]}>=[];
  for(let offset=0;offset<pairs.length;){
   const first=pairs[offset];
@@ -212,19 +248,45 @@ function renderGroup(group:SourceGroup,channel:'he'|'tr'|'en',snapshots:Authorin
  }).join(' ');
 }
 
+/**
+ * C6. A panel graphic is a list of rows, and the two arrangements are two ways of cutting the
+ * same passages into rows: **Together** gives each passage its own row carrying every lit layer;
+ * **In blocks** gives each slide one row per lit layer, so the whole slide's Hebrew stands
+ * together, then its transliteration, then its translation. A block never spans slides because a
+ * slide is a group. A lower third is not a list of rows and keeps its own two columns.
+ */
+function composeContentRows(draft:Draft,content:BilingualContent,overrides:LocalVariantOverride[],layers:TextLayer[]):Array<{he:string;tr:string;en:string}>{
+ if(draft.layout!=='left'&&draft.layout!=='right')return [];
+ const snapshots=draft.sourceSnapshots;
+ const text=(sourceId:string,blockIds:string[],channel:'he'|'tr')=>layers.includes(channel)?renderGroup({sourceId,blockIds},channel,snapshots,overrides):'';
+ const english=(sourceId:string,block:SourceBlock)=>overrides.find(item=>item.sourceId===sourceId&&item.blockId===block.id&&item.channel==='en')?.localText??block.en!;
+ if(textArrangement(content)==='blocks'){
+  return content.hebrewGroups.flatMap(group=>{
+   const rows:Array<{he:string;tr:string;en:string}>=[];
+   if(layers.includes('he'))rows.push({he:renderGroup(group,'he',snapshots,overrides),tr:'',en:''});
+   if(layers.includes('tr'))rows.push({he:'',tr:renderGroup({sourceId:group.sourceId,blockIds:group.blockIds},'tr',snapshots,overrides),en:''});
+   if(layers.includes('en'))rows.push({he:'',tr:'',en:translationRuns(group.blockIds.map(blockId=>({sourceId:group.sourceId,blockId})),snapshots).map(({sourceId,block})=>english(sourceId,block)).join(' ')});
+   return rows;
+  });
+ }
+ if(layers.includes('en'))return translationSelections(content,snapshots).map(({sourceId,block,pairIds})=>({he:text(sourceId,pairIds,'he'),tr:text(sourceId,pairIds,'tr'),en:english(sourceId,block)}));
+ return content.hebrewGroups.flatMap(group=>group.blockIds.map(blockId=>({he:text(group.sourceId,[blockId],'he'),tr:text(group.sourceId,[blockId],'tr'),en:''})));
+}
+
 export function buildCue(draft:Draft):AuthoringCue{
  assertSourcePin(draft);
  const template=baselineCues.find(cue=>cue.id===draft.templateCueId);
  if(!template)throw new AuthoringError('unknown_template','Draft template is unavailable',409);
  if(template.layout!==draft.layout)throw new AuthoringError('template_layout_mismatch','Template cue layout must match the draft layout');
  const content=draft.content.mode==='local-variant'?draft.content.base:draft.content;const overrides=draft.content.mode==='local-variant'?draft.content.overrides:[];
- if(content.mode==='bilingual'&&content.includeTranslation&&draft.layout==='bottom')throw new AuthoringError('translation_layout','Use a left or right panel for translated blessing rows');
+ if(content.mode==='bilingual'&&textLayers(content).includes('en')&&draft.layout==='bottom')throw new AuthoringError('translation_layout','Use a left or right panel for translated blessing rows');
  const texts:Record<string,string>={textTitle:draft.title};
  if(draft.accentTitle)texts.accentTextTitle=draft.accentTitle;
  const groups=content.mode==='bilingual'?[...content.hebrewGroups,...content.transliterationGroups]:content.mode==='original-en'||content.mode==='source-en'?content.englishGroups:[];
+ const layers=content.mode==='bilingual'?textLayers(content):[];
  if(content.mode==='bilingual'){
-  texts.textMainheb=content.hebrewGroups.map(group=>renderGroup(group,'he',draft.sourceSnapshots,overrides)).join('\n');
-  texts.textMainEng=content.transliterationGroups.map(group=>renderGroup(group,'tr',draft.sourceSnapshots,overrides)).join('\n');
+  if(layers.includes('he'))texts.textMainheb=content.hebrewGroups.map(group=>renderGroup(group,'he',draft.sourceSnapshots,overrides)).join('\n');
+  if(layers.includes('tr'))texts.textMainEng=content.transliterationGroups.map(group=>renderGroup(group,'tr',draft.sourceSnapshots,overrides)).join('\n');
  }else if(content.mode==='original-en'||content.mode==='source-en')texts.textMain=content.englishGroups.map(group=>renderGroup(group,'en',draft.sourceSnapshots,overrides)).join('\n');
  else texts.textMain=content.text;
  const sourceIds=[...new Set(groups.map(group=>group.sourceId))].sort();
@@ -245,11 +307,7 @@ export function buildCue(draft:Draft):AuthoringCue{
  }
  return {
   id:draft.id,name:draft.name,layout:draft.layout,texts,
-  ...(content.mode==='bilingual'&&content.includeTranslation
-   ?{contentRows:translationSelections(content,draft.sourceSnapshots).map(({sourceId,block,pairIds})=>({he:renderGroup({sourceId,blockIds:pairIds},'he',draft.sourceSnapshots,overrides),tr:renderGroup({sourceId,blockIds:pairIds},'tr',draft.sourceSnapshots,overrides),en:overrides.find(item=>item.sourceId===sourceId&&item.blockId===block.id&&item.channel==='en')?.localText??block.en!}))}
-   :content.mode==='bilingual'&&(draft.layout==='left'||draft.layout==='right')
-    ?{contentRows:content.hebrewGroups.flatMap(group=>group.blockIds.map(blockId=>({he:renderGroup({sourceId:group.sourceId,blockIds:[blockId]},'he',draft.sourceSnapshots,overrides),tr:renderGroup({sourceId:group.sourceId,blockIds:[blockId]},'tr',draft.sourceSnapshots,overrides),en:''})))}
-    :{}),
+  ...(content.mode==='bilingual'?(rows=>rows.length?{contentRows:rows}:{})(composeContentRows(draft,content,overrides,layers)):{}),
   animations,duration:structuredClone(template.duration),
   ...(template.template?{template:structuredClone(template.template)}:{}),
   ...(Object.keys(draft.presentation).length?{presentation:structuredClone(draft.presentation)}:{}),
@@ -308,8 +366,9 @@ export function assertSourcePin(draft:Draft){
 export function cueHash(cue:AuthoringCue){return createHash('sha256').update(JSON.stringify(cue)).digest('hex')}
 export function previewValidation(cue:AuthoringCue){
  const errors:string[]=[];
- if(cue.texts.textMainheb&&!cue.texts.textMainEng)errors.push('Hebrew requires matching transliteration');
- if(cue.texts.textMainEng&&!cue.texts.textMainheb)errors.push('Transliteration requires matching Hebrew');
+ // C6: any combination of layers is authored deliberately, so a single channel is no longer an
+ // error. What is still an error is a graphic with nothing to read on it.
+ if(!cue.texts.textMain&&!cue.texts.textMainheb&&!cue.texts.textMainEng&&!cue.contentRows?.length)errors.push('This graphic has no text yet');
  return {valid:errors.length===0,errors,warnings:[],requiresBrowserReview:true};
 }
 

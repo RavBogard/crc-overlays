@@ -1,9 +1,9 @@
 "use client";
 
 import { useEffect, useRef, useState } from "react";
-import { BookOpenText, ChevronLeft, ChevronRight, FilePlus2, LoaderCircle, Search } from "lucide-react";
+import { BookOpenText, ChevronLeft, ChevronRight, CircleAlert, FilePlus2, LoaderCircle, Search } from "lucide-react";
 import { fetchBookUnits, groupUnits, hasHebrew, visibleUnits } from "@/lib/siddur-shelf";
-import { blocksForMode, sourceDisplayCopy, sourceHeadline } from "./editor-state";
+import { LAYER_NAMES, LAYER_ORDER, blocksForMode, sourceDisplayCopy, sourceHeadline } from "./editor-state";
 import type {
   BookUnit,
   BookUnitsResult,
@@ -13,6 +13,7 @@ import type {
   SourceEnglishRole,
   SourceFacet,
   SourceSummary,
+  TextLayer,
 } from "./types";
 import { EditorCard } from "./editor-card";
 import "./siddur-editor.css";
@@ -46,6 +47,8 @@ export type SiddurEditorProps = {
   makeSlidesFromWholePrayer: () => void;
   changeMode: (mode: CanonicalContentMode) => void; changeForm: (patch: Partial<DraftForm>) => void; busy: string;
   controlKey: string;
+  /** C6: the same one-line fit status the preview shows, repeated where the layers are chosen. */
+  fitErrors: string[];
   /** X2: the Slides row is shown only when the selection needs more than one slide (or already has one). Default true.
    *  C3 of the 2026-09-14 layout pass: these are slides in the words an editor reads; "panel" now
    *  means only the layout (Left panel / Right panel). The prop and state names are unchanged. */
@@ -93,10 +96,10 @@ export function SiddurEditor(props: SiddurEditorProps) {
       <div className="passage-header"><button className="icon-button" title="Back to results" onClick={props.clearSource}><ChevronLeft size={17} /></button><div><small>{sourceHeadline(sourceDisplayCopy(props.source))}</small><h4>{props.source.name}</h4></div><div className="whole-prayer-actions"><button onClick={props.chooseWholePrayer}>Select all</button><button className="primary-button" onClick={props.makeSlidesFromWholePrayer} disabled={props.busy === "make-set"}>{props.busy === "make-set" ? <LoaderCircle className="spin" size={16} /> : <FilePlus2 size={16} />} Add all as slides</button></div></div>
       <SourceProvenance source={props.source} />
       <div className="content-mode-toggle">{props.source.blocks.some((block) => block.kind === "bilingual") && <button className={props.form.mode === "bilingual" ? "active" : ""} onClick={() => props.changeMode("bilingual")}>Hebrew + transliteration</button>}{blocksForMode(props.source, "source-en").length > 0 && <button className={props.form.mode === "source-en" ? "active" : ""} onClick={() => props.changeMode("source-en")}>English from siddur</button>}{props.source.blocks.some((block) => block.kind === "original-en") && <button className={props.form.mode === "original-en" ? "active" : ""} onClick={() => props.changeMode("original-en")}>Original English reading</button>}</div>
-      {props.source.blocks.some((block) => block.kind === "translation-en") && props.form.mode === "bilingual" && <label className="translation-choice"><input type="checkbox" checked={!!props.form.includeTranslation} onChange={(event) => props.changeForm({ includeTranslation: event.target.checked })} /> Include approved English where available</label>}
       {omittedFromAutomatic > 0 && <p className="source-mode-note">{omittedFromAutomatic} service {omittedFromAutomatic === 1 ? "note is" : "notes are"} available for manual selection below. Automatic slides use the prayer and reading text.</p>}
       {props.showPanels !== false && <div className="panel-tabs">{props.form.groups.map((group, index) => <button key={`${group.sourceId}-${index}`} className={props.activeGroup === index ? "active" : ""} onClick={() => props.setActiveGroup(index)}>Slide {index + 1}<small>{group.blockIds.length} passages</small></button>)}<button onClick={props.addPanel}>+ Add slide</button></div>}
       {noteLikeBlocks > 0 && <label className="shelf-toggle"><input type="checkbox" checked={showNotes} onChange={(event) => setShowNotes(event.target.checked)} /> {SHOW_NOTES_LABEL}</label>}
+      {props.form.mode === "bilingual" && <TextLayerControls form={props.form} source={props.source} changeForm={props.changeForm} fitErrors={props.fitErrors} />}
       <div className="passage-list">{visibleBlocks.map((block) => <label key={block.id} className={props.selectedIds.has(block.id) ? "selected" : ""}><input type="checkbox" checked={props.selectedIds.has(block.id)} onChange={(event) => props.toggleBlock(block.id, event.target.checked)} /><span className="passage-number">{block.index + 1}</span><span>{props.form.mode === "bilingual" ? <><b lang="he" dir="rtl">{block.he}</b><small>{block.tr}</small></> : <><b>{block.en}</b>{props.form.mode === "source-en" && <small className="passage-meta">{englishRoleLabel[block.englishRole || "unclassified"]}{block.automatic === false ? " · manual selection" : ""}</small>}</>}</span></label>)}</div>
       {props.showPanels !== false && props.form.groups.length > 1 && <button className="remove-panel" onClick={props.removePanel}>Remove slide {props.activeGroup + 1}</button>}
     </div>}
@@ -118,6 +121,44 @@ type SiddurShelfProps = {
  * I3 - the library as a shelf: the twelve books, then the sections one book prints, then the
  * units inside them. A unit opens exactly the way a search result does.
  */
+/**
+ * C6. Two decisions the old "Include approved English" checkbox hid: which layers a graphic
+ * shows, and how they sit on the slide. Layer order is fixed Hebrew - Transliteration -
+ * Translation in both arrangements; the last lit chip simply stays lit rather than raising an
+ * error. Translation is offered where the siddur actually carries authorized English for these
+ * passages, which today is rare, and it needs the room of a left or right panel.
+ */
+function TextLayerControls(props: { form: DraftForm; source: Source; changeForm: (patch: Partial<DraftForm>) => void; fitErrors: string[] }) {
+  const panel = props.form.layout === "left" || props.form.layout === "right";
+  const hasEnglish = props.source.blocks.some((block) => block.kind === "translation-en");
+  const lit = LAYER_ORDER.filter((layer) => props.form.layers.includes(layer));
+  const reason = (layer: TextLayer) =>
+    layer !== "en" ? "" : !hasEnglish ? "This siddur has no approved English for these passages yet." : !panel ? "Translation needs a left or right panel." : "";
+  const toggle = (layer: TextLayer) => {
+    const next = lit.includes(layer) ? lit.filter((item) => item !== layer) : LAYER_ORDER.filter((item) => item === layer || lit.includes(item));
+    if (!next.length) return;
+    props.changeForm({ layers: next });
+  };
+  return <div className="text-layers">
+    <div className="layer-chips" role="group" aria-label="Text layers">
+      {LAYER_ORDER.map((layer) => {
+        const blocked = reason(layer);
+        const on = lit.includes(layer);
+        return <button key={layer} type="button" className={on ? "chip on" : "chip"} aria-pressed={on} disabled={Boolean(blocked) && !on}
+          title={blocked || (on && lit.length === 1 ? "A graphic shows at least one layer." : "")}
+          onClick={() => toggle(layer)}>{LAYER_NAMES[layer]}</button>;
+      })}
+    </div>
+    {lit.length > 1 && <div className="layer-arrangement" role="group" aria-label="Arrangement">
+      {([["together", "Together"], ["blocks", "In blocks"]] as const).map(([value, label]) =>
+        <button key={value} type="button" className={props.form.arrangement === value ? "chip on" : "chip"} aria-pressed={props.form.arrangement === value}
+          disabled={!panel} title={panel ? "" : "A lower third keeps its two columns side by side."}
+          onClick={() => props.changeForm({ arrangement: value })}>{label}</button>)}
+    </div>}
+    {props.fitErrors.length > 0 && <p className="layer-fit"><CircleAlert size={15} /> {props.fitErrors[0]}</p>}
+  </div>;
+}
+
 function SiddurShelf(props: SiddurShelfProps) {
   /** One outline per book, kept for the session so reopening a book is instant. */
   const [outlines, setOutlines] = useState<Record<string, BookUnitsResult>>({});
