@@ -9,11 +9,13 @@ instance to publish and show a graphic.
 ## One command
 
 ```
-npm run rehearsal            # optional: -- --port 5175 --relay-port 8788 --book-faces
+npm run rehearsal            # optional: -- --port 5175 --relay-port 8788 --book-faces --google
 #   add --pair to boot CRC and TBI together (see "Paired rehearsal" below)
 ```
 
 `--book-faces` sets `WORKSPACE_BOOK_FACES=1` in the Next child's environment, trialing the David Libre / Frank Ruhl Libre overlay typography (default off; see `docs/RENDERER.md`).
+
+`--google` is the one way Google sign-in reaches a rehearsal. With it, and only with it, the orchestrator copies `GOOGLE_OAUTH_CLIENT_ID` and `GOOGLE_OAUTH_CLIENT_SECRET` from the invoking shell into every Next child; without it both are passed as empty strings, so nothing in a `.env*` file can configure them and the "Continue with Google" button does not appear. These are identity-provider credentials — they prove who a person is to Google and nothing more. They are not production data credentials: they never reach Neon or Cloudflare, and `DATABASE_URL` stays forbidden (exit 2) exactly as before. Two cautions. The rehearsal `next dev` binds all interfaces, so run `--google` only on a trusted network; and the redirect URI registered for local use is `http://localhost:5175/api/auth/google/callback` (from the config record `docs/planning/2026-09-13-product-review/GOOGLE-SIGNIN-CONFIG-2026-09-13.md`), so with a real client Google sign-in works only on the solo CRC rehearsal on port **5175** — the paired TBI child on **5176** is not a registered origin and shows Google sign-in as unavailable on this address. If `--google` is given and either variable is missing or empty in the shell, the rehearsal refuses with exit **7**, naming the missing variable names (never values), before anything is spawned. Neither value is ever printed, logged, or written to a state file; the state file records only `google: true|false` so a person or `rehearsal:check` can see which mode is running.
 
 This runs `scripts/rehearsal.mjs` (under tsx), which:
 
@@ -32,7 +34,8 @@ This runs `scripts/rehearsal.mjs` (under tsx), which:
   RELAY_URL=memory CRC_REHEARSAL_RELAY_PORT=8788` plus the generated keys.
 - Waits up to 90 s for `/api/workspace` (exit 5 with Next's last stderr lines), initializes the relay stub with the 29-graphic baseline catalog from `lib/cues.json` (revision 0, no graphic on air — `cue: null` in the API), then calls `POST /api/live-catalog` so Next pushes its own catalog version (Turbopack and tsx serialize one `cues.json` float differently).
 - Writes gitignored `work/rehearsal/current.json` (`baseUrl`, `relayUrl`, keys, pids,
-  `startedAt`) so `rehearsal:check` can attach; deletes it on exit.
+  `startedAt`, and `google` — the `--google` boolean, never a Google value) so
+  `rehearsal:check` can attach; deletes it on exit.
 - Prints: `http://localhost:5175/` (console), `http://localhost:5175/output#key=<outputKey>`,
   `/author`, `/access`, `/health`, the control key, and the owner sign-in
   `rehearsal-owner@rehearsal.invalid` / `rehearsal-owner-local-2026`.

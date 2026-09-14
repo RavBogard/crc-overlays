@@ -20,10 +20,10 @@ const INHERITED=['PATH','SYSTEMROOT','TEMP','TMP','HOME','USERPROFILE','APPDATA'
 const ownKeys=(env:Record<string,string>)=>Object.keys(env).filter(name=>!INHERITED.includes(name)).sort();
 
 test('rehearsal arguments default to the documented ports and opt into the pair',()=>{
- assert.deepEqual(parseArgs([]),{port:DEFAULT_REHEARSAL_PORT,relayPort:DEFAULT_REHEARSAL_RELAY_PORT,tbiPort:DEFAULT_REHEARSAL_TBI_PORT,tbiRelayPort:DEFAULT_REHEARSAL_TBI_RELAY_PORT,pair:false,bookFaces:false});
+ assert.deepEqual(parseArgs([]),{port:DEFAULT_REHEARSAL_PORT,relayPort:DEFAULT_REHEARSAL_RELAY_PORT,tbiPort:DEFAULT_REHEARSAL_TBI_PORT,tbiRelayPort:DEFAULT_REHEARSAL_TBI_RELAY_PORT,pair:false,bookFaces:false,google:false});
  assert.deepEqual(parseArgs(['--pair']).pair,true);
- assert.deepEqual(parseArgs(['--pair','--port','5185','--relay-port','8798','--tbi-port','5186','--tbi-relay-port','8799']),{port:5185,relayPort:8798,tbiPort:5186,tbiRelayPort:8799,pair:true,bookFaces:false});
- assert.deepEqual(parseArgs(['--tbi-port=5200','--tbi-relay-port=8900']),{port:DEFAULT_REHEARSAL_PORT,relayPort:DEFAULT_REHEARSAL_RELAY_PORT,tbiPort:5200,tbiRelayPort:8900,pair:false,bookFaces:false});
+ assert.deepEqual(parseArgs(['--pair','--port','5185','--relay-port','8798','--tbi-port','5186','--tbi-relay-port','8799']),{port:5185,relayPort:8798,tbiPort:5186,tbiRelayPort:8799,pair:true,bookFaces:false,google:false});
+ assert.deepEqual(parseArgs(['--tbi-port=5200','--tbi-relay-port=8900']),{port:DEFAULT_REHEARSAL_PORT,relayPort:DEFAULT_REHEARSAL_RELAY_PORT,tbiPort:5200,tbiRelayPort:8900,pair:false,bookFaces:false,google:false});
  assert.equal(parseArgs(['--pair','--book-faces']).bookFaces,true);
  assert.throws(()=>parseArgs(['--tbi']),/unknown argument --tbi/);
 });
@@ -62,7 +62,7 @@ test('neither child inherits a credential, and both pin the two file-injectable 
    assert.equal(env.ACCESS_BOOTSTRAP_KEY,'');
    assert.equal(env.VERCEL,undefined);
    // The allowlist stays an allowlist: only inherited names and the ones written here.
-   for(const name of ownKeys(env))assert.ok(name.startsWith('CRC_')||name.startsWith('SHARED_LIBRARY_')||['NODE_ENV','RELAY_URL','RELAY_SECRET','CONTROL_KEY','OUTPUT_KEY','NEXT_TELEMETRY_DISABLED','DATABASE_URL','ACCESS_BOOTSTRAP_KEY','WORKSPACE_ID','WORKSPACE_BOOK_FACES','__NEXT_PRIVATE_STANDALONE_CONFIG'].includes(name),`unexpected child variable ${name}`);
+   for(const name of ownKeys(env))assert.ok(name.startsWith('CRC_')||name.startsWith('SHARED_LIBRARY_')||['NODE_ENV','RELAY_URL','RELAY_SECRET','CONTROL_KEY','OUTPUT_KEY','NEXT_TELEMETRY_DISABLED','DATABASE_URL','ACCESS_BOOTSTRAP_KEY','WORKSPACE_ID','WORKSPACE_BOOK_FACES','GOOGLE_OAUTH_CLIENT_ID','GOOGLE_OAUTH_CLIENT_SECRET','__NEXT_PRIVATE_STANDALONE_CONFIG'].includes(name),`unexpected child variable ${name}`);
    // Every forbidden name is either absent or the deliberate empty string.
    for(const name of FORBIDDEN_ENV)assert.ok(env[name]===undefined||env[name]===''||['RELAY_SECRET','CONTROL_KEY','OUTPUT_KEY'].includes(name),`${name} leaked into the child`);
   }

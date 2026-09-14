@@ -11,7 +11,8 @@
 //
 // Exit codes: 2 inherited credential, 3 port busy, 4 (reserved: .env file present when
 // the runtime would honour it), 5 Next did not answer /api/workspace within 90 s,
-// 6 the paired rehearsal could not give its two dev servers separate build directories.
+// 6 the paired rehearsal could not give its two dev servers separate build directories,
+// 7 --google was asked for and a Google sign-in variable is missing from this shell.
 import {execFile,spawn} from 'node:child_process';
 import {createHash,randomBytes} from 'node:crypto';
 import {mkdir,readFile,rm,writeFile} from 'node:fs/promises';
@@ -27,6 +28,10 @@ export const DEFAULT_REHEARSAL_TBI_PORT=5176;
 export const DEFAULT_REHEARSAL_TBI_RELAY_PORT=8789;
 export const TBI_WORKSPACE_ID='temple-bnai-israel-kalamazoo';
 export const FORBIDDEN_ENV=['DATABASE_URL','RELAY_SECRET','CONTROL_KEY','OUTPUT_KEY','ACCESS_BOOTSTRAP_KEY','VERCEL'];
+// Google sign-in (lib/google-sign-in.ts) reads exactly these two. They are identity-provider
+// credentials, not production data credentials, so they are not forbidden — but they only
+// reach a child when `--google` asks for them, and are pinned empty otherwise.
+export const GOOGLE_ENV=['GOOGLE_OAUTH_CLIENT_ID','GOOGLE_OAUTH_CLIENT_SECRET'];
 export const REHEARSAL_OWNER_EMAIL='rehearsal-owner@rehearsal.invalid';
 export const REHEARSAL_OWNER_PASSWORD='rehearsal-owner-local-2026';
 const ROOT=path.resolve(path.dirname(fileURLToPath(import.meta.url)),'..');
@@ -48,6 +53,11 @@ const sleep=ms=>new Promise(resolve=>setTimeout(resolve,ms));
 /** Names the first forbidden variable present in `env`, or null. */
 export function inheritedCredential(env=process.env){
  return FORBIDDEN_ENV.find(name=>env[name]!==undefined)??null;
+}
+
+/** The Google variable NAMES `--google` needs and this shell does not supply. Never values. */
+export function missingGoogleCredentials(env=process.env){
+ return GOOGLE_ENV.filter(name=>!env[name]);
 }
 
 function tryListen(port,host){
@@ -80,12 +90,12 @@ export async function portFree(port){
  * Paired rehearsal adds `workspaceId`, the two shared-library keys and the TBI feed URL,
  * and `standaloneConfig` (see isolatedBuildConfig).
  * @param {{relayPort:number,relaySecret:string,controlKey:string,outputKey:string,
- *  bookFaces?:boolean,workspaceId?:string,sharedLibraryExportKey?:string,
+ *  bookFaces?:boolean,google?:boolean,workspaceId?:string,sharedLibraryExportKey?:string,
  *  sharedLibraryUrl?:string,sharedLibraryImportKey?:string,standaloneConfig?:string}} options
  * @returns {Record<string,string>}
  */
 export function childEnv(options){
- const {relayPort,relaySecret,controlKey,outputKey,bookFaces,workspaceId,sharedLibraryExportKey,sharedLibraryUrl,sharedLibraryImportKey,standaloneConfig}=options;
+ const {relayPort,relaySecret,controlKey,outputKey,bookFaces,google,workspaceId,sharedLibraryExportKey,sharedLibraryUrl,sharedLibraryImportKey,standaloneConfig}=options;
  /** @type {Record<string,string>} */
  const env={};
  for(const name of INHERITED_ENV)if(process.env[name]!==undefined)env[name]=process.env[name];
@@ -102,7 +112,15 @@ export function childEnv(options){
   // empty string blocks any file from injecting these.
   DATABASE_URL:'',
   ACCESS_BOOTSTRAP_KEY:'',
+  // Same reason: pinned empty so no .env* file can configure Google sign-in behind the
+  // flag's back. lib/google-sign-in.ts treats empty as unconfigured, so the button is absent.
+  GOOGLE_OAUTH_CLIENT_ID:'',
+  GOOGLE_OAUTH_CLIENT_SECRET:'',
  });
+ // --google forwards exactly these two from the invoking shell (values are never printed,
+ // logged or written to a state file). Registered origins make this useful only for the solo
+ // CRC rehearsal on 5175; the paired TBI child on 5176 shows Google sign-in as unavailable.
+ if(google)for(const name of GOOGLE_ENV)env[name]=process.env[name]??'';
  // --book-faces trials the David Libre / Frank Ruhl Libre overlay typography (lib/workspace.ts
  // WORKSPACE_BOOK_FACES); default off, so this key is only set when explicitly requested.
  if(bookFaces)env.WORKSPACE_BOOK_FACES='1';
@@ -177,6 +195,13 @@ const PAIR_ISOLATION_HELP='paired rehearsal needs a private Next build directory
 function refuseInheritedCredential(){
  const forbidden=inheritedCredential();
  if(forbidden)throw new RehearsalStartError(2,`${forbidden} is set in this shell; rehearsal never holds production credentials; unset it or run from a clean shell`);
+}
+
+/** `--google` names what it needs and refuses before anything is spawned. Names only. */
+function requireGoogleCredentials(google){
+ if(!google)return;
+ const missing=missingGoogleCredentials();
+ if(missing.length)throw new RehearsalStartError(7,`--google needs ${missing.join(' and ')} in this shell; set ${missing.length>1?'them':'it'} or run without --google`);
 }
 
 /** Every port must be a real TCP port, distinct from the others, and free. */
@@ -278,7 +303,8 @@ async function spawnInstance({port,relayPort,stateFile,workspaceId,keys,childOpt
   if(log)log(`${prefix}live catalog synchronized from Next (version ${(await synced.json()).version})`);
   throwIfAborted();
   const startedAt=new Date().toISOString();
-  const record={baseUrl,relayUrl:relay.url,controlKey,outputKey,workspaceId:workspaceId??'crc',pid:process.pid,nextPid:child.pid,startedAt};
+  // `google` is a boolean mode marker only; neither Google value is ever written here.
+  const record={baseUrl,relayUrl:relay.url,controlKey,outputKey,workspaceId:workspaceId??'crc',google:Boolean(childOptions.google),pid:process.pid,nextPid:child.pid,startedAt};
   await mkdir(path.dirname(stateFile),{recursive:true});
   await writeFile(stateFile,`${JSON.stringify(record,null,1)}\n`);
   throwIfAborted();
@@ -300,10 +326,11 @@ export async function startRehearsal(options={}){
  const log=options.log===undefined?line=>process.stdout.write(`${line}\n`):options.log;
  const signal=options.signal;
  refuseInheritedCredential();
+ requireGoogleCredentials(options.google);
  if(signal?.aborted)throw new RehearsalAbortedError();
  await requireFreePorts([['next dev',port],['relay stub',relayPort]]);
  if(signal?.aborted)throw new RehearsalAbortedError();
- return spawnInstance({port,relayPort,stateFile:STATE_FILE,childOptions:{bookFaces:options.bookFaces},log,signal});
+ return spawnInstance({port,relayPort,stateFile:STATE_FILE,childOptions:{bookFaces:options.bookFaces,google:options.google},log,signal});
 }
 
 /**
@@ -322,6 +349,7 @@ export async function startRehearsalPair(options={}){
  const signal=options.signal;
  const throwIfAborted=()=>{if(signal?.aborted)throw new RehearsalAbortedError()};
  refuseInheritedCredential();
+ requireGoogleCredentials(options.google);
  throwIfAborted();
  await requireFreePorts([['CRC next dev',port],['CRC relay stub',relayPort],['TBI next dev',tbiPort],['TBI relay stub',tbiRelayPort]]);
  throwIfAborted();
@@ -337,9 +365,9 @@ export async function startRehearsalPair(options={}){
   if(crc)await crc.stop();
  };
  try{
-  crc=await spawnInstance({port,relayPort,stateFile:STATE_FILE,keys:instanceKeys.slice(0,3),childOptions:{bookFaces:options.bookFaces,sharedLibraryExportKey:sharedLibraryKey,standaloneConfig:crcConfig},log,signal});
+  crc=await spawnInstance({port,relayPort,stateFile:STATE_FILE,keys:instanceKeys.slice(0,3),childOptions:{bookFaces:options.bookFaces,google:options.google,sharedLibraryExportKey:sharedLibraryKey,standaloneConfig:crcConfig},log,signal});
   throwIfAborted();
-  tbi=await spawnInstance({port:tbiPort,relayPort:tbiRelayPort,stateFile:STATE_FILE_TBI,workspaceId:TBI_WORKSPACE_ID,keys:instanceKeys.slice(3,6),childOptions:{bookFaces:options.bookFaces,sharedLibraryUrl,sharedLibraryImportKey:sharedLibraryKey,standaloneConfig:tbiConfig},log,signal});
+  tbi=await spawnInstance({port:tbiPort,relayPort:tbiRelayPort,stateFile:STATE_FILE_TBI,workspaceId:TBI_WORKSPACE_ID,keys:instanceKeys.slice(3,6),childOptions:{bookFaces:options.bookFaces,google:options.google,sharedLibraryUrl,sharedLibraryImportKey:sharedLibraryKey,standaloneConfig:tbiConfig},log,signal});
   throwIfAborted();
   return {crc,tbi,sharedLibraryUrl,stop};
  }catch(error){
@@ -349,17 +377,18 @@ export async function startRehearsalPair(options={}){
 }
 
 export function parseArgs(argv){
- const options={port:DEFAULT_REHEARSAL_PORT,relayPort:DEFAULT_REHEARSAL_RELAY_PORT,tbiPort:DEFAULT_REHEARSAL_TBI_PORT,tbiRelayPort:DEFAULT_REHEARSAL_TBI_RELAY_PORT,pair:false,bookFaces:false};
+ const options={port:DEFAULT_REHEARSAL_PORT,relayPort:DEFAULT_REHEARSAL_RELAY_PORT,tbiPort:DEFAULT_REHEARSAL_TBI_PORT,tbiRelayPort:DEFAULT_REHEARSAL_TBI_RELAY_PORT,pair:false,bookFaces:false,google:false};
  for(let index=0;index<argv.length;index+=1){
   const [flag,inline]=argv[index].split('=');
   if(flag==='--book-faces'){options.bookFaces=true;continue}
   if(flag==='--pair'){options.pair=true;continue}
+  if(flag==='--google'){options.google=true;continue}
   const value=inline??argv[++index];
   if(flag==='--port')options.port=Number(value);
   else if(flag==='--relay-port')options.relayPort=Number(value);
   else if(flag==='--tbi-port')options.tbiPort=Number(value);
   else if(flag==='--tbi-relay-port')options.tbiRelayPort=Number(value);
-  else throw new RehearsalStartError(2,`unknown argument ${flag}; supported: --port <n> --relay-port <n> --pair --tbi-port <n> --tbi-relay-port <n> --book-faces`);
+  else throw new RehearsalStartError(2,`unknown argument ${flag}; supported: --port <n> --relay-port <n> --pair --tbi-port <n> --tbi-relay-port <n> --book-faces --google`);
  }
  return options;
 }
@@ -417,6 +446,7 @@ async function main(){
  }
  let options;
  try{options=parseArgs(process.argv.slice(2))}catch(error){console.error(`rehearsal refused: ${error.message}`);process.exit(error.exitCode??2)}
+ try{requireGoogleCredentials(options.google)}catch(error){console.error(`rehearsal refused: ${error.message}`);process.exit(error.exitCode)}
  const controller=new AbortController();
  let running=null,exiting=false;
  const finish=async code=>{
@@ -425,8 +455,9 @@ async function main(){
   process.exit(code);
  };
  // Registered before anything is spawned (exit codes unchanged: 2 credential, 3 port,
- // 5 not ready, 6 no private build directory, 0 on signal), so a signal during the up-to-90 s
- // boot still stops every dev server tree and relay stub instead of orphaning them.
+ // 5 not ready, 6 no private build directory, 7 missing --google variable, 0 on signal), so
+ // a signal during the up-to-90 s boot still stops every dev server tree and relay stub
+ // instead of orphaning them.
  for(const signal of ['SIGINT','SIGTERM','SIGHUP'])process.on(signal,()=>{
   process.stdout.write(`\n${signal} received; stopping rehearsal\n`);
   controller.abort();
