@@ -175,6 +175,22 @@ export function createAuthoringService(repo:AuthoringRepository,workspace:Author
  const operation=async(operation:string,input:unknown,actor:string):Promise<unknown>=>{
   const who=string(actor,'actor',80); const data=object(input);
   if(operation==='get_workspace'){keys(data,[]);return {workspace};}
+  // D20 — G5 is one tool and nothing else: it delegates to D19's importer on the services
+  // side and returns the prepared service it created. The import is dynamic because
+  // `lib/service-collections` imports the authoring catalog, and a static import here would
+  // close the cycle (the `lib/source-review.ts` precedent). Unconfigured is a plain refusal,
+  // not a thrown error stack, so an MCP client reads a sentence instead of a trace.
+  if(operation==='prepare_service_from_setlist'){
+   keys(data,['setlistId','name','service']);
+   const setlistId=string(data.setlistId,'setlistId',160),name=optionalString(data.name,'name',120),service=optionalString(data.service,'service',120);
+   const {servicesOperation,ServicesError:ServicesFailure}=await import('./service-collections');
+   try{return await servicesOperation('import_setlist',{setlistId,...(name?{name}:{}),...(service?{service}:{})},who)}
+   catch(error){
+    if(error instanceof ServicesFailure&&error.code==='unconfigured')return {ok:false,reason:'unconfigured',message:error.message};
+    if(error instanceof ServicesFailure)throw new AuthoringError(error.code,error.message,error.status);
+    throw error;
+   }
+  }
   if(operation==='list_shared_library'){
    keys(data,['query','limit','refresh']);const query=normalized(optionalString(data.query,'query',100));const limit=data.limit===undefined?1000:integer(data.limit,'limit',1,1000);if(data.refresh!==undefined&&typeof data.refresh!=='boolean')throw new AuthoringError('invalid_input','refresh must be boolean');const snapshot=await shared.get(data.refresh===true);
    if(!snapshot.available)return snapshot;

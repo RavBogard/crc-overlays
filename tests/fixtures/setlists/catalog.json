@@ -1,0 +1,16 @@
+{
+  "note": "The published library the three setlist fixtures are matched against. `liturgy` is what `liturgyForCue` would report for each graphic; a cue absent from it is backed by no library source. Nothing here is fetched: the matcher is pure and every test drives it from this file.",
+  "cues": [
+    {"id": "cue-barechu", "name": "Barechu", "layout": "bottom", "texts": {"he": "ברכו את יי המברך"}, "animations": [], "duration": {}},
+    {"id": "cue-shma", "name": "Shma", "layout": "bottom", "texts": {"he": "שמע ישראל"}, "animations": [], "duration": {}},
+    {"id": "cue-mi-chamocha-klepper", "name": "Mi Chamocha (Klepper)", "layout": "bottom", "texts": {"he": "מי כמכה"}, "animations": [], "duration": {}},
+    {"id": "cue-mi-chamocha-friedman", "name": "Mi Chamocha (Friedman)", "layout": "bottom", "texts": {"he": "מי כמכה"}, "animations": [], "duration": {}},
+    {"id": "cue-oseh-shalom", "name": "Oseh Shalom", "layout": "bottom", "texts": {"he": "עשה שלום במרומיו"}, "animations": [], "duration": {}}
+  ],
+  "liturgy": {
+    "cue-barechu": {"unitId": "opening.barechu@legacy-shabbat-evening", "momentId": "barechu", "book": "shabbat-evening", "folio": 12},
+    "cue-shma": {"unitId": "shma.shma@legacy-shabbat-evening", "momentId": null, "book": "shabbat-evening", "folio": 20},
+    "cue-mi-chamocha-klepper": {"unitId": "geulah.mi-chamocha@legacy-shabbat-evening", "momentId": null, "book": "shabbat-evening", "folio": 34},
+    "cue-mi-chamocha-friedman": {"unitId": "geulah.mi-chamocha@legacy-shabbat-evening", "momentId": null, "book": "shabbat-evening", "folio": 34}
+  }
+}

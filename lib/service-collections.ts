@@ -6,7 +6,10 @@ import {friendlyCueName} from './cue-search';
 import {sourcePack} from './authoring-model';
 import {sourceDisplay} from './source-library';
 import {authoringCatalog} from './server';
+import {liturgyForCue} from './liturgy-index';
+import {createLiveTransport,importSetlist as importLiveSetlist,listRecentSetlists,liveSetlistsAvailability,type LiveSetlistsEnv,type LiveSetlistTransport} from './live-setlists';
 import {isNamesCueId,namesPages,panelName,parseNames,ServicesError,type NamesList} from './names-list';
+import type {Cue} from './player';
 
 export type CollectionEntryType='cue'|'alternates'|'multipart';
 export type CoverageStatus='covered'|'needs-cue'|'needs-review'|'intentional-fallback'|'not-needed';
@@ -96,6 +99,35 @@ function enrichCollection(value:ServiceCollection,catalog:CatalogItem[],sources:
  return {...value,entries:value.entries.map(e=>({...e,cues:e.cueIds.map(id=>({id,name:cues.get(id)?friendlyCueName(cues.get(id)!.name):id,available:cues.has(id)})),available:e.cueIds.every(id=>cues.has(id))})),coverage:value.coverage.map(row=>{const cue= row.cueId?cues.get(row.cueId):undefined;const source=row.sourceId?sourceMap.get(row.sourceId):undefined;const cueAvailable=!row.cueId||Boolean(cue),sourceAvailable=!row.sourceId||Boolean(source);const computedStatus=row.status==='covered'&&!cue?'needs-review':row.status;return {...row,cueAvailable,sourceAvailable,computedStatus,cueName:cue?friendlyCueName(cue.name):undefined,sourceName:source?.name,degraded:computedStatus!==row.status||!cueAvailable||!sourceAvailable}})};
 }
 
+/**
+ * D19 — the one seam G1's two operations reach the outside world through. A test replaces
+ * `createTransport` with a spy and asserts it is never constructed when the credential is
+ * missing; nothing else in this module knows the network exists.
+ */
+export const liveSetlistDependencies:{
+ availability:(env?:LiveSetlistsEnv)=>{available:boolean;reason:'ok'|'unconfigured'};
+ createTransport:(env?:LiveSetlistsEnv)=>LiveSetlistTransport;
+ listRecentSetlists:typeof listRecentSetlists;
+ importSetlist:typeof importLiveSetlist;
+ liturgyFor:(cue:Cue)=>ReturnType<typeof liturgyForCue>;
+}={
+ availability:(env=process.env)=>liveSetlistsAvailability(env),
+ createTransport:(env=process.env)=>createLiveTransport(env),
+ listRecentSetlists,
+ importSetlist:importLiveSetlist,
+ liturgyFor:cue=>liturgyForCue(cue as {authoring?:{sourceIds?:string[]}}),
+};
+
+const UNCONFIGURED_MESSAGE='Importing from centralreform.live is not set up for this congregation.';
+const LIVE_UNAVAILABLE_MESSAGE='centralreform.live did not answer. Try again in a minute.';
+
+/** The service field an imported collection gets when the caller names none: "Friday, September 18". */
+function serviceLabel(setlist:{name:string;date:string|null;eventDate:string|null}):string{
+ const iso=setlist.eventDate??setlist.date;
+ if(iso){const stamp=Date.parse(iso);if(!Number.isNaN(stamp))return new Intl.DateTimeFormat('en-US',{weekday:'long',month:'long',day:'numeric',timeZone:'UTC'}).format(new Date(stamp))}
+ return setlist.name;
+}
+
 export class ServicesManager{
  constructor(private repository:ServicesRepository=defaultServicesRepository(),private loaders:ServicesLoaders=defaultLoaders){}
  /**
@@ -141,6 +173,34 @@ export class ServicesManager{
   const coverage:CoverageItem[]=catalog.cues.map(cue=>{const label=friendlyCueName(cue.name),partial=/\(partial\)\s*$/i.test(label);return partial?{id:this.loaders.id(),label,status:'needs-review',cueId:cue.id,owner:'Unassigned',reason:'This published graphic is labeled partial; confirm what is covered before relying on it.'}:{id:this.loaders.id(),label,status:'covered',cueId:cue.id,reason:'Included from the current published library.'}});
   return this.createCollection({name,service,entries,coverage},actor);
  }
+ /**
+  * D19 — the recent services on centralreform.live, or `{available:false}` when this
+  * congregation has no credential. The unconfigured answer is deliberately not an error: the
+  * `/services` panel asks on mount and renders nothing at all on TBI.
+  */
+ async listLiveSetlists(raw:unknown){
+  const input=object(raw,'input');only(input,[],'input');
+  if(!liveSetlistDependencies.availability().available)return {available:false as const};
+  try{return {available:true as const,setlists:await liveSetlistDependencies.listRecentSetlists(liveSetlistDependencies.createTransport())}}
+  catch{throw new ServicesError('live_unavailable',LIVE_UNAVAILABLE_MESSAGE,503)}
+ }
+ /**
+  * D19 — one setlist becomes one ordinary prepared service through `createCollection`, with a
+  * coverage row per performance row. It never publishes and never issues a live command; the
+  * rows it could not settle come back in `unmatched` so the operator sees them before relying
+  * on any of it.
+  */
+ async importSetlist(raw:unknown,actor:string){
+  const input=object(raw,'input');only(input,['setlistId','name','service'],'input');
+  const setlistId=text(input.setlistId,'setlistId',160)!,name=text(input.name,'name',120,true),service=text(input.service,'service',120,true);
+  if(!liveSetlistDependencies.availability().available)throw new ServicesError('unconfigured',UNCONFIGURED_MESSAGE,409);
+  const {catalog}=await this.evidence();
+  let imported;
+  try{imported=await liveSetlistDependencies.importSetlist(setlistId,{transport:liveSetlistDependencies.createTransport(),cues:catalog.cues as unknown as Cue[],liturgyFor:liveSetlistDependencies.liturgyFor,id:this.loaders.id})}
+  catch(error){if(error instanceof ServicesError)throw error;throw new ServicesError('live_unavailable',LIVE_UNAVAILABLE_MESSAGE,503)}
+  const collection=await this.createCollection({name:name??imported.setlist.name,service:service??serviceLabel(imported.setlist),entries:imported.entries,coverage:imported.coverage},actor);
+  return {collection,unmatched:imported.unmatched};
+ }
  async updateCollection(raw:unknown,actor:string){const input=object(raw,'input');only(input,['id','expectedVersion','name','service','entries','coverage'],'input');const id=text(input.id,'id',80)!,expected=version(input.expectedVersion);const current=(await this.repository.listCollections(true)).find(x=>x.id===id);if(!current)throw new ServicesError('not_found','Collection not found',404);const {catalog,sources}=await this.evidence();const cueSet=new Set(catalog.cues.map(c=>c.id)),sourceSet=new Set(sources.map(s=>s.id));const next:ServiceCollection={...current,name:input.name===undefined?current.name:text(input.name,'name',120)!,service:input.service===undefined?current.service:text(input.service,'service',120)!,entries:input.entries===undefined?current.entries:parseEntries(input.entries,cueSet,current.entries),coverage:input.coverage===undefined?current.coverage:parseCoverage(input.coverage,cueSet,sourceSet,current.coverage),version:expected+1,updatedAt:this.loaders.now(),updatedBy:actor};if(current.version!==expected||!await this.repository.replaceCollection(next,expected))throw new ServicesConflictError();return enrichCollection(next,catalog.cues,sources)}
  async setCollectionArchived(raw:unknown,actor:string,archived:boolean){const input=object(raw,'input');only(input,['id','expectedVersion'],'input');const id=text(input.id,'id',80)!,expected=version(input.expectedVersion),current=(await this.repository.listCollections(true)).find(x=>x.id===id);if(!current)throw new ServicesError('not_found','Collection not found',404);if(archived&&current.names)await this.refuseWhileOnAir(current);const next={...current,archived,...(archived?{names:null}:{}),version:expected+1,updatedAt:this.loaders.now(),updatedBy:actor};if(current.version!==expected||!await this.repository.replaceCollection(next,expected))throw new ServicesConflictError();return next}
  async setNames(raw:unknown,actor:string){const input=object(raw,'input');only(input,['id','expectedVersion','names'],'input');const id=text(input.id,'id',80)!,expected=version(input.expectedVersion);const current=(await this.repository.listCollections(true)).find(x=>x.id===id);if(!current)throw new ServicesError('not_found','Collection not found',404);if(current.archived)throw new ServicesError('collection_archived','Restore this service before adding names.',409);const now=this.loaders.now();const next:ServiceCollection={...current,names:parseNames(input.names,now,actor),version:expected+1,updatedAt:now,updatedBy:actor};if(current.version!==expected||!await this.repository.replaceCollection(next,expected))throw new ServicesConflictError();const {catalog,sources}=await this.evidence();return enrichCollection(next,catalog.cues,sources)}
@@ -165,9 +225,9 @@ export async function servicesOperation(operation:string,input:unknown,actor:str
  catch{return {...result,liveRefreshPending:true,warning:'Saved successfully, but the live library has not received this update. Use Sync live library in the editor after the connection recovers. Live playback continues using the last synchronized version.'}}
  return result;
 }
-async function servicesOperationResult(operation:string,input:unknown,actor:string,repository?:ServicesRepository){const manager=new ServicesManager(repository);switch(operation){case'get_dashboard':return manager.dashboard(input);case'search_coverage_sources':return {sources:await manager.searchSources(input)};case'create_collection':return {collection:await manager.createCollection(input,actor)};case'create_from_library':return {collection:await manager.createFromLibrary(input,actor)};case'update_collection':return {collection:await manager.updateCollection(input,actor)};case'set_names':return {collection:await manager.setNames(input,actor)};case'clear_names':return {collection:await manager.clearNames(input,actor)};case'archive_collection':return {collection:await manager.setCollectionArchived(input,actor,true)};case'restore_collection':return {collection:await manager.setCollectionArchived(input,actor,false)};case'record_feedback':return {feedback:await manager.recordFeedback(input,actor)};case'update_feedback':return {feedback:await manager.updateFeedback(input,actor)};default:throw new ServicesError('unknown_operation',`Unknown services operation: ${operation}`,404)}}
+async function servicesOperationResult(operation:string,input:unknown,actor:string,repository?:ServicesRepository){const manager=new ServicesManager(repository);switch(operation){case'get_dashboard':return manager.dashboard(input);case'search_coverage_sources':return {sources:await manager.searchSources(input)};case'create_collection':return {collection:await manager.createCollection(input,actor)};case'create_from_library':return {collection:await manager.createFromLibrary(input,actor)};case'list_live_setlists':return manager.listLiveSetlists(input);case'import_setlist':return manager.importSetlist(input,actor);case'update_collection':return {collection:await manager.updateCollection(input,actor)};case'set_names':return {collection:await manager.setNames(input,actor)};case'clear_names':return {collection:await manager.clearNames(input,actor)};case'archive_collection':return {collection:await manager.setCollectionArchived(input,actor,true)};case'restore_collection':return {collection:await manager.setCollectionArchived(input,actor,false)};case'record_feedback':return {feedback:await manager.recordFeedback(input,actor)};case'update_feedback':return {feedback:await manager.updateFeedback(input,actor)};default:throw new ServicesError('unknown_operation',`Unknown services operation: ${operation}`,404)}}
 
-export function servicesPermission(operation:string):AccessPermission{return ['create_collection','create_from_library','update_collection','archive_collection','restore_collection','set_names','clear_names','update_feedback'].includes(operation)?'author':operation==='record_feedback'?'control':'read'}
+export function servicesPermission(operation:string):AccessPermission{return ['create_collection','create_from_library','list_live_setlists','import_setlist','update_collection','archive_collection','restore_collection','set_names','clear_names','update_feedback'].includes(operation)?'author':operation==='record_feedback'?'control':'read'}
 
 function csvCell(value:unknown){let text=String(value??'');if(/^[\u0000-\u0020]*[=+\-@]/.test(text))text=`'${text}`;return `"${text.replaceAll('"','""')}"`}
 export async function feedbackCsv(repository:ServicesRepository=defaultServicesRepository()){const rows=await repository.listFeedback(true);const columns=['id','createdAt','kind','impact','productGap','collectionId','cueId','context','reason','archived','createdBy'];return [columns.join(','),...rows.map(row=>columns.map(column=>csvCell(row[column as keyof BetaFeedback])).join(','))].join('\r\n')+'\r\n'}

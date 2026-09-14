@@ -1,0 +1,12 @@
+{
+  "id": "setlist-ambiguous-folio",
+  "name": "Shabbat Evening — two graphics share a page",
+  "date": "2026-10-02T00:00:00.000Z",
+  "eventDate": "2026-10-02T00:00:00.000Z",
+  "version": 1,
+  "lastModifiedAt": "2026-09-14T12:00:00.000Z",
+  "tracks": [
+    {"id": "t-note", "order": 0, "title": "Band vamps under the announcements", "type": "note", "songId": null, "fileId": null, "fileName": null, "key": null, "bpm": null, "leadMusician": null, "referenceLink": null, "notes": null, "performer": null, "description": null, "estimatedMinutes": null, "liturgyRef": null, "honors": null},
+    {"id": "t-mi-chamocha", "order": 1, "title": "Mi Chamocha", "type": "prayer", "songId": null, "fileId": null, "fileName": null, "key": "A", "bpm": null, "leadMusician": "Cantor", "referenceLink": null, "notes": null, "performer": "Cantor", "description": null, "estimatedMinutes": 3, "liturgyRef": {"book": "shabbat-evening", "unitId": "geulah.mi-chamocha@legacy-shabbat-evening", "folio": 34}, "honors": null}
+  ]
+}

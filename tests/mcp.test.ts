@@ -80,3 +80,22 @@ test('MCP exposes fit_check_draft as a writing tool and passes its exact input t
  assert.deepEqual(Object.keys((calls[0].input as object)).sort(),['draftId','expectedVersion','previewId']);
  assert.ok(!listed.result?.tools?.some(entry=>entry.name==='review_draft'));
 });
+
+test('MCP offers prepare_service_from_setlist as a writing tool and routes its parsed input to authoring',async()=>{
+ const calls:{operation:string;input:unknown;actor:string}[]=[];
+ const handler=createAuthoringMcpHandler(async(operation,input,actor)=>{calls.push({operation,input,actor});return {collection:{id:'collection-1',name:'Shabbat Evening'},unmatched:[]}});
+ const listed=await payload(await handler.fetch(request({jsonrpc:'2.0',id:40,method:'tools/list',params:{}}),{authInfo})) as {result?:{tools?:{name:string;description?:string;annotations?:{readOnlyHint?:boolean}}[]}};
+ const tool=listed.result?.tools?.find(entry=>entry.name==='prepare_service_from_setlist');
+ assert.ok(tool,'prepare_service_from_setlist is offered to MCP clients');
+ assert.equal(tool?.annotations?.readOnlyHint,false,'it writes a prepared service');
+ assert.match(tool?.description??'',/never publishes/,'the description says it never publishes');
+ assert.match(tool?.description??'',/centralreform\.live/);
+ const called=await payload(await handler.fetch(request({jsonrpc:'2.0',id:41,method:'tools/call',params:{name:'prepare_service_from_setlist',arguments:{setlistId:'setlist-covered',name:'Friday night'}}}),{authInfo})) as {result:{content:{text:string}[]}};
+ assert.match(called.result.content[0].text,/collection-1/);
+ assert.deepEqual(calls,[{operation:'prepare_service_from_setlist',input:{setlistId:'setlist-covered',name:'Friday night'},actor:'mcp:test-actor'}]);
+ // A missing setlistId is refused before the backend is reached, and no `publish`-shaped field
+ // exists for a caller to set: the tool takes one id and two optional labels.
+ const rejected=await payload(await handler.fetch(request({jsonrpc:'2.0',id:42,method:'tools/call',params:{name:'prepare_service_from_setlist',arguments:{name:'Friday night'}}}),{authInfo})) as {error?:unknown;result?:{isError?:boolean}};
+ assert.ok(rejected.error||rejected.result?.isError);
+ assert.equal(calls.length,1);
+});

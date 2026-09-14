@@ -1,0 +1,13 @@
+{
+  "id": "setlist-covered",
+  "name": "Shabbat Evening — fully covered",
+  "date": "2026-09-18T00:00:00.000Z",
+  "eventDate": "2026-09-18T00:00:00.000Z",
+  "version": 4,
+  "lastModifiedAt": "2026-09-14T12:00:00.000Z",
+  "tracks": [
+    {"id": "t-header", "order": 0, "title": "Evening Service", "type": "header", "songId": null, "fileId": null, "fileName": null, "key": null, "bpm": null, "leadMusician": null, "referenceLink": null, "notes": null, "performer": null, "description": null, "estimatedMinutes": null, "liturgyRef": null, "honors": null},
+    {"id": "t-barechu", "order": 1, "title": "Barechu", "type": "prayer", "songId": null, "fileId": null, "fileName": null, "key": null, "bpm": null, "leadMusician": "Cantor", "referenceLink": null, "notes": null, "performer": "Cantor", "description": null, "estimatedMinutes": 2, "liturgyRef": {"book": "shabbat-evening", "unitId": "opening.barechu@legacy-shabbat-evening", "folio": 12}, "honors": null},
+    {"id": "t-oseh-shalom", "order": 2, "title": "Oseh Shalom", "type": "song", "songId": "song-oseh", "fileId": "file-1", "fileName": "oseh-shalom.pdf", "key": "G", "bpm": 92, "leadMusician": "Band", "referenceLink": null, "notes": null, "performer": "Band", "description": null, "estimatedMinutes": 4, "liturgyRef": null, "honors": null}
+  ]
+}
