@@ -1,5 +1,5 @@
 import {describe,expect,it} from 'vitest';
-import {MAX_CONTROLLERS,MAX_CUE_PAYLOAD_BYTES,MAX_SNAPSHOT_BYTES,STALE_MS,jsonBytes,presenceFrame,rankControllers,rendererExpired,type Controller,type Renderer,type Snapshot} from '../src/protocol';
+import {MAX_BUG_BYTES,MAX_CONTROLLERS,MAX_CUE_PAYLOAD_BYTES,MAX_SNAPSHOT_BYTES,STALE_MS,jsonBytes,presenceFrame,rankControllers,rendererExpired,type BugState,type Controller,type Renderer,type Snapshot} from '../src/protocol';
 
 const uuid=(index:number)=>`00000000-0000-4000-8000-${index.toString(16).padStart(12,'0')}`;
 const controller=(index:number,seen:number,overrides:Partial<Controller>={}):Controller=>({id:uuid(index),client:'companion',version:'1.4.0',seen,...overrides});
@@ -11,6 +11,8 @@ const cuePayloadOfSize=(bytes:number)=>{
  const overhead=jsonBytes({id:'cue-a',text:''});
  return {id:'cue-a',text:'x'.repeat(Math.max(0,bytes-overhead))};
 };
+// The widest scan card validBugPage admits: a 12-character page label.
+const worstCaseBug:BugState={on:true,page:'123 \u2013 456.78'};
 const realisticRenderers=(count:number):Renderer[]=>Array.from({length:count},(_,index)=>({id:uuid(200+index),revision:9,cue:'cue-a',phase:'settled' as const,seen:1_700_000_000_000+index}));
 
 describe('controller presence',()=>{
@@ -46,13 +48,26 @@ describe('controller presence',()=>{
  // real Snapshot — a max-size cue payload, a full 32-controller set at worst-case field
  // widths, and 8 renderers — to prove the reserved allowance is actually big enough, and
  // that the pre-fix formula was not.
- it('keeps a real snapshot with a max-size cue payload and a full controller set under MAX_SNAPSHOT_BYTES',()=>{
+ it('keeps a real snapshot with a max-size cue payload, a full controller set and a scan card under MAX_SNAPSHOT_BYTES',()=>{
   const controllers=Array.from({length:MAX_CONTROLLERS},(_,index)=>worstCaseController(index,1_700_000_000_000+index));
   const renderers=realisticRenderers(8);
   const cuePayload=cuePayloadOfSize(MAX_CUE_PAYLOAD_BYTES);
   expect(jsonBytes(cuePayload)).toBe(MAX_CUE_PAYLOAD_BYTES);
-  const snapshot:Snapshot={revision:9,cue:'cue-a',mode:'animate',updated:1_700_000_000_000,cuePayload,catalogVersion:'catalog-v1',renderers,controllers,serverTime:1_700_000_000_000};
+  // The scan card shares the one cap with everything else, so it is measured here, in a
+  // real snapshot, not asserted against its own allowance in isolation.
+  const snapshot:Snapshot={revision:9,cue:'cue-a',mode:'animate',updated:1_700_000_000_000,cuePayload,catalogVersion:'catalog-v1',bug:worstCaseBug,renderers,controllers,serverTime:1_700_000_000_000};
+  expect(snapshot.controllers).toHaveLength(MAX_CONTROLLERS);
+  expect(snapshot.renderers).toHaveLength(8);
+  expect(snapshot.bug?.page).toHaveLength(12);
   expect(jsonBytes(snapshot)).toBeLessThanOrEqual(MAX_SNAPSHOT_BYTES);
+ });
+
+ it('spends far less than the MAX_BUG_BYTES reservation on the widest real scan card',()=>{
+  // What the field actually costs in a snapshot: the key, the object and its comma.
+  const withoutBug:Snapshot={revision:9,cue:'cue-a',mode:'animate',updated:1_700_000_000_000,cuePayload:{id:'cue-a'},catalogVersion:'catalog-v1',renderers:[],controllers:[],serverTime:1_700_000_000_000};
+  const cost=jsonBytes({...withoutBug,bug:worstCaseBug})-jsonBytes(withoutBug);
+  expect(cost).toBeLessThanOrEqual(MAX_BUG_BYTES);
+  expect(cost).toBeLessThan(64);
  });
 
  it('shows the pre-410d127 formula (MAX_SNAPSHOT_BYTES-4096, no controller allowance) would have overflowed that same snapshot',()=>{

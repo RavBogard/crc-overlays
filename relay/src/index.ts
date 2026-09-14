@@ -200,10 +200,18 @@ export class LiveRoom extends DurableObject<Env>{
   if(outcome.accepted)this.broadcast({type:'snapshot',snapshot});
   return json({commandId:command.commandId,...snapshot});
  }
+ // Every action -- 'in', 'out', 'clear', 'cut' and the scan card's 'bug' -- takes this
+ // one path: the same command receipt, the same controller_sequences replay guard, the
+ // same ensureSnapshotSize on the produced state, and the same broadcast in command().
+ // 'bug' needs no storage key of its own; it rides inside the persisted live_state row,
+ // which is what keeps this phase free of a migration. A malformed page is refused by
+ // parseCommand as a 400 'Invalid command' before reaching here, never a socket close.
  private applyCommand(command:Command){
   const current=this.readState();
   const catalog=this.readCatalog();
   if(!current||!catalog)throw new HttpError(409,'Relay initialization required');
+  // Receipts key on action+cue, so a replayed commandId is idempotent for 'bug' exactly
+  // as it already is for 'cut' and 'clear', both of which also carry a null cue.
   const receipt=this.sql.exec<ReceiptRow>('SELECT action,cue FROM command_receipts WHERE command_id=?',command.commandId).toArray()[0];
   if(receipt){
    if(receipt.action!==command.action||receipt.cue!==command.cue)throw new HttpError(409,'Command ID already used for a different command');

@@ -23,7 +23,7 @@ describe('relay protocol',()=>{
 
  it('accepts ID-only commands and rejects caller-supplied playback content',()=>{
   const command={action:'in',cue:'cue-a',commandId:'command_12345678',clientId:'client_12345678',sequence:4};
-  expect(parseCommand(command)).toEqual(command);
+  expect(parseCommand(command)).toEqual({...command,bug:null});
   expect(parseCommand({...command,cuePayload:{id:'cue-a'}})).toBeNull();
   expect(parseCommand({...command,catalogVersion:'old'})).toBeNull();
  });
@@ -45,9 +45,9 @@ describe('relay protocol',()=>{
  it('pins selected catalog content and preserves it for an out on another cue',()=>{
   const state:LiveState={revision:8,cue:'cue-a',mode:'animate',updated:10,cuePayload:{id:'cue-a',name:'Original'},catalogVersion:'v1'};
   const selected={id:'cue-b',name:'Approved'};
-  const next=nextState(state,{action:'in',cue:'cue-b',commandId:'command_abcdefgh',clientId:null,sequence:null},selected,20);
+  const next=nextState(state,{action:'in',cue:'cue-b',bug:null,commandId:'command_abcdefgh',clientId:null,sequence:null},selected,20);
   expect(next).toMatchObject({revision:9,cue:'cue-b',cuePayload:selected,catalogVersion:'v1'});
-  const retained=nextState(state,{action:'out',cue:'cue-b',commandId:'command_ijklmnop',clientId:null,sequence:null},null,30);
+  const retained=nextState(state,{action:'out',cue:'cue-b',bug:null,commandId:'command_ijklmnop',clientId:null,sequence:null},null,30);
   expect(retained).toMatchObject({revision:9,cue:'cue-a',cuePayload:state.cuePayload});
  });
 

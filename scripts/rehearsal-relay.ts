@@ -144,6 +144,9 @@ export class RehearsalRoom{
   if(accepted)this.broadcast({type:'snapshot',snapshot});
   return [{commandId:command.commandId,...snapshot},200];
  }
+ // Mirrors LiveRoom.applyCommand exactly, the scan card included: 'bug' is not a special
+ // case here either -- it takes the same receipt, the same sequence guard, the same
+ // ensureSnapshotSize and the same nextState, which is imported, not re-implemented.
  private applyCommand(command:Command){
   const current=this.state;
   const catalog=this.catalog;

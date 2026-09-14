@@ -560,3 +560,189 @@ test('the shipped clients accept controllers in snapshot and presence, and Compa
  subscription.stop();
  legacy.socket.close();
 });
+
+// --- the scan card ("bug") in live state -------------------------------------------
+// D1/D2: one optional field on LiveState and one new command action. The stub imports
+// parseCommand/nextState from relay/src/protocol.ts, so what these assert about the
+// rehearsal relay is true of the worker by construction.
+
+const bugCommand=(bug:{on:boolean;page:string|null}|null,overrides:Record<string,unknown>={})=>({action:'bug',cue:null,bug,commandId:randomUUID(),clientId:null,sequence:null,...overrides});
+
+test('a bug command sets the scan card, bumps the revision and leaves the live cue alone',async()=>{
+ const relay=await initializedRelay();
+ const shown=await (await request(relay,'/command',{action:'in',cue:'cue-one',commandId:randomUUID(),clientId:null,sequence:null})).json();
+ assert.equal(shown.revision,1);
+ const carded=await (await request(relay,'/command',bugCommand({on:true,page:'128'}))).json();
+ assert.deepEqual(carded.bug,{on:true,page:'128'});
+ assert.equal(carded.revision,2,'the scan card bumps the revision so reconnecting clients converge');
+ assert.equal(carded.cue,'cue-one');
+ assert.equal(carded.mode,'animate');
+ assert.deepEqual(carded.cuePayload,CUES[0]);
+});
+
+test('in, out and clear preserve a set scan card; cut removes it',async()=>{
+ const relay=await initializedRelay();
+ await request(relay,'/command',bugCommand({on:true,page:'128'}));
+ for(const body of [
+  {action:'in',cue:'cue-one',commandId:randomUUID(),clientId:null,sequence:null},
+  {action:'out',cue:'cue-one',commandId:randomUUID(),clientId:null,sequence:null},
+  {action:'in',cue:'cue-two',commandId:randomUUID(),clientId:null,sequence:null},
+  {action:'clear',cue:null,commandId:randomUUID(),clientId:null,sequence:null},
+ ]){
+  const snapshot=await (await request(relay,'/command',body)).json();
+  assert.deepEqual(snapshot.bug,{on:true,page:'128'},`${body.action} dropped the scan card`);
+ }
+ // F1: Clear now removes every layer, the scan card included.
+ const cut=await (await request(relay,'/command',{action:'cut',cue:null,commandId:randomUUID(),clientId:null,sequence:null})).json();
+ assert.equal(Object.hasOwn(cut,'bug'),false,'cut left a bug field behind');
+ assert.equal(cut.cue,null);
+ assert.equal(cut.mode,'cut');
+});
+
+test('turning the scan card off deletes the field rather than storing an off',async()=>{
+ const relay=await initializedRelay();
+ await request(relay,'/command',bugCommand({on:true,page:'p. 128'}));
+ const off=await (await request(relay,'/command',bugCommand({on:false,page:null}))).json();
+ assert.equal(Object.hasOwn(off,'bug'),false);
+ const state=await (await request(relay,'/state')).json() as Record<string,unknown>;
+ assert.equal(Object.hasOwn(state,'bug'),false);
+ assert.equal(JSON.stringify(state).includes('"bug"'),false);
+});
+
+test('a scan card survives a reconnect: the authoritative state hands it to a fresh socket',async()=>{
+ const relay=await initializedRelay();
+ const first=connect(relay,'control');
+ assert.equal(await first.opened,'open');
+ await first.recorder.next(frame=>frame.type==='snapshot');
+ await request(relay,'/command',bugCommand({on:true,page:'128'}));
+ const broadcast=await first.recorder.next(frame=>frame.type==='snapshot');
+ assert.deepEqual((broadcast.snapshot as Frame).bug,{on:true,page:'128'},'the card did not reach a connected socket');
+ first.socket.close();
+
+ const reconnected=connect(relay,'control');
+ assert.equal(await reconnected.opened,'open');
+ const restored=await reconnected.recorder.next(frame=>frame.type==='snapshot');
+ assert.deepEqual((restored.snapshot as Frame).bug,{on:true,page:'128'},'the card was forgotten across a reconnect');
+ reconnected.socket.close();
+
+ // ...and once cut has removed it, a reconnect does not resurrect it.
+ await request(relay,'/command',{action:'cut',cue:null,commandId:randomUUID(),clientId:null,sequence:null});
+ const after=connect(relay,'control');
+ assert.equal(await after.opened,'open');
+ const clean=await after.recorder.next(frame=>frame.type==='snapshot');
+ assert.equal(Object.hasOwn(clean.snapshot as Frame,'bug'),false);
+ after.socket.close();
+});
+
+test('a page that fails validBugPage is a 400 Invalid command, never a socket close',async()=>{
+ const relay=await initializedRelay();
+ const watcher=connect(relay,'control');
+ assert.equal(await watcher.opened,'open');
+ await watcher.recorder.next(frame=>frame.type==='snapshot');
+ for(const bug of [{on:true,page:'1234567890123'},{on:true,page:''},{on:true,page:'<script>'},{on:true,page:'p/128'},{on:true,page:'x'.repeat(200)},{on:'yes',page:'128'},{page:'128'}] as unknown[]){
+  const refused=await request(relay,'/command',bugCommand(bug as {on:boolean;page:string|null}));
+  assert.equal(refused.status,400);
+  assert.deepEqual(await refused.json(),{error:'Invalid command'});
+ }
+ // A page big enough to breach the 4096-byte message cap is the existing 413, not a close.
+ const oversized=await request(relay,'/command',bugCommand({on:true,page:'x'.repeat(MAX_MESSAGE_BYTES)}));
+ assert.equal(oversized.status,413);
+ // A bug attached to any other action is refused the same way.
+ assert.equal((await request(relay,'/command',{action:'cut',cue:null,bug:{on:true,page:'128'},commandId:randomUUID(),clientId:null,sequence:null})).status,400);
+ // A bug command with a selected cue is refused rather than half-applied.
+ assert.equal((await request(relay,'/command',bugCommand({on:true,page:'128'},{cue:'cue-one'}))).status,400);
+ // Nothing moved, and the watching socket is still open.
+ const state=await (await request(relay,'/state')).json() as Record<string,unknown>;
+ assert.equal(state.revision,0);
+ assert.equal(Object.hasOwn(state,'bug'),false);
+ assert.equal(watcher.socket.readyState,WebSocket.OPEN);
+ watcher.socket.close();
+});
+
+test('the scan card rides the same receipt and sequence guard as every other action',async()=>{
+ const relay=await initializedRelay();
+ const clientId='client_12345678';
+ const id=randomUUID();
+ const first=await (await request(relay,'/command',bugCommand({on:true,page:'128'},{commandId:id,clientId,sequence:1}))).json();
+ assert.equal(first.revision,1);
+ // Replaying the same commandId is idempotent, not a second revision.
+ const replay=await (await request(relay,'/command',bugCommand({on:true,page:'128'},{commandId:id,clientId,sequence:1}))).json();
+ assert.equal(replay.revision,1);
+ // A stale sequence from the same controller is recorded but not applied.
+ const stale=await (await request(relay,'/command',bugCommand({on:false,page:null},{clientId,sequence:0}))).json();
+ assert.deepEqual(stale.bug,{on:true,page:'128'});
+ const fresh=await (await request(relay,'/command',bugCommand({on:false,page:null},{clientId,sequence:2}))).json();
+ assert.equal(Object.hasOwn(fresh,'bug'),false);
+});
+
+test('a state row without a bug deserializes as no scan card, and one with a card round-trips',()=>{
+ const room=new RehearsalRoom(()=>1_700_000_000_000);
+ const [initialized]=room.initialize(INITIALIZE);
+ assert.equal(Object.hasOwn(initialized as Record<string,unknown>,'bug'),false);
+ assert.equal(Object.hasOwn(room.state as Record<string,unknown>,'bug'),false);
+ // An /initialize that carries a card keeps it; one that carries an off keeps the field absent.
+ const carded=new RehearsalRoom(()=>1_700_000_000_000);
+ carded.initialize({...INITIALIZE,state:{...INITIALIZE.state,bug:{on:true,page:'128'}}});
+ assert.deepEqual(carded.state?.bug,{on:true,page:'128'});
+ const off=new RehearsalRoom(()=>1_700_000_000_000);
+ off.initialize({...INITIALIZE,state:{...INITIALIZE.state,bug:{on:false,page:null}}});
+ assert.equal(Object.hasOwn(off.state as Record<string,unknown>,'bug'),false);
+ // A malformed card is refused at the door rather than silently dropped.
+ const bad=new RehearsalRoom(()=>1_700_000_000_000);
+ assert.throws(()=>bad.initialize({...INITIALIZE,state:{...INITIALIZE.state,bug:{on:true,page:'1234567890123'}}}),(error:unknown)=>error instanceof HttpError&&error.status===400);
+});
+
+// The 1.4.0 contract under the new field: a client that knows nothing about `bug` must
+// still complete a handshake against a snapshot that carries one. Asserted against the
+// REAL validators -- `isSnapshot` in lib/browser-realtime.ts and `parseSnapshot` in
+// companion/src/client.ts -- never a copy. This deliberately does NOT assert whether the
+// field survives parsing: today both allowlists drop it, and once WP2 and WP3 admit it
+// both will keep it. Either way the handshake completes and the snapshot is accepted.
+test('a client that ignores the scan card still completes a handshake against a snapshot carrying one',async()=>{
+ const relay=await initializedRelay();
+ await request(relay,'/command',{action:'in',cue:'cue-one',commandId:randomUUID(),clientId:null,sequence:null});
+ await request(relay,'/command',bugCommand({on:true,page:'128'}));
+ const live=await (await request(relay,'/state')).json() as Record<string,unknown>;
+ assert.deepEqual(live.bug,{on:true,page:'128'},'the relay did not put a scan card in the snapshot under test');
+
+ const browserSockets:LegacyBrowserSocket[]=[];
+ const browserSnapshots:RealtimeSnapshot[]=[];
+ const transport=new BrowserRealtimeTransport({
+  key:'secret',role:'control',id:randomUUID(),
+  onSnapshot:value=>{browserSnapshots.push(value)},
+  dependencies:{
+   fetch:async()=>Response.json({url:'wss://relay.example/connect',ticket:'signed.ticket',heartbeatMs:10000,staleMs:30000,protocol:1}),
+   socket:(url,protocols)=>{const socket=new LegacyBrowserSocket(url,protocols);browserSockets.push(socket);return socket},
+  },
+ });
+ transport.start();
+ await new Promise(resolve=>setTimeout(resolve,0));
+ browserSockets[0].open();
+ browserSockets[0].receive({type:'snapshot',snapshot:live});
+ await new Promise(resolve=>setTimeout(resolve,0));
+ assert.equal(browserSnapshots.length,1,'the shipped isSnapshot rejected a snapshot carrying a bug field');
+ assert.equal(browserSnapshots[0].revision,live.revision);
+ assert.equal(browserSnapshots[0].cue,live.cue);
+ transport.stop();
+
+ const companionSockets:LegacyCompanionSocket[]=[];
+ const companionSnapshots:OverlaySnapshot[]=[];
+ const client=new OverlayClient({
+  baseUrl:'http://overlays.invalid',credential:'secret',clientId:randomUUID(),
+  fetch:(async()=>Response.json({url:'ws://localhost:8788/connect',ticket:'signed.ticket',heartbeatMs:10000,staleMs:30000,protocol:1})) as typeof globalThis.fetch,
+  webSocketFactory:(url,protocols)=>{const socket=new LegacyCompanionSocket(url,protocols);companionSockets.push(socket);return socket},
+ });
+ const subscription=client.subscribe({
+  onSnapshot:snapshot=>{companionSnapshots.push(snapshot)},
+  onPresence:()=>{},onCatalog:()=>{},onConnection:()=>{},
+ });
+ subscription.start();
+ await new Promise(resolve=>setTimeout(resolve,0));
+ companionSockets[0].open();
+ companionSockets[0].receive({type:'snapshot',snapshot:live});
+ assert.equal(companionSnapshots.length,1,'the shipped parseSnapshot rejected a snapshot carrying a bug field');
+ assert.equal(companionSnapshots[0].revision,live.revision);
+ assert.equal(companionSnapshots[0].cue,live.cue);
+ assert.equal(companionSockets[0].readyState,1,'a snapshot carrying a bug field closed the socket');
+ subscription.stop();
+});

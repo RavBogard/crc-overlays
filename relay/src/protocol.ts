@@ -14,9 +14,15 @@ export const MAX_CONTROLLERS=32;
 // 'xx.yy.zz'-shaped semver version (8 chars), and a 13-digit ms-epoch `seen`. Measured
 // ~109 (108 for the entry + 1 comma); 112 rounds up for JSON punctuation slop.
 export const MAX_CONTROLLER_BYTES=112;
-// Leave room for revision, renderer presence, a full controller set, and event framing
-// around a pinned cue.
-export const MAX_CUE_PAYLOAD_BYTES=MAX_SNAPSHOT_BYTES-4096-MAX_CONTROLLERS*MAX_CONTROLLER_BYTES;
+// Bytes reserved for the optional `bug` field on live state. A real bug object
+// (`"bug":{"on":true,"page":"123"}`) serializes at ~34 bytes; 192 is deliberate slack
+// so a later widening of `page` is not a second reservation.
+export const MAX_BUG_BYTES=192;
+// Leave room for revision, renderer presence, a full controller set, the optional scan
+// card, and event framing around a pinned cue. Every one of those shares the SINGLE
+// MAX_SNAPSHOT_BYTES cap with the pinned cue, so each allowance comes out of the cue
+// payload headroom rather than sitting on top of it.
+export const MAX_CUE_PAYLOAD_BYTES=MAX_SNAPSHOT_BYTES-4096-MAX_CONTROLLERS*MAX_CONTROLLER_BYTES-MAX_BUG_BYTES;
 export const MAX_RECEIPTS=2048;
 export const STALE_MS=30_000;
 // Inclusive: a renderer last seen exactly STALE_MS ago is expired, so an alarm that
@@ -32,9 +38,14 @@ export type Renderer={id:string;revision:number;cue:string|null;phase:Phase;seen
 export type ClientKind='companion'|'browser'|'unknown';
 export type Controller={id:string;client:ClientKind;version:string|null;seen:number};
 export type Hello={id:string;client:ClientKind;version:string|null};
-export type LiveState={revision:number;cue:string|null;mode:Mode;updated:number;cuePayload:CuePayload|null;catalogVersion:string};
+// The scan card ("bug"): a second field on live state, not a second cue and not a
+// second room. Optional, so a state row serialized by an earlier worker build survives
+// a deploy unchanged and reads as "no scan card"; the field is present only while the
+// card is on, so a `{on:false}` is never stored.
+export type BugState={on:boolean;page:string|null};
+export type LiveState={revision:number;cue:string|null;mode:Mode;updated:number;cuePayload:CuePayload|null;catalogVersion:string;bug?:BugState};
 export type Snapshot=LiveState&{renderers:Renderer[];controllers:Controller[];serverTime:number};
-export type Command={action:'in'|'out'|'clear'|'cut';cue:string|null;commandId:string;clientId:string|null;sequence:number|null};
+export type Command={action:'in'|'out'|'clear'|'cut'|'bug';cue:string|null;bug:BugState|null;commandId:string;clientId:string|null;sequence:number|null};
 // `client`/`version` are optional: attachments serialized by an earlier worker build
 // survive a deploy without them, and a 1.3.0 hello never carries them.
 export type SocketAttachment={role:Role;id:string|null;client?:ClientKind;version?:string|null;seen:number;ack:Renderer|null};
@@ -49,6 +60,18 @@ const clientVersionPattern=/^\d+\.\d+\.\d+$/;
 export const parseClientKind=(value:unknown):ClientKind=>value==='companion'||value==='browser'?value:'unknown';
 // A malformed version is data we simply do not have; it is never a reason to close.
 export const parseClientVersion=(value:unknown):string|null=>typeof value==='string'&&value.length<=32&&clientVersionPattern.test(value)?value:null;
+// A page chip is a short hand-typed label: 1-12 characters of digits, letters, spaces
+// and the punctuation a folio reference actually uses, including an en dash for ranges.
+const bugPagePattern=/^[A-Za-z0-9 .,\-\u2013]{1,12}$/;
+export const validBugPage=(value:unknown)=>value===null||(typeof value==='string'&&bugPagePattern.test(value));
+// Normalizes to exactly {on,page}: unknown keys are dropped rather than stored, so the
+// MAX_BUG_BYTES reservation bounds what any caller can push into live state.
+export const parseBugState=(value:unknown):BugState|null=>{
+ if(!value||typeof value!=='object'||Array.isArray(value))return null;
+ const input=value as Record<string,unknown>;
+ if(typeof input.on!=='boolean'||!validBugPage(input.page))return null;
+ return {on:input.on,page:(input.page??null) as string|null};
+};
 export const validCatalogVersion=(value:unknown)=>typeof value==='string'&&value.length>0&&value.length<=160;
 // Presence derivation shared by the worker and the rehearsal stub so the two cannot
 // drift. Closing an expired socket stays with the caller (it owns the socket); this
@@ -70,17 +93,25 @@ export function parseCommand(value:unknown):Command|null{
  if(!value||typeof value!=='object'||Array.isArray(value))return null;
  const input=value as Record<string,unknown>;
  const action=input.action;
- if(!['in','out','clear','cut'].includes(String(action))||!validToken(input.commandId))return null;
+ if(!['in','out','clear','cut','bug'].includes(String(action))||!validToken(input.commandId))return null;
  const selects=action==='in'||action==='out';
  const cue=selects&&typeof input.cue==='string'&&input.cue.length<=160?input.cue:null;
  if(selects&&!cue)return null;
  if(!selects&&input.cue!==null)return null;
  if('cuePayload' in input||'catalogVersion' in input)return null;
+ // `bug` is non-null only for action 'bug'. A caller that omits the field entirely --
+ // every 1.4.0 module and the deployed web build -- is unaffected; a caller that attaches
+ // a bug to an 'in' or a 'cut' is refused rather than silently ignored.
+ let bug:BugState|null=null;
+ if(action==='bug'){
+  bug=parseBugState(input.bug);
+  if(!bug)return null;
+ }else if(input.bug!==undefined&&input.bug!==null)return null;
  const clientId=input.clientId;
  const sequence=input.sequence;
  if(clientId===null){if(sequence!==null)return null}
  else if(!validToken(clientId)||!validInteger(sequence))return null;
- return {action:action as Command['action'],cue,commandId:input.commandId as string,clientId:clientId as string|null,sequence:sequence as number|null};
+ return {action:action as Command['action'],cue,bug,commandId:input.commandId as string,clientId:clientId as string|null,sequence:sequence as number|null};
 }
 
 export function parseCatalog(value:unknown):ApprovedCatalog|null{
@@ -104,15 +135,36 @@ export function parseInitialState(value:unknown,catalogVersion:unknown):LiveStat
  if(!validInteger(input.revision)||!validInteger(input.updated)||!['animate','cut'].includes(String(input.mode)))return null;
  if(input.cue!==null&&typeof input.cue!=='string')return null;
  if(input.cuePayload!==null&&(!input.cuePayload||typeof input.cuePayload!=='object'||Array.isArray(input.cuePayload)))return null;
- return {revision:input.revision as number,cue:input.cue as string|null,mode:input.mode as Mode,updated:input.updated as number,cuePayload:input.cuePayload as CuePayload|null,catalogVersion:catalogVersion as string};
+ const state:LiveState={revision:input.revision as number,cue:input.cue as string|null,mode:input.mode as Mode,updated:input.updated as number,cuePayload:input.cuePayload as CuePayload|null,catalogVersion:catalogVersion as string};
+ // A row written without `bug` -- anything an earlier worker build persisted -- reads as
+ // no scan card: the key stays absent rather than becoming an explicit off.
+ if(input.bug!==undefined&&input.bug!==null){
+  const bug=parseBugState(input.bug);
+  if(!bug)return null;
+  if(bug.on)state.bug=bug;
+ }
+ return state;
 }
 
 export function nextState(current:LiveState,command:Command,selected:CuePayload|null,now:number):LiveState{
+ // The scan card touches nothing but itself: no cue, no payload, no mode. It still bumps
+ // the revision so a reconnecting client converges on it.
+ if(command.action==='bug'){
+  const next:LiveState={...current,revision:current.revision+1,updated:now};
+  if(command.bug?.on)next.bug={on:true,page:command.bug.page};
+  else delete next.bug;
+  return next;
+ }
  let cue:string|null=null;
  let cuePayload:CuePayload|null=null;
  if(command.action==='in'){cue=command.cue;cuePayload=selected}
  else if(command.action==='out'&&current.cue!==command.cue){cue=current.cue;cuePayload=current.cuePayload}
- return {...current,revision:current.revision+1,cue,mode:command.action==='cut'?'cut':'animate',updated:now,cuePayload};
+ const next:LiveState={...current,revision:current.revision+1,cue,mode:command.action==='cut'?'cut':'animate',updated:now,cuePayload};
+ // F1: Clear now removes every layer, the scan card included, and that is authoritative
+ // state, so a reconnect cannot resurrect it. 'in'/'out'/'clear' carry it through on the
+ // spread above, untouched.
+ if(command.action==='cut')delete next.bug;
+ return next;
 }
 
 export function parseAck(value:unknown,helloId:string|null):Renderer|null{
