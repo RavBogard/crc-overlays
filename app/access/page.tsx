@@ -3,7 +3,7 @@
 import {Check,Copy,KeyRound,LibraryBig,LoaderCircle,MonitorUp,ShieldCheck,UserMinus,Users} from 'lucide-react';
 import Link from 'next/link';
 import {useRouter} from 'next/navigation';
-import {useCallback,useEffect,useState} from 'react';
+import {useCallback,useEffect,useRef,useState} from 'react';
 import './access.css';
 import WorkspaceHeader from '@/components/workspace-header';
 import {resetAccessUserCache} from '@/lib/access-client';
@@ -42,6 +42,8 @@ export default function AccessPage(){
  const [confirmPassword,setConfirmPassword]=useState('');
  const [googleSignIn,setGoogleSignIn]=useState<GoogleSignInState|null>(null);
  const [googleConfirm,setGoogleConfirm]=useState<GoogleConfirmDetails|null>(null);
+ /** The `?google=` code taken from the URL, held until it has been acted on. A ref, not a local: React's development double-invoke re-runs the effect after the query is cleared, and the re-run must still see the code the first run took. */
+ const googleReturn=useRef<ReturnType<typeof readGoogleCode>|undefined>(undefined);
 
  const notice=(text:string,kind:'error'|'success'='success')=>{setMessage(text);setMessageKind(kind)};
 
@@ -74,11 +76,13 @@ export default function AccessPage(){
    if(active)setToken(inviteToken);
   }
   function captureGoogleReturn(){
-   const code=readGoogleCode(location.search);
-   if(!code)return null;
-   // Read once: a reload must not replay the outcome.
-   history.replaceState(null,'',location.pathname+location.hash);
-   return code;
+   if(googleReturn.current===undefined){
+    const code=readGoogleCode(location.search);
+    // Read once: a reload must not replay the outcome.
+    if(code)history.replaceState(null,'',location.pathname+location.hash);
+    googleReturn.current=code;
+   }
+   return googleReturn.current;
   }
   async function openConfirmation(){
    try{
@@ -98,6 +102,8 @@ export default function AccessPage(){
    if(!active)return;
    const refreshed=await refresh();
    if(!active||!code)return;
+   // Acted on exactly once: a cancelled run leaves it for the run that replaces it.
+   googleReturn.current=null;
    if(code==='confirm'){await openConfirmation();return}
    if(code==='signed_in'){resetAccessUserCache();router.push('/author');return}
    const returned=googleNotice(code,{email:refreshed?.google?.email??null});
