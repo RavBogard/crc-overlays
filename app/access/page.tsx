@@ -22,6 +22,17 @@ async function bodyOf(response:Response):Promise<ApiBody>{
  try{return await response.json() as ApiBody}catch{return {error:'The server returned an unreadable response.'}}
 }
 
+/**
+ * Where to go once this browser is signed in, when the person arrived from the MCP consent
+ * page (`/access?next=/oauth/authorize`). Only that one path is ever accepted, it is held in
+ * session storage across the Google round trip, and it is followed by a full navigation so
+ * the `SameSite=Strict` session cookie travels with the request.
+ */
+const NEXT_KEY='crc_access_next';
+const NEXT_PATTERN=/^\/oauth\/authorize(\?[^#]*)?$/;
+function peekNext(){try{const value=sessionStorage.getItem(NEXT_KEY);return value&&NEXT_PATTERN.test(value)?value:null}catch{return null}}
+function followNext(){const next=peekNext();if(!next)return false;try{sessionStorage.removeItem(NEXT_KEY)}catch{}window.location.assign(next);return true}
+
 export default function AccessPage(){
  const router=useRouter();
  const [user,setUser]=useState<Member|null>(null);
@@ -94,6 +105,15 @@ export default function AccessPage(){
    history.replaceState(null,'',location.pathname+location.search);
    if(active)setToken(inviteToken);
   }
+  function captureNext(){
+   const params=new URLSearchParams(location.search);
+   const value=params.get('next')||'';
+   if(!value)return;
+   params.delete('next');
+   const search=params.toString();
+   history.replaceState(null,'',location.pathname+(search?`?${search}`:'')+location.hash);
+   if(NEXT_PATTERN.test(value))try{sessionStorage.setItem(NEXT_KEY,value)}catch{}
+  }
   function captureGoogleReturn(){
    if(googleReturn.current===undefined){
     const code=readGoogleCode(location.search);
@@ -116,15 +136,23 @@ export default function AccessPage(){
   }
   async function initialize(){
    captureInvitation();
+   captureNext();
    const code=captureGoogleReturn();
    await Promise.resolve();
    if(!active)return;
    const refreshed=await refresh();
-   if(!active||!code)return;
+   if(!active)return;
+   if(!code){
+    // Landed here to finish an MCP connection: already signed in, go straight back.
+    if(!peekNext())return;
+    if(refreshed){followNext();return}
+    notice('Sign in to finish connecting your authoring tool.');
+    return;
+   }
    // Acted on exactly once: a cancelled run leaves it for the run that replaces it.
    googleReturn.current=null;
    if(code==='confirm'){await openConfirmation();return}
-   if(code==='signed_in'){resetAccessUserCache();router.push('/author');return}
+   if(code==='signed_in'){resetAccessUserCache();if(!followNext())router.push('/author');return}
    const returned=googleNotice(code,{email:refreshed?.google?.email??null});
    if(returned)notice(returned.text,returned.kind);
   }
@@ -175,13 +203,14 @@ export default function AccessPage(){
    if(payload.action==='redeem'){
     setToken('');
     setUser(body.user??null);
+    if(followNext())return;
     notice('Invitation accepted. Set a password below so you can sign in again later.');
     await refresh();
     return;
    }
    if(payload.action==='login'){
     setSignInPassword('');
-    router.push('/author');
+    if(!followNext())router.push('/author');
     return;
    }
    if(payload.action==='unlink_google'){
@@ -221,7 +250,7 @@ export default function AccessPage(){
    if(!response.ok)throw Error(body.error||'This action could not be completed.');
    setGoogleConfirm(null);
    const refreshed=await refresh();
-   if(body.google==='signed_in'){router.push('/author');return}
+   if(body.google==='signed_in'){if(!followNext())router.push('/author');return}
    const returned=googleNotice(body.google,{email:refreshed?.google?.email??null});
    if(returned)notice(returned.text,returned.kind);
   }catch(error){

@@ -4,16 +4,18 @@ import base64, hashlib, json, os, pathlib, re, secrets, urllib.parse, urllib.req
 BASE = os.environ.get('CRC_TEST_URL', 'http://localhost:5180')
 if not BASE.startswith(('http://localhost:', 'http://127.0.0.1:')):
     raise SystemExit('Use the isolated local rehearsal server.')
-KEY = json.loads(pathlib.Path('work/keys.json').read_text(encoding='utf-8'))['CONTROL_KEY']
+KEYS = json.loads(pathlib.Path('work/keys.json').read_text(encoding='utf-8'))
+REHEARSAL_EMAIL, REHEARSAL_PASSWORD = KEYS['REHEARSAL_EMAIL'], KEYS['REHEARSAL_PASSWORD']
 checks = 0
 class NoRedirect(urllib.request.HTTPRedirectHandler):
     def redirect_request(self, *args): return None
 opener = urllib.request.build_opener(NoRedirect)
 
-def call(path, body=None, token=None, form=False, origin=None):
+def call(path, body=None, token=None, form=False, origin=None, cookie=None):
     headers = {'Accept': 'application/json, text/event-stream'}
     if token: headers['Authorization'] = 'Bearer ' + token
     if origin: headers['Origin'] = origin
+    if cookie: headers['Cookie'] = cookie
     if body is not None:
         headers['Content-Type'] = 'application/x-www-form-urlencoded' if form else 'application/json'
         body = (urllib.parse.urlencode(body) if form else json.dumps(body)).encode()
@@ -43,8 +45,32 @@ challenge = base64.urlsafe_b64encode(hashlib.sha256(verifier.encode()).digest())
 params = {'client_id':client['client_id'],'redirect_uri':redirect,'response_type':'code','scope':'crc.authoring','resource':BASE+'/api/mcp','state':'isolated-rehearsal','code_challenge_method':'S256','code_challenge':challenge}
 code, page, _ = call('/oauth/authorize?'+urllib.parse.urlencode(params))
 check(code == 200 and isinstance(page,str), 'consent page')
+check('bootstrap_key' not in page and 'type="password"' not in page, 'consent page asks for no shared key')
 handle = re.search(r'name="request" value="([^"]+)"',page).group(1)
-code, _, headers = call('/oauth/authorize?'+urllib.parse.urlencode(params), {'request':handle,'bootstrap_key':KEY,'decision':'approve'}, form=True, origin=BASE)
+
+def set_cookie(headers, name):
+    for value in headers.get_all('Set-Cookie') or []:
+        if value.startswith(name+'='): return value.split(';',1)[0][len(name)+1:]
+    return ''
+
+# Signed out: the consent POST parks the request and sends the person to sign in first.
+code, _, headers = call('/oauth/authorize', {'request':handle,'decision':'approve'}, form=True, origin=BASE)
+check(code == 303 and headers['Location'] == '/access?next=%2Foauth%2Fauthorize', 'consent without a session asks for sign-in')
+parked = set_cookie(headers, 'crc_oauth_request')
+check(parked == handle, 'pending authorization request is parked in a cookie')
+
+# A real workspace member, by email and password; the credential itself is never printed.
+code, _, headers = call('/api/access', {'action':'login','email':REHEARSAL_EMAIL,'password':REHEARSAL_PASSWORD}, origin=BASE)
+check(code == 200, 'rehearsal member sign-in')
+session = 'crc_access=' + set_cookie(headers, 'crc_access')
+check(session != 'crc_access=', 'workspace session cookie issued')
+
+# Coming back from /access: the parked request is resumed and the member is named.
+code, resumed, _ = call('/oauth/authorize', cookie=f'crc_oauth_request={parked}; {session}')
+check(code == 200 and isinstance(resumed,str) and 'Approving as' in resumed, 'resumed consent names the member')
+handle = re.search(r'name="request" value="([^"]+)"',resumed).group(1)
+
+code, _, headers = call('/oauth/authorize', {'request':handle,'decision':'approve'}, form=True, origin=BASE, cookie=session)
 check(code == 303, 'authorized consent redirect')
 callback = urllib.parse.parse_qs(urllib.parse.urlparse(headers['Location']).query)
 check(callback['state'] == ['isolated-rehearsal'], 'OAuth state preserved')
@@ -69,9 +95,13 @@ def tool(name, args):
     check(not result.get('error') and not result.get('result',{}).get('isError'), name+' success')
     return json.loads(result['result']['content'][0]['text'])
 templates = tool('list_templates', {})['templates']
-source = tool('search_sources', {'query':'barchu'})['sources'][0]
-source = tool('get_source', {'sourceId':source['id']})['source']
-groups = [{'sourceId':source['id'],'blockIds':[b['id']]} for b in source['blocks'] if b['kind']=='bilingual']
+groups = []
+# The first hit is not always bilingual; the draft needs a source that actually has Hebrew.
+for candidate in tool('search_sources', {'query':'barchu'})['sources']:
+    source = tool('get_source', {'sourceId':candidate['id']})['source']
+    groups = [{'sourceId':source['id'],'blockIds':[b['id']]} for b in source['blocks'] if b['kind']=='bilingual']
+    if groups: break
+check(bool(groups), 'a bilingual source is available for the draft')
 draft = tool('create_draft', {'name':'MCP isolated rehearsal','title':'MCP rehearsal','layout':'bottom','templateCueId':next(t['id'] for t in templates if t['layout']=='bottom'),'presentation':{},'content':{'mode':'bilingual','hebrewGroups':groups,'transliterationGroups':groups}})['draft']
 preview = tool('preview_draft', {'draftId':draft['id'],'expectedVersion':draft['version']})
 check(preview['previewPath'].startswith('/author?draft='), 'usable authenticated preview link')
