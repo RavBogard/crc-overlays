@@ -27,7 +27,7 @@ export function sampleMiniatureCue(layout: string): Cue {
 
 /**
  * X2b - a real render of the graphic at tile size, not a CSS sketch. Same technique as the
- * console's Inspect preview: a full 1920 x 1080 canvas the Player lays out normally, scaled
+ * console's Preview and Live windows: a full 1920 x 1080 canvas the Player lays out normally, scaled
  * down by a transform so every measurement the fitter makes is the broadcast one.
  */
 export default function GraphicMiniature({ cue, workspace, faces = "default", label }: { cue: Cue | null; workspace: PublicWorkspace | null; faces?: "default" | "book"; label?: string }) {

@@ -394,7 +394,7 @@ export default function SetupGuide({workspace}: {workspace: PublicWorkspace}) {
       <div>
         <span className={styles.kicker}>Ready</span>
         <h2>Open Live control when you are done</h2>
-        <p>Live control shows what is on air and lets you Show, Inspect, Animate out, and Clear now. Nothing on this setup page puts a graphic on air.</p>
+        <p>Live control shows what is on air in its Live window and lets you Preview, Show, Animate out, and Clear now. Nothing on this setup page puts a graphic on air.</p>
       </div>
       <Link href="/">Open Live control</Link>
     </section>

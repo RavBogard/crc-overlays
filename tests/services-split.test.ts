@@ -57,12 +57,16 @@ test('each page tells the header which pill it is', () => {
 
 /* ---------- where a disconnected service sends an operator ---------- */
 
-test('the console disconnected banner links to the Service log', () => {
-  const banner = consolePage.slice(consolePage.indexOf('<aside className="fallback"'));
-  const end = banner.indexOf('</aside>');
-  assert.ok(end > 0, 'the banner markup was found');
-  assert.ok(banner.slice(0, end).includes('href="/services/log"'), 'the banner links to /services/log');
-  assert.ok(!banner.slice(0, end).includes('href="/services"'), 'and never to the prepared-services page');
+test('every console connection notice links to the Service log, never to prepared services', () => {
+  const notices = consolePage.split('<aside className="notice"').slice(1).map(part => part.slice(0, part.indexOf('</aside>')));
+  assert.equal(notices.length, 3, 'reconnecting, no graphics browser, and waiting each have a notice');
+  for (const notice of notices) {
+    assert.ok(notice.includes('href="/services/log"'), 'the notice links to /services/log');
+    assert.ok(!notice.includes('href="/services"'), 'and never to the prepared-services page');
+  }
+  const browserNotice = notices.find(notice => notice.includes('No graphics browser is connected')) ?? '';
+  assert.ok(browserNotice.includes('OBS or vMix'), 'the common case names the likely cause');
+  assert.ok(!browserNotice.includes('Singular'), 'and does not send the operator back to the previous system');
 });
 
 test('Help sends someone recording a fallback to the Service log', () => {

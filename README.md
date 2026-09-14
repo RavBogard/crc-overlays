@@ -6,7 +6,7 @@ This is an active two-congregation pilot. Browser and protocol checks pass; phys
 
 ## Use the product
 
-- `/` opens live control. **Inspect** renders a candidate locally and never changes live output; **Show** sends it live. **Animate out** and **Clear immediately** remain direct emergency controls.
+- `/` opens live control. **Preview** renders a candidate locally and never changes live output; the **Live** window shows what the output was told to show; **Show** sends the previewed graphic live. **Animate out** and **Clear immediately** remain direct emergency controls.
 - `/author` opens the visual library and editor. Editors can browse the siddur collection, duplicate cues, create custom non-liturgical text, preview unsaved work, save, review the exact rendered version, publish, and roll back.
 - `/setup` gives the workstation installation path, congregation-scoped output URL, Companion downloads, and verification steps.
 - `/access` accepts an invitation, signs in, and manages the current account session.
