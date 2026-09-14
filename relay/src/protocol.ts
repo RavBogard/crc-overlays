@@ -3,12 +3,21 @@ export const MAX_SNAPSHOT_BYTES=256*1024;
 // The approved library grows independently from the single cue pinned in live state.
 export const MAX_CATALOG_BYTES=4*1024*1024;
 export const MAX_REQUEST_BYTES=MAX_CATALOG_BYTES+MAX_SNAPSHOT_BYTES;
-// Leave room for revision, renderer presence, and event framing around a pinned cue.
-export const MAX_CUE_PAYLOAD_BYTES=MAX_SNAPSHOT_BYTES-4096;
-export const MAX_RECEIPTS=2048;
 // Controller presence is unbounded on the wire (any signed-in browser tab is one),
-// so the reported set is capped; 32 entries are ~3 KB, far inside MAX_SNAPSHOT_BYTES.
+// so the reported set is capped; 32 entries are ~3.5 KB, far inside MAX_SNAPSHOT_BYTES
+// as a whole — but a snapshot is cuePayload + renderers + controllers + framing under
+// ONE cap, so that 3.5 KB has to come out of the cue-payload headroom below, not sit
+// on top of it.
 export const MAX_CONTROLLERS=32;
+// Bytes for one serialized controller entry plus its array-comma, at worst realistic
+// field widths: a 36-char uuid, the longest ClientKind ('companion', 9 chars), an
+// 'xx.yy.zz'-shaped semver version (8 chars), and a 13-digit ms-epoch `seen`. Measured
+// ~109 (108 for the entry + 1 comma); 112 rounds up for JSON punctuation slop.
+export const MAX_CONTROLLER_BYTES=112;
+// Leave room for revision, renderer presence, a full controller set, and event framing
+// around a pinned cue.
+export const MAX_CUE_PAYLOAD_BYTES=MAX_SNAPSHOT_BYTES-4096-MAX_CONTROLLERS*MAX_CONTROLLER_BYTES;
+export const MAX_RECEIPTS=2048;
 export const STALE_MS=30_000;
 // Inclusive: a renderer last seen exactly STALE_MS ago is expired, so an alarm that
 // fires precisely on the deadline both drops the renderer and reschedules correctly.
