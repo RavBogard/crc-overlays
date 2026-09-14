@@ -1,4 +1,4 @@
-import {AccessInvariantError,accessStore,accessToken,authorizeRequest,bootstrapWithPassword,cookieToken,currentMember,hashPassword,issueSession,redeemSession,replacePasswordSession,sameSiteWrite,secretEqual,sessionCookie,tokenHash,validPassword,verifyPassword,type AccessMember,type AccessRole} from '@/lib/access';
+import {AccessInvariantError,accessRequestIdentity,accessStore,accessToken,authorizeRequest,bootstrapWithPassword,cookieToken,currentMember,hashPassword,issueSession,redeemSession,replacePasswordSession,sameSiteWrite,secretEqual,sessionCookie,tokenHash,validPassword,verifyPassword,type AccessMember,type AccessRole} from '@/lib/access';
 import {canonicalOrigin,readLimitedBody} from '@/lib/oauth-core';
 import {googleSignInAvailability} from '@/lib/google-sign-in';
 const reply=(body:unknown,status=200,cookie?:string)=>Response.json(body,{status,headers:{'Cache-Control':'no-store','Referrer-Policy':'no-referrer',...(cookie?{'Set-Cookie':cookie}:{})}});
@@ -10,7 +10,7 @@ const linkedIdentity=async(memberId:string)=>{try{return await accessStore.ident
 const profile=async(user:AccessMember)=>{const credential=await accessStore.credentialForEmail(user.email),identity=await linkedIdentity(user.id);return {...publicMember(user),hasPassword:Boolean(credential?.passwordHash),google:{linked:Boolean(identity),email:identity?.email??null}}};
 const emailValue=(value:unknown)=>typeof value==='string'?value.trim().toLowerCase():'';
 const emailValid=(email:string)=>email.length<=200&&/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email);
-function accessRequestIdentity(request:Request){return process.env.VERCEL==='1'?(request.headers.get('x-vercel-forwarded-for')||'unknown').trim().slice(0,128):'local'}
+// The rate-limit bucket lives in lib/access.ts (accessRequestIdentity), shared with the Google routes.
 async function loginAllowed(request:Request,email:string){const now=Date.now();if(!await accessStore.allowAttempt(`login:ip:${accessRequestIdentity(request)}`,now))return false;return accessStore.allowAttempt(`login:account:${email}`,now)}
 export async function GET(request:Request){try{const google=googleSignIn(request);const user=await currentMember(request);if(!user)return reply({user:null,googleSignIn:google},401);if(new URL(request.url).searchParams.get('manage')==='1'){if(user.role!=='owner')return reply({error:'Administrator access required'},403);return reply({user:await profile(user),members:await accessStore.list(),googleSignIn:google})}return reply({user:await profile(user),googleSignIn:google})}catch{return reply({error:'Sign-in is temporarily unavailable. Existing graphics devices remain connected.'},503)}}
 export async function POST(request:Request){

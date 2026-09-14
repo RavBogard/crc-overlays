@@ -3,7 +3,7 @@
  * not refused and not silently bound: it waits here until the person has seen both addresses
  * and answered. GET describes the wait, POST ends it.
  */
-import {AccessIdentityConflictError,accessStore,accessToken,sameSiteWrite,sessionCookie,tokenHash} from '@/lib/access';
+import {AccessIdentityConflictError,accessStore,accessToken,currentMember,sameSiteWrite,sessionCookie,tokenHash} from '@/lib/access';
 import {readLimitedBody} from '@/lib/oauth-core';
 import {confirmGoogleFlow} from '@/lib/google-sign-in';
 
@@ -33,12 +33,9 @@ export async function GET(request:Request){
   const token=cookieValue(request);
   if(!FLOW_TOKEN.test(token))return reply({error:NO_FLOW},404);
   const hash=tokenHash(token),now=Date.now();
-  // `takeSignInFlow` is delete-returning, so a peek has to put the row straight back under
-  // the same hash. The original expiry is not carried on the flow; it is always creation
-  // plus the ten-minute window.
-  const flow=await accessStore.takeSignInFlow(hash,now);
+  // Read-only: rendering the card never touches the row or its expiry.
+  const flow=await accessStore.peekSignInFlow(hash,now);
   if(!flow)return reply({error:NO_FLOW},404);
-  await accessStore.putSignInFlow(hash,flow,flow.createdAt+FLOW_TTL_MS);
   const pending=flow.pending;
   if(!pending)return reply({error:NO_FLOW},404);
   const googleEmail=pending.identity.email;
@@ -72,6 +69,9 @@ export async function POST(request:Request){
   const flow=await accessStore.takeSignInFlow(tokenHash(token),now);
   if(!flow)return reply({error:NO_FLOW},404,cleared);
 
+  // A link binds to the person signed in right now, not to whoever started the flow ten
+  // minutes ago: signing out or being removed in between ends it.
+  if(flow.kind==='link'&&(await currentMember(request))?.id!==flow.memberId)return reply({error:NO_FLOW},404,cleared);
   const outcome=await confirmGoogleFlow(flow,decision,accessStore,now);
   if(outcome.code==='redeem'){
    const session=accessToken();

@@ -37,7 +37,7 @@ const operator:AccessMember={id:'operator-1',email:'operator@example.test',name:
 const validToken='a'.repeat(43);
 
 /** The identity half of AccessStore, for literals that only exercise the rest of it. */
-const identityStoreStubs={identityForMember:async()=>null,memberForIdentity:async()=>null,linkIdentity:async()=>{},unlinkIdentity:async()=>{},putSignInFlow:async()=>{},takeSignInFlow:async()=>null,memberById:async()=>null,invitationTarget:async()=>null};
+const identityStoreStubs={identityForMember:async()=>null,memberForIdentity:async()=>null,linkIdentity:async()=>{},unlinkIdentity:async()=>{},putSignInFlow:async()=>{},takeSignInFlow:async()=>null,peekSignInFlow:async()=>null,memberById:async()=>null,invitationTarget:async()=>null};
 
 type TestStore=AccessStore;
 async function withStoreMethods<T>(overrides:Partial<TestStore>,run:()=>Promise<T>){
@@ -59,6 +59,7 @@ async function withStoreMethods<T>(overrides:Partial<TestStore>,run:()=>Promise<
   unlinkIdentity:accessStore.unlinkIdentity,
   putSignInFlow:accessStore.putSignInFlow,
   takeSignInFlow:accessStore.takeSignInFlow,
+  peekSignInFlow:accessStore.peekSignInFlow,
   memberById:accessStore.memberById,
   invitationTarget:accessStore.invitationTarget,
  };
@@ -582,4 +583,23 @@ test('memory store: memberById and invitationTarget read without consuming anyth
  await store.redeem(invited,now,tokenHash('session-target'),expires);
  assert.equal(await store.invitationTarget(invited,now),null,'a spent invitation names nobody');
  assert.equal(await store.invitationTarget(tokenHash('never-issued'),now),null);
+});
+
+test('memory store: peeking a sign-in flow never consumes it or moves its expiry, and the prune follows the caller clock',async()=>{
+ const store=new MemoryAccessStore();
+ const now=Date.now();
+ const flow={kind:'link' as const,createdAt:now-9*60_000,codeVerifier:'v',state:'s',nonce:'n',redirectUri:'http://localhost:5175/api/auth/google/callback',memberId:REHEARSAL_OWNER.id};
+ const held=tokenHash('flow-held');
+ // The callback re-stores a held flow with a fresh ten minutes from now, not from when it started.
+ await store.putSignInFlow(held,flow,now+600_000,now);
+ assert.deepEqual(await store.peekSignInFlow(held,now+5*60_000),flow,'a peek five minutes later still sees it');
+ assert.deepEqual(await store.peekSignInFlow(held,now+5*60_000),flow,'and so does a second peek');
+ assert.equal(await store.peekSignInFlow(held,now+600_001),null,'past its expiry nothing is shown');
+ assert.deepEqual(await store.takeSignInFlow(held,now+9*60_000),flow,'the take still finds the held flow after the peeks');
+ assert.equal(await store.peekSignInFlow(held,now),null,'once taken there is nothing to peek');
+ // Pruning: a stale row is dropped by a put whose clock has passed it, not by the new flow creation time.
+ const stale=tokenHash('flow-stale');
+ await store.putSignInFlow(stale,flow,now+1000,now);
+ await store.putSignInFlow(tokenHash('flow-fresh'),{...flow,createdAt:now-8*60_000},now+600_000,now+2000);
+ assert.equal(store.flows.has(stale),false,'the expired row is pruned by the caller clock');
 });

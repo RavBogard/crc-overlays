@@ -183,6 +183,7 @@ export async function resolveGoogleCallback(flow:SignInFlow,identity:GoogleIdent
   if(!flow.memberId)return {code:'mismatch'};
   const member=await store.memberById(flow.memberId);
   if(!member)return {code:'mismatch'};
+  if(!member.enabled)return {code:'removed'};
   const existing=await store.memberForIdentity(identity,now);
   if(existing)return existing.id===member.id?{code:'linked',member}:{code:'already_linked'};
   if(identity.emailVerified&&sameEmail(identity.email,member.email)){await store.linkIdentity(member.id,identity,now);return {code:'linked',member}}
@@ -214,6 +215,7 @@ export async function confirmGoogleFlow(flow:SignInFlow,decision:'link'|'cancel'
   if(!flow.memberId)return {code:'mismatch'};
   const member=await store.memberById(flow.memberId);
   if(!member)return {code:'mismatch'};
+  if(!member.enabled)return {code:'removed'};
   const existing=await store.memberForIdentity(identity,now);
   if(existing)return existing.id===member.id?{code:'linked',member}:{code:'already_linked'};
   await store.linkIdentity(member.id,identity,now);

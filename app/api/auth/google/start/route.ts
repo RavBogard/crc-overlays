@@ -6,8 +6,8 @@
  * Google establishes identity only. Nothing here creates a member, changes a role or changes
  * `enabled` - the flow row this route stores is the whole of its side effects.
  */
-import {accessStore,accessToken,currentMember,sameSiteWrite,tokenHash,validPassword,verifyPassword} from '@/lib/access';
-import {readLimitedBody,requestIdentity} from '@/lib/oauth-core';
+import {accessRequestIdentity,accessStore,accessToken,currentMember,sameSiteWrite,tokenHash,validPassword,verifyPassword} from '@/lib/access';
+import {readLimitedBody} from '@/lib/oauth-core';
 import {beginGoogleFlow,googleConfiguration,googleReturnPath,googleSignInAvailability} from '@/lib/google-sign-in';
 
 /**
@@ -33,7 +33,8 @@ export async function POST(request:Request){
  if(!sameSiteWrite(request))return json({error:'Open this action from the same website.'},403);
  try{
   const now=Date.now();
-  if(!await accessStore.allowAttempt(`google:ip:${requestIdentity(request)}`,now))return json({error:'Please wait a minute before trying again.'},429);
+  // The same bucket as the password routes: never a header the caller can set itself.
+  if(!await accessStore.allowAttempt(`google:ip:${accessRequestIdentity(request)}`,now))return json({error:'Please wait a minute before trying again.'},429);
   const availability=googleSignInAvailability(request);
   // `preview` and `misconfigured` are told apart on `/access` by GET /api/access, not here.
   if(!availability.available||!availability.redirectUri)return redirect(googleReturnPath('unavailable'));
@@ -46,6 +47,9 @@ export async function POST(request:Request){
   if(intent==='link'){
    const member=await currentMember(request);
    if(!member)return redirect(googleReturnPath('mismatch'));
+   // A member already holding a Google link unlinks first; the page never offers this form
+   // to a linked member, so a direct post simply lands back on the account page as it is.
+   if(await accessStore.identityForMember(member.id))return redirect('/access');
    // D1: linking from a signed-in session requires the current password when one exists, so
    // a borrowed browser cannot quietly attach a second way in.
    const credential=await accessStore.credentialForEmail(member.email);

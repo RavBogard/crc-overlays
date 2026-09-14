@@ -72,7 +72,7 @@ async function withEnvironment(values:Partial<Record<EnvName,string|undefined>>,
 }
 
 /** Same monkeypatch seam as `withStoreMethods` in `tests/access.test.ts`, whole-store. */
-const STORE_KEYS=['memberForSession','createSession','deleteSession','credentialForEmail','setPassword','redeem','invite','list','disable','bootstrap','allowAttempt','identityForMember','memberForIdentity','linkIdentity','unlinkIdentity','putSignInFlow','takeSignInFlow','memberById','invitationTarget'] as const satisfies readonly (keyof AccessStore)[];
+const STORE_KEYS=['memberForSession','createSession','deleteSession','credentialForEmail','setPassword','redeem','invite','list','disable','bootstrap','allowAttempt','identityForMember','memberForIdentity','linkIdentity','unlinkIdentity','putSignInFlow','takeSignInFlow','peekSignInFlow','memberById','invitationTarget'] as const satisfies readonly (keyof AccessStore)[];
 function snapshot(source:AccessStore):AccessStore{
  const copy:Record<string,unknown>={};
  for(const key of STORE_KEYS){const method=source[key] as unknown as (...args:unknown[])=>unknown;copy[key]=method.bind(source)}
@@ -354,8 +354,16 @@ test('confirm GET names the invited address for a held redemption and 410s once 
 
 test('confirm POST links on yes, discards on cancel, and always clears the flow cookie',async()=>{
  await withGoogle({},async({store})=>{
-  addMember(store,memberOf('member-1','owner@crc.example'));
-  const post=(token:string,decision:string)=>confirmPOST(new Request(`${CRC_ORIGIN}/api/auth/google/confirm`,{method:'POST',headers:{Origin:CRC_ORIGIN,'Content-Type':'application/json',Cookie:`${FLOW_COOKIE}=${token}`},body:JSON.stringify({decision})}));
+  const member=addMember(store,memberOf('member-1','owner@crc.example'));
+  const session=await signedInCookie(member);
+  const post=(token:string,decision:string,cookie=`${FLOW_COOKIE}=${token}; ${session}`)=>confirmPOST(new Request(`${CRC_ORIGIN}/api/auth/google/confirm`,{method:'POST',headers:{Origin:CRC_ORIGIN,'Content-Type':'application/json',Cookie:cookie},body:JSON.stringify({decision})}));
+
+  // Signed out (or removed) between the callback and the card: nothing is linked, the held flow is spent.
+  const signedOut=await post(await heldFlow(store,linkHold),'link',`${FLOW_COOKIE}=${await heldFlow(store,linkHold)}`);
+  assert.equal(signedOut.status,404);
+  assert.equal(store.identities.size,0);
+  assert.match(cookieFrom(signedOut,FLOW_COOKIE)?.raw??'',/Max-Age=0/);
+  store.flows.clear();
 
   const cancelled=await post(await heldFlow(store,linkHold),'cancel');
   assert.equal(cancelled.status,200);
@@ -427,5 +435,59 @@ test('unlink_google is blocked without a password and allowed with one',async()=
 
   const signedOut=await accessPOST(accessRequest({action:'unlink_google'}));
   assert.equal(signedOut.status,401);
+ });
+});
+
+// --------------------------------------------------------------- audit fixes
+
+test('a held confirmation stays valid for its own ten minutes, however long Google took before it',async()=>{
+ await withGoogle({},async({store})=>{
+  const member=addMember(store,memberOf('member-1','owner@crc.example'));
+  const now=Date.now();
+  // The flow started nine minutes ago; the callback held it with a fresh ten minutes from now.
+  const token=accessToken();
+  await store.putSignInFlow(tokenHash(token),{...linkHold,createdAt:now-9*60_000},now+10*60_000,now);
+  const request=()=>new Request(`${CRC_ORIGIN}/api/auth/google/confirm`,{headers:{Cookie:`${FLOW_COOKIE}=${token}`}});
+  assert.equal((await confirmGET(request())).status,200);
+  assert.equal((await confirmGET(request())).status,200,'rendering the card never shortens the hold');
+  assert.equal(store.flows.size,1);
+  const linked=await confirmPOST(new Request(`${CRC_ORIGIN}/api/auth/google/confirm`,{method:'POST',headers:{Origin:CRC_ORIGIN,'Content-Type':'application/json',Cookie:`${FLOW_COOKIE}=${token}; ${await signedInCookie(member)}`},body:JSON.stringify({decision:'link'})}));
+  assert.deepEqual(await linked.json(),{google:'linked'});
+  assert.equal(store.identities.size,1);
+ });
+});
+
+test('a member removed while the card is open is told so and nothing is linked',async()=>{
+ await withGoogle({},async({store})=>{
+  const member=addMember(store,memberOf('member-1','owner@crc.example'));
+  const session=await signedInCookie(member);
+  const token=await heldFlow(store,linkHold);
+  store.members.get('member-1')!.enabled=false;
+  const response=await confirmPOST(new Request(`${CRC_ORIGIN}/api/auth/google/confirm`,{method:'POST',headers:{Origin:CRC_ORIGIN,'Content-Type':'application/json',Cookie:`${FLOW_COOKIE}=${token}; ${session}`},body:JSON.stringify({decision:'link'})}));
+  // The session itself no longer resolves for a disabled member, so the card is simply gone.
+  assert.equal(response.status,404);
+  assert.equal(store.identities.size,0);
+  assert.equal(store.flows.size,0);
+ });
+});
+
+test('the start route rate limit ignores client-set forwarding headers',async()=>{
+ await withGoogle({},async({store})=>{
+  const attempt=(i:number)=>startPOST(new Request(`${CRC_ORIGIN}/api/auth/google/start`,{method:'POST',headers:{Origin:CRC_ORIGIN,'Content-Type':'application/x-www-form-urlencoded','x-forwarded-for':`10.0.0.${i}`,'x-real-ip':`10.0.0.${i}`},body:'intent=signin'}));
+  for(let i=1;i<=10;i++)assert.equal((await attempt(i)).status,303,`attempt ${i} starts a flow`);
+  const eleventh=await attempt(11);
+  assert.equal(eleventh.status,429,'rotating the header does not buy a new bucket');
+  assert.equal(store.flows.size,10);
+ });
+});
+
+test('a member who already holds a Google link is sent back to the account page instead of starting a second link',async()=>{
+ await withGoogle({},async({store})=>{
+  const member=addMember(store,memberOf('member-1','owner@crc.example'),await hashPassword(PASSWORD));
+  await store.linkIdentity('member-1',identityOf('google-subject-held','owner@crc.example'),Date.now());
+  const response=await startPOST(startRequest({intent:'link',currentPassword:PASSWORD},{cookie:await signedInCookie(member)}));
+  assert.equal(location(response),'/access');
+  assert.equal(store.flows.size,0,'no flow is started');
+  assert.equal(store.identities.size,1,'the existing link is untouched');
  });
 });
