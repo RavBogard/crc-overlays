@@ -12,7 +12,7 @@ import {deepStrictEqual} from 'node:assert/strict';
 import {randomUUID} from 'node:crypto';
 import {readFile} from 'node:fs/promises';
 import {PROTOCOL} from '../relay/src/protocol.ts';
-import {STATE_FILE,STATE_FILE_TBI,TBI_WORKSPACE_ID,startRehearsal,startRehearsalPair} from './rehearsal.mjs';
+import {STATE_FILE,STATE_FILE_TBI,TBI_WORKSPACE_ID,ownerSession,startRehearsal,startRehearsalPair} from './rehearsal.mjs';
 
 const REQUEST_TIMEOUT_MS=5000;
 const CONDITION_TIMEOUT_MS=5000;
@@ -54,8 +54,13 @@ async function resolveInstance(mode){
 }
 
 function client(instance){
- const request=async(path,{method='GET',body,key=instance.controlKey}={})=>{
-  const response=await fetch(`${instance.baseUrl}${path}`,{method,headers:{Authorization:`Bearer ${key}`,...(body===undefined?{}:{'Content-Type':'application/json'})},body:body===undefined?undefined:JSON.stringify(body),cache:'no-store',signal:AbortSignal.timeout(REQUEST_TIMEOUT_MS)});
+ // Authoring is a member's act (the shared control key stopped authoring on 2026-09-14), so the
+ // authoring helper signs in once as the seeded rehearsal owner and sends that session cookie.
+ let session=null;
+ const request=async(path,{method='GET',body,key=instance.controlKey,asOwner=false}={})=>{
+  if(asOwner&&!session)session=await ownerSession(instance.baseUrl);
+  const credential=asOwner?{Cookie:session,Origin:instance.baseUrl}:{Authorization:`Bearer ${key}`};
+  const response=await fetch(`${instance.baseUrl}${path}`,{method,headers:{...credential,...(body===undefined?{}:{'Content-Type':'application/json'})},body:body===undefined?undefined:JSON.stringify(body),cache:'no-store',signal:AbortSignal.timeout(REQUEST_TIMEOUT_MS)});
   let payload=null;
   try{payload=await response.json()}catch{}
   return {status:response.status,headers:response.headers,body:payload};
@@ -65,7 +70,7 @@ function client(instance){
   assert(result.status===expected,`${options?.method??'GET'} ${path} returned ${result.status}${result.body?.error?` (${result.body.error})`:''}`);
   return result.body;
  };
- const authoring=(operation,input)=>expect('/api/authoring',{method:'POST',body:{operation,input}});
+ const authoring=(operation,input)=>expect('/api/authoring',{method:'POST',body:{operation,input},asOwner:true});
  const until=async(describe,predicate)=>{
   const deadline=Date.now()+CONDITION_TIMEOUT_MS;
   let last=null;

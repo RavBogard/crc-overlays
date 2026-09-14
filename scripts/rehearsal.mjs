@@ -50,6 +50,15 @@ export class RehearsalAbortedError extends RehearsalStartError{constructor(){sup
 const key=()=>randomBytes(32).toString('base64url');
 const sleep=ms=>new Promise(resolve=>setTimeout(resolve,ms));
 
+/** Signs in as the seeded rehearsal owner and returns the session cookie pair for later requests. */
+export async function ownerSession(baseUrl){
+ const response=await fetch(`${baseUrl}/api/access`,{method:'POST',headers:{'Content-Type':'application/json',Origin:baseUrl},body:JSON.stringify({action:'login',email:REHEARSAL_OWNER_EMAIL,password:REHEARSAL_OWNER_PASSWORD}),signal:AbortSignal.timeout(10_000)});
+ if(!response.ok)throw new Error(`rehearsal owner sign-in failed (${response.status})`);
+ const cookie=(response.headers.get('set-cookie')??'').split(';')[0];
+ if(!cookie.startsWith('crc_access='))throw new Error('rehearsal owner sign-in returned no session cookie');
+ return cookie;
+}
+
 /** Names the first forbidden variable present in `env`, or null. */
 export function inheritedCredential(env=process.env){
  return FORBIDDEN_ENV.find(name=>env[name]!==undefined)??null;
@@ -297,8 +306,11 @@ async function spawnInstance({port,relayPort,stateFile,workspaceId,keys,childOpt
   throwIfAborted();
   // Turbopack and tsx serialize cues.json floats differently (0.21000000000000002 vs
   // 0.21), so the catalog version hashed here never matches Next's. Let Next push its own
-  // authoring catalog so /health reports synchronization as current.
-  const synced=await fetch(`${baseUrl}/api/live-catalog`,{method:'POST',headers:{Authorization:`Bearer ${controlKey}`},signal:AbortSignal.timeout(10_000)});
+  // authoring catalog so /health reports synchronization as current. Pushing the catalog is
+  // an authoring act, and since 2026-09-14 the shared control key no longer authors
+  // (lib/access.ts), so this signs in as the seeded rehearsal owner exactly as a person would.
+  const session=await ownerSession(baseUrl);
+  const synced=await fetch(`${baseUrl}/api/live-catalog`,{method:'POST',headers:{Cookie:session,Origin:baseUrl},signal:AbortSignal.timeout(10_000)});
   if(!synced.ok)throw new Error(`live catalog synchronization failed (${synced.status})`);
   if(log)log(`${prefix}live catalog synchronized from Next (version ${(await synced.json()).version})`);
   throwIfAborted();

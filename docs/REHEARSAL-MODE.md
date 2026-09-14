@@ -32,7 +32,7 @@ This runs `scripts/rehearsal.mjs` (under tsx), which:
   imports `relay/src/protocol.ts` verbatim, so the wire protocol is not reimplemented.
 - Spawns `next dev --port 5175` with `CRC_AUTHORING_REHEARSAL=1 NODE_ENV=development
   RELAY_URL=memory CRC_REHEARSAL_RELAY_PORT=8788` plus the generated keys.
-- Waits up to 90 s for `/api/workspace` (exit 5 with Next's last stderr lines), initializes the relay stub with the 29-graphic baseline catalog from `lib/cues.json` (revision 0, no graphic on air — `cue: null` in the API), then calls `POST /api/live-catalog` so Next pushes its own catalog version (Turbopack and tsx serialize one `cues.json` float differently).
+- Waits up to 90 s for `/api/workspace` (exit 5 with Next's last stderr lines), initializes the relay stub with the 29-graphic baseline catalog from `lib/cues.json` (revision 0, no graphic on air — `cue: null` in the API), then signs in as the seeded rehearsal owner and calls `POST /api/live-catalog` with that session so Next pushes its own catalog version (Turbopack and tsx serialize one `cues.json` float differently; pushing the catalog is an authoring act, which the shared control key no longer performs).
 - Writes gitignored `work/rehearsal/current.json` (`baseUrl`, `relayUrl`, keys, pids,
   `startedAt`, and `google` — the `--google` boolean, never a Google value) so
   `rehearsal:check` can attach; deletes it on exit.
@@ -143,7 +143,10 @@ closed unless `NODE_ENV=development`, `VERCEL` is unset, and `RELAY_URL` is unse
 
 ## Recipes
 
-Use the printed control key as a Bearer token. Read `lib/authoring.ts` for the
+Authoring is a member's act: sign in as the seeded owner (`rehearsal-owner@rehearsal.invalid`,
+password in `scripts/rehearsal.mjs`) with `POST /api/access` `{action:'login',email,password}`
+and send the returned `crc_access` cookie on every `/api/authoring` call; the printed control
+key still drives `/api/command` and reads `/api/state`. Read `lib/authoring.ts` for the
 authoring operations; the sequence to get a graphic on `/output` is
 `create_draft` → `preview_draft` → `review_draft` → `publish_draft`, each a
 `POST /api/authoring` with body `{operation, input}`. Cookie-authenticated writes
@@ -155,7 +158,7 @@ layout), `content`, `presentation` (`{}` is valid). For plain custom text, `cont
 is `{mode:'custom', text:'...'}`. Keep the returned `draft.id` and `draft.version`.
 
 ```
-curl -s http://localhost:5175/api/authoring -H "Authorization: Bearer <controlKey>" \
+curl -s http://localhost:5175/api/authoring -H "Cookie: crc_access=<sessionToken>" -H "Origin: http://localhost:5175" \
   -H 'Content-Type: application/json' -d '{"operation":"create_draft","input":{
   "name":"Rehearsal check","title":"Rehearsal check","layout":"bottom",
   "templateCueId":"<a-bottom-layout-baseline-id>",
