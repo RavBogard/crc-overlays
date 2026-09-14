@@ -1,0 +1,102 @@
+/* D12 - the per-service names editor. Shares the /services panel vocabulary (services.css)
+   and adds only what the rows and the measurement stage need. */
+
+.names-panel {
+  display: grid;
+  gap: 14px;
+  padding: 20px;
+  border: 1px solid var(--services-line, #dfe4ea);
+  border-radius: 12px;
+  background: var(--services-card, #fff);
+}
+
+.names-panel h3 { margin: 0; font-size: 17px; }
+.names-panel p { margin: 4px 0 0; }
+
+.names-settings {
+  display: grid;
+  grid-template-columns: minmax(220px, 2fr) minmax(120px, 1fr) minmax(150px, 1fr);
+  gap: 12px;
+}
+
+.names-settings label,
+.names-rows label {
+  display: grid;
+  gap: 4px;
+  font-size: 12px;
+  font-weight: 600;
+}
+
+.names-settings input,
+.names-settings select,
+.names-rows input {
+  font: inherit;
+  font-weight: 400;
+  padding: 8px 10px;
+  border: 1px solid var(--services-line, #dfe4ea);
+  border-radius: 8px;
+  background: #fff;
+  color: inherit;
+  min-width: 0;
+}
+
+.names-rows {
+  list-style: none;
+  display: grid;
+  gap: 10px;
+  margin: 0;
+  padding: 0;
+  counter-reset: name-row;
+}
+
+.names-rows li {
+  display: grid;
+  grid-template-columns: 1fr 1fr auto;
+  align-items: end;
+  gap: 10px;
+}
+
+.names-rows li button { align-self: end; }
+
+.names-preview { font-size: 12px; opacity: 0.75; }
+.names-notice { font-size: 13px; font-weight: 600; }
+.names-warning { font-size: 12px; opacity: 0.8; }
+
+.names-error,
+.names-too-full {
+  padding: 10px 12px;
+  border-radius: 8px;
+  border: 1px solid #d9534f;
+  color: #8a2a27;
+  background: #fdf2f2;
+  font-size: 13px;
+}
+
+.names-actions { display: flex; flex-wrap: wrap; gap: 10px; }
+
+/* The measurement stage: one real 1920 x 1080 frame, scaled for display only. It must stay
+   laid out - a display:none stage measures every box as zero and would call every panel a
+   fit - so it is clipped small rather than hidden. */
+.names-stage {
+  position: relative;
+  width: 240px;
+  height: 135px;
+  overflow: hidden;
+  border: 1px solid var(--services-line, #dfe4ea);
+  border-radius: 8px;
+  background: #0a0f10;
+}
+
+.names-stage-output {
+  position: absolute;
+  inset: 0 auto auto 0;
+  width: 1920px;
+  height: 1080px;
+  transform-origin: top left;
+  transform: scale(0.125);
+}
+
+@media (max-width: 720px) {
+  .names-settings,
+  .names-rows li { grid-template-columns: 1fr; }
+}

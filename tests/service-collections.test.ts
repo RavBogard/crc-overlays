@@ -115,4 +115,26 @@ test('a graphic still published with the spelled-out incomplete marker is labele
  assert.equal(partial?.label,'Gevarot (Partial)');assert.equal(partial?.status,'needs-review');
  assert.equal(value.coverage.find(row=>row.cueId==='single')?.status,'covered');
 });
+test('a names list lives on the collection document, survives unrelated edits, and is purged by archiving',async()=>{
+ const {manager,repository}=fixture();
+ const created=await manager.createCollection({name:'Friday',service:'Evening',entries:[],coverage:[]},'editor');
+ const named=await manager.setNames({id:created.id,expectedVersion:1,names:{title:'Mi Shebeirach',perPanel:4,layout:'left',rows:[{he:'רבקה',en:'Rebecca'},{he:'',en:'Ada'}]}},'editor');
+ assert.equal(named.names?.rows.length,2);
+ assert.equal(named.names?.updatedBy,'editor');
+ // An ordinary edit does not carry a names payload and must not disturb one.
+ const renamed=await manager.updateCollection({id:created.id,expectedVersion:named.version,name:'Friday night'},'editor');
+ assert.equal(renamed.names?.title,'Mi Shebeirach');
+ await assert.rejects(()=>manager.updateCollection({id:created.id,expectedVersion:renamed.version,names:{title:'Sneak'}},'editor'),/unsupported fields: names/);
+ const archived=await manager.setCollectionArchived({id:created.id,expectedVersion:renamed.version},'editor',true);
+ assert.equal(archived.names,null);
+ const restored=await manager.setCollectionArchived({id:created.id,expectedVersion:archived.version},'editor',false);
+ assert.equal(restored.names,null,'restoring a service does not resurrect the names that were purged with it');
+ assert.equal((await repository.listCollections())[0].names,null);
+});
+
+test('names operations are author scoped alongside the other planning edits',()=>{
+ assert.equal(servicesPermission('set_names'),'author');
+ assert.equal(servicesPermission('clear_names'),'author');
+});
+
 test('a version conflict is reported with the code the client refreshes on',()=>{const error=new ServicesConflictError();assert.equal(error.code,'version_conflict');assert.equal(error.status,409)});

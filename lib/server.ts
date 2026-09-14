@@ -30,7 +30,33 @@ export function mergePublishedCatalog(baseline:readonly AliasCatalogCue[],publis
  return Array.from(active.keys(),id=>resolve(id,new Set())!);
 }
 export async function catalog(){return relayConfigured()?relayCatalog():authoringCatalog()}
-export async function authoringCatalog(){const {publishedCues}=await import('./authoring');const items=mergePublishedCatalog(baselineCatalogForWorkspace() as AliasCatalogCue[],await publishedCues());return {cues:items,version:createHash('sha256').update(JSON.stringify(items)).digest('hex').slice(0,16)}}
+/**
+ * D10 - the authoring catalog is the published library plus the names panels of every
+ * non-archived service that has a list. `syncLiveCatalog` pushes exactly this object to
+ * the relay, so names reach the live library by the one existing path and `/api/health`'s
+ * live-versus-authoring comparison keeps agreeing. Names are never written to
+ * `authoring_drafts`, `authoring_previews` or `authoring_revisions`, and never appear in
+ * `publishedCues()`; clearing a list removes its panels from the very next read.
+ */
+export function composeAuthoringCatalog(baseline:readonly AliasCatalogCue[],published:readonly Cue[],names:readonly Cue[]=[]){
+ const items=[...mergePublishedCatalog(baseline,published),...names];
+ return {cues:items,version:createHash('sha256').update(JSON.stringify(items)).digest('hex').slice(0,16)};
+}
+// A signature cache in the shape of `publishedCache`: the collection rows carry their own
+// optimistic version, so `id:version` over the lists in play is an exact change marker and
+// the panel cues are rebuilt only when one of them actually moves.
+let namesCache:{signature:string;value:Cue[]}|undefined;
+export async function serviceNamesCues():Promise<Cue[]>{
+ const [{defaultServicesRepository},{namesPanelCues,namesPanelMotion}]=await Promise.all([import('./service-collections'),import('./names-list')]);
+ const lists=(await defaultServicesRepository().listCollections(false)).filter(collection=>!collection.archived&&collection.names);
+ const signature=lists.map(collection=>`${collection.id}:${collection.version}`).join(',');
+ if(namesCache?.signature===signature)return namesCache.value;
+ const baseline=baselineCatalogForWorkspace() as Cue[];
+ const value=lists.flatMap(collection=>namesPanelCues(collection.id,collection.names!,namesPanelMotion(baseline,collection.names!.layout)));
+ namesCache={signature,value};
+ return value;
+}
+export async function authoringCatalog(){const {publishedCues}=await import('./authoring');const [published,names]=await Promise.all([publishedCues(),serviceNamesCues()]);return composeAuthoringCatalog(baselineCatalogForWorkspace() as AliasCatalogCue[],published,names)}
 export async function knownCue(id:unknown){return typeof id==='string'&&(await catalog()).cues.some(c=>c.id===id)}
 export const cues=baselineCatalogForWorkspace();
 let payloadCache:PayloadCache|null=null;
