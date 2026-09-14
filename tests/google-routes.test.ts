@@ -72,7 +72,7 @@ async function withEnvironment(values:Partial<Record<EnvName,string|undefined>>,
 }
 
 /** Same monkeypatch seam as `withStoreMethods` in `tests/access.test.ts`, whole-store. */
-const STORE_KEYS=['memberForSession','createSession','deleteSession','credentialForEmail','setPassword','redeem','invite','list','disable','bootstrap','allowAttempt','identityForMember','memberForIdentity','linkIdentity','unlinkIdentity','putSignInFlow','takeSignInFlow','peekSignInFlow','memberById','invitationTarget'] as const satisfies readonly (keyof AccessStore)[];
+const STORE_KEYS=['memberForSession','createSession','deleteSession','credentialForEmail','setPassword','redeem','invite','list','disable','bootstrap','allowAttempt','identityForMember','memberForIdentity','linkIdentity','unlinkIdentity','putSignInFlow','takeSignInFlow','peekSignInFlow','memberById','invitationTarget','memberByEmail','setRole','restore','pendingInvitations','recordAccessRequest','listAccessRequests','approveAccessRequest','declineAccessRequest'] as const satisfies readonly (keyof AccessStore)[];
 function snapshot(source:AccessStore):AccessStore{
  const copy:Record<string,unknown>={};
  for(const key of STORE_KEYS){const method=source[key] as unknown as (...args:unknown[])=>unknown;copy[key]=method.bind(source)}
@@ -486,5 +486,113 @@ test('a member who already holds a Google link is sent back to the account page 
   assert.equal(location(response),'/access');
   assert.equal(store.flows.size,0,'no flow is started');
   assert.equal(store.identities.size,1,'the existing link is untouched');
+ });
+});
+
+// ------------------------------------------------------------ access requests
+
+const manageGET=(cookie:string)=>accessGET(new Request(`${CRC_ORIGIN}/api/access?manage=1`,{headers:{Cookie:cookie}}));
+
+test('a stranger\'s Google sign-in becomes a request; approval creates the member and the next sign-in works',async()=>{
+ await withGoogle({},async({store,issuer})=>{
+  issuer.profile.email='Newcomer@Example.org';issuer.profile.subject='google-subject-new';
+  const asked=await throughGoogle(issuer,await startPOST(startRequest({intent:'signin'})));
+  assert.equal(location(asked),'/access?google=requested');
+  assert.equal(cookieFrom(asked,ACCESS_COOKIE),null,'a request grants no session');
+  assert.equal(store.members.size,1,'a request creates no member');
+  const [request]=await store.listAccessRequests();
+  assert.equal(request.email,'newcomer@example.org');
+  assert.equal(request.name,'Owner Example');
+  assert.equal(request.attempts,1);
+
+  // Asking again is the same row, counted.
+  const again=await throughGoogle(issuer,await startPOST(startRequest({intent:'signin'})));
+  assert.equal(location(again),'/access?google=requested');
+  assert.equal((await store.listAccessRequests()).length,1);
+  assert.equal((await store.listAccessRequests())[0].attempts,2);
+
+  const owner=addMember(store,{...memberOf('owner-1','owner@crc.example'),role:'owner'});
+  const ownerCookie=await signedInCookie(owner);
+  const managed=await (await manageGET(ownerCookie)).json();
+  assert.equal(managed.requests.length,1);
+  assert.equal(managed.requests[0].id,request.id);
+  assert.deepEqual(managed.invitations,[]);
+
+  // An editor cannot approve, and the request stays.
+  const editor=addMember(store,memberOf('editor-1','editor@crc.example'));
+  const refused=await accessPOST(accessRequest({action:'approve_request',requestId:request.id,role:'editor'},await signedInCookie(editor)));
+  assert.equal(refused.status,401);
+  assert.equal((await store.listAccessRequests()).length,1);
+
+  const approved=await accessPOST(accessRequest({action:'approve_request',requestId:request.id,role:'operator'},ownerCookie));
+  assert.equal(approved.status,201);
+  const {member}=await approved.json();
+  assert.equal(member.email,'newcomer@example.org');
+  assert.equal(member.role,'operator');
+  assert.equal(member.enabled,true);
+  assert.deepEqual(await store.listAccessRequests(),[]);
+  assert.equal(store.members.size,4);
+
+  const signedIn=await throughGoogle(issuer,await startPOST(startRequest({intent:'signin'})));
+  assert.equal(location(signedIn),'/access?google=signed_in');
+  const session=cookieFrom(signedIn,ACCESS_COOKIE);
+  assert.ok(session);
+  assert.equal(store.sessions.get(tokenHash(session.value))?.memberId,member.id);
+  assert.equal(store.sessions.get(tokenHash(session.value))?.authMethod,'google');
+
+  // The request is gone once approved.
+  const gone=await accessPOST(accessRequest({action:'approve_request',requestId:request.id,role:'editor'},ownerCookie));
+  assert.equal(gone.status,404);
+  const badRole=await accessPOST(accessRequest({action:'approve_request',requestId:'x',role:'god'},ownerCookie));
+  assert.equal(badRole.status,400);
+ });
+});
+
+test('declining removes the request and the person may ask again; owners change roles, remove and restore members',async()=>{
+ await withGoogle({},async({store,issuer})=>{
+  issuer.profile.email='newcomer@example.org';issuer.profile.subject='google-subject-new';
+  await throughGoogle(issuer,await startPOST(startRequest({intent:'signin'})));
+  const [request]=await store.listAccessRequests();
+  const owner=addMember(store,{...memberOf('owner-1','owner@crc.example'),role:'owner'});
+  const ownerCookie=await signedInCookie(owner);
+
+  const declined=await accessPOST(accessRequest({action:'decline_request',requestId:request.id},ownerCookie));
+  assert.equal(declined.status,200);
+  assert.deepEqual(await store.listAccessRequests(),[]);
+  assert.equal(store.members.size,2,'declining creates nothing');
+  await throughGoogle(issuer,await startPOST(startRequest({intent:'signin'})));
+  assert.equal((await store.listAccessRequests()).length,1,'a later attempt asks afresh');
+
+  // Unopened invitations are listed so the page can say "Invited" rather than "Disabled".
+  await store.invite('someone@crc.example','Someone','editor',tokenHash(accessToken()),Date.now()+3600_000);
+  const managed=await (await manageGET(ownerCookie)).json();
+  assert.equal(managed.invitations.length,1);
+  assert.equal(managed.members.find((m:AccessMember)=>m.id===managed.invitations[0].memberId)?.enabled,false);
+
+  const editor=addMember(store,memberOf('editor-1','editor@crc.example'));
+  const changed=await accessPOST(accessRequest({action:'set_role',memberId:editor.id,role:'operator'},ownerCookie));
+  assert.equal(changed.status,200);
+  assert.equal((await changed.json()).member.role,'operator');
+  assert.equal(store.members.get(editor.id)?.role,'operator');
+  const self=await accessPOST(accessRequest({action:'set_role',memberId:owner.id,role:'editor'},ownerCookie));
+  assert.equal(self.status,400,'an administrator does not change their own role here');
+  const unknown=await accessPOST(accessRequest({action:'set_role',memberId:'nobody',role:'editor'},ownerCookie));
+  assert.equal(unknown.status,404);
+
+  const removed=await accessPOST(accessRequest({action:'disable',memberId:editor.id},ownerCookie));
+  assert.equal(removed.status,200);
+  assert.equal(store.members.get(editor.id)?.enabled,false);
+  const restored=await accessPOST(accessRequest({action:'restore',memberId:editor.id},ownerCookie));
+  assert.equal(restored.status,200);
+  assert.equal((await restored.json()).member.enabled,true);
+  assert.equal(store.members.get(editor.id)?.role,'operator','restore keeps the role');
+  const selfRestore=await accessPOST(accessRequest({action:'restore',memberId:owner.id},ownerCookie));
+  assert.equal(selfRestore.status,400);
+
+  // None of this is open to a non-administrator.
+  const editorCookie=await signedInCookie(store.members.get(editor.id)!);
+  for(const action of [{action:'set_role',memberId:owner.id,role:'editor'},{action:'restore',memberId:owner.id},{action:'decline_request',requestId:'x'}]){
+   assert.equal((await accessPOST(accessRequest(action,editorCookie))).status,401,action.action);
+  }
  });
 });

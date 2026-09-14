@@ -7,7 +7,11 @@ export type AccessMember={id:string;email:string;name:string;role:AccessRole;ena
 export type AccessSessionMember=AccessMember&{authMethod:'invite'|'password'|'bootstrap'|'google';authenticatedAt:number};
 export type AccessCredential=AccessMember&{passwordHash:string|null};
 /** A verified identity assertion from the identity provider. Never persisted whole. */
-export type GoogleIdentity={provider:'google';issuer:string;subject:string;email:string;emailVerified:boolean};
+export type GoogleIdentity={provider:'google';issuer:string;subject:string;email:string;emailVerified:boolean;name?:string};
+/** Someone who signed in with Google but is not a member here: held for an administrator to approve or decline. Grants nothing by itself. */
+export type AccessRequest={id:string;email:string;name:string;requestedAt:number;lastSeenAt:number;attempts:number};
+/** An unredeemed invitation, so the members list can tell "Invited" from "Removed". */
+export type PendingInvitation={memberId:string;expiresAt:number};
 /** What a member is told about their own link; the issuer and subject never leave the store. */
 export type LinkedIdentity={provider:'google';email:string;linkedAt:number;lastUsedAt:number|null};
 /** A short-lived sign-in attempt, held server-side rather than in a signed cookie. */
@@ -61,6 +65,17 @@ export interface AccessStore {
  /** Read-only lookups for the Google decision table: a member by id, and who a live invitation is for. Neither consumes anything. */
  memberById(memberId:string):Promise<AccessMember|null>;
  invitationTarget(inviteHash:string,now:number):Promise<{memberId:string;email:string}|null>;
+ /** Any member by address, enabled or not; `credentialForEmail` sees only enabled ones. */
+ memberByEmail(email:string):Promise<AccessMember|null>;
+ /** Administration: a role change (refused when it would leave no enabled administrator) and restoring a removed member. Both return null for an unknown id. */
+ setRole(memberId:string,role:AccessRole):Promise<AccessMember|null>;
+ restore(memberId:string):Promise<AccessMember|null>;
+ pendingInvitations():Promise<PendingInvitation[]>;
+ /** Access requests, recorded by the Google sign-in row that finds no member. Approval creates or re-enables the member and binds the identity in one transaction; a conflict leaves the request in place. Decline deletes the row. */
+ recordAccessRequest(identity:GoogleIdentity,now:number):Promise<void>;
+ listAccessRequests():Promise<AccessRequest[]>;
+ approveAccessRequest(requestId:string,role:AccessRole,now:number):Promise<AccessMember|null>;
+ declineAccessRequest(requestId:string):Promise<void>;
 }
 /** Just enough of a pg client for the helpers shared between transactions. */
 type PgTransaction={query:(text:string,values?:unknown[])=>Promise<{rows:Array<{member_id?:string}>}>};
@@ -106,6 +121,15 @@ export class PgAccessStore implements AccessStore {
  async takeSignInFlow(hash:string,now:number){const row=(await (await this.db()).query('DELETE FROM access_sign_in_flows WHERE token_hash=$1 RETURNING payload,expires_at AS "expiresAt"',[hash])).rows[0];return row&&Number(row.expiresAt)>now?row.payload as SignInFlow:null}
  async memberById(id:string){return (await (await this.db()).query('SELECT id,email,name,role,enabled FROM access_members WHERE id=$1',[id])).rows[0]??null}
  async invitationTarget(hash:string,now:number){return (await (await this.db()).query('SELECT l.member_id AS "memberId",m.email FROM access_links l JOIN access_members m ON m.id=l.member_id WHERE l.token_hash=$1 AND l.used_at IS NULL AND l.expires_at>$2',[hash,now])).rows[0]??null}
+ async memberByEmail(email:string){return (await (await this.db()).query('SELECT id,email,name,role,enabled FROM access_members WHERE email=$1',[email.trim().toLowerCase()])).rows[0]??null}
+ async setRole(id:string,role:AccessRole){const c=await (await this.db()).connect();try{await c.query('BEGIN');await c.query('LOCK TABLE access_members IN EXCLUSIVE MODE');const target=(await c.query('SELECT role,enabled FROM access_members WHERE id=$1',[id])).rows[0] as Pick<AccessMember,'role'|'enabled'>|undefined;if(!target){await c.query('ROLLBACK');return null}if(target.role==='owner'&&target.enabled&&role!=='owner'){const owners=Number((await c.query("SELECT count(*)::int AS count FROM access_members WHERE role='owner' AND enabled=true")).rows[0]?.count??0);if(owners<=1)throw new AccessInvariantError('Keep at least one enabled administrator.')}const m=(await c.query('UPDATE access_members SET role=$2 WHERE id=$1 RETURNING id,email,name,role,enabled',[id,role])).rows[0] as AccessMember|undefined;await c.query('COMMIT');return m??null}catch(e){await c.query('ROLLBACK');throw e}finally{c.release()}}
+ async restore(id:string){return (await (await this.db()).query('UPDATE access_members SET enabled=true WHERE id=$1 RETURNING id,email,name,role,enabled',[id])).rows[0]??null}
+ async pendingInvitations(){return (await (await this.db()).query('SELECT member_id AS "memberId",expires_at AS "expiresAt" FROM access_links WHERE used_at IS NULL')).rows.map((row:{memberId:string;expiresAt:string|number})=>({memberId:row.memberId,expiresAt:Number(row.expiresAt)}))}
+ async recordAccessRequest(identity:GoogleIdentity,now:number){await (await this.db()).query('INSERT INTO access_requests(id,provider,issuer,subject,email,name,requested_at,last_seen_at,attempts) VALUES($1,$2,$3,$4,$5,$6,$7,$7,1) ON CONFLICT(provider,issuer,subject) DO UPDATE SET email=EXCLUDED.email,name=EXCLUDED.name,last_seen_at=EXCLUDED.last_seen_at,attempts=access_requests.attempts+1',[randomUUID(),identity.provider,identity.issuer,identity.subject,identity.email.trim().toLowerCase(),(identity.name??'').trim().slice(0,80),now])}
+ async listAccessRequests(){return (await (await this.db()).query('SELECT id,email,name,requested_at AS "requestedAt",last_seen_at AS "lastSeenAt",attempts FROM access_requests ORDER BY requested_at')).rows.map((row:Record<string,unknown>)=>({id:String(row.id),email:String(row.email),name:String(row.name),requestedAt:Number(row.requestedAt),lastSeenAt:Number(row.lastSeenAt),attempts:Number(row.attempts)}))}
+ /** One transaction: the request row is deleted, the member created or re-enabled with the chosen role, any open invitation dropped, and the identity bound. A conflict rolls all of it back, so the request stays for the administrator to see. */
+ async approveAccessRequest(requestId:string,role:AccessRole,now:number){const c=await (await this.db()).connect();try{await c.query('BEGIN');await c.query('LOCK TABLE access_members IN EXCLUSIVE MODE');const request=(await c.query('DELETE FROM access_requests WHERE id=$1 RETURNING provider,issuer,subject,email,name',[requestId])).rows[0] as {provider:'google';issuer:string;subject:string;email:string;name:string}|undefined;if(!request){await c.query('ROLLBACK');return null}const existing=(await c.query('SELECT id,email,name,role,enabled FROM access_members WHERE email=$1',[request.email])).rows[0] as AccessMember|undefined;const member=(existing?(await c.query("UPDATE access_members SET role=$2,enabled=true,name=CASE WHEN name='' THEN $3 ELSE name END WHERE id=$1 RETURNING id,email,name,role,enabled",[existing.id,role,request.name||request.email])).rows[0]:(await c.query('INSERT INTO access_members(id,email,name,role,enabled,created_at,password_hash) VALUES($1,$2,$3,$4,true,$5,NULL) RETURNING id,email,name,role,enabled',[randomUUID(),request.email,request.name||request.email,role,now])).rows[0]) as AccessMember;await c.query('DELETE FROM access_links WHERE member_id=$1',[member.id]);await this.bindIdentity(c,member.id,{provider:request.provider,issuer:request.issuer,subject:request.subject,email:request.email,emailVerified:true},now);await c.query('COMMIT');return member}catch(e){await c.query('ROLLBACK');throw identityConflict(e)}finally{c.release()}}
+ async declineAccessRequest(requestId:string){await (await this.db()).query('DELETE FROM access_requests WHERE id=$1',[requestId])}
 }
 
 /**
@@ -122,6 +146,7 @@ type MemoryMember=AccessMember&{passwordHash:string|null;createdAt:number};
 type MemorySession={memberId:string;expiresAt:number;authMethod:AccessSessionMember['authMethod'];authenticatedAt:number};
 type MemoryLink={memberId:string;expiresAt:number;pendingName:string;pendingRole:AccessRole;resetPassword:boolean;usedAt:number|null};
 type MemoryIdentity={provider:'google';issuer:string;subject:string;memberId:string;emailAtLink:string;linkedAt:number;lastUsedAt:number|null};
+type MemoryRequest={id:string;provider:'google';issuer:string;subject:string;email:string;name:string;requestedAt:number;lastSeenAt:number;attempts:number};
 /** The Postgres primary key (provider,issuer,subject), flattened to a map key. */
 const identityKey=(identity:Pick<GoogleIdentity,'provider'|'issuer'|'subject'>)=>JSON.stringify([identity.provider,identity.issuer,identity.subject]);
 
@@ -132,6 +157,7 @@ export class MemoryAccessStore implements AccessStore{
  attempts=new Map<string,{windowStart:number;attempts:number}>();
  identities=new Map<string,MemoryIdentity>();
  flows=new Map<string,{flow:SignInFlow;expiresAt:number}>();
+ requests=new Map<string,MemoryRequest>();
  /** The seeded password is hashed on first use: scrypt cannot run in a constructor. */
  private seedPending=true;
  constructor(){this.members.set(REHEARSAL_OWNER.id,{...REHEARSAL_OWNER,enabled:true,passwordHash:null,createdAt:Date.now()})}
@@ -240,6 +266,35 @@ export class MemoryAccessStore implements AccessStore{
   const member=this.members.get(link.memberId);
   return member?{memberId:member.id,email:member.email}:null;
  }
+ async memberByEmail(email:string){await this.seed();const key=email.trim().toLowerCase();const member=[...this.members.values()].find(m=>m.email===key);return member?this.view(member):null}
+ async setRole(id:string,role:AccessRole){const member=this.members.get(id);if(!member)return null;if(member.role==='owner'&&member.enabled&&role!=='owner'&&this.enabledOwners()<=1)throw new AccessInvariantError('Keep at least one enabled administrator.');member.role=role;return this.view(member)}
+ async restore(id:string){const member=this.members.get(id);if(!member)return null;member.enabled=true;return this.view(member)}
+ async pendingInvitations(){return [...this.links.values()].filter(link=>link.usedAt===null).map(link=>({memberId:link.memberId,expiresAt:link.expiresAt}))}
+ async recordAccessRequest(identity:GoogleIdentity,now:number){
+  const key=identityKey(identity),email=identity.email.trim().toLowerCase(),name=(identity.name??'').trim().slice(0,80);
+  const current=this.requests.get(key);
+  this.requests.set(key,current?{...current,email,name,lastSeenAt:now,attempts:current.attempts+1}:{id:randomUUID(),provider:identity.provider,issuer:identity.issuer,subject:identity.subject,email,name,requestedAt:now,lastSeenAt:now,attempts:1});
+ }
+ async listAccessRequests(){return [...this.requests.values()].sort((a,b)=>a.requestedAt-b.requestedAt).map(({id,email,name,requestedAt,lastSeenAt,attempts})=>({id,email,name,requestedAt,lastSeenAt,attempts}))}
+ async approveAccessRequest(requestId:string,role:AccessRole,now:number){
+  const entry=[...this.requests.entries()].find(([,row])=>row.id===requestId);
+  if(!entry)return null;
+  const [key,request]=entry;
+  const identity:GoogleIdentity={provider:request.provider,issuer:request.issuer,subject:request.subject,email:request.email,emailVerified:true};
+  const existing=[...this.members.values()].find(m=>m.email===request.email);
+  // The conflict is detected before anything is written, so a refused approval leaves the
+  // request in place exactly as the rolled-back Postgres transaction does.
+  const held=this.identities.get(identityKey(identity));
+  if(held&&(!existing||held.memberId!==existing.id))throw new AccessIdentityConflictError(IDENTITY_CONFLICT);
+  let member=existing;
+  if(member){member.role=role;member.enabled=true;if(!member.name)member.name=request.name||request.email}
+  else{member={id:randomUUID(),email:request.email,name:request.name||request.email,role,enabled:true,passwordHash:null,createdAt:now};this.members.set(member.id,member)}
+  this.detachLinks(member.id);
+  this.bindIdentity(member.id,identity,now);
+  this.requests.delete(key);
+  return this.view(member);
+ }
+ async declineAccessRequest(requestId:string){for(const [key,row] of this.requests)if(row.id===requestId)this.requests.delete(key)}
 }
 
 export const accessStore:AccessStore=rehearsalMode()?new MemoryAccessStore():new PgAccessStore();

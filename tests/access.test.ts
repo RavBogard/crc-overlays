@@ -37,7 +37,7 @@ const operator:AccessMember={id:'operator-1',email:'operator@example.test',name:
 const validToken='a'.repeat(43);
 
 /** The identity half of AccessStore, for literals that only exercise the rest of it. */
-const identityStoreStubs={identityForMember:async()=>null,memberForIdentity:async()=>null,linkIdentity:async()=>{},unlinkIdentity:async()=>{},putSignInFlow:async()=>{},takeSignInFlow:async()=>null,peekSignInFlow:async()=>null,memberById:async()=>null,invitationTarget:async()=>null};
+const identityStoreStubs={identityForMember:async()=>null,memberForIdentity:async()=>null,linkIdentity:async()=>{},unlinkIdentity:async()=>{},putSignInFlow:async()=>{},takeSignInFlow:async()=>null,peekSignInFlow:async()=>null,memberById:async()=>null,invitationTarget:async()=>null,memberByEmail:async()=>null,setRole:async()=>null,restore:async()=>null,pendingInvitations:async()=>[],recordAccessRequest:async()=>{},listAccessRequests:async()=>[],approveAccessRequest:async()=>null,declineAccessRequest:async()=>{}};
 
 type TestStore=AccessStore;
 async function withStoreMethods<T>(overrides:Partial<TestStore>,run:()=>Promise<T>){
@@ -62,6 +62,14 @@ async function withStoreMethods<T>(overrides:Partial<TestStore>,run:()=>Promise<
   peekSignInFlow:accessStore.peekSignInFlow,
   memberById:accessStore.memberById,
   invitationTarget:accessStore.invitationTarget,
+  memberByEmail:accessStore.memberByEmail,
+  setRole:accessStore.setRole,
+  restore:accessStore.restore,
+  pendingInvitations:accessStore.pendingInvitations,
+  recordAccessRequest:accessStore.recordAccessRequest,
+  listAccessRequests:accessStore.listAccessRequests,
+  approveAccessRequest:accessStore.approveAccessRequest,
+  declineAccessRequest:accessStore.declineAccessRequest,
  };
  Object.assign(accessStore,overrides);
  try{return await run()}finally{Object.assign(accessStore,saved)}
@@ -602,4 +610,74 @@ test('memory store: peeking a sign-in flow never consumes it or moves its expiry
  await store.putSignInFlow(stale,flow,now+1000,now);
  await store.putSignInFlow(tokenHash('flow-fresh'),{...flow,createdAt:now-8*60_000},now+600_000,now+2000);
  assert.equal(store.flows.has(stale),false,'the expired row is pruned by the caller clock');
+});
+
+test('memory store: approving a request creates or re-enables the member, binds the identity, and removes the request',async()=>{
+ const store=new MemoryAccessStore();
+ const identity:GoogleIdentity={provider:'google',issuer:'https://issuer.test',subject:'google-subject-new',email:'Newcomer@Example.org',emailVerified:true,name:'New Comer'};
+ await store.recordAccessRequest(identity,100);
+ await store.recordAccessRequest(identity,200);
+ const [request]=await store.listAccessRequests();
+ assert.equal(request.email,'newcomer@example.org');
+ assert.equal(request.name,'New Comer');
+ assert.equal(request.requestedAt,100);
+ assert.equal(request.lastSeenAt,200);
+ assert.equal(request.attempts,2);
+ assert.equal(await store.memberByEmail('newcomer@example.org'),null,'a request is not a member');
+
+ const member=await store.approveAccessRequest(request.id,'editor',300);
+ assert.ok(member);
+ assert.equal(member.enabled,true);
+ assert.equal(member.role,'editor');
+ assert.equal(member.name,'New Comer');
+ assert.equal(member.email,'newcomer@example.org');
+ assert.deepEqual(await store.listAccessRequests(),[]);
+ assert.equal((await store.memberForIdentity(identity,301))?.id,member.id,'the identity now signs the new member in');
+ assert.equal((await store.memberByEmail('NEWCOMER@example.org'))?.id,member.id);
+ assert.equal(await store.approveAccessRequest(request.id,'editor',302),null,'approved once');
+
+ // An invited member who asked with Google instead of opening the link: the same row is
+ // re-used, enabled with the chosen role, and the open invitation is withdrawn.
+ const inviteHash=tokenHash('invite-1');
+ const invited=await store.invite('invited@example.org','Invited Person','operator',inviteHash,10_000);
+ assert.equal(invited.enabled,false);
+ assert.deepEqual(await store.pendingInvitations(),[{memberId:invited.id,expiresAt:10_000}]);
+ await store.recordAccessRequest({...identity,subject:'google-subject-invited',email:'invited@example.org',name:'Someone Else'},400);
+ const [asked]=await store.listAccessRequests();
+ const approved=await store.approveAccessRequest(asked.id,'editor',500);
+ assert.equal(approved?.id,invited.id);
+ assert.equal(approved?.enabled,true);
+ assert.equal(approved?.role,'editor');
+ assert.equal(approved?.name,'Invited Person','the invitation name is kept');
+ assert.deepEqual(await store.pendingInvitations(),[],'the open invitation is withdrawn');
+ assert.equal(await store.invitationTarget(inviteHash,600),null);
+});
+
+test('memory store: an approval that would take another member\'s identity is refused and keeps the request',async()=>{
+ const store=new MemoryAccessStore();
+ const identity:GoogleIdentity={provider:'google',issuer:'https://issuer.test',subject:'google-subject-1',email:'holder@example.org',emailVerified:true};
+ await store.linkIdentity(REHEARSAL_OWNER.id,identity,1);
+ await store.recordAccessRequest({...identity,email:'other@example.org'},2);
+ const [request]=await store.listAccessRequests();
+ await assert.rejects(store.approveAccessRequest(request.id,'editor',3),AccessIdentityConflictError);
+ assert.equal((await store.listAccessRequests()).length,1,'the request stays for the administrator to see');
+ assert.equal(await store.memberByEmail('other@example.org'),null,'nothing was created');
+ await store.declineAccessRequest(request.id);
+ assert.deepEqual(await store.listAccessRequests(),[]);
+ await store.declineAccessRequest(request.id);
+});
+
+test('memory store: setRole keeps one enabled administrator, restore re-enables',async()=>{
+ const store=new MemoryAccessStore();
+ await assert.rejects(store.setRole(REHEARSAL_OWNER.id,'editor'),AccessInvariantError);
+ const other=await store.invite('second@example.org','Second','owner',tokenHash('l'),10_000);
+ await assert.rejects(store.setRole(REHEARSAL_OWNER.id,'editor'),AccessInvariantError,'an invited administrator is not enabled yet');
+ assert.equal((await store.restore(other.id))?.enabled,true);
+ assert.equal((await store.setRole(REHEARSAL_OWNER.id,'editor'))?.role,'editor');
+ assert.equal((await store.setRole(REHEARSAL_OWNER.id,'owner'))?.role,'owner');
+ assert.equal(await store.setRole('nobody','editor'),null);
+ await store.disable(other.id);
+ assert.equal((await store.memberById(other.id))?.enabled,false);
+ assert.equal((await store.restore(other.id))?.enabled,true);
+ assert.equal(await store.restore('nobody'),null);
 });

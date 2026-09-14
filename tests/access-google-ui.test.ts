@@ -26,6 +26,10 @@ test("each returned code renders its agreed sentence", () => {
   assert.equal(text("already_linked"), "That Google account is already linked to a different member here.");
   assert.equal(text("mismatch"), "That sign-in attempt expired or didn't match this browser. Try again.");
   assert.equal(text("cancelled"), "Google sign-in was cancelled. Nothing changed.");
+  assert.equal(
+    text("requested"),
+    "Your request to join this workspace is in. An administrator will review it, and Continue with Google will work here once it's approved.",
+  );
   assert.equal(text("unavailable"), "Google sign-in isn't available right now. Use your email and password.");
   assert.equal(
     text("invite_invalid"),
@@ -44,6 +48,7 @@ test("only cancelled and linked read as good news", () => {
     confirm: null,
     linked: "success",
     cancelled: "success",
+    requested: "success",
     removed: "error",
     no_access: "error",
     already_linked: "error",

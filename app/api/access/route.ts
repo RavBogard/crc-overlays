@@ -1,4 +1,4 @@
-import {AccessInvariantError,accessRequestIdentity,accessStore,accessToken,authorizeRequest,bootstrapWithPassword,cookieToken,currentMember,hashPassword,issueSession,redeemSession,replacePasswordSession,sameSiteWrite,secretEqual,sessionCookie,tokenHash,validPassword,verifyPassword,type AccessMember,type AccessRole} from '@/lib/access';
+import {AccessIdentityConflictError,AccessInvariantError,accessRequestIdentity,accessStore,accessToken,authorizeRequest,bootstrapWithPassword,cookieToken,currentMember,hashPassword,issueSession,redeemSession,replacePasswordSession,sameSiteWrite,secretEqual,sessionCookie,tokenHash,validPassword,verifyPassword,type AccessMember,type AccessRole} from '@/lib/access';
 import {canonicalOrigin,readLimitedBody} from '@/lib/oauth-core';
 import {googleSignInAvailability} from '@/lib/google-sign-in';
 const reply=(body:unknown,status=200,cookie?:string)=>Response.json(body,{status,headers:{'Cache-Control':'no-store','Referrer-Policy':'no-referrer',...(cookie?{'Set-Cookie':cookie}:{})}});
@@ -7,12 +7,16 @@ const publicMember=({id,email,name,role,enabled}:AccessMember):AccessMember=>({i
 const googleSignIn=(request:Request)=>{const {available,reason}=googleSignInAvailability(request);return {available,reason}};
 /** A workspace whose identity table has not been migrated yet still renders /access: the link state degrades to "not linked" instead of 503-ing the whole sign-in page. The password paths are unaffected because credentialForEmail is read first. */
 const linkedIdentity=async(memberId:string)=>{try{return await accessStore.identityForMember(memberId)}catch(error){console.error('access_identity_unavailable',{name:error instanceof Error?error.name:'UnknownError'});return null}};
+/** Fail-soft like the identity read: a workspace whose request table is not migrated yet still gets its members list. */
+const safeList=async<T>(read:()=>Promise<T[]>,event:string):Promise<T[]>=>{try{return await read()}catch(error){console.error(event,{name:error instanceof Error?error.name:'UnknownError'});return []}};
+const ROLES:readonly AccessRole[]=['owner','editor','operator'];
+const validRole=(value:unknown):value is AccessRole=>typeof value==='string'&&(ROLES as readonly string[]).includes(value);
 const profile=async(user:AccessMember)=>{const credential=await accessStore.credentialForEmail(user.email),identity=await linkedIdentity(user.id);return {...publicMember(user),hasPassword:Boolean(credential?.passwordHash),google:{linked:Boolean(identity),email:identity?.email??null}}};
 const emailValue=(value:unknown)=>typeof value==='string'?value.trim().toLowerCase():'';
 const emailValid=(email:string)=>email.length<=200&&/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email);
 // The rate-limit bucket lives in lib/access.ts (accessRequestIdentity), shared with the Google routes.
 async function loginAllowed(request:Request,email:string){const now=Date.now();if(!await accessStore.allowAttempt(`login:ip:${accessRequestIdentity(request)}`,now))return false;return accessStore.allowAttempt(`login:account:${email}`,now)}
-export async function GET(request:Request){try{const google=googleSignIn(request);const user=await currentMember(request);if(!user)return reply({user:null,googleSignIn:google},401);if(new URL(request.url).searchParams.get('manage')==='1'){if(user.role!=='owner')return reply({error:'Administrator access required'},403);return reply({user:await profile(user),members:await accessStore.list(),googleSignIn:google})}return reply({user:await profile(user),googleSignIn:google})}catch{return reply({error:'Sign-in is temporarily unavailable. Existing graphics devices remain connected.'},503)}}
+export async function GET(request:Request){try{const google=googleSignIn(request);const user=await currentMember(request);if(!user)return reply({user:null,googleSignIn:google},401);if(new URL(request.url).searchParams.get('manage')==='1'){if(user.role!=='owner')return reply({error:'Administrator access required'},403);return reply({user:await profile(user),members:await accessStore.list(),invitations:await safeList(()=>accessStore.pendingInvitations(),'access_invitations_unavailable'),requests:await safeList(()=>accessStore.listAccessRequests(),'access_requests_unavailable'),googleSignIn:google})}return reply({user:await profile(user),googleSignIn:google})}catch{return reply({error:'Sign-in is temporarily unavailable. Existing graphics devices remain connected.'},503)}}
 export async function POST(request:Request){
  if(!sameSiteWrite(request))return reply({error:'Open this action from the same website.'},403);
  try{
@@ -67,6 +71,28 @@ export async function POST(request:Request){
   if(input.action==='disable'){
    if(typeof input.memberId!=='string'||input.memberId===user.id)return reply({error:'Choose a different member.'},400);
    await accessStore.disable(input.memberId);return reply({ok:true});
+  }
+  if(input.action==='set_role'){
+   if(typeof input.memberId!=='string'||input.memberId===user.id||!validRole(input.role))return reply({error:'Choose a different member and a valid role.'},400);
+   const member=await accessStore.setRole(input.memberId,input.role);if(!member)return reply({error:'That member no longer exists.'},404);
+   return reply({member});
+  }
+  if(input.action==='restore'){
+   if(typeof input.memberId!=='string'||input.memberId===user.id)return reply({error:'Choose a different member.'},400);
+   const member=await accessStore.restore(input.memberId);if(!member)return reply({error:'That member no longer exists.'},404);
+   return reply({member});
+  }
+  if(input.action==='approve_request'){
+   if(typeof input.requestId!=='string'||!validRole(input.role))return reply({error:'Choose a valid role.'},400);
+   let member;
+   try{member=await accessStore.approveAccessRequest(input.requestId,input.role,Date.now())}
+   catch(error){if(error instanceof AccessIdentityConflictError)return reply({error:error.message},409);throw error}
+   if(!member)return reply({error:'That request is no longer waiting.'},404);
+   return reply({member},201);
+  }
+  if(input.action==='decline_request'){
+   if(typeof input.requestId!=='string')return reply({error:'Invalid request'},400);
+   await accessStore.declineAccessRequest(input.requestId);return reply({ok:true});
   }
   return reply({error:'Unknown action'},400);
  }catch(error){if(error instanceof SyntaxError)return reply({error:'Invalid request'},400);if(error instanceof Error&&error.message==='request_too_large')return reply({error:'Request is too large'},413);if(error instanceof AccessInvariantError)return reply({error:error.message},409);const code=typeof (error as {code?:unknown})?.code==='string'?(error as {code:string}).code:'unknown';console.error('access_api_error',{name:error instanceof Error?error.name:'UnknownError',code});return reply({error:'Sign-in is temporarily unavailable. Existing graphics devices remain connected.'},503)}

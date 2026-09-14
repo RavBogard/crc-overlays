@@ -21,3 +21,6 @@
 .spin{animation:access-spin 1s linear infinite}@keyframes access-spin{to{transform:rotate(360deg)}}
 @media(max-width:760px){.access-stage{width:min(100% - 24px,520px);padding-top:24px}.access-card{margin-top:3vh;padding:27px}.access-welcome{align-items:flex-start;padding:21px;flex-direction:column}.access-destinations,.access-owner-grid{grid-template-columns:1fr}.access-quiet{width:100%}.member-remove span{display:none}}
 @media(prefers-reduced-motion:reduce){.spin{animation:none}}
+
+.member-actions{display:flex;align-items:center;justify-content:flex-end;gap:6px;flex-wrap:wrap}.member-actions select{width:auto;margin:0;padding:6px 26px 6px 8px;font-size:11px}.member-approve{width:auto;margin:0!important;padding:7px 12px!important;font-size:11px}.member-restore{padding:7px 9px!important;background:transparent!important;color:#9fd8c4!important;font-size:10px}.access-requests{margin-bottom:16px;border-color:#5f8f80}.request-row{grid-template-columns:38px minmax(0,1fr) auto}
+@media(max-width:760px){.member-row,.request-row{grid-template-columns:38px minmax(0,1fr)}.member-actions{grid-column:1/-1;justify-content:flex-start}}

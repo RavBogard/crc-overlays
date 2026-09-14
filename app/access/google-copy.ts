@@ -10,6 +10,7 @@ export const GOOGLE_NOTICE_CODES = [
   "signed_in",
   "removed",
   "no_access",
+  "requested",
   "linked",
   "already_linked",
   "confirm",
@@ -54,6 +55,11 @@ const NOTICES: Record<Exclude<GoogleNoticeCode, "signed_in" | "linked" | "confir
     text:
       "This Google account isn't connected to anyone in this workspace. Ask your congregation's administrator for an invitation, or sign in with your password and choose Link Google account.",
     kind: "error",
+  },
+  requested: {
+    text:
+      "Your request to join this workspace is in. An administrator will review it, and Continue with Google will work here once it's approved.",
+    kind: "success",
   },
   already_linked: { text: "That Google account is already linked to a different member here.", kind: "error" },
   mismatch: { text: "That sign-in attempt expired or didn't match this browser. Try again.", kind: "error" },

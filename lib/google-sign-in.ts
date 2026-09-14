@@ -56,12 +56,16 @@ export interface GoogleIdentityStore {
  takeSignInFlow(hash:string,now:number):Promise<SignInFlow|null>;
  memberById(memberId:string):Promise<AccessMember|null>;
  invitationTarget(inviteHash:string,now:number):Promise<{memberId:string;email:string}|null>;
+ /** For the `signin` row that finds no member: is this address an enabled member's (then they link from their own account), and otherwise record the request. */
+ memberByEmail(email:string):Promise<AccessMember|null>;
+ recordAccessRequest(identity:GoogleIdentity,now:number):Promise<void>;
 }
 
 export type GoogleOutcome=
  |{code:'signed_in';member:AccessMember}
  |{code:'removed'}
  |{code:'no_access'}
+ |{code:'requested'}
  |{code:'linked';member:AccessMember}
  |{code:'already_linked'}
  |{code:'confirm';flow:SignInFlow}
@@ -159,7 +163,7 @@ export async function completeGoogleCallback(config:Configuration,callbackUrl:UR
  if(!claims)throw new GoogleMismatchError('Google returned no identity token');
  const email=typeof claims.email==='string'?claims.email.trim().toLowerCase():'';
  if(!email)throw new GoogleMismatchError('Google returned no email address');
- return {provider:'google',issuer:claims.iss,subject:claims.sub,email,emailVerified:claims.email_verified===true||claims.email_verified==='true'};
+ return {provider:'google',issuer:claims.iss,subject:claims.sub,email,emailVerified:claims.email_verified===true||claims.email_verified==='true',name:typeof claims.name==='string'?claims.name:''};
 }
 
 const sameEmail=(a:string,b:string)=>a.trim().toLowerCase()===b.trim().toLowerCase();
@@ -167,7 +171,8 @@ const hold=(flow:SignInFlow,identity:GoogleIdentity):SignInFlow=>({...flow,pendi
 
 /**
  * The PLAN.md callback decision table, row for row. Pure: the only write it performs is the
- * `linkIdentity` of a verified same-email link. `no_access`, `removed`, `already_linked`,
+ * `linkIdentity` of a verified same-email link, and `recordAccessRequest` for a `requested`
+ * outcome (one request row, nothing else). `no_access`, `removed`, `already_linked`,
  * `invite_invalid` and `confirm` write nothing; `confirm` returns the flow to re-store so the
  * caller can mint a fresh cookie token for it. Redemption is returned, not performed, so the
  * session-issuing code stays in one place (`store.redeem(..., identity)` in the route).
@@ -175,7 +180,17 @@ const hold=(flow:SignInFlow,identity:GoogleIdentity):SignInFlow=>({...flow,pendi
 export async function resolveGoogleCallback(flow:SignInFlow,identity:GoogleIdentity,store:GoogleIdentityStore,now:number):Promise<GoogleOutcome>{
  if(flow.kind==='signin'){
   const existing=await store.memberForIdentity(identity,now);
-  if(!existing)return {code:'no_access'};
+  if(!existing){
+   // Nobody holds this Google account. A verified address that belongs to an enabled member
+   // is told to link from their own account (an address alone never signs anyone in); anyone
+   // else is recorded as a request for an administrator to approve or decline. No session,
+   // no member, no role is granted here.
+   if(!identity.emailVerified)return {code:'no_access'};
+   const named=await store.memberByEmail(identity.email);
+   if(named?.enabled)return {code:'no_access'};
+   await store.recordAccessRequest(identity,now);
+   return {code:'requested'};
+  }
   if(!existing.enabled)return {code:'removed'};
   return {code:'signed_in',member:existing};
  }

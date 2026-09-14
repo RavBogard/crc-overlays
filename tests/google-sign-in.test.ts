@@ -149,6 +149,9 @@ class FakeStore implements GoogleIdentityStore {
  }
  async memberById(memberId:string){const found=this.members.get(memberId);return found?{...found}:null}
  async invitationTarget(inviteHash:string){return this.invitations.get(inviteHash)??null}
+ requests:Array<{identity:GoogleIdentity;now:number}>=[];
+ async memberByEmail(email:string){for(const found of this.members.values())if(found.email.toLowerCase()===email.trim().toLowerCase())return {...found};return null}
+ async recordAccessRequest(identity:GoogleIdentity,now:number){this.requests.push({identity,now})}
 }
 
 const identityOf=(email:string,subject='google-subject-1',emailVerified=true):GoogleIdentity=>({provider:'google',issuer:'https://issuer.test',subject,email,emailVerified});
@@ -224,7 +227,7 @@ test('a completed callback yields the verified identity and proves the code veri
   const {url,flow}=await beginGoogleFlow(config,{redirectUri:REDIRECT,kind:'signin'});
   const code=issuer.authorize(url);
   const identity=await completeGoogleCallback(config,new URL(`${REDIRECT}?code=${code}&state=${flow.state}`),flow);
-  assert.deepEqual(identity,{provider:'google',issuer:'https://issuer.test',subject:'google-subject-1',email:'owner@crc.example',emailVerified:true});
+  assert.deepEqual(identity,{provider:'google',issuer:'https://issuer.test',subject:'google-subject-1',email:'owner@crc.example',emailVerified:true,name:'Owner Example'});
   assert.deepEqual(issuer.tokenCalls,[{code,codeVerifier:flow.codeVerifier,redirectUri:REDIRECT,clientId:CLIENT_ID}]);
   assert.equal(issuer.counts.token,1);
   // The single-use code is spent; a replay is a mismatch, not a second identity.
@@ -416,4 +419,28 @@ test('one Google identity maps independently in each congregation database',asyn
   assert.equal(tbiSignIn.member.role,'operator');
  }
  assert.equal(crc.members.size,1);assert.equal(tbi.members.size,1,'nothing ever creates a member');
+});
+
+test('signin: an unknown verified account is recorded as a request; an unverified one or an enabled member\'s address is not',async()=>{
+ const store=new FakeStore();
+ assert.equal(googleReturnPath('requested'),'/access?google=requested');
+ const stranger=identityOf('stranger@example.org','google-subject-9');
+ assert.deepEqual(await resolveGoogleCallback(flowOf({kind:'signin'}),stranger,store,10),{code:'requested'});
+ assert.equal(store.requests.length,1);
+ assert.equal(store.requests[0].identity.subject,'google-subject-9');
+ assert.equal(store.requests[0].now,10);
+ assert.equal(store.linkCalls,0,'a request never links');
+ assert.equal(store.members.size,0,'a request never creates a member');
+
+ const unverified=identityOf('unverified@example.org','google-subject-8',false);
+ assert.deepEqual(await resolveGoogleCallback(flowOf({kind:'signin'}),unverified,store,11),{code:'no_access'});
+ assert.equal(store.requests.length,1,'an unverified address is not queued');
+
+ store.add(member('member-2','known@crc.example'));
+ assert.deepEqual(await resolveGoogleCallback(flowOf({kind:'signin'}),identityOf('Known@CRC.example','google-subject-7'),store,12),{code:'no_access'},'an enabled member links from their own account instead');
+ assert.equal(store.requests.length,1);
+
+ store.add(member('member-3','invited@crc.example',false));
+ assert.deepEqual(await resolveGoogleCallback(flowOf({kind:'signin'}),identityOf('invited@crc.example','google-subject-6'),store,13),{code:'requested'},'an invited member who never opened the link may ask instead');
+ assert.equal(store.requests.length,2);
 });

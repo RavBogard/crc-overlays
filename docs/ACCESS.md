@@ -57,16 +57,45 @@ Google address is not the address on the membership, nothing is linked silently:
 confirmation card names both addresses and asks before anything is written, and **Cancel**
 leaves the membership untouched.
 
-What administrators need to know. Google establishes identity; it never grants access. No
-membership is ever created from a Google account, and linking or unlinking never changes a
-role or re-enables a removed member. A Google account that nobody has invited is told that
-it isn't connected to anyone in this workspace and is asked to seek an invitation — it
-receives no session. A removed member's Google sign-in reports that their access has been
-removed. Unlink is refused when the member has no password, so no one can remove their own
+What administrators need to know. Google establishes identity; it never grants access by
+itself. Nothing creates a membership from a Google account without an administrator's
+decision, and linking or unlinking never changes a role or re-enables a removed member. A
+Google account that nobody has invited receives no session: if its verified address belongs
+to an enabled member it is told to sign in with the password and choose **Link Google
+account**; otherwise it becomes a request to join (next section) and the person is told an
+administrator will review it. A removed member's Google sign-in reports that their access has
+been removed. Unlink is refused when the member has no password, so no one can remove their own
 last way in. One member holds at most one Google account and one Google account maps to at
 most one member, per workspace; the two congregations have separate databases, so the same
 Google account can be linked in both, independently, with whatever role each congregation
 gave it.
+
+## Requests to join, and administering members
+
+Someone who presses **Continue with Google** without being a member is not turned away.
+Their request is recorded — the name and address Google reported, when they first asked, and
+how many times — and they see: "Your request to join this workspace is in. An administrator
+will review it, and Continue with Google will work here once it's approved." Nothing is sent
+to anyone; the request simply waits.
+
+Administrators see a **Waiting for approval** panel at the top of the account page whenever
+requests exist. Each row names the person and the address, says how long ago they asked, and
+offers an access menu (Editor by default) with **Approve** and **Decline**. Approve creates
+the membership with the chosen role and links that Google account to it in one step, so the
+person's next **Continue with Google** signs them in; if the address already belonged to an
+invited member who never opened their link, that membership is enabled instead and the
+unopened invitation is withdrawn. Decline removes the request and changes nothing else; the
+person may ask again later. A request whose Google account is somehow already linked to
+another member is refused with the same wording as any other duplicate link, and stays
+listed.
+
+The **People with access** list tells the off states apart: **Active**, **Invited · link
+expires in …** (the invitation has not been opened), **Invitation expired**, and **Removed**.
+Beside each active member an administrator can change the role with the access menu or
+**Remove** them; a removed member shows **Restore**, which brings them back with the role
+they had, their password and any linked Google account intact. Administrators cannot change
+or remove their own membership from this list, and the workspace always keeps at least one
+enabled administrator — a role change that would break that is refused.
 
 Where it works. Google sign-in is available on the two production addresses and on
 localhost during development. Vercel preview deployments get generated hostnames that
@@ -85,8 +114,9 @@ configuration record. The callback address is the workspace's own address follow
 a name, an email address, and confirmation that the address is verified; it stores no
 Google token and never asks for offline access.
 
-Migration. The link records live in tables added by `db/access-identities.sql`, which
-`scripts/migrate-authoring.mjs` applies after `db/access.sql`. Run the migration against a
+Migration. The link records live in tables added by `db/access-identities.sql`, and the
+requests in `db/access-requests.sql`; `scripts/migrate-authoring.mjs` applies both after
+`db/access.sql`. Run the migration against a
 workspace's database before deploying Google sign-in to it. If a deployment arrives first,
 nothing that was already working breaks: the sign-in page still renders, the Google routes
 answer that sign-in is unavailable, and password, invitation and bootstrap sign-in are

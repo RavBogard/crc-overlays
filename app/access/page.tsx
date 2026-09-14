@@ -1,6 +1,6 @@
 'use client';
 
-import {Check,Copy,KeyRound,LibraryBig,LoaderCircle,MonitorUp,ShieldCheck,UserMinus,Users} from 'lucide-react';
+import {Check,Copy,KeyRound,LibraryBig,LoaderCircle,MonitorUp,ShieldCheck,UserMinus,UserPlus,Users} from 'lucide-react';
 import Link from 'next/link';
 import {useRouter} from 'next/navigation';
 import {useCallback,useEffect,useRef,useState} from 'react';
@@ -8,10 +8,12 @@ import './access.css';
 import WorkspaceHeader from '@/components/workspace-header';
 import {resetAccessUserCache} from '@/lib/access-client';
 import {GOOGLE_UNLINKED_TEXT,googleBlockState,googleConfirmPrompt,googleNotice,readGoogleCode,type GoogleConfirmDetails,type GoogleSignInState} from './google-copy';
+import {memberStanding,requestAgeText,standingText,type PendingInvitation} from './member-status';
 
 type Role='owner'|'editor'|'operator';
 type Member={id:string;name:string;email:string;role:Role;enabled:boolean;hasPassword?:boolean;google?:{linked:boolean;email:string|null}};
-type ApiBody={user?:Member|null;members?:Member[];member?:Member;url?:string;hasPassword?:boolean;error?:string;googleSignIn?:GoogleSignInState;google?:string};
+type AccessRequest={id:string;email:string;name:string;requestedAt:number;lastSeenAt:number;attempts:number};
+type ApiBody={user?:Member|null;members?:Member[];member?:Member;invitations?:PendingInvitation[];requests?:AccessRequest[];url?:string;hasPassword?:boolean;error?:string;googleSignIn?:GoogleSignInState;google?:string};
 
 const roleLabel:Record<Role,string>={owner:'Administrator',editor:'Editor',operator:'Operator'};
 
@@ -23,6 +25,10 @@ export default function AccessPage(){
  const router=useRouter();
  const [user,setUser]=useState<Member|null>(null);
  const [members,setMembers]=useState<Member[]>([]);
+ const [invitations,setInvitations]=useState<PendingInvitation[]>([]);
+ const [requests,setRequests]=useState<AccessRequest[]>([]);
+ /** The role chosen for each waiting request before Approve; Editor until changed. */
+ const [requestRoles,setRequestRoles]=useState<Record<string,Role>>({});
  const [token,setToken]=useState('');
  const [message,setMessage]=useState('');
  const [messageKind,setMessageKind]=useState<'error'|'success'>('success');
@@ -46,20 +52,22 @@ export default function AccessPage(){
  const googleReturn=useRef<ReturnType<typeof readGoogleCode>|undefined>(undefined);
 
  const notice=(text:string,kind:'error'|'success'='success')=>{setMessage(text);setMessageKind(kind)};
+ /** The clock the standing labels and request ages are measured against; refreshed with the lists, never read during render. */
+ const [now,setNow]=useState(0);
 
  const refresh=useCallback(async():Promise<Member|null>=>{
   try{
    const response=await fetch('/api/access?manage=1',{cache:'no-store'});
    const body=await bodyOf(response);
-   if(response.ok){setUser(body.user??null);setMembers(body.members??[]);setGoogleSignIn(body.googleSignIn??null);return body.user??null}
+   if(response.ok){setUser(body.user??null);setMembers(body.members??[]);setInvitations(body.invitations??[]);setRequests(body.requests??[]);setNow(Date.now());setGoogleSignIn(body.googleSignIn??null);return body.user??null}
    if(response.status===403){
     const profileResponse=await fetch('/api/access',{cache:'no-store'});
     const profile=await bodyOf(profileResponse);
-    if(profileResponse.ok){setUser(profile.user??null);setMembers([]);setGoogleSignIn(profile.googleSignIn??null);return profile.user??null}
-    if(profileResponse.status===401){setUser(null);setMembers([]);setGoogleSignIn(profile.googleSignIn??null);return null}
+    if(profileResponse.ok){setUser(profile.user??null);setMembers([]);setInvitations([]);setRequests([]);setGoogleSignIn(profile.googleSignIn??null);return profile.user??null}
+    if(profileResponse.status===401){setUser(null);setMembers([]);setInvitations([]);setRequests([]);setGoogleSignIn(profile.googleSignIn??null);return null}
     throw Error(profile.error||'Your sign-in could not be checked.');
    }
-   if(response.status===401){setUser(null);setMembers([]);setGoogleSignIn(body.googleSignIn??null);return null}
+   if(response.status===401){setUser(null);setMembers([]);setInvitations([]);setRequests([]);setGoogleSignIn(body.googleSignIn??null);return null}
    throw Error(body.error||'Your sign-in could not be checked.');
   }catch(error){
    notice(error instanceof Error?error.message:'Your sign-in could not be checked.','error');
@@ -140,6 +148,10 @@ export default function AccessPage(){
     await refresh();
     return;
    }
+   if(payload.action==='approve_request'){notice(`${body.member?.name??'Member'} approved. Continue with Google now signs them in.`);await refresh();return}
+   if(payload.action==='decline_request'){notice('Request declined. Nothing else changed.');await refresh();return}
+   if(payload.action==='set_role'){notice(`${body.member?.name??'Member'} is now ${roleLabel[body.member?.role??'editor']}.`);await refresh();return}
+   if(payload.action==='restore'){notice(`${body.member?.name??'Member'} can sign in again.`);await refresh();return}
    if(body.url){
     setInvite(body.url);
     setName('');setEmail('');setRole('editor');
@@ -231,6 +243,11 @@ export default function AccessPage(){
        </form>{googleReason}</>}
     </section>}
 
+    {user.role==='owner'&&requests.length>0&&<section className="access-panel access-requests">
+     <div className="access-panel-heading"><span><UserPlus size={18}/></span><div><h2>Waiting for approval</h2><p>These people signed in with Google but aren’t members yet. Approving one creates their membership and links that Google account. Nothing is sent to them.</p></div></div>
+     <div className="member-list">{requests.map(request=><article className="member-row request-row" key={request.id}><div className="member-avatar" aria-hidden>{(request.name||request.email).slice(0,1).toUpperCase()}</div><div><strong>{request.name||request.email}</strong><small>{request.email}</small><span>Asked {requestAgeText(request.requestedAt,now)}{request.attempts>1?` · tried ${request.attempts} times`:''}</span></div><div className="member-actions"><select aria-label={`Access for ${request.name||request.email}`} value={requestRoles[request.id]??'editor'} disabled={busy} onChange={event=>setRequestRoles(current=>({...current,[request.id]:event.target.value as Role}))}><option value="editor">Editor</option><option value="operator">Operator</option><option value="owner">Administrator</option></select><button className="access-primary member-approve" disabled={busy} onClick={()=>void act({action:'approve_request',requestId:request.id,role:requestRoles[request.id]??'editor'})}>Approve</button><button className="member-remove" disabled={busy} onClick={()=>void act({action:'decline_request',requestId:request.id})}>Decline</button></div></article>)}</div>
+    </section>}
+
     {user.role==='owner'&&<div className="access-owner-grid">
      <section className="access-panel">
       <div className="access-panel-heading"><span><Users size={18}/></span><div><h2>Invite someone</h2><p>Create a private, one-time link. Nothing is sent automatically.</p></div></div>
@@ -244,8 +261,8 @@ export default function AccessPage(){
      </section>
 
      <section className="access-panel member-panel">
-      <div className="access-panel-heading"><span><ShieldCheck size={18}/></span><div><h2>People with access</h2><p>Removing access invalidates that person’s sessions and links.</p></div></div>
-      <div className="member-list">{members.length?members.map(member=><article className="member-row" key={member.id}><div className="member-avatar" aria-hidden>{member.name.slice(0,1).toUpperCase()}</div><div><strong>{member.name}</strong><small>{member.email}</small><span>{roleLabel[member.role]} · {member.enabled?'Enabled':'Disabled'}</span></div>{member.enabled&&member.id!==user.id&&<button className="member-remove" disabled={busy} onClick={()=>void act({action:'disable',memberId:member.id})} aria-label={`Remove ${member.name}`}><UserMinus size={16}/><span>Remove</span></button>}</article>):<p className="member-empty">No members to show.</p>}</div>
+      <div className="access-panel-heading"><span><ShieldCheck size={18}/></span><div><h2>People with access</h2><p>Change someone’s access with the menu, or remove them. Removing access ends their sessions and links; Restore brings a removed person back with the same role.</p></div></div>
+      <div className="member-list">{members.length?members.map(member=><article className="member-row" key={member.id}><div className="member-avatar" aria-hidden>{member.name.slice(0,1).toUpperCase()}</div><div><strong>{member.name}</strong><small>{member.email}</small><span>{roleLabel[member.role]} · {standingText(member,invitations,now)}</span></div><div className="member-actions">{member.enabled&&member.id!==user.id&&<select aria-label={`Access for ${member.name}`} value={member.role} disabled={busy} onChange={event=>void act({action:'set_role',memberId:member.id,role:event.target.value as Role})}><option value="editor">Editor</option><option value="operator">Operator</option><option value="owner">Administrator</option></select>}{member.enabled&&member.id!==user.id&&<button className="member-remove" disabled={busy} onClick={()=>void act({action:'disable',memberId:member.id})} aria-label={`Remove ${member.name}`}><UserMinus size={16}/><span>Remove</span></button>}{memberStanding(member,invitations,now)==='removed'&&<button className="member-restore" disabled={busy} onClick={()=>void act({action:'restore',memberId:member.id})} aria-label={`Restore ${member.name}`}><UserPlus size={16}/><span>Restore</span></button>}</div></article>):<p className="member-empty">No members to show.</p>}</div>
      </section>
     </div>}
    </div>
