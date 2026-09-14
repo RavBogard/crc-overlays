@@ -33,6 +33,7 @@ if(expanded.coverage?.totals?.usableUnits!==expanded.sources.length)fail(`Browsa
 const forbiddenNames=new Set(['.env','.env.local','.env.production','.git','keys.json','connections.md','private-crc-access.txt']);
 const allowedInstallArtifacts=new Set([
  'public/workspaces/temple-bnai-israel/downloads/tbi-overlays-1.3.0.tgz',
+ 'public/workspaces/temple-bnai-israel/downloads/tbi-overlays-1.4.0.tgz',
  'public/workspaces/temple-bnai-israel/downloads/tbi-morning-page-1.companionconfig',
  'public/workspaces/temple-bnai-israel/downloads/tbi-morning-page-2.companionconfig',
 ]);

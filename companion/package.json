@@ -1,6 +1,6 @@
 {
   "name": "companion-module-crc-overlays",
-  "version": "1.3.0",
+  "version": "1.4.0",
   "description": "Bitfocus Companion controls and truthful renderer feedback for CRC Overlays",
   "license": "MIT",
   "type": "module",

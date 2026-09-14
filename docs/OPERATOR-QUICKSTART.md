@@ -1,12 +1,23 @@
 # CRC overlay operator quick start
 
+## Set this computer up once
+
+Do this once per computer, on module 1.4.0 or newer. After it, nothing is pasted again.
+
+1. On `/setup`, name the Companion computer under **Name this computer (for example, Sanctuary PC)** and press **Pair this Companion**. The page shows six digits and says **Enter this code in Companion within 10 minutes**.
+2. In Companion, put those six digits in the connection's **Pairing code** field and save. The module stores a **Device token** itself and clears the code. The code is single use and expires after ten minutes; ask for a fresh one if it lapses.
+3. On `/setup`, name the output computer and press **Create an output connection**, then **Copy the graphics URL**. Paste it into the 1920 × 1080 browser input in OBS or vMix, transparency enabled. **It keeps working after restarts** — the compositor's scene file now holds the connection, so nobody re-enters a key after a restart.
+
+**Control key** is the older shared key. If it is set it is used instead of the device token, so a connection set up before 1.4.0 keeps working untouched and does not have to be paired. **Copy private output URL** likewise still hands out the older output URL; it is the transitional path for a workspace that has not moved over.
+
+If a code is refused, nothing changes: the previous credential stays and the refusal shows as the connection status.
+
 ## Before rehearsal
 
-1. On the control page, expand **Connect vMix, OBS, or Companion** and press **Copy output URL**. The private renderer URL is also in `work/CONNECTIONS.md`.
-2. Open Companion at `http://localhost:8000`. Confirm the **CRC Overlays** connection is enabled and healthy.
-3. Open the renderer as a 1920 × 1080 browser input in OBS or vMix. Keep transparency enabled.
-4. After cues are published, use the CRC module's **Refresh cue catalog** action before expecting new cue choices or presets.
-5. Verify the program monitor before rehearsal begins. Companion feedback reports renderer acknowledgement, not what is on air.
+1. Open Companion at `http://localhost:8000`. Confirm the **CRC Overlays** connection is enabled and healthy.
+2. Confirm the graphics browser input is open. `/health` says **Companion connected** with the module version and how long ago it was last seen, or **No Companion connected**.
+3. After graphics are published, use the CRC module's **Refresh cue catalog** action before expecting new choices or presets.
+4. Verify the program monitor before rehearsal begins. Companion feedback reports renderer acknowledgement, not what is on air.
 
 ## During the service
 
@@ -15,6 +26,25 @@
 - Use **Clear now** when the graphic must disappear immediately.
 - If feedback becomes unavailable, stop issuing cues until the renderer connection is understood. Hide the browser source if a safe recovery is not immediate.
 - Do not edit or publish cues from the live operating surface during a service.
+
+## Button text and presets
+
+Two presets come ready to drop onto a button: **Connection and current graphic** and **Current panel**. Both live in the connection's **Presets**, beside the per-graphic toggles.
+
+Button text can show any of these variables. The prefix is the connection's name, so `$(overlays:current_name)` reads a connection named `overlays`.
+
+| Variable | Shown as | Meaning |
+| --- | --- | --- |
+| `current_name` | Current graphic | The graphic a connected graphics browser reports rendered. Blank while nothing is confirmed rendered. |
+| `current_panel` | Current panel | That graphic's panel number, read from its published name (`Mah Tovu — 01 of 03`). Blank when the name is not multipart. |
+| `panel_count` | Panels | How many panels that name declares. Blank when the name is not multipart. |
+| `connection` | Connection | `Connected`, `Reconnecting`, or `Disconnected`. Reconnecting is the 3 second grace window before red. |
+| `requested_name` | Requested graphic | The graphic that was asked for, which may not be rendered yet. |
+| `requested_cue` | Requested cue | The same value under its 1.3.0 name, kept so existing buttons do not break. |
+| `revision` | Requested revision | The revision of the current request. |
+| `renderer_status` | Renderer status | `Rendered`, `Requested`, or `Disconnected`. |
+
+`current_panel` and `panel_count` are read from the published multipart name convention and are blank whenever a name does not match it. They are never guessed.
 
 ## Author or correct a cue
 
@@ -72,3 +102,5 @@ The script reads gzip or plain JSON, accepts only page 2 named **CRC Morning Reh
 - Renderer disconnected: hide the browser source, restore the renderer connection, and verify a rehearsal cue before returning it to program.
 - Companion catalog stale: refresh the native cue catalog; do not rebuild the connection during a live service.
 - Published cue is wrong: choose the intended published revision in the editor and perform an explicit rollback, then refresh Companion.
+- A computer must stop controlling graphics: an administrator opens `/access`, finds it under **Paired devices**, and presses **Revoke**. That device stops at its next reconnection; a connection that is already open is not interrupted. To stop a picture immediately, take the browser input off program at the switcher.
+- A device was revoked by mistake, or the pairing is lost: pair the computer again from `/setup`. A new code and a new device token replace the old ones; nothing else on the computer changes.
