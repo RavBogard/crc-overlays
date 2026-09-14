@@ -299,6 +299,35 @@ test('import_cue seeds a workspace starter graphic under the workspace id',async
  });
 });
 
+// list_catalog and list_templates enumerate baselineCatalogForWorkspace() - the same seam
+// lib/server.ts mergePublishedCatalog reads for the live catalog - so a TBI editor never sees
+// the CRC id underneath one of its starter graphics in either listing.
+test('list_catalog and list_templates emit workspace ids on TBI and stay unchanged on CRC',async()=>{
+ const service=createAuthoringService(new MemoryAuthoringRepository());
+ const crcCatalog=await service.operation('list_catalog',{},'tester') as ListCatalogResult;
+ const crcTemplates=await service.operation('list_templates',{},'tester') as ListTemplatesResult;
+ assert.deepEqual(crcCatalog.cues.map(cue=>cue.id).sort(),baselineCues.map(cue=>cue.id).sort(),'CRC catalog ids are unchanged');
+ assert.deepEqual(crcTemplates.templates.map(t=>t.id).sort(),baselineCues.filter(cue=>!cue.hidden).map(cue=>cue.id).sort(),'CRC template ids are unchanged');
+ const crcBarechuCatalog=crcCatalog.cues.find(cue=>cue.id===BARECHU)!;
+ assert.ok(crcBarechuCatalog,'CRC catalog still carries its own Barechu id');
+ assert.equal(crcBarechuCatalog.origin,'canonical');
+ const crcBarechuTemplate=crcTemplates.templates.find(t=>t.id===BARECHU)!;
+ assert.equal(crcBarechuTemplate.importable,true);
+
+ await withWorkspace(TBI_WORKSPACE,async()=>{
+  const tbiCatalog=await service.operation('list_catalog',{},'tester') as ListCatalogResult;
+  const tbiTemplates=await service.operation('list_templates',{},'tester') as ListTemplatesResult;
+  assert.ok(tbiCatalog.cues.some(cue=>cue.id===TBI_BARECHU),'list_catalog exposes TBI_BARECHU under the workspace id');
+  assert.equal(tbiCatalog.cues.some(cue=>cue.id===BARECHU),false,'list_catalog never leaks the CRC Barechu id on TBI');
+  const tbiBarechuCatalog=tbiCatalog.cues.find(cue=>cue.id===TBI_BARECHU)!;
+  assert.equal(tbiBarechuCatalog.name,baselineCues.find(cue=>cue.id===BARECHU)!.name,'the TBI catalog name is what TBI publishes');
+  assert.equal(tbiBarechuCatalog.origin,'canonical','origin detection still resolves through the CRC source id');
+  assert.equal(tbiBarechuCatalog.editAction,'import');
+  assert.ok(tbiTemplates.templates.some(t=>t.id===TBI_BARECHU&&t.importable===true),'list_templates exposes TBI_BARECHU under the workspace id');
+  assert.equal(tbiTemplates.templates.some(t=>t.id===BARECHU),false,'list_templates never leaks the CRC Barechu id on TBI');
+ });
+});
+
 test('the editor panel budget agrees with the server prayer split',async()=>{
  const service=createAuthoringService(new MemoryAuthoringRepository());
  const canonical=sourcePack.sources.find(source=>source.id===KOL_NIDRE)!;
