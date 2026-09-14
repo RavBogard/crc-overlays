@@ -87,4 +87,4 @@ before "disconnected" absorbs that, so the deck should not flash red.
 From `relay/`, per worker — the two are independent: `npx wrangler deployments list [--env tbi]`
 then `npx wrangler rollback [--env tbi]`. Note the version id you rolled back to in the release
 folder. First planned use of this procedure: the pending renderer-expiry fix (`rendererExpired`
-made inclusive in `relay/src/protocol.ts`), unreleased since the 13 Sept afternoon release.
+made inclusive in `relay/src/protocol.ts`) — released 2026-09-14 01:29Z from `22a2bfd` to both workers (record under `work/deploy-staging/releases/22a2bfd…/relay.json`).
