@@ -53,8 +53,12 @@ test('every expanded block preserves exact bilingual, original English, or class
 
 test('source authorities and coverage are complete and internally consistent',()=>{
  const authorityIds=new Set(siddurLibrary.authorities.map(authority=>authority.id));
- assert.equal(authorityIds.size,12);
- assert.equal(siddurLibrary.coverage.books.length,12);
+ // One authority and one coverage entry per book on the shelf. The shelf grows with the regenerated
+ // library, so the count is read from the sources rather than written down.
+ const shelf=new Set((siddurLibrary.sources as LibrarySource[]).map(source=>source.book));
+ assert.ok(shelf.size>=12);
+ assert.equal(authorityIds.size,shelf.size);
+ assert.equal(siddurLibrary.coverage.books.length,shelf.size);
  for(const source of siddurLibrary.sources as LibrarySource[]){
   assert.ok(authorityIds.has(source.origin));
   assert.equal(source.origin,source.authority.id);
@@ -64,7 +68,7 @@ test('source authorities and coverage are complete and internally consistent',()
  }
 
  const totals=siddurLibrary.coverage.totals as Record<string,number|Record<string,number>>;
- assert.equal(totals.books,12);
+ assert.equal(totals.books,shelf.size);
  assert.equal(totals.usableUnits,siddurLibrary.sources.length);
  assert.equal(
   totals.pairedBilingualBlocks,
@@ -74,7 +78,8 @@ test('source authorities and coverage are complete and internally consistent',()
   totals.originalEnglishBlocks,
   siddurLibrary.sources.flatMap(source=>source.blocks).filter(block=>block.kind==='original-en').length,
  );
- assert.equal(totals.originalEnglishBlocks,194,'explicit original English remains distinct');
+ // 194 at the 2026-09-06 build; the regenerated library only ever adds volumes, so the floor holds.
+ assert.ok((totals.originalEnglishBlocks as number)>=194,'explicit original English remains distinct');
  assert.equal(
   totals.sourceEnglishBlocks,
   siddurLibrary.sources.flatMap(source=>source.blocks).filter(block=>block.kind==='source-en'||(block.kind==='bilingual'&&Boolean(block.en))).length,
