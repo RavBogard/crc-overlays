@@ -6,6 +6,9 @@ export const MAX_REQUEST_BYTES=MAX_CATALOG_BYTES+MAX_SNAPSHOT_BYTES;
 // Leave room for revision, renderer presence, and event framing around a pinned cue.
 export const MAX_CUE_PAYLOAD_BYTES=MAX_SNAPSHOT_BYTES-4096;
 export const MAX_RECEIPTS=2048;
+// Controller presence is unbounded on the wire (any signed-in browser tab is one),
+// so the reported set is capped; 32 entries are ~3 KB, far inside MAX_SNAPSHOT_BYTES.
+export const MAX_CONTROLLERS=32;
 export const STALE_MS=30_000;
 // Inclusive: a renderer last seen exactly STALE_MS ago is expired, so an alarm that
 // fires precisely on the deadline both drops the renderer and reschedules correctly.
@@ -17,10 +20,15 @@ export type Phase='settled'|'transition'|'error';
 export type CuePayload=Record<string,unknown>;
 export type ApprovedCatalog={version:string;cues:CuePayload[]};
 export type Renderer={id:string;revision:number;cue:string|null;phase:Phase;seen:number};
+export type ClientKind='companion'|'browser'|'unknown';
+export type Controller={id:string;client:ClientKind;version:string|null;seen:number};
+export type Hello={id:string;client:ClientKind;version:string|null};
 export type LiveState={revision:number;cue:string|null;mode:Mode;updated:number;cuePayload:CuePayload|null;catalogVersion:string};
-export type Snapshot=LiveState&{renderers:Renderer[];serverTime:number};
+export type Snapshot=LiveState&{renderers:Renderer[];controllers:Controller[];serverTime:number};
 export type Command={action:'in'|'out'|'clear'|'cut';cue:string|null;commandId:string;clientId:string|null;sequence:number|null};
-export type SocketAttachment={role:Role;id:string|null;seen:number;ack:Renderer|null};
+// `client`/`version` are optional: attachments serialized by an earlier worker build
+// survive a deploy without them, and a 1.3.0 hello never carries them.
+export type SocketAttachment={role:Role;id:string|null;client?:ClientKind;version?:string|null;seen:number;ack:Renderer|null};
 export type Ticket={room:'crc';role:Role;exp:number;jti:string};
 
 const tokenPattern=/^[A-Za-z0-9_-]{8,160}$/;
@@ -28,8 +36,26 @@ const uuidPattern=/^[0-9a-f]{8}-[0-9a-f]{4}-[1-8][0-9a-f]{3}-[89ab][0-9a-f]{3}-[
 export const validToken=(value:unknown)=>typeof value==='string'&&tokenPattern.test(value);
 export const validUuid=(value:unknown)=>typeof value==='string'&&uuidPattern.test(value);
 export const validInteger=(value:unknown)=>Number.isSafeInteger(value)&&(value as number)>=0;
+const clientVersionPattern=/^\d+\.\d+\.\d+$/;
+export const parseClientKind=(value:unknown):ClientKind=>value==='companion'||value==='browser'?value:'unknown';
+// A malformed version is data we simply do not have; it is never a reason to close.
+export const parseClientVersion=(value:unknown):string|null=>typeof value==='string'&&value.length<=32&&clientVersionPattern.test(value)?value:null;
 export const validCatalogVersion=(value:unknown)=>typeof value==='string'&&value.length>0&&value.length<=160;
+// Presence derivation shared by the worker and the rehearsal stub so the two cannot
+// drift. Closing an expired socket stays with the caller (it owns the socket); this
+// is only the ranking, the cap and the frame shape.
+export const rankControllers=(controllers:Controller[]):Controller[]=>[...controllers].sort((a,b)=>b.seen-a.seen).slice(0,MAX_CONTROLLERS);
+export const presenceFrame=(renderers:Renderer[],controllers:Controller[],serverTime:number)=>({type:'presence' as const,renderers,controllers,serverTime});
 export const jsonBytes=(value:unknown)=>new TextEncoder().encode(JSON.stringify(value)).byteLength;
+
+// hello keeps its one hard rule (a UUID id, 4400 otherwise); the two fields added in
+// 1.4.0 are optional and degrade to 'unknown'/null so a 1.3.0 module still connects.
+export function parseHello(value:unknown):Hello|null{
+ if(!value||typeof value!=='object'||Array.isArray(value))return null;
+ const input=value as Record<string,unknown>;
+ if(!validUuid(input.id))return null;
+ return {id:input.id as string,client:parseClientKind(input.client),version:parseClientVersion(input.version)};
+}
 
 export function parseCommand(value:unknown):Command|null{
  if(!value||typeof value!=='object'||Array.isArray(value))return null;

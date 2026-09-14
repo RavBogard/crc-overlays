@@ -1,5 +1,5 @@
 import {DurableObject} from 'cloudflare:workers';
-import {MAX_CATALOG_BYTES,MAX_MESSAGE_BYTES,MAX_RECEIPTS,MAX_REQUEST_BYTES,MAX_SNAPSHOT_BYTES,PROTOCOL,STALE_MS,jsonBytes,nextState,parseAck,parseCatalog,parseCommand,parseInitialState,rendererExpired,validCatalogVersion,validInteger,validToken,validUuid,verifyTicket,type ApprovedCatalog,type Command,type CuePayload,type LiveState,type Renderer,type Role,type Snapshot,type SocketAttachment} from './protocol';
+import {MAX_CATALOG_BYTES,MAX_MESSAGE_BYTES,MAX_RECEIPTS,MAX_REQUEST_BYTES,MAX_SNAPSHOT_BYTES,PROTOCOL,STALE_MS,jsonBytes,nextState,parseAck,parseCatalog,parseCommand,parseHello,parseInitialState,presenceFrame,rankControllers,rendererExpired,validCatalogVersion,validInteger,validToken,validUuid,verifyTicket,type ApprovedCatalog,type Command,type Controller,type CuePayload,type LiveState,type Renderer,type Role,type Snapshot,type SocketAttachment} from './protocol';
 
 interface Env{
  LIVE_ROOM:DurableObjectNamespace<LiveRoom>;
@@ -108,11 +108,11 @@ export class LiveRoom extends DurableObject<Env>{
   const pair=new WebSocketPair();
   const client=pair[0],server=pair[1];
   this.ctx.acceptWebSocket(server);
-  const attachment:SocketAttachment={role:role!,id:null,seen:Date.now(),ack:null};
+  const attachment:SocketAttachment={role:role!,id:null,client:'unknown',version:null,seen:Date.now(),ack:null};
   server.serializeAttachment(attachment);
   this.send(server,{type:'snapshot',snapshot:this.snapshot()});
   this.broadcastPresence();
-  if(role==='output')void this.scheduleExpiry();
+  if(role==='output'||role==='control')void this.scheduleExpiry();
   return new Response(null,{status:101,webSocket:client,headers:{'Sec-WebSocket-Protocol':PROTOCOL}});
  }
 
@@ -150,9 +150,24 @@ export class LiveRoom extends DurableObject<Env>{
   }
   return [...renderers.values()].sort((a,b)=>b.seen-a.seen);
  }
+ // Controllers live in Durable Object memory only: the attachments of role 'control'
+ // that have completed a hello, expired on the same inclusive deadline as renderers.
+ private currentControllers(exclude?:WebSocket){
+  const now=Date.now();
+  const controllers:Controller[]=[];
+  for(const socket of this.ctx.getWebSockets()){
+   if(socket===exclude)continue;
+   const attachment=socket.deserializeAttachment() as SocketAttachment|null;
+   if(!attachment||attachment.role!=='control')continue;
+   if(rendererExpired(attachment.seen,now)){socket.close(4408,'Heartbeat timeout');continue}
+   if(attachment.id===null)continue;
+   controllers.push({id:attachment.id,client:attachment.client??'unknown',version:attachment.version??null,seen:attachment.seen});
+  }
+  return rankControllers(controllers);
+ }
  private snapshot(exclude?:WebSocket):Snapshot|null{
   const state=this.readState();
-  return state?{...state,renderers:this.currentRenderers(exclude),serverTime:Date.now()}:null;
+  return state?{...state,renderers:this.currentRenderers(exclude),controllers:this.currentControllers(exclude),serverTime:Date.now()}:null;
  }
  private ensureSnapshotSize(snapshot:Snapshot|null){if(jsonBytes(snapshot)>MAX_SNAPSHOT_BYTES)throw new HttpError(413,'Snapshot too large')}
  private initialize(value:unknown){
@@ -164,7 +179,7 @@ export class LiveRoom extends DurableObject<Env>{
   if(state.cue!==null&&state.cuePayload?.id!==state.cue)throw new HttpError(400,'Selected cue payload does not match cue');
   if(state.cue!==null&&!catalog.cues.some(cue=>cue.id===state.cue))throw new HttpError(400,'Selected cue is not in approved catalog');
   if(jsonBytes(catalog)>MAX_CATALOG_BYTES)throw new HttpError(413,'Catalog too large');
-  this.ensureSnapshotSize({...state,renderers:[],serverTime:Date.now()});
+  this.ensureSnapshotSize({...state,renderers:[],controllers:[],serverTime:Date.now()});
   const created=this.ctx.storage.transactionSync(()=>{
    if(this.readState()||this.readCatalog())return false;
    this.writeCatalog(catalog);
@@ -204,7 +219,7 @@ export class LiveRoom extends DurableObject<Env>{
   }
   if(accepted){
    const next=nextState(current,command,selected,Date.now());
-   this.ensureSnapshotSize({...next,renderers:[],serverTime:Date.now()});
+   this.ensureSnapshotSize({...next,renderers:[],controllers:[],serverTime:Date.now()});
    this.writeState(next);
   }
   this.sql.exec('INSERT INTO command_receipts(command_id,action,cue,created_at) VALUES(?,?,?,?)',command.commandId,command.action,command.cue,Date.now());
@@ -254,10 +269,11 @@ export class LiveRoom extends DurableObject<Env>{
   const attachment=socket.deserializeAttachment() as SocketAttachment|null;
   if(!attachment)return this.closeProtocol(socket,'Missing session');
   if(input.type==='hello'){
-   if(attachment.id!==null||!validUuid(input.id))return this.closeProtocol(socket,'Invalid hello');
-   attachment.id=input.id as string;attachment.seen=Date.now();socket.serializeAttachment(attachment);
+   const hello=attachment.id===null?parseHello(input):null;
+   if(!hello)return this.closeProtocol(socket,'Invalid hello');
+   attachment.id=hello.id;attachment.client=hello.client;attachment.version=hello.version;attachment.seen=Date.now();socket.serializeAttachment(attachment);
    this.broadcastPresence();
-   if(attachment.role==='output')await this.scheduleExpiry();
+   if(attachment.role==='output'||attachment.role==='control')await this.scheduleExpiry();
    return;
   }
   if(attachment.id===null)return this.closeProtocol(socket,'Hello required');
@@ -273,7 +289,7 @@ export class LiveRoom extends DurableObject<Env>{
    socket.serializeAttachment(attachment);
    this.send(socket,{type:'pong',serverTime:Date.now()});
    this.broadcastPresence();
-   if(attachment.role==='output')await this.scheduleExpiry();
+   if(attachment.role==='output'||attachment.role==='control')await this.scheduleExpiry();
    return;
   }
   if(input.type==='ack'){
@@ -308,7 +324,7 @@ export class LiveRoom extends DurableObject<Env>{
   try{socket.send(encoded)}catch{}
  }
  private broadcast(event:unknown,exclude?:WebSocket){for(const socket of this.ctx.getWebSockets())if(socket!==exclude)this.send(socket,event)}
- private broadcastPresence(exclude?:WebSocket){this.broadcast({type:'presence',renderers:this.currentRenderers(exclude),serverTime:Date.now()},exclude)}
+ private broadcastPresence(exclude?:WebSocket){this.broadcast(presenceFrame(this.currentRenderers(exclude),this.currentControllers(exclude),Date.now()),exclude)}
  private closeProtocol(socket:WebSocket,reason:string){socket.close(4400,reason)}
  private async scheduleExpiry(exclude?:WebSocket){
   const now=Date.now();
@@ -316,7 +332,7 @@ export class LiveRoom extends DurableObject<Env>{
   for(const socket of this.ctx.getWebSockets()){
    if(socket===exclude)continue;
    const attachment=socket.deserializeAttachment() as SocketAttachment|null;
-   if(attachment?.role==='output'&&socket.readyState===WebSocket.OPEN&&!rendererExpired(attachment.seen,now))deadlines.push(attachment.seen+STALE_MS);
+   if((attachment?.role==='output'||attachment?.role==='control')&&socket.readyState===WebSocket.OPEN&&!rendererExpired(attachment.seen,now))deadlines.push(attachment.seen+STALE_MS);
   }
   for(const renderer of this.legacyPresence.values())if(!rendererExpired(renderer.seen,now))deadlines.push(renderer.seen+STALE_MS);
   if(!deadlines.length){await this.ctx.storage.deleteAlarm();return}

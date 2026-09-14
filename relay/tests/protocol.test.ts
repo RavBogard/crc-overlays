@@ -1,5 +1,5 @@
 import {describe,expect,it} from 'vitest';
-import {MAX_CUE_PAYLOAD_BYTES,MAX_SNAPSHOT_BYTES,STALE_MS,nextState,parseCatalog,parseCommand,parseInitialState,rendererExpired,verifyTicket,type LiveState} from '../src/protocol';
+import {MAX_CONTROLLERS,MAX_CUE_PAYLOAD_BYTES,MAX_SNAPSHOT_BYTES,STALE_MS,jsonBytes,nextState,parseCatalog,parseCommand,parseHello,parseInitialState,rendererExpired,verifyTicket,type Controller,type LiveState,type Snapshot} from '../src/protocol';
 
 const encode=(value:Uint8Array|string)=>{
  const bytes=typeof value==='string'?new TextEncoder().encode(value):value;
@@ -63,5 +63,46 @@ describe('renderer expiry',()=>{
   expect(rendererExpired(seen,seen+STALE_MS-1)).toBe(false);
   expect(rendererExpired(seen,seen+STALE_MS)).toBe(true);
   expect(rendererExpired(seen,seen+STALE_MS+1)).toBe(true);
+ });
+});
+
+describe('hello',()=>{
+ const id='00000000-0000-4000-8000-000000000001';
+
+ it('accepts a 1.4.0 hello that names its client and version',()=>{
+  expect(parseHello({type:'hello',id,client:'companion',version:'1.4.0'})).toEqual({id,client:'companion',version:'1.4.0'});
+  expect(parseHello({type:'hello',id,client:'browser',version:'0.1.0'})).toEqual({id,client:'browser',version:'0.1.0'});
+ });
+
+ it('accepts a 1.3.0 hello that omits client and version',()=>{
+  expect(parseHello({type:'hello',id})).toEqual({id,client:'unknown',version:null});
+  expect(parseHello({type:'hello',id,client:'stream-deck'})).toEqual({id,client:'unknown',version:null});
+ });
+
+ it('yields a null version for a malformed version rather than refusing the hello',()=>{
+  for(const version of ['1.4','1.4.0-beta','v1.4.0','','1.'+'0'.repeat(40)+'.0',7,null,{}]){
+   expect(parseHello({type:'hello',id,client:'companion',version})).toEqual({id,client:'companion',version:null});
+  }
+ });
+
+ it('still rejects a hello whose id is not a UUID',()=>{
+  expect(parseHello({type:'hello',id:'not-a-uuid',client:'companion',version:'1.4.0'})).toBeNull();
+  expect(parseHello({type:'hello'})).toBeNull();
+  expect(parseHello(null)).toBeNull();
+  expect(parseHello([{id}])).toBeNull();
+ });
+});
+
+describe('controller presence size',()=>{
+ it('keeps a snapshot with MAX_CONTROLLERS controllers under MAX_SNAPSHOT_BYTES',()=>{
+  const controllers:Controller[]=Array.from({length:MAX_CONTROLLERS},(_,index)=>({
+   id:`0000000${index.toString(16).padStart(1,'0')}-0000-4000-8000-00000000000${index.toString(16)}`.slice(0,36),
+   client:'companion',
+   version:'1.4.0',
+   seen:1_700_000_000_000+index,
+  }));
+  const snapshot:Snapshot={revision:12,cue:'cue-a',mode:'animate',updated:1_700_000_000_000,cuePayload:{id:'cue-a',text:'x'.repeat(2048)},catalogVersion:'catalog-v1',renderers:[],controllers,serverTime:1_700_000_000_000};
+  expect(snapshot.controllers).toHaveLength(MAX_CONTROLLERS);
+  expect(jsonBytes(snapshot)).toBeLessThan(MAX_SNAPSHOT_BYTES);
  });
 });

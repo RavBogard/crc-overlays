@@ -2,9 +2,11 @@ import test,{after} from 'node:test';
 import assert from 'node:assert/strict';
 import {randomUUID} from 'node:crypto';
 import {WebSocket as WsClient} from 'ws';
-import {MAX_MESSAGE_BYTES,MAX_SNAPSHOT_BYTES,PROTOCOL,STALE_MS} from '../relay/src/protocol.ts';
+import {MAX_CONTROLLERS,MAX_MESSAGE_BYTES,MAX_SNAPSHOT_BYTES,PROTOCOL,STALE_MS} from '../relay/src/protocol.ts';
 import {HttpError,RehearsalRoom,startRehearsalRelay,type RehearsalRelay} from '../scripts/rehearsal-relay.ts';
 import {relayTicket,type RelayRole} from '../lib/relay.ts';
+import {BrowserRealtimeTransport,type RealtimeSnapshot} from '../lib/browser-realtime.ts';
+import {OverlayClient,type OverlaySnapshot} from '../companion/src/client.ts';
 
 const SECRET=`rehearsal-${randomUUID()}`;
 process.env.RELAY_SECRET=SECRET;
@@ -366,4 +368,195 @@ test('the presence sweep stays silent while the renderer set is unchanged',async
  await new Promise(resolve=>setTimeout(resolve,700));
  assert.deepEqual(recorder.frames.filter(frame=>frame.type==='presence'),[]);
  socket.close();
+});
+
+// --- R5 controller presence ---------------------------------------------------
+// The stub must speak the same D8 contract as the worker: hello carries an optional
+// client and version, presence and /state carry a controllers array, and a controller
+// expires on the same inclusive 30 s deadline as a renderer.
+
+const controlHello=(socket:WebSocket,client:string,version:string,id=randomUUID())=>{socket.send(JSON.stringify({type:'hello',id,client,version}));return id};
+
+test('a controller that names its client and version appears in presence and in /state',async()=>{
+ const relay=await initializedRelay();
+ const watcher=connect(relay,'control');
+ assert.equal(await watcher.opened,'open');
+ hello(watcher.socket);
+ const companion=connect(relay,'control');
+ assert.equal(await companion.opened,'open');
+ const id=controlHello(companion.socket,'companion','1.4.0');
+ const presence=await watcher.recorder.next(frame=>frame.type==='presence'&&(frame.controllers as Frame[]).some(entry=>entry.id===id));
+ assert.deepEqual(Object.keys(presence).sort(),['controllers','renderers','serverTime','type']);
+ const entry=(presence.controllers as Frame[]).find(candidate=>candidate.id===id)!;
+ assert.deepEqual(Object.keys(entry).sort(),['client','id','seen','version']);
+ assert.equal(entry.client,'companion');
+ assert.equal(entry.version,'1.4.0');
+ assert.ok(Number.isFinite(entry.seen));
+
+ const state=await (await request(relay,'/state')).json();
+ assert.equal((state.controllers as Frame[]).length,2);
+ assert.equal((state.controllers as Frame[]).filter(candidate=>candidate.id===id).length,1);
+ watcher.socket.close();companion.socket.close();
+});
+
+test('a 1.3.0 hello without client or version still connects and reports an unknown controller',async()=>{
+ const relay=await initializedRelay();
+ const watcher=connect(relay,'control');
+ assert.equal(await watcher.opened,'open');
+ hello(watcher.socket);
+ const legacy=connect(relay,'control');
+ assert.equal(await legacy.opened,'open');
+ const id=hello(legacy.socket);
+ const presence=await watcher.recorder.next(frame=>frame.type==='presence'&&(frame.controllers as Frame[]).some(entry=>entry.id===id));
+ const entry=(presence.controllers as Frame[]).find(candidate=>candidate.id===id)!;
+ assert.equal(entry.client,'unknown');
+ assert.equal(entry.version,null);
+ watcher.socket.close();legacy.socket.close();
+});
+
+test('a malformed hello version is reported as null rather than closing the socket',async()=>{
+ const relay=await initializedRelay();
+ const watcher=connect(relay,'control');
+ assert.equal(await watcher.opened,'open');
+ hello(watcher.socket);
+ const companion=connect(relay,'control');
+ assert.equal(await companion.opened,'open');
+ const id=controlHello(companion.socket,'companion','1.4.0-beta');
+ const presence=await watcher.recorder.next(frame=>frame.type==='presence'&&(frame.controllers as Frame[]).some(entry=>entry.id===id));
+ assert.equal((presence.controllers as Frame[]).find(candidate=>candidate.id===id)!.version,null);
+ companion.socket.send(JSON.stringify({type:'heartbeat'}));
+ assert.equal((await companion.recorder.next(frame=>frame.type==='pong')).type,'pong');
+ watcher.socket.close();companion.socket.close();
+});
+
+test('a controller that goes stale is closed with 4408 at exactly the stale deadline and leaves presence',async()=>{
+ let clock=Date.now();
+ const relay=await initializedRelay(()=>clock);
+ const watcher=connect(relay,'control');
+ assert.equal(await watcher.opened,'open');
+ const companion=connect(relay,'control');
+ assert.equal(await companion.opened,'open');
+ const id=controlHello(companion.socket,'companion','1.4.0');
+ await watcher.recorder.next(frame=>frame.type==='presence'&&(frame.controllers as Frame[]).some(entry=>entry.id===id));
+ clock+=STALE_MS-1;
+ assert.equal(relay.room.currentControllers().some(entry=>entry.id===id),true);
+ // Every heartbeat keeps the watcher alive; only the silent companion crosses the deadline.
+ watcher.socket.send(JSON.stringify({type:'heartbeat'}));
+ clock+=1;
+ assert.equal(await companion.recorder.closed,4408);
+ assert.equal(relay.room.currentControllers().some(entry=>entry.id===id),false);
+ watcher.socket.close();
+});
+
+test('a full controller set stays inside MAX_SNAPSHOT_BYTES',async()=>{
+ const relay=await initializedRelay();
+ const controllers=[];
+ for(let index=0;index<MAX_CONTROLLERS+4;index++){
+  const client=connect(relay,'control');
+  assert.equal(await client.opened,'open');
+  controlHello(client.socket,'companion','1.4.0');
+  controllers.push(client);
+ }
+ const state=await (await request(relay,'/state')).json();
+ assert.equal((state.controllers as Frame[]).length,MAX_CONTROLLERS);
+ assert.ok(Buffer.byteLength(JSON.stringify(state))<MAX_SNAPSHOT_BYTES);
+ for(const client of controllers)client.socket.close();
+});
+
+// A 1.3.0-shaped client is one that omits `client`/`version` from hello and knows
+// nothing about `controllers`. Both shipped parsers allowlist fields, so the new array
+// must be ignored rather than rejected -- asserted against the real validators
+// (`isSnapshot` inside BrowserRealtimeTransport, `parseSnapshot` inside
+// RealtimeSubscription), never a copy of them.
+
+class LegacyBrowserSocket{
+ readyState=0;onopen:((event:Event)=>void)|null=null;onmessage:((event:MessageEvent<unknown>)=>void)|null=null;onclose:((event:Event)=>void)|null=null;onerror:((event:Event)=>void)|null=null;
+ readonly sent:string[]=[];
+ constructor(readonly url:string,readonly protocols:string[]){}
+ open(){this.readyState=1;this.onopen?.(new Event('open'))}
+ receive(frame:unknown){this.onmessage?.(new MessageEvent('message',{data:JSON.stringify(frame)}))}
+ send(data:string){this.sent.push(data)}
+ close(){this.readyState=3;this.onclose?.(new Event('close'))}
+}
+
+class LegacyCompanionSocket{
+ readyState=1;protocol='crc-overlays-v1';
+ readonly sent:string[]=[];
+ readonly listeners=new Map<string,Array<(event:Event|MessageEvent)=>void>>();
+ constructor(readonly url:string,readonly protocols:string[]){}
+ addEventListener(type:'open'|'close'|'error'|'message',listener:(event:Event|MessageEvent)=>void){
+  this.listeners.set(type,[...(this.listeners.get(type)??[]),listener]);
+ }
+ emit(type:string,event:Event|MessageEvent){for(const listener of this.listeners.get(type)??[])listener(event)}
+ open(){this.emit('open',new Event('open'))}
+ receive(frame:unknown){this.emit('message',new MessageEvent('message',{data:JSON.stringify(frame)}))}
+ send(data:string){this.sent.push(data)}
+ close(){this.readyState=3}
+}
+
+test('the shipped clients accept controllers in snapshot and presence, and Companion names itself in its hello',async()=>{
+ const relay=await initializedRelay();
+
+ // 1. The relay accepts the 1.3.0 hello and still reports the controller.
+ const legacy=connect(relay,'control');
+ assert.equal(await legacy.opened,'open');
+ const snapshotFrame=await legacy.recorder.next(frame=>frame.type==='snapshot');
+ const id=hello(legacy.socket);
+ const presence=await legacy.recorder.next(frame=>frame.type==='presence'&&(frame.controllers as Frame[]).some(entry=>entry.id===id));
+ assert.ok(Array.isArray(presence.controllers));
+
+ // 2. The real snapshot the relay emits, now carrying `controllers`.
+ const live=await (await request(relay,'/state')).json() as Record<string,unknown>;
+ assert.ok(Object.hasOwn(live,'controllers'));
+ assert.ok(Object.hasOwn(snapshotFrame.snapshot as Record<string,unknown>,'controllers'));
+
+ // 3. The real `isSnapshot` in lib/browser-realtime.ts must accept it.
+ const browserSockets:LegacyBrowserSocket[]=[];
+ const browserSnapshots:RealtimeSnapshot[]=[];
+ const transport=new BrowserRealtimeTransport({
+  key:'secret',role:'control',id:randomUUID(),
+  onSnapshot:value=>{browserSnapshots.push(value)},
+  dependencies:{
+   fetch:async()=>Response.json({url:'wss://relay.example/connect',ticket:'signed.ticket',heartbeatMs:10000,staleMs:30000,protocol:1}),
+   socket:(url,protocols)=>{const socket=new LegacyBrowserSocket(url,protocols);browserSockets.push(socket);return socket},
+  },
+ });
+ transport.start();
+ await new Promise(resolve=>setTimeout(resolve,0));
+ browserSockets[0].open();
+ browserSockets[0].receive({type:'snapshot',snapshot:live});
+ await new Promise(resolve=>setTimeout(resolve,0));
+ assert.equal(browserSnapshots.length,1,'the shipped isSnapshot rejected the controllers field');
+ assert.equal(browserSnapshots[0].revision,live.revision);
+ transport.stop();
+
+ // 4. The real `parseSnapshot` in companion/src/client.ts must accept it and drop it.
+ const companionSockets:LegacyCompanionSocket[]=[];
+ const companionSnapshots:OverlaySnapshot[]=[];
+ const client=new OverlayClient({
+  baseUrl:'http://overlays.invalid',credential:'secret',clientId:randomUUID(),
+  fetch:(async()=>Response.json({url:'ws://localhost:8788/connect',ticket:'signed.ticket',heartbeatMs:10000,staleMs:30000,protocol:1})) as typeof globalThis.fetch,
+  webSocketFactory:(url,protocols)=>{const socket=new LegacyCompanionSocket(url,protocols);companionSockets.push(socket);return socket},
+ });
+ const subscription=client.subscribe({
+  onSnapshot:snapshot=>{companionSnapshots.push(snapshot)},
+  onPresence:()=>{},onCatalog:()=>{},onConnection:()=>{},
+ });
+ subscription.start();
+ await new Promise(resolve=>setTimeout(resolve,0));
+ companionSockets[0].open();
+ companionSockets[0].receive({type:'snapshot',snapshot:live});
+ assert.equal(companionSnapshots.length,1,'the shipped parseSnapshot rejected the controllers field');
+ assert.equal(companionSnapshots[0].revision,live.revision);
+ assert.equal(Object.hasOwn(companionSnapshots[0],'controllers'),false);
+ // The 1.4.0 hello names the client; the version is the packaged one or null, never a guess.
+ const sentHello=JSON.parse(companionSockets[0].sent[0]) as Record<string,unknown>;
+ assert.deepEqual(Object.keys(sentHello).sort(),['client','id','type','version']);
+ assert.equal(sentHello.client,'companion');
+ assert.ok(sentHello.version===null||/^d+.d+.d+$/.test(String(sentHello.version)),'version is null or x.y.z');
+ // A presence frame carrying controllers is also tolerated, and does not close the socket.
+ companionSockets[0].receive({type:'presence',renderers:[],controllers:live.controllers,serverTime:Date.now()});
+ assert.equal(companionSockets[0].readyState,1);
+ subscription.stop();
+ legacy.socket.close();
 });

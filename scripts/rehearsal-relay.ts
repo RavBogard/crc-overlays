@@ -7,7 +7,7 @@ import {createHash,timingSafeEqual} from 'node:crypto';
 import {createServer,type IncomingMessage,type Server,type ServerResponse} from 'node:http';
 import type {Duplex} from 'node:stream';
 import {WebSocketServer,type WebSocket as RelaySocket} from 'ws';
-import {MAX_CATALOG_BYTES,MAX_MESSAGE_BYTES,MAX_RECEIPTS,MAX_REQUEST_BYTES,MAX_SNAPSHOT_BYTES,PROTOCOL,jsonBytes,nextState,parseAck,parseCatalog,parseCommand,parseInitialState,rendererExpired,validCatalogVersion,validInteger,validToken,validUuid,verifyTicket,type ApprovedCatalog,type Command,type LiveState,type Renderer,type Role,type Snapshot,type SocketAttachment} from '../relay/src/protocol.ts';
+import {MAX_CATALOG_BYTES,MAX_MESSAGE_BYTES,MAX_RECEIPTS,MAX_REQUEST_BYTES,MAX_SNAPSHOT_BYTES,PROTOCOL,jsonBytes,nextState,parseAck,parseCatalog,parseCommand,parseHello,parseInitialState,presenceFrame,rankControllers,rendererExpired,validCatalogVersion,validInteger,validToken,validUuid,verifyTicket,type ApprovedCatalog,type Command,type Controller,type LiveState,type Renderer,type Role,type Snapshot,type SocketAttachment} from '../relay/src/protocol.ts';
 
 export const DEFAULT_REHEARSAL_RELAY_PORT=8788;
 // Real-time cadence of the presence sweep. The worker uses a Durable Object
@@ -50,8 +50,11 @@ function sendJson(response:ServerResponse,value:unknown,status=200){
 // what they acknowledge. `seen` is deliberately excluded (it moves on every heartbeat,
 // and heartbeats already broadcast presence themselves); order-insensitive so two
 // renderers swapping recency rank is not a change.
-function presenceKey(renderers:Renderer[]){
- return JSON.stringify(renderers.map(renderer=>[renderer.id,renderer.revision,renderer.cue,renderer.phase]).sort((a,b)=>String(a[0])<String(b[0])?-1:1));
+function presenceKey(renderers:Renderer[],controllers:Controller[]){
+ return JSON.stringify([
+  renderers.map(renderer=>[renderer.id,renderer.revision,renderer.cue,renderer.phase]).sort((a,b)=>String(a[0])<String(b[0])?-1:1),
+  controllers.map(controller=>[controller.id,controller.client,controller.version]).sort((a,b)=>String(a[0])<String(b[0])?-1:1),
+ ]);
 }
 function refuseUpgrade(socket:Duplex,status:number,message:string){
  const body=JSON.stringify({error:message});
@@ -67,7 +70,7 @@ export class RehearsalRoom{
  readonly sequences=new Map<string,number>();
  readonly tickets=new Map<string,number>();
  readonly legacyPresence=new Map<string,Renderer>();
- private lastPresenceKey=presenceKey([]);
+ private lastPresenceKey=presenceKey([],[]);
  constructor(private readonly now:()=>number=Date.now){}
 
  // --- ticket single use -----------------------------------------------------
@@ -95,9 +98,22 @@ export class RehearsalRoom{
   }
   return [...renderers.values()].sort((a,b)=>b.seen-a.seen);
  }
+ // Mirrors LiveRoom.currentControllers: role 'control' attachments that said hello,
+ // expired on the same inclusive deadline, newest first, capped at MAX_CONTROLLERS.
+ currentControllers(exclude?:RelaySocket){
+  const now=this.now();
+  const controllers:Controller[]=[];
+  for(const [socket,attachment] of this.sockets){
+   if(socket===exclude||attachment.role!=='control')continue;
+   if(rendererExpired(attachment.seen,now)){socket.close(4408,'Heartbeat timeout');continue}
+   if(attachment.id===null)continue;
+   controllers.push({id:attachment.id,client:attachment.client??'unknown',version:attachment.version??null,seen:attachment.seen});
+  }
+  return rankControllers(controllers);
+ }
  snapshot(exclude?:RelaySocket):Snapshot|null{
   const state=this.state;
-  return state?{...state,renderers:this.currentRenderers(exclude),serverTime:this.now()}:null;
+  return state?{...state,renderers:this.currentRenderers(exclude),controllers:this.currentControllers(exclude),serverTime:this.now()}:null;
  }
  private ensureSnapshotSize(snapshot:Snapshot|null){if(jsonBytes(snapshot)>MAX_SNAPSHOT_BYTES)throw new HttpError(413,'Snapshot too large')}
 
@@ -111,7 +127,7 @@ export class RehearsalRoom{
   if(state.cue!==null&&state.cuePayload?.id!==state.cue)throw new HttpError(400,'Selected cue payload does not match cue');
   if(state.cue!==null&&!catalog.cues.some(cue=>cue.id===state.cue))throw new HttpError(400,'Selected cue is not in approved catalog');
   if(jsonBytes(catalog)>MAX_CATALOG_BYTES)throw new HttpError(413,'Catalog too large');
-  this.ensureSnapshotSize({...state,renderers:[],serverTime:this.now()});
+  this.ensureSnapshotSize({...state,renderers:[],controllers:[],serverTime:this.now()});
   if(this.state||this.catalog)throw new HttpError(409,'Relay is already initialized');
   this.catalog=catalog;
   this.state=state;
@@ -145,7 +161,7 @@ export class RehearsalRoom{
    const next=nextState(current,command,selected,this.now());
    // The worker runs applyCommand inside one transaction, so a 413 here rolls the
    // sequence back; record it only once the size check has passed.
-   this.ensureSnapshotSize({...next,renderers:[],serverTime:this.now()});
+   this.ensureSnapshotSize({...next,renderers:[],controllers:[],serverTime:this.now()});
    this.state=next;
    if(command.clientId!==null)this.sequences.set(command.clientId,command.sequence!);
   }
@@ -192,7 +208,7 @@ export class RehearsalRoom{
 
  // --- sockets ---------------------------------------------------------------
  attach(socket:RelaySocket,role:Role){
-  this.sockets.set(socket,{role,id:null,seen:this.now(),ack:null});
+  this.sockets.set(socket,{role,id:null,client:'unknown',version:null,seen:this.now(),ack:null});
   this.send(socket,{type:'snapshot',snapshot:this.snapshot()});
   this.broadcastPresence();
  }
@@ -208,8 +224,9 @@ export class RehearsalRoom{
   const attachment=this.sockets.get(socket);
   if(!attachment)return this.closeProtocol(socket,'Missing session');
   if(input.type==='hello'){
-   if(attachment.id!==null||!validUuid(input.id))return this.closeProtocol(socket,'Invalid hello');
-   attachment.id=input.id as string;attachment.seen=this.now();
+   const helloFrame=attachment.id===null?parseHello(input):null;
+   if(!helloFrame)return this.closeProtocol(socket,'Invalid hello');
+   attachment.id=helloFrame.id;attachment.client=helloFrame.client;attachment.version=helloFrame.version;attachment.seen=this.now();
    this.broadcastPresence();
    return;
   }
@@ -250,10 +267,11 @@ export class RehearsalRoom{
  // the renderer set changed since the last presence frame.
  sweep(){
   const renderers=this.currentRenderers();
-  const key=presenceKey(renderers);
+  const controllers=this.currentControllers();
+  const key=presenceKey(renderers,controllers);
   if(key===this.lastPresenceKey)return;
   this.lastPresenceKey=key;
-  this.broadcast({type:'presence',renderers,serverTime:this.now()});
+  this.broadcast(presenceFrame(renderers,controllers,this.now()));
  }
  send(socket:RelaySocket,event:unknown){
   const encoded=JSON.stringify(event);
@@ -263,8 +281,9 @@ export class RehearsalRoom{
  broadcast(event:unknown,exclude?:RelaySocket){for(const socket of [...this.sockets.keys()])if(socket!==exclude)this.send(socket,event)}
  broadcastPresence(exclude?:RelaySocket){
   const renderers=this.currentRenderers(exclude);
-  this.lastPresenceKey=presenceKey(renderers);
-  this.broadcast({type:'presence',renderers,serverTime:this.now()},exclude);
+  const controllers=this.currentControllers(exclude);
+  this.lastPresenceKey=presenceKey(renderers,controllers);
+  this.broadcast(presenceFrame(renderers,controllers,this.now()),exclude);
  }
  private closeProtocol(socket:RelaySocket,reason:string){socket.close(4400,reason)}
 }
