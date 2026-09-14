@@ -121,7 +121,6 @@ function variantCandidates(draft: Draft): VariantCandidate[] {
 export default function AuthorPage() {
   const [key, setKey] = useState("");
   const [role, setRole] = useState<AccessRole | undefined>(undefined);
-  const [keyInput, setKeyInput] = useState("");
   const [workspaceLabel, setWorkspaceLabel] = useState<string | null>(null);
   const [workspace, setWorkspace] = useState<PublicWorkspace | null>(null);
   const [drafts, setDrafts] = useState<Draft[]>([]);
@@ -191,6 +190,11 @@ export default function AuthorPage() {
   // cleared where that navigation happens (openDraft, beginNew, backToLibrary, chooseLibraryTab)
   // because those same handlers raise the next toast in the same commit.
   useEffect(() => { setMessage(""); setError(""); }, [pathname]);
+  useEffect(() => {
+    if (!message) return;
+    const timer = setTimeout(() => setMessage(""), 3000);
+    return () => clearTimeout(timer);
+  }, [message]);
 
   const fail = useCallback((value: unknown) => {
     setError(value instanceof Error ? value.message : "Something went wrong.");
@@ -329,7 +333,6 @@ export default function AuthorPage() {
       await showDraftSource(controlKey, next);
       checkRecovery(next);
       history.replaceState(null, "", routeForDraft(next.id));
-      setMessage(`Opened “${next.name}”. Published output is unchanged.`);
     } catch (value) { fail(value); }
     finally { setBusy(""); }
   }, [applyLoadedDraft, checkRecovery, fail, showDraftSource]);
@@ -343,10 +346,10 @@ export default function AuthorPage() {
       if (access?.ok) {
         const body = await access.json().catch(() => null) as { user?: { role?: string } } | null;
         if (body?.user && ["owner", "editor"].includes(body.user.role || "")) {
-          await refreshLists("session");
-          if (cancelled) return;
           setRole(body.user.role as AccessRole);
           setKey("session");
+          try { await refreshLists("session"); } catch (value) { fail(value); }
+          if (cancelled) return;
           const id = new URLSearchParams(location.search).get("draft");
           if (id) await openDraft("session", id);
           return;
@@ -499,17 +502,6 @@ export default function AuthorPage() {
   }))?.id || "custom";
   const draftSet = draft?.draftSetId ? drafts.filter((item) => item.draftSetId === draft.draftSetId).sort((a, b) => (a.setIndex || 0) - (b.setIndex || 0)) : [];
   const draftSetPosition = draft ? draftSet.findIndex((item) => item.id === draft.id) : -1;
-
-  async function connect() {
-    setBusy("connect"); setError("");
-    try {
-      await refreshLists(keyInput);
-      sessionStorage.setItem("crc-control-key", keyInput);
-      setRole("owner");
-      setKey(keyInput);
-    } catch (value) { fail(value); }
-    finally { setBusy(""); }
-  }
 
   async function browseSources(overrides: { query?: string; book?: string; service?: string } = {}) {
     const query = overrides.query ?? sourceQuery;
@@ -858,7 +850,7 @@ export default function AuthorPage() {
       history.replaceState(null, "", routeForDraft(response.draft.id));
       // R6 - a duplicate library name is a warning while drafting, never a blocked save.
       setNameWarning((response.warnings || []).find((item) => item.code === "duplicate-name") || null);
-      setMessage(`Draft saved as version ${response.draft.version}. Published output is unchanged.`);
+      setMessage(`Saved version ${response.draft.version}`);
     } catch (value) { fail(value); }
     finally { setBusy(""); }
   }
@@ -948,11 +940,11 @@ export default function AuthorPage() {
     "--workspace-accent": workspace.colors.accent,
   } as CSSProperties : undefined;
 
-  if (!key) return <AccessCard productName={workspace?.productName || "Overlays"} style={workspaceStyle} keyInput={keyInput} setKeyInput={setKeyInput} connect={() => void connect()} busy={busy} error={error} />;
+  if (!key) return <AccessCard productName={workspace?.productName || "Overlays"} style={workspaceStyle} error={error} />;
 
   return (
     <main className="author-page" style={workspaceStyle}>
-      <WorkspaceHeader compact current="/author" title="Library" role={role} workspace={workspace} aside={<><span className="safety-note"><span /> Editing is isolated from live output</span><Link className="header-link" href="/author/fit-check">Fit check</Link></>} />
+      <WorkspaceHeader compact current="/author" title="Library" role={role} workspace={workspace} aside={<Link className="header-link" href="/author/fit-check">Fit check</Link>} />
       {workspaceLabel && <div className="workspace-banner"><CircleAlert size={16} />{workspaceLabel}</div>}
 
       <div className="author-shell">
@@ -987,8 +979,8 @@ export default function AuthorPage() {
             play={() => { if (sharedPreview) void showCue(sharedPreview, true); }}
             out={() => playerRef.current?.set({ cue: null, revision: ++animationRevision.current, mode: "animate" })}
             fullscreen={() => void viewportRef.current?.requestFullscreen().catch(fail)}
-            statusLabel={sharedPreview ? "Preview with TBI branding · nothing is published" : "Loading CRC preview"} />}
-        /> : libraryTab === "archived" ? <ArchivedPanel drafts={archivedItems.flatMap((item) => item.kind === "draft" ? [item.draft] : [])} query={libraryQuery} busy={busy} restore={(item) => void restoreArchived(item)} /> : !editorKind ? <WelcomePanel beginSiddur={beginSiddur} beginCustom={beginCustom} /> : (
+            statusLabel={sharedPreview ? "CRC preview with TBI branding" : "Loading CRC preview"} />}
+        /> : libraryTab === "archived" ? <ArchivedPanel drafts={archivedItems.flatMap((item) => item.kind === "draft" ? [item.draft] : [])} query={libraryQuery} busy={busy} restore={(item) => void restoreArchived(item)} /> : !editorKind ? <WelcomePanel /> : (
           <section className="editor-workspace">
             <EditorTitle
               form={form} draft={draft} dirty={dirty} busy={busy} undo={undo} redo={redo}
@@ -1073,8 +1065,8 @@ export default function AuthorPage() {
   );
 }
 
-function AccessCard({ productName, style, keyInput, setKeyInput, connect, busy, error }: { productName: string; style?: CSSProperties; keyInput: string; setKeyInput: (value: string) => void; connect: () => void; busy: string; error: string }) {
-  return <main className="author-page access-page" style={style}><div className="access-card"><div className="brand-mark"><BookOpenText size={22} /></div><span className="eyebrow">{productName}</span><h1>Open the library</h1><p>Sign in to create and prepare graphics without changing what is live.</p><Link className="access-link" href="/access">Sign in</Link><div className="access-divider"><span>or use the existing admin key</span></div><form onSubmit={(event) => { event.preventDefault(); connect(); }}><label>Control key<input type="password" value={keyInput} onChange={(event) => setKeyInput(event.target.value)} required /></label><button className="primary-button" disabled={busy === "connect"}>{busy === "connect" ? <><LoaderCircle className="spin" size={18} /> Opening…</> : "Open the library"}</button></form>{error && <p role="alert" className="inline-error">{error}</p>}</div></main>;
+function AccessCard({ productName, style, error }: { productName: string; style?: CSSProperties; error: string }) {
+  return <main className="author-page access-page" style={style}><div className="access-card"><div className="brand-mark"><BookOpenText size={22} /></div><span className="eyebrow">{productName}</span><h1>Open the library</h1><p>Sign in to edit graphics.</p><Link className="access-link" href="/access">Sign in</Link>{error && <p role="alert" className="inline-error">{error}</p>}</div></main>;
 }
 
 function LibrarySidebar(props: {
@@ -1117,8 +1109,8 @@ function LibrarySidebar(props: {
 }
 
 
-function WelcomePanel({ beginSiddur, beginCustom }: { beginSiddur: () => void; beginCustom: () => void }) {
-  return <section className="welcome-panel"><div className="welcome-art"><BookOpenText size={42} /></div><span className="eyebrow">READY WHEN YOU ARE</span><h2>Prepare a graphic without touching live output.</h2><p>Start with an authorized passage from the siddur library, or open a published graphic to edit or duplicate it.</p><div className="welcome-actions"><button className="primary-button" onClick={beginSiddur}><BookOpenText size={18} /> Add from siddur</button><button onClick={beginCustom}><FilePlus2 size={18} /> New custom graphic</button></div></section>;
+function WelcomePanel() {
+  return <section className="welcome-panel"><div className="welcome-art"><BookOpenText size={42} /></div><h2>Choose a graphic, or start a new one.</h2><p>Start with an authorized passage from the siddur library, or open a published graphic to edit or duplicate it.</p></section>;
 }
 
 function ArchivedPanel({ drafts, query, busy, restore }: { drafts: Draft[]; query: string; busy: string; restore: (draft: Draft) => void }) {
@@ -1127,7 +1119,7 @@ function ArchivedPanel({ drafts, query, busy, restore }: { drafts: Draft[]; quer
 }
 
 function EditorTitle(props: { form: DraftForm; draft: Draft | null; dirty: boolean; busy: string; undo: () => void; redo: () => void; canUndo: boolean; canRedo: boolean; duplicate: () => void; archive: () => void; createVariant: () => void; history: () => void; setPosition: number; setCount: number; previousSlide: () => void; nextSlide: () => void }) {
-  return <div className="editor-titlebar"><div><div className="editor-status-line"><span className={`status-chip ${props.draft?.activeRevision ? "published" : "draft"}`}>{props.draft?.activeRevision ? "Published" : "Draft"}</span>{props.dirty ? <span className="unsaved-dot">Unsaved changes</span> : props.draft ? <span>Saved version {props.draft.version}</span> : <span>New graphic</span>}{props.form.mode === "local-variant" && <span className="variant-chip">Local variant</span>}{props.setCount > 1 && <span className="set-position">Slide {props.setPosition + 1} of {props.setCount}</span>}</div><h2>{props.form.name || (props.form.mode === "custom" ? "New custom graphic" : "Add from siddur")}</h2><p>{props.draft?.activeRevision ? "The published version stays available while you work." : "Publish makes this version available to the operator."}</p></div><div className="editor-tools">{props.setCount > 1 && <><button onClick={props.previousSlide} disabled={props.setPosition <= 0 || !!props.busy}><ChevronLeft size={16} /> Previous</button><button onClick={props.nextSlide} disabled={props.setPosition >= props.setCount - 1 || !!props.busy}>Next <ChevronRight size={16} /></button></>}<button className="icon-button" onClick={props.undo} disabled={!props.canUndo} title="Undo"><Undo2 size={17} /></button><button className="icon-button" onClick={props.redo} disabled={!props.canRedo} title="Redo"><Redo2 size={17} /></button>{props.draft && props.setCount <= 1 && <button onClick={props.duplicate} disabled={props.busy === "duplicate"}><Copy size={16} /> Duplicate</button>}{props.draft && props.draft.content.mode !== "custom" && props.draft.content.mode !== "local-variant" && <button onClick={props.createVariant} disabled={!!props.busy || props.dirty}><PencilLine size={16} /> Local wording</button>}{props.draft && props.setCount <= 1 && <button onClick={props.archive} disabled={!!props.busy || props.dirty}><Archive size={16} /> Archive</button>}{props.draft && <button onClick={props.history}><History size={16} /> History</button>}</div></div>;
+  return <div className="editor-titlebar"><div><div className="editor-status-line"><span className={`status-chip ${props.draft?.activeRevision ? "published" : "draft"}`}>{props.draft?.activeRevision ? "Published" : "Draft"}</span>{props.dirty ? <span className="unsaved-dot">Unsaved changes</span> : props.draft ? <span>Saved version {props.draft.version}</span> : <span>New graphic</span>}{props.form.mode === "local-variant" && <span className="variant-chip">Local variant</span>}{props.setCount > 1 && <span className="set-position">Slide {props.setPosition + 1} of {props.setCount}</span>}</div><h2>{props.form.name || (props.form.mode === "custom" ? "New custom graphic" : "Add from siddur")}</h2>{!props.draft?.activeRevision && <p>Publish makes this version available to the operator.</p>}</div><div className="editor-tools">{props.setCount > 1 && <><button onClick={props.previousSlide} disabled={props.setPosition <= 0 || !!props.busy}><ChevronLeft size={16} /> Previous</button><button onClick={props.nextSlide} disabled={props.setPosition >= props.setCount - 1 || !!props.busy}>Next <ChevronRight size={16} /></button></>}<button className="icon-button" onClick={props.undo} disabled={!props.canUndo} title="Undo"><Undo2 size={17} /></button><button className="icon-button" onClick={props.redo} disabled={!props.canRedo} title="Redo"><Redo2 size={17} /></button>{props.draft && props.setCount <= 1 && <button onClick={props.duplicate} disabled={props.busy === "duplicate"}><Copy size={16} /> Duplicate</button>}{props.draft && props.draft.content.mode !== "custom" && props.draft.content.mode !== "local-variant" && <button onClick={props.createVariant} disabled={!!props.busy || props.dirty}><PencilLine size={16} /> Local wording</button>}{props.draft && props.setCount <= 1 && <button onClick={props.archive} disabled={!!props.busy || props.dirty}><Archive size={16} /> Archive</button>}{props.draft && <button onClick={props.history}><History size={16} /> History</button>}</div></div>;
 }
 
 function SlideStrip(props: { drafts: Draft[]; activeId: string | null; dirty: boolean; busy: string; open: (draft: Draft) => void; moveLeft: () => void; moveRight: () => void; duplicate: () => void; reviewAll: () => void }) {
@@ -1172,13 +1164,13 @@ function PreviewColumn(props: { setViewport: (node: HTMLDivElement | null) => vo
     return () => document.removeEventListener("fullscreenchange", sync);
   }, []);
   // eslint-disable-next-line react-hooks/refs -- Callback refs expose the two DOM hosts required by the imperative Player renderer; no ref value is read during render.
-  return <aside className="preview-column"><div className="preview-heading"><div><span className="eyebrow">ISOLATED PREVIEW</span><h3>Broadcast frame</h3></div><span>1920 × 1080</span></div><div ref={props.setViewport} className="preview-viewport"><div className="preview-stage-label">PREVIEW ONLY</div>{fullscreen && <button className="preview-fullscreen-close" aria-label="Close full-screen preview" onClick={() => { if (document.fullscreenElement) void document.exitFullscreen(); }}>× <span>Close preview</span></button>}<div ref={props.setOutput} id="output" className={props.bookFaces ? "author-output faces-book" : "author-output"} />{!props.previewCue && <div className="preview-placeholder"><Sparkles size={26} /><strong>Your graphic will appear here</strong><span>Add content, a title, and a visual template.</span></div>}</div><div className="preview-toolbar"><button onClick={props.play} disabled={!props.previewCue}><Play size={15} /> Play in</button><button onClick={props.out} disabled={!props.previewCue}><Square size={14} /> Play out</button><button onClick={props.fullscreen} disabled={!props.previewCue}><Maximize2 size={14} /> Full screen</button><span>{props.statusLabel || (props.exact ? "Exact saved preview" : props.previewCue ? "Working preview" : "Waiting for content")}</span></div><div className={`preview-readiness ${props.fitErrors.length ? "problem" : props.warnings.length ? "caution" : props.assetsReady ? "ready" : "waiting"}`}>{props.fitErrors.length ? <CircleAlert size={18} /> : props.assetsReady ? <Check size={18} /> : <Clock3 size={18} />}<div><strong>{props.fitErrors.length ? "Needs attention" : props.assetsReady ? "Fits this frame" : props.previewCue ? "Preparing preview" : "Waiting for content"}</strong>{props.fitErrors.map((item) => <small key={item}>{item}</small>)}{!props.fitErrors.length && props.warnings.map((item) => <small key={item}>{item}</small>)}{!props.fitErrors.length && props.assetsReady && <small>Fonts and artwork loaded. Review readability before publishing.</small>}</div></div><div className="preview-note"><span /> This preview cannot issue live commands. A graphic already on screen remains unchanged.</div></aside>;
+  return <aside className="preview-column"><div className="preview-heading"><div><span className="eyebrow">PREVIEW</span><h3>Broadcast frame</h3></div><span>1920 × 1080</span></div><div ref={props.setViewport} className="preview-viewport"><div className="preview-stage-label">PREVIEW</div>{fullscreen && <button className="preview-fullscreen-close" aria-label="Close full-screen preview" onClick={() => { if (document.fullscreenElement) void document.exitFullscreen(); }}>× <span>Close preview</span></button>}<div ref={props.setOutput} id="output" className={props.bookFaces ? "author-output faces-book" : "author-output"} />{!props.previewCue && <div className="preview-placeholder"><Sparkles size={26} /><strong>Your graphic will appear here</strong><span>Add content, a title, and a visual template.</span></div>}</div><div className="preview-toolbar"><button onClick={props.play} disabled={!props.previewCue}><Play size={15} /> Play in</button><button onClick={props.out} disabled={!props.previewCue}><Square size={14} /> Play out</button><button onClick={props.fullscreen} disabled={!props.previewCue}><Maximize2 size={14} /> Full screen</button><span>{props.statusLabel || (props.previewCue ? "" : "Waiting for content")}</span></div><div className={`preview-readiness ${props.fitErrors.length ? "problem" : props.warnings.length ? "caution" : props.assetsReady ? "ready" : "waiting"}`}>{props.fitErrors.length ? <CircleAlert size={18} /> : props.assetsReady ? <Check size={18} /> : <Clock3 size={18} />}<div><strong>{props.fitErrors.length ? "Needs attention" : props.assetsReady ? "Fits this frame" : props.previewCue ? "Preparing preview" : "Waiting for content"}</strong>{props.fitErrors.map((item) => <small key={item}>{item}</small>)}{!props.fitErrors.length && props.warnings.map((item) => <small key={item}>{item}</small>)}{!props.fitErrors.length && props.assetsReady && <small>Fonts and artwork loaded. Review readability before publishing.</small>}</div></div></aside>;
 }
 
 function PublishDock(props: { dirty: boolean; draft: Draft | null; recoveryStoredAt: number | null; busy: string; ready: boolean; exactPreviewCurrent: boolean; fitBlocked: boolean; publishedVersion: number | null; duplicate: () => void; backToLibrary: () => void; save: () => void; review: () => void; publish: () => void }) {
   if (props.publishedVersion !== null)
     return <div className="publish-dock"><div className="save-state published"><Check size={18} /><span><strong>Published · version {props.publishedVersion} · live on next Show</strong><small>Nothing changed on screen. The operator decides when to show it.</small></span></div><div className="publish-actions"><button onClick={props.duplicate} disabled={!!props.busy}><Copy size={17} /> Duplicate</button><button className="review-button" onClick={props.backToLibrary} disabled={!!props.busy}><LibraryBig size={17} /> Back to library</button></div></div>;
-  return <div className="publish-dock"><div className="save-state">{props.dirty ? <><CircleAlert size={18} /><span><strong>Unsaved changes</strong><small>{props.recoveryStoredAt ? `Recovery copy stored ${formatTime(props.recoveryStoredAt)}` : "A recovery copy will be stored in this browser."}</small></span></> : <><Check size={18} /><span><strong>{props.draft ? `Saved version ${props.draft.version}` : "Ready to save"}</strong><small>Published output has not changed.</small></span></>}</div><div className="publish-actions"><button onClick={props.save} disabled={!props.ready || !!props.busy || (!props.dirty && !!props.draft)}><Save size={17} /> {props.busy === "save" ? "Saving…" : props.draft ? "Save draft" : "Save new draft"}</button>{props.exactPreviewCurrent ? <button className="publish-button" onClick={props.publish} disabled={!!props.busy}>{props.busy === "publish" ? <LoaderCircle className="spin" size={17} /> : <Check size={17} />} Publish this version</button> : props.fitBlocked ? <div className="publish-blocked"><button className="review-button" disabled><CircleAlert size={17} /> Fix fit issues to publish</button><small>Publication is blocked while the preview reports fit problems.</small></div> : <button className="review-button" onClick={props.review} disabled={!props.draft || props.dirty || !!props.busy}>{props.busy === "review" ? <LoaderCircle className="spin" size={17} /> : <Sparkles size={17} />} Review saved version</button>}</div></div>;
+  return <div className="publish-dock"><div className="save-state">{props.dirty ? <><CircleAlert size={18} /><span><strong>Unsaved changes</strong><small>{props.recoveryStoredAt ? `Recovery copy stored ${formatTime(props.recoveryStoredAt)}` : "A recovery copy will be stored in this browser."}</small></span></> : <><Check size={18} /><span><strong>{props.draft ? `Saved version ${props.draft.version}` : "Ready to save"}</strong></span></>}</div><div className="publish-actions"><button onClick={props.save} disabled={!props.ready || !!props.busy || (!props.dirty && !!props.draft)}><Save size={17} /> {props.busy === "save" ? "Saving…" : props.draft ? "Save draft" : "Save new draft"}</button>{props.exactPreviewCurrent ? <button className="publish-button" onClick={props.publish} disabled={!!props.busy}>{props.busy === "publish" ? <LoaderCircle className="spin" size={17} /> : <Check size={17} />} Publish this version</button> : props.fitBlocked ? <div className="publish-blocked"><button className="review-button" disabled><CircleAlert size={17} /> Fix fit issues to publish</button><small>Publication is blocked while the preview reports fit problems.</small></div> : <button className="review-button" onClick={props.review} disabled={!props.draft || props.dirty || !!props.busy}>{props.busy === "review" ? <LoaderCircle className="spin" size={17} /> : <Sparkles size={17} />} Review saved version</button>}</div></div>;
 }
 
 function DuplicateNameDialog(props: { message: string; suggestedName: string; busy: string; cancel: () => void; confirm: () => void }) {

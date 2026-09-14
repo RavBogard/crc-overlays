@@ -57,19 +57,18 @@ test('each page tells the header which pill it is', () => {
 
 /* ---------- where a disconnected service sends an operator ---------- */
 
-test('every console connection notice links to the Service log, never to prepared services', () => {
+test('the console says the output is disconnected exactly once, and offers one way to fix it', () => {
   const notices = consolePage.split('<aside className="notice"').slice(1).map(part => part.slice(0, part.indexOf('</aside>')));
-  assert.equal(notices.length, 3, 'reconnecting, no graphics browser, and waiting each have a notice');
-  for (const notice of notices) {
-    assert.ok(notice.includes('href="/services/log"'), 'the notice links to /services/log');
-    assert.ok(!notice.includes('href="/services"'), 'and never to the prepared-services page');
-  }
-  const browserNotice = notices.find(notice => notice.includes('No graphics browser is connected')) ?? '';
-  assert.ok(browserNotice.includes('OBS or vMix'), 'the common case names the likely cause');
-  assert.ok(!browserNotice.includes('Singular'), 'and does not send the operator back to the previous system');
+  assert.equal(notices.length, 1, 'one notice carries the disconnected state; the chip carries it as state');
+  const [notice] = notices;
+  assert.ok(notice.includes('Output not connected'), 'it names the state plainly');
+  assert.ok(notice.includes('href="/setup"'), 'and sends the operator to Setup');
+  assert.ok(!notice.includes('href="/services"'), 'never to the prepared-services page');
+  assert.ok(!notice.includes('Singular'), 'and never back to the previous system');
+  assert.equal(consolePage.includes('Trial'), false, 'the trial pill and footer are gone from Live control');
 });
 
-test('Help sends someone recording a fallback to the Service log', () => {
+test('Help sends someone recording a service problem to the Service log', () => {
   assert.ok(helpPage.includes('<a href="/services/log">Record feedback in Service log</a>'));
   assert.ok(!helpPage.includes('<a href="/services">'));
 });

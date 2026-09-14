@@ -1,0 +1,61 @@
+=== GLOBAL CHROME (every page) ===
+Header stack (top-left): small-caps "CENTRAL REFORM CONGREGATION" → green "CRC Overlays" → large h1 page title → (some pages) one-sentence subtitle → user chip "Daniel · Administrator [Sign out]" (top right on wide, below title on narrow) → 9 nav pills: Library | Live control | Prepared services | Service log | Source review | Health | Setup | Help | Account.
+On Source review the header layout collides: a second "Library" link and a "Check sources" button render on top of the nav pills ("Account" pill is overlapped by the word "Library").
+Live control has an extra top-right pill "CRC TRIAL OUTPUT" and footer "24 graphics published, visible · Trial · Check graphics in vMix or OBS".
+Nav order is not task order: Library (authoring) is first; Live control (the operator's whole job) is second. Dark theme; pill buttons everywhere; card-in-card layout.
+
+=== LIVE CONTROL interactions ===
+Clicking Preview on a row: the row highlights, the PREVIEW box fills with the artwork and a big green "Show this graphic" button appears under it (so Show exists in 2 places: row button + preview CTA). Row also has an "Enter previews" keyboard hint.
+Search "Find a graphic" filters the list instantly (typed "kaddish" → 4 rows). Placeholder: "Name, spelling variant, Hebrew, or opening words".
+Library column is its own inner scroll area with a visible scrollbar (nested scrolling inside the page).
+Bottom: collapsed <details> "Connect vMix, OBS, or Companion" → text: "Install the native overlays Companion module and its reviewed button pages. Add the output URL as a browser input in vMix or OBS at exactly 1920 × 1080. Preserve transparency and do not use chroma keying." [Copy output URL] "The Companion module supplies ordered commands, retries, and requested/rendered/disconnected feedback. Use its presets for Show, Animate out, and Clear now."  — this duplicates Setup step 3.
+
+=== /author LIBRARY — HARD-LOAD GATE BUG (reproduced twice) ===
+Typing /author into the address bar (full page load) while signed in as Administrator shows a full-page "Open the library — Sign in / or use the existing admin key / Control key" card. Clicking Library from another page inside the app (client-side navigation) opens the library normally. So the library route does not recognise the session on a hard load/refresh. It also surfaces the legacy "Control key" path to ordinary users.
+
+=== EDITOR publish flow ===
+Footer primary button "✨ Review saved version" → after click becomes "✓ Publish this version"; toast: "Reviewing exact saved version 1. Nothing has been published yet." — while the header pill on the same graphic says PUBLISHED and the left rail counts it under Published 25. Preview label changes from "Working preview" to "Exact saved preview". Two-step publish with contradictory state words.
+
+=== /services PREPARED SERVICES ===
+h1 Prepared services. Subtitle: "Plan the prepared parts and keep every graphic within reach. Collections are optional preparation aids; they never control the live output."
+Card 1 (label ALWAYS AVAILABLE) "Global graphic finder — Inspect any graphic without sending it live. Add selected graphics to the open collection when useful." pill "24 graphics published, visible". Search "Search every published graphic" (placeholder "Prayer, title, or graphic ID"). Empty box: "Search to find a graphic. The full published list is on Live control." Bar: "0 selected" [Add graphic] [Add as alternates] [Add as multipart] (all disabled).
+Left card (label OPTIONAL PREPARATION) "Service collections" ☐ Show archived. "No collections yet. The global finder remains ready for spontaneous use." — "New collection": Name [Friday night service] Service [Shabbat Evening] [Create empty] [Start from current library] helper: "The starter includes published graphics and groups only complete numbered sets. Add source material to coverage only when your congregation actually uses it. This does not claim the service is complete."  Then "Import from centralreform.live — Nothing is published by importing. This builds a prepared service you can review." dropdown of 18 setlists (RH Day 2, Rosh Hashanah Day 2, RH Day Alt, Rosh Hashanah Day, Alt Rosh Hashanah Day, Erev RH, Selichot, Shabbat mornings, B'nai Mitzvah, Camp Sabra ×4 …) [Import].
+Right card: "Choose or create a collection — Collections are optional. Search and preview graphics above at any time." (empty).
+Vocabulary on this one page: prepared services, prepared parts, collections, service collections, coverage, starter, alternates, multipart, numbered sets, global finder. The word "optional" appears 4 times.
+
+=== /services/log SERVICE LOG ===
+Label BETA LEARNING. h2 "Record an issue or fallback — Capture what happened while the context is fresh. Export the log for triage and follow-up." [Export CSV]
+Form: What happened (Issue | Fallback used | Observation), Impact (No service impact | Minor | Service affecting), Graphic (No specific graphic + 24 names), Moment or context, Details, ☑ "This suggests a product gap", [Record feedback]. No list of past entries visible on the page.
+
+=== /sources-review SOURCE REVIEW ===
+Subtitle: "Compare exact source wording and choose what becomes new draft work. Nothing here changes a live graphic." Buttons: Library, ⟳ Check sources (overlapping nav).
+Banner: "20 unopened baseline graphics predate retained source snapshots and cannot be compared exactly until opened or republished."
+Inbox (0): "No source changes need review." Right: shield icon "Select a source change — You'll see the previous source and proposed revision side by side."
+
+=== /health HEALTH ===
+Subtitle: "What is ready for a service, what needs attention, and when each check was observed."
+Amber banner SYSTEM CHECK "Attention — Playback and authoring answered, but no graphics output is connected in the current freshness window." [Check now]
+Cards: LIVE PLAYBACK Available (Relay Available · Current graphic As We Bless · Revision 1789055589994) | GRAPHICS OUTPUT None seen ("0 browser outputs are present within the 30-second window.") | COMPANION CONTROL None seen ("No Companion connected. If the button turns red, open Companion's connection log and look for a line beginning Realtime closed (") | LIBRARY SYNCHRONIZATION Current ("Compared at Sep 14, 2026, 12:20 PM. Live fe0996f32ae9a128 · Authoring fe0996f32ae9a128") | AUTHORING DATABASE Available (Latest publication Sep 13 9:10 PM · Published, visible 24 · Published records / drafts 5 / 6 · Revisions 5 · Database size 13.7 MB)
+ADMINISTRATOR VIEW "Provider usage and budget review — Both congregations combined: target under $25/month; review before $50/month. Monthly total unavailable · 0/3 providers reported in USD. The entered-report sum is compared with the monthly plan only when all providers use the same window and were measured within 45 days." Three cards Vercel / Neon / Cloudflare each "Usage unavailable — No current provider usage report is configured. This is unavailable, not zero. No measured window [Open provider dashboard] [Report current usage]".
+RECOVERY "Need to act? Use the service fallback, backup, account, and restore rehearsal guides. Health checks never put a graphic on air." [Open Help]. Footer "Last successful observation: Sep 14, 2026, 12:20 PM · CRC workspace".
+
+=== /setup SETUP ===
+Subtitle: "Add CRC Overlays beside your current graphics system. Your existing Singular setup, camera controls, and Companion pages stay in place during the trial."
+Intro card: "Allow about 10 minutes. You will add one Companion connection and one new browser input. Nothing on this page puts a graphic on air. You need Overlays. You need centralreform.live only if you import a planned service. The web siddur needs nothing from you." pill [Parallel trial]
+Numbered steps 1–5 + READY:
+ 1 BEFORE YOU BEGIN "Protect the setup you already use" (Companion backup, two empty pages, don't rename Singular) ☐ "I saved a backup and found two empty pages."
+ 2 COMPANION + STREAM DECK "Add the controls" — module package, add connection, pair with code; "Every preset is a toggle". Sub-items: Companion module (install once) · Name this Companion computer (e.g., Booth PC) · [Pair this Companion] · Recreate CRC's exact button layout · "This step ticks itself once Companion connects."
+ 3 GRAPHICS OUTPUT "Add a separate browser input" — Which application? [vMix — Default for this congregation] [OBS — Browser source]; IN VMIX Add Input → Web Browser, NAME CRC graphics; width/height; Name this graphics computer (e.g., Sanctuary PC) [Create an output connection] [Copy private output URL]
+ 4 CONNECTION CHECK "Make sure the graphics browser is ready" [Check graphics connection] "Ready when your new browser input is open."
+ 5 REHEARSAL "Test before using it in a service" ☐ "I rehearsed with the new input off air."
+ READY "Open Live control when you are done" [Open Live control]. Footer "CRC workspace · Trial setup".
+
+=== /help HELP ===
+Subtitle "Short, maintained instructions for setup, services, accounts, and recovery." Bar: "Guide version 2026.09.4 · For CRC · trial workspace" [Check workspace health]
+10 jump pills → 10 PROCEDURE cards (two-column grid), each a numbered list: How the three parts fit together · Set up a computer once · Before a service · During a service · The scan card · Names for this service · Return to Singular · After a service · Accounts and handoff · Backup and restore rehearsal. Help mentions features not seen elsewhere in the UI ("Names for this service" lives inside a prepared service; "Hide scan card"; Next panel). Closing line: "These guides describe the product workflow. A physical OBS/vMix, Companion, network, restart, and fallback rehearsal is still required before live use."
+
+=== /access ACCOUNT ===
+"SIGNED IN — Welcome, Daniel — Administrator · This browser remains signed in for 30 days. Access is checked on every request."
+Two shortcut cards: Library (Create, review, and publish overlays) · Set up this computer (Connect Companion, Stream Deck, and video)
+Sections: Change your password (3 fields + Save) · Google sign-in (Linked as daniel@… [Unlink]) · Paired devices ("No paired devices yet.") · Invite someone (Name, Email, Access radio: Editor — create, publish, and operate / Operator — use approved graphics / Administrator — manage people and graphics; [Create private link]) · People with access (Daniel Admin Active; David Lazaroff Editor Invited link expires in 8 h; Michael Admin Active; per-row role menu + Remove).
+"Account" mixes personal settings (password, Google) with workspace administration (invites, people, devices) on one long page.

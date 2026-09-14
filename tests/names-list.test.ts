@@ -227,7 +227,7 @@ test('removing or archiving a names list is refused while one of its panels is o
  const cleared=await onAir(()=>manager.clearNames({id:created.id,expectedVersion:saved.version},'editor'));
  assert.equal(cleared?.code,'names_on_air');
  assert.equal(cleared?.status,409);
- assert.equal(cleared?.message,`Take ${panelName('Mi Shebeirach',1,2)} off air first — Clear now on Live control — then remove the names.`);
+ assert.equal(cleared?.message,`Take ${panelName('Mi Shebeirach',1,2)} off air first — Clear on Live control — then remove the names.`);
  const archived=await onAir(()=>manager.setCollectionArchived({id:created.id,expectedVersion:saved.version},'editor',true));
  assert.equal(archived?.code,'names_on_air');
  assert.equal(archived?.status,409);

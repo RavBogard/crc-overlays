@@ -75,7 +75,7 @@ export default function SetlistImportSlot({collection,onImported}:SetlistImportS
 
  return <section className="setlist-import" aria-labelledby="setlist-import-heading">
   <h3 id="setlist-import-heading">Import from centralreform.live</h3>
-  <p className="starter-note">Nothing is published by importing. This builds a prepared service you can review.</p>
+  <p className="starter-note">Import a planned service from centralreform.live.</p>
   {setlists.length
    ?<>
      <label>Choose a service to import

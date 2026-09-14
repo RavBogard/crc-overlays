@@ -12,16 +12,14 @@
 /** The same 30-second window `lib/operations-health.ts` uses for renderers and controllers. */
 export const PRESENCE_FRESHNESS_MS = 30_000;
 
-export const BACKUP_STEP = "backup-confirmed";
 export const COMPANION_STEP = "companion-confirmed";
 export const OUTPUT_STEP = "output-connected";
-export const REHEARSED_STEP = "rehearsed";
 
 /** Checklist order; also the order a returning installer is walked through. */
-export const SETUP_STEPS = [BACKUP_STEP, COMPANION_STEP, OUTPUT_STEP, REHEARSED_STEP] as const;
+export const SETUP_STEPS = [COMPANION_STEP, OUTPUT_STEP] as const;
 export type SetupStepKey = (typeof SETUP_STEPS)[number];
 
-/** The two steps the page can confirm for itself; these never render as a checkbox once true. */
+/** Both steps confirm themselves; neither renders as a checkbox once true. */
 export const AUTO_STEPS: readonly SetupStepKey[] = [COMPANION_STEP, OUTPUT_STEP];
 export const isAutoStep = (step: string): step is SetupStepKey => (AUTO_STEPS as readonly string[]).includes(step);
 

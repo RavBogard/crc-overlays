@@ -18,10 +18,8 @@ import {
   resolveOutputCredential,
 } from '../app/output/output-credential.ts';
 import {
-  BACKUP_STEP,
   COMPANION_STEP,
   OUTPUT_STEP,
-  REHEARSED_STEP,
   autoVerifiedSteps,
   companionStepMode,
   firstUnverifiedStep,
@@ -204,10 +202,8 @@ test('step 3 reads presence the same way, and a named output is still required',
 });
 
 test('a returning installer lands on the first step that is still unverified', () => {
-  assert.equal(firstUnverifiedStep({}), BACKUP_STEP);
-  assert.equal(firstUnverifiedStep({[BACKUP_STEP]: true}), COMPANION_STEP);
-  assert.equal(firstUnverifiedStep({[BACKUP_STEP]: true, [COMPANION_STEP]: true}), OUTPUT_STEP);
-  assert.equal(firstUnverifiedStep({[BACKUP_STEP]: true, [COMPANION_STEP]: true, [OUTPUT_STEP]: true}), REHEARSED_STEP);
-  assert.equal(firstUnverifiedStep({[BACKUP_STEP]: true, [COMPANION_STEP]: true, [OUTPUT_STEP]: true, [REHEARSED_STEP]: true}), null);
-  assert.equal(firstUnverifiedStep({[BACKUP_STEP]: false, [COMPANION_STEP]: true}), BACKUP_STEP);
+  assert.equal(firstUnverifiedStep({}), COMPANION_STEP);
+  assert.equal(firstUnverifiedStep({[COMPANION_STEP]: true}), OUTPUT_STEP);
+  assert.equal(firstUnverifiedStep({[COMPANION_STEP]: true, [OUTPUT_STEP]: true}), null);
+  assert.equal(firstUnverifiedStep({[COMPANION_STEP]: false, [OUTPUT_STEP]: true}), COMPANION_STEP);
 });

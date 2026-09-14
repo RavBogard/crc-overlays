@@ -1,0 +1,12 @@
+PRODUCT CONTEXT — CRC Overlays (crc-overlays.vercel.app; sibling deployment tbi-overlays.vercel.app)
+- What it is: a replacement for Singular.live for broadcast prayer-text graphics (lower thirds, left/right panels) shown on the sanctuary screen and livestream. Output is a transparent 1920x1080 browser source in vMix (CRC) or OBS (TBI). Control is via the web "Live control" page and/or a Bitfocus Companion module on a Stream Deck.
+- Prayer text is never typed: graphics are built by selecting passages from the congregation's siddur feed (shireishabbat / CRC siddur books) and pinning them. "Custom" graphics (e.g. "Thank you") are the exception.
+- Users: (1) the live OPERATOR (Michael at CRC — runs the stream on Saturday morning, often under time pressure, may be a volunteer); (2) the EDITOR/owner (Daniel — builds and publishes graphics, imports services from centralreform.live); (3) a second congregation's rabbi (Simone, TBI) who uses OBS and inherits CRC graphics; (4) administrators managing people/devices.
+- Currently in a "parallel trial" alongside Singular. ~24 published graphics.
+- Roles in the app: Operator (use approved graphics), Editor (create, publish, operate), Administrator (manage people and graphics).
+- Owner's complaint (verbatim gist): "I like this app, but I find it a little confusing to use; the UI/UX is unwieldy, overly complicated and bloated; a little too hard to find what you're looking for."
+- Owner's standing rule for any change: "faster and better, not slower and more bureaucratic." He wants only recommendations he is likely to approve — concrete, opinionated, prioritized. He does not care about schedules; give cost/shape not dates.
+- Things already decided (do NOT recommend): no Bitfocus module-store publication; no human-facing rehearsal mode / staging workspace; no timed auto-out; no test card; no setlist-keyed deploy freeze; no nightly production check. Google sign-in already approved and configured.
+- Sister app: centralreform.live (CRC Music) is where services/setlists are planned; Overlays can import a service from it.
+
+NAV (9 top-level pills): Library (/author) · Live control (/) · Prepared services (/services) · Service log (/services/log) · Source review (/sources-review) · Health (/health) · Setup (/setup) · Help (/help) · Account (/access)

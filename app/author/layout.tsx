@@ -3,7 +3,7 @@ import {getPublicWorkspace} from '@/lib/workspace';
 
 export function generateMetadata(): Metadata {
   const workspace = getPublicWorkspace();
-  return {title: `${workspace.productName} · Library`, description: 'Create, review, and publish graphics without changing what is live.'};
+  return {title: `${workspace.productName} · Library`, description: 'Create, review, and publish graphics.'};
 }
 
 export default function AuthorLayout({children}: {children: React.ReactNode}) {

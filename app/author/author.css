@@ -442,7 +442,7 @@
 .revision-row small { color: var(--quiet); font-size: 9px; }
 .revision-row em { color: #91dbba; font-size: 10px; font-style: normal; }
 .revision-row button { padding: 7px 9px; font-size: 9px; }
-.notice-stack { position: fixed; right: 20px; bottom: 92px; z-index: 70; width: min(540px, calc(100vw - 40px)); }
+.notice-stack { position: fixed; left: 20px; bottom: 92px; z-index: 70; width: min(540px, calc(100vw - 40px)); }
 .notice { display: flex; align-items: center; justify-content: space-between; gap: 14px; margin: 7px 0; padding: 11px 13px; border-radius: 8px; box-shadow: 0 12px 34px #000a; font-size: 11px; }
 .notice.success { border: 1px solid #437261; background: #1d3a31; color: #c8e7dc; }
 .notice.error { border: 1px solid #955a53; background: #472724; color: #ffd0cb; }
@@ -453,9 +453,6 @@
 .access-card h1 { margin: 8px 0; font-size: 30px; }
 .access-card > p { margin: 0 0 22px; color: var(--muted); line-height: 1.55; }
 .access-link { display: flex; justify-content: center; padding: 12px; border: 1px solid #6aa18f; border-radius: 8px; background: #285849; color: #eef8f4 !important; text-decoration: none; }
-.access-divider { display: flex; align-items: center; gap: 10px; margin: 18px 0; color: var(--quiet); font-size: 10px; }
-.access-divider::before,
-.access-divider::after { content: ""; height: 1px; flex: 1; background: var(--line); }
 .access-card label { display: block; color: #c9d5d1; font-size: 12px; }
 .access-card input { width: 100%; margin: 6px 0 12px; padding: 11px; border: 1px solid var(--line-strong); border-radius: 7px; background: #09100f; color: white; }
 .access-card form button { width: 100%; }

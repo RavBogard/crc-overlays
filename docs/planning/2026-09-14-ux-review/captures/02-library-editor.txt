@@ -1,0 +1,50 @@
+ROUTE /author  — nav label "Library"   Title: CRC Overlays · Library
+
+OBSERVED GATE BUG: While signed in as Daniel (Administrator, visible in header chip on Live control), navigating directly to /author showed a full-page gate:
+   card: [book icon] "CRC Overlays / Open the library / Sign in to create and prepare graphics without changing what is live." [Sign in → /access]  "— or use the existing admin key —" [Control key input] [Open the library]
+   Going to /access (Account) and clicking the "Library" card there opened the library fine. So the gate appears intermittently for an already-signed-in admin, and it exposes a legacy "Control key" path.
+
+LIBRARY LAYOUT (1100x800): three columns.
+ LEFT RAIL (~170px):
+   big green button "Add from siddur / Find a prayer or reading"
+   button "New custom graphic"
+   segmented counts: Published 25 | Drafts 1 | Archived 0
+   search "Search published"
+   scrolling list of graphic cards (thumbnail + name + "Siddur · Lower third"/"Custom · Right panel"); names truncated at this width ("Modeh ...", "Mourners Ka...").  Hover reveals two icon buttons (duplicate, archive).
+ CENTER (empty state before selection): big card "READY WHEN YOU ARE / Prepare a graphic without touching live output. / Start with an authorized passage from the siddur library, or open a published graphic to edit or duplicate it." with the SAME two buttons again: Add from siddur, New custom graphic.
+
+EDITOR (after clicking Barechu): center + right columns
+ Header: pill PUBLISHED · "Saved version 1" · h1 Barechu · "The published version stays available while you work."
+ Toolbar: [undo][redo] [Duplicate] [Local wording] [Archive] [History]
+ STEP 1 card "Choose from the siddur — Search by prayer, Hebrew, common spelling, or opening words."
+   search input "Search prayers and readings" + [Search] button
+   two dropdowns BOOK (13 options with counts) and SERVICE (14 options with counts — nearly identical lists to BOOK)
+   selected source breadcrumb: [back] "CRC Shabbat Morning Siddur / Bar'chu"  [Select all passages] [Make slides from whole prayer]
+   card "CRC Shabbat Morning Siddur — Exact source text · view edition details"
+   toggle "Hebrew + transliteration"
+   Panel tabs: [Panel 1 · 1 passages] [Panel 2 · 1 passages] [+ Add panel]
+   passage checklist: 1 ✓ בָּרְכוּ… / Bar'chu et Adonai hamvorach!   2 ☐ בָּרוּךְ… / Baruch Adonai…
+   [Remove panel 1] (red outline)
+ STEP 2 card "Name and title — Names help the operator find the right graphic."
+   Library name [Barechu]   On-screen title [Bar'chu בָּרְכוּ]   Hebrew accent (optional) [ ]
+ COLLAPSED card, header is a one-line summary: "Look · Lower third · Comfortable · Template alignment · No artwork"  (a tiny green dot is the only affordance; unlabeled — no "Step 3", no chevron)
+   expanded: 3 layout thumbnails (Lower third / Left panel / Right panel · Hebrew + transliteration)
+     Text density: Comfortable | Large print | Compact
+     Alignment: Template default | Logical start | Centered  (helper: "Logical start keeps Hebrew reading from the right and Latin text from the left.")
+     Line spacing: Template default | Compact | Spacious
+     Upper-right artwork: "Replaces the congregation logo only. Images stay inside the approved region." [Show archived]  ✓ Congregation logo (Template default)  ▸ Upload approved artwork
+     [Reset visual settings to template]
+ RIGHT COLUMN: "ISOLATED PREVIEW / Broadcast frame  1920 × 1080" — 16:9 frame labeled PREVIEW ONLY with the rendered lower third; buttons [Play in] [Play out] [Full screen] "Working preview"
+   status card: ✓ "Fits this frame — Fonts and artwork loaded. Review readability before publishing."
+   small text: "This preview cannot issue live commands. A graphic already on screen remains unchanged."
+ STICKY FOOTER: ✓ "Saved version 1 — Published output has not changed."   [Save draft (disabled)] [✨ Review saved version]
+ TOAST (bottom right, persistent until dismissed, covers the Look card): "Opened “Barechu”. Published output is unchanged."  ×
+
+VISUAL/INTERACTION NOTES:
+- Three nested scroll regions (left rail list, center editor, page). Right preview column is sticky.
+- Reassurance copy about "published output unchanged / not live / preview only / cannot issue live commands" appears 6+ times on one screen (header subtitle, preview label, preview footer, status footer, toast, isolated preview label).
+- Steps are numbered 1, 2 … but the third card (Look) has no number and a different collapsed treatment.
+- Two near-identical dropdowns BOOK and SERVICE.
+- "Panel 1 / Panel 2" tabs vs. layout names "Lower third / Left panel / Right panel" — the word "panel" is used for two different concepts.
+- Primary action naming: "Review saved version" (sparkle icon) is the only enabled primary — unclear whether this is "Publish".
+- Publish/version vocabulary in play: Published, Saved version, Draft, Review saved version, History, Local wording, Archive, Duplicate.

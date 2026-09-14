@@ -1,0 +1,33 @@
+URL: https://crc-overlays.vercel.app/   Title: CRC Overlays · Live control   scrollHeight 1934 @1440x900 (≈2.1 screens tall)
+
+main
+  header: CENTRAL REFORM CONGREGATION / CRC Overlays / h1 Live control / [chip: Daniel · Administrator (Sign out)] / [top-right pill: CRC TRIAL OUTPUT]
+  nav pills (9): Library | Live control | Prepared services | Service log | Source review | Health | Setup | Help | Account
+  aside[status] (amber banner): "No graphics browser is connected. Usually OBS or vMix is not open, or the Overlays browser input is missing, disabled, or still loading. Open OBS or vMix and turn the browser input on; this notice clears by itself once it connects. Show still works and the graphic appears as soon as the browser is back. Only if a service is starting right now and this cannot be fixed: fallback steps (link /help#fallback)."  Buttons: Setup steps (/setup), Service log (/services/log)
+  section[status] (strip): [red pill DISCONNECTED] [thumbnail] "As We Bless" — "No graphics browser is connected. Open OBS or vMix with the Overlays browser input on."
+  TWO-COLUMN BODY:
+   LEFT COLUMN:
+    section "PREVIEW · NOT LIVE / Choose a graphic to preview" — big 16:9 dark box: "Select Preview beside a graphic to see its complete artwork here. Nothing is sent to the output."  footer text: "Preview only · the output does not change until you press Show"
+    section "LIVE NOW / As We Bless [DISCONNECTED]" — full artwork of the live graphic (img: Central Reform Congregation artwork), body text of the prayer
+   RIGHT COLUMN:
+    h2 Library
+      button Animate out | button Clear now (red)
+      h3 Scan card: button Show scan card | label Page [input]  small text: "Clear now also removes the scan card."
+      label Find a graphic [input placeholder "Name, spelling variant, Hebrew, or opening words"]  hint "↑ ↓ move · Enter previews"
+      24 article rows, each: Title / subtitle (layout: Lower third | Left panel | Right panel) / buttons Preview, Show
+        Barechu, Modeh Ani (Bottom), Mah Tovu, Thank you, Oseh Shalom, Mourners Kaddish 1, Mourners Kaddish 2, Hareini, Elohai Nshama, Birchot Hashachar 1, Birchot Hashachar 2, Psukei DZimrah 1, Psalm 150, Readers Kaddish 1, Readers Kaddish 2, As We Bless, Yotzer Or (short), Yotzer Or 1, Yotzer Or 2, Ahava Rabbah Ahavtanu (Partial), Vahavta 1, Vahavta 2, Mi Chamocha (Sat 1), Siyahamba
+  details (collapsed): "Connect vMix, OBS, or Companion" (contains a button)
+  footer: "24 graphics published, visible · Trial · Check graphics in vMix or OBS"
+
+Links present on page: /author (Library), / (Live control), /services, /services/log, /sources-review, /health, /setup, /help, /access (Account), /help#fallback
+
+VISUAL NOTES (from screenshot at 1440x900):
+- Dark theme, near-black background, off-white text, pale green accent for brand name, lavender for graphic title in status strip.
+- Header stack is tall: small-caps org name, brand name, big h1, then a user chip row, then nav pills. ~170px before content starts.
+- Nav pills are all same weight/colour; active one only slightly lighter. "Library" is a nav tab AND also the h2 of the right column on this same page (two different things share the name).
+- Amber warning banner dominates the first fold; three CTAs inside it (link + 2 buttons).
+- Status strip repeats the same disconnect message a second time.
+- Preview box is an enormous empty dark rectangle when nothing is selected (~500x270).
+- Library column: rows are dense cards; every row carries two buttons (Preview / Show) = 48 buttons on screen. No grouping by service section, no thumbnails in rows.
+- Scan card block sits between the global Out/Clear buttons and the search box.
+- At 600px wide (earlier screenshot) everything stacks single column: warning banner, status strip, preview, live now, then library — library is far below the fold.
