@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { BookOpenText, ChevronLeft, ChevronRight, FilePlus2, LoaderCircle, Search } from "lucide-react";
 import { fetchBookUnits, groupUnits, hasHebrew, visibleUnits } from "@/lib/siddur-shelf";
 import { blocksForMode, sourceDisplayCopy, sourceHeadline } from "./editor-state";
@@ -14,6 +14,7 @@ import type {
   SourceFacet,
   SourceSummary,
 } from "./types";
+import { EditorCard } from "./editor-card";
 import "./siddur-editor.css";
 
 const SHOW_NOTES_LABEL = "Show instructions and notes";
@@ -45,7 +46,9 @@ export type SiddurEditorProps = {
   makeSlidesFromWholePrayer: () => void;
   changeMode: (mode: CanonicalContentMode) => void; changeForm: (patch: Partial<DraftForm>) => void; busy: string;
   controlKey: string;
-  /** X2: the Panels row is shown only when the selection needs more than one panel (or already has one). Default true. */
+  /** X2: the Slides row is shown only when the selection needs more than one slide (or already has one). Default true.
+   *  C3 of the 2026-09-14 layout pass: these are slides in the words an editor reads; "panel" now
+   *  means only the layout (Left panel / Right panel). The prop and state names are unchanged. */
   showPanels?: boolean;
 };
 
@@ -55,8 +58,18 @@ export function SiddurEditor(props: SiddurEditorProps) {
   /** A search only takes over from the shelf once it has actually been run. */
   const [searchedQuery, setSearchedQuery] = useState("");
   const searching = searchedQuery !== "" && props.query.trim() !== "";
+  /* C2: the search runs as you type rather than waiting for a button. The round trip is still a
+     round trip, so it is debounced and never fires on a single character; Enter runs it at once. */
+  const latestSearch = useRef(props.search);
+  useEffect(() => { latestSearch.current = props.search; });
+  const typed = props.query.trim();
+  useEffect(() => {
+    if (typed.length < 2) return;
+    const timer = setTimeout(() => { setSearchedQuery(typed); latestSearch.current(); }, 350);
+    return () => clearTimeout(timer);
+  }, [typed]);
   function runSearch() {
-    setSearchedQuery(props.query.trim());
+    setSearchedQuery(typed);
     props.search();
   }
   const hidesNotes = props.form.mode === "source-en" && !showNotes;
@@ -67,21 +80,27 @@ export function SiddurEditor(props: SiddurEditorProps) {
   const omittedFromAutomatic = props.form.mode === "source-en"
     ? visibleBlocks.filter((block) => block.automatic === false).length
     : 0;
-  return <section className="form-section siddur-section"><div className="section-heading"><span>1</span><div><h3>Choose from the siddur</h3><p>Search by prayer, Hebrew, common spelling, or opening words.</p></div></div>
-    <div className="siddur-search-row"><label className="source-search"><span className="sr-only">Search siddur library</span><Search size={17} /><input aria-label="Search siddur library" value={props.query} onChange={(event) => props.setQuery(event.target.value)} onKeyDown={(event) => { if (event.key === "Enter") { event.preventDefault(); runSearch(); } }} placeholder="Search prayers and readings" /></label><button onClick={runSearch} disabled={props.busy === "search"}>{props.busy === "search" ? <LoaderCircle className="spin" size={17} /> : "Search"}</button></div>
-    {(props.books.length > 0 || props.services.length > 0) && <div className="source-filters"><label>Book<select value={props.bookFilter} onChange={(event) => props.setBookFilter(event.target.value)}><option value="">All books</option>{props.books.map((book) => <option key={book.value} value={book.value}>{book.label} ({book.count})</option>)}</select></label><label>Service<select value={props.serviceFilter} onChange={(event) => props.setServiceFilter(event.target.value)}><option value="">All services</option>{props.services.map((service) => <option key={service.value} value={service.value}>{service.label} ({service.count})</option>)}</select></label></div>}
+  return <EditorCard number={1} title="Text" lede="Search by prayer, Hebrew, common spelling, or opening words." className="siddur-section">
+    <div className="siddur-search-row"><label className="source-search"><span className="sr-only">Search siddur library</span><Search size={17} /><input aria-label="Search siddur library" value={props.query} onChange={(event) => props.setQuery(event.target.value)} onKeyDown={(event) => { if (event.key === "Enter") { event.preventDefault(); runSearch(); } }} placeholder="Search prayers and readings" />{props.busy === "search" && <LoaderCircle className="spin" size={16} />}</label></div>
+    {(props.books.length > 0 || props.services.length > 0) && <div className="source-filters"><label>Source<select value={props.serviceFilter ? `service:${props.serviceFilter}` : props.bookFilter ? `book:${props.bookFilter}` : ""} onChange={(event) => {
+      const separator = event.target.value.indexOf(":");
+      const kind = separator < 0 ? "" : event.target.value.slice(0, separator);
+      const value = separator < 0 ? "" : event.target.value.slice(separator + 1);
+      props.setBookFilter(kind === "book" ? value : "");
+      props.setServiceFilter(kind === "service" ? value : "");
+    }}><option value="">Everything</option>{props.books.length > 0 && <optgroup label="Books">{props.books.map((book) => <option key={book.value} value={`book:${book.value}`}>{book.label} ({book.count})</option>)}</optgroup>}{props.services.length > 0 && <optgroup label="Services">{props.services.map((service) => <option key={service.value} value={`service:${service.value}`}>{service.label} ({service.count})</option>)}</optgroup>}</select></label></div>}
     {!props.source ? (!searching ? <SiddurShelf books={props.books} bookFilter={props.bookFilter} setBookFilter={props.setBookFilter} controlKey={props.controlKey} selectSource={props.selectSource} showNotes={showNotes} setShowNotes={setShowNotes} /> : <div className="source-results">{props.truncated &&<p className="results-note">Showing the first {props.results.length}. Choose a book or service, or search to narrow the list.</p>}{props.results.map((item) => { const display = sourceDisplayCopy(item); return <button key={item.id} onClick={() => props.selectSource(item)}><span className="source-book"><BookOpenText size={18} /></span><span><strong>{item.name}</strong><small>{sourceHeadline(display)}</small>{display.sectionTitle && <small className="source-section">{display.sectionTitle}</small>}{item.openingWords?.[0] && <em>{item.openingWords[0]}</em>}</span><ChevronRight size={17} /></button>; })}{!props.results.length && <div className="source-empty"><BookOpenText size={24} /><p>Nothing matched that search. Clear it to browse the shelf.</p></div>}</div>) : <div className="passage-picker">
       <div className="passage-header"><button className="icon-button" title="Back to results" onClick={props.clearSource}><ChevronLeft size={17} /></button><div><small>{sourceHeadline(sourceDisplayCopy(props.source))}</small><h4>{props.source.name}</h4></div><div className="whole-prayer-actions"><button onClick={props.chooseWholePrayer}>Select all</button><button className="primary-button" onClick={props.makeSlidesFromWholePrayer} disabled={props.busy === "make-set"}>{props.busy === "make-set" ? <LoaderCircle className="spin" size={16} /> : <FilePlus2 size={16} />} Add all as slides</button></div></div>
       <SourceProvenance source={props.source} />
       <div className="content-mode-toggle">{props.source.blocks.some((block) => block.kind === "bilingual") && <button className={props.form.mode === "bilingual" ? "active" : ""} onClick={() => props.changeMode("bilingual")}>Hebrew + transliteration</button>}{blocksForMode(props.source, "source-en").length > 0 && <button className={props.form.mode === "source-en" ? "active" : ""} onClick={() => props.changeMode("source-en")}>English from siddur</button>}{props.source.blocks.some((block) => block.kind === "original-en") && <button className={props.form.mode === "original-en" ? "active" : ""} onClick={() => props.changeMode("original-en")}>Original English reading</button>}</div>
       {props.source.blocks.some((block) => block.kind === "translation-en") && props.form.mode === "bilingual" && <label className="translation-choice"><input type="checkbox" checked={!!props.form.includeTranslation} onChange={(event) => props.changeForm({ includeTranslation: event.target.checked })} /> Include approved English where available</label>}
       {omittedFromAutomatic > 0 && <p className="source-mode-note">{omittedFromAutomatic} service {omittedFromAutomatic === 1 ? "note is" : "notes are"} available for manual selection below. Automatic slides use the prayer and reading text.</p>}
-      {props.showPanels !== false && <div className="panel-tabs">{props.form.groups.map((group, index) => <button key={`${group.sourceId}-${index}`} className={props.activeGroup === index ? "active" : ""} onClick={() => props.setActiveGroup(index)}>Panel {index + 1}<small>{group.blockIds.length} passages</small></button>)}<button onClick={props.addPanel}>+ Add panel</button></div>}
+      {props.showPanels !== false && <div className="panel-tabs">{props.form.groups.map((group, index) => <button key={`${group.sourceId}-${index}`} className={props.activeGroup === index ? "active" : ""} onClick={() => props.setActiveGroup(index)}>Slide {index + 1}<small>{group.blockIds.length} passages</small></button>)}<button onClick={props.addPanel}>+ Add slide</button></div>}
       {noteLikeBlocks > 0 && <label className="shelf-toggle"><input type="checkbox" checked={showNotes} onChange={(event) => setShowNotes(event.target.checked)} /> {SHOW_NOTES_LABEL}</label>}
       <div className="passage-list">{visibleBlocks.map((block) => <label key={block.id} className={props.selectedIds.has(block.id) ? "selected" : ""}><input type="checkbox" checked={props.selectedIds.has(block.id)} onChange={(event) => props.toggleBlock(block.id, event.target.checked)} /><span className="passage-number">{block.index + 1}</span><span>{props.form.mode === "bilingual" ? <><b lang="he" dir="rtl">{block.he}</b><small>{block.tr}</small></> : <><b>{block.en}</b>{props.form.mode === "source-en" && <small className="passage-meta">{englishRoleLabel[block.englishRole || "unclassified"]}{block.automatic === false ? " · manual selection" : ""}</small>}</>}</span></label>)}</div>
-      {props.showPanels !== false && props.form.groups.length > 1 && <button className="remove-panel" onClick={props.removePanel}>Remove panel {props.activeGroup + 1}</button>}
+      {props.showPanels !== false && props.form.groups.length > 1 && <button className="remove-panel" onClick={props.removePanel}>Remove slide {props.activeGroup + 1}</button>}
     </div>}
-  </section>;
+  </EditorCard>;
 }
 
 type SiddurShelfProps = {

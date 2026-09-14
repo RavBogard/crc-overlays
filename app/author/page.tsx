@@ -1,33 +1,9 @@
 "use client";
 
 import Link from "next/link";
-import {
-  Archive,
-  ArchiveRestore,
-  BookOpenText,
-  Check,
-  ChevronLeft,
-  ChevronRight,
-  CircleAlert,
-  Clock3,
-  Copy,
-  FilePlus2,
-  History,
-  LibraryBig,
-  LoaderCircle,
-  Maximize2,
-  PencilLine,
-  Play,
-  Redo2,
-  RotateCcw,
-  Save,
-  Search,
-  Sparkles,
-  Square,
-  Undo2,
-} from "lucide-react";
+import { Archive, ArchiveRestore, BookOpenText, Check, ChevronLeft, ChevronRight, CircleAlert, Clock3, Copy, FilePlus2, History, LibraryBig, LoaderCircle, Maximize2, MoreHorizontal, PencilLine, Play, Redo2, RotateCcw, Save, Search, Sparkles, Square, Undo2 } from "lucide-react";
 import { usePathname } from "next/navigation";
-import { useCallback, useEffect, useMemo, useRef, useState, type CSSProperties } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState, type CSSProperties, type ReactNode } from "react";
 import { Player, type Cue } from "@/lib/player";
 import { overlayBrandingFromWorkspace } from "@/lib/branding";
 import type { AccessRole } from "@/lib/access";
@@ -77,6 +53,7 @@ import type {
 import { SiddurEditor } from "./siddur-editor";
 import { LookDrawer, densityOptions, type WorkspaceAsset } from "./look-drawer";
 import { CustomTextEditor, DetailsEditor } from "./custom-editor";
+import { EditorCard } from "./editor-card";
 import "./author.css";
 import GraphicThumbnail from "@/components/graphic-thumbnail";
 import SharedShelf, { expectedCueHashes, groupSharedEntries, matchesShelfQuery, shelfBadgeCount, type SharedComparison, type SharedShelfCard, type SharedShelfEntry } from "./shared-shelf";
@@ -493,7 +470,6 @@ export default function AuthorPage() {
   const showPanels = shouldShowPanels(form.groups, selectedBlocks, form.mode, form.layout);
   const previewCue = formReady(form) ? exactPreview?.cue || workingPreview?.cue || null : null;
   const reviewCurrent = !!draft && !dirty && exactPreview?.draftVersion === draft.version;
-  const exactPreviewCurrent = reviewCurrent && assetsReady && !fitErrors.length;
   const fitBlocked = reviewCurrent && fitErrors.length > 0;
   const selectedDensity = densityOptions.find((option) => JSON.stringify(option.value) === JSON.stringify({
     ...(form.presentation.hebrewFontSize !== undefined ? { hebrewFontSize: form.presentation.hebrewFontSize } : {}),
@@ -776,7 +752,7 @@ export default function AuthorPage() {
     const groups = structuredClone(form.groups);
     const index = Math.min(activeGroup, Math.max(0, groups.length - 1));
     const group = groups[index] || { sourceId: source.id, blockIds: [] };
-    if (group.sourceId !== source.id) return setError("Open the source assigned to this panel first.");
+    if (group.sourceId !== source.id) return setError("Open the source assigned to this slide first.");
     const order = new Map(source.blocks.map((block, position) => [block.id, position]));
     group.blockIds = (checked ? [...new Set([...group.blockIds, blockId])] : group.blockIds.filter((id) => id !== blockId))
       .sort((a, b) => (order.get(a) ?? 0) - (order.get(b) ?? 0));
@@ -855,26 +831,35 @@ export default function AuthorPage() {
     finally { setBusy(""); }
   }
 
-  async function reviewSavedVersion() {
-    if (!draft || dirty) return;
-    setBusy("review"); setError(""); resetReview();
+  /* C5: the exact saved render is what the preview shows, without being asked for. "Review saved
+     version" was a step that only ever produced this, so the check now happens by default and
+     Publish is one click from a saved draft. Requested once per saved version. */
+  const previewedVersion = useRef<string>("");
+  const loadExactPreview = useCallback(async (target: Draft) => {
+    const stamp = `${target.id}:${target.version}`;
+    if (previewedVersion.current === stamp) return;
+    previewedVersion.current = stamp;
     try {
-      const response = await authoringCall<PreviewResult>(key, "preview_draft", { draftId: draft.id, expectedVersion: draft.version });
+      const response = await authoringCall<PreviewResult>(key, "preview_draft", { draftId: target.id, expectedVersion: target.version });
       setExactPreview(response); setPreviewWarnings(response.validation?.warnings || []);
       await showCue(response.cue);
-      setMessage(`Reviewing exact saved version ${draft.version}. Nothing has been published yet.`);
-    } catch (value) { fail(value); }
-    finally { setBusy(""); }
-  }
+    } catch { previewedVersion.current = ""; }
+  }, [key, showCue]);
+  useEffect(() => { if (key && draft && !dirty) void loadExactPreview(draft); }, [key, draft, dirty, loadExactPreview]);
 
   async function publishReviewedVersion(confirmDuplicateName = false) {
-    if (!draft || !exactPreview || !exactPreviewCurrent) return;
+    if (!draft || dirty || fitErrors.length) return;
     setBusy("publish"); setError("");
     const browserMeasurement: BrowserMeasurement = { viewportWidth: 1920, viewportHeight: 1080, fontsReady: true, overflow: false, rendererVersion: "crc-author-preview-v2", measuredAt: Date.now() };
     try {
-      await authoringCall<ReviewReceipt>(key, "review_draft", { draftId: draft.id, expectedVersion: draft.version, previewId: exactPreview.previewId, browserMeasurement, humanApproved: true });
+      // The frame is already showing this render; take a preview only if one is not in hand.
+      const preview = exactPreview?.draftVersion === draft.version
+        ? exactPreview
+        : await authoringCall<PreviewResult>(key, "preview_draft", { draftId: draft.id, expectedVersion: draft.version });
+      if (preview !== exactPreview) { setExactPreview(preview); setPreviewWarnings(preview.validation?.warnings || []); }
+      await authoringCall<ReviewReceipt>(key, "review_draft", { draftId: draft.id, expectedVersion: draft.version, previewId: preview.previewId, browserMeasurement, humanApproved: true });
       const response = await authoringCall<{ revision: PublishedRevision; draft?: Draft; renamedFrom?: string; warning?: string }>(key, "publish_draft", {
-        draftId: draft.id, expectedVersion: draft.version, previewId: exactPreview.previewId,
+        draftId: draft.id, expectedVersion: draft.version, previewId: preview.previewId,
         ...(confirmDuplicateName ? { confirmDuplicateName: true } : {}),
       });
       setDuplicateNamePrompt(null);
@@ -886,7 +871,7 @@ export default function AuthorPage() {
       await refreshLists(key);
       setPublishedState({ version: response.revision.draftVersion });
       setMessage(response.warning
-        || (response.renamedFrom ? `Published as “${latest.name}”. The graphic already on screen is unchanged.` : `Published reviewed version ${response.revision.draftVersion}. The graphic already on screen is unchanged.`));
+        || (response.renamedFrom ? `Published as “${latest.name}”.` : `Published version ${response.revision.draftVersion}.`));
     } catch (value) {
       if (value instanceof AuthoringApiError && value.code === "duplicate_name" && value.suggestedName) {
         setDuplicateNamePrompt({ message: value.message, suggestedName: value.suggestedName });
@@ -1036,10 +1021,10 @@ export default function AuthorPage() {
 
             <PublishDock
               dirty={dirty} draft={draft} recoveryStoredAt={recoveryStoredAt} busy={busy}
-              ready={formReady(form)} exactPreviewCurrent={exactPreviewCurrent} fitBlocked={fitBlocked}
+              ready={formReady(form)} fitBlocked={fitBlocked}
               publishedVersion={dirty ? null : publishedState?.version ?? null}
               duplicate={() => void duplicateItem()} backToLibrary={backToLibrary}
-              save={() => void save()} review={() => void reviewSavedVersion()} publish={() => void publishReviewedVersion()}
+              save={() => void save()} publish={() => void publishReviewedVersion()}
             />
             {duplicateNamePrompt && <DuplicateNameDialog
               message={duplicateNamePrompt.message} suggestedName={duplicateNamePrompt.suggestedName} busy={busy}
@@ -1125,7 +1110,34 @@ function ArchivedPanel({ drafts, query, busy, restore }: { drafts: Draft[]; quer
 }
 
 function EditorTitle(props: { form: DraftForm; draft: Draft | null; dirty: boolean; busy: string; undo: () => void; redo: () => void; canUndo: boolean; canRedo: boolean; duplicate: () => void; archive: () => void; createVariant: () => void; history: () => void; setPosition: number; setCount: number; previousSlide: () => void; nextSlide: () => void }) {
-  return <div className="editor-titlebar"><div><div className="editor-status-line"><span className={`status-chip ${props.draft?.activeRevision ? "published" : "draft"}`}>{props.draft?.activeRevision ? "Published" : "Draft"}</span>{props.dirty ? <span className="unsaved-dot">Unsaved changes</span> : props.draft ? <span>Saved version {props.draft.version}</span> : <span>New graphic</span>}{props.form.mode === "local-variant" && <span className="variant-chip">Local variant</span>}{props.setCount > 1 && <span className="set-position">Slide {props.setPosition + 1} of {props.setCount}</span>}</div><h2>{props.form.name || (props.form.mode === "custom" ? "New custom graphic" : "Add from siddur")}</h2>{!props.draft?.activeRevision && <p>Publish makes this version available to the operator.</p>}</div><div className="editor-tools">{props.setCount > 1 && <><button onClick={props.previousSlide} disabled={props.setPosition <= 0 || !!props.busy}><ChevronLeft size={16} /> Previous</button><button onClick={props.nextSlide} disabled={props.setPosition >= props.setCount - 1 || !!props.busy}>Next <ChevronRight size={16} /></button></>}<button className="icon-button" onClick={props.undo} disabled={!props.canUndo} title="Undo"><Undo2 size={17} /></button><button className="icon-button" onClick={props.redo} disabled={!props.canRedo} title="Redo"><Redo2 size={17} /></button>{props.draft && props.setCount <= 1 && <button onClick={props.duplicate} disabled={props.busy === "duplicate"}><Copy size={16} /> Duplicate</button>}{props.draft && props.draft.content.mode !== "custom" && props.draft.content.mode !== "local-variant" && <button onClick={props.createVariant} disabled={!!props.busy || props.dirty}><PencilLine size={16} /> Local wording</button>}{props.draft && props.setCount <= 1 && <button onClick={props.archive} disabled={!!props.busy || props.dirty}><Archive size={16} /> Archive</button>}{props.draft && <button onClick={props.history}><History size={16} /> History</button>}</div></div>;
+  return <div className="editor-titlebar"><div><div className="editor-status-line"><span className={`status-chip ${props.draft?.activeRevision ? "published" : "draft"}`}>{props.draft?.activeRevision ? "Published" : "Draft"}</span>{props.dirty ? <span className="unsaved-dot">Unsaved changes</span> : props.draft ? <span>Saved version {props.draft.version}</span> : <span>New graphic</span>}{props.form.mode === "local-variant" && <span className="variant-chip">Local variant</span>}{props.setCount > 1 && <span className="set-position">Slide {props.setPosition + 1} of {props.setCount}</span>}</div><h2>{props.form.name || (props.form.mode === "custom" ? "New custom graphic" : "Add from siddur")}</h2>{!props.draft?.activeRevision && <p>Publish makes this version available to the operator.</p>}</div><div className="editor-tools">{props.setCount > 1 && <><button onClick={props.previousSlide} disabled={props.setPosition <= 0 || !!props.busy}><ChevronLeft size={16} /> Previous</button><button onClick={props.nextSlide} disabled={props.setPosition >= props.setCount - 1 || !!props.busy}>Next <ChevronRight size={16} /></button></>}<button className="icon-button" onClick={props.undo} disabled={!props.canUndo} title="Undo"><Undo2 size={17} /></button><button className="icon-button" onClick={props.redo} disabled={!props.canRedo} title="Redo"><Redo2 size={17} /></button>{props.draft && <EditorOverflow items={[
+    ...(props.setCount <= 1 ? [{ key: "duplicate", label: "Duplicate", icon: <Copy size={16} />, disabled: props.busy === "duplicate", run: props.duplicate }] : []),
+    ...(props.draft.content.mode !== "custom" && props.draft.content.mode !== "local-variant" ? [{ key: "variant", label: "Local wording\u2026", icon: <PencilLine size={16} />, disabled: !!props.busy || props.dirty, run: props.createVariant }] : []),
+    { key: "history", label: "History", icon: <History size={16} />, disabled: false, run: props.history },
+    ...(props.setCount <= 1 ? [{ key: "archive", label: "Archive", icon: <Archive size={16} />, disabled: !!props.busy || props.dirty, run: props.archive }] : []),
+  ]} />}</div></div>;
+}
+
+/* C4: Duplicate and Archive are already hover actions on the library cards, and History and
+   Local wording are rare. The toolbar keeps undo and redo; everything else is one menu. */
+function EditorOverflow({ items }: { items: Array<{ key: string; label: string; icon: ReactNode; disabled: boolean; run: () => void }> }) {
+  const [open, setOpen] = useState(false);
+  const wrapper = useRef<HTMLDivElement>(null);
+  useEffect(() => {
+    if (!open) return;
+    const away = (event: MouseEvent) => { if (!wrapper.current?.contains(event.target as Node)) setOpen(false); };
+    const escape = (event: KeyboardEvent) => { if (event.key === "Escape") setOpen(false); };
+    document.addEventListener("mousedown", away);
+    document.addEventListener("keydown", escape);
+    return () => { document.removeEventListener("mousedown", away); document.removeEventListener("keydown", escape); };
+  }, [open]);
+  if (!items.length) return null;
+  return <div className="editor-overflow" ref={wrapper}>
+    <button className="icon-button" aria-label="More actions" aria-expanded={open} title="More actions" onClick={() => setOpen((value) => !value)}><MoreHorizontal size={17} /></button>
+    {open && <div className="editor-overflow-menu" role="menu">
+      {items.map((item) => <button key={item.key} role="menuitem" disabled={item.disabled} onClick={() => { setOpen(false); item.run(); }}>{item.icon} {item.label}</button>)}
+    </div>}
+  </div>;
 }
 
 function SlideStrip(props: { drafts: Draft[]; activeId: string | null; dirty: boolean; busy: string; open: (draft: Draft) => void; moveLeft: () => void; moveRight: () => void; duplicate: () => void; reviewAll: () => void }) {
@@ -1146,11 +1158,11 @@ function RecoveryBanner({ recovery, restore, discard }: { recovery: RecoveryCopy
 const channelLabel: Record<VariantChannel, string> = { he: "Hebrew", tr: "Transliteration", en: "English" };
 
 function VariantEditor({ form, changeForm }: { form: DraftForm; changeForm: (patch: Partial<DraftForm>) => void }) {
-  return <section className="form-section variant-editor"><div className="section-heading"><span>1</span><div><h3>Local wording</h3><p>This independent copy records every change beside the exact source wording.</p></div></div>
+  return <EditorCard number={1} title="Local wording" lede="This independent copy records every change beside the exact source wording." className="variant-editor">
     <div className="variant-identity"><PencilLine size={17} /><span><strong>{form.variantLabel}</strong><small>{form.variantReason || "Congregation-specific wording"}</small></span></div>
     <div className="variant-lines">{form.variantOverrides.map((item, index) => <article key={variantKey(item)}><header><span>{channelLabel[item.channel]}</span><small>Source line {index + 1}</small></header><div className="variant-comparison"><div><span>Exact source</span><p lang={item.channel === "he" ? "he" : undefined} dir={item.channel === "he" ? "rtl" : undefined}>{item.sourceText}</p></div><label>Local wording<textarea lang={item.channel === "he" ? "he" : undefined} dir={item.channel === "he" ? "rtl" : undefined} value={item.localText} maxLength={4000} onChange={(event) => changeForm({ variantOverrides: form.variantOverrides.map((entry, offset) => offset === index ? { ...entry, localText: event.target.value } : entry) })} /></label></div></article>)}</div>
     <div className="variant-provenance"><BookOpenText size={17} /><span><strong>Source remains attached</strong><small>Publishing uses the local wording above and keeps the exact source text in its history.</small></span></div>
-  </section>;
+  </EditorCard>;
 }
 
 function VariantCreator(props: { draft: Draft; label: string; reason: string; values: Record<string, string>; busy: string; setLabel: (value: string) => void; setReason: (value: string) => void; setValue: (candidate: VariantCandidate, value: string) => void; close: () => void; create: () => void }) {
@@ -1173,10 +1185,12 @@ function PreviewColumn(props: { setViewport: (node: HTMLDivElement | null) => vo
   return <aside className="preview-column"><div className="preview-heading"><div><span className="eyebrow">PREVIEW</span><h3>Broadcast frame</h3></div><span>1920 × 1080</span></div><div ref={props.setViewport} className="preview-viewport"><div className="preview-stage-label">PREVIEW</div>{fullscreen && <button className="preview-fullscreen-close" aria-label="Close full-screen preview" onClick={() => { if (document.fullscreenElement) void document.exitFullscreen(); }}>× <span>Close preview</span></button>}<div ref={props.setOutput} id="output" className={props.bookFaces ? "author-output faces-book" : "author-output"} />{!props.previewCue && <div className="preview-placeholder"><Sparkles size={26} /><strong>Your graphic will appear here</strong><span>Add content, a title, and a visual template.</span></div>}</div><div className="preview-toolbar"><button onClick={props.play} disabled={!props.previewCue}><Play size={15} /> Play in</button><button onClick={props.out} disabled={!props.previewCue}><Square size={14} /> Play out</button><button onClick={props.fullscreen} disabled={!props.previewCue}><Maximize2 size={14} /> Full screen</button><span>{props.statusLabel || (props.previewCue ? "" : "Waiting for content")}</span></div><div className={`preview-readiness ${props.fitErrors.length ? "problem" : props.warnings.length ? "caution" : props.assetsReady ? "ready" : "waiting"}`}>{props.fitErrors.length ? <CircleAlert size={18} /> : props.assetsReady ? <Check size={18} /> : <Clock3 size={18} />}<div><strong>{props.fitErrors.length ? "Needs attention" : props.assetsReady ? "Fits this frame" : props.previewCue ? "Preparing preview" : "Waiting for content"}</strong>{props.fitErrors.map((item) => <small key={item}>{item}</small>)}{!props.fitErrors.length && props.warnings.map((item) => <small key={item}>{item}</small>)}{!props.fitErrors.length && props.assetsReady && <small>Fonts and artwork loaded. Review readability before publishing.</small>}</div></div></aside>;
 }
 
-function PublishDock(props: { dirty: boolean; draft: Draft | null; recoveryStoredAt: number | null; busy: string; ready: boolean; exactPreviewCurrent: boolean; fitBlocked: boolean; publishedVersion: number | null; duplicate: () => void; backToLibrary: () => void; save: () => void; review: () => void; publish: () => void }) {
+function PublishDock(props: { dirty: boolean; draft: Draft | null; recoveryStoredAt: number | null; busy: string; ready: boolean; fitBlocked: boolean; publishedVersion: number | null; duplicate: () => void; backToLibrary: () => void; save: () => void; publish: () => void }) {
+  // C5: Publish is offered whenever there is a saved version newer than the published one.
+  const publishable = Boolean(props.draft) && !props.dirty && (props.draft!.version > (props.draft!.activeDraftVersion ?? 0));
   if (props.publishedVersion !== null)
     return <div className="publish-dock"><div className="save-state published"><Check size={18} /><span><strong>Published · version {props.publishedVersion} · live on next Show</strong><small>Nothing changed on screen. The operator decides when to show it.</small></span></div><div className="publish-actions"><button onClick={props.duplicate} disabled={!!props.busy}><Copy size={17} /> Duplicate</button><button className="review-button" onClick={props.backToLibrary} disabled={!!props.busy}><LibraryBig size={17} /> Back to library</button></div></div>;
-  return <div className="publish-dock"><div className="save-state">{props.dirty ? <><CircleAlert size={18} /><span><strong>Unsaved changes</strong><small>{props.recoveryStoredAt ? `Recovery copy stored ${formatTime(props.recoveryStoredAt)}` : "A recovery copy will be stored in this browser."}</small></span></> : <><Check size={18} /><span><strong>{props.draft ? `Saved version ${props.draft.version}` : "Ready to save"}</strong></span></>}</div><div className="publish-actions"><button onClick={props.save} disabled={!props.ready || !!props.busy || (!props.dirty && !!props.draft)}><Save size={17} /> {props.busy === "save" ? "Saving…" : props.draft ? "Save draft" : "Save new draft"}</button>{props.exactPreviewCurrent ? <button className="publish-button" onClick={props.publish} disabled={!!props.busy}>{props.busy === "publish" ? <LoaderCircle className="spin" size={17} /> : <Check size={17} />} Publish this version</button> : props.fitBlocked ? <div className="publish-blocked"><button className="review-button" disabled><CircleAlert size={17} /> Fix fit issues to publish</button><small>Publication is blocked while the preview reports fit problems.</small></div> : <button className="review-button" onClick={props.review} disabled={!props.draft || props.dirty || !!props.busy}>{props.busy === "review" ? <LoaderCircle className="spin" size={17} /> : <Sparkles size={17} />} Review saved version</button>}</div></div>;
+  return <div className="publish-dock"><div className="save-state">{props.dirty ? <><CircleAlert size={18} /><span><strong>Unsaved changes</strong><small>{props.recoveryStoredAt ? `Recovery copy stored ${formatTime(props.recoveryStoredAt)}` : "A recovery copy will be stored in this browser."}</small></span></> : <><Check size={18} /><span><strong>{props.draft ? `Saved version ${props.draft.version}` : "Ready to save"}</strong></span></>}</div><div className="publish-actions"><button onClick={props.save} disabled={!props.ready || !!props.busy || (!props.dirty && !!props.draft)}><Save size={17} /> {props.busy === "save" ? "Saving…" : props.draft ? "Save draft" : "Save new draft"}</button>{props.fitBlocked ? <div className="publish-blocked"><button className="publish-button" disabled><CircleAlert size={17} /> Fix fit issues to publish</button><small>Publication is blocked while the preview reports fit problems.</small></div> : <button className="publish-button" onClick={props.publish} disabled={!publishable || !!props.busy}>{props.busy === "publish" ? <LoaderCircle className="spin" size={17} /> : <Check size={17} />} Publish</button>}</div></div>;
 }
 
 function DuplicateNameDialog(props: { message: string; suggestedName: string; busy: string; cancel: () => void; confirm: () => void }) {

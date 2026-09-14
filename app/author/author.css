@@ -523,3 +523,22 @@
 .library-elsewhere { display: flex; flex-direction: column; gap: 2px; margin-top: 14px; padding-top: 12px; border-top: 1px solid var(--line); }
 .library-elsewhere a { padding: 8px 10px; border-radius: 8px; color: var(--muted); text-decoration: none; font-size: 13px; font-weight: 650; }
 .library-elsewhere a:hover { background: var(--panel-raised); color: var(--text); }
+
+/* C1 of the 2026-09-14 layout pass: Text, Name and Look are one object, numbered and
+   collapsible. The heading is the control, so there is no separate affordance to find. */
+.card-heading { width: 100%; display: flex; align-items: flex-start; gap: 11px; margin-bottom: 15px; padding: 0; border: 0; background: none; text-align: left; cursor: pointer; }
+.card-heading:hover { background: none; border: 0; }
+.card-number { width: 25px; height: 25px; display: grid; place-items: center; flex: 0 0 auto; border: 1px solid #47665e; border-radius: 50%; color: var(--mint); font-size: 11px; font-weight: 700; }
+.card-title { flex: 1 1 auto; min-width: 0; }
+.card-title h3 { margin: 0; font-size: 15px; font-weight: 650; color: var(--text); }
+.card-title p { margin: 3px 0 0; color: var(--muted); font-size: 11px; line-height: 1.4; }
+.card-chevron { flex: 0 0 auto; margin-top: 3px; color: var(--muted); transition: transform .15s ease; }
+.card-chevron.open { transform: rotate(180deg); }
+.editor-card:has(.card-heading[aria-expanded="false"]) .card-heading { margin-bottom: 0; }
+.card-body { min-width: 0; }
+
+/* C4: the actions that are not undo or redo live in one overflow menu. */
+.editor-overflow { position: relative; display: inline-flex; }
+.editor-overflow-menu { position: absolute; top: calc(100% + 6px); right: 0; z-index: 30; display: flex; flex-direction: column; min-width: 180px; padding: 6px; border: 1px solid var(--line); border-radius: 10px; background: var(--panel); box-shadow: 0 16px 36px rgb(0 0 0 / .34); }
+.editor-overflow-menu button { justify-content: flex-start; width: 100%; border: 0; background: none; }
+.editor-overflow-menu button:hover:not(:disabled) { background: var(--panel-raised); border: 0; }
