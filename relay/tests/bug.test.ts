@@ -25,7 +25,7 @@ describe('validBugPage',()=>{
 
 describe('parseCommand for the scan card',()=>{
  it('accepts a bug command carrying a null cue and a bounded page',()=>{
-  expect(parseCommand(command())).toEqual({action:'bug',cue:null,bug:{on:true,page:'128'},commandId:'command_12345678',clientId:null,sequence:null});
+  expect(parseCommand(command())).toEqual({action:'bug',cue:null,bug:{on:true,page:'128'},commandId:'command_12345678',clientId:null,sequence:null,source:'control',serviceRef:null});
   expect(parseCommand(command({bug:{on:false,page:null}}))).toMatchObject({action:'bug',bug:{on:false,page:null}});
   expect(parseCommand(command({bug:{on:true,page:null}}))).toMatchObject({action:'bug',bug:{on:true,page:null}});
  });
@@ -49,7 +49,7 @@ describe('parseCommand for the scan card',()=>{
 
  it('leaves every other action carrying a null bug, and refuses one that attaches a bug',()=>{
   for(const action of ['clear','cut']){
-   expect(parseCommand({action,cue:null,commandId:'command_12345678',clientId:null,sequence:null})).toEqual({action,cue:null,bug:null,commandId:'command_12345678',clientId:null,sequence:null});
+   expect(parseCommand({action,cue:null,commandId:'command_12345678',clientId:null,sequence:null})).toEqual({action,cue:null,bug:null,commandId:'command_12345678',clientId:null,sequence:null,source:'control',serviceRef:null});
    expect(parseCommand({action,cue:null,bug:null,commandId:'command_12345678',clientId:null,sequence:null})).toMatchObject({action,bug:null});
    expect(parseCommand({action,cue:null,bug:{on:true,page:'128'},commandId:'command_12345678',clientId:null,sequence:null})).toBeNull();
   }

@@ -17,7 +17,8 @@
     "LiveRoom": { "type": "durable-object", "storage": "sqlite" }
   },
   "vars": {
-    "ALLOWED_ORIGINS": "https://overlays.centralreform.org,https://crc-overlays.vercel.app,http://localhost:5175"
+    "ALLOWED_ORIGINS": "https://overlays.centralreform.org,https://crc-overlays.vercel.app,http://localhost:5175",
+    "WORKSPACE": "crc"
   },
   // Each congregation runs its own worker with its own Durable Object storage and
   // its own RELAY_SECRET (a Worker secret, never configuration). `durable_objects`
@@ -31,7 +32,8 @@
         ]
       },
       "vars": {
-        "ALLOWED_ORIGINS": "https://overlays.templebnaiisrael.com,https://tbi-overlays.vercel.app,http://localhost:5175"
+        "ALLOWED_ORIGINS": "https://overlays.templebnaiisrael.com,https://tbi-overlays.vercel.app,http://localhost:5175",
+        "WORKSPACE": "tbi"
       }
     }
   }

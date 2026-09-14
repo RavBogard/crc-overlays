@@ -3,7 +3,13 @@ import {rehearsalMode} from './rehearsal';
 import {DEVICE_TOKEN_PREFIX,verifyDeviceToken,verifyDeviceTokenFresh} from './devices';
 
 export type AccessRole='owner'|'editor'|'operator';
-export type AccessPermission='read'|'control'|'author'|'owner';
+/**
+ * `history` is the cue log's own permission (2026-09-14 integration ruling 7): an authoring
+ * member, or a `history_reader` credential that centralreform.live holds. It is deliberately
+ * outside the read/control/author ladder — neither shared key reaches it, and no Companion or
+ * graphics-output credential does either.
+ */
+export type AccessPermission='read'|'control'|'author'|'owner'|'history';
 export type AccessMember={id:string;email:string;name:string;role:AccessRole;enabled:boolean};
 export type AccessSessionMember=AccessMember&{authMethod:'invite'|'password'|'bootstrap'|'google';authenticatedAt:number};
 export type AccessCredential=AccessMember&{passwordHash:string|null};
@@ -35,7 +41,7 @@ const derivePassword=(password:string,salt:Buffer)=>new Promise<Buffer>((resolve
 export function validPassword(value:unknown):value is string{return typeof value==='string'&&value.length>=12&&value.length<=200&&Buffer.byteLength(value,'utf8')<=512}
 export async function hashPassword(password:string){if(!validPassword(password))throw new Error('Password must be 12-200 characters');const salt=randomBytes(16),digest=await derivePassword(password,salt);return `scrypt$${PASSWORD_N}$${PASSWORD_R}$${PASSWORD_P}$${salt.toString('base64url')}$${digest.toString('base64url')}`}
 export async function verifyPassword(password:string,encoded:string|null|undefined){const parts=encoded?.split('$')??[],valid=parts.length===6&&parts[0]==='scrypt'&&parts[1]===String(PASSWORD_N)&&parts[2]===String(PASSWORD_R)&&parts[3]===String(PASSWORD_P)&&/^[A-Za-z0-9_-]{22}$/.test(parts[4])&&/^[A-Za-z0-9_-]{86}$/.test(parts[5]);const salt=valid?Buffer.from(parts[4],'base64url'):dummySalt,expected=valid?Buffer.from(parts[5],'base64url'):dummyDigest;const actual=await derivePassword(password,salt);return Boolean(valid&&expected.length===actual.length&&timingSafeEqual(actual,expected))}
-export function canAccess(role:AccessRole,permission:AccessPermission){return permission==='owner'?role==='owner':permission==='author'?role==='owner'||role==='editor':true}
+export function canAccess(role:AccessRole,permission:AccessPermission){return permission==='owner'?role==='owner':permission==='author'||permission==='history'?role==='owner'||role==='editor':true}
 export function cookieToken(request:Request){const match=request.headers.get('cookie')?.split(';').map(s=>s.trim()).find(s=>s.startsWith(`${ACCESS_COOKIE}=`));return match?.slice(ACCESS_COOKIE.length+1)||''}
 export function sessionCookie(token:string,request:Request,clear=false){return `${ACCESS_COOKIE}=${token}; HttpOnly; SameSite=Strict; Path=/; Max-Age=${clear?0:SESSION_MS/1000}${new URL(request.url).protocol==='https:'?'; Secure':''}`}
 export function sameSiteWrite(request:Request){return ['GET','HEAD'].includes(request.method)||request.headers.get('origin')===new URL(request.url).origin}
@@ -311,14 +317,16 @@ export async function authorizeRequest(request:Request,permission:AccessPermissi
  // control only. Authoring moved to individual memberships (the web editor by session, MCP by
  // consent) on 2026-09-14, so the shared key is refused for `author` exactly as a device token is,
  // and it has never administered members. Retire it when the last legacy client is paired.
- if(permission!=='owner'&&permission!=='author'&&secretEqual(bearer,process.env.CONTROL_KEY))return {id:'legacy-control',email:'',name:'Administrator',role:'owner',enabled:true};
+ if(permission!=='owner'&&permission!=='author'&&permission!=='history'&&secretEqual(bearer,process.env.CONTROL_KEY))return {id:'legacy-control',email:'',name:'Administrator',role:'owner',enabled:true};
  if(permission==='read'&&secretEqual(bearer,process.env.OUTPUT_KEY))return {id:'legacy-output',email:'',name:'Graphics output',role:'operator',enabled:true};
  // D3: a paired device. A Companion credential satisfies read and control, a graphics
- // output credential satisfies read, and neither ever becomes an author or an owner -
- // so a device token is not even looked up for those two permissions.
+ // output credential satisfies read, a service-history credential satisfies `history` and
+ // nothing else, and none of them ever becomes an author or an owner - so a device token is
+ // not even looked up for those two permissions.
  if(bearer.startsWith(DEVICE_TOKEN_PREFIX)&&permission!=='author'&&permission!=='owner'){
   const credential=options.freshDevice?await verifyDeviceTokenFresh(bearer):await verifyDeviceToken(bearer);
-  if(credential&&(credential.kind==='companion'||permission==='read'))return {id:`device:${credential.id}`,email:'',name:credential.name,role:'operator',enabled:true};
+  const permitted=credential&&(permission==='history'?credential.kind==='history_reader':credential.kind==='companion'||(permission==='read'&&credential.kind==='output'));
+  if(credential&&permitted)return {id:`device:${credential.id}`,email:'',name:credential.name,role:'operator',enabled:true};
  }
  if(!sameSiteWrite(request))return null;
  const member=await currentMember(request);

@@ -29,6 +29,15 @@ Editor, or by an MCP client whose connection such a member approved. Remove the 
 operator-facing configuration and rotate or retire it when legacy clients no longer
 require it.
 
+A third credential kind, `history_reader`, exists for one purpose: reading the cue log. It
+satisfies the `history` permission and nothing else — not read, not live control, not authoring,
+not owner — and centralreform.live holds one so it can reconcile what a service actually did
+against the setlist it published. It is the mirror of the `setlist_reader` this workspace holds
+there. An Administrator creates one in **System → People → Paired devices** ("Service-history
+connection"), copies the token once — only its digest is stored, so it can never be shown again —
+and revokes it from the same panel. Never paste that token into a document, a commit, or a chat
+message; it goes straight into the other website's own sensitive environment variable.
+
 Invitations are capability links: the application does not send email or verify the
 recipient's mailbox. An owner copies the link directly to the intended person. Each
 link expires in 24 hours and works once; issuing a replacement invalidates older links

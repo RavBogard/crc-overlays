@@ -24,7 +24,9 @@ export function relayConnection(role:RelayRole){
  return {url:url.toString(),ticket:relayTicket(role),heartbeatMs:10_000,staleMs:30_000,protocol:1};
 }
 export async function relayRequest(path:string,body?:unknown){
- if(!['/state','/command','/initialize','/ack','/catalog'].includes(path))throw Error('Invalid relay operation');
+ // `/history` is the one operation that carries a query string; the allowlist is checked on
+ // the path alone so a caller still cannot reach an operation that is not named here.
+ if(!['/state','/command','/initialize','/ack','/catalog','/history','/history/clear'].includes(path.split('?')[0]))throw Error('Invalid relay operation');
  const secret=process.env.RELAY_SECRET;if(!secret)throw Error('Live relay is not configured');
  return fetch(new URL(path,relayOrigin()),{method:body===undefined?'GET':'POST',headers:{Authorization:`Bearer ${secret}`,...(body===undefined?{}:{'Content-Type':'application/json'})},body:body===undefined?undefined:JSON.stringify(body),cache:'no-store',redirect:'error',signal:AbortSignal.timeout(5000)});
 }

@@ -211,7 +211,13 @@ async function rejectedTicket() {
   check(!opened, "relay accepted an invalid ticket");
 }
 
-function syntheticCue(id, label) {
+/* The cue log pins the `library:` sources of the graphic that was shown, so one synthetic cue
+   carries one (the id need not exist in the siddur library: the relay stores what was pinned and
+   the web server is the side that resolves it) and the other carries none. */
+const LIBRARY_SOURCE = "library:relay-check-source";
+const COLLECTION_ID = randomUUID();
+
+function syntheticCue(id, label, sourceIds) {
   return {
     id,
     name: label,
@@ -219,6 +225,7 @@ function syntheticCue(id, label) {
     texts: { textTitle: label, textMain: label },
     animations: [],
     duration: { in: 0, out: 0 },
+    ...(sourceIds ? { authoring: { sourceIds } } : {}),
   };
 }
 
@@ -240,23 +247,106 @@ async function waitForState(predicate) {
   throw new Error("relay state condition timed out");
 }
 
+/**
+ * The cue log (2026-09-14 integration ruling 7). Fires the four live actions, reads the history
+ * back, and asserts the three things the ruling actually turns on: the order is the order the
+ * commands were accepted in, the library sources of the graphic ride along so the web server can
+ * resolve a position (and none ride along for a graphic that has none), and no row carries
+ * anything about a person. The window bound is read from the relay's own answer, and the
+ * administrator's clear is exercised last - this check is destructive and refuses any host that
+ * is not loopback.
+ */
+const HISTORY_KEYS = ["seq", "at", "action", "cueId", "source", "serviceRef", "sourceIds"];
+
+async function checkHistory({ cueA, cueB, collectionId }) {
+  const from = Date.now();
+  const controller = `history-${randomUUID()}`;
+  let sequence = 0;
+  const fire = (action, cue, extra = {}) =>
+    request("/command", {
+      method: "POST",
+      body: { action, cue, commandId: randomUUID(), clientId: controller, sequence: ++sequence, ...extra },
+    });
+  await fire("in", cueA.id, { source: "companion" });
+  await fire("out", cueA.id);
+  await fire("in", cueB.id);
+  await fire("in", `names:${collectionId}:01`);
+  await fire("cut", null);
+  await fire("clear", null);
+
+  const history = await request(`/history?since=${from}`);
+  check(typeof history?.workspace === "string" && history.workspace.length > 0, "history did not name its workspace");
+  check(Array.isArray(history.rows), "history did not return rows");
+  check(history.window?.rows === 2000 && history.window?.days === 14, "history window is not the ruled bound");
+  const mine = history.rows.filter((row) => row.at >= from);
+  check(
+    mine.map((row) => row.action).join(",") === "in,out,in,in,cut,clear",
+    `history did not record the accepted commands in order (${mine.map((row) => row.action).join(",")})`,
+  );
+  check(mine.every((row, index) => index === 0 || row.seq > mine[index - 1].seq), "history sequence regressed");
+  check(history.nextAfter === null, "a six-row history should not need a second page");
+
+  const [shown, , custom, names] = mine;
+  check(shown.cueId === cueA.id && shown.source === "companion", "history lost the graphic or where the command came from");
+  check(
+    Array.isArray(shown.sourceIds) && shown.sourceIds.length === 1 && shown.sourceIds[0] === LIBRARY_SOURCE,
+    "history did not pin the library source of the graphic that was shown",
+  );
+  check(custom.cueId === cueB.id && custom.sourceIds.length === 0, "a graphic with no library source must pin nothing");
+  check(names.serviceRef === collectionId, "a names panel must name the prepared service it belongs to");
+  check(mine[4].cueId === null && mine[5].cueId === null, "cut and clear must name no graphic");
+  for (const row of mine) {
+    const keys = Object.keys(row).sort();
+    check(keys.join(",") === [...HISTORY_KEYS].sort().join(","), `history row carried keys it must not: ${keys.join(",")}`);
+    const serialized = JSON.stringify(row);
+    for (const forbidden of [cueA.name, cueB.name, "Relay check"]) check(!serialized.includes(forbidden), "history row carried a graphic name");
+  }
+
+  const paged = await request(`/history?since=${from}&limit=2`);
+  check(paged.rows.length === 2 && paged.nextAfter === paged.rows[1].seq, "history did not page by seq");
+  const rest = await request(`/history?since=${from}&after=${paged.nextAfter}`);
+  check(rest.rows.length === mine.length - 2, "the second page did not continue where the first stopped");
+
+  const refused = await fetch(new URL("history?since=whenever", httpBase), {
+    headers: { Authorization: `Bearer ${secret}` },
+    signal: AbortSignal.timeout(REQUEST_TIMEOUT_MS),
+  });
+  check(refused.status === 400, "history accepted a range it cannot read");
+
+  const cleared = await request("/history/clear", { method: "POST", body: {} });
+  check(cleared?.ok === true && Number.isSafeInteger(cleared.cleared), "history clear did not report what it removed");
+  const afterClear = await request("/history");
+  check(
+    afterClear.rows.length === 1 && afterClear.rows[0].action === "history_cleared",
+    "clearing the history must leave the clearing itself as the only row",
+  );
+
+  console.log(`PASS history-rows ${mine.length}`);
+  console.log(`PASS history-source-pin 1`);
+  console.log(`PASS history-service-ref 1`);
+  console.log(`PASS history-paging 2`);
+  console.log(`PASS history-forbidden-keys 0`);
+  console.log(`PASS history-cleared ${cleared.cleared}`);
+}
+
 async function main() {
   let catalogVersion = `relay-check-${randomUUID()}`;
   const empty = { revision: 0, cue: null, mode: "animate", updated: 0, cuePayload: null };
-  const cueA = syntheticCue(`relay-a-${randomUUID()}`, "Relay check A");
+  const cueA = syntheticCue(`relay-a-${randomUUID()}`, "Relay check A", [LIBRARY_SOURCE, "custom:relay-check"]);
   const cueB = syntheticCue(`relay-b-${randomUUID()}`, "Relay check B");
+  const namesCue = syntheticCue(`names:${COLLECTION_ID}:01`, "Relay check names");
   await request("/initialize", {
     method: "POST",
-    body: { state: empty, catalogVersion, cues: [cueA, cueB] },
+    body: { state: empty, catalogVersion, cues: [cueA, cueB, namesCue] },
     expected: [200, 201, 409],
   });
   await request("/catalog", {
     method: "POST",
-    body: { version: catalogVersion, cues: [cueA, cueB] },
+    body: { version: catalogVersion, cues: [cueA, cueB, namesCue] },
   });
   const initialCatalog = await request("/catalog");
   check(
-    initialCatalog?.version === catalogVersion && initialCatalog.cues?.length === 2,
+    initialCatalog?.version === catalogVersion && initialCatalog.cues?.length === 3,
     "relay did not store the synthetic catalog",
   );
   const starting = await request("/state");
@@ -314,7 +404,7 @@ async function main() {
   const catalogStarts = clients.map((client) => client.messages.length);
   await request("/catalog", {
     method: "POST",
-    body: { version: publicationVersion, cues: [publishedCueA, cueB] },
+    body: { version: publicationVersion, cues: [publishedCueA, cueB, namesCue] },
   });
   await Promise.all(
     clients.map((client, index) =>
@@ -332,7 +422,7 @@ async function main() {
   );
   await request("/catalog", {
     method:"POST",
-    body:{version:`stale-${randomUUID()}`,expectedVersion:catalogVersion,cues:[cueA,cueB]},
+    body:{version:`stale-${randomUUID()}`,expectedVersion:catalogVersion,cues:[cueA,cueB,namesCue]},
     expected:[409],
   });
   check((await request('/catalog')).version===publicationVersion,"stale publisher overwrote the live catalog");
@@ -418,6 +508,7 @@ async function main() {
   console.log(`PASS idle-events ${idleEvents}`);
   console.log(`PASS presence-renderers ${withOutput.renderers.length}`);
   console.log("PASS invalid-tickets 1");
+  await checkHistory({ cueA, cueB, collectionId: COLLECTION_ID });
 }
 
 main().catch((error) => {

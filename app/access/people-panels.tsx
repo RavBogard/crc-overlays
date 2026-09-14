@@ -47,6 +47,8 @@ export default function PeoplePanels() {
   const [email, setEmail] = useState('');
   const [role, setRole] = useState<Role>('editor');
   const [now, setNow] = useState(0);
+  const [historyName, setHistoryName] = useState('');
+  const [historyToken, setHistoryToken] = useState('');
 
   const notice = (text: string, kind: 'error' | 'success' = 'success') => { setMessage(text); setMessageKind(kind); };
   const deviceNotice = (text: string, kind: 'error' | 'success' = 'success') => { setDeviceMessage(text); setDeviceMessageKind(kind); };
@@ -91,6 +93,24 @@ export default function PeoplePanels() {
       const body = await bodyOf(response);
       if (!response.ok) throw Error(body.error || 'This action could not be completed.');
       deviceNotice(DEVICE_REVOKED_NOTICE);
+      setDeviceRevision(revision => revision + 1);
+    } catch (error) {
+      deviceNotice(error instanceof Error ? error.message : 'Connection unavailable.', 'error');
+    } finally { setBusy(false); }
+  }
+
+  /* A service-history connection: a read-only credential another website holds to ask what this
+     one's output did. It grants nothing else — no live control, no graphics, no authoring — and
+     the token is shown exactly once, here, because only its digest is kept. */
+  async function createHistoryReader() {
+    setBusy(true); setDeviceMessage(''); setHistoryToken('');
+    try {
+      const response = await fetch('/api/devices', {method: 'POST', headers: {'Content-Type': 'application/json'}, body: JSON.stringify({action: 'create_history_reader', name: historyName.trim()})});
+      const body = await response.json() as {token?: string; error?: string};
+      if (!response.ok || typeof body.token !== 'string') throw Error(body.error || 'This could not be prepared. Try again.');
+      setHistoryToken(body.token);
+      setHistoryName('');
+      deviceNotice('Copy this now. It is shown once and cannot be shown again; revoke it here if it is ever lost.');
       setDeviceRevision(revision => revision + 1);
     } catch (error) {
       deviceNotice(error instanceof Error ? error.message : 'Connection unavailable.', 'error');
@@ -155,6 +175,12 @@ export default function PeoplePanels() {
       <div className="access-panel-heading"><span><MonitorUp size={18}/></span><div><h2>Paired devices</h2><p>Companion installations and graphics outputs that hold their own credential. Revoking one takes effect the next time that device reconnects; a connection that is already open is not interrupted.</p></div></div>
       {deviceMessage && <div className={`access-device-notice ${deviceMessageKind}`} role="status" aria-live="polite">{deviceMessage}</div>}
       {/* Revoked devices leave the list: the panel is about what can still connect. */}
+      <form className="history-reader-form" onSubmit={event => { event.preventDefault(); void createHistoryReader(); }}>
+        <label>Service-history connection<input value={historyName} onChange={event => setHistoryName(event.target.value)} maxLength={80} placeholder="centralreform.live" aria-describedby="history-reader-help"/></label>
+        <button className="access-primary" disabled={busy || !historyName.trim()}>Create</button>
+        <p id="history-reader-help">Lets another website read what this congregation’s output did — graphics, liturgical positions and times, never names or text. It cannot control anything.</p>
+      </form>
+      {historyToken && <div className="invite-result"><div><strong>Shown once</strong><small>Paste it into the other website now</small></div><button type="button" onClick={() => { void navigator.clipboard.writeText(historyToken).then(() => deviceNotice('Copied.'), () => deviceNotice('Copy was blocked. Select the value below and copy it manually.', 'error')); }}><Copy size={15}/>Copy</button><input aria-label="Service-history credential" readOnly value={historyToken} onFocus={event => event.currentTarget.select()}/></div>}
       <div className="member-list">{activeDevices(devices).length ? activeDevices(devices).map(device => <article className="member-row device-row" key={device.id}><div className="member-avatar" aria-hidden>{(device.name || '?').slice(0, 1).toUpperCase()}</div><div><strong>{device.name}</strong><span>{deviceStandingText(device, now)}</span></div><div className="member-actions"><button className="member-remove" disabled={busy} onClick={() => void revokeDevice(device)} aria-label={`Revoke ${deviceKindLabel(device.kind)} ${device.name}`}>Revoke</button></div></article>) : <p className="member-empty">No paired devices yet.</p>}</div>
     </section>
   </div>;

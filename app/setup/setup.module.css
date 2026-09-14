@@ -98,3 +98,11 @@
   .appCard {grid-template-columns: 1fr;}
   .appCard p {grid-column: auto;}
 }
+
+/* The siddur library card: a pointer to the Monday workflow, not a control. Deliberately quiet —
+   it is reference, and nothing on this page should look like it can rewrite the library. */
+.libraryCard {margin: 22px 0 0; max-width: 560px; border: 1px solid var(--line); border-radius: 12px; padding: 16px; background: var(--raised);}
+.libraryCard h2 {margin: 0 0 6px; font-size: 16px;}
+.libraryCard p {margin: 0 0 10px; color: var(--muted); font-size: 13px; line-height: 1.55;}
+.libraryCard p:last-child {margin: 8px 0 0; font-size: 12px;}
+.libraryCard a {color: var(--text); font-weight: 700; font-size: 13px;}

@@ -108,7 +108,15 @@ function sourceIndex(sources?:readonly LiturgySource[]):Map<string,LiturgySource
  * resolves to all nulls, which is also what `/api/now` publishes for it.
  */
 export function liturgyForCue(cue:{authoring?:{sourceIds?:string[]}}|null|undefined,lookups:LiturgyLookups={}):LiturgyRef{
- const ids=cue?.authoring?.sourceIds;
+ return liturgyForSourceIds(cue?.authoring?.sourceIds,lookups);
+}
+
+/**
+ * The same resolution from source ids alone. The cue log keeps the `library:` ids of the
+ * graphic that was pinned rather than a position, so a history read resolves them here — which
+ * is why a moment table that lands later starts answering for services already recorded.
+ */
+export function liturgyForSourceIds(ids:readonly string[]|null|undefined,lookups:LiturgyLookups={}):LiturgyRef{
  if(!Array.isArray(ids))return {...NO_LITURGY};
  const index=sourceIndex(lookups.sources);
  const sourceId=ids.find(id=>typeof id==='string'&&id.startsWith('library:')&&index.has(id));

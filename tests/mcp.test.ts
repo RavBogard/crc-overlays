@@ -99,3 +99,21 @@ test('MCP offers prepare_service_from_setlist as a writing tool and routes its p
  assert.ok(rejected.error||rejected.result?.isError);
  assert.equal(calls.length,1);
 });
+
+test('MCP offers get_service_history as a read-only tool bounded to graphics and positions',async()=>{
+ const calls:{operation:string;input:unknown}[]=[];
+ const rows=[{seq:1,at:1_800_000_000_000,action:'in',cueId:'cue-a',unitId:'barechu.evening',momentId:'barechu',book:'mishkan-tfilah',folio:146,source:'control',serviceRef:null}];
+ const handler=createAuthoringMcpHandler(async(operation,input)=>{calls.push({operation,input});return {workspace:'crc',rows,nextAfter:null}});
+ const listed=await payload(await handler.fetch(request({jsonrpc:'2.0',id:50,method:'tools/list',params:{}}),{authInfo})) as {result?:{tools?:{name:string;description?:string;annotations?:{readOnlyHint?:boolean}}[]}};
+ const tool=listed.result?.tools?.find(entry=>entry.name==='get_service_history');
+ assert.ok(tool,'get_service_history is offered to MCP clients');
+ assert.equal(tool?.annotations?.readOnlyHint,true,'reading the log changes nothing');
+ assert.match(tool?.description??'',/never puts anything on screen/);
+ assert.match(tool?.description??'',/nobody's identity/);
+ const called=await payload(await handler.fetch(request({jsonrpc:'2.0',id:51,method:'tools/call',params:{name:'get_service_history',arguments:{since:1_800_000_000_000}}}),{authInfo})) as {result:{content:{text:string}[]}};
+ assert.match(called.result.content[0].text,/barechu\.evening/);
+ assert.deepEqual(calls,[{operation:'get_service_history',input:{since:1_800_000_000_000}}]);
+ const rejected=await payload(await handler.fetch(request({jsonrpc:'2.0',id:52,method:'tools/call',params:{name:'get_service_history',arguments:{since:-1}}}),{authInfo})) as {error?:unknown;result?:{isError?:boolean}};
+ assert.ok(rejected.error||rejected.result?.isError,'a time before the epoch is refused');
+ assert.equal(calls.length,1);
+});

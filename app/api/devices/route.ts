@@ -31,10 +31,11 @@ export async function POST(request:Request){
  if(!input||typeof input!=='object'||Array.isArray(input))return reply({error:'Invalid request'},400);
  const value=input as Record<string,unknown>;
  const action=value.action;
- if(action!=='pair_code'&&action!=='create_output'&&action!=='revoke')return reply({error:'Unknown action'},400);
- // Revoking a device is administrator work; creating one is editor work (D6).
- let user;try{user=await authorizeRequest(request,action==='revoke'?'owner':'author')}catch{return reply({error:UNAVAILABLE},503)}
- if(!user)return reply({error:action==='revoke'?OWNER_REQUIRED:AUTHOR_REQUIRED},401);
+ if(action!=='pair_code'&&action!=='create_output'&&action!=='create_history_reader'&&action!=='revoke')return reply({error:'Unknown action'},400);
+ // Revoking a device is administrator work; creating one is editor work (D6). A service-history
+ // connection is administrator work too: it hands another website a standing read of this one.
+ let user;try{user=await authorizeRequest(request,action==='revoke'||action==='create_history_reader'?'owner':'author')}catch{return reply({error:UNAVAILABLE},503)}
+ if(!user)return reply({error:action==='revoke'||action==='create_history_reader'?OWNER_REQUIRED:AUTHOR_REQUIRED},401);
  // Devices are managed by people, never by a shared key or by another device.
  if(isLegacyActor(user.id))return reply({error:AUTHOR_REQUIRED},401);
  const now=Date.now();
@@ -54,6 +55,14 @@ export async function POST(request:Request){
    const {token,credential}=await deviceStore.issue({name,kind:'output',memberId:user.id,now});
    // The token is shown exactly once, here, inside the URL the operator pastes.
    return reply({url:`${canonicalOrigin(request)}/output#device=${token}`,credential},201);
+  }
+  // The cue-log credential. It reads the service history and nothing else: no live control, no
+  // graphics, no authoring. The token is shown exactly once, here.
+  if(action==='create_history_reader'){
+   const name=deviceName(value.name);
+   if(!name)return reply({error:NAME_REQUIRED},400);
+   const {token,credential}=await deviceStore.issue({name,kind:'history_reader',memberId:user.id,now});
+   return reply({token,credential},201);
   }
   if(typeof value.id!=='string'||!value.id)return reply({error:'Choose a device to revoke.'},400);
   await deviceStore.revoke(value.id,now);

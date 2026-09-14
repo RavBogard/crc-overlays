@@ -471,3 +471,34 @@ test('GET /api/output-url keeps the legacy key form and builds the durable devic
   if(before.output===undefined)delete process.env.OUTPUT_KEY;else process.env.OUTPUT_KEY=before.output;
  }
 });
+
+/* The cue log's credential (2026-09-14 integration ruling 7). It is the one device kind an
+   editor cannot create: it hands another website a standing read of this one, so it is
+   administrator work, and the token is shown exactly once. */
+test('a service-history credential is administrator work and is shown exactly once',async()=>{
+ const store=new MemoryDeviceStore();
+ await withDeviceStore(delegate(store),async()=>{
+  await withAccessMethods(signedIn(editor),async()=>{
+   const refused=await devicesPOST(deviceRequest({action:'create_history_reader',name:'centralreform.live'},cookie()));
+   assert.equal(refused.status,401);
+   assert.equal((await refused.json()).error,'Administrator access required');
+   assert.equal(store.credentials.size,0);
+  });
+  await withAccessMethods(signedIn(owner),async()=>{
+   const created=await devicesPOST(deviceRequest({action:'create_history_reader',name:'centralreform.live'},cookie()));
+   assert.equal(created.status,201);
+   const body=await created.json();
+   assert.deepEqual(Object.keys(body).sort(),['credential','token']);
+   assert.match(body.token,DEVICE_TOKEN);
+   assert.equal(body.credential.kind,'history_reader');
+   assert.equal(body.credential.name,'centralreform.live');
+   assert.ok(!('secretHash' in body.credential)&&!('token' in body.credential),'the credential view never carries the secret');
+   const listed=await devicesGET(new Request('https://graphics.test/api/devices',{headers:cookie()}));
+   const devices=(await listed.json()).devices as {id:string;kind:string}[];
+   assert.deepEqual(devices.map(device=>device.kind),['history_reader'],'it is revocable from the same panel as every other device');
+   assert.ok(!JSON.stringify(devices).includes(body.token.split('.')[1]),'and the list never repeats the secret');
+   const unnamed=await devicesPOST(deviceRequest({action:'create_history_reader',name:'  '},cookie()));
+   assert.equal(unnamed.status,400);
+  });
+ });
+});

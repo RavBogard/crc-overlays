@@ -9,8 +9,10 @@
  * timing-safe. The token is shown exactly once, at creation.
  *
  * Authority (D3, enforced in lib/access.ts): a companion credential satisfies `read`
- * and `control`; an output credential satisfies `read` only; neither ever satisfies
- * `author` or `owner`.
+ * and `control`; an output credential satisfies `read` only; a `history_reader` credential
+ * satisfies `history` and nothing else - it is the read-only cue-log credential
+ * centralreform.live holds, the mirror of the `setlist_reader` this workspace holds there.
+ * None of them ever satisfies `author` or `owner`.
  *
  * Availability (D4): verification reads the same Postgres authoring also uses, so a
  * per-process cache of verified tokens keeps playback separate from authoring
@@ -26,7 +28,7 @@
 import {createHash,randomBytes,randomInt,timingSafeEqual} from 'node:crypto';
 import {rehearsalMode} from './rehearsal';
 
-export type DeviceKind='companion'|'output';
+export type DeviceKind='companion'|'output'|'history_reader';
 export type DeviceCredential={id:string;name:string;kind:DeviceKind;createdBy:string;createdAt:number;lastSeenAt:number|null;revokedAt:number|null};
 /** A workspace already holding the maximum number of unredeemed pairing codes. */
 export class DeviceLimitError extends Error{}
@@ -45,7 +47,7 @@ export const DEVICE_TOKEN=/^cd_([A-Za-z0-9_-]{12})\.([A-Za-z0-9_-]{43})$/;
 export const PAIRING_CODE=/^[0-9]{6}$/;
 export const PAIRING_LIMIT_MESSAGE='Ten pairing codes are already waiting. Use one, or wait for it to expire, before making another.';
 
-export const isDeviceKind=(value:unknown):value is DeviceKind=>value==='companion'||value==='output';
+export const isDeviceKind=(value:unknown):value is DeviceKind=>value==='companion'||value==='output'||value==='history_reader';
 export const secretDigest=(value:string)=>createHash('sha256').update(value).digest('hex');
 /** The pairing code is never stored; the row is keyed by this digest. */
 export const pairingCodeHash=(code:string)=>createHash('sha256').update(`pairing:${code}`).digest('hex');

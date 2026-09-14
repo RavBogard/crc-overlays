@@ -351,6 +351,16 @@ export default function SetupGuide({workspace, embedded}: {workspace: PublicWork
       </li>
     </ol>
 
+    {/* The siddur library is regenerated from the producer's source every Monday and arrives as a
+        pull request, so "refresh now" is that workflow's own Run button rather than a control
+        here: nothing on this page should be able to rewrite the library. */}
+    <section className={styles.libraryCard}>
+      <h2>Siddur library</h2>
+      <p>The library behind Source changes is rebuilt from shireishabbat every Monday. A pull request appears only when the library or the moments table actually changed; merging it feeds the source-review inbox and publishes nothing.</p>
+      <a href="https://github.com/RavBogard/crc-overlays/actions/workflows/siddur-library.yml" target="_blank" rel="noreferrer noopener">Refresh now on GitHub</a>
+      <p>Run workflow → leave Dry run off.</p>
+    </section>
+
     {progressPersisted === false && <p className={styles.progressNote} role="status">Progress is saved for signed-in accounts.</p>}
     {progressSaved && <p className={styles.progressNote} role="status">Saved.</p>}
 

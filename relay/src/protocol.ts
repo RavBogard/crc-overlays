@@ -24,6 +24,20 @@ export const MAX_BUG_BYTES=192;
 // payload headroom rather than sitting on top of it.
 export const MAX_CUE_PAYLOAD_BYTES=MAX_SNAPSHOT_BYTES-4096-MAX_CONTROLLERS*MAX_CONTROLLER_BYTES-MAX_BUG_BYTES;
 export const MAX_RECEIPTS=2048;
+// The cue log (2026-09-14 integration ruling 7). A bounded operational history of what the
+// service actually did, never who did it: 2,000 rows or 14 days, whichever is smaller, and a
+// read page capped at the same 256 KiB the snapshot is. Rows are dropped, never archived.
+export const MAX_HISTORY_ROWS=2000;
+export const HISTORY_WINDOW_MS=14*24*60*60*1000;
+export const HISTORY_WINDOW_DAYS=14;
+export const MAX_HISTORY_BYTES=256*1024;
+// One page of rows. 500 rows serialize to ~110 KB at realistic widths, well inside the byte cap
+// that guards the response as a whole.
+export const MAX_HISTORY_PAGE=500;
+// A row records the library sources of the graphic that was pinned, not a resolved position:
+// only the web server holds the siddur library, and resolving at read time means a moment table
+// that lands later starts answering without republishing a single graphic.
+export const MAX_HISTORY_SOURCE_IDS=8;
 export const STALE_MS=30_000;
 // Inclusive: a renderer last seen exactly STALE_MS ago is expired, so an alarm that
 // fires precisely on the deadline both drops the renderer and reschedules correctly.
@@ -45,7 +59,20 @@ export type Hello={id:string;client:ClientKind;version:string|null};
 export type BugState={on:boolean;page:string|null};
 export type LiveState={revision:number;cue:string|null;mode:Mode;updated:number;cuePayload:CuePayload|null;catalogVersion:string;bug?:BugState};
 export type Snapshot=LiveState&{renderers:Renderer[];controllers:Controller[];serverTime:number};
-export type Command={action:'in'|'out'|'clear'|'cut'|'bug';cue:string|null;bug:BugState|null;commandId:string;clientId:string|null;sequence:number|null};
+export type Command={action:'in'|'out'|'clear'|'cut'|'bug';cue:string|null;bug:BugState|null;commandId:string;clientId:string|null;sequence:number|null;source:HistorySource;serviceRef:string|null};
+// Where the command came from, for the cue log. Not an identity: 'control' is any web or
+// legacy caller, 'companion' the paired deck, 'mcp' an assistant acting on consent. A caller
+// that says nothing is 'control', so every already-deployed client keeps working unchanged.
+export type HistorySource='control'|'companion'|'mcp';
+export type HistoryAction='in'|'out'|'clear'|'cut'|'bug'|'history_cleared';
+/**
+ * One row of the cue log as the relay keeps it. Built in one place so no caller can widen it:
+ * no graphic name, no text, no operator, no renderer presence — the same forbidden-key posture
+ * as `/api/now`. `sourceIds` is internal: the web server joins it to the siddur library and
+ * drops it, so what leaves `/api/history` is a liturgical position, never a source pin.
+ */
+export type HistoryRow={seq:number;at:number;action:HistoryAction;cueId:string|null;source:HistorySource;serviceRef:string|null;sourceIds:string[]};
+export const HISTORY_KEYS=['seq','at','action','cueId','source','serviceRef','sourceIds'] as const;
 // `client`/`version` are optional: attachments serialized by an earlier worker build
 // survive a deploy without them, and a 1.3.0 hello never carries them.
 export type SocketAttachment={role:Role;id:string|null;client?:ClientKind;version?:string|null;seen:number;ack:Renderer|null};
@@ -111,7 +138,81 @@ export function parseCommand(value:unknown):Command|null{
  const sequence=input.sequence;
  if(clientId===null){if(sequence!==null)return null}
  else if(!validToken(clientId)||!validInteger(sequence))return null;
- return {action:action as Command['action'],cue,bug,commandId:input.commandId as string,clientId:clientId as string|null,sequence:sequence as number|null};
+ // The two cue-log fields. Both are optional on the wire: a caller that omits them is a
+ // 'control' command with no prepared service, which is what every deployed client is.
+ const source=input.source===undefined||input.source===null?'control':parseHistorySource(input.source);
+ if(!source)return null;
+ const serviceRef=input.serviceRef===undefined||input.serviceRef===null?null:validUuid(input.serviceRef)?input.serviceRef as string:undefined;
+ if(serviceRef===undefined)return null;
+ return {action:action as Command['action'],cue,bug,commandId:input.commandId as string,clientId:clientId as string|null,sequence:sequence as number|null,source,serviceRef};
+}
+
+export const parseHistorySource=(value:unknown):HistorySource|null=>value==='control'||value==='companion'||value==='mcp'?value:null;
+
+/**
+ * The library sources of the graphic that was pinned, taken from the payload the relay already
+ * holds. Only `library:` ids are kept — they are the ones carrying a shireishabbat unit — and
+ * only the first few, so one graphic can never widen a row without bound.
+ */
+export function librarySourceIds(payload:CuePayload|null|undefined):string[]{
+ const ids=(payload as {authoring?:{sourceIds?:unknown}}|null|undefined)?.authoring?.sourceIds;
+ if(!Array.isArray(ids))return [];
+ return ids.filter((id):id is string=>typeof id==='string'&&id.startsWith('library:')&&id.length<=160).slice(0,MAX_HISTORY_SOURCE_IDS);
+}
+
+/**
+ * A names panel's id is `names:<collectionId>:<NN>`, so a service that is on screen names itself
+ * even though nothing yet asks an operator to load one. That is the only `serviceRef` any
+ * surface produces today; a caller may still send one explicitly.
+ */
+export function collectionFromNamesCue(cueId:string|null):string|null{
+ if(typeof cueId!=='string')return null;
+ const parts=cueId.split(':');
+ return parts.length===3&&parts[0]==='names'&&validUuid(parts[1])?parts[1]:null;
+}
+
+/** The only constructor of a history row: these keys, in one place, from validated parts. */
+export function historyRow(input:{seq:number;at:number;action:HistoryAction;cueId:string|null;source:HistorySource;serviceRef:string|null;sourceIds?:readonly string[]}):HistoryRow{
+ return {seq:input.seq,at:input.at,action:input.action,cueId:input.cueId,source:input.source,serviceRef:input.serviceRef,sourceIds:[...(input.sourceIds??[])]};
+}
+
+/** Rows older than this are dropped on the next append or read, whichever comes first. */
+export const historyWindowStart=(now:number)=>now-HISTORY_WINDOW_MS;
+
+export type HistoryRange={since:number;until:number;after:number;limit:number};
+/**
+ * `?since=&until=&after=` — milliseconds and a sequence cursor, all optional. The default
+ * window is the whole retained history; a malformed value refuses rather than being ignored,
+ * so a caller never silently reads a different window than it asked for.
+ */
+export function parseHistoryRange(since:string|null,until:string|null,after:string|null,now:number,limit:string|null=null):HistoryRange|null{
+ const number=(raw:string|null,fallback:number)=>{
+  if(raw===null||raw==='')return fallback;
+  if(!/^\d{1,15}$/.test(raw))return null;
+  const value=Number(raw);
+  return Number.isSafeInteger(value)?value:null;
+ };
+ const from=number(since,historyWindowStart(now)),to=number(until,now),cursor=number(after,0),page=number(limit,MAX_HISTORY_PAGE);
+ if(from===null||to===null||cursor===null||page===null||to<from||page<1)return null;
+ return {since:from,until:to,after:cursor,limit:Math.min(page,MAX_HISTORY_PAGE)};
+}
+
+/**
+ * One page of rows under the 256 KiB cap. `nextAfter` is the seq to resume from when the cap
+ * or the row limit truncated the answer, and null when the caller has the whole range.
+ */
+export function historyPage(rows:readonly HistoryRow[],maxBytes=MAX_HISTORY_BYTES):{rows:HistoryRow[];nextAfter:number|null}{
+ const page:HistoryRow[]=[];
+ // The envelope around the rows ({"workspace":"…","rows":[…],"nextAfter":…}) is small and
+ // fixed; 512 bytes of headroom keeps the whole response inside the cap, not just its rows.
+ let bytes=512;
+ for(const row of rows){
+  const size=jsonBytes(row)+1;
+  if(page.length&&bytes+size>maxBytes)return {rows:page,nextAfter:page[page.length-1].seq};
+  bytes+=size;
+  page.push(row);
+ }
+ return {rows:page,nextAfter:null};
 }
 
 export function parseCatalog(value:unknown):ApprovedCatalog|null{

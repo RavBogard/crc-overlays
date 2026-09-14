@@ -7,7 +7,7 @@ import {createHash,timingSafeEqual} from 'node:crypto';
 import {createServer,type IncomingMessage,type Server,type ServerResponse} from 'node:http';
 import type {Duplex} from 'node:stream';
 import {WebSocketServer,type WebSocket as RelaySocket} from 'ws';
-import {MAX_CATALOG_BYTES,MAX_MESSAGE_BYTES,MAX_RECEIPTS,MAX_REQUEST_BYTES,MAX_SNAPSHOT_BYTES,PROTOCOL,jsonBytes,nextState,parseAck,parseCatalog,parseCommand,parseHello,parseInitialState,presenceFrame,rankControllers,rendererExpired,validCatalogVersion,validInteger,validToken,validUuid,verifyTicket,type ApprovedCatalog,type Command,type Controller,type LiveState,type Renderer,type Role,type Snapshot,type SocketAttachment} from '../relay/src/protocol.ts';
+import {HISTORY_WINDOW_DAYS,MAX_CATALOG_BYTES,MAX_HISTORY_ROWS,MAX_MESSAGE_BYTES,MAX_RECEIPTS,MAX_REQUEST_BYTES,MAX_SNAPSHOT_BYTES,PROTOCOL,collectionFromNamesCue,historyPage,historyRow,historyWindowStart,jsonBytes,librarySourceIds,nextState,parseAck,parseCatalog,parseCommand,parseHello,parseHistoryRange,parseInitialState,presenceFrame,rankControllers,rendererExpired,validCatalogVersion,validInteger,validToken,validUuid,verifyTicket,type ApprovedCatalog,type Command,type CuePayload,type Controller,type HistoryRow,type LiveState,type Renderer,type Role,type Snapshot,type SocketAttachment} from '../relay/src/protocol.ts';
 
 export const DEFAULT_REHEARSAL_RELAY_PORT=8788;
 // Real-time cadence of the presence sweep. The worker uses a Durable Object
@@ -16,7 +16,7 @@ export const DEFAULT_REHEARSAL_RELAY_PORT=8788;
 const SWEEP_INTERVAL_MS=250;
 const HEADERS={'Cache-Control':'no-store','Content-Type':'application/json','Referrer-Policy':'no-referrer','X-Content-Type-Options':'nosniff'} as const;
 const STATUS_TEXT:Record<number,string>={400:'Bad Request',401:'Unauthorized',403:'Forbidden',404:'Not Found',409:'Conflict',413:'Payload Too Large',426:'Upgrade Required',503:'Service Unavailable'};
-const ROUTES=['/state','/initialize','/command','/catalog','/ack'];
+const ROUTES=['/state','/initialize','/command','/catalog','/ack','/history','/history/clear'];
 const LOCAL_ORIGIN=/^http:\/\/(?:localhost|127\.0\.0\.1)(?::\d{1,5})?$/;
 
 export class HttpError extends Error{constructor(readonly status:number,message:string){super(message)}}
@@ -70,8 +70,11 @@ export class RehearsalRoom{
  readonly sequences=new Map<string,number>();
  readonly tickets=new Map<string,number>();
  readonly legacyPresence=new Map<string,Renderer>();
+ /** The cue log, in memory. Same bound, same shape, same order as the worker's table. */
+ readonly history:HistoryRow[]=[];
+ private historySeq=0;
  private lastPresenceKey=presenceKey([],[]);
- constructor(private readonly now:()=>number=Date.now){}
+ constructor(private readonly now:()=>number=Date.now,readonly workspace='rehearsal'){}
 
  // --- ticket single use -----------------------------------------------------
  consumeTicket(jti:string,expires:number){
@@ -139,6 +142,9 @@ export class RehearsalRoom{
   const command=parseCommand(value);
   if(!command)throw new HttpError(400,'Invalid command');
   const accepted=this.applyCommand(command);
+  // Mirrors LiveRoom.command: the append happens after the command has been applied and
+  // before the broadcast, and can never refuse the command.
+  if(accepted)this.appendHistory(command,this.catalog?.cues.find(cue=>cue.id===command.cue)??null,this.now());
   const snapshot=this.snapshot();
   this.ensureSnapshotSize(snapshot);
   if(accepted)this.broadcast({type:'snapshot',snapshot});
@@ -172,6 +178,36 @@ export class RehearsalRoom{
   const excess=this.receipts.size-MAX_RECEIPTS;
   if(excess>0)for(const [id] of [...this.receipts].sort((a,b)=>a[1].createdAt-b[1].createdAt||(a[0]<b[0]?-1:1)).slice(0,excess))this.receipts.delete(id);
   return accepted;
+ }
+ // --- the cue log -----------------------------------------------------------
+ appendHistory(command:Command,selected:CuePayload|null,now:number){
+  try{
+   this.history.push(historyRow({seq:++this.historySeq,at:now,action:command.action,cueId:command.cue,source:command.source,serviceRef:command.serviceRef??collectionFromNamesCue(command.cue),sourceIds:librarySourceIds(selected)}));
+   this.pruneHistory(now);
+  }catch{/* a history that cannot be written never costs the congregation a graphic */}
+ }
+ pruneHistory(now:number){
+  const start=historyWindowStart(now);
+  const kept=this.history.filter(row=>row.at>=start).slice(-MAX_HISTORY_ROWS);
+  this.history.length=0;
+  this.history.push(...kept);
+ }
+ historyRange(url:URL):[unknown,number]{
+  const now=this.now();
+  const range=parseHistoryRange(url.searchParams.get('since'),url.searchParams.get('until'),url.searchParams.get('after'),now,url.searchParams.get('limit'));
+  if(!range)throw new HttpError(400,'Invalid history range');
+  this.pruneHistory(now);
+  const matching=this.history.filter(row=>row.at>=range.since&&row.at<=range.until&&row.seq>range.after);
+  const limited=matching.slice(0,range.limit);
+  const page=historyPage(limited);
+  const nextAfter=page.nextAfter??(matching.length>range.limit&&limited.length?limited[limited.length-1].seq:null);
+  return [{workspace:this.workspace,window:{rows:MAX_HISTORY_ROWS,days:HISTORY_WINDOW_DAYS},rows:page.rows,nextAfter},200];
+ }
+ clearHistory():[unknown,number]{
+  const cleared=this.history.length;
+  this.history.length=0;
+  this.history.push(historyRow({seq:++this.historySeq,at:this.now(),action:'history_cleared',cueId:null,source:'control',serviceRef:null}));
+  return [{ok:true,cleared,seq:this.historySeq},200];
  }
  approvedCatalog(value:unknown):[unknown,number]{
   if(!value||typeof value!=='object'||Array.isArray(value))throw new HttpError(400,'Invalid approved catalog');
@@ -305,11 +341,11 @@ async function readBody(request:IncomingMessage,maxBytes:number){
  try{return JSON.parse(Buffer.concat(chunks).toString('utf8')) as unknown}catch{throw new HttpError(400,'Invalid JSON')}
 }
 
-export type RehearsalRelayOptions={port:number;host?:string;secret:string;now?:()=>number};
+export type RehearsalRelayOptions={port:number;host?:string;secret:string;now?:()=>number;workspace?:string};
 export type RehearsalRelay={url:string;port:number;close():Promise<void>;room:RehearsalRoom};
 
-export function startRehearsalRelay({port,host='127.0.0.1',secret,now=Date.now}:RehearsalRelayOptions):Promise<RehearsalRelay>{
- const room=new RehearsalRoom(now);
+export function startRehearsalRelay({port,host='127.0.0.1',secret,now=Date.now,workspace='rehearsal'}:RehearsalRelayOptions):Promise<RehearsalRelay>{
+ const room=new RehearsalRoom(now,workspace);
  const sockets=new WebSocketServer({noServer:true,handleProtocols:protocols=>protocols.has(PROTOCOL)?PROTOCOL:false});
  const server:Server=createServer((request,response)=>{void route(request,response)});
 
@@ -321,6 +357,8 @@ export function startRehearsalRelay({port,host='127.0.0.1',secret,now=Date.now}:
   try{
    if(url.pathname==='/state'&&request.method==='GET')return sendJson(response,room.snapshot());
    if(url.pathname==='/catalog'&&request.method==='GET')return sendJson(response,room.catalog);
+   if(url.pathname==='/history'&&request.method==='GET')return sendJson(response,...room.historyRange(url));
+   if(url.pathname==='/history/clear'&&request.method==='POST')return sendJson(response,...room.clearHistory());
    const bodyLimit=url.pathname==='/initialize'?MAX_REQUEST_BYTES:url.pathname==='/catalog'?MAX_CATALOG_BYTES:MAX_MESSAGE_BYTES;
    const input=await readBody(request,bodyLimit);
    if(url.pathname==='/initialize'&&request.method==='POST')return sendJson(response,...room.initialize(input));

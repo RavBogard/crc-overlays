@@ -90,3 +90,15 @@ Run focused tests with:
 ```powershell
 node node_modules/tsx/dist/cli.mjs --test tests/oauth.test.ts tests/mcp.test.ts
 ```
+
+## Reading what a service did (`get_service_history`)
+
+`get_service_history({since, until, after, limit})` reads this workspace's cue log: one row per
+accepted live command, with the graphic's id, its liturgical position (`unitId`, `momentId`,
+`book`, `folio`), the time, where the command came from, and the prepared service when one is
+known. It is bounded to the last 2,000 commands or 14 days, whichever is smaller, and pages by
+`seq`.
+
+It is read-only in the strongest sense: it puts nothing on screen, changes nothing, and carries no
+graphic names, no text and nobody's identity. Without the live relay it answers
+`{ok:false, reason:"unavailable"}` rather than failing, because the legacy path keeps no history.

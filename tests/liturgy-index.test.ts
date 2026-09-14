@@ -1,6 +1,6 @@
 import assert from 'node:assert/strict';
 import test from 'node:test';
-import {liturgyForCue,liturgyIndex,loadMoments,NO_LITURGY,type MomentEntry} from '../lib/liturgy-index.ts';
+import {liturgyForCue,liturgyForSourceIds,liturgyIndex,loadMoments,NO_LITURGY,type MomentEntry} from '../lib/liturgy-index.ts';
 import {namesPanelCues} from '../lib/names-list.ts';
 import {siddurLibrary} from '../lib/source-library.ts';
 import type {Cue} from '../lib/player.ts';
@@ -14,7 +14,7 @@ test('a library-backed cue reports the unit, the feed slug and the first folio i
  assert.equal(reference.unitId,librarySource.authority.unitId);
  assert.equal(reference.book,librarySource.authority.id.split(':')[1]);
  assert.equal(reference.folio,(librarySource.metadata.folios as number[])[0]);
- assert.equal(reference.momentId,null,'content/moments.json ships empty, so no moment is named yet');
+ assert.ok(reference.momentId===null||typeof reference.momentId==='string','a moment is named once the producer publishes its table, and null until then');
  assert.deepEqual(Object.keys(reference),['unitId','momentId','book','folio']);
 });
 
@@ -35,8 +35,27 @@ test('a moments.json entry names the moment of the unit the cue is built from',(
  assert.equal(liturgyForCue(authored('published',[librarySource.id]),{moments:[{momentId:'welcome',unitId:'some.other.unit'}]}).momentId,null);
 });
 
-test('the committed moments file is an empty list and the loader tolerates it',()=>{
- assert.deepEqual(loadMoments(),[]);
+/* The committed table starts empty and gains rows from the producer through the Monday
+   workflow, so this asserts its shape rather than its size: a data PR must never fail tests. */
+test('the committed moments file is a list of {momentId,unitId} pairs',()=>{
+ const moments=loadMoments();
+ assert.ok(Array.isArray(moments));
+ for(const entry of moments){
+  assert.equal(typeof entry.momentId,'string');
+  assert.equal(typeof entry.unitId,'string');
+ }
+});
+
+/* The cue log keeps the source ids of the graphic that was pinned and resolves them on the way
+   out, so the two entry points must agree exactly. */
+test('resolving from source ids alone is the same answer as resolving from the cue',()=>{
+ const cueValue=authored('published',[librarySource.id]);
+ assert.deepEqual(liturgyForSourceIds(cueValue.authoring.sourceIds),liturgyForCue(cueValue));
+ assert.deepEqual(liturgyForSourceIds(['library:not-in-this-library']),NO_LITURGY);
+ assert.deepEqual(liturgyForSourceIds([]),NO_LITURGY);
+ assert.deepEqual(liturgyForSourceIds(null),NO_LITURGY);
+ const moments:MomentEntry[]=[{momentId:'welcome',unitId:librarySource.authority.unitId}];
+ assert.equal(liturgyForSourceIds([librarySource.id],{moments}).momentId,'welcome','a moment table that lands later answers for history already recorded');
 });
 
 test('a moments.json that cannot be read is an empty table, not a 503',()=>{

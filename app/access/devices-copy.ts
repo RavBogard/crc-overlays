@@ -7,7 +7,7 @@
  * notice says what actually happens rather than promising an immediate disconnection.
  */
 
-export type DeviceKind = "companion" | "output";
+export type DeviceKind = "companion" | "output" | "history_reader";
 
 export type PairedDevice = {
   id: string;
@@ -22,6 +22,7 @@ export type PairedDevice = {
 export const DEVICE_KIND_LABEL: Record<DeviceKind, string> = {
   companion: "Companion",
   output: "Graphics output",
+  history_reader: "Service history",
 };
 
 /** Shown once, after a successful revoke. */
@@ -29,7 +30,7 @@ export const DEVICE_REVOKED_NOTICE = "Revoked. This device stops at its next rec
 
 /** An unrecognised kind is named rather than guessed at, so a new kind never renders blank. */
 export function deviceKindLabel(kind: string): string {
-  return kind === "companion" || kind === "output" ? DEVICE_KIND_LABEL[kind] : "Device";
+  return kind === "companion" || kind === "output" || kind === "history_reader" ? DEVICE_KIND_LABEL[kind] : "Device";
 }
 
 /**

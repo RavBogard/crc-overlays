@@ -75,3 +75,15 @@ node scripts/deploy-workspaces.mjs --commit <full-40-character-commit-sha> --con
 The command refuses a dirty checkout or a different `HEAD`, builds a fresh allowlisted TBI source tree containing the complete current library, deploys CRC from that commit, and deploys TBI from the matching staged source. It creates the TBI Vercel link only inside ignored release staging and never replaces the repository's CRC `.vercel` link. The release record under `work/deploy-staging/releases/<sha>/release.json` ties both production deployments to the same source revision.
 
 Use this command for future releases that add CRC overlays or library material. Shared CRC items become discoverable in TBI through the read-only shared-library connection. Choosing **Customize** creates an independent TBI draft; existing TBI drafts and publications remain unchanged.
+
+## The cue log needs no new Overlays variable
+
+The bounded command history lives in the relay's Durable Object and is read through
+`GET /api/history` with an existing credential, so neither Vercel project gains an environment
+variable for it. The relay workers each gained one plain `vars` entry, `WORKSPACE` (`crc` / `tbi`),
+so a reader can tell the two congregations apart in an answer; it is configuration, never a secret.
+
+The token travels the other way. An Administrator mints a `history_reader` credential here (see
+`docs/ACCESS.md`) and it is installed on the *consumer* — centralreform.live — as that project's
+own sensitive variable. Nothing about that token is stored in this repository or in either Vercel
+project.

@@ -1,15 +1,24 @@
 import {DurableObject} from 'cloudflare:workers';
-import {MAX_CATALOG_BYTES,MAX_MESSAGE_BYTES,MAX_RECEIPTS,MAX_REQUEST_BYTES,MAX_SNAPSHOT_BYTES,PROTOCOL,STALE_MS,jsonBytes,nextState,parseAck,parseCatalog,parseCommand,parseHello,parseInitialState,presenceFrame,rankControllers,rendererExpired,validCatalogVersion,validInteger,validToken,validUuid,verifyTicket,type ApprovedCatalog,type Command,type Controller,type CuePayload,type LiveState,type Renderer,type Role,type Snapshot,type SocketAttachment} from './protocol';
+import {HISTORY_WINDOW_DAYS,MAX_CATALOG_BYTES,MAX_HISTORY_ROWS,MAX_MESSAGE_BYTES,MAX_RECEIPTS,MAX_REQUEST_BYTES,MAX_SNAPSHOT_BYTES,PROTOCOL,STALE_MS,collectionFromNamesCue,historyPage,historyRow,historyWindowStart,jsonBytes,librarySourceIds,nextState,parseAck,parseCatalog,parseCommand,parseHello,parseHistoryRange,parseInitialState,presenceFrame,rankControllers,rendererExpired,validCatalogVersion,validInteger,validToken,validUuid,verifyTicket,type ApprovedCatalog,type Command,type Controller,type CuePayload,type HistoryAction,type HistoryRow,type HistorySource,type LiveState,type Renderer,type Role,type Snapshot,type SocketAttachment} from './protocol';
 
 interface Env{
  LIVE_ROOM:DurableObjectNamespace<LiveRoom>;
  RELAY_SECRET:string;
  ALLOWED_ORIGINS:string;
+ /** Which congregation this worker serves. Named in the cue log so a reader cannot confuse two. */
+ WORKSPACE?:string;
 }
 
 type StateRow={state_json:string};
 type CatalogRow={version:string;cues_json:string};
 type ReceiptRow={action:string;cue:string|null};
+type HistoryRecord={seq:number;at:number;action:string;cue_id:string|null;source:string;service_ref:string|null;source_ids:string};
+const HISTORY_COLUMNS='seq,at,action,cue_id,source,service_ref,source_ids';
+const readHistoryRow=(row:HistoryRecord):HistoryRow=>{
+ let sourceIds:string[]=[];
+ try{const parsed=JSON.parse(row.source_ids) as unknown;if(Array.isArray(parsed))sourceIds=parsed.filter((id):id is string=>typeof id==='string')}catch{sourceIds=[]}
+ return historyRow({seq:Number(row.seq),at:Number(row.at),action:row.action as HistoryAction,cueId:row.cue_id,source:row.source as HistorySource,serviceRef:row.service_ref,sourceIds});
+};
 const ROOM='crc';
 const headers={'Cache-Control':'no-store','Content-Type':'application/json','Referrer-Policy':'no-referrer','X-Content-Type-Options':'nosniff'};
 const json=(value:unknown,status=200)=>new Response(JSON.stringify(value),{status,headers});
@@ -50,7 +59,7 @@ export default {
    internal.headers.set('X-CRC-Exp',String(ticket.exp));
    return env.LIVE_ROOM.get(env.LIVE_ROOM.idFromName(ROOM)).fetch(internal);
   }
-  if(!['/state','/initialize','/command','/catalog','/ack'].includes(url.pathname))return json({error:'Not found'},404);
+  if(!['/state','/initialize','/command','/catalog','/ack','/history','/history/clear'].includes(url.pathname))return json({error:'Not found'},404);
   if(!await secretMatches(bearer(request),env.RELAY_SECRET))return json({error:'Relay authentication required'},401);
   return env.LIVE_ROOM.get(env.LIVE_ROOM.idFromName(ROOM)).fetch(request);
  },
@@ -70,6 +79,8 @@ export class LiveRoom extends DurableObject<Env>{
    CREATE TABLE IF NOT EXISTS ticket_receipts(jti TEXT PRIMARY KEY,expires INTEGER NOT NULL);
    CREATE INDEX IF NOT EXISTS command_receipts_created ON command_receipts(created_at);
    CREATE INDEX IF NOT EXISTS ticket_receipts_expires ON ticket_receipts(expires);
+   CREATE TABLE IF NOT EXISTS command_history(seq INTEGER PRIMARY KEY AUTOINCREMENT,at INTEGER NOT NULL,action TEXT NOT NULL,cue_id TEXT,source TEXT NOT NULL,service_ref TEXT,source_ids TEXT NOT NULL);
+   CREATE INDEX IF NOT EXISTS command_history_at ON command_history(at);
   `);
  }
 
@@ -79,6 +90,8 @@ export class LiveRoom extends DurableObject<Env>{
   try{
    if(url.pathname==='/state'&&request.method==='GET')return json(this.snapshot());
    if(url.pathname==='/catalog'&&request.method==='GET')return json(this.readCatalog());
+   if(url.pathname==='/history'&&request.method==='GET')return this.history(url);
+   if(url.pathname==='/history/clear'&&request.method==='POST')return this.clearHistory();
    const bodyLimit=url.pathname==='/initialize'?MAX_REQUEST_BYTES:url.pathname==='/catalog'?MAX_CATALOG_BYTES:MAX_MESSAGE_BYTES;
    const input=await this.readBody(request,bodyLimit);
    if(url.pathname==='/initialize'&&request.method==='POST')return this.initialize(input);
@@ -126,6 +139,48 @@ export class LiveRoom extends DurableObject<Env>{
   return row?{version:row.version,cues:JSON.parse(row.cues_json) as CuePayload[]}:null;
  }
  private writeCatalog(catalog:ApprovedCatalog){this.sql.exec('INSERT OR REPLACE INTO approved_catalog(singleton,version,cues_json) VALUES(1,?,?)',catalog.version,JSON.stringify(catalog.cues))}
+ /**
+  * The cue log's one write. It runs after the command has committed and before the broadcast,
+  * outside the transaction on purpose: a history that cannot be written must never cost the
+  * congregation a graphic, so every failure here is logged and swallowed.
+  */
+ private appendHistory(command:Command,selected:CuePayload|null,now:number){
+  try{
+   this.sql.exec(
+    'INSERT INTO command_history(at,action,cue_id,source,service_ref,source_ids) VALUES(?,?,?,?,?,?)',
+    now,command.action,command.cue,command.source,command.serviceRef??collectionFromNamesCue(command.cue),JSON.stringify(librarySourceIds(selected)),
+   );
+   this.pruneHistory(now);
+  }catch(error){console.error('history_append_failed',{name:error instanceof Error?error.name:'UnknownError'})}
+ }
+ /** 2,000 rows or 14 days, whichever is smaller. Dropped, not archived. */
+ private pruneHistory(now:number){
+  this.sql.exec('DELETE FROM command_history WHERE at<?',historyWindowStart(now));
+  this.sql.exec('DELETE FROM command_history WHERE seq<COALESCE((SELECT seq FROM command_history ORDER BY seq DESC LIMIT 1 OFFSET ?),0)',MAX_HISTORY_ROWS-1);
+ }
+ private history(url:URL){
+  const now=Date.now();
+  const range=parseHistoryRange(url.searchParams.get('since'),url.searchParams.get('until'),url.searchParams.get('after'),now,url.searchParams.get('limit'));
+  if(!range)throw new HttpError(400,'Invalid history range');
+  this.pruneHistory(now);
+  const rows=this.sql.exec<HistoryRecord>(`SELECT ${HISTORY_COLUMNS} FROM command_history WHERE at>=? AND at<=? AND seq>? ORDER BY seq LIMIT ?`,range.since,range.until,range.after,range.limit+1).toArray().map(readHistoryRow);
+  const limited=rows.slice(0,range.limit);
+  const page=historyPage(limited);
+  const nextAfter=page.nextAfter??(rows.length>range.limit&&limited.length?limited[limited.length-1].seq:null);
+  return json({workspace:this.env.WORKSPACE??'crc',window:{rows:MAX_HISTORY_ROWS,days:HISTORY_WINDOW_DAYS},rows:page.rows,nextAfter});
+ }
+ /** The administrator's "clear history". The clearing itself is the last row left standing. */
+ private clearHistory(){
+  const now=Date.now();
+  const cleared=this.ctx.storage.transactionSync(()=>{
+   const count=this.sql.exec<{count:number}>('SELECT COUNT(*) AS count FROM command_history').toArray()[0]?.count??0;
+   this.sql.exec('DELETE FROM command_history');
+   this.sql.exec("INSERT INTO command_history(at,action,cue_id,source,service_ref,source_ids) VALUES(?,'history_cleared',NULL,'control',NULL,'[]')",now);
+   return count;
+  });
+  const seq=this.sql.exec<{seq:number}>('SELECT seq FROM command_history ORDER BY seq DESC LIMIT 1').toArray()[0]?.seq??0;
+  return json({ok:true,cleared,seq:Number(seq)});
+ }
  private async readBody(request:Request,maxBytes:number){
   const declared=Number(request.headers.get('content-length')??0);
   if(declared>maxBytes)throw new HttpError(413,'Request too large');
@@ -195,6 +250,9 @@ export class LiveRoom extends DurableObject<Env>{
   const command=parseCommand(value);
   if(!command)throw new HttpError(400,'Invalid command');
   const outcome=this.ctx.storage.transactionSync(()=>this.applyCommand(command));
+  // The cue log is a side effect of an accepted command: after the commit, before the
+  // broadcast, and never able to refuse or delay what is already on screen.
+  if(outcome.accepted)this.appendHistory(command,outcome.selected,Date.now());
   const snapshot=this.snapshot();
   this.ensureSnapshotSize(snapshot);
   if(outcome.accepted)this.broadcast({type:'snapshot',snapshot});
@@ -215,7 +273,7 @@ export class LiveRoom extends DurableObject<Env>{
   const receipt=this.sql.exec<ReceiptRow>('SELECT action,cue FROM command_receipts WHERE command_id=?',command.commandId).toArray()[0];
   if(receipt){
    if(receipt.action!==command.action||receipt.cue!==command.cue)throw new HttpError(409,'Command ID already used for a different command');
-   return {accepted:false};
+   return {accepted:false,selected:null};
   }
   const selected=command.cue===null?null:catalog.cues.find(cue=>cue.id===command.cue)??null;
   if((command.action==='in'||command.action==='out')&&!selected)throw new HttpError(400,'Unknown cue');
@@ -233,7 +291,7 @@ export class LiveRoom extends DurableObject<Env>{
   this.sql.exec('INSERT INTO command_receipts(command_id,action,cue,created_at) VALUES(?,?,?,?)',command.commandId,command.action,command.cue,Date.now());
   const excess=(this.sql.exec<{count:number}>('SELECT COUNT(*) AS count FROM command_receipts').toArray()[0]?.count??0)-MAX_RECEIPTS;
   if(excess>0)this.sql.exec('DELETE FROM command_receipts WHERE command_id IN (SELECT command_id FROM command_receipts ORDER BY created_at,command_id LIMIT ?)',excess);
-  return {accepted};
+  return {accepted,selected};
  }
  private catalog(value:unknown){
   if(!value||typeof value!=='object'||Array.isArray(value))throw new HttpError(400,'Invalid approved catalog');

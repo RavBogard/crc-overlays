@@ -151,6 +151,34 @@ unused slots, add a separate CRC browser input, and retain all Singular pages,
 connections, camera controls, and graphics inputs. Physical switcher/Stream Deck
 rehearsal is still required; protocol acknowledgment does not establish program tally.
 
+## The cue log (history)
+
+Every accepted command appends one row to a bounded history in the Durable Object, after the
+commit and before the broadcast. The append is a side effect: it runs outside the command's
+transaction, in its own try/catch, so a history that cannot be written never refuses, delays or
+rolls back what is on screen.
+
+A row is `{seq, at, action, cueId, source, serviceRef, sourceIds}` and nothing else. `action` is
+the accepted command (`in`, `out`, `clear`, `cut`, `bug`) or `history_cleared`; `source` is
+`control`, `companion` or `mcp` — where the command came from, never who sent it; `serviceRef` is
+a prepared-service collection id when one is known (a names panel names its own); `sourceIds` are
+the `library:` source pins of the graphic that was on screen, which the relay keeps because it
+holds no siddur library of its own. **There is no graphic name, no title, no text, no operator
+identity and no renderer presence in any row** — the same forbidden-key posture as `/api/now`,
+and the reason the ruling calls this "bounded operational history, not permanent personal
+surveillance".
+
+The bound is 2,000 rows or 14 days, whichever is smaller, enforced on every append and every
+read. Older rows are dropped, never archived. An administrator's clear-history deletes every row
+and logs the clearing itself as the only row left.
+
+`GET /history?since=&until=&after=&limit=` (relay secret) answers `{workspace, rows, nextAfter,
+window}`, at most 500 rows and 256 KiB per page, paging by `seq`. `POST /history/clear` clears it.
+On the web side `GET /api/history` reads that, joins `sourceIds` to the siddur library into
+`{unitId, momentId, book, folio}`, drops the ids, and publishes only the ten permitted keys — so a
+moments table adopted later starts answering for services already recorded, with nothing
+republished. The legacy Postgres path keeps no history and none is built for it.
+
 ## Relay release
 
 The relay's two Cloudflare workers — `crc-live-relay` and `tbi-overlays-live-relay`, one

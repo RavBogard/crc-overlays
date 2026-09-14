@@ -1,5 +1,8 @@
 # Regenerate content/siddur-library.json from the shireishabbat source feeds.
 #
+# It also adopts the producer's moments table (dist-app/moments-pairs.json -> content/moments.json)
+# when one exists, in the same pull request.
+#
 # The overlay authoring library is generated, never hand-edited: scripts/build-siddur-library.py
 # reads the shireishabbat app surface (dist-app/) and emits the library the source-review inbox
 # draws on. This workflow runs that builder against a fresh checkout of the source repository and
@@ -81,13 +84,27 @@ jobs:
           SIDDUR_SOURCE_ROOT: ${{ github.workspace }}/source
         run: python scripts/build-siddur-library.py --output content/siddur-library.json
 
+      - name: Adopt the producer's moments table when it exists
+        if: env.HAS_SOURCE_TOKEN == 'true' && inputs.dry_run != true
+        run: |
+          # content/moments.json pairs a shireishabbat unit with the moment of the service it
+          # belongs to. It is the producer's table, not ours: when dist-app/ carries one we adopt
+          # it verbatim, and a malformed file fails the job loudly rather than committing junk.
+          # Nothing else changes - liturgyForCue already reads this file, so the moment starts
+          # appearing in /api/catalog?include=liturgy and /api/history the moment the PR merges.
+          if [ -f source/dist-app/moments-pairs.json ]; then
+            python scripts/adopt-moments.py source/dist-app/moments-pairs.json content/moments.json >> "$GITHUB_STEP_SUMMARY"
+          else
+            echo "moments: the producer has not published dist-app/moments-pairs.json yet; content/moments.json unchanged" >> "$GITHUB_STEP_SUMMARY"
+          fi
+
       - name: Detect a change
         id: diff
         if: env.HAS_SOURCE_TOKEN == 'true' && inputs.dry_run != true
         run: |
-          if git diff --quiet -- content/siddur-library.json; then
+          if git diff --quiet -- content/siddur-library.json content/moments.json; then
             echo "changed=false" >> "$GITHUB_OUTPUT"
-            echo "The regenerated library is identical to the committed one; no pull request." >> "$GITHUB_STEP_SUMMARY"
+            echo "The regenerated library and moments table are identical to the committed ones; no pull request." >> "$GITHUB_STEP_SUMMARY"
           else
             echo "changed=true" >> "$GITHUB_OUTPUT"
           fi
@@ -150,7 +167,9 @@ jobs:
           title: Regenerate siddur library from shireishabbat ${{ steps.summary.outputs.short_sha }}
           body: ${{ steps.summary.outputs.body }}
           commit-message: Regenerate siddur library from shireishabbat ${{ steps.summary.outputs.short_sha }}
-          add-paths: content/siddur-library.json
+          add-paths: |
+            content/siddur-library.json
+            content/moments.json
           delete-branch: true
 
       - name: Dry run against the synthetic fixture

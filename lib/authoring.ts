@@ -192,6 +192,20 @@ export function createAuthoringService(repo:AuthoringRepository,workspace:Author
     throw error;
    }
   }
+  // The cue log, read-only, for an assistant asked what a service actually did. Same bound and
+  // same shape as `GET /api/history`: graphics, liturgical positions and times - no names, no
+  // titles, no text, nobody's identity. An unavailable relay is a sentence, not a stack trace.
+  if(operation==='get_service_history'){
+   keys(data,['since','until','after']);
+   const bound=(value:unknown,name:string)=>value===undefined?null:String(integer(value,name,0,Number.MAX_SAFE_INTEGER));
+   const {readServiceHistory,HistoryError:HistoryFailure}=await import('./service-history');
+   try{return await readServiceHistory({since:bound(data.since,'since'),until:bound(data.until,'until'),after:bound(data.after,'after')})}
+   catch(error){
+    if(error instanceof HistoryFailure&&error.status===400)throw new AuthoringError('invalid_input',error.message);
+    if(error instanceof HistoryFailure)return {ok:false,reason:'unavailable',message:error.message};
+    throw error;
+   }
+  }
   if(operation==='list_shared_library'){
    keys(data,['query','limit','refresh']);const query=normalized(optionalString(data.query,'query',100));const limit=data.limit===undefined?1000:integer(data.limit,'limit',1,1000);if(data.refresh!==undefined&&typeof data.refresh!=='boolean')throw new AuthoringError('invalid_input','refresh must be boolean');const snapshot=await shared.get(data.refresh===true);
    if(!snapshot.available)return snapshot;
