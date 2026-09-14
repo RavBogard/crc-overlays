@@ -78,7 +78,7 @@ Build (settled 2026-09-13 night, branch `google-signin` off `phase-b`; not deplo
 Daniel's fields (pending Daniel — no value may be written here, only a date or a yes):
 
 - Setup performed by Daniel on: _____ (fill in)
-- Client ID recorded in Vercel (both projects): _____ (pending Daniel — record that it is
+- Client ID recorded in Vercel (both projects): yes — confirmed by name on 2026-09-13 with `vercel env ls production`: `GOOGLE_OAUTH_CLIENT_ID` and `GOOGLE_OAUTH_CLIENT_SECRET` exist on `crc-overlays` and `tbi-overlays` (Encrypted, Production). Sensitive values are not returned by the CLI, so a local rehearsal with the real client needs the values from Daniel's own records. (Original field: pending Daniel — record that it is
   present by variable name, never the value)
 - First real Google callback evidence (record separately from mocked local tests): _____
   (pending Daniel — the localhost:5175 callback with his own Google account, and the first
