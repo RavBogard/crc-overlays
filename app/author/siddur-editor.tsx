@@ -133,7 +133,7 @@ function TextLayerControls(props: { form: DraftForm; source: Source; changeForm:
   const hasEnglish = props.source.blocks.some((block) => block.kind === "translation-en");
   const lit = LAYER_ORDER.filter((layer) => props.form.layers.includes(layer));
   const reason = (layer: TextLayer) =>
-    layer !== "en" ? "" : !hasEnglish ? "This siddur has no approved English for these passages yet." : !panel ? "Translation needs a left or right panel." : "";
+    layer !== "en" || hasEnglish ? "" : "This siddur has no approved English for these passages yet.";
   const toggle = (layer: TextLayer) => {
     const next = lit.includes(layer) ? lit.filter((item) => item !== layer) : LAYER_ORDER.filter((item) => item === layer || lit.includes(item));
     if (!next.length) return;

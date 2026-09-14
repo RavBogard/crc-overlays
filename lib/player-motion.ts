@@ -10,6 +10,7 @@ export const GROUPS:Record<string,string[]>={
  accentTextTitle:['titleGroup'],
  textMainEng:['EngText'],
  textMainheb:['HebText'],
+ textTranslation:['EngText'],
 };
 
 export function tracksFor(element:string,direction:AnimationDirection,tracks:AnimationTrack[]){
@@ -25,6 +26,8 @@ export function textParts(texts:Record<string,string>):TextPart[]{
  const parts:TextPart[]=[];
  if(texts.textMainEng)parts.push({classes:'prayer english',text:texts.textMainEng,element:'textMainEng'});
  if(texts.textMainheb)parts.push({classes:'prayer hebrew',text:texts.textMainheb,element:'textMainheb'});
+ // C6: the translation is a third line beneath the two columns, never one of them.
+ if(texts.textTranslation)parts.push({classes:'prayer translation',text:texts.textTranslation,element:'textTranslation'});
  if(parts.length===1)parts[0].classes+=' single-channel';
  return parts;
 }

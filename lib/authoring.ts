@@ -84,7 +84,8 @@ function sourceSetSegments(source:SearchSource,mode:'bilingual'|'original-en'|'s
 }
 function sourceSetPages(source:SearchSource,mode:'bilingual'|'original-en'|'source-en',includeTranslation:boolean,layout:Layout){
  const segments=sourceSetSegments(source,mode,includeTranslation);
- if(layout==='bottom')return segments.flatMap(segment=>segment.map(block=>[block]));
+ // A translated slide keeps its whole authorized pair; only an untranslated lower third splits to one block a slide.
+ if(layout==='bottom')return includeTranslation?segments:segments.flatMap(segment=>segment.map(block=>[block]));
  const characterBudget=panelCharacterBudget(mode);
  const pages:SourceBlock[][]=[];let page:SourceBlock[]=[];let characters=0;
  for(const segment of segments){
@@ -277,7 +278,6 @@ export function createAuthoringService(repo:AuthoringRepository,workspace:Author
    if(data.includeTranslation!==undefined&&typeof data.includeTranslation!=='boolean')throw new AuthoringError('invalid_input','includeTranslation must be boolean');
    const includeTranslation=data.includeTranslation===true;if(mode!=='bilingual'&&includeTranslation)throw new AuthoringError('invalid_input','includeTranslation is available only for bilingual sources');
    if(!['bottom','left','right'].includes(String(data.layout)))throw new AuthoringError('invalid_input','layout must be bottom, left, or right');const layout=data.layout as Layout;
-   if(includeTranslation&&layout==='bottom')throw new AuthoringError('translation_layout','Use a left or right panel for translated blessing rows');
    const templateCueId=baselineSourceCueId(string(data.templateCueId,'templateCueId',80));const template=baselineCues.find(cue=>cue.id===templateCueId);if(!template)throw new AuthoringError('unknown_template','Unknown baseline cue template',404);if(template.layout!==layout)throw new AuthoringError('template_layout_mismatch','Template cue layout must match the draft layout');
    const pages=sourceSetPages(source,mode,includeTranslation,layout);const setId=randomUUID();const count=pages.length;const width=Math.max(2,String(count).length);const now=Date.now();
    let drafts=pages.map((page,index)=>{

@@ -249,6 +249,20 @@ function renderGroup(group:SourceGroup,channel:'he'|'tr'|'en',snapshots:Authorin
 }
 
 /**
+ * The authorized English of a selection, as runs, each tagged with the slide (group) its first
+ * block sits in. A pair may span the slides an author drew, so the runs are always computed over
+ * the whole selection and then attributed; computing them per slide would refuse a legal split.
+ */
+function englishRunTexts(content:BilingualContent,snapshots:AuthoringSource[]=[],overrides:LocalVariantOverride[]=[]){
+ const groupOf=new Map<string,number>();
+ content.hebrewGroups.forEach((group,index)=>group.blockIds.forEach(blockId=>{if(!groupOf.has(`${group.sourceId} ${blockId}`))groupOf.set(`${group.sourceId} ${blockId}`,index)}));
+ return translationSelections(content,snapshots).map(({sourceId,block,pairIds})=>({
+  group:groupOf.get(`${sourceId} ${pairIds[0]}`)??0,
+  text:overrides.find(item=>item.sourceId===sourceId&&item.blockId===block.id&&item.channel==='en')?.localText??block.en!,
+ }));
+}
+
+/**
  * C6. A panel graphic is a list of rows, and the two arrangements are two ways of cutting the
  * same passages into rows: **Together** gives each passage its own row carrying every lit layer;
  * **In blocks** gives each slide one row per lit layer, so the whole slide's Hebrew stands
@@ -261,11 +275,12 @@ function composeContentRows(draft:Draft,content:BilingualContent,overrides:Local
  const text=(sourceId:string,blockIds:string[],channel:'he'|'tr')=>layers.includes(channel)?renderGroup({sourceId,blockIds},channel,snapshots,overrides):'';
  const english=(sourceId:string,block:SourceBlock)=>overrides.find(item=>item.sourceId===sourceId&&item.blockId===block.id&&item.channel==='en')?.localText??block.en!;
  if(textArrangement(content)==='blocks'){
-  return content.hebrewGroups.flatMap(group=>{
+  const englishRuns=layers.includes('en')?englishRunTexts(content,snapshots,overrides):[];
+  return content.hebrewGroups.flatMap((group,index)=>{
    const rows:Array<{he:string;tr:string;en:string}>=[];
    if(layers.includes('he'))rows.push({he:renderGroup(group,'he',snapshots,overrides),tr:'',en:''});
    if(layers.includes('tr'))rows.push({he:'',tr:renderGroup({sourceId:group.sourceId,blockIds:group.blockIds},'tr',snapshots,overrides),en:''});
-   if(layers.includes('en'))rows.push({he:'',tr:'',en:translationRuns(group.blockIds.map(blockId=>({sourceId:group.sourceId,blockId})),snapshots).map(({sourceId,block})=>english(sourceId,block)).join(' ')});
+   if(layers.includes('en'))rows.push({he:'',tr:'',en:englishRuns.filter(run=>run.group===index).map(run=>run.text).join(' ')});
    return rows;
   });
  }
@@ -279,7 +294,6 @@ export function buildCue(draft:Draft):AuthoringCue{
  if(!template)throw new AuthoringError('unknown_template','Draft template is unavailable',409);
  if(template.layout!==draft.layout)throw new AuthoringError('template_layout_mismatch','Template cue layout must match the draft layout');
  const content=draft.content.mode==='local-variant'?draft.content.base:draft.content;const overrides=draft.content.mode==='local-variant'?draft.content.overrides:[];
- if(content.mode==='bilingual'&&textLayers(content).includes('en')&&draft.layout==='bottom')throw new AuthoringError('translation_layout','Use a left or right panel for translated blessing rows');
  const texts:Record<string,string>={textTitle:draft.title};
  if(draft.accentTitle)texts.accentTextTitle=draft.accentTitle;
  const groups=content.mode==='bilingual'?[...content.hebrewGroups,...content.transliterationGroups]:content.mode==='original-en'||content.mode==='source-en'?content.englishGroups:[];
@@ -287,6 +301,10 @@ export function buildCue(draft:Draft):AuthoringCue{
  if(content.mode==='bilingual'){
   if(layers.includes('he'))texts.textMainheb=content.hebrewGroups.map(group=>renderGroup(group,'he',draft.sourceSnapshots,overrides)).join('\n');
   if(layers.includes('tr'))texts.textMainEng=content.transliterationGroups.map(group=>renderGroup(group,'tr',draft.sourceSnapshots,overrides)).join('\n');
+  // A lower third is two columns and cannot be arranged, so its translation is a third
+  // line beneath them rather than a row in a list. Ruled available, not default (Daniel,
+  // 2026-09-14): the chip is dark unless an author lights it.
+  if(layers.includes('en')&&draft.layout==='bottom')texts.textTranslation=englishRunTexts(content,draft.sourceSnapshots,overrides).map(item=>item.text).join(' ');
  }else if(content.mode==='original-en'||content.mode==='source-en')texts.textMain=content.englishGroups.map(group=>renderGroup(group,'en',draft.sourceSnapshots,overrides)).join('\n');
  else texts.textMain=content.text;
  const sourceIds=[...new Set(groups.map(group=>group.sourceId))].sort();
@@ -304,6 +322,9 @@ export function buildCue(draft:Draft):AuthoringCue{
    for(let index=animations.length-1;index>=0;index--)if(animations[index].element==='textMainheb'||animations[index].element==='textMainEng')animations.splice(index,1);
    animations.push(...fallback.map(track=>({...structuredClone(track),element:'textMain'})));
   }
+ }
+ if(texts.textTranslation&&!animations.some(track=>track.element==='textTranslation')){
+  animations.push(...animations.filter(track=>track.element==='textMainEng').map(track=>({...structuredClone(track),element:'textTranslation'})));
  }
  return {
   id:draft.id,name:draft.name,layout:draft.layout,texts,

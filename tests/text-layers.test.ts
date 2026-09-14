@@ -1,6 +1,6 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
-import {buildCue,editableFromBaseline,parseContent,sourcePack,sourcePinFor,textArrangement,textLayers,type BilingualContent,type Draft,type EditableDraft} from '../lib/authoring-model.ts';
+import {baselineCues,buildCue,editableFromBaseline,parseContent,sourcePinFor,textArrangement,textLayers,type BilingualContent,type Draft,type EditableDraft} from '../lib/authoring-model.ts';
 import {panelRowChannels} from '../lib/player.ts';
 
 /* C6 (handoff #2): which text layers a graphic shows, and how they sit on the slide. */
@@ -88,9 +88,32 @@ test('a layer the author did not light leaves no empty box in the row',()=>{
  assert.deepEqual(panelRowChannels({he:'',tr:'',en:''}),[]);
 });
 
-test('translation still needs the room of a panel',()=>{
+test('a lower third takes the translation as a third line beneath its two columns',()=>{
+ // Ruled by Daniel, 2026-09-14: available, not default.
  const editable=editableFromBaseline(TRANSLATED);
- const bottom=sourcePack.sources.length>0;
- assert.ok(bottom);
- assert.throws(()=>buildCue(draftOf({...editable,layout:'bottom'},TRANSLATED)),/left or right panel|layout/);
+ const content=editable.content as BilingualContent;
+ const bottomTemplate=baselineCues.find(cue=>cue.layout==='bottom'&&cue.texts.textMainheb)!;
+ const cue=buildCue(draftOf({...editable,layout:'bottom',templateCueId:bottomTemplate.id},TRANSLATED));
+ assert.ok(cue.texts.textMainheb&&cue.texts.textMainEng,'the two columns stay');
+ assert.ok(cue.texts.textTranslation,'and the translation is its own line');
+ assert.equal(cue.contentRows,undefined,'a lower third is not a list of rows');
+ assert.ok(cue.animations.some(track=>track.element==='textTranslation'),'the third line animates with the rest');
+ const pair=buildCue(draftOf({...editable,layout:'bottom',templateCueId:bottomTemplate.id,content:{...content,layers:['he','tr']}},TRANSLATED));
+ assert.equal(pair.texts.textTranslation,undefined,'and it is dark unless the author lights it');
+});
+
+test('an authorized pair split across two slides still renders its English once',()=>{
+ // The runs are computed over the whole selection and attributed to the slide they start in;
+ // computing them slide by slide would refuse a split an author is allowed to make.
+ const editable=editableFromBaseline(TRANSLATED);
+ const content=editable.content as BilingualContent;
+ const flat=content.hebrewGroups.flatMap(group=>group.blockIds.map(blockId=>({sourceId:group.sourceId,blockId})));
+ assert.ok(flat.length>=2);
+ const split=[{sourceId:flat[0].sourceId,blockIds:[flat[0].blockId]},{sourceId:flat[1].sourceId,blockIds:flat.slice(1).map(item=>item.blockId)}];
+ const draft=draftOf({...editable,content:{...content,hebrewGroups:split,transliterationGroups:structuredClone(split),arrangement:'blocks'}},TRANSLATED);
+ const cue=buildCue(draft);
+ const english=cue.contentRows!.filter(row=>row.en).map(row=>row.en);
+ const runs=buildCue(draftOf(editable,TRANSLATED)).contentRows!.map(row=>row.en);
+ assert.equal(english.length,2,'one English block per slide that has one');
+ assert.equal(english.join(' '),runs.join(' '),'and every run still appears, once, in printed order');
 });

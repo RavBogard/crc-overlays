@@ -82,3 +82,10 @@
  .graphic-row{grid-template-columns:auto minmax(0,1fr) auto}
  .graphic-row .row-layout{display:none}
 }
+
+/* C6: the lower third's optional third layer. The two columns keep their places and rise by the
+   translation's height; the translation runs the full width beneath them. A lower third showing
+   only its translation is a single channel and takes the full block, as any single layer does. */
+.bottom{--bottom-translation-height:0px;--bottom-translation-gap:0px}
+.bottom .english:not(.single-channel),.bottom .hebrew:not(.single-channel){height:calc(var(--bottom-text-height) - var(--bottom-translation-height) - var(--bottom-translation-gap));bottom:calc(28px + var(--bottom-translation-height) + var(--bottom-translation-gap))}
+.bottom .translation:not(.single-channel){left:250px;width:1610px;bottom:28px;height:var(--bottom-translation-height);align-items:flex-start;font-size:30px;line-height:1.22;color:color-mix(in srgb,var(--crc-ink,#123) 78%,transparent)}

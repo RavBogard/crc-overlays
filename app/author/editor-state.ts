@@ -26,10 +26,7 @@ function layerFormFields(draft: Draft) {
 
 /** Mirrors layerFields() in lib/authoring-model.ts: write nothing the default already says. */
 export function layerContentFields(form: DraftForm) {
-  // Translation needs the room of a panel; a graphic moved to a lower third keeps its chip but
-  // saves without it rather than failing the save.
-  const kept = LAYER_ORDER.filter((layer) => form.layers.includes(layer) && !(layer === "en" && form.layout === "bottom"));
-  const layers = kept.length ? kept : (["he"] as TextLayer[]);
+  const layers = LAYER_ORDER.filter((layer) => form.layers.includes(layer));
   const translation = layers.includes("en");
   const implicit = translation ? ["he", "tr", "en"] : ["he", "tr"];
   return {

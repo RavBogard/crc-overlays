@@ -158,7 +158,15 @@ test('bottom sets use one canonical block per draft and mode availability is str
  const english=await service.operation('create_source_draft_set',{sourceId:OPENING_PRAYER,mode:'original-en',layout:'right',templateCueId:RIGHT_PANEL},'tester') as DraftSetResult;
  assert.ok(english.set.count>1);assert.ok(english.drafts.flatMap(draft=>(draft.content as OriginalEnglishContent).englishGroups).every(group=>group.blockIds.length===1));
  await assert.rejects(service.operation('create_source_draft_set',{sourceId:OPENING_PRAYER,mode:'bilingual',layout:'left',templateCueId:LEFT_PANEL},'tester'),(error)=>(error as AuthoringError).code==='source_mode_unavailable');
- await assert.rejects(service.operation('create_source_draft_set',{sourceId:KOL_NIDRE,mode:'bilingual',includeTranslation:true,layout:'bottom',templateCueId:BARECHU},'tester'),(error)=>(error as AuthoringError).code==='translation_layout');
+ // C6 (Daniel, 2026-09-14): a lower third may carry the translation as a third line, so the
+ // layout no longer refuses one. What still refuses is English that does not cover the prayer.
+ await assert.rejects(service.operation('create_source_draft_set',{sourceId:KOL_NIDRE,mode:'bilingual',includeTranslation:true,layout:'bottom',templateCueId:BARECHU},'tester'),(error)=>['missing_translation','partial_translation'].includes((error as AuthoringError).code));
+ const covered='awakening.birchot-hashachar@legacy-shabbat-morning';
+ const translated=await service.operation('create_source_draft_set',{sourceId:covered,mode:'bilingual',includeTranslation:true,layout:'bottom',templateCueId:BARECHU},'tester') as DraftSetResult;
+ const plain=await service.operation('create_source_draft_set',{sourceId:covered,mode:'bilingual',layout:'bottom',templateCueId:BARECHU},'tester') as DraftSetResult;
+ assert.ok(translated.set.count>0&&translated.set.count<plain.set.count,'an authorized pair is one slide, not one slide per block');
+ assert.ok(translated.drafts.every(draft=>(draft.content as BilingualContent).includeTranslation));
+ assert.ok(buildCue(translated.drafts[0]).texts.textTranslation,'and the slide carries its translation line');
 });
 
 test('source English sets include automatic text while note-like English remains manually selectable',async()=>{
