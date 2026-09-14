@@ -1,5 +1,7 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
+import {readFileSync} from 'node:fs';
+import {fileURLToPath} from 'node:url';
 import {acceptsRevision,effectFrames,incomingStillDesired,measuredBottomTextHeight,textParts,tracksFor,type AnimationTrack} from '../lib/player-motion.ts';
 import {Player,panelRowChannels,panelRowGap,panelStackGeometry,presentationTextStyles,usesPanelRows,type ContentRow,type Cue} from '../lib/player.ts';
 import {OVERLAY_ASSET_TIMEOUT_MS,waitForRenderedOverlayAssets} from '../lib/overlay-assets.ts';
@@ -175,13 +177,24 @@ test('an incoming graphic stays invisible until its In animations exist',async()
   resolveAssetUrl:()=>'/api/assets/artwork/content',
   waitForAssets:async root=>{seen.push(`wait:${(root as unknown as {style:{visibility:string}}).style.visibility}`)},
  });
- player.render=()=>{box.style.visibility='hidden';return box};
+ // render() leaves a still visible; it is drain() that hides an incoming graphic.
+ player.render=()=>{box.style.visibility='';return box};
  player.applyFit=()=>{seen.push(`fit:${box.style.visibility}`)};
  const reveal=player.animate.bind(player);
  player.animate=async(target,cue,direction)=>{seen.push(`animate-start:${(target as unknown as {style:{visibility:string}}).style.visibility}`);await reveal(target,cue,direction);seen.push(`animate-end:${(target as unknown as {style:{visibility:string}}).style.visibility}`)};
  player.desired={cue:'rows',revision:1,mode:'animate'};
  await player.drain();
  assert.deepEqual(seen,['wait:hidden','fit:hidden','animate-start:hidden','animate-end:'],'nothing is painted at rest before the In animations exist');
+});
+
+/* The hide belongs to drain(), never to render(): the console's Preview, the editor, the fit
+   stage and the names-list preview all call render() on its own and never animate, so a box
+   hidden by render() would never be revealed and every one of those previews would be blank. */
+test('render() alone leaves a still visible',()=>{
+ const source=readFileSync(fileURLToPath(new URL('../lib/player.ts',import.meta.url)),'utf8');
+ const render=source.slice(source.indexOf(' render(c:Cue'),source.indexOf(' applyFit(box:HTMLElement'));
+ assert.ok(!render.includes("visibility='hidden'"),'render() never hides the box it returns');
+ assert.ok(source.slice(source.indexOf(' async drain()')).includes("box.style.visibility='hidden'"),'drain() hides the incoming graphic instead');
 });
 
 test('unusable artwork falls back to the branding logo and still shows the text cue',async()=>{

@@ -32,3 +32,53 @@
 /* X4(4) nothing in the console may force a box wider than the viewport at 800px or 390px. */
 .console{width:100%}.workspace>*{min-width:0}.inspect-stage{max-width:100%}.cue-row strong,.cue-row small{overflow-wrap:anywhere}.cue-row-actions{flex-wrap:wrap;justify-content:flex-end}.cue-actions{grid-template-columns:repeat(auto-fit,minmax(148px,1fr))}
 @media(max-width:540px){.cue-row{grid-template-columns:minmax(0,1fr)}.cue-row-actions{justify-content:flex-start}.cue-row-actions button{flex:1 1 120px}}
+
+/* Layout pass (handoff #2, B): Live control rebuilt for a booth laptop. The list starts at the
+   top of the content area and the page scrolls; the one on-air frame and the two out actions
+   are sticky beside it, so Animate out and Clear never scroll away. */
+.live-layout{display:grid;grid-template-columns:minmax(0,1.5fr) minmax(0,1fr);gap:22px;align-items:start}
+.graphics-panel{min-width:0}
+.graphics-search{display:block;margin:0 0 12px}
+.graphics-search input{width:100%;padding:12px 14px;background:#101820;color:#f5f7fa;border:1px solid #4b6572;border-radius:8px;font:inherit;font-size:15px}
+.graphic-rows{display:flex;flex-direction:column;gap:6px;min-width:0}
+.graphic-row{display:grid;grid-template-columns:auto minmax(0,1fr) auto auto;align-items:center;gap:12px;min-height:45px;padding:2px 10px 2px 5px;border:1px solid #465751;border-radius:8px;background:#17201e;cursor:pointer}
+.graphic-row:hover{border-color:#6c857c}
+.graphic-row.inspected{box-shadow:inset 4px 0 #dfbf76;border-color:#7d8f87}
+.graphic-row.live{border-color:#c5d7c6;background:#24362d}
+.graphic-row .row-name{min-width:0;display:flex;flex-direction:column;gap:2px}
+.graphic-row .row-name strong{font-size:15px;overflow-wrap:anywhere}
+.graphic-row .row-name small{color:#b9c5be;font-size:12px;line-height:1.3;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.graphic-row .row-layout{color:#8fa39b;font-size:11px;letter-spacing:.06em;text-transform:uppercase;white-space:nowrap}
+.graphic-row .show{margin:0;padding:9px 16px;font-size:14px;font-weight:800;color:#f2fbf6;background:#2f6b4f;border-color:#8de0ca}
+.graphic-row .show:hover:not(:disabled){background:#3c8562}
+.graphic-row .show:focus-visible{outline:3px solid #dfbf76;outline-offset:3px}
+.scan-row{cursor:default}
+.scan-row .scan-thumb{display:grid;place-items:center;width:68px;height:39px;border:1px solid #4b6572;border-radius:5px;color:#9db3ac;font-size:15px}
+.scan-page{display:flex;align-items:center;gap:7px;color:#b9c5be;font-size:12px;white-space:nowrap}
+.scan-page input{width:92px;padding:7px 9px;background:#101820;color:#f5f7fa;border:1px solid #4b6572;border-radius:6px;font:inherit;font-size:13px}
+.no-matches{color:#b9c5be}
+
+.on-air{position:sticky;top:12px;display:flex;flex-direction:column;gap:10px;min-width:0;padding:12px;border:1px solid #485251;border-radius:10px;background:#182122}
+.on-air-head{display:flex;align-items:center;justify-content:space-between;gap:12px;min-width:0}
+.on-air-head strong{min-width:0;font-size:16px;overflow-wrap:anywhere}
+.on-air-badge{flex:0 0 auto;padding:5px 11px;border-radius:999px;background:#2a3a3d;color:#dfbf76;font-size:11px;font-weight:800;letter-spacing:.08em;text-transform:uppercase}
+.on-air-frame{position:relative;width:100%;aspect-ratio:16/9;max-width:100%;overflow:hidden;border-radius:7px}
+/* Hidden by visibility, never by display: both stages keep their real width, so the 1920-wide
+   canvas each one scales into is measured correctly the moment it is shown again. */
+.on-air-frame .stage-slot{position:absolute;inset:0}
+.on-air-frame .stage-slot[data-hidden]{visibility:hidden}
+.on-air .show-primary{width:100%;margin:0;padding:14px 12px;text-align:center;font-weight:800;color:#f2fbf6;background:#2f6b4f;border-color:#8de0ca;overflow-wrap:anywhere}
+.on-air .show-primary:hover:not(:disabled){background:#3c8562}
+.on-air-line{margin:0;color:#b9c5be;font-size:13px;line-height:1.4}
+.out-actions{display:grid;grid-template-columns:1fr 1fr;gap:8px}
+.out-actions button{margin:0;padding:12px 8px;text-align:center;font-weight:750}
+.on-air .control-reason{margin:0}
+
+@media(max-width:1000px){
+ .live-layout{grid-template-columns:1fr}
+ .on-air{order:-1;position:static}
+}
+@media(max-width:620px){
+ .graphic-row{grid-template-columns:auto minmax(0,1fr) auto}
+ .graphic-row .row-layout{display:none}
+}
