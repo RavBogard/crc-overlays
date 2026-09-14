@@ -43,8 +43,13 @@ check(code == 201, 'public client registration')
 verifier = secrets.token_urlsafe(48)
 challenge = base64.urlsafe_b64encode(hashlib.sha256(verifier.encode()).digest()).decode().rstrip('=')
 params = {'client_id':client['client_id'],'redirect_uri':redirect,'response_type':'code','scope':'crc.authoring','resource':BASE+'/api/mcp','state':'isolated-rehearsal','code_challenge_method':'S256','code_challenge':challenge}
-code, page, _ = call('/oauth/authorize?'+urllib.parse.urlencode(params))
+code, page, headers = call('/oauth/authorize?'+urllib.parse.urlencode(params))
 check(code == 200 and isinstance(page,str), 'consent page')
+# Two headers only a real browser notices: under no-referrer the form would post `Origin: null`, and a
+# form-action without the return destination would block the 303 that carries the code.
+check(headers.get('Referrer-Policy') == 'same-origin', 'consent page lets the browser send its Origin')
+return_origin = '{0.scheme}://{0.netloc}'.format(urllib.parse.urlsplit(redirect))
+check(f"form-action 'self' {return_origin};" in headers.get('Content-Security-Policy',''), 'consent page allows the return to the verified destination')
 check('bootstrap_key' not in page and 'type="password"' not in page, 'consent page asks for no shared key')
 handle = re.search(r'name="request" value="([^"]+)"',page).group(1)
 
@@ -56,6 +61,8 @@ def set_cookie(headers, name):
 # Signed out: the consent POST parks the request and sends the person to sign in first.
 code, _, headers = call('/oauth/authorize', {'request':handle,'decision':'approve'}, form=True, origin=BASE)
 check(code == 303 and headers['Location'] == '/access?next=%2Foauth%2Fauthorize', 'consent without a session asks for sign-in')
+code, _, _ = call('/oauth/authorize', {'request':handle,'decision':'approve'}, form=True, origin='null')
+check(code == 403, 'a form posted with Origin: null is refused')
 parked = set_cookie(headers, 'crc_oauth_request')
 check(parked == handle, 'pending authorization request is parked in a cookie')
 

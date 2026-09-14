@@ -29,7 +29,7 @@ async function bodyOf(response:Response):Promise<ApiBody>{
  * the `SameSite=Strict` session cookie travels with the request.
  */
 const NEXT_KEY='crc_access_next';
-const NEXT_PATTERN=/^\/oauth\/authorize(\?[^#]*)?$/;
+const NEXT_PATTERN=/^\/oauth\/authorize$/;
 function peekNext(){try{const value=sessionStorage.getItem(NEXT_KEY);return value&&NEXT_PATTERN.test(value)?value:null}catch{return null}}
 function followNext(){const next=peekNext();if(!next)return false;try{sessionStorage.removeItem(NEXT_KEY)}catch{}window.location.assign(next);return true}
 

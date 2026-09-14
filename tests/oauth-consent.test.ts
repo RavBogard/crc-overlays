@@ -24,7 +24,10 @@ async function withStubs(patch:StorePatch,session:AccessSessionMember|null,run:(
  accessStore.memberForSession=async()=>session;
  try{await run()}finally{Object.assign(oauthStore,savedStore);accessStore.memberForSession=savedSession}
 }
-const approve=(cookie?:string)=>new Request(`${ORIGIN}/oauth/authorize`,{method:'POST',headers:{Origin:ORIGIN,'Content-Type':'application/x-www-form-urlencoded',...(cookie?{Cookie:cookie}:{})},body:new URLSearchParams({request:HANDLE,decision:'approve'}).toString()});
+const post=(decision:string,cookie?:string,handle=HANDLE)=>new Request(`${ORIGIN}/oauth/authorize`,{method:'POST',headers:{Origin:ORIGIN,'Content-Type':'application/x-www-form-urlencoded',...(cookie?{Cookie:cookie}:{})},body:new URLSearchParams({request:handle,decision}).toString()});
+const approve=(cookie?:string)=>post('approve',cookie);
+const START=new URLSearchParams({client_id:'crc_client_x',redirect_uri:REDIRECT,response_type:'code',scope:'crc.authoring',resource:RESOURCE,state:'isolated',code_challenge_method:'S256',code_challenge:'A'.repeat(43)});
+const client={client_id_hash:CLIENT_HASH,redirect_uris:[REDIRECT],client_name:'Claude'};
 const resume=(cookie:string)=>new Request(`${ORIGIN}/oauth/authorize`,{headers:{Cookie:cookie}});
 
 test('approving without a workspace session parks the request and asks for sign-in',async()=>{
@@ -84,13 +87,65 @@ test('a resume with nothing pending explains that the connection must be restart
 });
 
 test('the first consent page asks for no key and no password',async()=>{
- await withStubs({getClient:async()=>({client_id_hash:CLIENT_HASH,redirect_uris:[REDIRECT],client_name:'Claude'}),createAuthorizationRequest:async()=>HANDLE},null,async()=>{
-  const query=new URLSearchParams({client_id:'crc_client_x',redirect_uri:REDIRECT,response_type:'code',scope:'crc.authoring',resource:RESOURCE,state:'isolated',code_challenge_method:'S256',code_challenge:'A'.repeat(43)});
-  const response=await authorizeGet(new Request(`${ORIGIN}/oauth/authorize?${query}`));
+ await withStubs({getClient:async()=>client,createAuthorizationRequest:async()=>HANDLE},null,async()=>{
+  const response=await authorizeGet(new Request(`${ORIGIN}/oauth/authorize?${START}`));
   assert.equal(response.status,200);
   const html=await response.text();
   assert.doesNotMatch(html,/bootstrap_key|type="password"/);
   assert.match(html,/Approve to connect as the member you’re signed in to this workspace as\./);
+  // Nothing was parked in this browser, so there is nothing to clear.
+  assert.equal(response.headers.get('set-cookie'),null);
+ });
+});
+
+test('the consent page lets the browser send its Origin with the form',async()=>{
+ // Served with `no-referrer`, a page posts its own form with `Origin: null`, which sameOrigin() refuses.
+ await withStubs({},editor,async()=>{
+  const response=await authorizeGet(resume(`crc_oauth_request=${HANDLE}; crc_access=${SESSION}`));
+  assert.equal(response.headers.get('referrer-policy'),'same-origin');
+  // Chrome enforces form-action across the post's redirect chain: the verified destination must be named.
+  assert.match(response.headers.get('content-security-policy')??'',/form-action 'self' http:\/\/127\.0\.0\.1:49152;/);
+ });
+});
+
+test('starting a new connection drops a request parked earlier in the same browser',async()=>{
+ await withStubs({getClient:async()=>client,createAuthorizationRequest:async()=>HANDLE},null,async()=>{
+  const response=await authorizeGet(new Request(`${ORIGIN}/oauth/authorize?${START}`,{headers:{Cookie:`crc_oauth_request=crc_req_${'C'.repeat(43)}`}}));
+  assert.equal(response.status,200);
+  assert.match(response.headers.get('set-cookie')??'',/^crc_oauth_request=; .*Max-Age=0/);
+ });
+});
+
+test('denying sends the client access_denied and clears any parked request',async()=>{
+ await withStubs({},null,async()=>{
+  const response=await authorizePost(post('deny',`crc_oauth_request=${HANDLE}`));
+  assert.equal(response.status,303);
+  const location=new URL(response.headers.get('location')!);
+  assert.equal(location.origin+location.pathname,REDIRECT);
+  assert.equal(location.searchParams.get('error'),'access_denied');
+  assert.equal(location.searchParams.get('state'),'isolated');
+  assert.match(response.headers.get('set-cookie')??'',/^crc_oauth_request=; .*Max-Age=0/);
+ });
+});
+
+test('a form handle of the wrong shape is refused before the store is consulted',async()=>{
+ let peeked=false;
+ await withStubs({peekAuthorizationRequest:async()=>{peeked=true;return pending}},editor,async()=>{
+  const response=await authorizePost(post('approve',`crc_access=${SESSION}`,'crc_req_short'));
+  assert.equal(response.status,400);
+  assert.equal(peeked,false);
+  assert.equal(response.headers.get('set-cookie'),null);
+ });
+});
+
+test('a form naming a different request than the one parked in this browser is not acted on',async()=>{
+ let consumed=false;
+ await withStubs({consumeAuthorizationRequest:async()=>{consumed=true;return pending}},editor,async()=>{
+  const response=await authorizePost(post('approve',`crc_oauth_request=crc_req_${'C'.repeat(43)}; crc_access=${SESSION}`));
+  assert.equal(response.status,400);
+  assert.equal(consumed,false);
+  assert.match(await response.text(),/Sign-in didn’t complete\. Start the connection again from your MCP client\./);
+  assert.match(response.headers.get('set-cookie')??'',/^crc_oauth_request=; .*Max-Age=0/);
  });
 });
 

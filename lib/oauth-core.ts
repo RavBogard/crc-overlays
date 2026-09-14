@@ -49,7 +49,8 @@ export function secretMatches(candidate:string,expected:string|undefined){
 export function requestIdentity(request:Request){return (request.headers.get('x-real-ip')||request.headers.get('x-forwarded-for')?.split(',')[0]||'unknown').trim().slice(0,128)}
 export function sameOrigin(request:Request){const origin=request.headers.get('origin');return !!origin&&origin===new URL(request.url).origin}
 export function appendOAuthRedirect(redirectUri:string,values:Record<string,string|undefined>){const url=new URL(redirectUri);for(const [key,value] of Object.entries(values))if(value!==undefined)url.searchParams.set(key,value);return url.toString()}
-export function securityHeaders(extra?:HeadersInit){return new Headers({'Cache-Control':'no-store','Referrer-Policy':'no-referrer','X-Content-Type-Options':'nosniff','Content-Security-Policy':"default-src 'none'; style-src 'unsafe-inline'; form-action 'self'; frame-ancestors 'none'; base-uri 'none'",...extra})}
+/** `formAction` is the CSP form-action source list; a page whose form ends in a redirect elsewhere names that destination too. */
+export function securityHeaders(extra?:HeadersInit,formAction="'self'"){return new Headers({'Cache-Control':'no-store','Referrer-Policy':'no-referrer','X-Content-Type-Options':'nosniff','Content-Security-Policy':`default-src 'none'; style-src 'unsafe-inline'; form-action ${formAction}; frame-ancestors 'none'; base-uri 'none'`,...extra})}
 export async function readLimitedBody(request:Request,limit=MAX_OAUTH_BODY){
  const declared=Number(request.headers.get('content-length')||0);if(declared>limit)throw Error('request_too_large');
  if(!request.body)return '';
