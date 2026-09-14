@@ -141,7 +141,7 @@ test('applyFit is idempotent and always re-fits from the template base sizes',()
 });
 
 function displayFixture(logo:{src:string;complete:boolean;naturalWidth:number}):HTMLDivElement{
- const box={querySelector:(selector:string)=>selector==='img.logo'?logo:null};
+ const box={querySelector:(selector:string)=>selector==='img.logo'?logo:null,querySelectorAll:()=>[],style:{visibility:'hidden'}};
  return box as unknown as HTMLDivElement;
 }
 
@@ -165,6 +165,23 @@ test('the display path fits only after the asset wait resolves and before animat
  assert.deepEqual(order,['render','wait','fit','animate']);
  assert.equal(player.phase,'settled');
  assert.equal(player.current?.id,'rows');
+});
+
+test('an incoming graphic stays invisible until its In animations exist',async()=>{
+ const logo={src:'/api/assets/artwork/content',complete:true,naturalWidth:120};
+ const box=displayFixture(logo);
+ const seen:string[]=[];
+ const player=new Player({} as unknown as HTMLElement,[rowsCue],branding,{
+  resolveAssetUrl:()=>'/api/assets/artwork/content',
+  waitForAssets:async root=>{seen.push(`wait:${(root as unknown as {style:{visibility:string}}).style.visibility}`)},
+ });
+ player.render=()=>{box.style.visibility='hidden';return box};
+ player.applyFit=()=>{seen.push(`fit:${box.style.visibility}`)};
+ const reveal=player.animate.bind(player);
+ player.animate=async(target,cue,direction)=>{seen.push(`animate-start:${(target as unknown as {style:{visibility:string}}).style.visibility}`);await reveal(target,cue,direction);seen.push(`animate-end:${(target as unknown as {style:{visibility:string}}).style.visibility}`)};
+ player.desired={cue:'rows',revision:1,mode:'animate'};
+ await player.drain();
+ assert.deepEqual(seen,['wait:hidden','fit:hidden','animate-start:hidden','animate-end:'],'nothing is painted at rest before the In animations exist');
 });
 
 test('unusable artwork falls back to the branding logo and still shows the text cue',async()=>{
