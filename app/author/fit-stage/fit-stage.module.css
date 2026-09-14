@@ -1,0 +1,3 @@
+/* One empty 1920x1080 stage and nothing else. No chrome, no controls, no links. */
+.page { margin: 0; background: #0a0f10; }
+.output { position: absolute; inset: 0 auto auto 0; width: 1920px; height: 1080px; overflow: hidden; }

@@ -11,10 +11,15 @@ import {sharedCueHash,sharedLibraryClient,type SharedLibraryEntry,type SharedLib
 import {compareUpstream,groupSets,setState,shelfState} from './shared-shelf';
 import {AssetError,cueAssetId,defaultAssetRepository,importSharedAsset,markCueAssetPublished,type AssetRepository} from './assets';
 import {liveRelayConfigured} from './rehearsal';
+import {SERVER_RENDERER_PREFIX,type ServerFitResult} from './server-fit';
 
 export type BrowserMeasurement={viewportWidth:number;viewportHeight:number;fontsReady:true;overflow:false;rendererVersion:string;measuredAt:number};
 export type ReviewReceipt={humanApproved:true;browserMeasurement:BrowserMeasurement;reviewedAt:number;reviewedBy:string};
-export type PreviewRecord={id:string;draftId:string;draftVersion:number;cueHash:string;cue:AuthoringCue;validation:ReturnType<typeof previewValidation>;review:ReviewReceipt|null;createdAt:number;createdBy:string};
+// D17/D18 - the server-attested fit measurement `fit_check_draft` writes onto the preview it
+// measured. It is version-bound by construction: it lives on one preview, which is already
+// bound to one draft version and one cue hash.
+export type ServerFitCheck={verdict:'pass'|'fail';fitErrors:string[];warnings:string[];fill:number|null;measuredAt:number;rendererVersion:string};
+export type PreviewRecord={id:string;draftId:string;draftVersion:number;cueHash:string;cue:AuthoringCue;validation:ReturnType<typeof previewValidation>;review:ReviewReceipt|null;fitCheck?:ServerFitCheck|null;createdAt:number;createdBy:string};
 export type Revision={draftId:string;revision:number;draftVersion:number;cueHash:string;cue:AuthoringCue;previewId:string|null;review:ReviewReceipt|null;actor:string;createdAt:number};
 
 export interface AuthoringRepository{
@@ -24,7 +29,7 @@ export interface AuthoringRepository{
  setDraftSetArchived(setId:string,expectedIds:string[],archived:boolean,actor:string):Promise<Draft[]>;
  reorderDraftSet(setId:string,expectedIds:string[],orderedIds:string[],actor:string):Promise<Draft[]>;
  duplicateDraftInSet(sourceId:string,expectedVersion:number,expectedIds:string[],duplicate:Draft,actor:string):Promise<Draft[]>;
- insertPreview(preview:PreviewRecord):Promise<void>; getPreview(id:string):Promise<PreviewRecord|null>; saveReview(id:string,review:ReviewReceipt):Promise<void>;
+ insertPreview(preview:PreviewRecord):Promise<void>; getPreview(id:string):Promise<PreviewRecord|null>; saveReview(id:string,review:ReviewReceipt):Promise<void>; saveFitCheck(id:string,fitCheck:ServerFitCheck):Promise<void>;
  publish(id:string,expectedVersion:number,previewId:string,actor:string):Promise<Revision>;
  revisions(id:string):Promise<Revision[]>; rollback(id:string,expectedVersion:number,revision:number,actor:string):Promise<{draft:Draft;revision:Revision}>;
  published():Promise<AuthoringCue[]>;
@@ -120,7 +125,19 @@ const editableFromWorkspaceBaseline=(cueId:string):EditableDraft=>{const editabl
 export type AuthoringWorkspace={rehearsal:boolean;storage:'memory'|'postgres';label:string|null};
 type SharedLibraryReader={get(force?:boolean):Promise<SharedLibrarySnapshot>};
 export type SharedAssetImporter=(id:string,actor:string)=>Promise<unknown>;
-export function createAuthoringService(repo:AuthoringRepository,workspace:AuthoringWorkspace={rehearsal:false,storage:'postgres',label:null},shared:SharedLibraryReader=sharedLibraryClient,sharedAssetImporter:SharedAssetImporter=(id,actor)=>importSharedAsset(id,actor)){
+/**
+ * R7 - how `fit_check_draft` measures. The default launches headless Chromium against this
+ * deployment's own /author/fit-stage; the module is imported lazily so neither playwright-core
+ * nor the Chromium pack is pulled into a process that never runs a fit check. Tests inject.
+ */
+export type ServerFitRunner=(cue:AuthoringCue)=>Promise<ServerFitResult>;
+const defaultServerFitRunner:ServerFitRunner=async cue=>{
+ const [{measureCueOnServer},{canonicalOrigin}]=await Promise.all([import('./server-fit'),import('./oauth-core')]);
+ // The origin is the configured public base URL, never the request host: the stage must be
+ // the page this deployment serves, and a request host is attacker-controllable.
+ return measureCueOnServer(cue as unknown as Cue,{origin:canonicalOrigin()});
+};
+export function createAuthoringService(repo:AuthoringRepository,workspace:AuthoringWorkspace={rehearsal:false,storage:'postgres',label:null},shared:SharedLibraryReader=sharedLibraryClient,sharedAssetImporter:SharedAssetImporter=(id,actor)=>importSharedAsset(id,actor),serverFit:ServerFitRunner=defaultServerFitRunner){
  // Every name a person can currently see in the library: the baseline catalog this
  // workspace ships with, live drafts, and published graphics. The catalog a viewer
  // actually sees is baseline + published (lib/server.ts authoringCatalog), so uniqueness
@@ -298,9 +315,32 @@ export function createAuthoringService(repo:AuthoringRepository,workspace:Author
   if(operation==='preview_baseline_cue'){
    keys(data,['cueId']);const cueId=string(data.cueId,'cueId',160);return ephemeralCue(editableFromWorkspaceBaseline(cueId),who,cueId);
   }
+  // R7/D17 - measure this exact preview in a real browser on the server and store the
+  // verdict on the preview record. Nothing is published; nothing reaches live output.
+  if(operation==='fit_check_draft'){
+   keys(data,['draftId','expectedVersion','previewId']);
+   const draft=await versionedDraft(repo,string(data.draftId,'draftId'),integer(data.expectedVersion,'expectedVersion',1));assertSourcePin(draft);
+   const preview=await requiredPreview(repo,string(data.previewId,'previewId'));
+   if(preview.draftId!==draft.id||preview.draftVersion!==draft.version)throw new AuthoringError('stale_preview','Preview does not match this draft version',409);
+   const result=await serverFit(preview.cue);
+   if(result.verdict==='unavailable')
+    return {verdict:'unavailable',reason:result.reason,fitCheckUrl:`/author/fit-check?draft=${encodeURIComponent(draft.id)}`,message:FIT_CHECK_UNAVAILABLE};
+   const fitCheck:ServerFitCheck={verdict:result.verdict,fitErrors:result.fitErrors,warnings:result.warnings,fill:result.fill,measuredAt:result.measuredAt,rendererVersion:result.rendererVersion};
+   await repo.saveFitCheck(preview.id,fitCheck);
+   return {draftId:draft.id,draftVersion:draft.version,previewId:preview.id,cueHash:preview.cueHash,...fitCheck,...(fitCheck.verdict==='pass'?{message:FIT_CHECK_PASSED}:{})};
+  }
   if(operation==='review_draft'){
    keys(data,['draftId','expectedVersion','previewId','browserMeasurement','humanApproved']);const draft=await versionedDraft(repo,string(data.draftId,'draftId'),integer(data.expectedVersion,'expectedVersion',1));assertSourcePin(draft);const preview=await requiredPreview(repo,string(data.previewId,'previewId'));if(preview.draftId!==draft.id||preview.draftVersion!==draft.version)throw new AuthoringError('stale_preview','Preview does not match this draft version',409);if(data.humanApproved!==true)throw new AuthoringError('review_required','Human approval is required',400);
-   const m=object(data.browserMeasurement,'browserMeasurement');keys(m,['viewportWidth','viewportHeight','fontsReady','overflow','rendererVersion','measuredAt'],'browserMeasurement');if(m.viewportWidth!==1920||m.viewportHeight!==1080||m.fontsReady!==true||m.overflow!==false)throw new AuthoringError('fit_failed','Preview must be measured at 1920x1080 with loaded fonts and no overflow',409);const measurement:BrowserMeasurement={viewportWidth:1920,viewportHeight:1080,fontsReady:true,overflow:false,rendererVersion:string(m.rendererVersion,'rendererVersion',80),measuredAt:integer(m.measuredAt,'measuredAt',1)};const review:ReviewReceipt={humanApproved:true,browserMeasurement:measurement,reviewedAt:Date.now(),reviewedBy:who};await repo.saveReview(preview.id,review);return {draftId:draft.id,draftVersion:draft.version,previewId:preview.id,cueHash:preview.cueHash,review};
+   // D18 - where the measurement may come from depends on who is asking.
+   //
+   // The web dock path (a signed-in member measuring in their own browser) is unchanged: it
+   // asserts the measurement and the server trusts it, because a real browser produced it in
+   // a real session. An MCP actor cannot be trusted to have rendered anything, so for it only
+   // a stored, server-attested measurement counts - the one `fit_check_draft` wrote onto this
+   // exact preview with a `server-chromium/` renderer. A hand-asserted measurement from an MCP
+   // actor is ignored and the call is refused. `humanApproved` keeps exactly today's meaning.
+   const measurement=isMcpActor(who)?attestedMeasurement(preview):assertedMeasurement(data);
+   const review:ReviewReceipt={humanApproved:true,browserMeasurement:measurement,reviewedAt:Date.now(),reviewedBy:who};await repo.saveReview(preview.id,review);return {draftId:draft.id,draftVersion:draft.version,previewId:preview.id,cueHash:preview.cueHash,review};
   }
   if(operation==='publish_draft'){
    keys(data,['draftId','expectedVersion','previewId','confirmDuplicateName']);const draft=await versionedDraft(repo,string(data.draftId,'draftId'),integer(data.expectedVersion,'expectedVersion',1));assertSourcePin(draft);
@@ -331,6 +371,9 @@ export function createAuthoringService(repo:AuthoringRepository,workspace:Author
 }
 
 const FIT_CONTRACT={viewport:{width:1920,height:1080},fontsReadyRequired:true,noOverflowRequired:true,browserReported:true,humanReviewRequired:true} as const;
+// Phase D section E, strings 39 and 40. Neither has precedent; both are quoted from the plan.
+const FIT_CHECK_PASSED='Checked in a browser on the server — no fit problems found.';
+const FIT_CHECK_UNAVAILABLE='The server could not open a browser to check this graphic. Open Fit check and review it yourself.';
 /**
  * Builds the cue an editable draft would produce without storing anything: no draft row, no
  * preview record, nothing a publication could later cite. Every ephemeral preview goes through
@@ -371,12 +414,31 @@ export class MemoryAuthoringRepository implements AuthoringRepository{
  async reorderDraftSet(setId:string,expectedIds:string[],orderedIds:string[],actor:string){const members=[...this.drafts.values()].filter(d=>d.draftSetId===setId&&!d.archivedAt).sort((a,b)=>(a.setIndex??0)-(b.setIndex??0));if(JSON.stringify(members.map(d=>d.id))!==JSON.stringify(expectedIds))throw conflict();const byId=new Map(members.map(d=>[d.id,d]));if(orderedIds.length!==members.length||new Set(orderedIds).size!==members.length||orderedIds.some(id=>!byId.has(id)))throw new AuthoringError('invalid_set_order','orderedDraftIds must be the complete draft set',400);const now=Date.now();const result=orderedIds.map((id,index)=>({...byId.get(id)!,setIndex:index+1,setCount:members.length,updatedAt:now,updatedBy:actor}));for(const draft of result)this.drafts.set(draft.id,draft);return clone(result)}
  async duplicateDraftInSet(sourceId:string,v:number,expectedIds:string[],duplicate:Draft,actor:string){const source=this.drafts.get(sourceId);if(!source||source.version!==v||!source.draftSetId)throw conflict();const members=[...this.drafts.values()].filter(d=>d.draftSetId===source.draftSetId&&!d.archivedAt).sort((a,b)=>(a.setIndex??0)-(b.setIndex??0));if(JSON.stringify(members.map(d=>d.id))!==JSON.stringify(expectedIds)||this.drafts.has(duplicate.id))throw conflict();const offset=members.findIndex(d=>d.id===sourceId);if(offset<0)throw conflict();const ordered=[...members.slice(0,offset+1),duplicate,...members.slice(offset+1)];const now=Date.now();for(const [index,draft] of ordered.entries()){draft.setIndex=index+1;draft.setCount=ordered.length;draft.updatedAt=now;draft.updatedBy=actor;this.drafts.set(draft.id,clone(draft))}return clone(ordered)}
  async insertPreview(p:PreviewRecord){this.previews.set(p.id,clone(p))} async getPreview(id:string){const p=this.previews.get(id);return p?clone(p):null} async saveReview(id:string,r:ReviewReceipt){const p=this.previews.get(id);if(!p)throw new AuthoringError('unknown_preview','Unknown preview',404);p.review=clone(r)}
+ async saveFitCheck(id:string,f:ServerFitCheck){const p=this.previews.get(id);if(!p)throw new AuthoringError('unknown_preview','Unknown preview',404);p.fitCheck=clone(f)}
  async publish(id:string,v:number,previewId:string,actor:string){const d=this.drafts.get(id);if(!d||d.version!==v)throw conflict();const p=this.previews.get(previewId);validatePublishPreview(d,p);const assetId=cueAssetId(p!.cue);if(assetId&&(!this.assets||!await this.assets.markPublished(assetId,Date.now())))throw new AuthoringError('asset_unavailable','Selected artwork is unavailable or archived',409);const rows=this.revisionRows.get(id)??[];let row=rows.find(r=>r.draftVersion===v&&r.cueHash===p!.cueHash);if(!row){row={draftId:id,revision:rows.length+1,draftVersion:v,cueHash:p!.cueHash,cue:clone(p!.cue),previewId,review:clone(p!.review!),actor,createdAt:Date.now()};rows.push(row);this.revisionRows.set(id,rows)}d.activeRevision=row.revision;d.activeDraftVersion=row.draftVersion;d.updatedAt=Date.now();d.updatedBy=actor;return clone(row)}
  async revisions(id:string){return clone(this.revisionRows.get(id)??[])}
  async rollback(id:string,v:number,revision:number,actor:string){const d=this.drafts.get(id);if(!d||d.version!==v)throw conflict();const row=(this.revisionRows.get(id)??[]).find(r=>r.revision===revision);if(!row)throw new AuthoringError('unknown_revision','Unknown revision',404);d.version++;d.activeRevision=row.revision;d.activeDraftVersion=row.draftVersion;d.updatedAt=Date.now();d.updatedBy=actor;return {draft:clone(d),revision:clone(row)}}
  async published(){return [...this.drafts.values()].filter(d=>d.activeRevision!==null).map(d=>clone((this.revisionRows.get(d.id)??[]).find(r=>r.revision===d.activeRevision)!.cue))}
 }
 
+/**
+ * An MCP actor is exactly an actor minted by the OAuth store, whose ids are `mcp:<client>`
+ * (lib/oauth-store.ts). Web sessions carry a member id, `device:<id>` or a legacy key name.
+ */
+export function isMcpActor(actor:string){return actor.startsWith('mcp:')}
+/** The web dock path, unchanged: the caller's own browser measurement, validated as before. */
+function assertedMeasurement(data:Record<string,unknown>):BrowserMeasurement{
+ const m=object(data.browserMeasurement,'browserMeasurement');keys(m,['viewportWidth','viewportHeight','fontsReady','overflow','rendererVersion','measuredAt'],'browserMeasurement');
+ if(m.viewportWidth!==1920||m.viewportHeight!==1080||m.fontsReady!==true||m.overflow!==false)throw new AuthoringError('fit_failed','Preview must be measured at 1920x1080 with loaded fonts and no overflow',409);
+ return {viewportWidth:1920,viewportHeight:1080,fontsReady:true,overflow:false,rendererVersion:string(m.rendererVersion,'rendererVersion',80),measuredAt:integer(m.measuredAt,'measuredAt',1)};
+}
+/** The D18 path: only what a server browser measured on this preview, never what was claimed. */
+function attestedMeasurement(preview:PreviewRecord):BrowserMeasurement{
+ const stored=preview.fitCheck;
+ if(!stored||stored.verdict!=='pass'||!stored.rendererVersion.startsWith(SERVER_RENDERER_PREFIX))
+  throw new AuthoringError('review_required','Exact-version browser fit review is required',409);
+ return {viewportWidth:1920,viewportHeight:1080,fontsReady:true,overflow:false,rendererVersion:stored.rendererVersion,measuredAt:stored.measuredAt};
+}
 function validatePublishPreview(draft:Draft,preview?:PreviewRecord){if(!preview)throw new AuthoringError('unknown_preview','Unknown preview',404);if(preview.draftId!==draft.id||preview.draftVersion!==draft.version)throw new AuthoringError('stale_preview','Preview does not match this draft version',409);if(!preview.validation.valid)throw new AuthoringError('invalid_preview','Preview validation failed',409);if(!preview.review?.humanApproved||preview.review.browserMeasurement.overflow||!preview.review.browserMeasurement.fontsReady)throw new AuthoringError('review_required','Exact-version browser fit review is required',409)}
 function assertRevisionAuthority(cue:AuthoringCue){
  const value=cue as AuthoringCue&{provenance?:{liturgy?:{feedSha256?:string}}};
@@ -432,8 +494,12 @@ export class PgAuthoringRepository implements AuthoringRepository{
  async reorderDraftSet(setId:string,expectedIds:string[],orderedIds:string[],actor:string){const db=await this.db();const client=await db.connect();try{await client.query('BEGIN');const rows=await client.query("SELECT document FROM authoring_drafts WHERE document->>'draftSetId'=$1 AND document->>'archivedAt' IS NULL FOR UPDATE",[setId]);const members=(rows.rows as Array<{document:Draft}>).map(row=>row.document).sort((a,b)=>(a.setIndex??0)-(b.setIndex??0));if(JSON.stringify(members.map(d=>d.id))!==JSON.stringify(expectedIds))throw conflict();const byId=new Map(members.map(d=>[d.id,d]));if(orderedIds.length!==members.length||new Set(orderedIds).size!==members.length||orderedIds.some(id=>!byId.has(id)))throw new AuthoringError('invalid_set_order','orderedDraftIds must be the complete draft set');const now=Date.now();const result=orderedIds.map((id,index)=>({...byId.get(id)!,setIndex:index+1,setCount:members.length,updatedAt:now,updatedBy:actor}));for(const draft of result)await client.query('UPDATE authoring_drafts SET document=$2,updated_at=$3,updated_by=$4 WHERE id=$1',[draft.id,draft,now,actor]);await client.query('COMMIT');return result}catch(error){await client.query('ROLLBACK');throw error}finally{client.release()}}
  async duplicateDraftInSet(sourceId:string,v:number,expectedIds:string[],duplicate:Draft,actor:string){const db=await this.db();const client=await db.connect();try{await client.query('BEGIN');const sourceRow=await client.query('SELECT document FROM authoring_drafts WHERE id=$1 AND version=$2 FOR UPDATE',[sourceId,v]);const source=sourceRow.rows[0]?.document as Draft|undefined;if(!source?.draftSetId)throw conflict();const rows=await client.query("SELECT document FROM authoring_drafts WHERE document->>'draftSetId'=$1 AND document->>'archivedAt' IS NULL FOR UPDATE",[source.draftSetId]);const members=(rows.rows as Array<{document:Draft}>).map(row=>row.document).sort((a,b)=>(a.setIndex??0)-(b.setIndex??0));if(JSON.stringify(members.map(d=>d.id))!==JSON.stringify(expectedIds))throw conflict();const offset=members.findIndex(d=>d.id===sourceId);if(offset<0)throw conflict();const ordered=[...members.slice(0,offset+1),duplicate,...members.slice(offset+1)];const now=Date.now();for(const [index,draft] of ordered.entries()){draft.setIndex=index+1;draft.setCount=ordered.length;draft.updatedAt=now;draft.updatedBy=actor;if(draft.id===duplicate.id)await client.query('INSERT INTO authoring_drafts(id,document,version,created_at,updated_at,created_by,updated_by) VALUES($1,$2,1,$3,$3,$4,$4)',[draft.id,draft,now,actor]);else await client.query('UPDATE authoring_drafts SET document=$2,updated_at=$3,updated_by=$4 WHERE id=$1',[draft.id,draft,now,actor])}await client.query('COMMIT');return ordered}catch(error){await client.query('ROLLBACK');throw error}finally{client.release()}}
  async insertPreview(p:PreviewRecord){await (await this.db()).query('INSERT INTO authoring_previews(id,draft_id,draft_version,cue_hash,cue,validation,review,created_at,created_by) VALUES($1,$2,$3,$4,$5,$6,NULL,$7,$8)',[p.id,p.draftId,p.draftVersion,p.cueHash,p.cue,p.validation,p.createdAt,p.createdBy])}
- async getPreview(id:string){const r=(await (await this.db()).query('SELECT id,draft_id AS "draftId",draft_version AS "draftVersion",cue_hash AS "cueHash",cue,validation,review,created_at AS "createdAt",created_by AS "createdBy" FROM authoring_previews WHERE id=$1',[id])).rows[0];return r??null}
+ async getPreview(id:string){const r=(await (await this.db()).query('SELECT id,draft_id AS "draftId",draft_version AS "draftVersion",cue_hash AS "cueHash",cue,validation,review,created_at AS "createdAt",created_by AS "createdBy" FROM authoring_previews WHERE id=$1',[id])).rows[0];if(!r)return null;const {serverFitCheck,...validation}=(r.validation??{}) as Record<string,unknown>;return {...r,validation,fitCheck:(serverFitCheck as ServerFitCheck|undefined)??null}}
  async saveReview(id:string,r:ReviewReceipt){await (await this.db()).query('UPDATE authoring_previews SET review=$2 WHERE id=$1',[id,r])}
+ // Phase D adds no migration, so the server-attested measurement is stored inside the
+ // preview's own `validation` document rather than in a new column. It is read back out by
+ // getPreview above, so nothing outside this repository sees the storage shape.
+ async saveFitCheck(id:string,f:ServerFitCheck){const r=await (await this.db()).query("UPDATE authoring_previews SET validation=jsonb_set(COALESCE(validation,'{}'::jsonb),'{serverFitCheck}',$2::jsonb,true) WHERE id=$1",[id,JSON.stringify(f)]);if(!r.rowCount)throw new AuthoringError('unknown_preview','Unknown preview',404)}
  async publish(id:string,v:number,previewId:string,actor:string){const db=await this.db();const client=await db.connect();try{await client.query('BEGIN');const dr=await client.query('SELECT document FROM authoring_drafts WHERE id=$1 AND version=$2 FOR UPDATE',[id,v]);const d=dr.rows[0]?.document as Draft|undefined;if(!d)throw conflict();const pr=await client.query('SELECT id,draft_id AS "draftId",draft_version AS "draftVersion",cue_hash AS "cueHash",cue,validation,review,created_at AS "createdAt",created_by AS "createdBy" FROM authoring_previews WHERE id=$1',[previewId]);const p=pr.rows[0] as PreviewRecord|undefined;validatePublishPreview(d,p);let rr=await client.query('SELECT draft_id AS "draftId",revision,draft_version AS "draftVersion",cue_hash AS "cueHash",cue,preview_id AS "previewId",review,actor,created_at AS "createdAt" FROM authoring_revisions WHERE draft_id=$1 AND draft_version=$2 AND cue_hash=$3',[id,v,p!.cueHash]);if(!rr.rows[0])rr=await client.query('INSERT INTO authoring_revisions(draft_id,revision,draft_version,cue_hash,cue,preview_id,review,actor,created_at) SELECT $1,COALESCE(MAX(revision),0)+1,$2,$3,$4,$5,$6,$7,$8 FROM authoring_revisions WHERE draft_id=$1 RETURNING draft_id AS "draftId",revision,draft_version AS "draftVersion",cue_hash AS "cueHash",cue,preview_id AS "previewId",review,actor,created_at AS "createdAt"',[id,v,p!.cueHash,p!.cue,previewId,p!.review,actor,Date.now()]);try{await markCueAssetPublished(client,p!.cue)}catch(error){if(error instanceof AssetError)throw new AuthoringError(error.code,error.message,error.status);throw error}const row=rr.rows[0] as Revision;d.activeRevision=row.revision;d.activeDraftVersion=row.draftVersion;d.updatedAt=Date.now();d.updatedBy=actor;await client.query('UPDATE authoring_drafts SET document=$2,active_revision=$3,active_draft_version=$4,updated_at=$5,updated_by=$6 WHERE id=$1',[id,d,row.revision,row.draftVersion,d.updatedAt,actor]);await client.query('COMMIT');return row}catch(e){await client.query('ROLLBACK');throw e}finally{client.release()}}
  async revisions(id:string){return (await (await this.db()).query('SELECT draft_id AS "draftId",revision,draft_version AS "draftVersion",cue_hash AS "cueHash",cue,preview_id AS "previewId",review,actor,created_at AS "createdAt" FROM authoring_revisions WHERE draft_id=$1 ORDER BY revision DESC',[id])).rows}
  async rollback(id:string,v:number,revision:number,actor:string){const db=await this.db();const client=await db.connect();try{await client.query('BEGIN');const dr=await client.query('SELECT document FROM authoring_drafts WHERE id=$1 AND version=$2 FOR UPDATE',[id,v]);const d=dr.rows[0]?.document as Draft|undefined;if(!d)throw conflict();const rr=await client.query('SELECT draft_id AS "draftId",revision,draft_version AS "draftVersion",cue_hash AS "cueHash",cue,preview_id AS "previewId",review,actor,created_at AS "createdAt" FROM authoring_revisions WHERE draft_id=$1 AND revision=$2',[id,revision]);const row=rr.rows[0] as Revision|undefined;if(!row)throw new AuthoringError('unknown_revision','Unknown revision',404);d.version++;d.activeRevision=row.revision;d.activeDraftVersion=row.draftVersion;d.updatedAt=Date.now();d.updatedBy=actor;await client.query('UPDATE authoring_drafts SET document=$2,version=$3,active_revision=$4,active_draft_version=$5,updated_at=$6,updated_by=$7 WHERE id=$1',[id,d,d.version,row.revision,row.draftVersion,d.updatedAt,actor]);await client.query('COMMIT');return {draft:d,revision:row}}catch(e){await client.query('ROLLBACK');throw e}finally{client.release()}}

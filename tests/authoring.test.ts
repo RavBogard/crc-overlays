@@ -7,6 +7,9 @@ import type {BookUnitsResult} from '../app/author/types.ts';
 import {newDraftId,sourcePinFor} from '../lib/authoring-model.ts';
 import {buildSharedLibraryPayload,type SharedLibrarySnapshot} from '../lib/shared-library.ts';
 import type {SharedCompareResult,SharedShelfList} from '../app/author/types.ts';
+import {measureCueOnServer,type StageLauncher,type StageMeasurement} from '../lib/server-fit.ts';
+import type {ServerFitRunner} from '../lib/authoring.ts';
+import type {Cue as PlayerCue} from '../lib/player.ts';
 
 const BARECHU='efa9fad4-f7d5-4091-a708-82103028861b';
 const LEFT_PANEL='bbd7c98b-f1de-41ee-9719-2bb27a30d0db';
@@ -396,4 +399,102 @@ test('an unavailable CRC library leaves the shelf empty and local authoring unto
  await assert.rejects(tbi.operation('customize_shared_set',{setId:'anything',expectedCueHashes:{a:'0'.repeat(64)}},'simone'),(error)=>(error as AuthoringError).code==='shared_library_unavailable');
  const local=await tbi.operation('create_draft',editableFromBaseline(BARECHU),'simone') as DraftResult;
  assert.ok(local.draft.id);
+});
+
+// --- R7 / D17 / D18: the server-side fit check -------------------------------------------
+// Nothing below starts a browser. `measureCueOnServer` is driven with an injected fake
+// launcher whose `page.evaluate` returns what the /author/fit-stage page would return, so the
+// authoring operation is exercised through the real server-fit code path.
+
+type FitCheckResult={verdict:'pass'|'fail'|'unavailable';fitErrors?:string[];warnings?:string[];fill?:number|null;measuredAt?:number;rendererVersion?:string;previewId?:string;message?:string;reason?:string;fitCheckUrl?:string};
+const FIT_STAGE_ORIGIN='https://crc-overlays.example';
+const stageLauncher=(measure:()=>Promise<StageMeasurement>|StageMeasurement):StageLauncher=>async()=>({
+ async newPage(){return {
+  async setViewportSize(){},
+  async goto(){return null},
+  async waitForFunction(){return true},
+  async evaluate<Result>(){return await measure() as unknown as Result},
+ }},
+ async close(){return null},
+});
+const fitRunner=(launch:StageLauncher,deadlineMs?:number):ServerFitRunner=>cue=>measureCueOnServer(cue as unknown as PlayerCue,{origin:FIT_STAGE_ORIGIN,launch,...(deadlineMs?{deadlineMs}:{})});
+const fitService=(repo:MemoryAuthoringRepository,runner:ServerFitRunner)=>createAuthoringService(repo,undefined,undefined,undefined,runner);
+async function previewedDraft(service:ReturnType<typeof createAuthoringService>,name:string){
+ const created=await service.operation('create_draft',{name,title:'CRC',layout:'right',templateCueId:RIGHT_PANEL,content:{mode:'custom',text:'Welcome!'},presentation:{}},'tester') as DraftResult;
+ const preview=await service.operation('preview_draft',{draftId:created.draft.id,expectedVersion:1},'tester') as PreviewDraftResult;
+ return {draftId:created.draft.id,previewId:preview.previewId};
+}
+
+test('fit_check_draft passes a clean cue, stores the server attestation on the preview, and says so',async()=>{
+ const repo=new MemoryAuthoringRepository();
+ const service=fitService(repo,fitRunner(stageLauncher(()=>({fitErrors:[],warnings:[],fill:0.58}))));
+ const {draftId,previewId}=await previewedDraft(service,'Server checked');
+ const result=await service.operation('fit_check_draft',{draftId,expectedVersion:1,previewId},'mcp:client') as FitCheckResult;
+ assert.equal(result.verdict,'pass');
+ assert.deepEqual(result.fitErrors,[]);
+ assert.equal(result.fill,0.58);
+ assert.equal(result.message,'Checked in a browser on the server — no fit problems found.');
+ assert.ok(result.rendererVersion?.startsWith('server-chromium/'));
+ const stored=await repo.getPreview(previewId);
+ assert.equal(stored?.fitCheck?.verdict,'pass');
+ assert.equal(stored?.fitCheck?.rendererVersion,result.rendererVersion);
+});
+
+test('fit_check_draft fails with the same sentences findFitErrors produces',async()=>{
+ const errors=['Graphic does not fit its box.','Prayer overlaps Workspace logo.'];
+ const repo=new MemoryAuthoringRepository();
+ const service=fitService(repo,fitRunner(stageLauncher(()=>({fitErrors:errors,warnings:['Sparse — consider Lower third'],fill:0.19}))));
+ const {draftId,previewId}=await previewedDraft(service,'Server overflow');
+ const result=await service.operation('fit_check_draft',{draftId,expectedVersion:1,previewId},'mcp:client') as FitCheckResult;
+ assert.equal(result.verdict,'fail');
+ assert.deepEqual(result.fitErrors,errors);
+ assert.deepEqual(result.warnings,['Sparse — consider Lower third']);
+ assert.equal(result.message,undefined,'a failing check carries the errors, not the pass sentence');
+ assert.equal((await repo.getPreview(previewId))?.fitCheck?.verdict,'fail');
+});
+
+test('a launch failure and a deadline both return unavailable with the fit-check link, and publish still refuses',async()=>{
+ for(const runner of [
+  fitRunner(async()=>{throw Error('spawn ENOENT')}),
+  fitRunner(stageLauncher(()=>new Promise<StageMeasurement>(()=>{})),25),
+ ]){
+  const repo=new MemoryAuthoringRepository();const service=fitService(repo,runner);
+  const {draftId,previewId}=await previewedDraft(service,'Server unavailable');
+  const result=await service.operation('fit_check_draft',{draftId,expectedVersion:1,previewId},'mcp:client') as FitCheckResult;
+  assert.equal(result.verdict,'unavailable');
+  assert.equal(result.fitCheckUrl,`/author/fit-check?draft=${encodeURIComponent(draftId)}`);
+  assert.equal(result.message,'The server could not open a browser to check this graphic. Open Fit check and review it yourself.');
+  assert.equal((await repo.getPreview(previewId))?.fitCheck??null,null,'nothing unattested is stored');
+  await assert.rejects(service.operation('publish_draft',{draftId,expectedVersion:1,previewId},'mcp:client'),(e)=>(e as AuthoringError).code==='review_required');
+ }
+});
+
+test('D18: an MCP actor cannot hand-assert a browser measurement, but the web dock path is unchanged',async()=>{
+ const repo=new MemoryAuthoringRepository();
+ const service=fitService(repo,fitRunner(stageLauncher(()=>({fitErrors:[],warnings:[],fill:0.5}))));
+ const {draftId,previewId}=await previewedDraft(service,'Attested review');
+ // Before any server measurement, an MCP actor's asserted measurement is refused outright.
+ await assert.rejects(
+  service.operation('review_draft',{draftId,expectedVersion:1,previewId,browserMeasurement:measurement,humanApproved:true},'mcp:client'),
+  (e)=>e instanceof AuthoringError&&e.code==='review_required'&&e.message==='Exact-version browser fit review is required',
+ );
+ await assert.rejects(service.operation('publish_draft',{draftId,expectedVersion:1,previewId},'mcp:client'),(e)=>(e as AuthoringError).code==='review_required');
+ // After a server-attested pass the same call is accepted, and the receipt records the
+ // renderer that actually measured rather than the one the caller claimed.
+ await service.operation('fit_check_draft',{draftId,expectedVersion:1,previewId},'mcp:client');
+ const reviewed=await service.operation('review_draft',{draftId,expectedVersion:1,previewId,browserMeasurement:measurement,humanApproved:true},'mcp:client') as {review:{humanApproved:boolean;browserMeasurement:{rendererVersion:string}}};
+ assert.equal(reviewed.review.humanApproved,true);
+ assert.ok(reviewed.review.browserMeasurement.rendererVersion.startsWith('server-chromium/'));
+ assert.notEqual(reviewed.review.browserMeasurement.rendererVersion,measurement.rendererVersion);
+ await service.operation('publish_draft',{draftId,expectedVersion:1,previewId},'mcp:client');
+ assert.equal((await service.publishedCues()).length,1);
+
+ // The web dock path: a signed-in member's own browser measurement is still accepted with no
+ // server fit check at all, and still publishes.
+ const dock=fitService(new MemoryAuthoringRepository(),fitRunner(async()=>{throw Error('no browser here')}));
+ const web=await previewedDraft(dock,'Dock review');
+ const dockReview=await dock.operation('review_draft',{draftId:web.draftId,expectedVersion:1,previewId:web.previewId,browserMeasurement:measurement,humanApproved:true},'8d0f2f6e-web-member') as {review:{browserMeasurement:{rendererVersion:string}}};
+ assert.equal(dockReview.review.browserMeasurement.rendererVersion,measurement.rendererVersion);
+ await dock.operation('publish_draft',{draftId:web.draftId,expectedVersion:1,previewId:web.previewId},'8d0f2f6e-web-member');
+ assert.equal((await dock.publishedCues()).length,1);
 });

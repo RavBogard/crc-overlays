@@ -65,3 +65,18 @@ test('MCP accepts the canonical presentation fields and still rejects values out
  }
  assert.equal(calls.length,2);
 });
+
+test('MCP exposes fit_check_draft as a writing tool and passes its exact input through',async()=>{
+ const calls:{operation:string;input:unknown;actor:string}[]=[];const handler=createAuthoringMcpHandler(async(operation,input,actor)=>{calls.push({operation,input,actor});return {verdict:'pass',fitErrors:[],warnings:[],fill:0.5,measuredAt:1,rendererVersion:'server-chromium/1.63.0',message:'Checked in a browser on the server — no fit problems found.'}});
+ const listed=await payload(await handler.fetch(request({jsonrpc:'2.0',id:30,method:'tools/list',params:{}}),{authInfo})) as {result?:{tools?:{name:string;annotations?:{readOnlyHint?:boolean}}[]}};
+ const tool=listed.result?.tools?.find(entry=>entry.name==='fit_check_draft');
+ assert.ok(tool,'fit_check_draft is offered to MCP clients');
+ assert.equal(tool?.annotations?.readOnlyHint,false,'it writes the measurement onto the preview');
+ const called=await payload(await handler.fetch(request({jsonrpc:'2.0',id:31,method:'tools/call',params:{name:'fit_check_draft',arguments:{draftId:'draft-1',expectedVersion:2,previewId:'preview-1'}}}),{authInfo})) as {result:{content:{text:string}[]}};
+ assert.match(called.result.content[0].text,/server-chromium/);
+ assert.deepEqual(calls,[{operation:'fit_check_draft',input:{draftId:'draft-1',expectedVersion:2,previewId:'preview-1'},actor:'mcp:test-actor'}]);
+ // The tool takes only the three identifiers: there is no place for a caller to assert a
+ // measurement, and review_draft is still not an MCP tool at all.
+ assert.deepEqual(Object.keys((calls[0].input as object)).sort(),['draftId','expectedVersion','previewId']);
+ assert.ok(!listed.result?.tools?.some(entry=>entry.name==='review_draft'));
+});

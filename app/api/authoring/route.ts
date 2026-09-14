@@ -3,6 +3,12 @@ import {AuthoringError,publicErrorDetails} from '@/lib/authoring-model';
 import {authoringOperation} from '@/lib/authoring';
 import {json} from '@/lib/server';
 
+// R7 - fit_check_draft launches headless Chromium in this route, so it must run on the Node
+// runtime and be allowed to outlast a default function timeout. The operation's own hard
+// deadline is 25 s (lib/server-fit.ts); 60 s leaves room for a cold Chromium start.
+export const runtime='nodejs';
+export const maxDuration=60;
+
 export async function POST(request:Request){
  try{
   const actor=await authorizeRequest(request,'author');if(!actor)return json({error:'Unauthorized'},401);
