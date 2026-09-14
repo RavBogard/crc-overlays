@@ -40,7 +40,7 @@ The scan card is the small card with a QR code in the bottom-right corner of the
 
 ## Names for this service
 
-An Editor prepares these before the service, on `/services`, under **Names for this service**.
+An Editor prepares these before the service, on **Prepared services** (`/services`), under **Names for this service**.
 
 1. **Name this list (for example, Mi Shebeirach)** — this is what appears on air.
 2. Type a **Hebrew name**, an **English name**, or both, one row per person. Either may be blank; both blank is refused.

@@ -63,7 +63,7 @@ The card lives in authoritative live state, so reconnecting a graphics browser r
 
 ## Names for this service
 
-An Editor opens `/services`, selects a prepared service, and fills in **Names for this service**. The page says: *Type one name per row. These names are not saved to the library and are removed when this service is archived.*
+An Editor opens **Prepared services** (`/services`), selects a prepared service, and fills in **Names for this service**. The page says: *Type one name per row. These names are not saved to the library and are removed when this service is archived.*
 
 1. **Name this list (for example, Mi Shebeirach)** — at most 60 characters. It becomes the title shown on air.
 2. Type a **Hebrew name**, an **English name**, or both, one row per person. Either channel may be blank; both blank is refused. Each name is at most 60 characters and a list holds at most 120 names.

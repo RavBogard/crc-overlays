@@ -7,23 +7,7 @@ import {useEffect, useState} from 'react';
 import type {AccessRole} from '@/lib/access';
 import {fetchAccessUser} from '@/lib/access-client';
 import styles from './workspace-nav.module.css';
-
-type NavPermission = 'member' | 'author';
-
-// Mirrors canAccess() in lib/access.ts. That module cannot be imported here because it
-// pulls in node:crypto and this navigation renders inside client components.
-const permitted = (role: AccessRole, permission: NavPermission) => permission === 'member' || role === 'owner' || role === 'editor';
-
-const destinations: ReadonlyArray<readonly [string, string, NavPermission]> = [
-  ['/author', 'Library', 'author'],
-  ['/', 'Live control', 'member'],
-  ['/services', 'Services', 'member'],
-  ['/sources-review', 'Source review', 'author'],
-  ['/health', 'Health', 'member'],
-  ['/setup', 'Setup', 'member'],
-  ['/help', 'Help', 'member'],
-  ['/access', 'Account', 'member'],
-];
+import {isCurrentDestination, visibleDestinations} from './workspace-nav-model';
 
 export default function WorkspaceNav({current, className = '', role}: {current?: string; className?: string; role?: AccessRole}) {
   const [resolvedRole, setResolvedRole] = useState<AccessRole | undefined>(role);
@@ -48,8 +32,8 @@ export default function WorkspaceNav({current, className = '', role}: {current?:
     };
   }, [role]);
 
-  const visible = destinations.filter(([, , permission]) => resolvedRole === undefined ? permission === 'member' : permitted(resolvedRole, permission));
+  const visible = visibleDestinations(resolvedRole);
   return <nav className={`${styles.nav} ${className}`} aria-label="Workspace">
-    {visible.map(([href, label]) => <Link key={href} href={href} aria-current={current === href ? 'page' : undefined}>{label}</Link>)}
+    {visible.map(([href, label]) => <Link key={href} href={href} aria-current={isCurrentDestination(href, current) ? 'page' : undefined}>{label}</Link>)}
   </nav>;
 }

@@ -1,53 +1,35 @@
 'use client';
 
+/**
+ * X5 (Phase E) - Prepared services: the global finder, the service collections, the names for
+ * this service, and the slot G1's setlist import mounts into. The fallback/issue form and its
+ * CSV export moved to `/services/log` (Service log).
+ */
+
 import Link from 'next/link';
-import {useCallback,useEffect,useMemo,useState} from 'react';
+import {useMemo,useState} from 'react';
 import {layoutLabel} from '@/lib/layout-label';
 import WorkspaceHeader from '@/components/workspace-header';
-import SignInCard from '@/components/sign-in-card';
 import NamesListPanel from './names-list';
-import {fetchAccessUser} from '@/lib/access-client';
+import ServicesGate from './services-gate';
+import SetlistImportSlot from './setlist-import';
+import {useServicesDashboard} from './use-services-dashboard';
+import {call,findGraphics,type Collection,type Coverage,type Dashboard,type Entry,type Source} from './services-data';
 import {publishedVisibleCount} from '@/lib/catalog-count';
-import type {SourceDisplay} from '@/lib/source-library';
-import type {NamesList} from '@/lib/names-list';
 import './services.css';
 
-// `hidden` and `aliasOf` are already stripped server-side (ServicesService.evidence filters
-// hidden entries, and every alias is stamped hidden), but they are declared here so the one
-// shared counter can be used without a cast and stays correct if that filter ever moves.
-type Cue={id:string;name:string;title?:string;layout?:string;hidden?:boolean;aliasOf?:string};
-type Entry={id:string;type:'cue'|'alternates'|'multipart';label:string;cueIds:string[];available:boolean;cues:{id:string;name:string;available:boolean}[]};
-type Coverage={id:string;label:string;status:string;cueId?:string;sourceId?:string;owner?:string;reason?:string;computedStatus:string;cueAvailable:boolean;sourceAvailable:boolean;degraded:boolean};
-type Collection={id:string;name:string;service:string;version:number;archived:boolean;entries:Entry[];coverage:Coverage[];names?:NamesList|null;updatedAt:number};
-type Feedback={id:string;version:number;collectionId?:string;kind:string;cueId?:string;context:string;reason:string;impact:string;productGap:boolean;archived:boolean;createdAt:number};
-type Dashboard={catalog:{cues:Cue[];version:string};collections:Collection[];feedback:Feedback[];permissions:{editCollections:boolean;recordFeedback:boolean;editFeedback:boolean}};
-type Source={id:string;name:string;book?:string;service?:string;section?:string;display?:SourceDisplay};
-type Role='owner'|'editor'|'operator';
-
-class ServicesRequestError extends Error{code:string;status:number;constructor(message:string,code:string,status:number){super(message);this.name='ServicesRequestError';this.code=code;this.status=status}}
-const isUnauthorized=(error:unknown)=>error instanceof ServicesRequestError&&error.status===401;
-
-async function call<T=Record<string,unknown>>(operation:string,input:unknown={}):Promise<T>{const response=await fetch('/api/services',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({operation,input})});const raw=await response.text();let data:Record<string,unknown>={};try{data=JSON.parse(raw)}catch{if(!response.ok)throw new ServicesRequestError(`Request failed (${response.status})`,'',response.status)}if(!response.ok)throw new ServicesRequestError(typeof data.error==='string'?data.error:'Request failed',typeof data.code==='string'?data.code:'',response.status);return data as T}
 const entryTypeLabel:Record<Entry['type'],string>={cue:'Graphic',alternates:'Alternates',multipart:'Multipart'};
 const statusLabel:Record<string,string>={'covered':'Covered','needs-cue':'Needs a graphic','needs-review':'Needs review','intentional-fallback':'Intentional fallback','not-needed':'Not needed'};
 
 export default function ServicesPage(){
- const [dashboard,setDashboard]=useState<Dashboard|null>(null),[error,setError]=useState(''),[busy,setBusy]=useState(true),[query,setQuery]=useState(''),[activeId,setActiveId]=useState(''),[selected,setSelected]=useState<string[]>([]),[showArchived,setShowArchived]=useState(false);
- const [role,setRole]=useState<Role|undefined>(undefined),[needsSignIn,setNeedsSignIn]=useState(false);
+ const [query,setQuery]=useState(''),[activeId,setActiveId]=useState(''),[selected,setSelected]=useState<string[]>([]),[showArchived,setShowArchived]=useState(false);
  const [newName,setNewName]=useState(''),[newService,setNewService]=useState('');
  const [coverage,setCoverage]=useState({id:'',label:'',status:'needs-cue',cueId:'',sourceId:'',owner:'',reason:''}),[sourceQuery,setSourceQuery]=useState(''),[sources,setSources]=useState<Source[]>([]);
- const [feedback,setFeedback]=useState({kind:'issue',cueId:'',context:'',reason:'',impact:'minor',productGap:true});
- // A 401 is a sign-in problem, not a failure: it gets the shared card and no red error banner.
- const load=useCallback(async(includeArchived=showArchived)=>{setBusy(true);setError('');try{const data=await call<Dashboard>('get_dashboard',{includeArchived});setNeedsSignIn(false);setDashboard(data);setActiveId(current=>data.collections.some((item:Collection)=>item.id===current)?current:(data.collections[0]?.id??''))}catch(e){if(isUnauthorized(e))setNeedsSignIn(true);else setError(e instanceof Error?e.message:'Services unavailable')}finally{setBusy(false)}},[showArchived]);
- useEffect(()=>{let current=true;call<Dashboard>('get_dashboard',{includeArchived:showArchived}).then(data=>{if(!current)return;setNeedsSignIn(false);setDashboard(data);setActiveId(selectedId=>data.collections.some((item:Collection)=>item.id===selectedId)?selectedId:(data.collections[0]?.id??''));setError('')}).catch(error=>{if(!current)return;if(isUnauthorized(error))setNeedsSignIn(true);else setError(error instanceof Error?error.message:'Services unavailable')}).finally(()=>{if(current)setBusy(false)});void fetchAccessUser().then(value=>{if(current&&value)setRole(value.role as Role)});return()=>{current=false}},[showArchived]);
+ const keepSelection=(data:Dashboard)=>setActiveId(current=>data.collections.some((item:Collection)=>item.id===current)?current:(data.collections[0]?.id??''));
+ const {dashboard,error,setError,busy,role,needsSignIn,setNeedsSignIn,load,perform}=useServicesDashboard({includeArchived:showArchived,onData:keepSelection});
  const active=dashboard?.collections.find(item=>item.id===activeId);
  const cueMap=useMemo(()=>new Map(dashboard?.catalog.cues.map(c=>[c.id,c])??[]),[dashboard]);
- const filtered=useMemo(()=>{const normalized=query.toLocaleLowerCase().normalize('NFKD').replace(/[\u0591-\u05c7]/g,'');return (dashboard?.catalog.cues??[]).filter(c=>!normalized||`${c.name} ${c.title??''} ${c.id}`.toLocaleLowerCase().normalize('NFKD').replace(/[\u0591-\u05c7]/g,'').includes(normalized))},[dashboard,query]);
- async function perform(work:()=>Promise<unknown>){setBusy(true);setError('');try{await work();await load();return true}catch(e){const message=e instanceof Error?e.message:'Request failed';
-  // A version conflict leaves the client holding a stale version, so every retry would conflict again.
-  // Refresh the saved collections only; in-progress form input lives in separate state and is retained.
-  if(e instanceof ServicesRequestError&&e.code==='version_conflict'){try{await load()}catch{}}
-  setError(message);return false}finally{setBusy(false)}}
+ const found=useMemo(()=>findGraphics(dashboard?.catalog.cues??[],query),[dashboard,query]);
  async function createCollection(event:React.FormEvent){event.preventDefault();let createdId='';const saved=await perform(async()=>{const data=await call<{collection:Collection}>('create_collection',{name:newName,service:newService,entries:[],coverage:[]});createdId=data.collection.id});if(saved){setNewName('');setNewService('');setActiveId(createdId)}}
  async function createFromLibrary(){if(!newName.trim()||!newService.trim()){setError('Enter a collection name and service first.');return}let createdId='';const saved=await perform(async()=>{const data=await call<{collection:Collection}>('create_from_library',{name:newName,service:newService});createdId=data.collection.id});if(saved){setNewName('');setNewService('');setActiveId(createdId)}}
  async function updateCollection(patch:Record<string,unknown>){if(!active)return false;return perform(()=>call('update_collection',{id:active.id,expectedVersion:active.version,...patch}))}
@@ -57,19 +39,18 @@ export default function ServicesPage(){
  async function findSources(){setError('');try{const result=await call<{sources:Source[]}>('search_coverage_sources',{query:sourceQuery,limit:40});setSources(result.sources)}catch(e){setError(e instanceof Error?e.message:'Source search failed')}}
  async function addCoverage(event:React.FormEvent){event.preventDefault();if(!active)return;const edited={...coverage,id:coverage.id||undefined,cueId:coverage.cueId||undefined,sourceId:coverage.sourceId||undefined,owner:coverage.owner||undefined,reason:coverage.reason||undefined};const rows=coverage.id?active.coverage.map(row=>row.id===coverage.id?edited:cleanCoverage(row)):[...active.coverage.map(cleanCoverage),edited];if(await updateCollection({entries:active.entries.map(({id,type,label,cueIds})=>({id,type,label,cueIds})),coverage:rows}))setCoverage({id:'',label:'',status:'needs-cue',cueId:'',sourceId:'',owner:'',reason:''})}
  async function removeCoverage(id:string){if(!active)return;await updateCollection({entries:active.entries.map(({id,type,label,cueIds})=>({id,type,label,cueIds})),coverage:active.coverage.filter(row=>row.id!==id).map(cleanCoverage)})}
- async function recordFeedback(event:React.FormEvent){event.preventDefault();if(await perform(()=>call('record_feedback',{...feedback,collectionId:active?.id,cueId:feedback.cueId||undefined})))setFeedback({kind:'issue',cueId:'',context:'',reason:'',impact:'minor',productGap:true})}
  return <main className="services-shell">
-  <WorkspaceHeader current="/services" title="Services" role={role} lede="Plan the prepared parts and keep every graphic within reach. Collections are optional preparation aids; they never control the live output."/>
-  {error&&<div className="services-error" role="alert">{error}</div>}
-  {!dashboard&&needsSignIn&&!busy?<SignInCard description="Prepared services list the graphics your congregation has ready and the source material behind them. Sign in to open the service workspace." onRetry={()=>{setNeedsSignIn(false);void load()}}/>:!dashboard?<p className="services-loading">{busy?'Loading service workspace…':'Unable to load.'}</p>:<>
+  <WorkspaceHeader current="/services" title="Prepared services" role={role} lede="Plan the prepared parts and keep every graphic within reach. Collections are optional preparation aids; they never control the live output."/>
+  <ServicesGate error={error} dashboard={dashboard} needsSignIn={needsSignIn} busy={busy} onRetry={()=>{setNeedsSignIn(false);void load()}}>{dashboard=><>
    <section className="cue-finder" aria-labelledby="cue-finder-heading"><div className="section-heading"><div><p className="services-eyebrow">ALWAYS AVAILABLE</p><h2 id="cue-finder-heading">Global graphic finder</h2><p>Inspect any graphic without sending it live. Add selected graphics to the open collection when useful.</p></div><span>{publishedVisibleCount(dashboard.catalog.cues)} graphics published, visible</span></div>
     <label className="search-label">Search every published graphic<input type="search" value={query} onChange={e=>setQuery(e.target.value)} placeholder="Prayer, title, or graphic ID"/></label>
-    <div className="cue-grid">{filtered.map(cue=><article className="cue-card" key={cue.id}><label><input type="checkbox" checked={selected.includes(cue.id)} disabled={!dashboard.permissions.editCollections} onChange={e=>setSelected(current=>e.target.checked?[...current,cue.id]:current.filter(id=>id!==cue.id))}/><span><strong>{cue.name}</strong><small>{cue.layout?layoutLabel(cue.layout):cue.title||''}</small></span></label><Link href={`/?inspect=${encodeURIComponent(cue.id)}`}>Inspect</Link></article>)}</div>
+    {query.trim()?<div className="cue-grid">{found.map(cue=><article className="cue-card" key={cue.id}><label><input type="checkbox" checked={selected.includes(cue.id)} disabled={!dashboard.permissions.editCollections} onChange={e=>setSelected(current=>e.target.checked?[...current,cue.id]:current.filter(id=>id!==cue.id))}/><span><strong>{cue.name}</strong><small>{cue.layout?layoutLabel(cue.layout):cue.title||''}</small></span></label><Link href={`/?inspect=${encodeURIComponent(cue.id)}`}>Inspect</Link></article>)}</div>:<p className="empty-card">Search to find a graphic. The full published list is on Live control.</p>}
     {dashboard.permissions.editCollections&&<div className="selection-bar"><span>{selected.length} selected</span><button disabled={!active||selected.length!==1||busy} onClick={()=>addSelection('cue')}>Add graphic</button><button disabled={!active||selected.length<2||busy} onClick={()=>addSelection('alternates')}>Add as alternates</button><button disabled={!active||selected.length<2||busy} onClick={()=>addSelection('multipart')}>Add as multipart</button></div>}
    </section>
    <div className="services-columns"><aside className="collections-panel"><div className="section-heading"><div><p className="services-eyebrow">OPTIONAL PREPARATION</p><h2>Service collections</h2></div><label className="archive-toggle"><input type="checkbox" checked={showArchived} onChange={e=>setShowArchived(e.target.checked)}/>Show archived</label></div>
     <div className="collection-list">{dashboard.collections.map(item=><button className={item.id===activeId?'active':''} key={item.id} onClick={()=>setActiveId(item.id)}><strong>{item.name}</strong><span>{item.service} · {item.entries.length} items</span>{item.archived&&<em>Archived</em>}</button>)}{!dashboard.collections.length&&<p>No collections yet. The global finder remains ready for spontaneous use.</p>}</div>
     {dashboard.permissions.editCollections&&<form className="compact-form" onSubmit={createCollection}><h3>New collection</h3><label>Name<input required maxLength={120} value={newName} onChange={e=>setNewName(e.target.value)} placeholder="Friday night service"/></label><label>Service<input required maxLength={120} value={newService} onChange={e=>setNewService(e.target.value)} placeholder="Shabbat Evening"/></label><div className="create-actions"><button disabled={busy}>Create empty</button><button className="subtle" type="button" disabled={busy} onClick={createFromLibrary}>Start from current library</button></div><p className="starter-note">The starter includes published graphics and groups only complete numbered sets. Add source material to coverage only when your congregation actually uses it. This does not claim the service is complete.</p></form>}
+    <SetlistImportSlot collection={active} onImported={load}/>
    </aside>
    <div className="collection-work">{active?<><section className="collection-title"><div><p className="services-eyebrow">{active.archived?'ARCHIVED COLLECTION':'OPEN COLLECTION'}</p><h2>{active.name}</h2><p>{active.service} · Updated {new Date(active.updatedAt).toLocaleString()}</p></div>{dashboard.permissions.editCollections&&<button className="subtle" disabled={busy} onClick={()=>perform(()=>call(active.archived?'restore_collection':'archive_collection',{id:active.id,expectedVersion:active.version}))}>{active.archived?'Restore':'Archive'}</button>}</section>
     <section className="plan-section"><h3>Order, alternates, and multipart groups</h3><p>Order helps preparation only. Operators can still choose any graphic from Live control.</p>{active.entries.length?<ol className="entry-list">{active.entries.map((entry,index)=><li key={entry.id} className={!entry.available?'unavailable':''}><div><span className={`type-chip ${entry.type}`}>{entryTypeLabel[entry.type]}</span><strong>{entry.label}</strong><small>{entry.cues.map((cue,cueIndex)=><span key={`${cue.id}-${cueIndex}`}>{cueIndex>0?' · ':''}{cue.available?<Link href={`/?inspect=${encodeURIComponent(cue.id)}`}>{cue.name}</Link>:cue.name}</span>)}</small>{!entry.available&&<b>One or more published graphics are unavailable. The saved entry was retained.</b>}</div>{dashboard.permissions.editCollections&&<div><button aria-label="Move up" disabled={index===0||busy} onClick={()=>moveEntry(index,-1)}>↑</button><button aria-label="Move down" disabled={index===active.entries.length-1||busy} onClick={()=>moveEntry(index,1)}>↓</button><button aria-label="Remove" disabled={busy} onClick={()=>removeEntry(entry.id)}>Remove</button></div>}</li>)}</ol>:<p className="empty-card">Select graphics in the global finder, then add them as a single graphic, alternates, or a multipart sequence.</p>}</section>
@@ -78,11 +59,7 @@ export default function ServicesPage(){
     </details></section>
     <NamesListPanel key={active.id} collection={active} canEdit={dashboard.permissions.editCollections} onSaved={load}/>
    </>:<section className="empty-work"><h2>Choose or create a collection</h2><p>Collections are optional. Search and inspect graphics above at any time.</p></section>}</div></div>
-   <section className="feedback-section"><div className="section-heading"><div><p className="services-eyebrow">BETA LEARNING</p><h2>Record an issue or fallback</h2><p>Capture what happened while the context is fresh. Export the log for triage and follow-up.</p></div><a className="export-link" href="/api/services?export=feedback.csv">Export CSV</a></div>
-    {dashboard.permissions.recordFeedback&&<form className="feedback-form" onSubmit={recordFeedback}><label>What happened<select value={feedback.kind} onChange={e=>setFeedback({...feedback,kind:e.target.value})}><option value="issue">Issue</option><option value="fallback">Fallback used</option><option value="observation">Observation</option></select></label><label>Impact<select value={feedback.impact} onChange={e=>setFeedback({...feedback,impact:e.target.value})}><option value="none">No service impact</option><option value="minor">Minor</option><option value="service-affecting">Service affecting</option></select></label><label>Graphic<select value={feedback.cueId} onChange={e=>setFeedback({...feedback,cueId:e.target.value})}><option value="">No specific graphic</option>{dashboard.catalog.cues.map(c=><option value={c.id} key={c.id}>{c.name}</option>)}</select></label><label>Moment or context<input required maxLength={240} value={feedback.context} onChange={e=>setFeedback({...feedback,context:e.target.value})} placeholder="Before opening song, Saturday morning"/></label><label className="wide">Details<textarea required maxLength={1200} value={feedback.reason} onChange={e=>setFeedback({...feedback,reason:e.target.value})}/></label><label className="check"><input type="checkbox" checked={feedback.productGap} onChange={e=>setFeedback({...feedback,productGap:e.target.checked})}/>This suggests a product gap</label><button disabled={busy}>Record feedback</button></form>}
-    <div className="feedback-list">{dashboard.feedback.slice(0,30).map(item=><article key={item.id}><span>{item.kind} · {item.impact}</span><strong>{item.context}</strong><p>{item.reason}</p><small>{new Date(item.createdAt).toLocaleString()}{item.productGap?' · Product gap':''}</small></article>)}</div>
-   </section>
-  </>}
+  </>}</ServicesGate>
  </main>
 }
 
