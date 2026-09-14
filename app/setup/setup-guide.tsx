@@ -1,23 +1,25 @@
 'use client';
 
 import Link from 'next/link';
-import {useEffect, useMemo, useRef, useState} from 'react';
+import {useCallback, useEffect, useMemo, useRef, useState} from 'react';
 import type {PublicWorkspace} from '@/lib/workspace';
 import WorkspaceHeader from '@/components/workspace-header';
+import {hasNamedOutputCredential, readDeviceList} from '../access/devices-copy';
+import {BACKUP_STEP, COMPANION_STEP, OUTPUT_STEP, REHEARSED_STEP, autoVerifiedSteps, firstUnverifiedStep, stepsToPersist, type SetupStepKey} from './setup-steps';
 import styles from './setup.module.css';
 
 type Application = 'vmix' | 'obs';
 type RequestResult = {response: Response; body: Record<string, unknown>} | {needsKey: true};
-type Renderer = {seen?: number; phase?: string};
 type ProgressBody = {steps?: Record<string, boolean>; persisted?: boolean};
-
-/** Step keys stored per member by /api/setup-progress. Add a key here when the guide learns a new completion. */
-const BACKUP_STEP = 'backup-confirmed';
-const COMPANION_STEP = 'companion-confirmed';
 
 async function readJson(response: Response) {
   try { return await response.json() as Record<string, unknown>; }
   catch { return {}; }
+}
+
+/** A verified step is evidence, not a control: it is text, never an editable checkbox (D10). */
+function Verified({children}: {children: string}) {
+  return <p className={styles.verified} role="status"><span aria-hidden>✓</span>{children}</p>;
 }
 
 export default function SetupGuide({workspace}: {workspace: PublicWorkspace}) {
@@ -26,55 +28,44 @@ export default function SetupGuide({workspace}: {workspace: PublicWorkspace}) {
   const [showLegacyAccess, setShowLegacyAccess] = useState(false);
   const [copyStatus, setCopyStatus] = useState('');
   const [connectionStatus, setConnectionStatus] = useState<'idle'|'checking'|'connected'|'missing'|'unavailable'|'signin'>('idle');
-  const [backupConfirmed, setBackupConfirmed] = useState(false);
-  const [companionConfirmed, setCompanionConfirmed] = useState(false);
+  const [steps, setSteps] = useState<Record<string, boolean>>({});
+  const [deviceName, setDeviceName] = useState('');
+  const [outputName, setOutputName] = useState('');
+  const [pairingCode, setPairingCode] = useState('');
+  const [pairingStatus, setPairingStatus] = useState('');
+  const [outputUrl, setOutputUrl] = useState('');
+  const [outputStatus, setOutputStatus] = useState('');
+  const [busy, setBusy] = useState(false);
   // null until the first read answers. false means this browser is a legacy key or signed out,
   // so the checklist still works but is remembered only for this page load.
   const [progressPersisted, setProgressPersisted] = useState<boolean | null>(null);
   const [progressSaved, setProgressSaved] = useState(false);
   const savedTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const stepRefs = useRef<Partial<Record<SetupStepKey, HTMLLIElement | null>>>({});
+  /** A returning installer is walked to their first unverified step exactly once per visit. */
+  const landed = useRef(false);
 
-  // Reading progress never blocks the guide: a failure simply leaves the boxes unticked.
-  useEffect(() => {
-    let live = true;
-    void (async () => {
-      try {
-        const response = await fetch('/api/setup-progress', {cache: 'no-store'});
-        if (!live) return;
-        if (response.status === 401) { setProgressPersisted(false); return; }
-        if (!response.ok) return;
-        const body = await response.json() as ProgressBody;
-        if (!live) return;
-        setProgressPersisted(body.persisted === true);
-        setBackupConfirmed(body.steps?.[BACKUP_STEP] === true);
-        setCompanionConfirmed(body.steps?.[COMPANION_STEP] === true);
-      } catch {}
-    })();
-    return () => {
-      live = false;
-      if (savedTimer.current) clearTimeout(savedTimer.current);
-    };
-  }, []);
-
-  async function saveProgress(steps: Record<string, boolean>) {
+  const saveProgress = useCallback(async (changes: Record<string, boolean>) => {
+    if (!Object.keys(changes).length) return;
     try {
       const response = await fetch('/api/setup-progress', {
         method: 'PUT',
         headers: {'Content-Type': 'application/json'},
-        body: JSON.stringify({steps}),
+        body: JSON.stringify({steps: changes}),
       });
       if (response.status === 401) { setProgressPersisted(false); return; }
       if (!response.ok) return;
       const body = await response.json() as ProgressBody;
       setProgressPersisted(body.persisted === true);
       if (body.persisted !== true) return;
+      if (body.steps) setSteps(current => ({...current, ...body.steps}));
       setProgressSaved(true);
       if (savedTimer.current) clearTimeout(savedTimer.current);
       savedTimer.current = setTimeout(() => setProgressSaved(false), 2500);
     } catch {}
-  }
+  }, []);
 
-  async function authenticatedGet(path: string): Promise<RequestResult> {
+  const authenticatedGet = useCallback(async (path: string): Promise<RequestResult> => {
     const first = await fetch(path, {cache: 'no-store', signal: AbortSignal.timeout(5000)});
     if (first.status !== 401) return {response: first, body: await readJson(first)};
     const key = legacyKey || sessionStorage.getItem('crc-control-key') || '';
@@ -85,6 +76,112 @@ export default function SetupGuide({workspace}: {workspace: PublicWorkspace}) {
       headers: {Authorization: `Bearer ${key}`},
     });
     return {response, body: await readJson(response)};
+  }, [legacyKey]);
+
+  /**
+   * The self-verifying half of the checklist (D10). `/api/state` says whether a Companion and a
+   * graphics browser are present right now; `/api/devices` says whether a named output connection
+   * exists at all. A probe that cannot be reached simply verifies nothing — it never un-ticks a
+   * step the installer already recorded.
+   */
+  const verify = useCallback(async (stored: Record<string, boolean>) => {
+    let state: unknown = null;
+    let devices = false;
+    try {
+      const result = await authenticatedGet('/api/state');
+      if (!('needsKey' in result) && result.response.ok) state = result.body;
+    } catch {}
+    try {
+      const response = await fetch('/api/devices', {cache: 'no-store', signal: AbortSignal.timeout(5000)});
+      if (response.ok) devices = hasNamedOutputCredential(readDeviceList(await readJson(response)));
+    } catch {}
+    const verified = autoVerifiedSteps({state, now: Date.now(), hasOutputCredential: devices});
+    if (Object.keys(verified).length) setSteps(current => ({...current, ...verified}));
+    await saveProgress(stepsToPersist(stored, verified));
+    return {...stored, ...verified};
+  }, [authenticatedGet, saveProgress]);
+
+  // Reading progress never blocks the guide: a failure simply leaves the boxes unticked.
+  useEffect(() => {
+    let live = true;
+    void (async () => {
+      let stored: Record<string, boolean> = {};
+      try {
+        const response = await fetch('/api/setup-progress', {cache: 'no-store'});
+        if (!live) return;
+        if (response.status === 401) setProgressPersisted(false);
+        else if (response.ok) {
+          const body = await response.json() as ProgressBody;
+          if (!live) return;
+          setProgressPersisted(body.persisted === true);
+          stored = body.steps ?? {};
+          setSteps(stored);
+        }
+      } catch {}
+      if (!live) return;
+      const settled = await verify(stored);
+      if (!live || landed.current) return;
+      landed.current = true;
+      const target = firstUnverifiedStep(settled);
+      // Step one is where a first-time installer already is; only a returning one is moved.
+      if (target && target !== BACKUP_STEP) stepRefs.current[target]?.scrollIntoView({block: 'start', behavior: 'smooth'});
+    })();
+    return () => {
+      live = false;
+      if (savedTimer.current) clearTimeout(savedTimer.current);
+    };
+  }, [verify]);
+
+  function setManualStep(step: SetupStepKey, done: boolean) {
+    setSteps(current => ({...current, [step]: done}));
+    void saveProgress({[step]: done});
+  }
+
+  async function createDevice(payload: Record<string, unknown>): Promise<Record<string, unknown> | null> {
+    const response = await fetch('/api/devices', {
+      method: 'POST',
+      headers: {'Content-Type': 'application/json'},
+      body: JSON.stringify(payload),
+    });
+    const body = await readJson(response);
+    if (response.ok) return body;
+    if (response.status === 401 || response.status === 403) throw new Error('Sign in as an owner or editor to continue.');
+    throw new Error(typeof body.error === 'string' ? body.error : 'This could not be prepared. Try again.');
+  }
+
+  async function issuePairingCode() {
+    setBusy(true);
+    setPairingStatus('');
+    try {
+      const body = await createDevice({action: 'pair_code', name: deviceName.trim() || workspace.outputName, kind: 'companion'});
+      setPairingCode(typeof body?.code === 'string' ? body.code : '');
+      setPairingStatus(body && typeof body.code === 'string' ? '' : 'This could not be prepared. Try again.');
+    } catch (error) {
+      setPairingCode('');
+      setPairingStatus(error instanceof Error ? error.message : 'This could not be prepared. Try again.');
+    } finally { setBusy(false); }
+  }
+
+  async function createOutputConnection() {
+    setBusy(true);
+    setOutputStatus('');
+    try {
+      const body = await createDevice({action: 'create_output', name: outputName.trim() || workspace.outputName});
+      if (!body || typeof body.url !== 'string') throw new Error('This could not be prepared. Try again.');
+      setOutputUrl(body.url);
+    } catch (error) {
+      setOutputUrl('');
+      setOutputStatus(error instanceof Error ? error.message : 'This could not be prepared. Try again.');
+    } finally { setBusy(false); }
+  }
+
+  async function copyGraphicsUrl() {
+    try {
+      await navigator.clipboard.writeText(outputUrl);
+      setOutputStatus('Copied. Paste this into the browser input. It keeps working after restarts.');
+    } catch {
+      setOutputStatus('Copy was blocked. Select the address above and copy it manually.');
+    }
   }
 
   async function copyOutputUrl() {
@@ -120,10 +217,11 @@ export default function SetupGuide({workspace}: {workspace: PublicWorkspace}) {
         setConnectionStatus(result.response.status === 401 || result.response.status === 403 ? 'signin' : 'unavailable');
         return;
       }
-      const renderers = Array.isArray(result.body.renderers) ? result.body.renderers as Renderer[] : [];
+      const renderers = Array.isArray(result.body.renderers) ? result.body.renderers as Array<{seen?: number}> : [];
       const serverTime = typeof result.body.serverTime === 'number' ? result.body.serverTime : Date.now();
       const freshRenderer = renderers.some(renderer => typeof renderer.seen !== 'number' || serverTime - renderer.seen < 30_000);
       setConnectionStatus(freshRenderer ? 'connected' : 'missing');
+      void verify(steps);
     } catch {
       setConnectionStatus('unavailable');
     }
@@ -153,40 +251,54 @@ export default function SetupGuide({workspace}: {workspace: PublicWorkspace}) {
     </section>
 
     <ol className={styles.steps}>
-      <li className={styles.step}>
+      <li className={styles.step} ref={element => {stepRefs.current[BACKUP_STEP] = element;}}>
         <div className={styles.stepNumber}>1</div>
         <div className={styles.stepBody}>
           <span className={styles.kicker}>Before you begin</span>
           <h2>Protect the setup you already use</h2>
           <p>In Companion, open <strong>Import / Export</strong> and save a full backup. Choose two pages that are completely empty. Do not replace or rename your Singular connection.</p>
           <label className={styles.confirm}>
-            <input type="checkbox" checked={backupConfirmed} onChange={event => {setBackupConfirmed(event.target.checked); void saveProgress({[BACKUP_STEP]: event.target.checked});}}/>
+            <input type="checkbox" checked={steps[BACKUP_STEP] === true} onChange={event => setManualStep(BACKUP_STEP, event.target.checked)}/>
             <span>I saved a backup and found two empty pages.</span>
           </label>
         </div>
       </li>
 
-      <li className={styles.step}>
+      <li className={styles.step} ref={element => {stepRefs.current[COMPANION_STEP] = element;}}>
         <div className={styles.stepNumber}>2</div>
         <div className={styles.stepBody}>
           <span className={styles.kicker}>Companion + Stream Deck</span>
           <h2>Add the controls</h2>
-          {moduleDownload && pageDownloads.length ? <>
-            <p>First import the module package from Companion’s <strong>Modules</strong> page. Add a <strong>{workspace.productName}</strong> connection. Then import each button page into one of the empty pages you chose.</p>
+          {moduleDownload ? <>
+            <p>Import the module package from Companion’s <strong>Modules</strong> page, add a <strong>{workspace.productName}</strong> connection, then pair it with the code below. After that, open the connection’s <strong>Presets</strong> and drag a preset onto any button — for example <strong>Toggle Barechu</strong>. Every preset is a toggle: press once to show the graphic, press again to animate it out.</p>
             <div className={styles.downloads}>
               <a className={styles.primaryDownload} href={moduleDownload.href} download>{moduleDownload.label}<small>{moduleDownload.description}</small></a>
+            </div>
+          </> : <p className={styles.notice}>The Companion files for this congregation have not been published yet. The congregation’s operator can finish this step when its reviewed module and button pages are ready.</p>}
+
+          <div className={styles.pairing}>
+            <label htmlFor="setup-companion-name">Name this computer (for example, Sanctuary PC)</label>
+            <input id="setup-companion-name" autoComplete="off" maxLength={80} value={deviceName} onChange={event => setDeviceName(event.target.value)}/>
+            <button className={styles.copyButton} type="button" disabled={busy} onClick={() => void issuePairingCode()}>Pair this Companion</button>
+            {pairingCode && <div className={styles.pairingCode}><strong>{pairingCode}</strong><span>Enter this code in Companion within 10 minutes</span></div>}
+            {pairingStatus && <p className={styles.liveMessage} role="status" aria-live="polite">{pairingStatus}</p>}
+          </div>
+
+          {pageDownloads.length > 0 && <details className={styles.recreate}>
+            <summary>Recreate {workspace.shortName}’s exact button layout</summary>
+            <p>Optional. Import each button page into one of the empty pages you chose. During page import, map the page’s {workspace.productName} placeholder to the connection you just added. Never choose “Full Reset then Import.”</p>
+            <div className={styles.downloads}>
               {pageDownloads.map(download => <a href={download.href} download key={download.href}>{download.label}<small>{download.description}</small></a>)}
             </div>
-            <p className={styles.caution}>During page import, map the page’s {workspace.productName} placeholder to the connection you just added. Never choose “Full Reset then Import.”</p>
-          </> : <p className={styles.notice}>The Companion files for this congregation have not been published yet. The congregation’s operator can finish this step when its reviewed module and button pages are ready.</p>}
-          <label className={styles.confirm}>
-            <input type="checkbox" checked={companionConfirmed} onChange={event => {setCompanionConfirmed(event.target.checked); void saveProgress({[COMPANION_STEP]: event.target.checked});}}/>
-            <span>Companion shows the {workspace.productName} connection as OK.</span>
-          </label>
+          </details>}
+
+          {steps[COMPANION_STEP] === true
+            ? <Verified>Verified — Companion is connected to this workspace.</Verified>
+            : <p className={styles.pending}>This step ticks itself once Companion connects.</p>}
         </div>
       </li>
 
-      <li className={styles.step}>
+      <li className={styles.step} ref={element => {stepRefs.current[OUTPUT_STEP] = element;}}>
         <div className={styles.stepNumber}>3</div>
         <div className={styles.stepBody}>
           <span className={styles.kicker}>Graphics output</span>
@@ -201,6 +313,19 @@ export default function SetupGuide({workspace}: {workspace: PublicWorkspace}) {
             <div><span>Name</span><strong>{appInstructions.sourceName}</strong></div>
             <p>{appInstructions.notes}</p>
           </div>
+
+          <div className={styles.pairing}>
+            <label htmlFor="setup-output-name">Name this computer (for example, Sanctuary PC)</label>
+            <input id="setup-output-name" autoComplete="off" maxLength={80} value={outputName} onChange={event => setOutputName(event.target.value)}/>
+            <button className={styles.copyButton} type="button" disabled={busy} onClick={() => void createOutputConnection()}>Create an output connection</button>
+            {outputUrl && <div className={styles.outputUrl}>
+              <input aria-label="Graphics URL" readOnly value={outputUrl} onFocus={event => event.currentTarget.select()}/>
+              <button className={styles.copyButton} type="button" onClick={() => void copyGraphicsUrl()}>Copy the graphics URL</button>
+              <p>Paste this into the browser input. It keeps working after restarts.</p>
+            </div>}
+            {outputStatus && <p className={styles.liveMessage} role="status" aria-live="polite">{outputStatus}</p>}
+          </div>
+
           <button className={styles.copyButton} type="button" onClick={() => void copyOutputUrl()}>Copy private output URL</button>
           {copyStatus && <p className={styles.liveMessage} role="status" aria-live="polite">{copyStatus}</p>}
           {showLegacyAccess && <div className={styles.legacyAccess}>
@@ -208,6 +333,8 @@ export default function SetupGuide({workspace}: {workspace: PublicWorkspace}) {
             <p>Use the key provided by your workspace owner. Signed-in setup will not need this field.</p>
             <input id="setup-access-key" type="password" autoComplete="off" value={legacyKey} onChange={event => setLegacyKey(event.target.value)}/>
           </div>}
+
+          {steps[OUTPUT_STEP] === true && <Verified>Verified — a named graphics output is connected.</Verified>}
         </div>
       </li>
 
@@ -228,6 +355,19 @@ export default function SetupGuide({workspace}: {workspace: PublicWorkspace}) {
           </div>
         </div>
       </li>
+
+      <li className={styles.step} ref={element => {stepRefs.current[REHEARSED_STEP] = element;}}>
+        <div className={styles.stepNumber}>5</div>
+        <div className={styles.stepBody}>
+          <span className={styles.kicker}>Rehearsal</span>
+          <h2>Test before using it in a service</h2>
+          <p>With the new input off air, test one graphic, a fast graphic change, Animate Out, and Clear Now. Restart Companion and the browser input once. To return to Singular, take this input off air and use the unchanged Singular input.</p>
+          <label className={styles.confirm}>
+            <input type="checkbox" checked={steps[REHEARSED_STEP] === true} onChange={event => setManualStep(REHEARSED_STEP, event.target.checked)}/>
+            <span>I rehearsed with the new input off air.</span>
+          </label>
+        </div>
+      </li>
     </ol>
 
     {progressPersisted === false && <p className={styles.progressNote} role="status">Progress is saved for signed-in accounts.</p>}
@@ -235,9 +375,9 @@ export default function SetupGuide({workspace}: {workspace: PublicWorkspace}) {
 
     <section className={styles.finish}>
       <div>
-        <span className={styles.kicker}>Rehearsal</span>
-        <h2>Test before using it in a service</h2>
-        <p>With the new input off air, test one graphic, a fast graphic change, Animate Out, and Clear Now. Restart Companion and the browser input once. To return to Singular, take this input off air and use the unchanged Singular input.</p>
+        <span className={styles.kicker}>Ready</span>
+        <h2>Open Live control when you are done</h2>
+        <p>Live control shows what is on air and lets you Show, Inspect, Animate out, and Clear now. Nothing on this setup page puts a graphic on air.</p>
       </div>
       <Link href="/">Open Live control</Link>
     </section>

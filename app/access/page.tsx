@@ -7,6 +7,7 @@ import {useCallback,useEffect,useRef,useState} from 'react';
 import './access.css';
 import WorkspaceHeader from '@/components/workspace-header';
 import {resetAccessUserCache} from '@/lib/access-client';
+import {DEVICE_REVOKED_NOTICE,deviceStandingText,readDeviceList,type PairedDevice} from './devices-copy';
 import {GOOGLE_UNLINKED_TEXT,googleBlockState,googleConfirmPrompt,googleNotice,readGoogleCode,type GoogleConfirmDetails,type GoogleSignInState} from './google-copy';
 import {memberStanding,requestAgeText,standingText,type PendingInvitation} from './member-status';
 
@@ -27,6 +28,9 @@ export default function AccessPage(){
  const [members,setMembers]=useState<Member[]>([]);
  const [invitations,setInvitations]=useState<PendingInvitation[]>([]);
  const [requests,setRequests]=useState<AccessRequest[]>([]);
+ /** Paired Companion installations and graphics outputs; owners only, read from /api/devices. */
+ const [devices,setDevices]=useState<PairedDevice[]>([]);
+ const [deviceRevision,setDeviceRevision]=useState(0);
  /** The role chosen for each waiting request before Approve; Editor until changed. */
  const [requestRoles,setRequestRoles]=useState<Record<string,Role>>({});
  const [token,setToken]=useState('');
@@ -121,6 +125,35 @@ export default function AccessPage(){
   void initialize();
   return()=>{active=false;removeEventListener('hashchange',captureInvitation)};
  },[refresh,router]);
+
+ // The device list is its own read: /api/devices is a separate route, and a workspace whose
+ // migrations have not run yet must not break the members and requests panels above.
+ useEffect(()=>{
+  if(user?.role!=='owner')return;
+  let active=true;
+  void (async()=>{
+   try{
+    const response=await fetch('/api/devices',{cache:'no-store'});
+    if(!response.ok)return;
+    const body=await response.json() as unknown;
+    if(active){setDevices(readDeviceList(body));setNow(Date.now())}
+   }catch{}
+  })();
+  return()=>{active=false};
+ },[user?.role,deviceRevision]);
+
+ async function revokeDevice(device:PairedDevice){
+  setBusy(true);setMessage('');
+  try{
+   const response=await fetch('/api/devices',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({action:'revoke',id:device.id})});
+   const body=await bodyOf(response);
+   if(!response.ok)throw Error(body.error||'This action could not be completed.');
+   notice(DEVICE_REVOKED_NOTICE);
+   setDeviceRevision(revision=>revision+1);
+  }catch(error){
+   notice(error instanceof Error?error.message:'Connection unavailable.','error');
+  }finally{setBusy(false)}
+ }
 
  async function act(payload:Record<string,unknown>){
   setBusy(true);setMessage('');
@@ -246,6 +279,11 @@ export default function AccessPage(){
     {user.role==='owner'&&requests.length>0&&<section className="access-panel access-requests">
      <div className="access-panel-heading"><span><UserPlus size={18}/></span><div><h2>Waiting for approval</h2><p>These people signed in with Google but aren’t members yet. Approving one creates their membership and links that Google account. Nothing is sent to them.</p></div></div>
      <div className="member-list">{requests.map(request=><article className="member-row request-row" key={request.id}><div className="member-avatar" aria-hidden>{(request.name||request.email).slice(0,1).toUpperCase()}</div><div><strong>{request.name||request.email}</strong><small>{request.email}</small><span>Asked {requestAgeText(request.requestedAt,now)}{request.attempts>1?` · tried ${request.attempts} times`:''}</span></div><div className="member-actions"><select aria-label={`Access for ${request.name||request.email}`} value={requestRoles[request.id]??'editor'} disabled={busy} onChange={event=>setRequestRoles(current=>({...current,[request.id]:event.target.value as Role}))}><option value="editor">Editor</option><option value="operator">Operator</option><option value="owner">Administrator</option></select><button className="access-primary member-approve" disabled={busy} onClick={()=>void act({action:'approve_request',requestId:request.id,role:requestRoles[request.id]??'editor'})}>Approve</button><button className="member-remove" disabled={busy} onClick={()=>void act({action:'decline_request',requestId:request.id})}>Decline</button></div></article>)}</div>
+    </section>}
+
+    {user.role==='owner'&&<section className="access-panel access-devices">
+     <div className="access-panel-heading"><span><MonitorUp size={18}/></span><div><h2>Paired devices</h2><p>Companion installations and graphics outputs that hold their own credential. Revoking one takes effect the next time that device reconnects; a connection that is already open is not interrupted.</p></div></div>
+     <div className="member-list">{devices.length?devices.map(device=><article className="member-row device-row" key={device.id}><div className="member-avatar" aria-hidden>{(device.name||'?').slice(0,1).toUpperCase()}</div><div><strong>{device.name}</strong><span>{deviceStandingText(device,now)}</span></div><div className="member-actions"><button className="member-remove" disabled={busy} onClick={()=>void revokeDevice(device)} aria-label={`Revoke ${device.name}`}>Revoke</button></div></article>):<p className="member-empty">No paired devices yet.</p>}</div>
     </section>}
 
     {user.role==='owner'&&<div className="access-owner-grid">

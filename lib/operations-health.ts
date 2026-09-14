@@ -3,7 +3,8 @@ import {friendlyCueName} from './cue-search';
 
 export type Probe<T>={ok:true;value:T;observedAt:number}|{ok:false;observedAt:number};
 export type ProviderUsage={provider:'Vercel'|'Neon'|'Cloudflare';status:'reported'|'unavailable';measuredAt:number|null;window:string|null;used:number|null;limit:number|null;unit:string|null;dashboardUrl:string;note:string};
-export type HealthInputs={now:number;relayConfigured:boolean;relayState:Probe<{revision?:number;cue?:string|null;serverTime?:number;renderers?:Array<{seen?:number}>}>;liveCatalog:Probe<{version:string;cues:Array<{id?:unknown;name?:unknown}>}>;authoring:Probe<{catalogVersion:string;publishedCount:number;publishedVisibleCount:number;draftCount:number;revisionCount:number;latestPublicationAt:number|null;databaseBytes:number}>;usage:ProviderUsage[]};
+export type HealthController={id?:string;client?:string;version?:string|null;seen?:number};
+export type HealthInputs={now:number;relayConfigured:boolean;relayState:Probe<{revision?:number;cue?:string|null;serverTime?:number;renderers?:Array<{seen?:number}>;controllers?:HealthController[]}>;liveCatalog:Probe<{version:string;cues:Array<{id?:unknown;name?:unknown}>}>;authoring:Probe<{catalogVersion:string;publishedCount:number;publishedVisibleCount:number;draftCount:number;revisionCount:number;latestPublicationAt:number|null;databaseBytes:number}>;usage:ProviderUsage[]};
 
 export function providerUsageFromEnvironment(env:Record<string,string|undefined>):ProviderUsage[]{
  const definitions=[
@@ -30,6 +31,18 @@ export function summarizeHealth(input:HealthInputs,role:AccessRole){
  const serverTime=input.relayState.ok&&typeof input.relayState.value.serverTime==='number'?input.relayState.value.serverTime:input.now;
  const renderers=input.relayState.ok&&Array.isArray(input.relayState.value.renderers)?input.relayState.value.renderers:[];
  const freshOutputs=renderers.filter(item=>typeof item.seen==='number'&&serverTime-item.seen>=0&&serverTime-item.seen<=30_000);
+ // R5/D9. A relay that answers without a `controllers` key is an older worker that does not
+ // report control attachments at all, and it keeps the original "not exposed" shape so a
+ // web-before-relay deploy reads as unavailable rather than as a factual zero. A relay that
+ // does report them is measured with the same 30-second window as the outputs above.
+ const controllerList=input.relayState.ok&&Array.isArray(input.relayState.value.controllers)?input.relayState.value.controllers:null;
+ const freshControllers=(controllerList??[]).filter(item=>item&&typeof item==='object'&&typeof item.seen==='number'&&serverTime-item.seen>=0&&serverTime-item.seen<=30_000);
+ // The operator asks "is my Companion talking to this?", so a Companion attachment is the one
+ // named on the page; anything else is reported only as a count.
+ const namedController=freshControllers.filter(item=>item.client==='companion').sort((a,b)=>b.seen!-a.seen!)[0]??freshControllers.sort((a,b)=>b.seen!-a.seen!)[0];
+ const controllers=controllerList===null&&input.relayState.ok
+  ?{status:'unavailable' as const,reason:'Controller presence is not exposed by the live relay.'}
+  :{status:(relayAvailable?(freshControllers.length?'connected':'none-seen'):'unavailable') as 'connected'|'none-seen'|'unavailable',connected:freshControllers.length,client:namedController&&typeof namedController.client==='string'?namedController.client:null,version:namedController&&typeof namedController.version==='string'?namedController.version:null,lastSeenSeconds:namedController?Math.max(0,Math.round((serverTime-namedController.seen!)/1000)):null,observedAt:input.relayState.observedAt};
  const playbackStatus=relayAvailable?'available':input.relayConfigured?'unavailable':'not-configured';
  const overall=playbackStatus!=='available'?'unavailable':(!authoringAvailable||synchronized===false||freshOutputs.length===0)?'attention':'ready';
  const currentCue=input.relayState.ok?input.relayState.value.cue??null:null;
@@ -41,7 +54,7 @@ export function summarizeHealth(input:HealthInputs,role:AccessRole){
  const dollarReports=input.usage.filter(item=>item.status==='reported'&&item.unit==='USD'&&item.used!==null),reportedMonthlyUsd=dollarReports.reduce((total,item)=>total+item.used!,0),freshReports=dollarReports.filter(item=>item.measuredAt!==null&&input.now-item.measuredAt>=0&&input.now-item.measuredAt<=45*24*60*60_000),currentMonth=new Date(input.now).toISOString().slice(0,7),sameWindow=freshReports.length===input.usage.length&&freshReports.every(item=>item.window===currentMonth),conclusive=sameWindow,budgetStatus=!conclusive?(freshReports.length<dollarReports.length?'stale-or-future':'incomplete-or-mixed-window'):reportedMonthlyUsd>=50?'review-now':reportedMonthlyUsd>=25?'above-target':'within-target';
  return {
   version:1,generatedAt:input.now,overall,
-  playback:{status:playbackStatus,relay:{configured:input.relayConfigured,status:relayAvailable?'available':input.relayConfigured?'unavailable':'not-configured',observedAt:input.relayState.observedAt},current:{known:input.relayState.ok,revision:input.relayState.ok&&typeof input.relayState.value.revision==='number'?input.relayState.value.revision:null,cue:currentCue,name:currentName},outputs:{status:relayAvailable?(freshOutputs.length?'connected':'none-seen'):'unavailable',connected:freshOutputs.length,freshnessSeconds:30,observedAt:input.relayState.observedAt},controllers:{status:'unavailable',reason:'Controller presence is not exposed by the live relay.'}},
+  playback:{status:playbackStatus,relay:{configured:input.relayConfigured,status:relayAvailable?'available':input.relayConfigured?'unavailable':'not-configured',observedAt:input.relayState.observedAt},current:{known:input.relayState.ok,revision:input.relayState.ok&&typeof input.relayState.value.revision==='number'?input.relayState.value.revision:null,cue:currentCue,name:currentName},outputs:{status:relayAvailable?(freshOutputs.length?'connected':'none-seen'):'unavailable',connected:freshOutputs.length,freshnessSeconds:30,observedAt:input.relayState.observedAt},controllers},
   synchronization:{status:synchronized===true?'current':synchronized===false?'pending':'unavailable',liveVersion:relayAvailable?liveVersion:null,authoringVersion:authoringAvailable?authoringVersion:null,checkedAt:Math.min(input.liveCatalog.observedAt,input.authoring.observedAt)},
   authoring:{status:authoringAvailable?'available':'unavailable',latestPublicationAt:authoringAvailable?input.authoring.value.latestPublicationAt:null,publishedVisibleCount:authoringAvailable?input.authoring.value.publishedVisibleCount:null,...(owner&&authoringAvailable?{publishedCount:input.authoring.value.publishedCount,draftCount:input.authoring.value.draftCount,revisionCount:input.authoring.value.revisionCount,databaseBytes:input.authoring.value.databaseBytes}:{}),observedAt:input.authoring.observedAt},
   ...(owner?{providerUsage:input.usage,budget:{scope:'Both congregations combined',targetMonthlyUsd:25,reviewMonthlyUsd:50,reportedMonthlyUsd,budgetStatus,reportedProviders:dollarReports.length,totalProviders:input.usage.length,conclusive,note:'The entered-report sum is compared with the monthly plan only when all providers use the same window and were measured within 45 days.'}}:{}),

@@ -5,9 +5,18 @@ import {overlayBrandingFromWorkspace} from '@/lib/branding';
 import {withPinnedCue} from '@/lib/playback-snapshot';
 import {BrowserRealtimeTransport,CatalogRefreshCoordinator,type RealtimeSnapshot} from '@/lib/browser-realtime';
 import {overlayAssetUrl,preloadOverlayImage,waitForOverlayFonts} from '@/lib/overlay-assets';
+import {OUTPUT_DEVICE_STORAGE_KEY,OUTPUT_LEGACY_STORAGE_KEY,resolveOutputCredential} from './output-credential';
 
 export default function Output(){const root=useRef<HTMLDivElement>(null);const [error,setError]=useState('');
-useEffect(()=>{document.body.classList.add('output-body');const preview=new URLSearchParams(location.search).has('preview');const fragment=new URLSearchParams(location.hash.slice(1));const fragmentKey=fragment.get('key')||'';const key=fragmentKey||(preview?'session':sessionStorage.getItem('crc-output-key')||'');if(fragmentKey){if(!preview)sessionStorage.setItem('crc-output-key',fragmentKey);history.replaceState(null,'',location.pathname+location.search)}const headers:HeadersInit=key==='session'?{}:{Authorization:`Bearer ${key}`};let stopped=false,player:Player|undefined,transport:BrowserRealtimeTransport|undefined;const id=crypto.randomUUID();let catalogVersion='';let payloadSignature='';let pinnedPayload:Cue|null=null;let phaseSignature='';
+useEffect(()=>{document.body.classList.add('output-body');const preview=new URLSearchParams(location.search).has('preview');
+// D5: the compositor's scene file holds `/output#device=cd_...`, so the fragment wins; browser
+// storage only covers a later visit made without one. Storage can throw in a locked-down
+// browser profile, and a graphics machine must still start when it does.
+const stored=(store:Storage,name:string)=>{try{return store.getItem(name)}catch{return null}};
+const credential=resolveOutputCredential({hash:location.hash,preview,storedDevice:stored(localStorage,OUTPUT_DEVICE_STORAGE_KEY),legacySessionKey:stored(sessionStorage,OUTPUT_LEGACY_STORAGE_KEY)});
+try{if(credential.storeDevice)localStorage.setItem(OUTPUT_DEVICE_STORAGE_KEY,credential.storeDevice);if(credential.storeLegacyKey)sessionStorage.setItem(OUTPUT_LEGACY_STORAGE_KEY,credential.storeLegacyKey)}catch{}
+if(credential.clearFragment)history.replaceState(null,'',location.pathname+location.search);
+const key=credential.credential;const headers:HeadersInit=key==='session'?{}:{Authorization:`Bearer ${key}`};let stopped=false,player:Player|undefined,transport:BrowserRealtimeTransport|undefined;const id=crypto.randomUUID();let catalogVersion='';let payloadSignature='';let pinnedPayload:Cue|null=null;let phaseSignature='';
 const size=()=>{if(root.current)root.current.style.transform=`scale(${Math.min(innerWidth/1920,innerHeight/1080)})`};size();addEventListener('resize',size);
 const validCatalog=(next:unknown):next is Cue[]=>Array.isArray(next)&&next.every(item=>{const c=item as Partial<Cue>|null;return Boolean(c&&typeof c.id==='string'&&typeof c.name==='string'&&typeof c.layout==='string'&&c.texts&&typeof c.texts==='object'&&Array.isArray(c.animations)&&c.duration&&typeof c.duration==='object')});
 const fetchCatalog=async()=>{const res=await fetch('/api/catalog',{headers,cache:'no-store',signal:AbortSignal.timeout(4000)});if(!res.ok)throw Error('Output access key required');const next=await res.json();const version=res.headers.get('X-CRC-Catalog-Version')||'';if(!validCatalog(next))throw Error('Invalid cue catalog');return {cues:next,version}};

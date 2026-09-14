@@ -23,7 +23,7 @@
 .confirm {display: flex; align-items: center; gap: 11px; font-weight: 700; color: var(--text); cursor: pointer; width: fit-content;}
 .confirm input {width: 20px; height: 20px; accent-color: #2a6655;}
 
-.downloads {display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 10px; margin: 16px 0;}
+.downloads {display: grid; grid-template-columns: repeat(auto-fit, minmax(min(100%, 230px), 1fr)); gap: 10px; margin: 16px 0;}
 .downloads a {display: flex; flex-direction: column; justify-content: center; min-height: 82px; color: var(--text); background: var(--raised); border: 1px solid var(--line); border-radius: 12px; padding: 13px 15px; text-decoration: none; font-weight: 800;}
 .downloads a:hover {border-color: var(--mint);}
 .downloads .primaryDownload {color: #f2fffb; background: linear-gradient(145deg, #2a6655, #214b40); border-color: var(--strong);}
@@ -58,6 +58,25 @@
 .result.connected {background: #16271f; border-color: #3f6f5c; color: #8fe0b4;}
 .result.missing, .result.unavailable, .result.signin {background: #241f14; border-color: #7a6330; color: var(--gold);}
 .progressNote {margin: 12px 4px 0; color: var(--muted); font-size: 13px;}
+
+/* Pairing a Companion, and creating a named output connection: one name, one action, one result. */
+.pairing {margin: 4px 0 16px; max-width: 560px; border: 1px solid var(--line); border-radius: 12px; padding: 16px; background: var(--raised);}
+.pairing label {display: block; font-weight: 800; margin-bottom: 7px;}
+.pairing > input {width: 100%; margin-bottom: 12px; border: 1px solid var(--strong); border-radius: 8px; padding: 11px; font: inherit; color: var(--text); background: #0d1512;}
+.pairingCode {display: flex; align-items: center; flex-wrap: wrap; gap: 8px 16px; margin-top: 14px; border: 1px solid #426c5e; border-radius: 10px; padding: 13px 15px; background: #16271f;}
+.pairingCode strong {font-size: 30px; letter-spacing: .22em; color: #b6efd8; font-variant-numeric: tabular-nums;}
+.pairingCode span {color: var(--muted); font-size: 14px;}
+.outputUrl {display: grid; gap: 10px; margin-top: 14px;}
+.outputUrl input {width: 100%; border: 1px solid var(--strong); border-radius: 8px; padding: 10px; font: inherit; font-size: 13px; color: #abc1ba; background: #0d1512;}
+.outputUrl button {justify-self: start;}
+.outputUrl p {margin: 0 !important; font-size: 14px;}
+.recreate {margin: 4px 0 16px; border: 1px solid var(--line); border-radius: 12px; background: var(--raised);}
+.recreate summary {padding: 13px 15px; font-weight: 800; cursor: pointer;}
+.recreate > p, .recreate > div {margin: 0 15px 14px;}
+.recreate > p {color: var(--muted); font-size: 14px; line-height: 1.55;}
+.verified {display: flex; align-items: center; gap: 9px; margin: 0 !important; color: #8fe0b4 !important; font-weight: 700;}
+.verified span {display: grid; place-items: center; width: 22px; height: 22px; flex: 0 0 auto; border-radius: 50%; background: #1d3c30; color: #8fe0b4; font-size: 13px;}
+.pending {margin: 0 !important; font-size: 14px;}
 .result.checking {color: var(--mint);}
 
 .finish {display: flex; justify-content: space-between; align-items: center; gap: 30px; background: var(--panel); border: 1px solid var(--line); border-radius: 18px; padding: 28px;}

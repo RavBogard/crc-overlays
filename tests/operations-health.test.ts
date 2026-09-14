@@ -37,3 +37,36 @@ test('the published, visible count is reported to every signed-in role and is un
  assert.equal(summarizeHealth(input(),'owner').authoring.publishedVisibleCount,22);
  assert.equal(summarizeHealth(input({authoring:{ok:false,observedAt:now}}),'owner').authoring.publishedVisibleCount,null);
 });
+
+test('a relay that reports controllers names the connected Companion and how long ago it was seen',()=>{
+ const result=summarizeHealth(input({relayState:{ok:true,observedAt:now,value:{revision:7,cue:'mah-tovu',serverTime:now,renderers:[{seen:now-1000}],controllers:[{id:'c1',client:'companion',version:'1.4.0',seen:now-4000},{id:'c2',client:'browser',version:null,seen:now-1000}]}}}),'operator');
+ const controllers=result.playback.controllers as {status:string;connected:number;client:string|null;version:string|null;lastSeenSeconds:number|null};
+ assert.equal(controllers.status,'connected');
+ assert.equal(controllers.connected,2);
+ assert.equal(controllers.client,'companion');
+ assert.equal(controllers.version,'1.4.0');
+ assert.equal(controllers.lastSeenSeconds,4);
+});
+
+test('a relay that reports an empty or stale controller list says none-seen rather than unavailable',()=>{
+ const empty=summarizeHealth(input({relayState:{ok:true,observedAt:now,value:{serverTime:now,renderers:[{seen:now-1000}],controllers:[]}}}),'operator');
+ assert.equal(empty.playback.controllers.status,'none-seen');
+ assert.equal((empty.playback.controllers as {connected:number}).connected,0);
+ const stale=summarizeHealth(input({relayState:{ok:true,observedAt:now,value:{serverTime:now,renderers:[{seen:now-1000}],controllers:[{id:'c1',client:'companion',version:'1.4.0',seen:now-31_000}]}}}),'operator');
+ assert.equal(stale.playback.controllers.status,'none-seen');
+ assert.equal((stale.playback.controllers as {client:string|null}).client,null);
+});
+
+test('an older relay worker with no controllers key keeps the original unavailable shape',()=>{
+ const result=summarizeHealth(input(),'operator');
+ assert.equal(result.playback.controllers.status,'unavailable');
+ assert.equal((result.playback.controllers as {reason?:string}).reason,'Controller presence is not exposed by the live relay.');
+ assert.equal('connected' in result.playback.controllers,false);
+});
+
+test('an unreachable relay reports controller presence as unavailable without inventing a reason',()=>{
+ const result=summarizeHealth(input({relayState:{ok:false,observedAt:now}}),'operator');
+ assert.equal(result.playback.controllers.status,'unavailable');
+ assert.equal((result.playback.controllers as {connected?:number}).connected,0);
+ assert.equal((result.playback.controllers as {reason?:string}).reason,undefined);
+});
