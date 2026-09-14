@@ -17,7 +17,10 @@
  * availability. Positive entries only, ten minutes normally and up to sixty while the
  * store is throwing; an unknown token is never accepted from cache. The documented
  * consequence is that revocation takes effect within ten minutes (sixty during a store
- * outage) or at the device's next reconnect, whichever is later.
+ * outage) for ordinary API calls. A new live connection is the exception: a realtime
+ * ticket verifies against the store directly (verifyDeviceTokenFresh), so a revoked
+ * device is refused at its next reconnection, which is what /access promises. An
+ * already-open socket is still never kicked.
  */
 
 import {createHash,randomBytes,randomInt,timingSafeEqual} from 'node:crypto';
@@ -191,7 +194,34 @@ function remember(key:string,credential:DeviceCredential,now:number){
 }
 
 /**
- * Verification as the request path uses it. A fresh cache entry answers without
+ * Forget every cached entry for one credential. Called when a device is revoked so this
+ * instance stops answering from its own cache. Belt and braces only: the cache is
+ * per-process, so other serverless instances keep their own entries and this alone can
+ * never make revocation instant. What actually makes the /access sentence true is the
+ * fresh verification every realtime ticket performs (verifyDeviceTokenFresh).
+ */
+export function forgetDeviceCredential(id:string){
+ for(const [key,entry] of verifiedTokens)if(entry.credential.id===id)verifiedTokens.delete(key);
+}
+
+/** The one place the store is consulted; the cache is only a fallback for an outage. */
+async function verifyThroughStore(key:string,token:string,now:number,store:DeviceStore,cached:{credential:DeviceCredential;at:number}|undefined){
+ let credential:DeviceCredential|null;
+ try{credential=await store.verify(token,now)}
+ catch(error){
+  // D4's outage rule, and it applies to fresh verification too: when the store cannot
+  // be reached we would otherwise drop every live device, so a cached entry still
+  // answers for up to sixty minutes. A revoked device can therefore survive a store
+  // outage; availability wins over promptness here, exactly as D4 decided.
+  console.error('device_verify_unavailable',{name:error instanceof Error?error.name:'UnknownError'});
+  return cached&&now-cached.at<VERIFIED_OUTAGE_MS?cached.credential:null;
+ }
+ if(credential)remember(key,credential,now);else verifiedTokens.delete(key);
+ return credential;
+}
+
+/**
+ * Verification as the ordinary request path uses it. A fresh cache entry answers without
  * touching the store; a store outage may extend a cached entry to sixty minutes; a
  * token that is not in the cache is only ever accepted by the store itself, so an
  * unknown or revoked-since-eviction token is refused while the store is down.
@@ -200,12 +230,18 @@ export async function verifyDeviceToken(token:string,now=Date.now(),store:Device
  if(!parseDeviceToken(token))return null;
  const key=secretDigest(token),cached=verifiedTokens.get(key);
  if(cached&&now-cached.at<VERIFIED_CACHE_MS)return cached.credential;
- let credential:DeviceCredential|null;
- try{credential=await store.verify(token,now)}
- catch(error){
-  console.error('device_verify_unavailable',{name:error instanceof Error?error.name:'UnknownError'});
-  return cached&&now-cached.at<VERIFIED_OUTAGE_MS?cached.credential:null;
- }
- if(credential)remember(key,credential,now);else verifiedTokens.delete(key);
- return credential;
+ return verifyThroughStore(key,token,now,store,cached);
+}
+
+/**
+ * Verification for a new connection. The positive cache is bypassed and the store has
+ * the last word, so a revoked device is refused at its next reconnection rather than up
+ * to ten minutes later - which is what /access promises. The cache entry is refreshed
+ * from the result (or dropped), so the ordinary request path sees the same answer, and
+ * an unreachable store still falls back to the cache under D4's outage rule.
+ */
+export async function verifyDeviceTokenFresh(token:string,now=Date.now(),store:DeviceStore=deviceStore):Promise<DeviceCredential|null>{
+ if(!parseDeviceToken(token))return null;
+ const key=secretDigest(token);
+ return verifyThroughStore(key,token,now,store,verifiedTokens.get(key));
 }

@@ -1,12 +1,14 @@
 import assert from 'node:assert/strict';
+import {readFileSync} from 'node:fs';
 import test from 'node:test';
+import {fileURLToPath} from 'node:url';
 import {
   DEVICE_REVOKED_NOTICE,
   activeDevices,
   deviceKindLabel,
   deviceStandingText,
   hasNamedOutputCredential,
-  lastSeenText,
+  lastConnectedText,
   readDeviceList,
   type PairedDevice,
 } from '../app/access/devices-copy.ts';
@@ -21,9 +23,11 @@ import {
   OUTPUT_STEP,
   REHEARSED_STEP,
   autoVerifiedSteps,
+  companionStepMode,
   firstUnverifiedStep,
   freshControllerCount,
   freshRendererCount,
+  outputStepMode,
   stepsToPersist,
 } from '../app/setup/setup-steps.ts';
 
@@ -38,17 +42,17 @@ test('a device row names the kind an operator would recognize', () => {
   assert.equal(deviceKindLabel('something-new'), 'Device');
 });
 
-test('last-seen wording stays plain from seconds to days and never claims a time it does not have', () => {
-  assert.equal(lastSeenText(now - 4_000, now), 'Last seen just now');
-  assert.equal(lastSeenText(now - 12 * 60_000, now), 'Last seen 12 min ago');
-  assert.equal(lastSeenText(now - 5 * 60 * 60_000, now), 'Last seen 5 h ago');
-  assert.equal(lastSeenText(now - 4 * 24 * 60 * 60_000, now), 'Last seen 4 days ago');
-  assert.equal(lastSeenText(null, now), 'Last seen never');
-  assert.equal(lastSeenText(undefined, now), 'Last seen never');
+test('a device row reports when it last connected, which is what the credential actually records', () => {
+  assert.equal(lastConnectedText(now - 4_000, now), 'Last connected just now');
+  assert.equal(lastConnectedText(now - 12 * 60_000, now), 'Last connected 12 min ago');
+  assert.equal(lastConnectedText(now - 5 * 60 * 60_000, now), 'Last connected 5 h ago');
+  assert.equal(lastConnectedText(now - 4 * 24 * 60 * 60_000, now), 'Last connected 4 days ago');
+  assert.equal(lastConnectedText(null, now), 'Last connected never');
+  assert.equal(lastConnectedText(undefined, now), 'Last connected never');
 });
 
-test('a revoked device says so instead of reporting a stale last-seen time', () => {
-  assert.equal(deviceStandingText(device({kind: 'companion', lastSeenAt: now - 60_000}), now), 'Companion · Last seen 1 min ago');
+test('a revoked device says so instead of reporting a stale connection time', () => {
+  assert.equal(deviceStandingText(device({kind: 'companion', lastSeenAt: now - 60_000}), now), 'Companion · Last connected 1 min ago');
   assert.equal(deviceStandingText(device({revokedAt: now - 1_000}), now), 'Graphics output · Revoked');
 });
 
@@ -75,6 +79,27 @@ test('a named output credential counts only while it is unrevoked', () => {
   assert.equal(hasNamedOutputCredential([device({revokedAt: now})]), false);
   assert.equal(hasNamedOutputCredential([device({kind: 'companion'})]), false);
   assert.equal(hasNamedOutputCredential([]), false);
+});
+
+/* ---------- what the /access devices panel actually renders ---------- */
+
+const accessPage = readFileSync(fileURLToPath(new URL('../app/access/page.tsx', import.meta.url)), 'utf8');
+
+test('the devices panel renders only unrevoked devices, so a revoked row cannot be revoked again', () => {
+  assert.ok(accessPage.includes('activeDevices(devices).map('), 'the rendered rows come from activeDevices');
+  assert.ok(!/\bdevices\.map\(/.test(accessPage), 'the raw list is never rendered');
+});
+
+test('a revoke button names the kind as well as the device, so two Sanctuary PCs are distinguishable', () => {
+  assert.ok(accessPage.includes('aria-label={`Revoke ${deviceKindLabel(device.kind)} ${device.name}`}'));
+  assert.equal(`Revoke ${deviceKindLabel('companion')} Sanctuary PC`, 'Revoke Companion Sanctuary PC');
+  assert.equal(`Revoke ${deviceKindLabel('output')} Sanctuary PC`, 'Revoke Graphics output Sanctuary PC');
+});
+
+test('a device action reports inside the devices panel rather than at the top of the page', () => {
+  assert.ok(accessPage.includes('{deviceMessage&&<div className={`access-device-notice ${deviceMessageKind}`} role="status" aria-live="polite">{deviceMessage}</div>}'));
+  assert.ok(accessPage.includes('deviceNotice(DEVICE_REVOKED_NOTICE)'), 'the revoke confirmation is the inline notice');
+  assert.ok(!accessPage.includes('notice(DEVICE_REVOKED_NOTICE)') || accessPage.includes('deviceNotice(DEVICE_REVOKED_NOTICE)'));
 });
 
 /* ---------- /output credential precedence (D5) ---------- */
@@ -161,6 +186,21 @@ test('only newly verified steps are written back to the progress store', () => {
   assert.deepEqual(stepsToPersist({}, verified), {[COMPANION_STEP]: true, [OUTPUT_STEP]: true});
   assert.deepEqual(stepsToPersist({[COMPANION_STEP]: true}, verified), {[OUTPUT_STEP]: true});
   assert.deepEqual(stepsToPersist({[COMPANION_STEP]: true, [OUTPUT_STEP]: true}, verified), {});
+});
+
+test('a deployment that cannot report controllers offers step 2 manually instead of stranding the installer', () => {
+  assert.equal(companionStepMode(state(), now), 'verified');
+  assert.equal(companionStepMode(state({controllers: []}), now), 'pending');
+  assert.equal(companionStepMode(state({controllers: [{client: 'companion', seen: now - 31_000}]}), now), 'pending');
+  assert.equal(companionStepMode({serverTime: now, renderers: [{seen: now - 1_000}]}, now), 'manual');
+  assert.equal(companionStepMode(null, now), 'pending', 'a probe that never answered is not an excuse to go manual');
+});
+
+test('step 3 reads presence the same way, and a named output is still required', () => {
+  assert.equal(outputStepMode(state(), now, true), 'verified');
+  assert.equal(outputStepMode(state(), now, false), 'pending');
+  assert.equal(outputStepMode(state({renderers: []}), now, true), 'pending');
+  assert.equal(outputStepMode({serverTime: now, controllers: []}, now, true), 'manual');
 });
 
 test('a returning installer lands on the first step that is still unverified', () => {

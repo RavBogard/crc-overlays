@@ -3,7 +3,8 @@ import {test} from 'node:test';
 import {GET as devicesGET,POST as devicesPOST} from '../app/api/devices/route.ts';
 import {POST as redeemPOST} from '../app/api/pairing/redeem/route.ts';
 import {GET as outputUrlGET} from '../app/api/output-url/route.ts';
-import {accessStore,type AccessSessionMember,type AccessStore} from '../lib/access.ts';
+import {GET as realtimeGET} from '../app/api/realtime/route.ts';
+import {authorizeRequest,accessStore,type AccessSessionMember,type AccessStore} from '../lib/access.ts';
 import {
  DEVICE_TOKEN,
  DeviceLimitError,
@@ -22,6 +23,7 @@ import {
  pairingCodeHash,
  parseDeviceToken,
  verifyDeviceToken,
+ verifyDeviceTokenFresh,
  type DeviceStore,
 } from '../lib/devices.ts';
 
@@ -192,6 +194,111 @@ test('the verified-token cache is honoured on a throwing store and never for an 
  assert.equal(await verifyDeviceToken(unknown,1_000,flaky),null,'an unknown token is never accepted from cache');
  assert.equal(await verifyDeviceToken('not-a-token',1_000,flaky),null);
  clearVerifiedDeviceCache();
+});
+
+/* ---------- D-1: a realtime ticket verifies afresh, so revocation bites on reconnection ---------- */
+
+const withRelay=async(run:()=>Promise<void>)=>{
+ const prior={RELAY_URL:process.env.RELAY_URL,RELAY_SECRET:process.env.RELAY_SECRET};
+ Object.assign(process.env,{RELAY_URL:'https://relay.example.test',RELAY_SECRET:'ticket-secret'});
+ try{await run()}finally{for(const [key,value] of Object.entries(prior)){if(value===undefined)delete process.env[key];else process.env[key]=value}}
+};
+const ticket=(role:'control'|'output',token:string)=>realtimeGET(new Request(`https://graphics.test/api/realtime?role=${role}`,{headers:{Authorization:`Bearer ${token}`}}));
+const readCall=(token:string)=>authorizeRequest(new Request('https://graphics.test/api/state',{headers:{Authorization:`Bearer ${token}`}}),'read');
+
+test('a revoked companion is refused a control ticket at its next reconnection while the cached read still answers',async()=>{
+ const store=new MemoryDeviceStore();
+ const {token,credential}=await store.issue({name:'Booth Companion',kind:'companion',memberId:owner.id,now:Date.now()});
+ await withRelay(()=>withDeviceStore(delegate(store),async()=>{
+  assert.equal((await ticket('control',token)).status,200,'a live companion still gets a ticket');
+  await store.revoke(credential.id,Date.now());
+  assert.ok(await readCall(token),'an ordinary API call keeps the D4 cache for up to ten minutes');
+  const refused=await ticket('control',token);
+  assert.equal(refused.status,401);
+  assert.equal((await refused.json()).error,'Access key required');
+  assert.equal(await readCall(token),null,'the refusal refreshes the cache entry rather than leaving it standing');
+ }));
+});
+
+test('a revoked graphics output is refused an output ticket, and a live one is not',async()=>{
+ const store=new MemoryDeviceStore();
+ const {token,credential}=await store.issue({name:'Sanctuary PC',kind:'output',memberId:owner.id,now:Date.now()});
+ await withRelay(()=>withDeviceStore(delegate(store),async()=>{
+  assert.equal((await ticket('output',token)).status,200);
+  assert.equal((await ticket('control',token)).status,401,'an output credential never controls');
+  await store.revoke(credential.id,Date.now());
+  assert.equal((await ticket('output',token)).status,401);
+ }));
+});
+
+test('a store outage at ticket time honours the cache rather than dropping every live device',async()=>{
+ const store=new MemoryDeviceStore();
+ const {token}=await store.issue({name:'Booth Companion',kind:'companion',memberId:owner.id,now:Date.now()});
+ let failing=false;
+ const flaky:DeviceStore={...delegate(store),verify:async(value,now)=>{if(failing)throw new Error('store unavailable');return store.verify(value,now)}};
+ await withRelay(()=>withDeviceStore(flaky,async()=>{
+  assert.equal((await ticket('control',token)).status,200);
+  failing=true;
+  assert.equal((await ticket('control',token)).status,200,'a cached device rides out the outage');
+  const unknown=`cd_${'z'.repeat(12)}.${'y'.repeat(43)}`;
+  assert.equal((await ticket('control',unknown)).status,401,'an unknown token is never accepted from cache');
+ }));
+});
+
+test('fresh verification bypasses the positive cache and refreshes it from the store',async()=>{
+ const store=new MemoryDeviceStore();
+ const {token,credential}=await store.issue({name:'Booth Companion',kind:'companion',memberId:owner.id,now:0});
+ let calls=0;
+ const counting:DeviceStore={...delegate(store),verify:async(value,now)=>{calls++;return store.verify(value,now)}};
+ clearVerifiedDeviceCache();
+ assert.equal((await verifyDeviceToken(token,1_000,counting))?.id,credential.id);
+ assert.equal(calls,1);
+ assert.equal((await verifyDeviceTokenFresh(token,1_100,counting))?.id,credential.id,'the cache is bypassed');
+ assert.equal(calls,2);
+ await store.revoke(credential.id,1_200);
+ assert.equal(await verifyDeviceTokenFresh(token,1_300,counting),null,'the store has the last word');
+ assert.equal(await verifyDeviceToken(token,1_400,counting),null,'and the cache entry is gone');
+ assert.equal(await verifyDeviceTokenFresh('not-a-token',1_500,counting),null);
+ clearVerifiedDeviceCache();
+});
+
+test('revoking through /api/devices drops this instance cache entry as well',async()=>{
+ const store=new MemoryDeviceStore();
+ const {token,credential}=await store.issue({name:'Booth Companion',kind:'companion',memberId:owner.id,now:Date.now()});
+ await withDeviceStore(delegate(store),async()=>{
+  assert.ok(await readCall(token),'the token is cached by an ordinary call');
+  await withAccessMethods(signedIn(owner),async()=>{
+   const response=await devicesPOST(deviceRequest({action:'revoke',id:credential.id},cookie()));
+   assert.equal(response.status,200);
+  });
+  assert.equal(await readCall(token),null,'the cached entry went with the revoke');
+ });
+});
+
+/* ---------- A-1: only signed-in members manage devices ---------- */
+
+test('a legacy shared key and a device token cannot manage devices at all',async()=>{
+ const prior=process.env.CONTROL_KEY;
+ process.env.CONTROL_KEY='legacy-control-key';
+ const store=new MemoryDeviceStore();
+ const {credential}=await store.issue({name:'Sanctuary PC',kind:'output',memberId:owner.id,now:Date.now()});
+ const companion=await store.issue({name:'Booth Companion',kind:'companion',memberId:owner.id,now:Date.now()});
+ try{
+  await withDeviceStore(delegate(store),async()=>{
+   for(const bearer of ['legacy-control-key',companion.token]){
+    const headers={Authorization:`Bearer ${bearer}`};
+    const listed=await devicesGET(new Request('https://graphics.test/api/devices',{headers}));
+    assert.equal(listed.status,401);
+    assert.equal((await listed.json()).error,'Sign in as an editor or an administrator to manage devices.');
+    for(const body of [{action:'pair_code',name:'Booth Companion'},{action:'create_output',name:'Sanctuary PC'},{action:'revoke',id:credential.id}]){
+     const response=await devicesPOST(deviceRequest(body,headers));
+     assert.equal(response.status,401,`${bearer===companion.token?'a device token':'the legacy key'} cannot ${String(body.action)}`);
+    }
+   }
+   assert.equal(store.codes.size,0);
+   assert.equal(store.credentials.get(credential.id)?.revokedAt,null);
+  });
+ }finally{if(prior===undefined)delete process.env.CONTROL_KEY;else process.env.CONTROL_KEY=prior}
 });
 
 test('a device name must be present and short enough',()=>{

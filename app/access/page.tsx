@@ -7,7 +7,7 @@ import {useCallback,useEffect,useRef,useState} from 'react';
 import './access.css';
 import WorkspaceHeader from '@/components/workspace-header';
 import {resetAccessUserCache} from '@/lib/access-client';
-import {DEVICE_REVOKED_NOTICE,deviceStandingText,readDeviceList,type PairedDevice} from './devices-copy';
+import {DEVICE_REVOKED_NOTICE,activeDevices,deviceKindLabel,deviceStandingText,readDeviceList,type PairedDevice} from './devices-copy';
 import {GOOGLE_UNLINKED_TEXT,googleBlockState,googleConfirmPrompt,googleNotice,readGoogleCode,type GoogleConfirmDetails,type GoogleSignInState} from './google-copy';
 import {memberStanding,requestAgeText,standingText,type PendingInvitation} from './member-status';
 
@@ -31,6 +31,13 @@ export default function AccessPage(){
  /** Paired Companion installations and graphics outputs; owners only, read from /api/devices. */
  const [devices,setDevices]=useState<PairedDevice[]>([]);
  const [deviceRevision,setDeviceRevision]=useState(0);
+ /**
+  * Device actions report inside the Paired devices panel, not in the page-top notice: the
+  * operator is looking at the device row when they press Revoke, and the top of the page
+  * is off-screen by then.
+  */
+ const [deviceMessage,setDeviceMessage]=useState('');
+ const [deviceMessageKind,setDeviceMessageKind]=useState<'error'|'success'>('success');
  /** The role chosen for each waiting request before Approve; Editor until changed. */
  const [requestRoles,setRequestRoles]=useState<Record<string,Role>>({});
  const [token,setToken]=useState('');
@@ -142,16 +149,18 @@ export default function AccessPage(){
   return()=>{active=false};
  },[user?.role,deviceRevision]);
 
+ const deviceNotice=(text:string,kind:'error'|'success'='success')=>{setDeviceMessage(text);setDeviceMessageKind(kind)};
+
  async function revokeDevice(device:PairedDevice){
-  setBusy(true);setMessage('');
+  setBusy(true);setDeviceMessage('');
   try{
    const response=await fetch('/api/devices',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({action:'revoke',id:device.id})});
    const body=await bodyOf(response);
    if(!response.ok)throw Error(body.error||'This action could not be completed.');
-   notice(DEVICE_REVOKED_NOTICE);
+   deviceNotice(DEVICE_REVOKED_NOTICE);
    setDeviceRevision(revision=>revision+1);
   }catch(error){
-   notice(error instanceof Error?error.message:'Connection unavailable.','error');
+   deviceNotice(error instanceof Error?error.message:'Connection unavailable.','error');
   }finally{setBusy(false)}
  }
 
@@ -283,7 +292,9 @@ export default function AccessPage(){
 
     {user.role==='owner'&&<section className="access-panel access-devices">
      <div className="access-panel-heading"><span><MonitorUp size={18}/></span><div><h2>Paired devices</h2><p>Companion installations and graphics outputs that hold their own credential. Revoking one takes effect the next time that device reconnects; a connection that is already open is not interrupted.</p></div></div>
-     <div className="member-list">{devices.length?devices.map(device=><article className="member-row device-row" key={device.id}><div className="member-avatar" aria-hidden>{(device.name||'?').slice(0,1).toUpperCase()}</div><div><strong>{device.name}</strong><span>{deviceStandingText(device,now)}</span></div><div className="member-actions"><button className="member-remove" disabled={busy} onClick={()=>void revokeDevice(device)} aria-label={`Revoke ${device.name}`}>Revoke</button></div></article>):<p className="member-empty">No paired devices yet.</p>}</div>
+     {deviceMessage&&<div className={`access-device-notice ${deviceMessageKind}`} role="status" aria-live="polite">{deviceMessage}</div>}
+     {/* Revoked devices leave the list: the panel is about what can still connect. */}
+     <div className="member-list">{activeDevices(devices).length?activeDevices(devices).map(device=><article className="member-row device-row" key={device.id}><div className="member-avatar" aria-hidden>{(device.name||'?').slice(0,1).toUpperCase()}</div><div><strong>{device.name}</strong><span>{deviceStandingText(device,now)}</span></div><div className="member-actions"><button className="member-remove" disabled={busy} onClick={()=>void revokeDevice(device)} aria-label={`Revoke ${deviceKindLabel(device.kind)} ${device.name}`}>Revoke</button></div></article>):<p className="member-empty">No paired devices yet.</p>}</div>
     </section>}
 
     {user.role==='owner'&&<div className="access-owner-grid">

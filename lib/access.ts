@@ -1,6 +1,6 @@
 import {createHash,randomBytes,randomUUID,scrypt,timingSafeEqual} from 'node:crypto';
 import {rehearsalMode} from './rehearsal';
-import {DEVICE_TOKEN_PREFIX,verifyDeviceToken} from './devices';
+import {DEVICE_TOKEN_PREFIX,verifyDeviceToken,verifyDeviceTokenFresh} from './devices';
 
 export type AccessRole='owner'|'editor'|'operator';
 export type AccessPermission='read'|'control'|'author'|'owner';
@@ -300,7 +300,12 @@ export class MemoryAccessStore implements AccessStore{
 
 export const accessStore:AccessStore=rehearsalMode()?new MemoryAccessStore():new PgAccessStore();
 export async function currentMember(request:Request,store:AccessStore=accessStore){const token=cookieToken(request);if(!/^[A-Za-z0-9_-]{43}$/.test(token))return null;return store.memberForSession(tokenHash(token),Date.now())}
-export async function authorizeRequest(request:Request,permission:AccessPermission='read'):Promise<AccessMember|null>{
+/**
+ * `freshDevice` makes a device token verify against the store directly, bypassing the
+ * D4 positive cache. The realtime ticket route sets it so a revoked device is refused at
+ * its next reconnection; every ordinary API call leaves it off and keeps the D4 cache.
+ */
+export async function authorizeRequest(request:Request,permission:AccessPermission='read',options:{freshDevice?:boolean}={}):Promise<AccessMember|null>{
  const bearer=request.headers.get('authorization')?.replace(/^Bearer /,'')||'';
  // Transitional compatibility for existing Companion and authoring clients. It is
  // deliberately excluded from owner/account administration and should be retired
@@ -311,7 +316,7 @@ export async function authorizeRequest(request:Request,permission:AccessPermissi
  // output credential satisfies read, and neither ever becomes an author or an owner -
  // so a device token is not even looked up for those two permissions.
  if(bearer.startsWith(DEVICE_TOKEN_PREFIX)&&permission!=='author'&&permission!=='owner'){
-  const credential=await verifyDeviceToken(bearer);
+  const credential=options.freshDevice?await verifyDeviceTokenFresh(bearer):await verifyDeviceToken(bearer);
   if(credential&&(credential.kind==='companion'||permission==='read'))return {id:`device:${credential.id}`,email:'',name:credential.name,role:'operator',enabled:true};
  }
  if(!sameSiteWrite(request))return null;

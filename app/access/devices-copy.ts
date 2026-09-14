@@ -32,22 +32,29 @@ export function deviceKindLabel(kind: string): string {
   return kind === "companion" || kind === "output" ? DEVICE_KIND_LABEL[kind] : "Device";
 }
 
-/** "Last seen 12 min ago" — the whole phrase, including the words "Last seen". */
-export function lastSeenText(lastSeenAt: number | null | undefined, now: number): string {
-  if (typeof lastSeenAt !== "number" || !Number.isFinite(lastSeenAt) || lastSeenAt <= 0) return "Last seen never";
+/**
+ * "Last connected 12 min ago" - the whole phrase, including the words "Last connected".
+ *
+ * `last_seen_at` is written when a credential is verified against the store, which now
+ * happens on every new live connection (a realtime ticket verifies afresh), not while a
+ * socket is merely open. So the honest label is when the device last connected, not when
+ * it was last heard from.
+ */
+export function lastConnectedText(lastSeenAt: number | null | undefined, now: number): string {
+  if (typeof lastSeenAt !== "number" || !Number.isFinite(lastSeenAt) || lastSeenAt <= 0) return "Last connected never";
   const minutes = Math.max(0, Math.round((now - lastSeenAt) / 60_000));
-  if (minutes < 1) return "Last seen just now";
-  if (minutes < 60) return `Last seen ${minutes} min ago`;
+  if (minutes < 1) return "Last connected just now";
+  if (minutes < 60) return `Last connected ${minutes} min ago`;
   const hours = Math.round(minutes / 60);
-  if (hours < 48) return `Last seen ${hours} h ago`;
-  return `Last seen ${Math.round(hours / 24)} days ago`;
+  if (hours < 48) return `Last connected ${hours} h ago`;
+  return `Last connected ${Math.round(hours / 24)} days ago`;
 }
 
-/** The full standing line under a device row: kind, then when it was last heard from. */
+/** The full standing line under a device row: kind, then when it last connected. */
 export function deviceStandingText(device: PairedDevice, now: number): string {
   const kind = deviceKindLabel(device.kind);
   if (typeof device.revokedAt === "number" && device.revokedAt > 0) return `${kind} · Revoked`;
-  return `${kind} · ${lastSeenText(device.lastSeenAt, now)}`;
+  return `${kind} · ${lastConnectedText(device.lastSeenAt, now)}`;
 }
 
 /** Revoked devices stay out of the list; the panel is about what can still connect. */

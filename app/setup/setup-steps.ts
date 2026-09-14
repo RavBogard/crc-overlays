@@ -78,6 +78,34 @@ export function autoVerifiedSteps(input: VerificationInput): Partial<Record<Setu
   return verified;
 }
 
+/**
+ * How a self-verifying step should render.
+ *
+ * `manual` is the escape hatch for a deployment whose `/api/state` cannot report presence
+ * at all: the legacy snapshot path answers without a `controllers` key, so step 2 could
+ * never tick itself and the installer would be stranded on it. A body that carries the key
+ * - even as an empty array - is authoritative and stays `pending` until presence appears.
+ */
+export type StepMode = "verified" | "pending" | "manual";
+
+/** True once the probe has answered but the body cannot report that kind of presence. */
+export function presenceListMissing(state: unknown, field: "renderers" | "controllers"): boolean {
+  if (!state || typeof state !== "object") return false;
+  return !Array.isArray((state as Record<string, unknown>)[field]);
+}
+
+/** Step 2: verified by a live controller, manual only where presence cannot be reported. */
+export function companionStepMode(state: unknown, now: number): StepMode {
+  if (freshControllerCount(state, now) > 0) return "verified";
+  return presenceListMissing(state, "controllers") ? "manual" : "pending";
+}
+
+/** Step 3, symmetrically. Both paths report `renderers` today, so `manual` should stay unused. */
+export function outputStepMode(state: unknown, now: number, hasOutputCredential: boolean): StepMode {
+  if (hasOutputCredential && freshRendererCount(state, now) > 0) return "verified";
+  return presenceListMissing(state, "renderers") ? "manual" : "pending";
+}
+
 /** What still needs writing back to `PUT /api/setup-progress`, given what is already stored. */
 export function stepsToPersist(stored: Record<string, boolean>, verified: Partial<Record<SetupStepKey, true>>): Record<string, boolean> {
   const pending: Record<string, boolean> = {};

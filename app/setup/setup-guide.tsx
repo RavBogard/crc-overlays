@@ -5,7 +5,7 @@ import {useCallback, useEffect, useMemo, useRef, useState} from 'react';
 import type {PublicWorkspace} from '@/lib/workspace';
 import WorkspaceHeader from '@/components/workspace-header';
 import {hasNamedOutputCredential, readDeviceList} from '../access/devices-copy';
-import {BACKUP_STEP, COMPANION_STEP, OUTPUT_STEP, REHEARSED_STEP, autoVerifiedSteps, firstUnverifiedStep, stepsToPersist, type SetupStepKey} from './setup-steps';
+import {BACKUP_STEP, COMPANION_STEP, OUTPUT_STEP, REHEARSED_STEP, autoVerifiedSteps, companionStepMode, firstUnverifiedStep, stepsToPersist, type SetupStepKey, type StepMode} from './setup-steps';
 import styles from './setup.module.css';
 
 type Application = 'vmix' | 'obs';
@@ -36,6 +36,12 @@ export default function SetupGuide({workspace}: {workspace: PublicWorkspace}) {
   const [outputUrl, setOutputUrl] = useState('');
   const [outputStatus, setOutputStatus] = useState('');
   const [busy, setBusy] = useState(false);
+  /**
+   * How step 2 can be settled. `manual` only on a deployment whose `/api/state` cannot
+   * report controllers at all - otherwise the step would never tick and the installer
+   * would be stranded on it (A-5).
+   */
+  const [companionMode, setCompanionMode] = useState<StepMode>('pending');
   // null until the first read answers. false means this browser is a legacy key or signed out,
   // so the checklist still works but is remembered only for this page load.
   const [progressPersisted, setProgressPersisted] = useState<boolean | null>(null);
@@ -95,7 +101,9 @@ export default function SetupGuide({workspace}: {workspace: PublicWorkspace}) {
       const response = await fetch('/api/devices', {cache: 'no-store', signal: AbortSignal.timeout(5000)});
       if (response.ok) devices = hasNamedOutputCredential(readDeviceList(await readJson(response)));
     } catch {}
-    const verified = autoVerifiedSteps({state, now: Date.now(), hasOutputCredential: devices});
+    const now = Date.now();
+    setCompanionMode(companionStepMode(state, now));
+    const verified = autoVerifiedSteps({state, now, hasOutputCredential: devices});
     if (Object.keys(verified).length) setSteps(current => ({...current, ...verified}));
     await saveProgress(stepsToPersist(stored, verified));
     return {...stored, ...verified};
@@ -277,7 +285,7 @@ export default function SetupGuide({workspace}: {workspace: PublicWorkspace}) {
           </> : <p className={styles.notice}>The Companion files for this congregation have not been published yet. The congregation’s operator can finish this step when its reviewed module and button pages are ready.</p>}
 
           <div className={styles.pairing}>
-            <label htmlFor="setup-companion-name">Name this computer (for example, Sanctuary PC)</label>
+            <label htmlFor="setup-companion-name">Name this Companion computer (for example, Booth PC)</label>
             <input id="setup-companion-name" autoComplete="off" maxLength={80} value={deviceName} onChange={event => setDeviceName(event.target.value)}/>
             <button className={styles.copyButton} type="button" disabled={busy} onClick={() => void issuePairingCode()}>Pair this Companion</button>
             {pairingCode && <div className={styles.pairingCode}><strong>{pairingCode}</strong><span>Enter this code in Companion within 10 minutes</span></div>}
@@ -292,9 +300,14 @@ export default function SetupGuide({workspace}: {workspace: PublicWorkspace}) {
             </div>
           </details>}
 
-          {steps[COMPANION_STEP] === true
-            ? <Verified>Verified — Companion is connected to this workspace.</Verified>
-            : <p className={styles.pending}>This step ticks itself once Companion connects.</p>}
+          {companionMode === 'manual'
+            ? <label className={styles.confirm}>
+                <input type="checkbox" checked={steps[COMPANION_STEP] === true} onChange={event => setManualStep(COMPANION_STEP, event.target.checked)}/>
+                <span>Companion is connected — I checked it myself.</span>
+              </label>
+            : steps[COMPANION_STEP] === true
+              ? <Verified>Verified — Companion is connected to this workspace.</Verified>
+              : <p className={styles.pending}>This step ticks itself once Companion connects.</p>}
         </div>
       </li>
 
@@ -315,13 +328,14 @@ export default function SetupGuide({workspace}: {workspace: PublicWorkspace}) {
           </div>
 
           <div className={styles.pairing}>
-            <label htmlFor="setup-output-name">Name this computer (for example, Sanctuary PC)</label>
+            <label htmlFor="setup-output-name">Name this graphics computer (for example, Sanctuary PC)</label>
             <input id="setup-output-name" autoComplete="off" maxLength={80} value={outputName} onChange={event => setOutputName(event.target.value)}/>
             <button className={styles.copyButton} type="button" disabled={busy} onClick={() => void createOutputConnection()}>Create an output connection</button>
             {outputUrl && <div className={styles.outputUrl}>
               <input aria-label="Graphics URL" readOnly value={outputUrl} onFocus={event => event.currentTarget.select()}/>
               <button className={styles.copyButton} type="button" onClick={() => void copyGraphicsUrl()}>Copy the graphics URL</button>
-              <p>Paste this into the browser input. It keeps working after restarts.</p>
+              {/* The copied status repeats this sentence, so the static hint stands down while it shows. */}
+              {!outputStatus && <p>Paste this into the browser input. It keeps working after restarts.</p>}
             </div>}
             {outputStatus && <p className={styles.liveMessage} role="status" aria-live="polite">{outputStatus}</p>}
           </div>

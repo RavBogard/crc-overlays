@@ -43,7 +43,7 @@ Setup step 3 ticks itself once a named output connection exists and a graphics b
 
 ## Paired devices and revocation
 
-Administrators see every paired device on `/access` under **Paired devices**: each row names the device, says whether it is a **Companion** or a **Graphics output**, and shows when it was last heard from (for example, *Last seen 12 min ago*). **Revoke** removes a device's credential.
+Administrators see every paired device on `/access` under **Paired devices**: each row names the device, says whether it is a **Companion** or a **Graphics output**, and shows when it last connected (for example, *Last connected 12 min ago*). **Revoke** removes a device's credential and takes it off the list; a notice inside the panel confirms it.
 
 Revocation is deliberately not instantaneous. A revoked device stops at its next reconnection: every new connection is verified against the database, so the credential is refused the moment the device tries to reconnect. A connection that is already open is not interrupted — the relay does not hold credentials and never kicks a live socket. During a database outage a previously verified credential may still be honoured for up to an hour, because dropping every live graphics output when the database is unreachable would be worse. The page says what happens: **Revoked. This device stops at its next reconnection.**
 
