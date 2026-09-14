@@ -14,7 +14,7 @@ import NamesListPanel from './names-list';
 import ServicesGate from './services-gate';
 import SetlistImportSlot from './setlist-import';
 import {useServicesDashboard} from './use-services-dashboard';
-import {call,findGraphics,type Collection,type Coverage,type Dashboard,type Entry,type Source} from './services-data';
+import {call,findGraphics,finderState,type Collection,type Coverage,type Dashboard,type Entry,type Source} from './services-data';
 import {publishedVisibleCount} from '@/lib/catalog-count';
 import './services.css';
 
@@ -30,6 +30,7 @@ export default function ServicesPage(){
  const active=dashboard?.collections.find(item=>item.id===activeId);
  const cueMap=useMemo(()=>new Map(dashboard?.catalog.cues.map(c=>[c.id,c])??[]),[dashboard]);
  const found=useMemo(()=>findGraphics(dashboard?.catalog.cues??[],query),[dashboard,query]);
+ const finderStatus=useMemo(()=>finderState(query,found),[query,found]);
  async function createCollection(event:React.FormEvent){event.preventDefault();let createdId='';const saved=await perform(async()=>{const data=await call<{collection:Collection}>('create_collection',{name:newName,service:newService,entries:[],coverage:[]});createdId=data.collection.id});if(saved){setNewName('');setNewService('');setActiveId(createdId)}}
  async function createFromLibrary(){if(!newName.trim()||!newService.trim()){setError('Enter a collection name and service first.');return}let createdId='';const saved=await perform(async()=>{const data=await call<{collection:Collection}>('create_from_library',{name:newName,service:newService});createdId=data.collection.id});if(saved){setNewName('');setNewService('');setActiveId(createdId)}}
  async function updateCollection(patch:Record<string,unknown>){if(!active)return false;return perform(()=>call('update_collection',{id:active.id,expectedVersion:active.version,...patch}))}
@@ -44,7 +45,7 @@ export default function ServicesPage(){
   <ServicesGate error={error} dashboard={dashboard} needsSignIn={needsSignIn} busy={busy} onRetry={()=>{setNeedsSignIn(false);void load()}}>{dashboard=><>
    <section className="cue-finder" aria-labelledby="cue-finder-heading"><div className="section-heading"><div><p className="services-eyebrow">ALWAYS AVAILABLE</p><h2 id="cue-finder-heading">Global graphic finder</h2><p>Inspect any graphic without sending it live. Add selected graphics to the open collection when useful.</p></div><span>{publishedVisibleCount(dashboard.catalog.cues)} graphics published, visible</span></div>
     <label className="search-label">Search every published graphic<input type="search" value={query} onChange={e=>setQuery(e.target.value)} placeholder="Prayer, title, or graphic ID"/></label>
-    {query.trim()?<div className="cue-grid">{found.map(cue=><article className="cue-card" key={cue.id}><label><input type="checkbox" checked={selected.includes(cue.id)} disabled={!dashboard.permissions.editCollections} onChange={e=>setSelected(current=>e.target.checked?[...current,cue.id]:current.filter(id=>id!==cue.id))}/><span><strong>{cue.name}</strong><small>{cue.layout?layoutLabel(cue.layout):cue.title||''}</small></span></label><Link href={`/?inspect=${encodeURIComponent(cue.id)}`}>Inspect</Link></article>)}</div>:<p className="empty-card">Search to find a graphic. The full published list is on Live control.</p>}
+    {finderStatus==='results'?<div className="cue-grid">{found.map(cue=><article className="cue-card" key={cue.id}><label><input type="checkbox" checked={selected.includes(cue.id)} disabled={!dashboard.permissions.editCollections} onChange={e=>setSelected(current=>e.target.checked?[...current,cue.id]:current.filter(id=>id!==cue.id))}/><span><strong>{cue.name}</strong><small>{cue.layout?layoutLabel(cue.layout):cue.title||''}</small></span></label><Link href={`/?inspect=${encodeURIComponent(cue.id)}`}>Inspect</Link></article>)}</div>:<p className="empty-card">{finderStatus==='none'?'No published graphic matches that search.':'Search to find a graphic. The full published list is on Live control.'}</p>}
     {dashboard.permissions.editCollections&&<div className="selection-bar"><span>{selected.length} selected</span><button disabled={!active||selected.length!==1||busy} onClick={()=>addSelection('cue')}>Add graphic</button><button disabled={!active||selected.length<2||busy} onClick={()=>addSelection('alternates')}>Add as alternates</button><button disabled={!active||selected.length<2||busy} onClick={()=>addSelection('multipart')}>Add as multipart</button></div>}
    </section>
    <div className="services-columns"><aside className="collections-panel"><div className="section-heading"><div><p className="services-eyebrow">OPTIONAL PREPARATION</p><h2>Service collections</h2></div><label className="archive-toggle"><input type="checkbox" checked={showArchived} onChange={e=>setShowArchived(e.target.checked)}/>Show archived</label></div>

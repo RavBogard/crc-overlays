@@ -38,3 +38,12 @@ export function findGraphics<T extends Cue>(cues:readonly T[],query:string):T[]{
  if(!normalized)return [];
  return cues.filter(cue=>flatten(`${cue.name} ${cue.title??''} ${cue.id}`).includes(normalized));
 }
+
+/**
+ * D1 (Phase E browser pass): the finder has three states, not two - a blank query, a query with
+ * no matches, and a query with matches. `found` is the result of `findGraphics` for that query.
+ */
+export function finderState(query:string,found:readonly unknown[]):'empty'|'none'|'results'{
+ if(!query.trim())return 'empty';
+ return found.length?'results':'none';
+}

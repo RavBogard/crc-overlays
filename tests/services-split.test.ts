@@ -3,7 +3,7 @@ import {readFileSync} from 'node:fs';
 import test from 'node:test';
 import {fileURLToPath} from 'node:url';
 import {destinations, isCurrentDestination, visibleDestinations} from '../components/workspace-nav-model.ts';
-import {findGraphics, type Cue} from '../app/services/services-data.ts';
+import {findGraphics, finderState, type Cue} from '../app/services/services-data.ts';
 
 /* X5 (Phase E): `/services` is Prepared services and `/services/log` is Service log. These are
    the facts the split turns on — the two nav pills, the console's route out of a disconnected
@@ -109,6 +109,24 @@ test('a search matches the name, the title or the graphic id, ignoring case and 
 });
 
 test('the finder renders results only once something is typed', () => {
-  assert.ok(preparedPage.includes('{query.trim()?<div className="cue-grid">'), 'the grid is behind a non-empty query');
+  assert.ok(preparedPage.includes("finderStatus==='results'?<div className=\"cue-grid\">"), 'the grid is behind a non-empty query with matches');
   assert.ok(preparedPage.includes('findGraphics('), 'and the results come from the shared, tested matcher');
+});
+
+/* D1 (Phase E browser pass): a non-empty query that matches nothing must not render an empty
+   grid - it renders the no-match sentence instead. `finderState` is the pure helper the page
+   uses to pick between the three cases, so it is the strongest thing this harness can assert
+   without a DOM renderer. */
+
+test('finderState tells apart a blank query, a non-matching query, and a matching query', () => {
+  assert.equal(finderState('', []), 'empty');
+  assert.equal(finderState('   ', []), 'empty');
+  assert.equal(finderState('no such prayer', []), 'none');
+  assert.equal(finderState('barechu', [cue('barechu', 'Barechu')]), 'results');
+});
+
+test('a non-empty, non-matching query renders the no-match sentence, never the grid', () => {
+  assert.equal(finderState('no such prayer', findGraphics(catalog, 'no such prayer')), 'none');
+  assert.ok(preparedPage.includes("finderStatus==='none'?'No published graphic matches that search.'"), 'the page renders that sentence for the none case');
+  assert.ok(!preparedPage.includes('<p className="empty-card">No published graphic matches that search.</p>'), 'the sentence is conditional, not a static paragraph, so it never renders alongside the grid');
 });
