@@ -1,4 +1,5 @@
 import { waitForRenderedOverlayAssets } from "@/lib/overlay-assets";
+import { BUG_RESERVED_RECT, type BugRect } from "@/lib/bug-layer";
 
 const WIDTH = 1920;
 const HEIGHT = 1080;
@@ -40,6 +41,26 @@ export function overlapErrors(occupied: OccupiedRect[], overlap: number): string
   return [...new Set(errors)];
 }
 
+// The ink a graphic actually puts on the frame: every rendered text line's own client
+// rects (so a same-owner wrap is never an overlap) plus the workspace logo. findFitErrors
+// and findBugCollisions share it so the two verdicts cannot drift.
+export function occupiedRects(root: HTMLElement): OccupiedRect[] {
+  const owner = root.ownerDocument ?? document;
+  const occupied: OccupiedRect[] = [];
+  let ownerIndex = 0;
+  for (const element of root.querySelectorAll<HTMLElement>(".overlay .title, .overlay .prayer")) {
+    if (!element.textContent?.trim()) continue;
+    const range = owner.createRange();
+    range.selectNodeContents(element);
+    const name = element.dataset.element || "Text";
+    const index = ownerIndex++;
+    for (const box of range.getClientRects()) occupied.push({ name, owner: index, box });
+  }
+  const logo = root.querySelector<HTMLElement>(".overlay .logo");
+  if (logo) occupied.push({ name: "Workspace logo", owner: ownerIndex++, box: logo.getBoundingClientRect() });
+  return occupied;
+}
+
 export function findFitErrors(root: HTMLElement) {
   const errors: string[] = [];
   const rootBox = root.getBoundingClientRect();
@@ -61,25 +82,7 @@ export function findFitErrors(root: HTMLElement) {
     )
       errors.push(`${name} does not fit its box.`);
   }
-  const occupied: OccupiedRect[] = [];
-  let ownerIndex = 0;
-  for (const element of root.querySelectorAll<HTMLElement>(
-    ".overlay .title, .overlay .prayer",
-  )) {
-    if (!element.textContent?.trim()) continue;
-    const range = document.createRange();
-    range.selectNodeContents(element);
-    const name = element.dataset.element || "Text";
-    const owner = ownerIndex++;
-    for (const box of range.getClientRects()) occupied.push({ name, owner, box });
-  }
-  const logo = root.querySelector<HTMLElement>(".overlay .logo");
-  if (logo)
-    occupied.push({
-      name: "Workspace logo",
-      owner: ownerIndex++,
-      box: logo.getBoundingClientRect(),
-    });
+  const occupied = occupiedRects(root);
   const overlap = FONT_METRIC_TOLERANCE * scale;
   errors.push(...overlapErrors(occupied, overlap));
   return [...new Set(errors)];
@@ -126,4 +129,33 @@ export function findFitWarnings(root: HTMLElement): string[] {
   const ratio = panelFillRatio(root);
   if (ratio !== null && ratio < SPARSE_FILL) return ["Sparse — consider Lower third"];
   return [];
+}
+
+// D6 - the reserved scan-card corner, measured rather than asserted. The card is a fixed
+// rectangle in 1920x1080 stage coordinates (BUG_RESERVED_RECT); this scales it into the
+// measurement stage's own coordinates and runs it through the same overlap machinery, with
+// the same FONT_METRIC_TOLERANCE slack, that findFitErrors uses. A graphic that reaches into
+// the corner is reported, not silently re-cut.
+export const BUG_RESERVED_NAME = "Scan card corner";
+
+export function findBugCollisions(root: HTMLElement, rect: BugRect = BUG_RESERVED_RECT): string[] {
+  if (!root.querySelector(".overlay")) return [];
+  const rootBox = root.getBoundingClientRect();
+  const scale = rootBox.width / WIDTH || 1;
+  const reserved: OccupiedRect = {
+    name: BUG_RESERVED_NAME,
+    owner: -1,
+    box: {
+      left: rootBox.left + rect.left * scale,
+      top: rootBox.top + rect.top * scale,
+      right: rootBox.left + rect.right * scale,
+      bottom: rootBox.top + rect.bottom * scale,
+    },
+  };
+  return bugCollisionErrors(occupiedRects(root), reserved, FONT_METRIC_TOLERANCE * scale);
+}
+
+/** The pure half: which of `occupied` reaches into the reserved rectangle. */
+export function bugCollisionErrors(occupied: OccupiedRect[], reserved: OccupiedRect, overlap: number): string[] {
+  return overlapErrors([...occupied, reserved], overlap).filter((error) => error.includes(reserved.name));
 }

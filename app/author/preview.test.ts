@@ -1,6 +1,7 @@
 import assert from "node:assert/strict";
 import test from "node:test";
-import { FONT_METRIC_TOLERANCE, SPARSE_FILL, findFitWarnings, overlapErrors, panelFillRatio } from "./preview.ts";
+import { BUG_RESERVED_NAME, FONT_METRIC_TOLERANCE, SPARSE_FILL, findBugCollisions, findFitWarnings, overlapErrors, panelFillRatio } from "./preview.ts";
+import { BUG_RESERVED_RECT } from "../../lib/bug-layer.ts";
 
 test("same-owner overlapping rects produce no error", () => {
   const errors = overlapErrors(
@@ -113,4 +114,69 @@ test("a bottom layout root has no panel to measure and never warns", () => {
   const root = fakeRoot({ layout: "bottom", rowHeights: [200] });
   assert.equal(panelFillRatio(root), null);
   assert.deepEqual(findFitWarnings(root), []);
+});
+
+/* ---------------------------------------------------------------------------
+ * D6: the reserved scan-card corner. Same technique as the sparse-fill fakes
+ * above - only the DOM surface occupiedRects() reads is stubbed, including the
+ * root's own document so the text ranges can be handed back as fixed boxes.
+ * The stage is a true 1920x1080 frame, so scale is 1 and the numbers below are
+ * stage coordinates.
+ * ------------------------------------------------------------------------ */
+
+type Box = { left: number; top: number; right: number; bottom: number };
+
+function cueRoot(lines: Array<{ name: string; box: Box }>): HTMLElement {
+  const elements = lines.map((line) => ({
+    dataset: { element: line.name },
+    textContent: line.name,
+    rects: [line.box],
+    getBoundingClientRect: () => line.box,
+  }));
+  const createRange = () => {
+    let current: { rects: Box[] } | null = null;
+    return {
+      selectNodeContents(element: { rects: Box[] }) { current = element; },
+      getClientRects() { return current ? current.rects : []; },
+    };
+  };
+  return {
+    ownerDocument: { createRange },
+    getBoundingClientRect: () => ({ left: 0, top: 0, right: 1920, bottom: 1080, width: 1920, height: 1080 }),
+    querySelector: (selector: string) => (selector === ".overlay" ? {} : null),
+    querySelectorAll: (selector: string) => (selector === ".overlay .title, .overlay .prayer" ? elements : []),
+  } as unknown as HTMLElement;
+}
+
+test("a graphic whose text reaches into the reserved corner is reported", () => {
+  const root = cueRoot([
+    { name: "textTitle", box: { left: 48, top: 42, right: 624, bottom: 92 } },
+    { name: "textMaineng", box: { left: 1264, top: 800, right: 1900, bottom: 900 } },
+  ]);
+  assert.deepEqual(findBugCollisions(root), [`textMaineng overlaps ${BUG_RESERVED_NAME}.`]);
+});
+
+test("a graphic that leaves the corner alone passes, and the corner is the one from lib/bug-layer", () => {
+  const root = cueRoot([
+    { name: "textTitle", box: { left: 48, top: 42, right: 624, bottom: 92 } },
+    { name: "textMainheb", box: { left: 48, top: 184, right: 624, bottom: 1024 } },
+  ]);
+  assert.deepEqual(findBugCollisions(root), []);
+  assert.deepEqual(findBugCollisions(root, BUG_RESERVED_RECT), []);
+});
+
+test("the corner uses the same font-metric tolerance as every other overlap verdict", () => {
+  const touching = cueRoot([
+    { name: "textMaineng", box: { left: 1000, top: 800, right: BUG_RESERVED_RECT.left + FONT_METRIC_TOLERANCE, bottom: 900 } },
+  ]);
+  assert.deepEqual(findBugCollisions(touching), []);
+  const overlapping = cueRoot([
+    { name: "textMaineng", box: { left: 1000, top: 800, right: BUG_RESERVED_RECT.left + FONT_METRIC_TOLERANCE + 2, bottom: 900 } },
+  ]);
+  assert.deepEqual(findBugCollisions(overlapping), [`textMaineng overlaps ${BUG_RESERVED_NAME}.`]);
+});
+
+test("a stage with no rendered graphic reports no corner collision rather than guessing", () => {
+  const empty = { querySelector: () => null } as unknown as HTMLElement;
+  assert.deepEqual(findBugCollisions(empty), []);
 });

@@ -196,3 +196,42 @@ test('TBI baseline duplicates all visible content under independent cue IDs and 
   }
   assert.throws(() => baselineCatalogForWorkspace('unconfigured-community'), /No baseline catalog/);
 });
+
+/* D4 - the scan card is congregation configuration. CRC's built-in profile carries the
+   address, Temple B'nai Israel's workspace.json sets neither variable, and anything that is
+   not a plain https address is refused rather than shipped. */
+test('CRC ships a scan card from its built-in profile and TBI ships the same commit without one', () => {
+  const crc = getPublicWorkspace({});
+  assert.equal(crc.bug.enabled, true);
+  assert.equal(crc.bug.url, 'https://siddur.centralreform.org');
+  assert.equal(crc.bug.caption, 'DAVEN ALONG');
+
+  const tbi = getPublicWorkspace({WORKSPACE_ID: 'temple-bnai-israel-kalamazoo'});
+  assert.deepEqual(tbi.bug, {enabled: false, url: null, caption: null});
+});
+
+test('a congregation can configure its own scan card address and caption', () => {
+  const workspace = getPublicWorkspace({
+    WORKSPACE_ID: 'temple-bnai-israel-kalamazoo',
+    WORKSPACE_BUG_URL: 'https://siddur.example.org/evening',
+    WORKSPACE_BUG_CAPTION: 'Follow along',
+  });
+  assert.deepEqual(workspace.bug, {enabled: true, url: 'https://siddur.example.org/evening', caption: 'Follow along'});
+
+  // A caption without an address is not a scan card.
+  const captionOnly = getPublicWorkspace({WORKSPACE_ID: 'temple-bnai-israel-kalamazoo', WORKSPACE_BUG_CAPTION: 'Follow along'});
+  assert.deepEqual(captionOnly.bug, {enabled: false, url: null, caption: null});
+});
+
+test('the scan card address refuses anything that is not a plain https address', () => {
+  const refuse = (env: Record<string, string>) =>
+    assert.throws(() => getPublicWorkspace({WORKSPACE_ID: 'temple-bnai-israel-kalamazoo', ...env}), /scan card/);
+  refuse({WORKSPACE_BUG_URL: 'http://siddur.example.org'});
+  refuse({WORKSPACE_BUG_URL: 'javascript:alert(1)'});
+  refuse({WORKSPACE_BUG_URL: 'https://user:secret@siddur.example.org'});
+  refuse({WORKSPACE_BUG_URL: 'https://siddur.example.org/#fragment'});
+  refuse({WORKSPACE_BUG_URL: 'https://siddur.example.org/<script>'});
+  refuse({WORKSPACE_BUG_URL: 'siddur.example.org'});
+  refuse({WORKSPACE_BUG_URL: `https://siddur.example.org/${'a'.repeat(200)}`});
+  refuse({WORKSPACE_BUG_URL: 'https://siddur.example.org', WORKSPACE_BUG_CAPTION: 'x'.repeat(41)});
+});

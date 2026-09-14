@@ -27,6 +27,9 @@ export type PublicWorkspace = {
     isolationVerified: boolean;
   };
   bookFaces: boolean;
+  // D4: the scan card is congregation configuration, not code. A congregation with no
+  // scan-card address ships the same commit with the feature absent.
+  bug: {enabled: boolean; url: string | null; caption: string | null};
 };
 
 type WorkspaceEnvironment = Record<string, string | undefined>;
@@ -49,6 +52,10 @@ const CRC_PROFILE: WorkspaceEnvironment = {
   WORKSPACE_ACCENT_COLOR: '#d9a62e',
   WORKSPACE_STAGE: 'trial',
   WORKSPACE_ISOLATION_VERIFIED: 'false',
+  // D4: CRC's scan card, in the built-in profile so no congregation address is hardcoded
+  // anywhere else. The caption is the stream-kit house caption (stream-kit/bug.typ).
+  WORKSPACE_BUG_URL: 'https://siddur.centralreform.org',
+  WORKSPACE_BUG_CAPTION: 'DAVEN ALONG',
 };
 
 const BUILT_IN_PROFILES = new Map<string, WorkspaceEnvironment>([
@@ -88,6 +95,32 @@ function optionalEmail(value: string | undefined) {
   const candidate = value?.trim();
   if (!candidate) return null;
   if (candidate.length > 200 || !SAFE_EMAIL.test(candidate)) throw new Error('Workspace support email is invalid');
+  return candidate;
+}
+
+/**
+ * D4 — the scan-card address. `https:` only, at most 200 characters, no credentials and
+ * no fragment, validated here the way publicPath and optionalEmail are. Anything invalid
+ * throws rather than silently shipping a card that points somewhere unexpected.
+ */
+function bugUrl(value: string | undefined) {
+  const candidate = value?.trim();
+  if (!candidate) return null;
+  if (candidate.length > 200 || /[\u0000-\u0020\u007f<>]/.test(candidate)) throw new Error('Workspace scan card address is invalid');
+  let parsed: URL;
+  try {
+    parsed = new URL(candidate);
+  } catch {
+    throw new Error('Workspace scan card address is invalid');
+  }
+  if (parsed.protocol !== 'https:' || parsed.username || parsed.password || parsed.hash) throw new Error('Workspace scan card address is invalid');
+  return candidate;
+}
+
+function bugCaption(value: string | undefined) {
+  const candidate = value?.trim();
+  if (!candidate) return null;
+  if (candidate.length > 40 || /[\u0000-\u001f\u007f<>]/.test(candidate)) throw new Error('Workspace scan card caption is invalid');
   return candidate;
 }
 
@@ -178,6 +211,10 @@ export function getPublicWorkspace(env: WorkspaceEnvironment = process.env): Pub
     // Trial "book faces" (David Libre / Frank Ruhl Libre) typography, default off; see
     // app/overlay-faces.css and lib/overlay-assets.ts waitForOverlayFonts.
     bookFaces: resolved.WORKSPACE_BOOK_FACES === '1' || resolved.WORKSPACE_BOOK_FACES === 'true',
+    bug: (() => {
+      const url = bugUrl(resolved.WORKSPACE_BUG_URL);
+      return {enabled: Boolean(url), url, caption: url ? bugCaption(resolved.WORKSPACE_BUG_CAPTION) : null};
+    })(),
   };
 }
 import templeBnaiIsraelProfile from '../workspaces/temple-bnai-israel/workspace.json';

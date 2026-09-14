@@ -1,10 +1,15 @@
 import type {Cue} from './player';
+import type {BugState} from './bug-layer';
 
 export type RealtimeRole='control'|'output'|'preview';
 export type RealtimeStatus='bootstrapping'|'live'|'reconnecting'|'stopped';
 
 export type RendererAck={id:string;revision:number;cue:string|null;phase:string;seen?:number};
-export type RealtimeSnapshot={revision:number;cue:string|null;mode:'animate'|'cut';updated:number;cuePayload:Cue|null;catalogVersion:string;renderers:RendererAck[];serverTime:number};
+/* D1/D5: the relay carries the scan card as one optional field on live state, so a snapshot
+   written by a worker that predates it reads as "no scan card". isSnapshot is deliberately
+   unchanged — it validates the fields the renderer depends on and tolerates new keys, which
+   is what lets a 1.4.0-shaped client keep working against a newer relay. */
+export type RealtimeSnapshot={revision:number;cue:string|null;mode:'animate'|'cut';updated:number;cuePayload:Cue|null;catalogVersion:string;renderers:RendererAck[];serverTime:number;bug?:BugState};
 
 type Ticket={url:string;ticket:string;heartbeatMs:number;staleMs:number;protocol:1};
 type SocketLike={readyState:number;onopen:null|((event:Event)=>void);onmessage:null|((event:MessageEvent<unknown>)=>void);onclose:null|((event:Event)=>void);onerror:null|((event:Event)=>void);send(data:string):void;close(code?:number,reason?:string):void};

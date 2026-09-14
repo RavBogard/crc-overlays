@@ -12,7 +12,7 @@ import WorkspaceHeader from "@/components/workspace-header";
 import SignInCard from "@/components/sign-in-card";
 import { layoutLabel } from "@/lib/layout-label";
 import { publishedVisibleCount } from "@/lib/catalog-count";
-import { findFitErrors, findFitWarnings, panelFillRatio, waitForPreviewAssets } from "../preview";
+import { findBugCollisions, findFitErrors, findFitWarnings, panelFillRatio, waitForPreviewAssets } from "../preview";
 import { authoringCall, AuthoringApiError } from "../api";
 import type { Draft, EphemeralPreviewResult } from "../types";
 import { candidateFor, editableOnly, summarizeT1, t1SummaryLine, verdict, type T1CandidateCue, type T1RowVerdict } from "./t1-report";
@@ -28,6 +28,7 @@ type FitRow = {
   englishOnly: boolean;
   titleLength: number;
   fitErrors: string[];
+  bugCollisions: string[];
   mainFontSizePx: number | null;
   hebrewFontSizePx: number | null;
   imageAssetId: string | null;
@@ -40,6 +41,7 @@ type FitRow = {
 
 type Measurement = {
   fitErrors: string[];
+  bugCollisions: string[];
   warnings: string[];
   fill: number | null;
   mainFontSizePx: number | null;
@@ -69,13 +71,15 @@ async function measureCue(root: HTMLElement, branding: OverlayBranding, cue: Cue
     if (box instanceof HTMLElement) player.applyFit(box, cue);
     return {
       fitErrors: findFitErrors(root),
+      // D6 - the reserved scan-card corner, measured in the same render as the fit verdict.
+      bugCollisions: findBugCollisions(root),
       warnings: findFitWarnings(root),
       fill: panelFillRatio(root),
       mainFontSizePx: fontSizeOf(root, ".overlay .prayer"),
       hebrewFontSizePx: fontSizeOf(root, ".overlay .hebrew, .overlay .row-hebrew"),
     };
   } catch {
-    return { fitErrors: ["Fonts or artwork did not load in time."], warnings: [], fill: null, mainFontSizePx: null, hebrewFontSizePx: null };
+    return { fitErrors: ["Fonts or artwork did not load in time."], bugCollisions: [], warnings: [], fill: null, mainFontSizePx: null, hebrewFontSizePx: null };
   } finally {
     player.dispose();
   }
@@ -149,6 +153,7 @@ export default function FitCheckClient() {
           englishOnly: !hasHebrew,
           titleLength: (cue.texts?.textTitle || "").length,
           fitErrors: current.fitErrors,
+          bugCollisions: current.bugCollisions,
           mainFontSizePx: current.mainFontSizePx,
           hebrewFontSizePx: current.hebrewFontSizePx,
           imageAssetId: cue.presentation?.imageAssetId || null,
@@ -213,6 +218,8 @@ export default function FitCheckClient() {
   } as CSSProperties : undefined;
   const failing = rows.filter((row) => row.fitErrors.length);
   const sorted = [...rows].sort((left, right) => (right.fitErrors.length ? 1 : 0) - (left.fitErrors.length ? 1 : 0));
+  const scanCardColumn = Boolean(workspace?.bug?.enabled);
+  const columnCount = scanCardColumn ? 11 : 10;
   const t1 = summarizeT1(rows.map((row) => ({ id: row.id, name: row.name, verdict: row.t1Verdict, code: row.t1Code })));
   const report = JSON.stringify({ frame: "1920x1080", total, checked: rows.length, needsAttention: failing.length, t1, cues: rows }, null, 2);
 
@@ -252,6 +259,7 @@ export default function FitCheckClient() {
                   <th scope="col">Main font</th>
                   <th scope="col">Hebrew font</th>
                   <th scope="col">Current</th>
+                  {scanCardColumn && <th scope="col">Scan card corner</th>}
                   <th scope="col">Paired rows</th>
                   <th scope="col">Verdict</th>
                 </tr>
@@ -269,6 +277,9 @@ export default function FitCheckClient() {
                     <td>{row.fitErrors.length
                       ? <ul className={styles.errors}>{row.fitErrors.map((item) => <li key={item}>{item}</li>)}</ul>
                       : <span className={styles.ok}>Fits</span>}</td>
+                    {scanCardColumn && <td>{row.bugCollisions.length
+                      ? <ul className={styles.errors}>{row.bugCollisions.map((item) => <li key={item}>{item}</li>)}</ul>
+                      : <span className={styles.ok}>Clear</span>}</td>}
                     <td>{row.t1Verdict === "not applicable"
                       ? "—"
                       : row.t1Verdict === "cannot rebuild automatically"
@@ -281,7 +292,7 @@ export default function FitCheckClient() {
                       : <span className={row.t1Verdict === "unchanged" ? styles.ok : styles.needs}>{row.t1Verdict}</span>}</td>
                   </tr>
                 ))}
-                {!sorted.length && <tr><td colSpan={10}>{busy ? "Checking…" : "No published graphics were returned."}</td></tr>}
+                {!sorted.length && <tr><td colSpan={columnCount}>{busy ? "Checking…" : "No published graphics were returned."}</td></tr>}
               </tbody>
             </table>
           </div>

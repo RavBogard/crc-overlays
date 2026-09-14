@@ -98,3 +98,24 @@ test('disconnect holds client state, mints a fresh ticket, and stop cancels furt
  const reconnect=[...h.timeouts.values()][0];reconnect();await settle();assert.equal(h.urls.length,2);assert.equal(h.sockets.length,2);h.sockets[0].receive({type:'snapshot',snapshot:snapshot(99)});h.sockets[1].open();h.sockets[1].receive({type:'snapshot',snapshot:snapshot(4)});await settle();assert.deepEqual(h.snapshots.map(value=>value.revision),[3,4]);
  h.transport.stop();for(const callback of h.timeouts.values())callback();await settle();assert.equal(h.urls.length,2);
 });
+
+/* D1/D5: the relay's live state gained an optional scan-card field. isSnapshot is deliberately
+   not an exact-shape check - it validates what the renderer depends on and tolerates keys it
+   does not know - which is what lets an older client keep working against a newer relay and,
+   here, a newer client read the new field. */
+test('a snapshot carrying the scan card is accepted and delivered with the field intact',async()=>{
+ const h=harness();h.transport.start();await settle();h.sockets[0].open();
+ h.sockets[0].receive({type:'snapshot',snapshot:{...snapshot(3),bug:{on:true,page:'122'}}});await settle();
+ assert.deepEqual(h.snapshots.at(-1)?.bug,{on:true,page:'122'});
+ h.transport.stop();
+});
+
+test('a snapshot without the scan card is unchanged and reads as no scan card',async()=>{
+ const h=harness();h.transport.start();await settle();h.sockets[0].open();
+ h.sockets[0].receive({type:'snapshot',snapshot:snapshot(4)});await settle();
+ const received=h.snapshots.at(-1);
+ assert.equal(received?.revision,4);
+ assert.equal(received?.bug,undefined);
+ assert.equal(Object.prototype.hasOwnProperty.call(received,'bug'),false);
+ h.transport.stop();
+});

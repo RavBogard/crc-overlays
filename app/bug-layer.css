@@ -1,0 +1,13 @@
+/* D5/D6/D8 — the scan card layer. Reproduces the stream-kit `bug.typ` mode=card artwork
+   (parchment #fbf7ef, ink #1b1b24, gold #bd8a2e) in CSS; the Typst toolchain is not shipped.
+   Every measurement is in 1920 x 1080 stage pixels, and the card stays inside
+   BUG_RESERVED_RECT (lib/bug-layer.ts): 300 x 300, inset 48 px from the right and bottom. */
+#output-bug{position:absolute;width:1920px;height:1080px;transform-origin:top left;overflow:hidden;pointer-events:none}
+/* The card paints UNDER the prayer layer: it is the earlier sibling of #output with no z-index, so a Right panel or Lower third whose box reaches the corner covers it, and it shows through wherever the graphic is transparent. Prayer text is never occluded (Phase D risk 10). */
+#output-bug[data-bug='off']{display:none}
+#output-bug .bug-card{position:absolute;left:1572px;top:732px;width:300px;height:300px;box-sizing:border-box;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:12px;padding:16px;background:#fbf7ef;border:2px solid #bd8a2e;border-radius:14px;box-shadow:0 16px 40px rgba(2,17,31,.28)}
+#output-bug .bug-qr{width:188px;height:188px;display:block;image-rendering:pixelated;background:#fbf7ef}
+#output-bug .bug-words{display:flex;flex-direction:column;align-items:center;gap:6px;max-width:268px}
+#output-bug .bug-caption{margin:0;font-family:WorkRefresh,Arial,sans-serif;font-weight:500;font-size:22px;line-height:1.1;letter-spacing:.06em;text-transform:uppercase;color:#1b1b24;text-align:center;overflow:hidden}
+#output-bug .bug-page{font-family:WorkRefresh,Arial,sans-serif;font-size:18px;line-height:1.1;padding:3px 10px;border-radius:999px;border:1px solid #bd8a2e;color:#1b1b24;background:rgba(189,138,46,.14);white-space:nowrap}
+#output-bug .bug-caption[hidden],#output-bug .bug-page[hidden]{display:none}
