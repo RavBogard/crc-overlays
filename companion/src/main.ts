@@ -1,7 +1,8 @@
 import { combineRgb, InstanceBase, InstanceStatus, type CompanionActionDefinitions, type CompanionFeedbackDefinitions, type CompanionPresetDefinitions, type CompanionPresetSection, type InstanceTypes, type SomeCompanionConfigField } from '@companion-module/base'
 import { CatalogStore, cuePresetId, hasCatalogCue, visibleCatalogCues, type CatalogCue } from './catalog.js'
-import { CatalogRefreshCoordinator, deriveFeedback, isNewerSnapshot, OverlayClient, toggleAction, type FeedbackState, type OverlaySnapshot, type RealtimeSubscription, type RendererState, type WebSocketFactory } from './client.js'
+import { CatalogRefreshCoordinator, deriveFeedback, isNewerSnapshot, OverlayClient, toggleAction, validBugPage, type BugState, type FeedbackState, type OverlaySnapshot, type RealtimeSubscription, type RendererState, type WebSocketFactory } from './client.js'
 import { redeemPairingCode } from './pairing.js'
+import { panelSets, panelTarget } from './panel.js'
 import { connectionLabel, overlayVariables } from './variables.js'
 import { moduleVersion } from './version.js'
 
@@ -9,6 +10,7 @@ import { moduleVersion } from './version.js'
 // drops and reconnects inside the first reconnect delay does not flash the buttons red.
 const DISCONNECTED_GRACE_MS = 3_000
 const RENDERER_STALE_MS = 30_000
+const PAGE_TOOLTIP = 'A page number or short label shown beside the scan card. Clear now removes it.'
 
 const FALLBACK_CUES: CatalogCue[] = [
   { id: 'efa9fad4-f7d5-4091-a708-82103028861b', name: 'Barechu', layout: 'bottom' },
@@ -30,15 +32,22 @@ interface Manifest extends InstanceTypes {
     animate_clear: { options: Record<string, never> }
     clear_now: { options: Record<string, never> }
     refresh_catalog: { options: Record<string, never> }
+    bug_on: { options: Record<string, never> }
+    bug_off: { options: Record<string, never> }
+    set_page: { options: { page: string } }
+    next_panel: { options: { set: string } }
+    previous_panel: { options: { set: string } }
   }
   feedbacks: {
     requested: { type: 'boolean'; options: { cue: string } }
     rendered: { type: 'boolean'; options: { cue: string } }
     disconnected: { type: 'boolean'; options: Record<string, never> }
+    bug_visible: { type: 'boolean'; options: Record<string, never> }
   }
   variables: {
     requested_cue: string; revision: number; renderer_status: string
     current_name: string; current_panel: string; panel_count: string; connection: string; requested_name: string
+    bug: string; bug_page: string
   }
 }
 
@@ -80,6 +89,8 @@ export default class CrcOverlaysInstance extends InstanceBase<Manifest> {
       requested_cue: { name: 'Requested cue' },
       revision: { name: 'Requested revision' },
       renderer_status: { name: 'Renderer status' },
+      bug: { name: 'Scan card' },
+      bug_page: { name: 'Scan card page' },
     })
     this.#defineActions(); this.#defineFeedbacks(); this.#definePresets()
     await this.#applyConfig(config, secrets)
@@ -192,7 +203,7 @@ export default class CrcOverlaysInstance extends InstanceBase<Manifest> {
     if (this.#graceTimer) clearTimeout(this.#graceTimer)
     this.#graceTimer = null
   }
-  async #command(action: 'in' | 'out' | 'clear' | 'cut', cue?: string): Promise<void> {
+  async #command(action: 'in' | 'out' | 'clear' | 'cut' | 'bug', cue?: string, bug?: BugState): Promise<void> {
     const client = this.#client
     const generation = this.#generation
     if (!client || this.#destroyed) return
@@ -202,7 +213,7 @@ export default class CrcOverlaysInstance extends InstanceBase<Manifest> {
       return
     }
     try {
-      const snapshot = await client.activate(action, cue)
+      const snapshot = await client.activate(action, cue, bug)
       if (generation !== this.#generation || this.#destroyed) return
       this.#acceptSnapshot(snapshot)
       this.updateStatus(InstanceStatus.Ok)
@@ -278,8 +289,34 @@ export default class CrcOverlaysInstance extends InstanceBase<Manifest> {
       currentName: state.rendered ? requestedName : '',
       revision: this.#snapshot?.revision ?? 0,
       connection: connectionLabel(!rawDisconnected, state.disconnected),
+      bugOn: this.#snapshot?.bug?.on === true,
+      bugPage: this.#bugPage(),
     }))
     this.checkAllFeedbacks()
+  }
+
+  /** The page the live state currently carries, blank when there is no scan card. */
+  #bugPage(): string {
+    return this.#snapshot?.bug?.page ?? ''
+  }
+
+  // A page the relay would refuse never becomes a request: the refusal is the
+  // same sentence the console shows, and the live state is left untouched.
+  async #setPage(page: string): Promise<void> {
+    if (!validBugPage(page)) {
+      this.log('warn', 'Page must be 12 characters or fewer.')
+      this.updateStatus(InstanceStatus.UnknownWarning, 'Page must be 12 characters or fewer.')
+      return
+    }
+    await this.#command('bug', undefined, { on: true, page: page || null })
+  }
+
+  // The target comes from the live cue's published name and the catalog only.
+  // Nothing selected and nothing to derive means nothing is sent.
+  async #panelStep(step: 1 | -1, selectedSet: string): Promise<void> {
+    const target = panelTarget(this.#catalog.cues, this.#snapshot?.cue ?? null, step, selectedSet)
+    if (!target) return
+    await this.#cueCommand('in', target)
   }
 
   #cueName(cue: string | null): string {
@@ -289,6 +326,10 @@ export default class CrcOverlaysInstance extends InstanceBase<Manifest> {
   #defineActions(): void {
     const choices = visibleCatalogCues(this.#catalog.cues).map(cue => ({ id: cue.id, label: cue.name }))
     const defaultCue = choices[0]?.id ?? FALLBACK_CUES[0]!.id
+    // "None" is the resting state of the panel-set option: with nothing chosen,
+    // Next panel only ever continues a set that is already on screen.
+    const setChoices = [{ id: '', label: 'None' }, ...panelSets(visibleCatalogCues(this.#catalog.cues)).map(set => ({ id: set.title, label: set.title }))]
+    const defaultSet = ''
     const actions: CompanionActionDefinitions<Manifest['actions']> = {
       show_cue: { name: 'Show cue', description: 'Request a cue with its In animation.', options: [{ type: 'dropdown', id: 'cue', label: 'Cue', choices, default: defaultCue }], callback: async event => this.#cueCommand('in', String(event.options.cue)) },
       toggle_cue: { name: 'Toggle cue', description: 'Shows the cue with its In animation, or animates it out if it is already the requested cue.', options: [{ type: 'dropdown', id: 'cue', label: 'Cue', choices, default: defaultCue }], callback: async event => { const cue = String(event.options.cue); return this.#cueCommand(toggleAction(this.#snapshot?.cue ?? null, cue), cue) } },
@@ -296,6 +337,11 @@ export default class CrcOverlaysInstance extends InstanceBase<Manifest> {
       animate_clear: { name: 'Animate out', description: 'Animate the currently requested graphic out, regardless of which cue it is.', options: [], callback: async () => this.#command('clear') },
       clear_now: { name: 'Clear now', description: 'Immediately cancel animation and clear the graphics output.', options: [], callback: async () => this.#command('cut') },
       refresh_catalog: { name: 'Refresh cue catalog', description: 'Fetch and validate the authenticated cue catalog, retaining the prior list on failure.', options: [], callback: async () => this.#refreshCatalog() },
+      bug_on: { name: 'Bug on', description: 'Show the scan card, keeping whichever page is set.', options: [], callback: async () => this.#command('bug', undefined, { on: true, page: this.#snapshot?.bug?.page ?? null }) },
+      bug_off: { name: 'Bug off', description: 'Hide the scan card and its page.', options: [], callback: async () => this.#command('bug', undefined, { on: false, page: null }) },
+      set_page: { name: 'Set page', description: 'Show the scan card with this page beside it.', options: [{ type: 'textinput', id: 'page', label: 'Page', default: '', regex: '^$|^[A-Za-z0-9 .,\\-–]{1,12}$', tooltip: PAGE_TOOLTIP }], callback: async event => this.#setPage(String(event.options.page ?? '')) },
+      next_panel: { name: 'Next panel', description: 'Show the next panel of the multipart graphic on screen, wrapping at the last one. From anything else, show panel 01 of the chosen set.', options: [{ type: 'dropdown', id: 'set', label: 'Panel set', choices: setChoices, default: defaultSet }], callback: async event => this.#panelStep(1, String(event.options.set ?? '')) },
+      previous_panel: { name: 'Previous panel', description: 'Show the previous panel of the multipart graphic on screen, wrapping at the first one. From anything else, show panel 01 of the chosen set.', options: [{ type: 'dropdown', id: 'set', label: 'Panel set', choices: setChoices, default: defaultSet }], callback: async event => this.#panelStep(-1, String(event.options.set ?? '')) },
     }
     this.setActionDefinitions(actions)
   }
@@ -305,6 +351,7 @@ export default class CrcOverlaysInstance extends InstanceBase<Manifest> {
     const feedbacks: CompanionFeedbackDefinitions<Manifest['feedbacks']> = {
       requested: { type: 'boolean', name: 'Cue requested', description: 'The API accepted this desired state; it does not prove rendering.', defaultStyle: { bgcolor: combineRgb(180, 110, 0), color: combineRgb(255, 255, 255) }, options: [{ type: 'dropdown', id: 'cue', label: 'Cue', choices: targets, default: defaultCue }], callback: event => String(event.options.cue || '') === (this.#snapshot?.cue ?? '') },
       rendered: { type: 'boolean', name: 'Cue rendered', description: 'A connected graphics browser reports this exact requested revision settled. Not an on-air/tally signal.', defaultStyle: { bgcolor: combineRgb(0, 130, 70), color: combineRgb(255, 255, 255) }, options: [{ type: 'dropdown', id: 'cue', label: 'Cue', choices: targets, default: defaultCue }], callback: event => { const state = this.#feedbackState(); return state.rendered && String(event.options.cue || '') === (this.#snapshot?.cue ?? '') } },
+      bug_visible: { type: 'boolean', name: 'Scan card visible', description: 'The live state carries a scan card.', defaultStyle: { bgcolor: combineRgb(0, 90, 140), color: combineRgb(255, 255, 255) }, options: [], callback: () => this.#snapshot?.bug?.on === true },
       disconnected: { type: 'boolean', name: 'Realtime or renderer disconnected', description: 'The realtime subscription is closed or no graphics browser presence has arrived for 30 seconds.', defaultStyle: { bgcolor: combineRgb(175, 0, 0), color: combineRgb(255, 255, 255) }, options: [], callback: () => this.#feedbackState().disconnected },
     }
     this.setFeedbackDefinitions(feedbacks)
@@ -322,6 +369,8 @@ export default class CrcOverlaysInstance extends InstanceBase<Manifest> {
     }
     presets.animate_out = { type: 'simple', name: 'Animate out', style: { text: 'Animate\nOut', size: '14', color: combineRgb(255, 255, 255), bgcolor: combineRgb(65, 65, 65) }, steps: [{ down: [{ actionId: 'animate_clear', options: {} }], up: [] }], feedbacks: [{ feedbackId: 'rendered', options: { cue: '' }, style: { bgcolor: combineRgb(0, 130, 70) } }, { feedbackId: 'disconnected', options: {}, style: { bgcolor: combineRgb(175, 0, 0) } }] }
     presets.clear_now = { type: 'simple', name: 'Clear now', style: { text: 'CLEAR\nNOW', size: '14', color: combineRgb(255, 255, 255), bgcolor: combineRgb(120, 0, 0) }, steps: [{ down: [{ actionId: 'clear_now', options: {} }], up: [] }], feedbacks: [{ feedbackId: 'rendered', options: { cue: '' }, style: { bgcolor: combineRgb(0, 130, 70) } }, { feedbackId: 'disconnected', options: {}, style: { bgcolor: combineRgb(175, 0, 0) } }] }
+    presets.bug = { type: 'simple', name: 'Scan card', style: { text: 'Scan\ncard', size: '14', color: combineRgb(255, 255, 255), bgcolor: combineRgb(35, 35, 35) }, steps: [{ down: [{ actionId: 'bug_on', options: {} }], up: [] }, { down: [{ actionId: 'bug_off', options: {} }], up: [] }], feedbacks: [{ feedbackId: 'bug_visible', options: {}, style: { bgcolor: combineRgb(0, 90, 140) } }, { feedbackId: 'disconnected', options: {}, style: { bgcolor: combineRgb(175, 0, 0) } }] }
+    presets.next_panel = { type: 'simple', name: 'Next panel', style: { text: 'Next\npanel', size: '14', color: combineRgb(255, 255, 255), bgcolor: combineRgb(35, 35, 35) }, steps: [{ down: [{ actionId: 'next_panel', options: { set: '' } }], up: [] }], feedbacks: [{ feedbackId: 'disconnected', options: {}, style: { bgcolor: combineRgb(175, 0, 0) } }] }
     // Button text reads this connection's own variables, so the label is resolved
     // at definition time and redefined whenever the connection is renamed.
     const label = this.label || 'overlays'

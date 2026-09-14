@@ -15,6 +15,8 @@ export interface OverlayVariables {
   panel_count: string
   connection: string
   requested_name: string
+  bug: string
+  bug_page: string
 }
 
 /**
@@ -34,6 +36,10 @@ export interface VariableInput {
   currentName: string
   revision: number
   connection: ConnectionLabel
+  /** Whether the live state carries a scan card. A snapshot without one is Off. */
+  bugOn?: boolean
+  /** The page beside the scan card, blank whenever there is none. */
+  bugPage?: string
 }
 
 export function overlayVariables(input: VariableInput): OverlayVariables {
@@ -46,6 +52,8 @@ export function overlayVariables(input: VariableInput): OverlayVariables {
     panel_count: panel?.count ?? '',
     connection: input.connection,
     revision: input.revision,
+    bug: input.bugOn ? 'On' : 'Off',
+    bug_page: input.bugPage ?? '',
     renderer_status: input.connection === 'Disconnected' ? 'Disconnected' : input.currentName ? 'Rendered' : 'Requested',
   }
 }

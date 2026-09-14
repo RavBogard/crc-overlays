@@ -25,11 +25,19 @@ Requests time out instead of hanging indefinitely. The module holds a realtime s
 - **Animate out** animates whichever graphic is currently requested out.
 - **Clear now** immediately cuts the requested graphic.
 - **Refresh cue catalog** safely updates cue choices and presets from the authenticated API.
+- **Bug on** shows the scan card, keeping whichever page is already set.
+- **Bug off** hides the scan card and its page.
+- **Set page** shows the scan card with the page typed into the action. A page is at most twelve characters of letters, digits, spaces and light punctuation; a longer or unusual page is refused here, before anything is sent.
+- **Next panel** shows the next panel of the multipart graphic on screen, wrapping from the last panel to the first. From a single-part graphic, a cleared output or an unknown graphic it shows panel 01 of the **Panel set** chosen in the action; with **None** chosen it does nothing.
+- **Previous panel** is the same step backward, wrapping from the first panel to the last.
+
+**Clear now** removes the scan card along with the graphic. **Animate out** leaves the card alone. If the deployment has no scan card set up, these actions are refused and the refusal is shown as the connection status.
 
 ## Feedback
 
 - **Cue requested** reflects the API's desired state.
 - **Cue rendered** requires a fresh renderer heartbeat whose cue and revision match the request and whose phase is settled.
+- **Scan card visible** is on while the live state carries a scan card.
 - **API or renderer disconnected** detects a closed realtime subscription or the absence of a fresh renderer, after a 3 second grace window so a brief reconnect does not flash red.
 
 ## Variables
@@ -46,7 +54,9 @@ Button text can show any of these. The prefix is this connection's name, so `$(o
 | `requested_cue` | Requested cue | The same value under its 1.3.0 name, kept so existing buttons do not break. |
 | `revision` | Requested revision | The revision of the current request. |
 | `renderer_status` | Renderer status | `Rendered`, `Requested`, or `Disconnected`. |
+| `bug` | Scan card | `On` or `Off`. `Off` whenever the live state carries no scan card. |
+| `bug_page` | Scan card page | The short page beside the scan card. Blank when there is none. |
 
-Two presets, **Connection and current graphic** and **Current panel**, come ready to drop onto a button.
+Four presets come ready to drop onto a button: **Connection and current graphic**, **Current panel**, **Scan card** (a toggle that lights while the card is visible) and **Next panel**.
 
 "Rendered" describes the graphics browser. It is not proof that the video switcher has the graphics source on program. Never copy the masked control key into actions, variables, logs, screenshots, or shared exports.

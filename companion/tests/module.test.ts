@@ -1,111 +1,11 @@
 import { readFileSync } from 'node:fs'
 import { afterEach, describe, expect, it, vi } from 'vitest'
 import { InstanceStatus } from '@companion-module/base'
-import CrcOverlaysInstance from '../src/main.js'
 import { moduleVersion, parseVersion, readVersionFrom, versionCandidates } from '../src/version.js'
 import { parseSnapshot } from '../src/client.js'
+import { config, destroyAll, harness, secrets, snapshotFrame, start, PAIRED_TOKEN, PREVIOUS_TOKEN } from './harness.js'
 
-const PAIRED_TOKEN = 'cd_abcdefghijkl.mnopqrstuvwxyz0123456789ABCDEFGHIJKLMNOPQ'
-const PREVIOUS_TOKEN = 'cd_zyxwvutsrqpo.0123456789abcdefghijklmnopqrstuvwxyzABCDE'
-const CUE = 'efa9fad4-f7d5-4091-a708-82103028861b'
-
-const bootstrap = { url: 'wss://relay.example.test/connect', ticket: 'one-time-ticket', heartbeatMs: 10_000, staleMs: 30_000, protocol: 1 }
-const snapshotFrame = (overrides: Record<string, unknown> = {}) => ({
-  type: 'snapshot',
-  snapshot: {
-    revision: 4, cue: CUE, mode: 'animate', updated: 1_000, catalogVersion: 'catalog-1', serverTime: 10_000,
-    renderers: [{ id: 'output', revision: 4, cue: CUE, phase: 'settled', seen: 9_500 }],
-    ...overrides,
-  },
-})
-
-class FakeSocket {
-  protocol = 'crc-overlays-v1'
-  readyState = 1
-  sent: string[] = []
-  readonly listeners = new Map<string, Array<(event: Event | MessageEvent) => void>>()
-  addEventListener(type: string, listener: (event: Event | MessageEvent) => void): void {
-    this.listeners.set(type, [...(this.listeners.get(type) ?? []), listener])
-  }
-  send(data: string): void { this.sent.push(data) }
-  close(code?: number, reason?: string): void { this.readyState = 3; this.emit('close', new CloseEvent('close', { code, reason })) }
-  emit(type: string, event: Event | MessageEvent = new Event(type)): void { for (const listener of this.listeners.get(type) ?? []) listener(event) }
-  message(value: unknown): void { this.emit('message', new MessageEvent('message', { data: JSON.stringify(value) })) }
-}
-
-interface Harness {
-  instance: CrcOverlaysInstance
-  saved: Array<{ config: Record<string, unknown> | undefined; secrets: Record<string, unknown> | undefined }>
-  statuses: Array<{ status: InstanceStatus; message: string | null }>
-  variables: Array<Record<string, unknown>>
-  variableDefinitions: Record<string, { name: string }>
-  presets: Record<string, { style?: { text?: string } }>
-  requests: Array<{ url: string; authorization: string | null; body: unknown }>
-  sockets: FakeSocket[]
-}
-
-function harness(options: { redeem?: () => Response } = {}): Harness {
-  const saved: Harness['saved'] = []
-  const statuses: Harness['statuses'] = []
-  const variables: Harness['variables'] = []
-  const requests: Harness['requests'] = []
-  const sockets: FakeSocket[] = []
-  let variableDefinitions: Record<string, { name: string }> = {}
-  let presets: Record<string, { style?: { text?: string } }> = {}
-
-  const fetchMock = (async (url: string | URL | Request, init?: RequestInit) => {
-    const target = String(url)
-    requests.push({ url: target, authorization: new Headers(init?.headers).get('Authorization'), body: init?.body ? JSON.parse(String(init.body)) : null })
-    if (target.endsWith('/api/pairing/redeem')) return options.redeem?.() ?? new Response(JSON.stringify({ token: PAIRED_TOKEN, name: 'Sanctuary PC', kind: 'companion' }), { status: 200, headers: { 'Content-Type': 'application/json' } })
-    if (target.includes('/api/realtime')) return new Response(JSON.stringify(bootstrap), { status: 200, headers: { 'Content-Type': 'application/json' } })
-    return new Response(JSON.stringify([]), { status: 200, headers: { 'Content-Type': 'application/json', 'X-CRC-Catalog-Version': 'catalog-1' } })
-  }) as unknown as typeof globalThis.fetch
-
-  const context = {
-    _isInstanceContext: true as const,
-    id: 'instance-1',
-    label: 'overlays',
-    upgradeScripts: [],
-    saveConfig: (config: Record<string, unknown> | undefined, secrets: Record<string, unknown> | undefined) => { saved.push({ config, secrets }) },
-    updateStatus: (status: InstanceStatus, message: string | null) => { statuses.push({ status, message }) },
-    oscSend: () => undefined,
-    recordAction: () => undefined,
-    setActionDefinitions: () => undefined,
-    subscribeActions: () => undefined,
-    unsubscribeActions: () => undefined,
-    setFeedbackDefinitions: () => undefined,
-    unsubscribeFeedbacks: () => undefined,
-    checkFeedbacks: () => undefined,
-    checkAllFeedbacks: () => undefined,
-    checkFeedbacksById: () => undefined,
-    setPresetDefinitions: (_structure: unknown, value: Record<string, { style?: { text?: string } }>) => { presets = value },
-    setVariableDefinitions: (value: Record<string, { name: string }>) => { variableDefinitions = value },
-    setVariableValues: (values: Record<string, unknown>) => { variables.push(values) },
-    getVariableValue: () => undefined,
-    sharedUdpSocketHandlers: new Map(),
-    sharedUdpSocketJoin: async () => '',
-    sharedUdpSocketLeave: async () => undefined,
-    sharedUdpSocketSend: async () => undefined,
-  }
-
-  const instance = new CrcOverlaysInstance(context, {
-    fetch: fetchMock,
-    webSocketFactory: () => { const socket = new FakeSocket(); sockets.push(socket); return socket },
-  })
-
-  return {
-    instance, saved, statuses, variables, requests, sockets,
-    get variableDefinitions() { return variableDefinitions },
-    get presets() { return presets },
-  } as Harness
-}
-
-const config = (pairingCode = '') => ({ baseUrl: 'https://example.test', pairingCode })
-const secrets = (overrides: { controlKey?: string; deviceToken?: string } = {}) => ({ controlKey: '', deviceToken: '', ...overrides })
-const live: CrcOverlaysInstance[] = []
-const start = (h: Harness) => { live.push(h.instance); return h }
-
-afterEach(async () => { while (live.length) await live.pop()?.destroy() })
+afterEach(destroyAll)
 
 describe('pairing through the module configuration', () => {
   it('a successful redeem persists the token and blanks the code', async () => {
@@ -210,10 +110,10 @@ describe('snapshot tolerance and published variables', () => {
     // A presence frame carrying the new controllers array must not break the client.
     h.sockets[0]!.message({ type: 'presence', renderers: snapshotFrame().snapshot.renderers, controllers: [{ id: 'c1', client: 'companion', version: '1.4.0', seen: 9_400 }], serverTime: 10_100 })
 
-    const keys = ['current_name', 'current_panel', 'panel_count', 'connection', 'requested_name', 'requested_cue', 'revision', 'renderer_status']
+    const keys = ['current_name', 'current_panel', 'panel_count', 'connection', 'requested_name', 'requested_cue', 'revision', 'renderer_status', 'bug', 'bug_page']
     expect(h.variables.length).toBeGreaterThan(1)
     for (const published of h.variables) expect(Object.keys(published).sort()).toEqual([...keys].sort())
-    expect(h.variables.at(-1)).toMatchObject({ current_name: 'Barechu', requested_name: 'Barechu', requested_cue: 'Barechu', connection: 'Connected', renderer_status: 'Rendered', revision: 4, current_panel: '', panel_count: '' })
+    expect(h.variables.at(-1)).toMatchObject({ current_name: 'Barechu', requested_name: 'Barechu', requested_cue: 'Barechu', connection: 'Connected', renderer_status: 'Rendered', revision: 4, current_panel: '', panel_count: '', bug: 'Off', bug_page: '' })
   })
 
   it('names every variable for the operator', async () => {
@@ -228,6 +128,8 @@ describe('snapshot tolerance and published variables', () => {
       requested_cue: { name: 'Requested cue' },
       revision: { name: 'Requested revision' },
       renderer_status: { name: 'Renderer status' },
+      bug: { name: 'Scan card' },
+      bug_page: { name: 'Scan card page' },
     })
   })
 
@@ -236,5 +138,55 @@ describe('snapshot tolerance and published variables', () => {
     await h.instance.init(config(), true, secrets({ deviceToken: PAIRED_TOKEN }))
     expect(h.presets.connection_status?.style?.text).toBe('$(overlays:connection)\n$(overlays:current_name)')
     expect(h.presets.current_panel?.style?.text).toBe('$(overlays:current_panel) of $(overlays:panel_count)')
+  })
+
+  it('offers a scan card toggle preset and a next panel preset', async () => {
+    const h = start(harness())
+    await h.instance.init(config(), true, secrets({ deviceToken: PAIRED_TOKEN }))
+    expect(h.presets.bug?.name).toBe('Scan card')
+    expect(h.presets.bug?.steps?.map(step => step.down.map(action => action.actionId))).toEqual([['bug_on'], ['bug_off']])
+    expect(h.presets.bug?.feedbacks?.map(feedback => feedback.feedbackId)).toContain('bug_visible')
+    expect(h.presets.next_panel?.name).toBe('Next panel')
+    expect(h.presets.next_panel?.steps?.[0]?.down).toEqual([{ actionId: 'next_panel', options: { set: '' } }])
+  })
+})
+
+describe('the action and feedback surface', () => {
+  it('registers exactly these actions, with these option fields and labels', async () => {
+    const h = start(harness())
+    await h.instance.init(config(), true, secrets({ deviceToken: PAIRED_TOKEN }))
+    const shape = Object.entries(h.actions).map(([id, action]) => ({ id, name: action.name, options: action.options.map(option => ({ id: option.id, type: option.type, label: option.label })) }))
+    expect(shape).toEqual([
+      { id: 'show_cue', name: 'Show cue', options: [{ id: 'cue', type: 'dropdown', label: 'Cue' }] },
+      { id: 'toggle_cue', name: 'Toggle cue', options: [{ id: 'cue', type: 'dropdown', label: 'Cue' }] },
+      { id: 'animate_out', name: 'Animate cue out', options: [{ id: 'cue', type: 'dropdown', label: 'Cue' }] },
+      { id: 'animate_clear', name: 'Animate out', options: [] },
+      { id: 'clear_now', name: 'Clear now', options: [] },
+      { id: 'refresh_catalog', name: 'Refresh cue catalog', options: [] },
+      { id: 'bug_on', name: 'Bug on', options: [] },
+      { id: 'bug_off', name: 'Bug off', options: [] },
+      { id: 'set_page', name: 'Set page', options: [{ id: 'page', type: 'textinput', label: 'Page' }] },
+      { id: 'next_panel', name: 'Next panel', options: [{ id: 'set', type: 'dropdown', label: 'Panel set' }] },
+      { id: 'previous_panel', name: 'Previous panel', options: [{ id: 'set', type: 'dropdown', label: 'Panel set' }] },
+    ])
+  })
+
+  it('names the page field with the tooltip Daniel wrote and validates it in the field itself', async () => {
+    const h = start(harness())
+    await h.instance.init(config(), true, secrets({ deviceToken: PAIRED_TOKEN }))
+    const page = h.actions.set_page!.options[0]!
+    expect(page.tooltip).toBe('A page number or short label shown beside the scan card. Clear now removes it.')
+    expect(page.regex).toBe('^$|^[A-Za-z0-9 .,\\-–]{1,12}$')
+  })
+
+  it('registers the scan card feedback beside the existing three', async () => {
+    const h = start(harness())
+    await h.instance.init(config(), true, secrets({ deviceToken: PAIRED_TOKEN }))
+    expect(Object.entries(h.feedbacks).map(([id, feedback]) => ({ id, name: feedback.name, type: feedback.type }))).toEqual([
+      { id: 'requested', name: 'Cue requested', type: 'boolean' },
+      { id: 'rendered', name: 'Cue rendered', type: 'boolean' },
+      { id: 'bug_visible', name: 'Scan card visible', type: 'boolean' },
+      { id: 'disconnected', name: 'Realtime or renderer disconnected', type: 'boolean' },
+    ])
   })
 })

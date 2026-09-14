@@ -1,5 +1,5 @@
 import { describe, expect, it, vi } from 'vitest'
-import { CatalogRefreshCoordinator, deriveFeedback, isNewerSnapshot, OverlayClient, toggleAction, type OverlaySnapshot, type RealtimeConnectionState, type VersionedCatalog } from '../src/client.js'
+import { CatalogRefreshCoordinator, deriveFeedback, isNewerSnapshot, OverlayClient, toggleAction, validBugPage, type OverlaySnapshot, type RealtimeConnectionState, type VersionedCatalog } from '../src/client.js'
 
 const snapshot = (overrides: Partial<OverlaySnapshot> = {}): OverlaySnapshot => ({
   revision: 4, cue: 'cue-a', mode: 'animate', updated: 1_000, catalogVersion: 'catalog-1', serverTime: 10_000,
@@ -87,6 +87,18 @@ describe('OverlayClient ordering', () => {
     await client.activate('clear')
     expect(body).toMatchObject({ action: 'clear', clientId: 'companion-test' })
     expect(body).not.toHaveProperty('cue')
+    expect(body).not.toHaveProperty('bug')
+  })
+
+  it('sends the scan card as its own action with an explicit null cue', async () => {
+    let body: Record<string, unknown> = {}
+    const fetchMock = vi.fn(async (_url: string | URL | Request, init?: RequestInit) => {
+      body = JSON.parse(String(init?.body))
+      return response({ commandId: body.commandId, ...snapshot(), bug: { on: true, page: '142' } })
+    })
+    const client = new OverlayClient({ baseUrl: 'https://example.test', credential: 'secret', clientId: 'companion-test', fetch: fetchMock, retryDelays: [] })
+    await client.activate('bug', undefined, { on: true, page: '142' })
+    expect(body).toMatchObject({ action: 'bug', cue: null, bug: { on: true, page: '142' }, clientId: 'companion-test' })
   })
 
   it('aborts a hung realtime bootstrap request at the configured deadline', async () => {
@@ -309,6 +321,22 @@ describe('truthful feedback', () => {
     expect(isNewerSnapshot(current, snapshot({ revision: 8, serverTime: 19_000 }))).toBe(false)
     expect(isNewerSnapshot(current, snapshot({ revision: 8, serverTime: 20_001 }))).toBe(true)
     expect(isNewerSnapshot(current, snapshot({ revision: 9, serverTime: 19_000 }))).toBe(true)
+  })
+})
+
+describe('the bounded scan card page', () => {
+  it('accepts an empty page and up to twelve safe characters', () => {
+    expect(validBugPage('')).toBe(true)
+    expect(validBugPage('p. 142')).toBe(true)
+    expect(validBugPage('Siddur 12-14')).toBe(true)
+    expect(validBugPage('123456789012')).toBe(true)
+  })
+
+  it('refuses a longer page, unsafe characters, and a non-string', () => {
+    expect(validBugPage('1234567890123')).toBe(false)
+    expect(validBugPage('p<142>')).toBe(false)
+    expect(validBugPage(null)).toBe(false)
+    expect(validBugPage(142)).toBe(false)
   })
 })
 

@@ -35,7 +35,17 @@ The package command creates a Companion module archive in this directory. In Com
 
 `current_*` describe what a graphics browser reports rendered; `requested_*` describe what was asked for. `current_name` (Current graphic), `current_panel` (Current panel), `panel_count` (Panels), `connection` (Connection) and `requested_name` (Requested graphic) join the 1.3.0 set `requested_cue`, `revision` and `renderer_status`, which keep their meanings so existing buttons do not break.
 
+`bug` (Scan card) is `On` or `Off`, and `bug_page` (Scan card page) is the short page beside the card or blank. A deployment that does not carry a scan card publishes `Off` and a blank page rather than nothing at all.
+
 `connection` is `Connected`, `Reconnecting` or `Disconnected`, reusing the same 3 second grace window as the red indicator. `current_panel` and `panel_count` are read from the published multipart name convention (`Mah Tovu — 01 of 03`, em dash) and are blank whenever a name does not match it; they are never guessed. The **Connection and current graphic** and **Current panel** presets show them on a button.
+
+## Scan card and panels
+
+**Bug on** shows the scan card and keeps whichever page the live state already carries; **Bug off** hides the card and its page; **Set page** shows the card with the page typed into the action. A page is at most twelve characters of letters, digits, spaces and light punctuation, checked in the module before any request leaves it, so an over-long page never reaches the deployment. **Clear now** removes the card along with the graphic; **Animate out** leaves it alone. A deployment with no scan card configured refuses these actions and the refusal becomes the connection status, exactly as other refusals do.
+
+**Next panel** and **Previous panel** work on any multipart graphic, not on one feature. The target is derived from the graphic on screen and the catalog alone: from panel *n* of *m* they show panel *n+1* or *n-1*, wrapping at either end of the set. From a single-part graphic, a cleared output, or a graphic that is not in the catalog, they show panel 01 of the set chosen in the action's **Panel set** option; with **None** chosen there is nothing to derive and nothing is sent. Nothing about the position is stored on the server, so two Companions and the console never disagree about where the set is.
+
+The **Scan card** preset toggles the card and lights while it is visible; the **Next panel** preset ships with no set chosen.
 
 Each cue preset uses **Toggle cue**, which shows the cue with its In animation or animates it out when it is already the requested cue; **Show cue** and **Animate cue out** remain available as separate actions. The preset section includes every cue in the last validated catalog, animated **Animate out**, and immediate **Clear now**. Use the **Refresh cue catalog** action after publishing newly reviewed cues; a temporary or invalid response retains the previous list.
 

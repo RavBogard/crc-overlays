@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest'
-import { parsePanelName } from '../src/panel.js'
+import { panelSets, panelTarget, parsePanelName } from '../src/panel.js'
 import { connectionLabel, overlayVariables } from '../src/variables.js'
 
 describe('published multipart panel names', () => {
@@ -59,7 +59,14 @@ describe('variable derivation', () => {
     expect(variables).toEqual({
       requested_cue: 'Mah Tovu — 01 of 03', requested_name: 'Mah Tovu — 01 of 03', current_name: 'Mah Tovu — 01 of 03',
       current_panel: '01', panel_count: '03', connection: 'Connected', revision: 7, renderer_status: 'Rendered',
+      bug: 'Off', bug_page: '',
     })
+  })
+
+  it('reports the scan card and its page when the live state carries one', () => {
+    const variables = overlayVariables({ requestedName: 'Barechu', currentName: 'Barechu', revision: 2, connection: 'Connected', bugOn: true, bugPage: '142' })
+    expect(variables.bug).toBe('On')
+    expect(variables.bug_page).toBe('142')
   })
 
   it('leaves the panel variables blank when the name does not match', () => {
@@ -79,5 +86,64 @@ describe('variable derivation', () => {
     expect(connectionLabel(true, false)).toBe('Connected')
     expect(connectionLabel(false, false)).toBe('Reconnecting')
     expect(connectionLabel(false, true)).toBe('Disconnected')
+  })
+})
+
+const CUES = [
+  { id: 'a1', name: 'Mi Shebeirach — 01 of 03' },
+  { id: 'a2', name: 'Mi Shebeirach — 02 of 03' },
+  { id: 'a3', name: 'Mi Shebeirach — 03 of 03' },
+  { id: 'b1', name: 'Kaddish — 01 of 02' },
+  { id: 'b2', name: 'Kaddish — 02 of 02' },
+  { id: 'c1', name: 'Barechu' },
+]
+
+describe('panel sets derived from the catalog', () => {
+  it('lists each distinct multipart title once, in catalog order', () => {
+    expect(panelSets(CUES).map(set => set.title)).toEqual(['Mi Shebeirach', 'Kaddish'])
+  })
+
+  it('does not treat a single-part graphic as a set', () => {
+    expect(panelSets([{ id: 'c1', name: 'Barechu' }])).toEqual([])
+  })
+})
+
+describe('panel navigation targets', () => {
+  it('steps forward inside the live set', () => {
+    expect(panelTarget(CUES, 'a2', 1)).toBe('a3')
+  })
+
+  it('wraps forward from the last panel to the first', () => {
+    expect(panelTarget(CUES, 'a3', 1)).toBe('a1')
+  })
+
+  it('steps and wraps backward', () => {
+    expect(panelTarget(CUES, 'a2', -1)).toBe('a1')
+    expect(panelTarget(CUES, 'a1', -1)).toBe('a3')
+  })
+
+  it('never crosses from one set into another', () => {
+    expect(panelTarget(CUES, 'b2', 1)).toBe('b1')
+  })
+
+  it('falls back to panel 01 of the selected set from a single-part graphic', () => {
+    expect(panelTarget(CUES, 'c1', 1, 'Kaddish')).toBe('b1')
+  })
+
+  it('falls back to panel 01 of the selected set from a cleared or unknown cue', () => {
+    expect(panelTarget(CUES, null, 1, 'Mi Shebeirach')).toBe('a1')
+    expect(panelTarget(CUES, 'not-in-this-catalog', 1, 'Mi Shebeirach')).toBe('a1')
+  })
+
+  it('has no target at all when nothing is selected and nothing is live to continue', () => {
+    expect(panelTarget(CUES, 'c1', 1)).toBeNull()
+    expect(panelTarget(CUES, null, 1)).toBeNull()
+    expect(panelTarget(CUES, null, 1, 'No Such Set')).toBeNull()
+  })
+
+  it('falls back rather than guessing when the neighbour panel is not published', () => {
+    const partial = [CUES[0]!, CUES[1]!, CUES[3]!]
+    expect(panelTarget(partial, 'a2', 1)).toBeNull()
+    expect(panelTarget(partial, 'a2', 1, 'Kaddish')).toBe('b1')
   })
 })
