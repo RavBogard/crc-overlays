@@ -1,13 +1,18 @@
 import {AccessInvariantError,accessStore,accessToken,authorizeRequest,bootstrapWithPassword,cookieToken,currentMember,hashPassword,issueSession,redeemSession,replacePasswordSession,sameSiteWrite,secretEqual,sessionCookie,tokenHash,validPassword,verifyPassword,type AccessMember,type AccessRole} from '@/lib/access';
 import {canonicalOrigin,readLimitedBody} from '@/lib/oauth-core';
+import {googleSignInAvailability} from '@/lib/google-sign-in';
 const reply=(body:unknown,status=200,cookie?:string)=>Response.json(body,{status,headers:{'Cache-Control':'no-store','Referrer-Policy':'no-referrer',...(cookie?{'Set-Cookie':cookie}:{})}});
 const publicMember=({id,email,name,role,enabled}:AccessMember):AccessMember=>({id,email,name,role,enabled});
-const profile=async(user:AccessMember)=>({...publicMember(user),hasPassword:Boolean((await accessStore.credentialForEmail(user.email))?.passwordHash)});
+/** Host gating only: whether `/access` offers the Google button, and why it cannot. */
+const googleSignIn=(request:Request)=>{const {available,reason}=googleSignInAvailability(request);return {available,reason}};
+/** A workspace whose identity table has not been migrated yet still renders /access: the link state degrades to "not linked" instead of 503-ing the whole sign-in page. The password paths are unaffected because credentialForEmail is read first. */
+const linkedIdentity=async(memberId:string)=>{try{return await accessStore.identityForMember(memberId)}catch(error){console.error('access_identity_unavailable',{name:error instanceof Error?error.name:'UnknownError'});return null}};
+const profile=async(user:AccessMember)=>{const credential=await accessStore.credentialForEmail(user.email),identity=await linkedIdentity(user.id);return {...publicMember(user),hasPassword:Boolean(credential?.passwordHash),google:{linked:Boolean(identity),email:identity?.email??null}}};
 const emailValue=(value:unknown)=>typeof value==='string'?value.trim().toLowerCase():'';
 const emailValid=(email:string)=>email.length<=200&&/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email);
 function accessRequestIdentity(request:Request){return process.env.VERCEL==='1'?(request.headers.get('x-vercel-forwarded-for')||'unknown').trim().slice(0,128):'local'}
 async function loginAllowed(request:Request,email:string){const now=Date.now();if(!await accessStore.allowAttempt(`login:ip:${accessRequestIdentity(request)}`,now))return false;return accessStore.allowAttempt(`login:account:${email}`,now)}
-export async function GET(request:Request){try{const user=await currentMember(request);if(!user)return reply({user:null},401);if(new URL(request.url).searchParams.get('manage')==='1'){if(user.role!=='owner')return reply({error:'Administrator access required'},403);return reply({user:await profile(user),members:await accessStore.list()})}return reply({user:await profile(user)})}catch{return reply({error:'Sign-in is temporarily unavailable. Existing graphics devices remain connected.'},503)}}
+export async function GET(request:Request){try{const google=googleSignIn(request);const user=await currentMember(request);if(!user)return reply({user:null,googleSignIn:google},401);if(new URL(request.url).searchParams.get('manage')==='1'){if(user.role!=='owner')return reply({error:'Administrator access required'},403);return reply({user:await profile(user),members:await accessStore.list(),googleSignIn:google})}return reply({user:await profile(user),googleSignIn:google})}catch{return reply({error:'Sign-in is temporarily unavailable. Existing graphics devices remain connected.'},503)}}
 export async function POST(request:Request){
  if(!sameSiteWrite(request))return reply({error:'Open this action from the same website.'},403);
  try{
@@ -44,6 +49,12 @@ export async function POST(request:Request){
    const credential=await accessStore.credentialForEmail(session.email);if(!credential)return reply({error:'Sign in again before changing your password.'},401);
    if(credential.passwordHash){const freshInvite=session.authMethod==='invite'&&Date.now()-session.authenticatedAt<=15*60_000;const currentAccepted=validPassword(input.currentPassword)&&await verifyPassword(input.currentPassword,credential.passwordHash);if(!freshInvite&&!currentAccepted)return reply({error:'Enter your current password, or use a fresh invitation link to reset it.'},401)}
    const token=await replacePasswordSession(session,await hashPassword(input.newPassword),accessStore);return reply({ok:true,hasPassword:true},200,sessionCookie(token,request));
+  }
+  if(input.action==='unlink_google'){
+   const session=await currentMember(request);if(!session)return reply({error:'Sign in again before changing your password.'},401);
+   // D2: unlinking the only way in would lock the member out of their own workspace.
+   const credential=await accessStore.credentialForEmail(session.email);if(!credential?.passwordHash)return reply({error:'Set a password first so you can still sign in.'},409);
+   await accessStore.unlinkIdentity(session.id,'google');return reply({user:await profile(session)});
   }
   const user=await authorizeRequest(request,'owner');if(!user)return reply({error:'Administrator access required'},401);
   if(input.action==='invite'){
