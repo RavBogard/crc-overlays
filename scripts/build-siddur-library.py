@@ -55,6 +55,24 @@ def file_sha256(path: Path) -> str:
     return hashlib.sha256(path.read_bytes()).hexdigest()
 
 
+VOLATILE_KEYS = frozenset({"builtAt"})
+
+
+def without_volatile(value: Any) -> Any:
+    """The same JSON with build-time noise removed. Upstream feeds carry the moment they were
+    built; two builds of identical text must hash identically, or every regeneration looks
+    like a change and the Monday workflow opens an empty pull request."""
+    if isinstance(value, dict):
+        return {k: without_volatile(v) for k, v in value.items() if k not in VOLATILE_KEYS}
+    if isinstance(value, list):
+        return [without_volatile(v) for v in value]
+    return value
+
+
+def stable_sha256(value: Any) -> str:
+    return object_sha256(without_volatile(value))
+
+
 def object_sha256(value: Any) -> str:
     payload = json.dumps(value, ensure_ascii=False, sort_keys=True, separators=(",", ":"))
     return hashlib.sha256(payload.encode("utf-8")).hexdigest()
@@ -214,7 +232,8 @@ def build_library(source_root: Path) -> dict[str, Any]:
         book = validate_book(raw_book, manifest_path)
         feed_path = dist / book["feed"]
         feed = validate_feed(load_json(feed_path), book, feed_path)
-        feed_hash = file_sha256(feed_path)
+        # Hash the feed's content, not its bytes: the build timestamp is not part of the text.
+        feed_hash = stable_sha256(feed)
         authority_id = f"shireishabbat:{book['slug']}:{feed_hash[:16]}"
         authority = {
             "id": authority_id,
@@ -223,7 +242,7 @@ def build_library(source_root: Path) -> dict[str, Any]:
             "feed": f"dist-app/{book['feed']}",
             "feedSha256": feed_hash,
             "feedSchemaVersion": feed["schemaVersion"],
-            "printing": feed["printing"],
+            "printing": without_volatile(feed["printing"]),
             "license": feed["license"],
         }
         authorities.append(authority)
@@ -406,7 +425,7 @@ def build_library(source_root: Path) -> dict[str, Any]:
             "repository": "shireishabbat",
             "repositoryCommit": commit,
             "manifest": "dist-app/books.json",
-            "manifestSha256": file_sha256(manifest_path),
+            "manifestSha256": stable_sha256(books),
         },
         "authorities": authorities,
         "sources": sources,
