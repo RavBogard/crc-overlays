@@ -62,3 +62,37 @@ export const cues=baselineCatalogForWorkspace();
 let payloadCache:PayloadCache|null=null;
 export async function snapshot(){return relayConfigured()?relaySnapshot():legacySnapshot()}
 export async function legacySnapshot(){const captured=payloadCache;const state=(await db.query(SNAPSHOT_STATE_SQL,[captured?.revision??-1])).rows[0]??{revision:0,cue:null,mode:'animate',updated:0,cuePayload:null};const resolved=resolvePayload(captured,state);payloadCache=newestPayloadCache(payloadCache,resolved.candidate);const [rs,currentCatalog]=await Promise.all([db.query('SELECT id,revision,cue,phase,seen FROM renderers WHERE seen>$1 ORDER BY seen DESC',[Date.now()-8000]),authoringCatalog()]);return {...state,cuePayload:resolved.payload,catalogVersion:currentCatalog.version,renderers:rs.rows,serverTime:Date.now()}}
+
+/**
+ * D15/D16 — the payload behind `GET /api/now`, and nothing else. The response carries a
+ * liturgical position and a timestamp: no cue name, no title, no text, no revision, no
+ * renderer or controller presence, no catalog version. A names panel, a custom graphic or
+ * a cleared output all answer all-nulls with a live `updatedAt`, so the public endpoint
+ * cannot name a person or a graphic.
+ *
+ * The memo is the reason a burst of cold edge PoPs cannot fan out into the relay: within
+ * `PUBLIC_NOW_MEMO_MS` every caller shares one in-flight read, and a failed read is never
+ * remembered (so a 503 is not cached in process any more than it is at the edge).
+ */
+export type PublicNow={unitId:string|null;momentId:string|null;book:string|null;folio:number|null;updatedAt:number;pollSeconds:number};
+export type PublicNowDeps={snapshot:()=>Promise<{cue?:unknown;updated?:unknown}>;catalog:()=>Promise<{cues:readonly Cue[]}>};
+export const PUBLIC_NOW_POLL_SECONDS=5;
+export const PUBLIC_NOW_MEMO_MS=2000;
+let publicNowMemo:{at:number;value:Promise<PublicNow>}|null=null;
+export function resetPublicNowMemo(){publicNowMemo=null}
+async function readPublicNow(deps:PublicNowDeps,now:number):Promise<PublicNow>{
+ const {liturgyForCue,NO_LITURGY}=await import('./liturgy-index');
+ const [state,current]=await Promise.all([deps.snapshot(),deps.catalog()]);
+ const id=typeof state?.cue==='string'?state.cue:null;
+ const live=id?current.cues.find(cue=>cue.id===id):undefined;
+ const reference=live?liturgyForCue(live as {authoring?:{sourceIds?:string[]}}):{...NO_LITURGY};
+ const updated=typeof state?.updated==='number'&&Number.isFinite(state.updated)&&state.updated>0?state.updated:now;
+ return {...reference,updatedAt:updated,pollSeconds:PUBLIC_NOW_POLL_SECONDS};
+}
+export function publicNow(deps:PublicNowDeps={snapshot,catalog:authoringCatalog},now=Date.now()):Promise<PublicNow>{
+ if(publicNowMemo&&now-publicNowMemo.at<PUBLIC_NOW_MEMO_MS&&now>=publicNowMemo.at)return publicNowMemo.value;
+ const value=readPublicNow(deps,now);
+ publicNowMemo={at:now,value};
+ value.catch(()=>{if(publicNowMemo?.value===value)publicNowMemo=null});
+ return value;
+}

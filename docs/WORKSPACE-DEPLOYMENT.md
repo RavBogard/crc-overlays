@@ -27,6 +27,14 @@ This foundation provides public branding and setup labels. It does not by itself
 
 Only local public paths are accepted for logos and downloads. The public workspace response intentionally excludes database URLs, relay details, credentials, OAuth configuration, private source packages, and membership data.
 
+## Optional deployment flags
+
+| Setting | Purpose | Default |
+| --- | --- | --- |
+| `OVERLAYS_PUBLIC_NOW` | Set to `1` to serve `GET /api/now`, the public, credential-free reading of which unit of which book is on the screen. Unset, the endpoint answers `404`. | unset on both congregations |
+
+`OVERLAYS_PUBLIC_NOW` stays unset until the congregation's web siddur is ready to follow the service and Daniel asks for it. The endpoint publishes a unit, a book, a page number and a timestamp; it never publishes a name, a title, any text, or anything that identifies a person or a graphic. The contract handed to the web siddur is `docs/planning/2026-09-13-product-review/HANDOFF-WEBAPP-FOLLOW-SERVICE.md`.
+
 ## Temple B'nai Israel prepared profile
 
 The prepared second profile is `workspaces/temple-bnai-israel/workspace.json`. Official sources confirm Temple B'nai Israel in Kalamazoo and Rabbi Simone Schicker. Set only `WORKSPACE_ID=temple-bnai-israel-kalamazoo` to load this complete prepared identity; individual public settings may still override it for a deployment. The stored official-site artwork supplies the proposed product identity cue, and the profile records the source URLs and how each was used. It remains an official-public reference prepared for congregation review, not a claim that Temple B'nai Israel has approved the product or the asset treatment.
