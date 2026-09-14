@@ -1,6 +1,9 @@
 import { combineRgb, InstanceBase, InstanceStatus, type CompanionActionDefinitions, type CompanionFeedbackDefinitions, type CompanionPresetDefinitions, type CompanionPresetSection, type InstanceTypes, type SomeCompanionConfigField } from '@companion-module/base'
 import { CatalogStore, cuePresetId, hasCatalogCue, visibleCatalogCues, type CatalogCue } from './catalog.js'
-import { CatalogRefreshCoordinator, deriveFeedback, isNewerSnapshot, OverlayClient, toggleAction, type FeedbackState, type OverlaySnapshot, type RealtimeSubscription, type RendererState } from './client.js'
+import { CatalogRefreshCoordinator, deriveFeedback, isNewerSnapshot, OverlayClient, toggleAction, type FeedbackState, type OverlaySnapshot, type RealtimeSubscription, type RendererState, type WebSocketFactory } from './client.js'
+import { redeemPairingCode } from './pairing.js'
+import { connectionLabel, overlayVariables } from './variables.js'
+import { moduleVersion } from './version.js'
 
 // The red disconnected indicator waits this long before painting, so a socket that
 // drops and reconnects inside the first reconnect delay does not flash the buttons red.
@@ -13,8 +16,11 @@ const FALLBACK_CUES: CatalogCue[] = [
   { id: 'bbd7c98b-f1de-41ee-9719-2bb27a30d0db', name: 'Mah Tovu', layout: 'left' },
 ]
 
-interface Config { baseUrl: string; [key: string]: string | number }
-interface Secrets { controlKey: string; [key: string]: string }
+interface Config { baseUrl: string; pairingCode: string; [key: string]: string | number }
+interface Secrets { controlKey: string; deviceToken: string; [key: string]: string }
+
+// Injected only by the tests; Companion constructs the class with the context alone.
+export interface OverlayDependencies { fetch?: typeof globalThis.fetch; webSocketFactory?: WebSocketFactory }
 interface Manifest extends InstanceTypes {
   config: Config; secrets: Secrets
   actions: {
@@ -30,12 +36,19 @@ interface Manifest extends InstanceTypes {
     rendered: { type: 'boolean'; options: { cue: string } }
     disconnected: { type: 'boolean'; options: Record<string, never> }
   }
-  variables: { requested_cue: string; revision: number; renderer_status: string }
+  variables: {
+    requested_cue: string; revision: number; renderer_status: string
+    current_name: string; current_panel: string; panel_count: string; connection: string; requested_name: string
+  }
 }
 
 export default class CrcOverlaysInstance extends InstanceBase<Manifest> {
-  #config: Config = { baseUrl: 'https://crc-overlays.vercel.app' }
+  #config: Config = { baseUrl: 'https://crc-overlays.vercel.app', pairingCode: '' }
+  #credential = ''
   #controlKey = ''
+  #deviceToken = ''
+  readonly #fetch: typeof globalThis.fetch | undefined
+  readonly #webSocketFactory: WebSocketFactory | undefined
   #client: OverlayClient | null = null
   #snapshot: OverlaySnapshot | null = null
   #transportConnected = false
@@ -50,9 +63,20 @@ export default class CrcOverlaysInstance extends InstanceBase<Manifest> {
   #graceTimer: NodeJS.Timeout | null = null
   #catalog = new CatalogStore(FALLBACK_CUES)
 
+  constructor(internal: unknown, dependencies: OverlayDependencies = {}) {
+    super(internal)
+    this.#fetch = dependencies.fetch
+    this.#webSocketFactory = dependencies.webSocketFactory
+  }
+
   async init(config: Config, _isFirstInit: boolean, secrets: Secrets): Promise<void> {
     this.#destroyed = false
     this.setVariableDefinitions({
+      current_name: { name: 'Current graphic' },
+      current_panel: { name: 'Current panel' },
+      panel_count: { name: 'Panels' },
+      connection: { name: 'Connection' },
+      requested_name: { name: 'Requested graphic' },
       requested_cue: { name: 'Requested cue' },
       revision: { name: 'Requested revision' },
       renderer_status: { name: 'Renderer status' },
@@ -61,26 +85,55 @@ export default class CrcOverlaysInstance extends InstanceBase<Manifest> {
     await this.#applyConfig(config, secrets)
   }
   async destroy(): Promise<void> { this.#destroyed = true; this.#generation += 1; this.#client = null; this.#stopRealtime() }
-  async configUpdated(config: Config, secrets: Secrets): Promise<void> { await this.#applyConfig(config, secrets) }
+  // A pairing code is redeemed once, here, and then blanked: the durable device
+  // token it returns is what every later request carries. A refusal writes
+  // nothing at all, so the previous credential keeps working.
+  async configUpdated(config: Config, secrets: Secrets): Promise<void> {
+    const baseUrl = this.#baseUrl(config)
+    const result = await redeemPairingCode({ baseUrl, code: config?.pairingCode, fetch: this.#fetch })
+    if (result.outcome === 'paired') {
+      const nextConfig: Config = { ...config, baseUrl, pairingCode: '' }
+      const nextSecrets: Secrets = { ...secrets, deviceToken: result.token }
+      this.saveConfig(nextConfig, nextSecrets)
+      this.log('info', result.name ? `Paired this connection: ${result.name}` : 'Paired this connection')
+      await this.#applyConfig(nextConfig, nextSecrets)
+      return
+    }
+    if (result.outcome === 'refused') {
+      this.log('warn', result.message)
+      await this.#applyConfig(config, secrets, result.message)
+      return
+    }
+    await this.#applyConfig(config, secrets)
+  }
+
+  #baseUrl(config: Config | undefined): string {
+    return String(config?.baseUrl || 'https://crc-overlays.vercel.app').replace(/\/+$/, '')
+  }
 
   getConfigFields(): SomeCompanionConfigField[] {
     return [
       { type: 'textinput', id: 'baseUrl', label: 'Overlay base URL', width: 12, default: 'https://crc-overlays.vercel.app', regex: '^https?://.+' },
-      { type: 'secret-text', id: 'controlKey', label: 'Control key', width: 12 },
+      { type: 'textinput', id: 'pairingCode', label: 'Pairing code', width: 6, default: '', regex: '^$|^[0-9]{6}$', tooltip: 'Six digits from the setup page. It is cleared once the device token is stored.' },
+      { type: 'secret-text', id: 'deviceToken', label: 'Device token', width: 6, tooltip: 'Stored automatically when a pairing code is accepted.' },
+      { type: 'secret-text', id: 'controlKey', label: 'Control key', width: 12, tooltip: 'The older shared key. When it is set it is used instead of the device token.' },
       { type: 'static-text', id: 'meaning', label: 'Feedback meaning', width: 12, value: '<strong>Rendered</strong> means a connected graphics browser reports the requested revision settled. Realtime feedback expires after 30 seconds without presence. It is not a broadcast on-air/tally signal.' },
     ]
   }
 
-  async #applyConfig(config: Config, secrets: Secrets): Promise<void> {
+  async #applyConfig(config: Config, secrets: Secrets, notice?: string): Promise<void> {
     const generation = ++this.#generation
     this.#stopRealtime()
-    this.#config = { baseUrl: String(config.baseUrl || 'https://crc-overlays.vercel.app').replace(/\/+$/, '') }
-    this.#controlKey = String(secrets.controlKey || '')
+    this.#config = { baseUrl: this.#baseUrl(config), pairingCode: '' }
+    this.#controlKey = String(secrets?.controlKey || '')
+    this.#deviceToken = String(secrets?.deviceToken || '')
+    // The shared key wins when it is set, so a 1.3.0 configuration upgrades in place.
+    this.#credential = this.#controlKey || this.#deviceToken
     this.#snapshot = null; this.#transportConnected = false; this.#presenceReceivedAt = null; this.#catalogVersion = ''; this.#catalogRefresh = null
-    if (!this.#controlKey) {
-      this.#client = null; this.updateStatus(InstanceStatus.BadConfig, 'Control key required'); this.#publishFeedback(); return
+    if (!this.#credential) {
+      this.#client = null; this.updateStatus(InstanceStatus.BadConfig, notice ?? 'Enter a pairing code or a control key'); this.#publishFeedback(); return
     }
-    const client = new OverlayClient({ baseUrl: this.#config.baseUrl, controlKey: this.#controlKey, clientId: `companion-${this.id}` })
+    const client = new OverlayClient({ baseUrl: this.#config.baseUrl, credential: this.#credential, clientId: `companion-${this.id}`, version: moduleVersion(), ...(this.#fetch ? { fetch: this.#fetch } : {}), ...(this.#webSocketFactory ? { webSocketFactory: this.#webSocketFactory } : {}) })
     this.#client = client
     this.#catalogRefresh = new CatalogRefreshCoordinator(
       () => client.catalogWithVersion(),
@@ -91,7 +144,8 @@ export default class CrcOverlaysInstance extends InstanceBase<Manifest> {
         this.#defineActions(); this.#defineFeedbacks(); this.#definePresets()
       },
     )
-    this.updateStatus(InstanceStatus.Connecting)
+    if (notice) this.updateStatus(InstanceStatus.UnknownWarning, notice)
+    else this.updateStatus(InstanceStatus.Connecting)
     const subscription = client.subscribe({
       onSnapshot: snapshot => {
         if (generation !== this.#generation || this.#destroyed) return
@@ -197,8 +251,9 @@ export default class CrcOverlaysInstance extends InstanceBase<Manifest> {
     await this.#command(action, cue)
   }
   #safeError(error: unknown): string {
-    const message = error instanceof Error ? error.message : 'Overlay API request failed'
-    return this.#controlKey ? message.replaceAll(this.#controlKey, '[redacted]') : message
+    let message = error instanceof Error ? error.message : 'Overlay API request failed'
+    for (const secret of [this.#controlKey, this.#deviceToken]) if (secret) message = message.replaceAll(secret, '[redacted]')
+    return message
   }
   #feedbackState(): FeedbackState {
     return deriveFeedback(this.#snapshot, this.#transportConnected, this.#presenceReceivedAt, Date.now(), RENDERER_STALE_MS, this.#unhealthySince, DISCONNECTED_GRACE_MS)
@@ -215,9 +270,20 @@ export default class CrcOverlaysInstance extends InstanceBase<Manifest> {
       }, DISCONNECTED_GRACE_MS)
     }
     const state = this.#feedbackState()
-    const requestedName = this.#catalog.cues.find(cue => cue.id === state.requestedCue)?.name ?? state.requestedCue ?? 'Clear'
-    this.setVariableValues({ requested_cue: requestedName, revision: this.#snapshot?.revision ?? 0, renderer_status: state.disconnected ? 'Disconnected' : state.rendered ? 'Rendered' : 'Requested' })
+    const requestedName = this.#cueName(state.requestedCue)
+    this.setVariableValues(overlayVariables({
+      requestedName,
+      // Rendered means a browser reports this exact requested revision settled, so
+      // the current graphic is the requested one; otherwise nothing is known.
+      currentName: state.rendered ? requestedName : '',
+      revision: this.#snapshot?.revision ?? 0,
+      connection: connectionLabel(!rawDisconnected, state.disconnected),
+    }))
     this.checkAllFeedbacks()
+  }
+
+  #cueName(cue: string | null): string {
+    return this.#catalog.cues.find(entry => entry.id === cue)?.name ?? cue ?? 'Clear'
   }
 
   #defineActions(): void {
@@ -256,6 +322,11 @@ export default class CrcOverlaysInstance extends InstanceBase<Manifest> {
     }
     presets.animate_out = { type: 'simple', name: 'Animate out', style: { text: 'Animate\nOut', size: '14', color: combineRgb(255, 255, 255), bgcolor: combineRgb(65, 65, 65) }, steps: [{ down: [{ actionId: 'animate_clear', options: {} }], up: [] }], feedbacks: [{ feedbackId: 'rendered', options: { cue: '' }, style: { bgcolor: combineRgb(0, 130, 70) } }, { feedbackId: 'disconnected', options: {}, style: { bgcolor: combineRgb(175, 0, 0) } }] }
     presets.clear_now = { type: 'simple', name: 'Clear now', style: { text: 'CLEAR\nNOW', size: '14', color: combineRgb(255, 255, 255), bgcolor: combineRgb(120, 0, 0) }, steps: [{ down: [{ actionId: 'clear_now', options: {} }], up: [] }], feedbacks: [{ feedbackId: 'rendered', options: { cue: '' }, style: { bgcolor: combineRgb(0, 130, 70) } }, { feedbackId: 'disconnected', options: {}, style: { bgcolor: combineRgb(175, 0, 0) } }] }
+    // Button text reads this connection's own variables, so the label is resolved
+    // at definition time and redefined whenever the connection is renamed.
+    const label = this.label || 'overlays'
+    presets.connection_status = { type: 'simple', name: 'Connection and current graphic', style: { text: `$(${label}:connection)\n$(${label}:current_name)`, size: '14', color: combineRgb(255, 255, 255), bgcolor: combineRgb(35, 35, 35) }, steps: [{ down: [], up: [] }], feedbacks: [{ feedbackId: 'disconnected', options: {}, style: { bgcolor: combineRgb(175, 0, 0) } }] }
+    presets.current_panel = { type: 'simple', name: 'Current panel', style: { text: `$(${label}:current_panel) of $(${label}:panel_count)`, size: '14', color: combineRgb(255, 255, 255), bgcolor: combineRgb(35, 35, 35) }, steps: [{ down: [], up: [] }], feedbacks: [{ feedbackId: 'disconnected', options: {}, style: { bgcolor: combineRgb(175, 0, 0) } }] }
     const structure: CompanionPresetSection<Manifest>[] = [{ id: 'crc_overlay_controls', name: 'CRC Overlay Controls', definitions: Object.keys(presets) }]
     this.setPresetDefinitions(structure, presets)
   }

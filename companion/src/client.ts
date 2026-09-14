@@ -22,12 +22,13 @@ interface RealtimeSocket {
   send(data: string): void
   close(code?: number, reason?: string): void
 }
-type WebSocketFactory = (url: string, protocols: string[]) => RealtimeSocket
+export type WebSocketFactory = (url: string, protocols: string[]) => RealtimeSocket
 
 export interface OverlayClientOptions {
-  baseUrl: string; controlKey: string; clientId: string; fetch?: typeof globalThis.fetch; now?: () => number
+  baseUrl: string; credential: string; clientId: string; fetch?: typeof globalThis.fetch; now?: () => number
   sleep?: (milliseconds: number) => Promise<void>; retryDelays?: number[]; requestTimeoutMs?: number
   webSocketFactory?: WebSocketFactory; reconnectDelays?: number[]
+  client?: string; version?: string | null
 }
 
 const MAX_REALTIME_MESSAGE_BYTES = 256 * 1024
@@ -40,7 +41,7 @@ class ApiError extends Error {
 
 export class OverlayClient {
   readonly #baseUrl: string
-  readonly #controlKey: string
+  readonly #credential: string
   readonly #clientId: string
   readonly #fetch: typeof globalThis.fetch
   readonly #now: () => number
@@ -49,11 +50,13 @@ export class OverlayClient {
   readonly #requestTimeoutMs: number
   readonly #webSocketFactory: WebSocketFactory
   readonly #reconnectDelays: number[]
+  readonly #client: string
+  readonly #version: string | null
   #lastSequence = 0
 
   constructor(options: OverlayClientOptions) {
     this.#baseUrl = options.baseUrl.replace(/\/+$/, '')
-    this.#controlKey = options.controlKey
+    this.#credential = options.credential
     this.#clientId = options.clientId
     this.#fetch = options.fetch ?? globalThis.fetch
     this.#now = options.now ?? Date.now
@@ -62,6 +65,8 @@ export class OverlayClient {
     this.#requestTimeoutMs = options.requestTimeoutMs ?? 4_000
     this.#webSocketFactory = options.webSocketFactory ?? ((url, protocols) => new WebSocket(url, protocols))
     this.#reconnectDelays = options.reconnectDelays ?? [1_000, 2_000, 4_000, 8_000, 16_000, 30_000]
+    this.#client = options.client ?? 'companion'
+    this.#version = options.version ?? null
   }
 
   activate(action: OverlayAction, cue?: string): Promise<CommandReceipt> {
@@ -81,7 +86,7 @@ export class OverlayClient {
   }
   realtimeBootstrap(): Promise<RealtimeBootstrap> { return this.#request<RealtimeBootstrap>('/api/realtime?role=control', { method: 'GET' }, false) }
   subscribe(handlers: RealtimeHandlers): RealtimeSubscription {
-    return new RealtimeSubscription({ clientId: randomUUID(), bootstrap: () => this.realtimeBootstrap(), socketFactory: this.#webSocketFactory, now: this.#now, reconnectDelays: this.#reconnectDelays, handlers })
+    return new RealtimeSubscription({ clientId: randomUUID(), bootstrap: () => this.realtimeBootstrap(), socketFactory: this.#webSocketFactory, now: this.#now, reconnectDelays: this.#reconnectDelays, client: this.#client, version: this.#version, handlers })
   }
 
   #nextSequence(): number {
@@ -100,7 +105,7 @@ export class OverlayClient {
         const response = await this.#fetch(`${this.#baseUrl}${path}`, {
           ...init,
           signal: controller.signal,
-          headers: { Authorization: `Bearer ${this.#controlKey}`, Accept: 'application/json', ...(init.body ? { 'Content-Type': 'application/json' } : {}) },
+          headers: { Authorization: `Bearer ${this.#credential}`, Accept: 'application/json', ...(init.body ? { 'Content-Type': 'application/json' } : {}) },
         })
         if (!response.ok) {
           const message = await response.text()
@@ -158,6 +163,8 @@ interface SubscriptionOptions {
   socketFactory: WebSocketFactory
   now: () => number
   reconnectDelays: number[]
+  client: string
+  version: string | null
   handlers: RealtimeHandlers
 }
 
@@ -205,7 +212,7 @@ export class RealtimeSubscription {
         if (!this.#isCurrent(socket, generation)) return
         if (socket.protocol !== 'crc-overlays-v1') { socket.close(1002, 'Realtime protocol mismatch'); return }
         this.#lastFrameAt = this.#options.now()
-        socket.send(JSON.stringify({ type: 'hello', id: this.#options.clientId }))
+        socket.send(JSON.stringify({ type: 'hello', id: this.#options.clientId, client: this.#options.client, version: this.#options.version }))
         this.#heartbeatTimer = setInterval(() => {
           if (!this.#isCurrent(socket, generation)) return
           if (this.#options.now() - this.#lastFrameAt >= bootstrap.staleMs) { socket.close(4000, 'Realtime connection stale'); return }
@@ -317,7 +324,7 @@ function parseRealtimeEvent(value: unknown): ParsedRealtimeEvent | null {
   return null
 }
 
-function parseSnapshot(value: unknown): OverlaySnapshot | null {
+export function parseSnapshot(value: unknown): OverlaySnapshot | null {
   if (!isRecord(value) || !isNonnegativeInteger(value.revision) || !(value.cue === null || typeof value.cue === 'string') || typeof value.mode !== 'string' || !isFiniteNumber(value.updated) || typeof value.catalogVersion !== 'string' || !isFiniteNumber(value.serverTime)) return null
   const renderers = parseRenderers(value.renderers)
   if (!renderers) return null

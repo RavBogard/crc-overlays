@@ -36,14 +36,14 @@ describe('OverlayClient ordering', () => {
       request = { url: String(url), authorization: new Headers(init?.headers).get('Authorization') }
       return response([])
     })
-    const client = new OverlayClient({ baseUrl: 'https://example.test/', controlKey: 'secret', clientId: 'companion-test', fetch: fetchMock })
+    const client = new OverlayClient({ baseUrl: 'https://example.test/', credential: 'secret', clientId: 'companion-test', fetch: fetchMock })
     await client.catalog()
     expect(request).toEqual({ url: 'https://example.test/api/catalog', authorization: 'Bearer secret' })
   })
 
   it('returns the catalog version from the authenticated response header', async () => {
     const fetchMock = vi.fn(async () => response([{ id: 'cue-a' }], 200, 'actual-version'))
-    const client = new OverlayClient({ baseUrl: 'https://example.test', controlKey: 'secret', clientId: 'companion-test', fetch: fetchMock })
+    const client = new OverlayClient({ baseUrl: 'https://example.test', credential: 'secret', clientId: 'companion-test', fetch: fetchMock })
     await expect(client.catalogWithVersion()).resolves.toEqual({ cues: [{ id: 'cue-a' }], version: 'actual-version' })
   })
 
@@ -55,7 +55,7 @@ describe('OverlayClient ordering', () => {
       arrivals.push(command)
       return response({ commandId: 'ack', ...snapshot({ cue: command.action === 'cut' ? null : 'cue-a' }) })
     })
-    const client = new OverlayClient({ baseUrl: 'https://example.test', controlKey: 'secret', clientId: 'companion-test', fetch: fetchMock, now: () => 123, retryDelays: [] })
+    const client = new OverlayClient({ baseUrl: 'https://example.test', credential: 'secret', clientId: 'companion-test', fetch: fetchMock, now: () => 123, retryDelays: [] })
     await Promise.all([client.activate('in', 'cue-a'), client.activate('cut')])
     const cut = arrivals.find(command => command.action === 'cut')!
     const delayedIn = arrivals.find(command => command.action === 'in')!
@@ -71,7 +71,7 @@ describe('OverlayClient ordering', () => {
       if (bodies.length === 1) return response({ error: 'temporary' }, 503)
       return response({ commandId: bodies[0]!.commandId, ...snapshot() })
     })
-    const client = new OverlayClient({ baseUrl: 'https://example.test', controlKey: 'secret', clientId: 'companion-test', fetch: fetchMock, now: () => 456, sleep: async () => undefined, retryDelays: [0] })
+    const client = new OverlayClient({ baseUrl: 'https://example.test', credential: 'secret', clientId: 'companion-test', fetch: fetchMock, now: () => 456, sleep: async () => undefined, retryDelays: [0] })
     await client.activate('in', 'cue-a')
     expect(bodies).toHaveLength(2)
     expect(bodies[1]).toEqual(bodies[0])
@@ -83,7 +83,7 @@ describe('OverlayClient ordering', () => {
       body = JSON.parse(String(init?.body))
       return response({ commandId: body.commandId, ...snapshot({ cue: null }) })
     })
-    const client = new OverlayClient({ baseUrl: 'https://example.test', controlKey: 'secret', clientId: 'companion-test', fetch: fetchMock, retryDelays: [] })
+    const client = new OverlayClient({ baseUrl: 'https://example.test', credential: 'secret', clientId: 'companion-test', fetch: fetchMock, retryDelays: [] })
     await client.activate('clear')
     expect(body).toMatchObject({ action: 'clear', clientId: 'companion-test' })
     expect(body).not.toHaveProperty('cue')
@@ -95,7 +95,7 @@ describe('OverlayClient ordering', () => {
       const fetchMock = vi.fn((_url: string | URL | Request, init?: RequestInit) => new Promise<Response>((_resolve, reject) => {
         init?.signal?.addEventListener('abort', () => reject(init.signal?.reason), { once: true })
       }))
-      const client = new OverlayClient({ baseUrl: 'https://example.test', controlKey: 'secret', clientId: 'companion-test', fetch: fetchMock, requestTimeoutMs: 20 })
+      const client = new OverlayClient({ baseUrl: 'https://example.test', credential: 'secret', clientId: 'companion-test', fetch: fetchMock, requestTimeoutMs: 20 })
       const pending = expect(client.realtimeBootstrap()).rejects.toThrow('timed out')
       await vi.advanceTimersByTimeAsync(21)
       await pending
@@ -139,7 +139,7 @@ describe('realtime subscription', () => {
     const localSocket = new FakeSocket()
     let localCreated = false
     const local = new OverlayClient({
-      baseUrl: 'http://localhost:3000', controlKey: 'secret', clientId: 'commands',
+      baseUrl: 'http://localhost:3000', credential: 'secret', clientId: 'commands',
       fetch: vi.fn(async () => response({ ...bootstrap, url: 'ws://127.0.0.1:8787/connect' })),
       webSocketFactory: () => { localCreated = true; return localSocket },
     }).subscribe({ onSnapshot: vi.fn(), onPresence: vi.fn(), onCatalog: vi.fn(), onConnection: vi.fn() })
@@ -150,7 +150,7 @@ describe('realtime subscription', () => {
     const remoteFactory = vi.fn(() => new FakeSocket())
     const remoteStates: RealtimeConnectionState[] = []
     const remote = new OverlayClient({
-      baseUrl: 'https://example.test', controlKey: 'secret', clientId: 'commands', reconnectDelays: [60_000],
+      baseUrl: 'https://example.test', credential: 'secret', clientId: 'commands', reconnectDelays: [60_000],
       fetch: vi.fn(async () => response({ ...bootstrap, url: 'ws://relay.example.test/connect' })), webSocketFactory: remoteFactory,
     }).subscribe({ onSnapshot: vi.fn(), onPresence: vi.fn(), onCatalog: vi.fn(), onConnection: state => remoteStates.push(state) })
     remote.start()
@@ -170,7 +170,7 @@ describe('realtime subscription', () => {
     })
     const connections: RealtimeConnectionState[] = []
     const client = new OverlayClient({
-      baseUrl: 'https://example.test', controlKey: 'secret', clientId: 'command-client', fetch: fetchMock,
+      baseUrl: 'https://example.test', credential: 'secret', clientId: 'command-client', fetch: fetchMock,
       webSocketFactory: (url, protocols) => { socketArgs.push({ url, protocols }); const socket = new FakeSocket(); sockets.push(socket); return socket },
     })
     const subscription = client.subscribe({ onSnapshot: vi.fn(), onPresence: vi.fn(), onCatalog: vi.fn(), onConnection: state => connections.push(state) })
@@ -192,7 +192,7 @@ describe('realtime subscription', () => {
     const socket = new FakeSocket()
     const onSnapshot = vi.fn(); const onPresence = vi.fn(); const onCatalog = vi.fn()
     const connections: RealtimeConnectionState[] = []
-    const client = new OverlayClient({ baseUrl: 'https://example.test', controlKey: 'secret', clientId: 'commands', fetch: vi.fn(async () => response(bootstrap)), webSocketFactory: () => socket })
+    const client = new OverlayClient({ baseUrl: 'https://example.test', credential: 'secret', clientId: 'commands', fetch: vi.fn(async () => response(bootstrap)), webSocketFactory: () => socket })
     const subscription = client.subscribe({ onSnapshot, onPresence, onCatalog, onConnection: state => connections.push(state) })
     subscription.start(); await vi.waitFor(() => expect(socket.listeners.has('open')).toBe(true)); socket.emit('open')
     expect(connections).toEqual(['connecting'])
@@ -214,7 +214,7 @@ describe('realtime subscription', () => {
       let ticket = 0
       const fetchMock = vi.fn(async () => response({ ...bootstrap, ticket: `ticket-${++ticket}` }))
       const connections: RealtimeConnectionState[] = []
-      const client = new OverlayClient({ baseUrl: 'https://example.test', controlKey: 'secret', clientId: 'commands', fetch: fetchMock, reconnectDelays: [100], webSocketFactory: () => { const socket = new FakeSocket(); sockets.push(socket); return socket } })
+      const client = new OverlayClient({ baseUrl: 'https://example.test', credential: 'secret', clientId: 'commands', fetch: fetchMock, reconnectDelays: [100], webSocketFactory: () => { const socket = new FakeSocket(); sockets.push(socket); return socket } })
       const subscription = client.subscribe({ onSnapshot: vi.fn(), onPresence: vi.fn(), onCatalog: vi.fn(), onConnection: state => connections.push(state) })
       subscription.start(); await vi.advanceTimersByTimeAsync(0); sockets[0]!.emit('open'); sockets[0]!.message({ type: 'snapshot', snapshot: snapshot() })
       await vi.advanceTimersByTimeAsync(10_000)
@@ -232,7 +232,7 @@ describe('realtime subscription', () => {
   it('reports the realtime close code and reason to the connection handler', async () => {
     const socket = new FakeSocket()
     const details: Array<string | undefined> = []
-    const client = new OverlayClient({ baseUrl: 'https://example.test', controlKey: 'secret', clientId: 'commands', fetch: vi.fn(async () => response(bootstrap)), reconnectDelays: [60_000], webSocketFactory: () => socket })
+    const client = new OverlayClient({ baseUrl: 'https://example.test', credential: 'secret', clientId: 'commands', fetch: vi.fn(async () => response(bootstrap)), reconnectDelays: [60_000], webSocketFactory: () => socket })
     const subscription = client.subscribe({ onSnapshot: vi.fn(), onPresence: vi.fn(), onCatalog: vi.fn(), onConnection: (_state, detail) => details.push(detail) })
     subscription.start(); await vi.waitFor(() => expect(socket.listeners.has('open')).toBe(true)); socket.emit('open'); socket.message({ type: 'snapshot', snapshot: snapshot() })
     socket.close(4408, 'Heartbeat timeout')
@@ -244,7 +244,7 @@ describe('realtime subscription', () => {
   it('marks a closed socket disconnected immediately', async () => {
     const socket = new FakeSocket()
     const connections: RealtimeConnectionState[] = []
-    const client = new OverlayClient({ baseUrl: 'https://example.test', controlKey: 'secret', clientId: 'commands', fetch: vi.fn(async () => response(bootstrap)), reconnectDelays: [60_000], webSocketFactory: () => socket })
+    const client = new OverlayClient({ baseUrl: 'https://example.test', credential: 'secret', clientId: 'commands', fetch: vi.fn(async () => response(bootstrap)), reconnectDelays: [60_000], webSocketFactory: () => socket })
     const subscription = client.subscribe({ onSnapshot: vi.fn(), onPresence: vi.fn(), onCatalog: vi.fn(), onConnection: state => connections.push(state) })
     subscription.start(); await vi.waitFor(() => expect(socket.listeners.has('open')).toBe(true)); socket.emit('open'); socket.message({ type: 'snapshot', snapshot: snapshot() })
     socket.close(1006, 'network lost')
@@ -256,7 +256,7 @@ describe('realtime subscription', () => {
     vi.useFakeTimers()
     try {
       const socket = new FakeSocket()
-      const client = new OverlayClient({ baseUrl: 'https://example.test', controlKey: 'secret', clientId: 'commands', fetch: vi.fn(async () => response(bootstrap)), reconnectDelays: [60_000], webSocketFactory: () => socket })
+      const client = new OverlayClient({ baseUrl: 'https://example.test', credential: 'secret', clientId: 'commands', fetch: vi.fn(async () => response(bootstrap)), reconnectDelays: [60_000], webSocketFactory: () => socket })
       const subscription = client.subscribe({ onSnapshot: vi.fn(), onPresence: vi.fn(), onCatalog: vi.fn(), onConnection: vi.fn() })
       subscription.start(); await vi.advanceTimersByTimeAsync(0)
       await vi.advanceTimersByTimeAsync(10_000)
@@ -269,7 +269,7 @@ describe('realtime subscription', () => {
     vi.useFakeTimers()
     try {
       const socket = new FakeSocket()
-      const client = new OverlayClient({ baseUrl: 'https://example.test', controlKey: 'secret', clientId: 'commands', fetch: vi.fn(async () => response(bootstrap)), reconnectDelays: [60_000], webSocketFactory: () => socket })
+      const client = new OverlayClient({ baseUrl: 'https://example.test', credential: 'secret', clientId: 'commands', fetch: vi.fn(async () => response(bootstrap)), reconnectDelays: [60_000], webSocketFactory: () => socket })
       const subscription = client.subscribe({ onSnapshot: vi.fn(), onPresence: vi.fn(), onCatalog: vi.fn(), onConnection: vi.fn() })
       subscription.start(); await vi.advanceTimersByTimeAsync(0); socket.emit('open')
       await vi.advanceTimersByTimeAsync(9_000)
