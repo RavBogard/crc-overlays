@@ -7,10 +7,11 @@ import {useCallback,useEffect,useState} from 'react';
 import './access.css';
 import WorkspaceHeader from '@/components/workspace-header';
 import {resetAccessUserCache} from '@/lib/access-client';
+import {GOOGLE_UNLINKED_TEXT,googleBlockState,googleConfirmPrompt,googleNotice,readGoogleCode,type GoogleConfirmDetails,type GoogleSignInState} from './google-copy';
 
 type Role='owner'|'editor'|'operator';
-type Member={id:string;name:string;email:string;role:Role;enabled:boolean;hasPassword?:boolean};
-type ApiBody={user?:Member|null;members?:Member[];member?:Member;url?:string;hasPassword?:boolean;error?:string};
+type Member={id:string;name:string;email:string;role:Role;enabled:boolean;hasPassword?:boolean;google?:{linked:boolean;email:string|null}};
+type ApiBody={user?:Member|null;members?:Member[];member?:Member;url?:string;hasPassword?:boolean;error?:string;googleSignIn?:GoogleSignInState;google?:string};
 
 const roleLabel:Record<Role,string>={owner:'Administrator',editor:'Editor',operator:'Operator'};
 
@@ -39,25 +40,28 @@ export default function AccessPage(){
  const [currentPassword,setCurrentPassword]=useState('');
  const [newPassword,setNewPassword]=useState('');
  const [confirmPassword,setConfirmPassword]=useState('');
+ const [googleSignIn,setGoogleSignIn]=useState<GoogleSignInState|null>(null);
+ const [googleConfirm,setGoogleConfirm]=useState<GoogleConfirmDetails|null>(null);
 
  const notice=(text:string,kind:'error'|'success'='success')=>{setMessage(text);setMessageKind(kind)};
 
- const refresh=useCallback(async()=>{
+ const refresh=useCallback(async():Promise<Member|null>=>{
   try{
    const response=await fetch('/api/access?manage=1',{cache:'no-store'});
    const body=await bodyOf(response);
-   if(response.ok){setUser(body.user??null);setMembers(body.members??[]);return}
+   if(response.ok){setUser(body.user??null);setMembers(body.members??[]);setGoogleSignIn(body.googleSignIn??null);return body.user??null}
    if(response.status===403){
     const profileResponse=await fetch('/api/access',{cache:'no-store'});
     const profile=await bodyOf(profileResponse);
-    if(profileResponse.ok){setUser(profile.user??null);setMembers([]);return}
-    if(profileResponse.status===401){setUser(null);setMembers([]);return}
+    if(profileResponse.ok){setUser(profile.user??null);setMembers([]);setGoogleSignIn(profile.googleSignIn??null);return profile.user??null}
+    if(profileResponse.status===401){setUser(null);setMembers([]);setGoogleSignIn(profile.googleSignIn??null);return null}
     throw Error(profile.error||'Your sign-in could not be checked.');
    }
-   if(response.status===401){setUser(null);setMembers([]);return}
+   if(response.status===401){setUser(null);setMembers([]);setGoogleSignIn(body.googleSignIn??null);return null}
    throw Error(body.error||'Your sign-in could not be checked.');
   }catch(error){
    notice(error instanceof Error?error.message:'Your sign-in could not be checked.','error');
+   return null;
   }finally{setLoading(false)}
  },[]);
 
@@ -69,16 +73,40 @@ export default function AccessPage(){
    history.replaceState(null,'',location.pathname+location.search);
    if(active)setToken(inviteToken);
   }
+  function captureGoogleReturn(){
+   const code=readGoogleCode(location.search);
+   if(!code)return null;
+   // Read once: a reload must not replay the outcome.
+   history.replaceState(null,'',location.pathname+location.hash);
+   return code;
+  }
+  async function openConfirmation(){
+   try{
+    const response=await fetch('/api/auth/google/confirm',{cache:'no-store'});
+    const body=await response.json() as GoogleConfirmDetails&{error?:string};
+    if(!active)return;
+    if(!response.ok)throw Error(body.error||googleNotice('mismatch')!.text);
+    setGoogleConfirm({kind:body.kind,accountEmail:body.accountEmail,invitedEmail:body.invitedEmail,googleEmail:body.googleEmail});
+   }catch(error){
+    if(active)notice(error instanceof Error?error.message:'Connection unavailable.','error');
+   }
+  }
   async function initialize(){
    captureInvitation();
+   const code=captureGoogleReturn();
    await Promise.resolve();
    if(!active)return;
-   await refresh();
+   const refreshed=await refresh();
+   if(!active||!code)return;
+   if(code==='confirm'){await openConfirmation();return}
+   if(code==='signed_in'){resetAccessUserCache();router.push('/author');return}
+   const returned=googleNotice(code,{email:refreshed?.google?.email??null});
+   if(returned)notice(returned.text,returned.kind);
   }
   addEventListener('hashchange',captureInvitation);
   void initialize();
   return()=>{active=false;removeEventListener('hashchange',captureInvitation)};
- },[refresh]);
+ },[refresh,router]);
 
  async function act(payload:Record<string,unknown>){
   setBusy(true);setMessage('');
@@ -100,6 +128,12 @@ export default function AccessPage(){
     router.push('/author');
     return;
    }
+   if(payload.action==='unlink_google'){
+    if(body.user)setUser(body.user);
+    notice(GOOGLE_UNLINKED_TEXT);
+    await refresh();
+    return;
+   }
    if(body.url){
     setInvite(body.url);
     setName('');setEmail('');setRole('editor');
@@ -118,10 +152,30 @@ export default function AccessPage(){
   }finally{setBusy(false);setKey('')}
  }
 
+ async function decideGoogle(decision:'link'|'cancel'){
+  setBusy(true);setMessage('');
+  try{
+   const response=await fetch('/api/auth/google/confirm',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({decision})});
+   resetAccessUserCache();
+   const body=await bodyOf(response);
+   if(!response.ok)throw Error(body.error||'This action could not be completed.');
+   setGoogleConfirm(null);
+   const refreshed=await refresh();
+   if(body.google==='signed_in'){router.push('/author');return}
+   const returned=googleNotice(body.google,{email:refreshed?.google?.email??null});
+   if(returned)notice(returned.text,returned.kind);
+  }catch(error){
+   notice(error instanceof Error?error.message:'Connection unavailable.','error');
+  }finally{setBusy(false)}
+ }
+
  async function copyInvite(){
   try{await navigator.clipboard.writeText(invite);notice('Private sign-in link copied.')}
   catch{notice('Copy was blocked. Select the link below and copy it manually.','error')}
  }
+
+ const google=googleBlockState(googleSignIn);
+ const googleReason=google.reason&&<p className="access-google-reason">{google.reason}</p>;
 
  return <main className="access-page">
   <WorkspaceHeader compact current="/access" title="Account" user={user?{name:user.name,role:user.role}:null}/>
@@ -130,9 +184,16 @@ export default function AccessPage(){
    {message&&<div className={`access-notice ${messageKind}`} role={messageKind==='error'?'alert':'status'}><span>{messageKind==='success'?<Check size={16}/>:<ShieldCheck size={16}/>}</span>{message}</div>}
 
    {loading?<section className="access-card access-loading"><LoaderCircle className="spin" size={28}/><h1>Opening your workspace</h1><p>Checking this browser’s sign-in.</p></section>
+   :googleConfirm?<section className="access-card access-google-confirm">
+    <span className="access-hero-icon"><ShieldCheck size={29}/></span><div className="access-eyebrow">GOOGLE SIGN-IN</div><h1>One more check</h1>
+    <p>{googleConfirmPrompt(googleConfirm)}</p>
+    <button className="access-primary" disabled={busy} onClick={()=>void decideGoogle('link')}>{busy?<><LoaderCircle className="spin" size={17}/>Working…</>:<>Link this Google account</>}</button>
+    <button className="access-google-cancel" disabled={busy} onClick={()=>void decideGoogle('cancel')}>Cancel</button>
+   </section>
    :token?<section className="access-card access-invitation">
     <span className="access-hero-icon"><KeyRound size={29}/></span><div className="access-eyebrow">PRIVATE INVITATION</div><h1>Open your workspace</h1>
     <p>This invitation works once. After you open it, this browser stays signed in for 30 days unless you sign out or an administrator removes your access.</p>
+    {!google.hidden&&<><form className="access-google-form" method="post" action="/api/auth/google/start"><input type="hidden" name="intent" value="redeem"/><input type="hidden" name="token" value={token}/><button className="access-primary" disabled={google.disabled}>Continue with Google</button></form>{googleReason}</>}
     <button className="access-primary" disabled={busy} onClick={()=>void act({action:'redeem',token})}>{busy?<><LoaderCircle className="spin" size={17}/>Opening…</>:<>Open workspace</>}</button>
    </section>
    :user?<div className="access-dashboard">
@@ -153,6 +214,17 @@ export default function AccessPage(){
       <button className="access-primary" disabled={busy}>{busy?<><LoaderCircle className="spin" size={17}/>Saving…</>:<>Save password</>}</button>
      </form>
     </section>
+
+    {(user.google?.linked||!google.hidden)&&<section className="access-panel access-google-panel">
+     <div className="access-panel-heading"><span><ShieldCheck size={18}/></span><div><h2>Google sign-in</h2><p>Sign in with your Google account instead of typing a password. Your password keeps working either way.</p></div></div>
+     {user.google?.linked
+      ?<div className="access-google-linked"><span>Linked as {user.google.email}</span><button disabled={busy} onClick={()=>void act({action:'unlink_google'})}>{busy?<><LoaderCircle className="spin" size={15}/>Working…</>:<>Unlink</>}</button></div>
+      :<><form method="post" action="/api/auth/google/start">
+        <input type="hidden" name="intent" value="link"/>
+        {user.hasPassword&&<label>Current password<input required type="password" name="currentPassword" autoComplete="current-password" minLength={12} maxLength={200}/></label>}
+        <button className="access-primary" disabled={google.disabled}>Link Google account</button>
+       </form>{googleReason}</>}
+    </section>}
 
     {user.role==='owner'&&<div className="access-owner-grid">
      <section className="access-panel">
@@ -175,6 +247,7 @@ export default function AccessPage(){
    :<section className="access-card">
     <span className="access-hero-icon"><KeyRound size={29}/></span><div className="access-eyebrow">WORKSPACE SIGN-IN</div><h1>Sign in again</h1>
     <p>Use the email and password you set on your account. Your password manager can fill these in.</p>
+    {!google.hidden&&<><form className="access-google-form" method="post" action="/api/auth/google/start"><input type="hidden" name="intent" value="signin"/><button className="access-primary" disabled={google.disabled}>Continue with Google</button></form>{googleReason}<div className="access-divider"><span>OR USE A PASSWORD</span></div></>}
     <form onSubmit={event=>{event.preventDefault();void act({action:'login',email:signInEmail,password:signInPassword})}}><label>Email<input required type="email" autoComplete="email" value={signInEmail} onChange={event=>setSignInEmail(event.target.value)} maxLength={200}/></label><label>Password<input required type="password" autoComplete="current-password" value={signInPassword} onChange={event=>setSignInPassword(event.target.value)} minLength={12} maxLength={200}/></label><button className="access-primary" disabled={busy}>{busy?<><LoaderCircle className="spin" size={17}/>Signing in…</>:<>Sign in</>}</button></form>
     <div className="access-divider"><span>INVITATION OR RESET</span></div><p>First visit or forgot your password? Ask your congregation’s administrator for a private, one-time invitation link.</p>
     <div className="access-divider"><span>FIRST-TIME ADMINISTRATOR</span></div>
