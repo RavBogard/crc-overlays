@@ -8,6 +8,7 @@ import {
   deviceKindLabel,
   deviceStandingText,
   hasNamedOutputCredential,
+  isDeviceKind,
   lastConnectedText,
   readDeviceList,
   type PairedDevice,
@@ -37,7 +38,34 @@ const device = (overrides: Partial<PairedDevice> = {}): PairedDevice => ({id: 'c
 test('a device row names the kind an operator would recognize', () => {
   assert.equal(deviceKindLabel('companion'), 'Companion');
   assert.equal(deviceKindLabel('output'), 'Graphics output');
+  assert.equal(deviceKindLabel('history_reader'), 'Service history');
   assert.equal(deviceKindLabel('something-new'), 'Device');
+});
+
+/*
+ * The cue-log credential is minted by `create_history_reader` on /api/devices and the cue-log
+ * return promised "one revoke button on the panel that already exists". The reader used to
+ * accept only companion and output, so a minted history_reader was dropped before it reached
+ * the list and could never be revoked from the panel. These two tests pin the whole path:
+ * the kind is recognised, and a row carrying it survives the read.
+ */
+test('the reader knows exactly the three kinds a credential can hold', () => {
+  assert.equal(isDeviceKind('companion'), true);
+  assert.equal(isDeviceKind('output'), true);
+  assert.equal(isDeviceKind('history_reader'), true);
+  assert.equal(isDeviceKind('printer'), false);
+  assert.equal(isDeviceKind(undefined), false);
+  assert.equal(isDeviceKind(null), false);
+});
+
+test('a service-history credential reaches the panel, so it can be revoked there', () => {
+  const parsed = readDeviceList({devices: [
+    {id: 'cd_live', name: 'centralreform.live', kind: 'history_reader', lastSeenAt: now, revokedAt: null},
+  ]});
+  assert.deepEqual(parsed.map(row => row.kind), ['history_reader']);
+  assert.deepEqual(activeDevices(parsed).map(row => row.id), ['cd_live']);
+  assert.equal(deviceStandingText(parsed[0], now), 'Service history · Last connected just now');
+  assert.equal(`Revoke ${deviceKindLabel('history_reader')} centralreform.live`, 'Revoke Service history centralreform.live');
 });
 
 test('a device row reports when it last connected, which is what the credential actually records', () => {
@@ -63,11 +91,12 @@ test('the device list drops unusable rows rather than throwing, and hides revoke
     {id: 'cd_a', name: 'Sanctuary PC', kind: 'output', lastSeenAt: now, revokedAt: null},
     {id: 'cd_b', name: 'Booth', kind: 'companion', lastSeenAt: null, revokedAt: now},
     {id: 'cd_c', name: 'Broken', kind: 'printer'},
+    {id: 'cd_d', name: 'centralreform.live', kind: 'history_reader', lastSeenAt: null, revokedAt: null},
     {name: 'No id', kind: 'output'},
     null,
   ]});
-  assert.deepEqual(parsed.map(row => row.id), ['cd_a', 'cd_b']);
-  assert.deepEqual(activeDevices(parsed).map(row => row.id), ['cd_a']);
+  assert.deepEqual(parsed.map(row => row.id), ['cd_a', 'cd_b', 'cd_d']);
+  assert.deepEqual(activeDevices(parsed).map(row => row.id), ['cd_a', 'cd_d']);
   assert.deepEqual(readDeviceList({}), []);
   assert.deepEqual(readDeviceList(null), []);
 });
@@ -76,6 +105,7 @@ test('a named output credential counts only while it is unrevoked', () => {
   assert.equal(hasNamedOutputCredential([device()]), true);
   assert.equal(hasNamedOutputCredential([device({revokedAt: now})]), false);
   assert.equal(hasNamedOutputCredential([device({kind: 'companion'})]), false);
+  assert.equal(hasNamedOutputCredential([device({kind: 'history_reader'})]), false, 'a cue-log credential is not a graphics output');
   assert.equal(hasNamedOutputCredential([]), false);
 });
 

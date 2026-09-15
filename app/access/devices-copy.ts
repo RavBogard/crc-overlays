@@ -2,9 +2,10 @@
  * Pure helpers for the "Paired devices" panel on `/access`. Kept out of the page so the
  * labels, the last-seen wording and the revoke notice can be unit-tested without React.
  *
- * A paired device is a Companion installation or a graphics output that holds its own
- * credential. Revocation is not instant: the relay keeps an already-open socket, so the
- * notice says what actually happens rather than promising an immediate disconnection.
+ * A paired device is a Companion installation, a graphics output, or a service-history
+ * connection - each holds its own credential. Revocation is not instant: the relay keeps
+ * an already-open socket, so the notice says what actually happens rather than promising
+ * an immediate disconnection.
  */
 
 export type DeviceKind = "companion" | "output" | "history_reader";
@@ -28,9 +29,21 @@ export const DEVICE_KIND_LABEL: Record<DeviceKind, string> = {
 /** Shown once, after a successful revoke. */
 export const DEVICE_REVOKED_NOTICE = "Revoked. This device stops at its next reconnection.";
 
+/**
+ * The three kinds this panel knows, in one place. `readDeviceList` and `deviceKindLabel`
+ * read it rather than each repeating the literals: they disagreed once, and a kind the
+ * reader dropped was a credential the operator could not see and therefore could not
+ * revoke - which is exactly what the cue-log return promised would be revocable here.
+ */
+const DEVICE_KINDS: readonly DeviceKind[] = ["companion", "output", "history_reader"];
+
+export function isDeviceKind(value: unknown): value is DeviceKind {
+  return typeof value === "string" && (DEVICE_KINDS as readonly string[]).includes(value);
+}
+
 /** An unrecognised kind is named rather than guessed at, so a new kind never renders blank. */
 export function deviceKindLabel(kind: string): string {
-  return kind === "companion" || kind === "output" || kind === "history_reader" ? DEVICE_KIND_LABEL[kind] : "Device";
+  return isDeviceKind(kind) ? DEVICE_KIND_LABEL[kind] : "Device";
 }
 
 /**
@@ -78,7 +91,7 @@ export function readDeviceList(body: unknown): PairedDevice[] {
     if (!row || typeof row !== "object") continue;
     const value = row as Record<string, unknown>;
     if (typeof value.id !== "string" || typeof value.name !== "string") continue;
-    if (value.kind !== "companion" && value.kind !== "output") continue;
+    if (!isDeviceKind(value.kind)) continue;
     devices.push({
       id: value.id,
       name: value.name,
