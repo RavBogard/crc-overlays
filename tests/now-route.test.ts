@@ -4,12 +4,17 @@ import {GET} from '../app/api/now/route.ts';
 import {publicNow,resetPublicNowMemo,PUBLIC_NOW_MEMO_MS} from '../lib/server.ts';
 import {namesPanelCues} from '../lib/names-list.ts';
 import {siddurLibrary} from '../lib/source-library.ts';
+import {loadMoments} from '../lib/liturgy-index.ts';
 import type {Cue} from '../lib/player.ts';
 
 const prior={...process.env};
 test.after(()=>{for(const key of Object.keys(process.env))if(!(key in prior))delete process.env[key];Object.assign(process.env,prior);resetPublicNowMemo()});
 
 const librarySource=siddurLibrary.sources[0];
+// The producer's moments table is committed data that grows; whether this particular unit has a
+// moment is the table's business, not this endpoint's. Read the answer from the same table the
+// route reads so the assertion keeps testing the shape of the response, not the vocabulary.
+const libraryMoment=loadMoments().find(entry=>entry.unitId===librarySource.authority.unitId)?.momentId??null;
 const cue=(value:Record<string,unknown>)=>value as unknown as Cue;
 const published=cue({id:'published',name:'Barechu',layout:'left',texts:{textTitle:'Barechu'},authoring:{draftId:'d',draftVersion:1,origin:'canonical',sourceIds:[librarySource.id],feedSha256:'f',unitSha256:{}}});
 const namesPanel=namesPanelCues('col-1',{title:'Mi Shebeirach',perPanel:8,layout:'left',rows:[{he:'',en:'A name'}],updatedAt:1,updatedBy:'editor'})[0];
@@ -49,7 +54,7 @@ test('a query string is refused so exactly one edge cache key can ever exist',as
 test('a library-backed cue answers its liturgical position and nothing else',async()=>{
  resetPublicNowMemo();
  const value=await publicNow(deps('published'));
- assert.deepEqual(value,{unitId:librarySource.authority.unitId,momentId:null,book:librarySource.authority.id.split(':')[1],folio:(librarySource.metadata.folios as number[])[0],updatedAt:1_757_000_000_000,pollSeconds:5});
+ assert.deepEqual(value,{unitId:librarySource.authority.unitId,momentId:libraryMoment,book:librarySource.authority.id.split(':')[1],folio:(librarySource.metadata.folios as number[])[0],updatedAt:1_757_000_000_000,pollSeconds:5});
  assert.deepEqual(Object.keys(value),['unitId','momentId','book','folio','updatedAt','pollSeconds']);
 });
 
