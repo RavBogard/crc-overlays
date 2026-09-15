@@ -1,1 +1,2885 @@
-{"schemaVersion":1,"moments":[]}
+{
+ "schemaVersion": 1,
+ "moments": [
+  {
+   "momentId": "a-new-year",
+   "unitId": "erev-rh.a-new-year@crc-erev-rh"
+  },
+  {
+   "momentId": "additional-soul-yom-zeh-lyisrael",
+   "unitId": "opening.additional-soul-yom-zeh-lyisrael@legacy-shabbat-evening"
+  },
+  {
+   "momentId": "adon-olam",
+   "unitId": "concluding.adon-olam@bm-shacharit"
+  },
+  {
+   "momentId": "adon-olam",
+   "unitId": "concluding.adon-olam@legacy-shabbat-evening"
+  },
+  {
+   "momentId": "adon-olam",
+   "unitId": "concluding.adon-olam@legacy-shabbat-morning"
+  },
+  {
+   "momentId": "adon-olam",
+   "unitId": "concluding.adon-olam@rh-shacharit"
+  },
+  {
+   "momentId": "adon-olam",
+   "unitId": "concluding.adon-olam@shabbat-maariv"
+  },
+  {
+   "momentId": "adon-olam",
+   "unitId": "econcluding.adon-olam@rh1-maariv"
+  },
+  {
+   "momentId": "ahavah-rabah-ahavtanu",
+   "unitId": "shma.ahavah-rabah-ahavtanu@bm-shacharit"
+  },
+  {
+   "momentId": "ahavah-rabbah",
+   "unitId": "shma.ahavah-rabbah@crc-rh-morning"
+  },
+  {
+   "momentId": "ahavah-rabbah",
+   "unitId": "shma.ahavah-rabbah@crc-yk-morning"
+  },
+  {
+   "momentId": "ahavah-rabbah",
+   "unitId": "shma.ahavah-rabbah@legacy-shabbat-morning"
+  },
+  {
+   "momentId": "ahavah-rabbah",
+   "unitId": "shma.ahavah-rabbah@rh-shacharit"
+  },
+  {
+   "momentId": "ahavah-rabbah",
+   "unitId": "shma.ahavah-rabbah@shabbat-shacharit"
+  },
+  {
+   "momentId": "ahavat-olam",
+   "unitId": "emaariv.ahavat-olam@crc-erev-rh"
+  },
+  {
+   "momentId": "ahavat-olam",
+   "unitId": "emaariv.ahavat-olam@crc-kol-nidre"
+  },
+  {
+   "momentId": "ahavat-olam",
+   "unitId": "emaariv.ahavat-olam@rh1-maariv"
+  },
+  {
+   "momentId": "ahavat-olam",
+   "unitId": "shma.ahavat-olam@bm-maariv"
+  },
+  {
+   "momentId": "ahavat-olam",
+   "unitId": "shma.ahavat-olam@legacy-shabbat-evening"
+  },
+  {
+   "momentId": "ahavat-olam",
+   "unitId": "shma.ahavat-olam@shabbat-maariv"
+  },
+  {
+   "momentId": "al-cheit",
+   "unitId": "amidah.al-cheit@crc-kol-nidre"
+  },
+  {
+   "momentId": "al-cheit-al-cheit",
+   "unitId": "vidui.al-cheit-al-cheit@crc-yk-morning"
+  },
+  {
+   "momentId": "aleinu",
+   "unitId": "concluding.aleinu@bm-maariv"
+  },
+  {
+   "momentId": "aleinu",
+   "unitId": "concluding.aleinu@bm-shacharit"
+  },
+  {
+   "momentId": "aleinu",
+   "unitId": "concluding.aleinu@crc-rh-morning"
+  },
+  {
+   "momentId": "aleinu",
+   "unitId": "concluding.aleinu@legacy-shabbat-evening"
+  },
+  {
+   "momentId": "aleinu",
+   "unitId": "concluding.aleinu@legacy-shabbat-morning"
+  },
+  {
+   "momentId": "aleinu",
+   "unitId": "concluding.aleinu@rh-shacharit"
+  },
+  {
+   "momentId": "aleinu",
+   "unitId": "concluding.aleinu@shabbat-maariv"
+  },
+  {
+   "momentId": "aleinu",
+   "unitId": "econcluding.aleinu@crc-erev-rh"
+  },
+  {
+   "momentId": "aleinu",
+   "unitId": "econcluding.aleinu@crc-kol-nidre"
+  },
+  {
+   "momentId": "aleinu",
+   "unitId": "econcluding.aleinu@rh1-maariv"
+  },
+  {
+   "momentId": "aleinu",
+   "unitId": "mincha.aleinu@rh1-mincha"
+  },
+  {
+   "momentId": "aleinu",
+   "unitId": "neilah.aleinu@crc-neilah"
+  },
+  {
+   "momentId": "aleinu",
+   "unitId": "slichot.aleinu@legacy-slichot"
+  },
+  {
+   "momentId": "aleinu-kavannah",
+   "unitId": "concluding.aleinu-kavannah@legacy-shabbat-evening"
+  },
+  {
+   "momentId": "aleinu-kavannah",
+   "unitId": "concluding.aleinu-kavannah@legacy-shabbat-morning"
+  },
+  {
+   "momentId": "amidah-avinu-malkeinu",
+   "unitId": "torah.amidah-avinu-malkeinu@crc-rh-morning"
+  },
+  {
+   "momentId": "amidah-avinu-malkeinu",
+   "unitId": "torah.amidah-avinu-malkeinu@crc-yk-morning"
+  },
+  {
+   "momentId": "an-explanation-of-our-siddur-prayer-book",
+   "unitId": "frontmatter.an-explanation-of-our-siddur-prayer-book@bm-maariv"
+  },
+  {
+   "momentId": "an-explanation-of-our-siddur-prayer-book",
+   "unitId": "frontmatter.an-explanation-of-our-siddur-prayer-book@bm-shacharit"
+  },
+  {
+   "momentId": "ana-bkoach",
+   "unitId": "kabbalat.ana-bkoach@shabbat-maariv"
+  },
+  {
+   "momentId": "angels-kavannah",
+   "unitId": "opening.angels-kavannah@legacy-shabbat-evening"
+  },
+  {
+   "momentId": "angels-shalom-aleichem",
+   "unitId": "opening.angels-shalom-aleichem@legacy-shabbat-evening"
+  },
+  {
+   "momentId": "as-we-bless",
+   "unitId": "shma.as-we-bless@legacy-shabbat-evening"
+  },
+  {
+   "momentId": "as-we-bless",
+   "unitId": "shma.as-we-bless@legacy-shabbat-morning"
+  },
+  {
+   "momentId": "ashamnu",
+   "unitId": "neilah.ashamnu@crc-neilah"
+  },
+  {
+   "momentId": "asher-yatzar",
+   "unitId": "awakening.asher-yatzar@shabbat-shacharit"
+  },
+  {
+   "momentId": "ashrei",
+   "unitId": "mincha.ashrei@rh1-mincha"
+  },
+  {
+   "momentId": "ashrei",
+   "unitId": "psukei.ashrei@shabbat-shacharit"
+  },
+  {
+   "momentId": "ashrei",
+   "unitId": "reserve.ashrei@shabbat-shacharit"
+  },
+  {
+   "momentId": "ashrei-opening",
+   "unitId": "psukei.ashrei-opening@legacy-shabbat-morning"
+  },
+  {
+   "momentId": "av-harachamim",
+   "unitId": "torah.av-harachamim@shabbat-shacharit"
+  },
+  {
+   "momentId": "avinu-malkeinu",
+   "unitId": "amidah.avinu-malkeinu@crc-erev-rh"
+  },
+  {
+   "momentId": "avinu-malkeinu",
+   "unitId": "amidah.avinu-malkeinu@crc-kol-nidre"
+  },
+  {
+   "momentId": "avinu-malkeinu",
+   "unitId": "amidah.avinu-malkeinu@rh-shacharit"
+  },
+  {
+   "momentId": "avinu-malkeinu",
+   "unitId": "mincha.avinu-malkeinu@rh1-mincha"
+  },
+  {
+   "momentId": "avinu-malkeinu",
+   "unitId": "slichot.avinu-malkeinu@legacy-slichot"
+  },
+  {
+   "momentId": "avodah",
+   "unitId": "amidah.avodah@bm-maariv"
+  },
+  {
+   "momentId": "avodah",
+   "unitId": "amidah.avodah@bm-shacharit"
+  },
+  {
+   "momentId": "avodah",
+   "unitId": "amidah.avodah@crc-rh-morning"
+  },
+  {
+   "momentId": "avodah",
+   "unitId": "amidah.avodah@crc-yk-morning"
+  },
+  {
+   "momentId": "avodah",
+   "unitId": "amidah.avodah@legacy-shabbat-evening"
+  },
+  {
+   "momentId": "avodah",
+   "unitId": "amidah.avodah@legacy-shabbat-morning"
+  },
+  {
+   "momentId": "avodah",
+   "unitId": "amidah.avodah@rh-shacharit"
+  },
+  {
+   "momentId": "avodah",
+   "unitId": "amidah.avodah@shabbat-maariv"
+  },
+  {
+   "momentId": "avodah",
+   "unitId": "emamidah.avodah@crc-erev-rh"
+  },
+  {
+   "momentId": "avodah",
+   "unitId": "emamidah.avodah@crc-kol-nidre"
+  },
+  {
+   "momentId": "avodah",
+   "unitId": "emamidah.avodah@rh1-maariv"
+  },
+  {
+   "momentId": "avodah",
+   "unitId": "mincha.avodah@rh1-mincha"
+  },
+  {
+   "momentId": "avot-interpretation",
+   "unitId": "amidah.avot-interpretation@legacy-shabbat-morning"
+  },
+  {
+   "momentId": "avot-vimahot",
+   "unitId": "amidah.avot-vimahot@bm-maariv"
+  },
+  {
+   "momentId": "avot-vimahot",
+   "unitId": "amidah.avot-vimahot@bm-shacharit"
+  },
+  {
+   "momentId": "avot-vimahot",
+   "unitId": "amidah.avot-vimahot@crc-rh-morning"
+  },
+  {
+   "momentId": "avot-vimahot",
+   "unitId": "amidah.avot-vimahot@crc-yk-morning"
+  },
+  {
+   "momentId": "avot-vimahot",
+   "unitId": "amidah.avot-vimahot@legacy-shabbat-evening"
+  },
+  {
+   "momentId": "avot-vimahot",
+   "unitId": "amidah.avot-vimahot@legacy-shabbat-morning"
+  },
+  {
+   "momentId": "avot-vimahot",
+   "unitId": "amidah.avot-vimahot@rh-shacharit"
+  },
+  {
+   "momentId": "avot-vimahot",
+   "unitId": "amidah.avot-vimahot@shabbat-maariv"
+  },
+  {
+   "momentId": "avot-vimahot",
+   "unitId": "emamidah.avot-vimahot@crc-erev-rh"
+  },
+  {
+   "momentId": "avot-vimahot",
+   "unitId": "emamidah.avot-vimahot@crc-kol-nidre"
+  },
+  {
+   "momentId": "avot-vimahot",
+   "unitId": "emamidah.avot-vimahot@rh1-maariv"
+  },
+  {
+   "momentId": "avot-vimahot",
+   "unitId": "mincha.avot-vimahot@rh1-mincha"
+  },
+  {
+   "momentId": "awakening-birchot-hashachar",
+   "unitId": "shacharit-yk.awakening-birchot-hashachar@crc-yk-morning"
+  },
+  {
+   "momentId": "awakening-eilu-dvarim",
+   "unitId": "psukei.awakening-eilu-dvarim@legacy-shabbat-morning"
+  },
+  {
+   "momentId": "awakening-esah-einai",
+   "unitId": "shacharit-yk.awakening-esah-einai@crc-yk-morning"
+  },
+  {
+   "momentId": "awakening-hareini",
+   "unitId": "frontmatter.awakening-hareini@legacy-shabbat-evening"
+  },
+  {
+   "momentId": "awakening-heschel-racism",
+   "unitId": "psukei.awakening-heschel-racism@legacy-shabbat-morning"
+  },
+  {
+   "momentId": "awakening-mah-tovu",
+   "unitId": "shacharit-yk.awakening-mah-tovu@crc-yk-morning"
+  },
+  {
+   "momentId": "awakening-modeh-ani",
+   "unitId": "shacharit-yk.awakening-modeh-ani@crc-yk-morning"
+  },
+  {
+   "momentId": "awakening-sukkat-shalom",
+   "unitId": "psukei.awakening-sukkat-shalom@legacy-shabbat-morning"
+  },
+  {
+   "momentId": "az-yashir",
+   "unitId": "reserve.az-yashir@shabbat-shacharit"
+  },
+  {
+   "momentId": "backmatter-p48-blank",
+   "unitId": "concluding.backmatter-p48-blank@legacy-shabbat-evening"
+  },
+  {
+   "momentId": "barchu",
+   "unitId": "emaariv.barchu@crc-erev-rh"
+  },
+  {
+   "momentId": "barchu",
+   "unitId": "emaariv.barchu@crc-kol-nidre"
+  },
+  {
+   "momentId": "barchu",
+   "unitId": "emaariv.barchu@rh1-maariv"
+  },
+  {
+   "momentId": "barchu",
+   "unitId": "shma.barchu@bm-maariv"
+  },
+  {
+   "momentId": "barchu",
+   "unitId": "shma.barchu@bm-shacharit"
+  },
+  {
+   "momentId": "barchu",
+   "unitId": "shma.barchu@crc-rh-morning"
+  },
+  {
+   "momentId": "barchu",
+   "unitId": "shma.barchu@crc-yk-morning"
+  },
+  {
+   "momentId": "barchu",
+   "unitId": "shma.barchu@legacy-shabbat-evening"
+  },
+  {
+   "momentId": "barchu",
+   "unitId": "shma.barchu@legacy-shabbat-morning"
+  },
+  {
+   "momentId": "barchu",
+   "unitId": "shma.barchu@rh-shacharit"
+  },
+  {
+   "momentId": "barchu",
+   "unitId": "shma.barchu@shabbat-maariv"
+  },
+  {
+   "momentId": "barchu",
+   "unitId": "shma.barchu@shabbat-shacharit"
+  },
+  {
+   "momentId": "barchu-kavannah",
+   "unitId": "shma.barchu-kavannah@legacy-shabbat-morning"
+  },
+  {
+   "momentId": "barchu-kavannah-talmud",
+   "unitId": "shma.barchu-kavannah-talmud@legacy-shabbat-evening"
+  },
+  {
+   "momentId": "barchu-kavannah-zohar",
+   "unitId": "shma.barchu-kavannah-zohar@legacy-shabbat-evening"
+  },
+  {
+   "momentId": "baruch-sheamar",
+   "unitId": "psukei.baruch-sheamar@shabbat-shacharit"
+  },
+  {
+   "momentId": "baruch-sheamar",
+   "unitId": "reserve.baruch-sheamar@shabbat-shacharit"
+  },
+  {
+   "momentId": "bayom-hahu",
+   "unitId": "concluding.bayom-hahu@legacy-shabbat-evening"
+  },
+  {
+   "momentId": "bayom-hahu",
+   "unitId": "concluding.bayom-hahu@legacy-shabbat-morning"
+  },
+  {
+   "momentId": "bayom-hahu-please-be-seated",
+   "unitId": "concluding.bayom-hahu-please-be-seated@legacy-shabbat-evening"
+  },
+  {
+   "momentId": "bedtime-shma-fragment",
+   "unitId": "econcluding.bedtime-shma-fragment@crc-kol-nidre"
+  },
+  {
+   "momentId": "benediction",
+   "unitId": "concluding.benediction@crc-rh-morning"
+  },
+  {
+   "momentId": "benediction",
+   "unitId": "econcluding.benediction@crc-erev-rh"
+  },
+  {
+   "momentId": "benediction",
+   "unitId": "havdalah.benediction@crc-neilah"
+  },
+  {
+   "momentId": "birchot-hashachar",
+   "unitId": "awakening.birchot-hashachar@bm-shacharit"
+  },
+  {
+   "momentId": "birchot-hashachar",
+   "unitId": "awakening.birchot-hashachar@crc-rh-morning"
+  },
+  {
+   "momentId": "birchot-hashachar",
+   "unitId": "awakening.birchot-hashachar@legacy-shabbat-morning"
+  },
+  {
+   "momentId": "birchot-hashachar",
+   "unitId": "awakening.birchot-hashachar@shabbat-shacharit"
+  },
+  {
+   "momentId": "birchot-hashachar-kavannah",
+   "unitId": "awakening.birchot-hashachar-kavannah@legacy-shabbat-morning"
+  },
+  {
+   "momentId": "birkat-hagomel",
+   "unitId": "torah.birkat-hagomel@legacy-shabbat-morning"
+  },
+  {
+   "momentId": "birkat-hagomel",
+   "unitId": "torah.birkat-hagomel@shabbat-shacharit"
+  },
+  {
+   "momentId": "birkat-kohanim",
+   "unitId": "amidah.birkat-kohanim@shabbat-shacharit"
+  },
+  {
+   "momentId": "birkat-kohanim",
+   "unitId": "concluding.birkat-kohanim@rh-shacharit"
+  },
+  {
+   "momentId": "birkat-kohanim",
+   "unitId": "concluding.birkat-kohanim@shabbat-shacharit"
+  },
+  {
+   "momentId": "birkat-kohanim",
+   "unitId": "econcluding.birkat-kohanim@rh1-maariv"
+  },
+  {
+   "momentId": "birkat-kohanim",
+   "unitId": "mincha.birkat-kohanim@rh1-mincha"
+  },
+  {
+   "momentId": "birkot-hatorah",
+   "unitId": "awakening.birkot-hatorah@shabbat-shacharit"
+  },
+  {
+   "momentId": "blessing-after",
+   "unitId": "haftarah.blessing-after@crc-rh-morning"
+  },
+  {
+   "momentId": "blessing-after-the-hallel",
+   "unitId": "hallel.blessing-after-the-hallel@shabbat-shacharit"
+  },
+  {
+   "momentId": "blessing-after-the-torah",
+   "unitId": "torah.blessing-after-the-torah@crc-rh-morning"
+  },
+  {
+   "momentId": "blessing-after-the-torah",
+   "unitId": "torah.blessing-after-the-torah@crc-yk-morning"
+  },
+  {
+   "momentId": "blessing-after-the-torah",
+   "unitId": "torah.blessing-after-the-torah@legacy-shabbat-morning"
+  },
+  {
+   "momentId": "blessing-after-the-torah",
+   "unitId": "torah.blessing-after-the-torah@rh-shacharit"
+  },
+  {
+   "momentId": "blessing-after-the-torah",
+   "unitId": "torah.blessing-after-the-torah@shabbat-shacharit"
+  },
+  {
+   "momentId": "blessing-before",
+   "unitId": "haftarah.blessing-before@crc-rh-morning"
+  },
+  {
+   "momentId": "blessing-before-the-haftarah",
+   "unitId": "torah.blessing-before-the-haftarah@legacy-shabbat-morning"
+  },
+  {
+   "momentId": "blessing-before-the-haftarah",
+   "unitId": "torah.blessing-before-the-haftarah@rh-shacharit"
+  },
+  {
+   "momentId": "blessing-before-the-haftarah",
+   "unitId": "torah.blessing-before-the-haftarah@shabbat-shacharit"
+  },
+  {
+   "momentId": "blessing-before-the-haftarah-reading",
+   "unitId": "torah.blessing-before-the-haftarah-reading@bm-maariv"
+  },
+  {
+   "momentId": "blessing-before-the-haftarah-reading",
+   "unitId": "torah.blessing-before-the-haftarah-reading@bm-shacharit"
+  },
+  {
+   "momentId": "blessing-before-the-hallel",
+   "unitId": "hallel.blessing-before-the-hallel@shabbat-shacharit"
+  },
+  {
+   "momentId": "blessing-before-the-torah",
+   "unitId": "torah.blessing-before-the-torah@crc-rh-morning"
+  },
+  {
+   "momentId": "blessing-before-the-torah",
+   "unitId": "torah.blessing-before-the-torah@crc-yk-morning"
+  },
+  {
+   "momentId": "blessing-before-the-torah",
+   "unitId": "torah.blessing-before-the-torah@legacy-shabbat-morning"
+  },
+  {
+   "momentId": "blessing-before-the-torah",
+   "unitId": "torah.blessing-before-the-torah@rh-shacharit"
+  },
+  {
+   "momentId": "blessing-before-the-torah",
+   "unitId": "torah.blessing-before-the-torah@shabbat-shacharit"
+  },
+  {
+   "momentId": "blessing-before-the-torah-reading",
+   "unitId": "torah.blessing-before-the-torah-reading@bm-maariv"
+  },
+  {
+   "momentId": "blessing-before-the-torah-reading",
+   "unitId": "torah.blessing-before-the-torah-reading@bm-shacharit"
+  },
+  {
+   "momentId": "blessing-following-the-haftarah-reading",
+   "unitId": "torah.blessing-following-the-haftarah-reading@bm-maariv"
+  },
+  {
+   "momentId": "blessing-following-the-haftarah-reading",
+   "unitId": "torah.blessing-following-the-haftarah-reading@bm-shacharit"
+  },
+  {
+   "momentId": "blessing-following-the-torah-reading",
+   "unitId": "torah.blessing-following-the-torah-reading@bm-maariv"
+  },
+  {
+   "momentId": "blessing-following-the-torah-reading",
+   "unitId": "torah.blessing-following-the-torah-reading@bm-shacharit"
+  },
+  {
+   "momentId": "blessing-the-new-month",
+   "unitId": "torah.blessing-the-new-month@legacy-shabbat-morning"
+  },
+  {
+   "momentId": "blessing-the-new-month",
+   "unitId": "torah.blessing-the-new-month@shabbat-shacharit"
+  },
+  {
+   "momentId": "blessings-after-the-haftarah",
+   "unitId": "torah.blessings-after-the-haftarah@legacy-shabbat-morning"
+  },
+  {
+   "momentId": "blessings-after-the-haftarah",
+   "unitId": "torah.blessings-after-the-haftarah@rh-shacharit"
+  },
+  {
+   "momentId": "blessings-after-the-haftarah",
+   "unitId": "torah.blessings-after-the-haftarah@shabbat-shacharit"
+  },
+  {
+   "momentId": "brosh-hashanah",
+   "unitId": "slichot.brosh-hashanah@legacy-slichot"
+  },
+  {
+   "momentId": "bsamim",
+   "unitId": "havdalah.bsamim@crc-neilah"
+  },
+  {
+   "momentId": "called-to-the-torah",
+   "unitId": "torah.called-to-the-torah@rh-shacharit"
+  },
+  {
+   "momentId": "candle-blessing",
+   "unitId": "erev-rh.candle-blessing@crc-erev-rh"
+  },
+  {
+   "momentId": "candle-blessing",
+   "unitId": "erev-yk.candle-blessing@crc-kol-nidre"
+  },
+  {
+   "momentId": "candle-lighting-song",
+   "unitId": "opening.candle-lighting-song@legacy-shabbat-evening"
+  },
+  {
+   "momentId": "candles-alternative-blessing",
+   "unitId": "opening.candles-alternative-blessing@legacy-shabbat-evening"
+  },
+  {
+   "momentId": "candles-candle-blessing",
+   "unitId": "opening.candles-candle-blessing@legacy-shabbat-evening"
+  },
+  {
+   "momentId": "candles-kavannah",
+   "unitId": "opening.candles-kavannah@legacy-shabbat-evening"
+  },
+  {
+   "momentId": "chatzi-kaddish",
+   "unitId": "emaariv.chatzi-kaddish@rh1-maariv"
+  },
+  {
+   "momentId": "chatzi-kaddish",
+   "unitId": "emamidah.chatzi-kaddish@crc-kol-nidre"
+  },
+  {
+   "momentId": "chatzi-kaddish",
+   "unitId": "mincha.chatzi-kaddish@rh1-mincha"
+  },
+  {
+   "momentId": "chatzi-kaddish",
+   "unitId": "psukei.chatzi-kaddish@crc-rh-morning"
+  },
+  {
+   "momentId": "chatzi-kaddish",
+   "unitId": "psukei.chatzi-kaddish@legacy-shabbat-morning"
+  },
+  {
+   "momentId": "chatzi-kaddish",
+   "unitId": "psukei.chatzi-kaddish@rh-shacharit"
+  },
+  {
+   "momentId": "chatzi-kaddish",
+   "unitId": "psukei.chatzi-kaddish@shabbat-shacharit"
+  },
+  {
+   "momentId": "chatzi-kaddish",
+   "unitId": "shacharit-yk.chatzi-kaddish@crc-yk-morning"
+  },
+  {
+   "momentId": "chatzi-kaddish",
+   "unitId": "shma.chatzi-kaddish@legacy-shabbat-evening"
+  },
+  {
+   "momentId": "chatzi-kaddish",
+   "unitId": "shma.chatzi-kaddish@shabbat-maariv"
+  },
+  {
+   "momentId": "chatzi-kaddish-kavannah",
+   "unitId": "psukei.chatzi-kaddish-kavannah@legacy-shabbat-morning"
+  },
+  {
+   "momentId": "chatzi-kaddish-kavannah",
+   "unitId": "shma.chatzi-kaddish-kavannah@legacy-shabbat-evening"
+  },
+  {
+   "momentId": "closing-blessing",
+   "unitId": "concluding.closing-blessing@bm-shacharit"
+  },
+  {
+   "momentId": "closing-blessing",
+   "unitId": "concluding.closing-blessing@crc-rh-morning"
+  },
+  {
+   "momentId": "closing-blessing",
+   "unitId": "concluding.closing-blessing@crc-yk-morning"
+  },
+  {
+   "momentId": "closing-blessing",
+   "unitId": "concluding.closing-blessing@legacy-shabbat-evening"
+  },
+  {
+   "momentId": "closing-blessing",
+   "unitId": "econcluding.closing-blessing@crc-erev-rh"
+  },
+  {
+   "momentId": "closing-blessing",
+   "unitId": "econcluding.closing-blessing@crc-kol-nidre"
+  },
+  {
+   "momentId": "closing-blessing",
+   "unitId": "havdalah.closing-blessing@bm-maariv"
+  },
+  {
+   "momentId": "closing-blessing",
+   "unitId": "havdalah.closing-blessing@crc-neilah"
+  },
+  {
+   "momentId": "closing-blessing-kavannah",
+   "unitId": "concluding.closing-blessing-kavannah@legacy-shabbat-evening"
+  },
+  {
+   "momentId": "closing-ritual",
+   "unitId": "neilah.closing-ritual@crc-neilah"
+  },
+  {
+   "momentId": "commentary",
+   "unitId": "torah.commentary@bm-maariv"
+  },
+  {
+   "momentId": "commentary",
+   "unitId": "torah.commentary@bm-shacharit"
+  },
+  {
+   "momentId": "concluding-adon-olam",
+   "unitId": "shacharit-yk.concluding-adon-olam@crc-yk-morning"
+  },
+  {
+   "momentId": "concluding-the-tfilah",
+   "unitId": "amidah.concluding-the-tfilah@legacy-shabbat-morning"
+  },
+  {
+   "momentId": "counting-the-omer",
+   "unitId": "seasonal.counting-the-omer@shabbat-maariv"
+  },
+  {
+   "momentId": "echad-yachid",
+   "unitId": "shma.echad-yachid@legacy-shabbat-morning"
+  },
+  {
+   "momentId": "ecological-passages",
+   "unitId": "shma.ecological-passages@crc-erev-rh"
+  },
+  {
+   "momentId": "ecological-passages",
+   "unitId": "shma.ecological-passages@crc-kol-nidre"
+  },
+  {
+   "momentId": "eilu-dvarim",
+   "unitId": "awakening.eilu-dvarim@shabbat-shacharit"
+  },
+  {
+   "momentId": "ein-kamocha",
+   "unitId": "torah.ein-kamocha@rh-shacharit"
+  },
+  {
+   "momentId": "ein-kamocha",
+   "unitId": "torah.ein-kamocha@shabbat-shacharit"
+  },
+  {
+   "momentId": "ein-keloheinu",
+   "unitId": "concluding.ein-keloheinu@rh-shacharit"
+  },
+  {
+   "momentId": "ein-keloheinu",
+   "unitId": "concluding.ein-keloheinu@shabbat-shacharit"
+  },
+  {
+   "momentId": "eish",
+   "unitId": "havdalah.eish@crc-neilah"
+  },
+  {
+   "momentId": "eitz-chayim",
+   "unitId": "torah.eitz-chayim@bm-maariv"
+  },
+  {
+   "momentId": "eitz-chayim",
+   "unitId": "torah.eitz-chayim@bm-shacharit"
+  },
+  {
+   "momentId": "eitz-chayim",
+   "unitId": "torah.eitz-chayim@legacy-shabbat-morning"
+  },
+  {
+   "momentId": "eitz-chayim",
+   "unitId": "torah.eitz-chayim@rh-shacharit"
+  },
+  {
+   "momentId": "eitz-chayim",
+   "unitId": "torah.eitz-chayim@shabbat-shacharit"
+  },
+  {
+   "momentId": "el-malei-rachamim",
+   "unitId": "yizkor.el-malei-rachamim@crc-yizkor"
+  },
+  {
+   "momentId": "el-na-rfa-na",
+   "unitId": "torah.el-na-rfa-na@legacy-shabbat-morning"
+  },
+  {
+   "momentId": "el-na-rfa-na",
+   "unitId": "torah.el-na-rfa-na@shabbat-shacharit"
+  },
+  {
+   "momentId": "el-na-rfa-na-lah-lo",
+   "unitId": "rosh-chodesh.el-na-rfa-na-lah-lo@legacy-shabbat-evening"
+  },
+  {
+   "momentId": "eliyahu-hanavi",
+   "unitId": "havdalah.eliyahu-hanavi@bm-maariv"
+  },
+  {
+   "momentId": "eliyahu-hanavi",
+   "unitId": "havdalah.eliyahu-hanavi@crc-neilah"
+  },
+  {
+   "momentId": "elohai-nshamah",
+   "unitId": "awakening.elohai-nshamah@legacy-shabbat-morning"
+  },
+  {
+   "momentId": "elohai-nshamah",
+   "unitId": "awakening.elohai-nshamah@shabbat-shacharit"
+  },
+  {
+   "momentId": "elohai-ntzor",
+   "unitId": "amidah.elohai-ntzor@legacy-shabbat-morning"
+  },
+  {
+   "momentId": "elohai-ntzor",
+   "unitId": "amidah.elohai-ntzor@rh-shacharit"
+  },
+  {
+   "momentId": "elohai-ntzor",
+   "unitId": "amidah.elohai-ntzor@shabbat-maariv"
+  },
+  {
+   "momentId": "elohai-ntzor",
+   "unitId": "emamidah.elohai-ntzor@rh1-maariv"
+  },
+  {
+   "momentId": "elohai-ntzor",
+   "unitId": "mincha.elohai-ntzor@rh1-mincha"
+  },
+  {
+   "momentId": "emaariv-hashkivenu",
+   "unitId": "shma.emaariv-hashkivenu@crc-erev-rh"
+  },
+  {
+   "momentId": "emaariv-hashkivenu",
+   "unitId": "shma.emaariv-hashkivenu@crc-kol-nidre"
+  },
+  {
+   "momentId": "emamidah-chatzi-kaddish",
+   "unitId": "emaariv.emamidah-chatzi-kaddish@crc-erev-rh"
+  },
+  {
+   "momentId": "emet-kavannah",
+   "unitId": "shma.emet-kavannah@legacy-shabbat-morning"
+  },
+  {
+   "momentId": "emet-vemunah",
+   "unitId": "emaariv.emet-vemunah@rh1-maariv"
+  },
+  {
+   "momentId": "emet-vemunah",
+   "unitId": "shma.emet-vemunah@shabbat-maariv"
+  },
+  {
+   "momentId": "emet-vyatziv",
+   "unitId": "shma.emet-vyatziv@legacy-shabbat-morning"
+  },
+  {
+   "momentId": "emet-vyatziv",
+   "unitId": "shma.emet-vyatziv@rh-shacharit"
+  },
+  {
+   "momentId": "emet-vyatziv",
+   "unitId": "shma.emet-vyatziv@shabbat-shacharit"
+  },
+  {
+   "momentId": "erev-maariv-shehecheyanu",
+   "unitId": "erev-rh.erev-maariv-shehecheyanu@crc-erev-rh"
+  },
+  {
+   "momentId": "erev-maariv-shehecheyanu",
+   "unitId": "erev-yk.erev-maariv-shehecheyanu@crc-kol-nidre"
+  },
+  {
+   "momentId": "erev-maariv-shehecheyanu-2",
+   "unitId": "erev-yk.erev-maariv-shehecheyanu-2@crc-kol-nidre"
+  },
+  {
+   "momentId": "erev-rh-sermon",
+   "unitId": "econcluding.erev-rh-sermon@crc-erev-rh"
+  },
+  {
+   "momentId": "erev-yk-sermon",
+   "unitId": "amidah.erev-yk-sermon@crc-kol-nidre"
+  },
+  {
+   "momentId": "esah-einai",
+   "unitId": "erev-rh.esah-einai@crc-erev-rh"
+  },
+  {
+   "momentId": "esah-einai",
+   "unitId": "yizkor.esah-einai@crc-yizkor"
+  },
+  {
+   "momentId": "every-word-a-world",
+   "unitId": "frontmatter.every-word-a-world@legacy-shabbat-evening"
+  },
+  {
+   "momentId": "festival-kiddush",
+   "unitId": "econcluding.festival-kiddush@crc-erev-rh"
+  },
+  {
+   "momentId": "festival-kiddush",
+   "unitId": "seasonal.festival-kiddush@shabbat-maariv"
+  },
+  {
+   "momentId": "for-our-transgressions",
+   "unitId": "erev-yk.for-our-transgressions@crc-kol-nidre"
+  },
+  {
+   "momentId": "for-the-miracles",
+   "unitId": "seasonal.for-the-miracles@shabbat-maariv"
+  },
+  {
+   "momentId": "for-the-miracles",
+   "unitId": "seasonal.for-the-miracles@shabbat-shacharit"
+  },
+  {
+   "momentId": "god-of-awesome-deeds",
+   "unitId": "neilah.god-of-awesome-deeds@crc-neilah"
+  },
+  {
+   "momentId": "gvurot",
+   "unitId": "amidah.gvurot@bm-maariv"
+  },
+  {
+   "momentId": "gvurot",
+   "unitId": "amidah.gvurot@bm-shacharit"
+  },
+  {
+   "momentId": "gvurot",
+   "unitId": "amidah.gvurot@crc-rh-morning"
+  },
+  {
+   "momentId": "gvurot",
+   "unitId": "amidah.gvurot@crc-yk-morning"
+  },
+  {
+   "momentId": "gvurot",
+   "unitId": "amidah.gvurot@legacy-shabbat-evening"
+  },
+  {
+   "momentId": "gvurot",
+   "unitId": "amidah.gvurot@legacy-shabbat-morning"
+  },
+  {
+   "momentId": "gvurot",
+   "unitId": "amidah.gvurot@rh-shacharit"
+  },
+  {
+   "momentId": "gvurot",
+   "unitId": "amidah.gvurot@shabbat-maariv"
+  },
+  {
+   "momentId": "gvurot",
+   "unitId": "emamidah.gvurot@crc-erev-rh"
+  },
+  {
+   "momentId": "gvurot",
+   "unitId": "emamidah.gvurot@crc-kol-nidre"
+  },
+  {
+   "momentId": "gvurot",
+   "unitId": "emamidah.gvurot@rh1-maariv"
+  },
+  {
+   "momentId": "gvurot",
+   "unitId": "mincha.gvurot@rh1-mincha"
+  },
+  {
+   "momentId": "haftarah-blessing-after",
+   "unitId": "torah.haftarah-blessing-after@crc-yk-morning"
+  },
+  {
+   "momentId": "haftarah-blessing-before",
+   "unitId": "torah.haftarah-blessing-before@crc-yk-morning"
+  },
+  {
+   "momentId": "haftarah-day-1",
+   "unitId": "torah.haftarah-day-1@rh1"
+  },
+  {
+   "momentId": "haftarah-day-2",
+   "unitId": "torah.haftarah-day-2@rh2"
+  },
+  {
+   "momentId": "haftarah-reading",
+   "unitId": "torah.haftarah-reading@legacy-shabbat-morning"
+  },
+  {
+   "momentId": "haftarah-reading-yk-morning",
+   "unitId": "torah.haftarah-reading-yk-morning@crc-yk-morning"
+  },
+  {
+   "momentId": "hakafot",
+   "unitId": "torah.hakafot@bm-maariv"
+  },
+  {
+   "momentId": "hakafot",
+   "unitId": "torah.hakafot@bm-shacharit"
+  },
+  {
+   "momentId": "hakafot",
+   "unitId": "torah.hakafot@crc-rh-morning"
+  },
+  {
+   "momentId": "hakafot",
+   "unitId": "torah.hakafot@legacy-shabbat-morning"
+  },
+  {
+   "momentId": "hamotzi",
+   "unitId": "concluding.hamotzi@legacy-shabbat-morning"
+  },
+  {
+   "momentId": "hareini",
+   "unitId": "awakening.hareini@legacy-shabbat-morning"
+  },
+  {
+   "momentId": "hareini",
+   "unitId": "awakening.hareini@shabbat-shacharit"
+  },
+  {
+   "momentId": "hashiveinu",
+   "unitId": "slichot.hashiveinu@legacy-slichot"
+  },
+  {
+   "momentId": "hashkiveinu",
+   "unitId": "shma.hashkiveinu@bm-maariv"
+  },
+  {
+   "momentId": "hashkiveinu",
+   "unitId": "shma.hashkiveinu@legacy-shabbat-evening"
+  },
+  {
+   "momentId": "hashkivenu",
+   "unitId": "emaariv.hashkivenu@rh1-maariv"
+  },
+  {
+   "momentId": "hashkivenu",
+   "unitId": "shma.hashkivenu@shabbat-maariv"
+  },
+  {
+   "momentId": "hatikvah",
+   "unitId": "concluding.hatikvah@crc-rh-morning"
+  },
+  {
+   "momentId": "hatikvah",
+   "unitId": "concluding.hatikvah@crc-yk-morning"
+  },
+  {
+   "momentId": "hatikvah",
+   "unitId": "rosh-chodesh.hatikvah@legacy-shabbat-evening"
+  },
+  {
+   "momentId": "hatikvah",
+   "unitId": "torah.hatikvah@legacy-shabbat-morning"
+  },
+  {
+   "momentId": "hayom",
+   "unitId": "concluding.hayom@crc-yk-morning"
+  },
+  {
+   "momentId": "hayom-harat-olam",
+   "unitId": "shofar.hayom-harat-olam@malchuyot"
+  },
+  {
+   "momentId": "hayom-harat-olam",
+   "unitId": "shofar.hayom-harat-olam@shofarot"
+  },
+  {
+   "momentId": "hayom-harat-olam",
+   "unitId": "shofar.hayom-harat-olam@zichronot"
+  },
+  {
+   "momentId": "hayom-tamtzeinu",
+   "unitId": "concluding.hayom-tamtzeinu@rh-shacharit"
+  },
+  {
+   "momentId": "hineh-mah-tov",
+   "unitId": "awakening.hineh-mah-tov@legacy-shabbat-morning"
+  },
+  {
+   "momentId": "hineh-mah-tov",
+   "unitId": "awakening.hineh-mah-tov@shabbat-shacharit"
+  },
+  {
+   "momentId": "hineih-mah-tov",
+   "unitId": "awakening.hineih-mah-tov@bm-maariv"
+  },
+  {
+   "momentId": "hineih-mah-tov",
+   "unitId": "awakening.hineih-mah-tov@bm-shacharit"
+  },
+  {
+   "momentId": "hineih-mah-tov",
+   "unitId": "awakening.hineih-mah-tov@crc-rh-morning"
+  },
+  {
+   "momentId": "hineih-mah-tov",
+   "unitId": "opening.hineih-mah-tov@legacy-shabbat-evening"
+  },
+  {
+   "momentId": "hineni",
+   "unitId": "awakening.hineni@rh-shacharit"
+  },
+  {
+   "momentId": "hineni",
+   "unitId": "erev-rh.hineni@crc-erev-rh"
+  },
+  {
+   "momentId": "hodaah",
+   "unitId": "amidah.hodaah@bm-maariv"
+  },
+  {
+   "momentId": "hodaah",
+   "unitId": "amidah.hodaah@bm-shacharit"
+  },
+  {
+   "momentId": "hodaah",
+   "unitId": "amidah.hodaah@crc-rh-morning"
+  },
+  {
+   "momentId": "hodaah",
+   "unitId": "amidah.hodaah@crc-yk-morning"
+  },
+  {
+   "momentId": "hodaah",
+   "unitId": "amidah.hodaah@legacy-shabbat-evening"
+  },
+  {
+   "momentId": "hodaah",
+   "unitId": "emamidah.hodaah@crc-erev-rh"
+  },
+  {
+   "momentId": "hodaah",
+   "unitId": "emamidah.hodaah@crc-kol-nidre"
+  },
+  {
+   "momentId": "hodu",
+   "unitId": "awakening.hodu@legacy-shabbat-morning"
+  },
+  {
+   "momentId": "hodu",
+   "unitId": "awakening.hodu@shabbat-shacharit"
+  },
+  {
+   "momentId": "hodu-davids-song",
+   "unitId": "reserve.hodu-davids-song@shabbat-shacharit"
+  },
+  {
+   "momentId": "house-of-prayer",
+   "unitId": "opening.house-of-prayer@legacy-shabbat-evening"
+  },
+  {
+   "momentId": "how-to-use",
+   "unitId": "frontmatter.how-to-use@legacy-shabbat-morning"
+  },
+  {
+   "momentId": "in-preparation",
+   "unitId": "erev-maariv.in-preparation@rh1-maariv"
+  },
+  {
+   "momentId": "in-the-days-of-mordechai",
+   "unitId": "seasonal.in-the-days-of-mordechai@shabbat-maariv"
+  },
+  {
+   "momentId": "in-the-days-of-mordechai",
+   "unitId": "seasonal.in-the-days-of-mordechai@shabbat-shacharit"
+  },
+  {
+   "momentId": "kaddish-shalem",
+   "unitId": "amidah.kaddish-shalem@rh-shacharit"
+  },
+  {
+   "momentId": "kaddish-shalem",
+   "unitId": "amidah.kaddish-shalem@shabbat-maariv"
+  },
+  {
+   "momentId": "kaddish-shalem",
+   "unitId": "concluding.kaddish-shalem@shabbat-maariv"
+  },
+  {
+   "momentId": "kaddish-shalem",
+   "unitId": "econcluding.kaddish-shalem@rh1-maariv"
+  },
+  {
+   "momentId": "kaddish-shalem",
+   "unitId": "mincha.kaddish-shalem@rh1-mincha"
+  },
+  {
+   "momentId": "kdushah",
+   "unitId": "amidah.kdushah@bm-maariv"
+  },
+  {
+   "momentId": "kdushah",
+   "unitId": "amidah.kdushah@bm-shacharit"
+  },
+  {
+   "momentId": "kdushah",
+   "unitId": "amidah.kdushah@crc-rh-morning"
+  },
+  {
+   "momentId": "kdushah",
+   "unitId": "amidah.kdushah@crc-yk-morning"
+  },
+  {
+   "momentId": "kdushah",
+   "unitId": "amidah.kdushah@legacy-shabbat-morning"
+  },
+  {
+   "momentId": "kdushah",
+   "unitId": "amidah.kdushah@rh-shacharit"
+  },
+  {
+   "momentId": "kdushah",
+   "unitId": "amidah.kdushah@shabbat-shacharit"
+  },
+  {
+   "momentId": "kdushah",
+   "unitId": "mincha.kdushah@rh1-mincha"
+  },
+  {
+   "momentId": "kdushah-kavannah",
+   "unitId": "amidah.kdushah-kavannah@crc-rh-morning"
+  },
+  {
+   "momentId": "kdushah-kavannah",
+   "unitId": "amidah.kdushah-kavannah@legacy-shabbat-morning"
+  },
+  {
+   "momentId": "kdushat-hashem",
+   "unitId": "amidah.kdushat-hashem@legacy-shabbat-evening"
+  },
+  {
+   "momentId": "kdushat-hashem",
+   "unitId": "amidah.kdushat-hashem@shabbat-maariv"
+  },
+  {
+   "momentId": "kdushat-hashem",
+   "unitId": "emamidah.kdushat-hashem@rh1-maariv"
+  },
+  {
+   "momentId": "kdushat-hayom",
+   "unitId": "amidah.kdushat-hayom@crc-rh-morning"
+  },
+  {
+   "momentId": "kdushat-hayom",
+   "unitId": "amidah.kdushat-hayom@crc-yk-morning"
+  },
+  {
+   "momentId": "kdushat-hayom",
+   "unitId": "amidah.kdushat-hayom@legacy-shabbat-evening"
+  },
+  {
+   "momentId": "kdushat-hayom",
+   "unitId": "amidah.kdushat-hayom@rh-shacharit"
+  },
+  {
+   "momentId": "kdushat-hayom",
+   "unitId": "amidah.kdushat-hayom@shabbat-maariv"
+  },
+  {
+   "momentId": "kdushat-hayom",
+   "unitId": "amidah.kdushat-hayom@shabbat-shacharit"
+  },
+  {
+   "momentId": "kdushat-hayom",
+   "unitId": "emamidah.kdushat-hayom@rh1-maariv"
+  },
+  {
+   "momentId": "kdushat-hayom",
+   "unitId": "mincha.kdushat-hayom@rh1-mincha"
+  },
+  {
+   "momentId": "kdushat-hayom-kavannah",
+   "unitId": "amidah.kdushat-hayom-kavannah@crc-rh-morning"
+  },
+  {
+   "momentId": "kedushat-hayom-tail",
+   "unitId": "amidah.kedushat-hayom-tail@legacy-shabbat-evening"
+  },
+  {
+   "momentId": "keva-kavannah-note",
+   "unitId": "frontmatter.keva-kavannah-note@legacy-shabbat-evening"
+  },
+  {
+   "momentId": "ki-anu-amecha",
+   "unitId": "slichot.ki-anu-amecha@legacy-slichot"
+  },
+  {
+   "momentId": "kiddush",
+   "unitId": "concluding.kiddush@legacy-shabbat-morning"
+  },
+  {
+   "momentId": "kiddush",
+   "unitId": "ekiddush.kiddush@rh1-maariv"
+  },
+  {
+   "momentId": "kiddush",
+   "unitId": "seasonal.kiddush@shabbat-maariv"
+  },
+  {
+   "momentId": "kiddush-evening",
+   "unitId": "concluding.kiddush-evening@legacy-shabbat-evening"
+  },
+  {
+   "momentId": "kiddusha-rabbah",
+   "unitId": "hallel.kiddusha-rabbah@shabbat-shacharit"
+  },
+  {
+   "momentId": "kol-hanshamah",
+   "unitId": "psukei.kol-hanshamah@legacy-shabbat-morning"
+  },
+  {
+   "momentId": "kol-nidre",
+   "unitId": "erev-yk.kol-nidre@crc-kol-nidre"
+  },
+  {
+   "momentId": "kriyat-shma-kavannah",
+   "unitId": "shma.kriyat-shma-kavannah@legacy-shabbat-morning"
+  },
+  {
+   "momentId": "kriyat-shma-teaching",
+   "unitId": "shma.kriyat-shma-teaching@legacy-shabbat-morning"
+  },
+  {
+   "momentId": "lcha-adonai-hagedulah",
+   "unitId": "torah.lcha-adonai-hagedulah@rh-shacharit"
+  },
+  {
+   "momentId": "lcha-adonai-hagedulah",
+   "unitId": "torah.lcha-adonai-hagedulah@shabbat-shacharit"
+  },
+  {
+   "momentId": "lcha-dodi",
+   "unitId": "kabbalat.lcha-dodi@shabbat-maariv"
+  },
+  {
+   "momentId": "lchah-dodi",
+   "unitId": "shabbat.lchah-dodi@crc-neilah"
+  },
+  {
+   "momentId": "lighting-the-candles",
+   "unitId": "kabbalat.lighting-the-candles@shabbat-maariv"
+  },
+  {
+   "momentId": "likrat-hachodesh",
+   "unitId": "rosh-chodesh.likrat-hachodesh@legacy-shabbat-evening"
+  },
+  {
+   "momentId": "lshanah-tovah",
+   "unitId": "havdalah.lshanah-tovah@crc-neilah"
+  },
+  {
+   "momentId": "maariv-aravim",
+   "unitId": "emaariv.maariv-aravim@crc-erev-rh"
+  },
+  {
+   "momentId": "maariv-aravim",
+   "unitId": "emaariv.maariv-aravim@crc-kol-nidre"
+  },
+  {
+   "momentId": "maariv-aravim",
+   "unitId": "emaariv.maariv-aravim@rh1-maariv"
+  },
+  {
+   "momentId": "maariv-aravim",
+   "unitId": "shma.maariv-aravim@bm-maariv"
+  },
+  {
+   "momentId": "maariv-aravim",
+   "unitId": "shma.maariv-aravim@legacy-shabbat-evening"
+  },
+  {
+   "momentId": "maariv-aravim",
+   "unitId": "shma.maariv-aravim@shabbat-maariv"
+  },
+  {
+   "momentId": "maariv-aravim-evening-chant",
+   "unitId": "shma.maariv-aravim-evening-chant@legacy-shabbat-evening"
+  },
+  {
+   "momentId": "maariv-aravim-kavannah",
+   "unitId": "shma.maariv-aravim-kavannah@legacy-shabbat-evening"
+  },
+  {
+   "momentId": "mah-rabu-chant",
+   "unitId": "shma.mah-rabu-chant@legacy-shabbat-morning"
+  },
+  {
+   "momentId": "mah-tovu",
+   "unitId": "awakening.mah-tovu@bm-shacharit"
+  },
+  {
+   "momentId": "mah-tovu",
+   "unitId": "awakening.mah-tovu@crc-rh-morning"
+  },
+  {
+   "momentId": "mah-tovu",
+   "unitId": "awakening.mah-tovu@legacy-shabbat-morning"
+  },
+  {
+   "momentId": "mah-tovu",
+   "unitId": "awakening.mah-tovu@shabbat-shacharit"
+  },
+  {
+   "momentId": "mah-tovu-kavannah",
+   "unitId": "awakening.mah-tovu-kavannah@legacy-shabbat-morning"
+  },
+  {
+   "momentId": "malchuyot",
+   "unitId": "shofar.malchuyot@crc-rh-morning"
+  },
+  {
+   "momentId": "malchuyot",
+   "unitId": "shofar.malchuyot@rh-shacharit"
+  },
+  {
+   "momentId": "matzanu-mnuchah",
+   "unitId": "shacharit-yk.matzanu-mnuchah@crc-yk-morning"
+  },
+  {
+   "momentId": "may-the-door",
+   "unitId": "erev-rh.may-the-door@crc-erev-rh"
+  },
+  {
+   "momentId": "may-the-memory",
+   "unitId": "concluding.may-the-memory@crc-rh-morning"
+  },
+  {
+   "momentId": "may-the-memory",
+   "unitId": "concluding.may-the-memory@legacy-shabbat-evening"
+  },
+  {
+   "momentId": "may-the-memory",
+   "unitId": "concluding.may-the-memory@legacy-shabbat-morning"
+  },
+  {
+   "momentId": "may-the-memory",
+   "unitId": "econcluding.may-the-memory@crc-erev-rh"
+  },
+  {
+   "momentId": "may-the-memory",
+   "unitId": "econcluding.may-the-memory@crc-kol-nidre"
+  },
+  {
+   "momentId": "may-the-memory",
+   "unitId": "yizkor.may-the-memory@crc-yizkor"
+  },
+  {
+   "momentId": "meein-sheva",
+   "unitId": "amidah.meein-sheva@shabbat-maariv"
+  },
+  {
+   "momentId": "memorial-reading-1",
+   "unitId": "yizkor.memorial-reading-1@crc-yizkor"
+  },
+  {
+   "momentId": "memorial-reading-2",
+   "unitId": "yizkor.memorial-reading-2@crc-yizkor"
+  },
+  {
+   "momentId": "mi-chamocha",
+   "unitId": "emaariv.mi-chamocha@rh1-maariv"
+  },
+  {
+   "momentId": "mi-chamocha",
+   "unitId": "shma.mi-chamocha@crc-erev-rh"
+  },
+  {
+   "momentId": "mi-chamocha",
+   "unitId": "shma.mi-chamocha@crc-kol-nidre"
+  },
+  {
+   "momentId": "mi-chamocha",
+   "unitId": "shma.mi-chamocha@crc-rh-morning"
+  },
+  {
+   "momentId": "mi-chamocha",
+   "unitId": "shma.mi-chamocha@crc-yk-morning"
+  },
+  {
+   "momentId": "mi-chamocha",
+   "unitId": "shma.mi-chamocha@legacy-shabbat-morning"
+  },
+  {
+   "momentId": "mi-chamocha",
+   "unitId": "shma.mi-chamocha@rh-shacharit"
+  },
+  {
+   "momentId": "mi-chamocha",
+   "unitId": "shma.mi-chamocha@shabbat-maariv"
+  },
+  {
+   "momentId": "mi-chamocha",
+   "unitId": "shma.mi-chamocha@shabbat-shacharit"
+  },
+  {
+   "momentId": "mi-chamocha-kavannah",
+   "unitId": "shma.mi-chamocha-kavannah@legacy-shabbat-morning"
+  },
+  {
+   "momentId": "mi-chamochah",
+   "unitId": "shma.mi-chamochah@bm-maariv"
+  },
+  {
+   "momentId": "mi-chamochah",
+   "unitId": "shma.mi-chamochah@bm-shacharit"
+  },
+  {
+   "momentId": "mi-chamochah",
+   "unitId": "shma.mi-chamochah@legacy-shabbat-evening"
+  },
+  {
+   "momentId": "mi-chamochah-kavannah",
+   "unitId": "shma.mi-chamochah-kavannah@legacy-shabbat-evening"
+  },
+  {
+   "momentId": "mi-shebeirach-congregation",
+   "unitId": "torah.mi-shebeirach-congregation@legacy-shabbat-morning"
+  },
+  {
+   "momentId": "mi-shebeirach-healing",
+   "unitId": "concluding.mi-shebeirach-healing@shabbat-maariv"
+  },
+  {
+   "momentId": "mi-shebeirach-healing",
+   "unitId": "rosh-chodesh.mi-shebeirach-healing@legacy-shabbat-evening"
+  },
+  {
+   "momentId": "mi-shebeirach-healing",
+   "unitId": "torah.mi-shebeirach-healing@bm-maariv"
+  },
+  {
+   "momentId": "mi-shebeirach-healing",
+   "unitId": "torah.mi-shebeirach-healing@bm-shacharit"
+  },
+  {
+   "momentId": "mi-shebeirach-healing",
+   "unitId": "torah.mi-shebeirach-healing@crc-rh-morning"
+  },
+  {
+   "momentId": "mi-shebeirach-healing",
+   "unitId": "torah.mi-shebeirach-healing@crc-yk-morning"
+  },
+  {
+   "momentId": "mi-shebeirach-healing",
+   "unitId": "torah.mi-shebeirach-healing@legacy-shabbat-morning"
+  },
+  {
+   "momentId": "mi-shebeirach-healing",
+   "unitId": "torah.mi-shebeirach-healing@rh-shacharit"
+  },
+  {
+   "momentId": "mi-shebeirach-healing",
+   "unitId": "torah.mi-shebeirach-healing@shabbat-shacharit"
+  },
+  {
+   "momentId": "miryam-hanviah",
+   "unitId": "havdalah.miryam-hanviah@bm-maariv"
+  },
+  {
+   "momentId": "miryam-hanviah",
+   "unitId": "havdalah.miryam-hanviah@crc-neilah"
+  },
+  {
+   "momentId": "mizmor-shir",
+   "unitId": "reserve.mizmor-shir@shabbat-shacharit"
+  },
+  {
+   "momentId": "modeh-ani",
+   "unitId": "awakening.modeh-ani@bm-shacharit"
+  },
+  {
+   "momentId": "modeh-ani",
+   "unitId": "awakening.modeh-ani@crc-rh-morning"
+  },
+  {
+   "momentId": "modeh-ani",
+   "unitId": "awakening.modeh-ani@legacy-shabbat-morning"
+  },
+  {
+   "momentId": "modeh-ani",
+   "unitId": "awakening.modeh-ani@shabbat-shacharit"
+  },
+  {
+   "momentId": "modim",
+   "unitId": "amidah.modim@legacy-shabbat-morning"
+  },
+  {
+   "momentId": "modim",
+   "unitId": "amidah.modim@rh-shacharit"
+  },
+  {
+   "momentId": "modim",
+   "unitId": "amidah.modim@shabbat-maariv"
+  },
+  {
+   "momentId": "modim",
+   "unitId": "emamidah.modim@rh1-maariv"
+  },
+  {
+   "momentId": "modim",
+   "unitId": "mincha.modim@rh1-mincha"
+  },
+  {
+   "momentId": "motzi-blessing",
+   "unitId": "concluding.motzi-blessing@legacy-shabbat-evening"
+  },
+  {
+   "momentId": "mourners-kaddish",
+   "unitId": "concluding.mourners-kaddish@bm-maariv"
+  },
+  {
+   "momentId": "mourners-kaddish",
+   "unitId": "concluding.mourners-kaddish@bm-shacharit"
+  },
+  {
+   "momentId": "mourners-kaddish",
+   "unitId": "concluding.mourners-kaddish@crc-rh-morning"
+  },
+  {
+   "momentId": "mourners-kaddish",
+   "unitId": "concluding.mourners-kaddish@legacy-shabbat-evening"
+  },
+  {
+   "momentId": "mourners-kaddish",
+   "unitId": "concluding.mourners-kaddish@legacy-shabbat-morning"
+  },
+  {
+   "momentId": "mourners-kaddish",
+   "unitId": "concluding.mourners-kaddish@rh-shacharit"
+  },
+  {
+   "momentId": "mourners-kaddish",
+   "unitId": "concluding.mourners-kaddish@shabbat-maariv"
+  },
+  {
+   "momentId": "mourners-kaddish",
+   "unitId": "econcluding.mourners-kaddish@crc-erev-rh"
+  },
+  {
+   "momentId": "mourners-kaddish",
+   "unitId": "econcluding.mourners-kaddish@crc-kol-nidre"
+  },
+  {
+   "momentId": "mourners-kaddish",
+   "unitId": "econcluding.mourners-kaddish@rh1-maariv"
+  },
+  {
+   "momentId": "mourners-kaddish",
+   "unitId": "mincha.mourners-kaddish@rh1-mincha"
+  },
+  {
+   "momentId": "mourners-kaddish",
+   "unitId": "slichot.mourners-kaddish@legacy-slichot"
+  },
+  {
+   "momentId": "mourners-kaddish",
+   "unitId": "yizkor.mourners-kaddish@crc-yizkor"
+  },
+  {
+   "momentId": "mourners-kaddish-kavannah",
+   "unitId": "concluding.mourners-kaddish-kavannah@legacy-shabbat-evening"
+  },
+  {
+   "momentId": "mourners-kaddish-kavannah",
+   "unitId": "concluding.mourners-kaddish-kavannah@legacy-shabbat-morning"
+  },
+  {
+   "momentId": "mourners-kaddish-please-be-seated",
+   "unitId": "concluding.mourners-kaddish-please-be-seated@legacy-shabbat-evening"
+  },
+  {
+   "momentId": "n-kadeish-rosh-hachodesh",
+   "unitId": "rosh-chodesh.n-kadeish-rosh-hachodesh@legacy-shabbat-evening"
+  },
+  {
+   "momentId": "neila-ashrei",
+   "unitId": "neilah.neila-ashrei@crc-neilah"
+  },
+  {
+   "momentId": "neila-avinu-malkeinu",
+   "unitId": "neilah.neila-avinu-malkeinu@crc-neilah"
+  },
+  {
+   "momentId": "neila-avot-vimahot",
+   "unitId": "neilah.neila-avot-vimahot@crc-neilah"
+  },
+  {
+   "momentId": "neila-chatzi-kaddish",
+   "unitId": "neilah.neila-chatzi-kaddish@crc-neilah"
+  },
+  {
+   "momentId": "neila-gvurot",
+   "unitId": "neilah.neila-gvurot@crc-neilah"
+  },
+  {
+   "momentId": "neila-kdushah",
+   "unitId": "neilah.neila-kdushah@crc-neilah"
+  },
+  {
+   "momentId": "neila-sim-shalom",
+   "unitId": "neilah.neila-sim-shalom@crc-neilah"
+  },
+  {
+   "momentId": "niggun",
+   "unitId": "econcluding.niggun@crc-kol-nidre"
+  },
+  {
+   "momentId": "niggun",
+   "unitId": "erev-rh.niggun@crc-erev-rh"
+  },
+  {
+   "momentId": "niggun",
+   "unitId": "erev-yk.niggun@crc-kol-nidre"
+  },
+  {
+   "momentId": "niggun",
+   "unitId": "opening.niggun@legacy-shabbat-evening"
+  },
+  {
+   "momentId": "night-descends",
+   "unitId": "neilah.night-descends@crc-neilah"
+  },
+  {
+   "momentId": "nishmat-kol-chai",
+   "unitId": "psukei.nishmat-kol-chai@shabbat-shacharit"
+  },
+  {
+   "momentId": "nishmat-kol-chai",
+   "unitId": "reserve.nishmat-kol-chai@shabbat-shacharit"
+  },
+  {
+   "momentId": "olam-chesed-yibaneh",
+   "unitId": "amidah.olam-chesed-yibaneh@legacy-shabbat-evening"
+  },
+  {
+   "momentId": "olam-chesed-yibaneh",
+   "unitId": "amidah.olam-chesed-yibaneh@legacy-shabbat-morning"
+  },
+  {
+   "momentId": "on-that-day-reading",
+   "unitId": "concluding.on-that-day-reading@legacy-shabbat-morning"
+  },
+  {
+   "momentId": "opening-meditation",
+   "unitId": "slichot.opening-meditation@legacy-slichot"
+  },
+  {
+   "momentId": "opening-prayer",
+   "unitId": "erev-yk.opening-prayer@crc-kol-nidre"
+  },
+  {
+   "momentId": "opening-psalms",
+   "unitId": "psukei.opening-psalms@crc-rh-morning"
+  },
+  {
+   "momentId": "opening-rubric",
+   "unitId": "psukei.opening-rubric@legacy-shabbat-morning"
+  },
+  {
+   "momentId": "oseh-shalom",
+   "unitId": "amidah.oseh-shalom@bm-maariv"
+  },
+  {
+   "momentId": "oseh-shalom",
+   "unitId": "amidah.oseh-shalom@bm-shacharit"
+  },
+  {
+   "momentId": "oseh-shalom",
+   "unitId": "amidah.oseh-shalom@legacy-shabbat-morning"
+  },
+  {
+   "momentId": "parents-blessing",
+   "unitId": "concluding.parents-blessing@bm-shacharit"
+  },
+  {
+   "momentId": "parents-blessing",
+   "unitId": "havdalah.parents-blessing@bm-maariv"
+  },
+  {
+   "momentId": "parting",
+   "unitId": "havdalah.parting@rh-havdalah"
+  },
+  {
+   "momentId": "peace-services",
+   "unitId": "frontmatter.peace-services@legacy-shabbat-evening"
+  },
+  {
+   "momentId": "pitchu-li",
+   "unitId": "neilah.pitchu-li@crc-neilah"
+  },
+  {
+   "momentId": "please-be-seated",
+   "unitId": "amidah.please-be-seated@legacy-shabbat-evening"
+  },
+  {
+   "momentId": "please-be-seated",
+   "unitId": "shma.please-be-seated@legacy-shabbat-evening"
+  },
+  {
+   "momentId": "prayer-for-israel",
+   "unitId": "torah.prayer-for-israel@legacy-shabbat-morning"
+  },
+  {
+   "momentId": "prayer-for-shalom",
+   "unitId": "concluding.prayer-for-shalom@crc-rh-morning"
+  },
+  {
+   "momentId": "prayer-for-shalom",
+   "unitId": "concluding.prayer-for-shalom@crc-yk-morning"
+  },
+  {
+   "momentId": "prayer-for-shalom",
+   "unitId": "rosh-chodesh.prayer-for-shalom@legacy-shabbat-evening"
+  },
+  {
+   "momentId": "prayer-for-shalom",
+   "unitId": "torah.prayer-for-shalom@legacy-shabbat-morning"
+  },
+  {
+   "momentId": "prayer-for-state-of-israel",
+   "unitId": "concluding.prayer-for-state-of-israel@crc-rh-morning"
+  },
+  {
+   "momentId": "prayer-for-state-of-israel",
+   "unitId": "concluding.prayer-for-state-of-israel@crc-yk-morning"
+  },
+  {
+   "momentId": "prayer-for-state-of-israel",
+   "unitId": "rosh-chodesh.prayer-for-state-of-israel@legacy-shabbat-evening"
+  },
+  {
+   "momentId": "presentation-from-the-congregation",
+   "unitId": "torah.presentation-from-the-congregation@bm-maariv"
+  },
+  {
+   "momentId": "presentation-from-the-congregation",
+   "unitId": "torah.presentation-from-the-congregation@bm-shacharit"
+  },
+  {
+   "momentId": "priestly-blessing",
+   "unitId": "concluding.priestly-blessing@legacy-shabbat-morning"
+  },
+  {
+   "momentId": "priestly-blessing",
+   "unitId": "concluding.priestly-blessing@shabbat-maariv"
+  },
+  {
+   "momentId": "priestly-blessing-kavannah",
+   "unitId": "concluding.priestly-blessing-kavannah@legacy-shabbat-morning"
+  },
+  {
+   "momentId": "psalm-100",
+   "unitId": "reserve.psalm-100@shabbat-shacharit"
+  },
+  {
+   "momentId": "psalm-113",
+   "unitId": "hallel.psalm-113@shabbat-shacharit"
+  },
+  {
+   "momentId": "psalm-114",
+   "unitId": "hallel.psalm-114@shabbat-shacharit"
+  },
+  {
+   "momentId": "psalm-115",
+   "unitId": "hallel.psalm-115@shabbat-shacharit"
+  },
+  {
+   "momentId": "psalm-116",
+   "unitId": "hallel.psalm-116@shabbat-shacharit"
+  },
+  {
+   "momentId": "psalm-117",
+   "unitId": "hallel.psalm-117@shabbat-shacharit"
+  },
+  {
+   "momentId": "psalm-118",
+   "unitId": "hallel.psalm-118@shabbat-shacharit"
+  },
+  {
+   "momentId": "psalm-121",
+   "unitId": "psukei.psalm-121@rh-shacharit"
+  },
+  {
+   "momentId": "psalm-146",
+   "unitId": "reserve.psalm-146@shabbat-shacharit"
+  },
+  {
+   "momentId": "psalm-147",
+   "unitId": "reserve.psalm-147@shabbat-shacharit"
+  },
+  {
+   "momentId": "psalm-148",
+   "unitId": "reserve.psalm-148@shabbat-shacharit"
+  },
+  {
+   "momentId": "psalm-149",
+   "unitId": "reserve.psalm-149@shabbat-shacharit"
+  },
+  {
+   "momentId": "psalm-150",
+   "unitId": "psukei.psalm-150@legacy-shabbat-morning"
+  },
+  {
+   "momentId": "psalm-150",
+   "unitId": "psukei.psalm-150@shabbat-shacharit"
+  },
+  {
+   "momentId": "psalm-150",
+   "unitId": "reserve.psalm-150@shabbat-shacharit"
+  },
+  {
+   "momentId": "psalm-23",
+   "unitId": "yizkor.psalm-23@crc-yizkor"
+  },
+  {
+   "momentId": "psalm-27",
+   "unitId": "econcluding.psalm-27@rh1-maariv"
+  },
+  {
+   "momentId": "psalm-27",
+   "unitId": "psukei.psalm-27@rh-shacharit"
+  },
+  {
+   "momentId": "psalm-29",
+   "unitId": "kabbalat.psalm-29@shabbat-maariv"
+  },
+  {
+   "momentId": "psalm-29",
+   "unitId": "torah.psalm-29@shabbat-shacharit"
+  },
+  {
+   "momentId": "psalm-47",
+   "unitId": "shofar.psalm-47@rh-shacharit"
+  },
+  {
+   "momentId": "psalm-84",
+   "unitId": "reserve.psalm-84@shabbat-shacharit"
+  },
+  {
+   "momentId": "psalm-91",
+   "unitId": "psukei.psalm-91@legacy-shabbat-morning"
+  },
+  {
+   "momentId": "psalm-91",
+   "unitId": "psukei.psalm-91@shabbat-shacharit"
+  },
+  {
+   "momentId": "psalm-91",
+   "unitId": "reserve.psalm-91@shabbat-shacharit"
+  },
+  {
+   "momentId": "psalm-92",
+   "unitId": "kabbalat.psalm-92@shabbat-maariv"
+  },
+  {
+   "momentId": "psalm-92",
+   "unitId": "psukei.psalm-92@legacy-shabbat-morning"
+  },
+  {
+   "momentId": "psalm-92",
+   "unitId": "psukei.psalm-92@shabbat-shacharit"
+  },
+  {
+   "momentId": "psalm-92",
+   "unitId": "reserve.psalm-92@shabbat-shacharit"
+  },
+  {
+   "momentId": "psalm-93",
+   "unitId": "kabbalat.psalm-93@shabbat-maariv"
+  },
+  {
+   "momentId": "psalm-93",
+   "unitId": "reserve.psalm-93@shabbat-shacharit"
+  },
+  {
+   "momentId": "psalm-95",
+   "unitId": "kabbalat.psalm-95@shabbat-maariv"
+  },
+  {
+   "momentId": "psalm-96",
+   "unitId": "kabbalat.psalm-96@shabbat-maariv"
+  },
+  {
+   "momentId": "psalm-97",
+   "unitId": "kabbalat.psalm-97@shabbat-maariv"
+  },
+  {
+   "momentId": "psalm-98",
+   "unitId": "kabbalat.psalm-98@shabbat-maariv"
+  },
+  {
+   "momentId": "psalm-99",
+   "unitId": "kabbalat.psalm-99@shabbat-maariv"
+  },
+  {
+   "momentId": "psukei-dzimrah",
+   "unitId": "awakening.psukei-dzimrah@bm-shacharit"
+  },
+  {
+   "momentId": "readers-kaddish",
+   "unitId": "awakening.readers-kaddish@bm-maariv"
+  },
+  {
+   "momentId": "readers-kaddish",
+   "unitId": "awakening.readers-kaddish@bm-shacharit"
+  },
+  {
+   "momentId": "reading-1",
+   "unitId": "haftarah.reading-1@crc-rh-morning"
+  },
+  {
+   "momentId": "reading-2",
+   "unitId": "haftarah.reading-2@crc-rh-morning"
+  },
+  {
+   "momentId": "reading-of-the-haftarah",
+   "unitId": "torah.reading-of-the-haftarah@bm-maariv"
+  },
+  {
+   "momentId": "reading-of-the-haftarah",
+   "unitId": "torah.reading-of-the-haftarah@bm-shacharit"
+  },
+  {
+   "momentId": "reading-of-the-torah",
+   "unitId": "torah.reading-of-the-torah@bm-maariv"
+  },
+  {
+   "momentId": "reading-of-the-torah",
+   "unitId": "torah.reading-of-the-torah@bm-shacharit"
+  },
+  {
+   "momentId": "reading-of-the-torah",
+   "unitId": "torah.reading-of-the-torah@legacy-shabbat-morning"
+  },
+  {
+   "momentId": "reflection-on-gratitude",
+   "unitId": "amidah.reflection-on-gratitude@legacy-shabbat-evening"
+  },
+  {
+   "momentId": "reflection-on-gratitude",
+   "unitId": "amidah.reflection-on-gratitude@legacy-shabbat-morning"
+  },
+  {
+   "momentId": "remember-us-for-life",
+   "unitId": "seasonal.remember-us-for-life@shabbat-maariv"
+  },
+  {
+   "momentId": "remember-us-for-life",
+   "unitId": "seasonal.remember-us-for-life@shabbat-shacharit"
+  },
+  {
+   "momentId": "remembrance",
+   "unitId": "yizkor.remembrance@crc-yizkor"
+  },
+  {
+   "momentId": "return-again",
+   "unitId": "slichot.return-again@legacy-slichot"
+  },
+  {
+   "momentId": "returning-the-torah",
+   "unitId": "torah.returning-the-torah@legacy-shabbat-morning"
+  },
+  {
+   "momentId": "rh-morning-sanctuary-needs",
+   "unitId": "awakening.rh-morning-sanctuary-needs@crc-rh-morning"
+  },
+  {
+   "momentId": "rise-and-come",
+   "unitId": "seasonal.rise-and-come@shabbat-maariv"
+  },
+  {
+   "momentId": "rise-and-come",
+   "unitId": "seasonal.rise-and-come@shabbat-shacharit"
+  },
+  {
+   "momentId": "sacred-assembly",
+   "unitId": "erev-rh.sacred-assembly@crc-erev-rh"
+  },
+  {
+   "momentId": "sanctuary",
+   "unitId": "amidah.sanctuary@legacy-shabbat-evening"
+  },
+  {
+   "momentId": "sanctuary",
+   "unitId": "amidah.sanctuary@legacy-shabbat-morning"
+  },
+  {
+   "momentId": "selichot-thirteen-qualities",
+   "unitId": "vidui.selichot-thirteen-qualities@crc-yk-morning"
+  },
+  {
+   "momentId": "separation",
+   "unitId": "havdalah.separation@crc-neilah"
+  },
+  {
+   "momentId": "service",
+   "unitId": "shofar.service@crc-rh-morning"
+  },
+  {
+   "momentId": "shabbat-presence-awaken-arise",
+   "unitId": "opening.shabbat-presence-awaken-arise@legacy-shabbat-evening"
+  },
+  {
+   "momentId": "shabbat-presence-lchah-dodi",
+   "unitId": "opening.shabbat-presence-lchah-dodi@legacy-shabbat-evening"
+  },
+  {
+   "momentId": "shabbat-presence-lchah-dodi-kavannah",
+   "unitId": "opening.shabbat-presence-lchah-dodi-kavannah@legacy-shabbat-evening"
+  },
+  {
+   "momentId": "shalom-aleichem",
+   "unitId": "kabbalat.shalom-aleichem@shabbat-maariv"
+  },
+  {
+   "momentId": "shalom-rav",
+   "unitId": "amidah.shalom-rav@bm-maariv"
+  },
+  {
+   "momentId": "shalom-rav",
+   "unitId": "amidah.shalom-rav@legacy-shabbat-evening"
+  },
+  {
+   "momentId": "shalom-rav",
+   "unitId": "amidah.shalom-rav@shabbat-maariv"
+  },
+  {
+   "momentId": "shalom-rav",
+   "unitId": "emamidah.shalom-rav@crc-erev-rh"
+  },
+  {
+   "momentId": "shalom-rav",
+   "unitId": "emamidah.shalom-rav@crc-kol-nidre"
+  },
+  {
+   "momentId": "shalom-rav",
+   "unitId": "emamidah.shalom-rav@rh1-maariv"
+  },
+  {
+   "momentId": "shalom-spiral",
+   "unitId": "torah.shalom-spiral@legacy-shabbat-morning"
+  },
+  {
+   "momentId": "shalom-spiral-artwork",
+   "unitId": "rosh-chodesh.shalom-spiral-artwork@legacy-shabbat-evening"
+  },
+  {
+   "momentId": "shanah-tovah",
+   "unitId": "concluding.shanah-tovah@crc-rh-morning"
+  },
+  {
+   "momentId": "shanah-tovah",
+   "unitId": "econcluding.shanah-tovah@crc-erev-rh"
+  },
+  {
+   "momentId": "shanah-tovah",
+   "unitId": "havdalah.shanah-tovah@crc-neilah"
+  },
+  {
+   "momentId": "shavua-tov",
+   "unitId": "havdalah.shavua-tov@bm-maariv"
+  },
+  {
+   "momentId": "shechinah-meditation",
+   "unitId": "concluding.shechinah-meditation@legacy-shabbat-morning"
+  },
+  {
+   "momentId": "shehecheyanu",
+   "unitId": "concluding.shehecheyanu@rh-shacharit"
+  },
+  {
+   "momentId": "shehecheyanu",
+   "unitId": "erev-maariv.shehecheyanu@rh1-maariv"
+  },
+  {
+   "momentId": "shehecheyanu",
+   "unitId": "seasonal.shehecheyanu@shabbat-maariv"
+  },
+  {
+   "momentId": "shehecheyanu",
+   "unitId": "seasonal.shehecheyanu@shabbat-shacharit"
+  },
+  {
+   "momentId": "shma-koleinu",
+   "unitId": "amidah.shma-koleinu@crc-kol-nidre"
+  },
+  {
+   "momentId": "shma-procession-call",
+   "unitId": "torah.shma-procession-call@crc-rh-morning"
+  },
+  {
+   "momentId": "shma-procession-call",
+   "unitId": "torah.shma-procession-call@crc-yk-morning"
+  },
+  {
+   "momentId": "shma-procession-call",
+   "unitId": "torah.shma-procession-call@legacy-shabbat-morning"
+  },
+  {
+   "momentId": "shma-procession-call",
+   "unitId": "torah.shma-procession-call@rh-shacharit"
+  },
+  {
+   "momentId": "shma-procession-call",
+   "unitId": "torah.shma-procession-call@shabbat-shacharit"
+  },
+  {
+   "momentId": "shochein-ad",
+   "unitId": "psukei.shochein-ad@shabbat-shacharit"
+  },
+  {
+   "momentId": "shochein-ad",
+   "unitId": "reserve.shochein-ad@shabbat-shacharit"
+  },
+  {
+   "momentId": "shofarot",
+   "unitId": "shofar.shofarot@crc-rh-morning"
+  },
+  {
+   "momentId": "shofarot",
+   "unitId": "shofar.shofarot@rh-shacharit"
+  },
+  {
+   "momentId": "silent-amidah-note",
+   "unitId": "amidah.silent-amidah-note@legacy-shabbat-evening"
+  },
+  {
+   "momentId": "silent-meditation",
+   "unitId": "amidah.silent-meditation@bm-maariv"
+  },
+  {
+   "momentId": "silent-meditation",
+   "unitId": "amidah.silent-meditation@bm-shacharit"
+  },
+  {
+   "momentId": "silent-meditation",
+   "unitId": "emamidah.silent-meditation@crc-erev-rh"
+  },
+  {
+   "momentId": "silent-meditation",
+   "unitId": "vidui.silent-meditation@crc-yk-morning"
+  },
+  {
+   "momentId": "silent-prayer",
+   "unitId": "amidah.silent-prayer@legacy-shabbat-evening"
+  },
+  {
+   "momentId": "sim-shalom",
+   "unitId": "amidah.sim-shalom@bm-shacharit"
+  },
+  {
+   "momentId": "sim-shalom",
+   "unitId": "amidah.sim-shalom@crc-rh-morning"
+  },
+  {
+   "momentId": "sim-shalom",
+   "unitId": "amidah.sim-shalom@crc-yk-morning"
+  },
+  {
+   "momentId": "sim-shalom",
+   "unitId": "amidah.sim-shalom@legacy-shabbat-morning"
+  },
+  {
+   "momentId": "sim-shalom",
+   "unitId": "amidah.sim-shalom@rh-shacharit"
+  },
+  {
+   "momentId": "sim-shalom",
+   "unitId": "amidah.sim-shalom@shabbat-shacharit"
+  },
+  {
+   "momentId": "sim-shalom",
+   "unitId": "mincha.sim-shalom@rh1-mincha"
+  },
+  {
+   "momentId": "siyahamba",
+   "unitId": "shma.siyahamba@legacy-shabbat-evening"
+  },
+  {
+   "momentId": "siyahamba",
+   "unitId": "shma.siyahamba@legacy-shabbat-morning"
+  },
+  {
+   "momentId": "tahor-lev",
+   "unitId": "awakening.tahor-lev@legacy-shabbat-morning"
+  },
+  {
+   "momentId": "tahor-lev",
+   "unitId": "awakening.tahor-lev@shabbat-shacharit"
+  },
+  {
+   "momentId": "taking-out-the-torah",
+   "unitId": "torah.taking-out-the-torah@rh-shacharit"
+  },
+  {
+   "momentId": "tallit",
+   "unitId": "erev-yk.tallit@crc-kol-nidre"
+  },
+  {
+   "momentId": "tallit",
+   "unitId": "rh-morning.tallit@crc-rh-morning"
+  },
+  {
+   "momentId": "tallit",
+   "unitId": "shacharit-yk.tallit@crc-yk-morning"
+  },
+  {
+   "momentId": "tallit",
+   "unitId": "yizkor.tallit@crc-yizkor"
+  },
+  {
+   "momentId": "tallit-blessing",
+   "unitId": "awakening.tallit-blessing@bm-maariv"
+  },
+  {
+   "momentId": "tallit-blessing",
+   "unitId": "awakening.tallit-blessing@bm-shacharit"
+  },
+  {
+   "momentId": "tfilah",
+   "unitId": "amidah.tfilah@bm-maariv"
+  },
+  {
+   "momentId": "tfilah",
+   "unitId": "amidah.tfilah@bm-shacharit"
+  },
+  {
+   "momentId": "tfilah-kavannah",
+   "unitId": "amidah.tfilah-kavannah@legacy-shabbat-evening"
+  },
+  {
+   "momentId": "tfilah-kavannah",
+   "unitId": "amidah.tfilah-kavannah@legacy-shabbat-morning"
+  },
+  {
+   "momentId": "tfilah-opener",
+   "unitId": "amidah.tfilah-opener@crc-rh-morning"
+  },
+  {
+   "momentId": "tfilah-opener",
+   "unitId": "amidah.tfilah-opener@crc-yk-morning"
+  },
+  {
+   "momentId": "tfilah-opener",
+   "unitId": "emamidah.tfilah-opener@crc-erev-rh"
+  },
+  {
+   "momentId": "tfilah-opener",
+   "unitId": "emamidah.tfilah-opener@crc-kol-nidre"
+  },
+  {
+   "momentId": "tfilat-haderech",
+   "unitId": "torah.tfilat-haderech@legacy-shabbat-morning"
+  },
+  {
+   "momentId": "the-blessing-of-separation",
+   "unitId": "havdalah.the-blessing-of-separation@bm-maariv"
+  },
+  {
+   "momentId": "the-light-of-the-fire",
+   "unitId": "havdalah.the-light-of-the-fire@bm-maariv"
+  },
+  {
+   "momentId": "the-nineteen-blessings",
+   "unitId": "amidah.the-nineteen-blessings@legacy-shabbat-morning"
+  },
+  {
+   "momentId": "the-one",
+   "unitId": "shma.the-one@legacy-shabbat-evening"
+  },
+  {
+   "momentId": "the-shma",
+   "unitId": "emaariv.the-shma@rh1-maariv"
+  },
+  {
+   "momentId": "the-shma",
+   "unitId": "shma.the-shma@bm-maariv"
+  },
+  {
+   "momentId": "the-shma",
+   "unitId": "shma.the-shma@bm-shacharit"
+  },
+  {
+   "momentId": "the-shma",
+   "unitId": "shma.the-shma@crc-erev-rh"
+  },
+  {
+   "momentId": "the-shma",
+   "unitId": "shma.the-shma@crc-kol-nidre"
+  },
+  {
+   "momentId": "the-shma",
+   "unitId": "shma.the-shma@crc-rh-morning"
+  },
+  {
+   "momentId": "the-shma",
+   "unitId": "shma.the-shma@crc-yk-morning"
+  },
+  {
+   "momentId": "the-shma",
+   "unitId": "shma.the-shma@legacy-shabbat-evening"
+  },
+  {
+   "momentId": "the-shma",
+   "unitId": "shma.the-shma@legacy-shabbat-morning"
+  },
+  {
+   "momentId": "the-shma",
+   "unitId": "shma.the-shma@rh-shacharit"
+  },
+  {
+   "momentId": "the-shma",
+   "unitId": "shma.the-shma@shabbat-maariv"
+  },
+  {
+   "momentId": "the-shma",
+   "unitId": "shma.the-shma@shabbat-shacharit"
+  },
+  {
+   "momentId": "the-shma-kavannah",
+   "unitId": "shma.the-shma-kavannah@legacy-shabbat-evening"
+  },
+  {
+   "momentId": "the-silent-amidah",
+   "unitId": "amidah.the-silent-amidah@rh-shacharit"
+  },
+  {
+   "momentId": "the-silent-amidah",
+   "unitId": "amidah.the-silent-amidah@shabbat-maariv"
+  },
+  {
+   "momentId": "the-silent-amidah",
+   "unitId": "emamidah.the-silent-amidah@rh1-maariv"
+  },
+  {
+   "momentId": "the-silent-amidah",
+   "unitId": "mincha.the-silent-amidah@rh1-mincha"
+  },
+  {
+   "momentId": "the-spices",
+   "unitId": "havdalah.the-spices@bm-maariv"
+  },
+  {
+   "momentId": "the-wine",
+   "unitId": "havdalah.the-wine@bm-maariv"
+  },
+  {
+   "momentId": "thou-shalt-love",
+   "unitId": "shma.thou-shalt-love@legacy-shabbat-morning"
+  },
+  {
+   "momentId": "tiku",
+   "unitId": "emaariv.tiku@rh1-maariv"
+  },
+  {
+   "momentId": "torah-eitz-chayim",
+   "unitId": "concluding.torah-eitz-chayim@crc-rh-morning"
+  },
+  {
+   "momentId": "torah-eitz-chayim",
+   "unitId": "concluding.torah-eitz-chayim@crc-yk-morning"
+  },
+  {
+   "momentId": "torah-reading-day-1",
+   "unitId": "torah.torah-reading-day-1@crc-rh-morning"
+  },
+  {
+   "momentId": "torah-reading-day-1",
+   "unitId": "torah.torah-reading-day-1@rh1"
+  },
+  {
+   "momentId": "torah-reading-day-2",
+   "unitId": "torah.torah-reading-day-2@crc-rh-morning"
+  },
+  {
+   "momentId": "torah-reading-day-2",
+   "unitId": "torah.torah-reading-day-2@rh2"
+  },
+  {
+   "momentId": "torah-reading-yk-day1",
+   "unitId": "torah.torah-reading-yk-day1@crc-yk-morning"
+  },
+  {
+   "momentId": "torah-reading-yk-day2",
+   "unitId": "torah.torah-reading-yk-day2@crc-yk-morning"
+  },
+  {
+   "momentId": "tshuvah-reading",
+   "unitId": "shacharit-yk.tshuvah-reading@crc-yk-morning"
+  },
+  {
+   "momentId": "unending-love",
+   "unitId": "shma.unending-love@legacy-shabbat-morning"
+  },
+  {
+   "momentId": "untaneh-tokef",
+   "unitId": "amidah.untaneh-tokef@crc-rh-morning"
+  },
+  {
+   "momentId": "untaneh-tokef",
+   "unitId": "amidah.untaneh-tokef@crc-yk-morning"
+  },
+  {
+   "momentId": "untaneh-tokef",
+   "unitId": "amidah.untaneh-tokef@rh-shacharit"
+  },
+  {
+   "momentId": "uvchein",
+   "unitId": "amidah.uvchein@rh-shacharit"
+  },
+  {
+   "momentId": "uvchein",
+   "unitId": "emamidah.uvchein@rh1-maariv"
+  },
+  {
+   "momentId": "uvchein",
+   "unitId": "mincha.uvchein@rh1-mincha"
+  },
+  {
+   "momentId": "uvnucho-yomar",
+   "unitId": "torah.uvnucho-yomar@rh-shacharit"
+  },
+  {
+   "momentId": "vahavta",
+   "unitId": "shma.vahavta@bm-maariv"
+  },
+  {
+   "momentId": "vahavta",
+   "unitId": "shma.vahavta@bm-shacharit"
+  },
+  {
+   "momentId": "vahavta",
+   "unitId": "shma.vahavta@crc-erev-rh"
+  },
+  {
+   "momentId": "vahavta",
+   "unitId": "shma.vahavta@crc-kol-nidre"
+  },
+  {
+   "momentId": "vahavta",
+   "unitId": "shma.vahavta@crc-rh-morning"
+  },
+  {
+   "momentId": "vahavta",
+   "unitId": "shma.vahavta@crc-yk-morning"
+  },
+  {
+   "momentId": "vahavta",
+   "unitId": "shma.vahavta@legacy-shabbat-evening"
+  },
+  {
+   "momentId": "vahavta",
+   "unitId": "shma.vahavta@legacy-shabbat-morning"
+  },
+  {
+   "momentId": "vahavta",
+   "unitId": "shma.vahavta@rh-shacharit"
+  },
+  {
+   "momentId": "vahavta-emet-kavannah",
+   "unitId": "shma.vahavta-emet-kavannah@legacy-shabbat-evening"
+  },
+  {
+   "momentId": "vahavta-interpretation",
+   "unitId": "shma.vahavta-interpretation@legacy-shabbat-morning"
+  },
+  {
+   "momentId": "vahavta-thou-shalt-love",
+   "unitId": "shma.vahavta-thou-shalt-love@legacy-shabbat-evening"
+  },
+  {
+   "momentId": "vahavta-tzitzit",
+   "unitId": "emaariv.vahavta-tzitzit@rh1-maariv"
+  },
+  {
+   "momentId": "vahavta-tzitzit",
+   "unitId": "shma.vahavta-tzitzit@crc-rh-morning"
+  },
+  {
+   "momentId": "vahavta-tzitzit",
+   "unitId": "shma.vahavta-tzitzit@crc-yk-morning"
+  },
+  {
+   "momentId": "vahavta-tzitzit",
+   "unitId": "shma.vahavta-tzitzit@shabbat-maariv"
+  },
+  {
+   "momentId": "vahavta-tzitzit",
+   "unitId": "shma.vahavta-tzitzit@shabbat-shacharit"
+  },
+  {
+   "momentId": "vatodieinu",
+   "unitId": "addendum.vatodieinu@rh-shabbat"
+  },
+  {
+   "momentId": "vayechulu",
+   "unitId": "amidah.vayechulu@shabbat-maariv"
+  },
+  {
+   "momentId": "vayechulu-at-the-kiddush",
+   "unitId": "addendum.vayechulu-at-the-kiddush@rh-shabbat"
+  },
+  {
+   "momentId": "vayechulu-meein-sheva",
+   "unitId": "addendum.vayechulu-meein-sheva@rh-shabbat"
+  },
+  {
+   "momentId": "vayhi-binsoa",
+   "unitId": "torah.vayhi-binsoa@crc-rh-morning"
+  },
+  {
+   "momentId": "vayhi-binsoa",
+   "unitId": "torah.vayhi-binsoa@crc-yk-morning"
+  },
+  {
+   "momentId": "vayhi-binsoa",
+   "unitId": "torah.vayhi-binsoa@rh-shacharit"
+  },
+  {
+   "momentId": "vayhi-binsoa",
+   "unitId": "torah.vayhi-binsoa@shabbat-shacharit"
+  },
+  {
+   "momentId": "vidui",
+   "unitId": "amidah.vidui@crc-kol-nidre"
+  },
+  {
+   "momentId": "vidui",
+   "unitId": "neilah.vidui@crc-neilah"
+  },
+  {
+   "momentId": "vidui",
+   "unitId": "vidui.vidui@crc-yk-morning"
+  },
+  {
+   "momentId": "vshamru",
+   "unitId": "addendum.vshamru@rh-shabbat"
+  },
+  {
+   "momentId": "vshamru",
+   "unitId": "amidah.vshamru@bm-maariv"
+  },
+  {
+   "momentId": "vshamru",
+   "unitId": "amidah.vshamru@bm-shacharit"
+  },
+  {
+   "momentId": "vshamru",
+   "unitId": "amidah.vshamru@legacy-shabbat-morning"
+  },
+  {
+   "momentId": "vshamru",
+   "unitId": "shabbat.vshamru@crc-neilah"
+  },
+  {
+   "momentId": "vshamru",
+   "unitId": "shma.vshamru@legacy-shabbat-evening"
+  },
+  {
+   "momentId": "vshamru",
+   "unitId": "shma.vshamru@shabbat-maariv"
+  },
+  {
+   "momentId": "vshamru-kavannah",
+   "unitId": "amidah.vshamru-kavannah@legacy-shabbat-morning"
+  },
+  {
+   "momentId": "vshamru-kavannah",
+   "unitId": "shma.vshamru-kavannah@legacy-shabbat-evening"
+  },
+  {
+   "momentId": "vzot-hatorah",
+   "unitId": "torah.vzot-hatorah@legacy-shabbat-morning"
+  },
+  {
+   "momentId": "vzot-hatorah",
+   "unitId": "torah.vzot-hatorah@rh-shacharit"
+  },
+  {
+   "momentId": "vzot-hatorah",
+   "unitId": "torah.vzot-hatorah@shabbat-shacharit"
+  },
+  {
+   "momentId": "we-open-our-lips",
+   "unitId": "amidah.we-open-our-lips@legacy-shabbat-morning"
+  },
+  {
+   "momentId": "we-open-our-lips",
+   "unitId": "amidah.we-open-our-lips@shabbat-maariv"
+  },
+  {
+   "momentId": "we-remember-them",
+   "unitId": "yizkor.we-remember-them@crc-yizkor"
+  },
+  {
+   "momentId": "welcome",
+   "unitId": "frontmatter.welcome@bm-maariv"
+  },
+  {
+   "momentId": "welcome",
+   "unitId": "frontmatter.welcome@bm-shacharit"
+  },
+  {
+   "momentId": "welcome",
+   "unitId": "frontmatter.welcome@legacy-shabbat-morning"
+  },
+  {
+   "momentId": "will",
+   "unitId": "frontmatter.will@legacy-shabbat-evening"
+  },
+  {
+   "momentId": "yahrzeit-candles",
+   "unitId": "erev-yk.yahrzeit-candles@crc-kol-nidre"
+  },
+  {
+   "momentId": "yaknehaz",
+   "unitId": "addendum.yaknehaz@rh-shabbat"
+  },
+  {
+   "momentId": "yayin",
+   "unitId": "havdalah.yayin@crc-neilah"
+  },
+  {
+   "momentId": "yedid-nefesh",
+   "unitId": "kabbalat.yedid-nefesh@shabbat-maariv"
+  },
+  {
+   "momentId": "yehi-chevod",
+   "unitId": "reserve.yehi-chevod@shabbat-shacharit"
+  },
+  {
+   "momentId": "yhalelu",
+   "unitId": "torah.yhalelu@rh-shacharit"
+  },
+  {
+   "momentId": "yhalelu",
+   "unitId": "torah.yhalelu@shabbat-shacharit"
+  },
+  {
+   "momentId": "yigdal",
+   "unitId": "concluding.yigdal@rh-shacharit"
+  },
+  {
+   "momentId": "yigdal",
+   "unitId": "concluding.yigdal@shabbat-shacharit"
+  },
+  {
+   "momentId": "yihyu-lratzon-oseh-shalom",
+   "unitId": "amidah.yihyu-lratzon-oseh-shalom@crc-rh-morning"
+  },
+  {
+   "momentId": "yihyu-lratzon-oseh-shalom",
+   "unitId": "emamidah.yihyu-lratzon-oseh-shalom@crc-erev-rh"
+  },
+  {
+   "momentId": "yihyu-lratzon-oseh-shalom",
+   "unitId": "emamidah.yihyu-lratzon-oseh-shalom@crc-kol-nidre"
+  },
+  {
+   "momentId": "yihyu-lratzon-oseh-shalom",
+   "unitId": "vidui.yihyu-lratzon-oseh-shalom@crc-yk-morning"
+  },
+  {
+   "momentId": "yishtabach",
+   "unitId": "psukei.yishtabach@shabbat-shacharit"
+  },
+  {
+   "momentId": "yishtabach",
+   "unitId": "reserve.yishtabach@shabbat-shacharit"
+  },
+  {
+   "momentId": "yotzeir-or",
+   "unitId": "shma.yotzeir-or@bm-shacharit"
+  },
+  {
+   "momentId": "yotzer-or",
+   "unitId": "shma.yotzer-or@crc-rh-morning"
+  },
+  {
+   "momentId": "yotzer-or",
+   "unitId": "shma.yotzer-or@crc-yk-morning"
+  },
+  {
+   "momentId": "yotzer-or",
+   "unitId": "shma.yotzer-or@legacy-shabbat-morning"
+  },
+  {
+   "momentId": "yotzer-or",
+   "unitId": "shma.yotzer-or@rh-shacharit"
+  },
+  {
+   "momentId": "yotzer-or",
+   "unitId": "shma.yotzer-or@shabbat-shacharit"
+  },
+  {
+   "momentId": "yotzer-or-interpretation",
+   "unitId": "shma.yotzer-or-interpretation@legacy-shabbat-morning"
+  },
+  {
+   "momentId": "zichronot",
+   "unitId": "shofar.zichronot@crc-rh-morning"
+  },
+  {
+   "momentId": "zichronot",
+   "unitId": "shofar.zichronot@rh-shacharit"
+  },
+  {
+   "momentId": "zochreinu",
+   "unitId": "amidah.zochreinu@crc-rh-morning"
+  },
+  {
+   "momentId": "zochreinu",
+   "unitId": "emamidah.zochreinu@crc-erev-rh"
+  }
+ ]
+}
