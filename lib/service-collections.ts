@@ -8,6 +8,7 @@ import {sourceDisplay} from './source-library';
 import {authoringCatalog} from './server';
 import {liturgyForCue} from './liturgy-index';
 import {createLiveTransport,importSetlist as importLiveSetlist,listRecentSetlists,liveSetlistsAvailability,type LiveSetlistsEnv,type LiveSetlistTransport} from './live-setlists';
+import {todaySuggestion,type TodayService} from './live-today';
 import {isNamesCueId,namesPages,panelName,parseNames,ServicesError,type NamesList} from './names-list';
 import type {Cue} from './player';
 
@@ -109,12 +110,15 @@ export const liveSetlistDependencies:{
  createTransport:(env?:LiveSetlistsEnv)=>LiveSetlistTransport;
  listRecentSetlists:typeof listRecentSetlists;
  importSetlist:typeof importLiveSetlist;
+ /** R4-f — the public `today.json` read. A separate seam: it carries no credential and never throws. */
+ todaySuggestion:(now:number)=>Promise<TodayService|null>;
  liturgyFor:(cue:Cue)=>ReturnType<typeof liturgyForCue>;
 }={
  availability:(env=process.env)=>liveSetlistsAvailability(env),
  createTransport:(env=process.env)=>createLiveTransport(env),
  listRecentSetlists,
  importSetlist:importLiveSetlist,
+ todaySuggestion:now=>todaySuggestion(now),
  liturgyFor:cue=>liturgyForCue(cue as {authoring?:{sourceIds?:string[]}}),
 };
 
@@ -181,8 +185,22 @@ export class ServicesManager{
  async listLiveSetlists(raw:unknown){
   const input=object(raw,'input');only(input,[],'input');
   if(!liveSetlistDependencies.availability().available)return {available:false as const};
-  try{return {available:true as const,setlists:await liveSetlistDependencies.listRecentSetlists(liveSetlistDependencies.createTransport())}}
+  let setlists;
+  try{setlists=await liveSetlistDependencies.listRecentSetlists(liveSetlistDependencies.createTransport())}
   catch{throw new ServicesError('live_unavailable',LIVE_UNAVAILABLE_MESSAGE,503)}
+  return {available:true as const,setlists,suggestion:await this.suggestedSetlist(setlists)};
+ }
+ /**
+  * R4-f — the service `today.json` says is nearest now, but only if it is one of the services
+  * already listed above. A suggestion the operator cannot act on is not a suggestion, so an id
+  * that is not in the list, an unreadable file and no file at all all answer the same `null`,
+  * and the panel simply shows no highlight. Nothing here can fail the listing.
+  */
+ private async suggestedSetlist(setlists:{id:string}[]):Promise<{setlistId:string;name:string;startsAt:string}|null>{
+  let suggestion:TodayService|null=null;
+  try{suggestion=await liveSetlistDependencies.todaySuggestion(this.loaders.now())}catch{return null}
+  if(!suggestion||!setlists.some(setlist=>setlist.id===suggestion!.setlistId))return null;
+  return {setlistId:suggestion.setlistId,name:suggestion.name,startsAt:suggestion.startsAt};
  }
  /**
   * D19 — one setlist becomes one ordinary prepared service through `createCollection`, with a

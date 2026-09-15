@@ -16,6 +16,8 @@ import {useEffect,useRef,useState} from 'react';
 import {call,isUnauthorized,type Collection} from './services-data';
 
 type LiveSetlist={id:string;name:string;date:string|null;eventDate:string|null;trackCount:number;publishedAt:string|null};
+/** R4-f — the service centralreform.live's public `today.json` says is nearest now, if it is one of the above. */
+type Suggestion={setlistId:string;name:string;startsAt:string};
 type Unmatched={trackId:string;title:string;kind:'liturgy'|'song'|'other';reason:string};
 type ImportResult={collection:Collection;unmatched:Unmatched[]};
 
@@ -25,6 +27,12 @@ export type SetlistImportSlotProps={
  /** Refresh the dashboard after an import writes. */
  onImported:()=>void|Promise<unknown>;
 };
+
+/** "Sunday, September 20 at 8:00 PM", in the operator's own time zone — a start, not a date. */
+function startsAtLabel(startsAt:string){
+ const stamp=Date.parse(startsAt);
+ return Number.isNaN(stamp)?'':new Date(stamp).toLocaleString(undefined,{weekday:'long',month:'long',day:'numeric',hour:'numeric',minute:'2-digit'});
+}
 
 /** "Friday, September 18" — the same shape the imported service is named after. */
 function when(setlist:LiveSetlist){
@@ -38,6 +46,7 @@ export default function SetlistImportSlot({collection,onImported}:SetlistImportS
  void collection;
  const [available,setAvailable]=useState(false);
  const [setlists,setSetlists]=useState<LiveSetlist[]>([]);
+ const [suggestion,setSuggestion]=useState<Suggestion|null>(null);
  const [chosen,setChosen]=useState('');
  const [busy,setBusy]=useState(false);
  const [error,setError]=useState('');
@@ -46,10 +55,14 @@ export default function SetlistImportSlot({collection,onImported}:SetlistImportS
 
  useEffect(()=>{
   mounted.current=true;
-  call<{available:boolean;setlists?:LiveSetlist[]}>('list_live_setlists',{})
+  call<{available:boolean;setlists?:LiveSetlist[];suggestion?:Suggestion|null}>('list_live_setlists',{})
    .then(data=>{
     if(!mounted.current||!data.available)return;
-    setAvailable(true);setSetlists(data.setlists??[]);setChosen(data.setlists?.[0]?.id??'');
+    const list=data.setlists??[],suggested=data.suggestion??null;
+    setAvailable(true);setSetlists(list);setSuggestion(suggested);
+    // R4-f / R2-g: the suggestion moves the picker to tonight's service and says why. It never
+    // imports and never loads anything — Import is still a tap the operator makes, or does not.
+    setChosen(suggested?.setlistId??list[0]?.id??'');
    })
    // An unconfigured congregation, a signed-out member and an operator all reach the same
    // place: the panel simply is not there. Nothing is said about a service they cannot use.
@@ -78,9 +91,16 @@ export default function SetlistImportSlot({collection,onImported}:SetlistImportS
   <p className="starter-note">Import a planned service from centralreform.live.</p>
   {setlists.length
    ?<>
+     {suggestion&&<p className="setlist-import-suggested">
+      <strong>Suggested · {suggestion.name}</strong>
+      {startsAtLabel(suggestion.startsAt)&&<span>Nearest start on centralreform.live — {startsAtLabel(suggestion.startsAt)}. Import it when you are ready; nothing is loaded for you.</span>}
+     </p>}
      <label>Choose a service to import
       <select value={chosen} disabled={busy} onChange={event=>setChosen(event.target.value)}>
-       {setlists.map(setlist=><option value={setlist.id} key={setlist.id}>{when(setlist)?`${setlist.name} · ${when(setlist)}`:setlist.name}</option>)}
+       {setlists.map(setlist=>{
+        const label=when(setlist)?`${setlist.name} · ${when(setlist)}`:setlist.name;
+        return <option value={setlist.id} key={setlist.id}>{setlist.id===suggestion?.setlistId?`${label} · suggested`:label}</option>;
+       })}
       </select>
      </label>
      <div className="create-actions"><button type="button" disabled={busy||!chosen} onClick={importSetlist}>{busy?'Importing…':'Import'}</button></div>
