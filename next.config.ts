@@ -1,5 +1,27 @@
 import type { NextConfig } from "next";
 
+const CHROMIUM_TRACE = "./node_modules/@sparticuz/chromium/**";
+const PLAYWRIGHT_TRACE = "./node_modules/playwright-core/**";
+const PACK_DEPENDENCY_TRACE = [
+  "./node_modules/tar-fs/**",
+  "./node_modules/tar-stream/**",
+  "./node_modules/pump/**",
+  "./node_modules/end-of-stream/**",
+  "./node_modules/once/**",
+  "./node_modules/wrappy/**",
+  "./node_modules/b4a/**",
+  "./node_modules/fast-fifo/**",
+  "./node_modules/streamx/**",
+  "./node_modules/text-decoder/**",
+  "./node_modules/teex/**",
+  "./node_modules/events-universal/**",
+  "./node_modules/bare-events/**",
+  "./node_modules/bare-fs/**",
+  "./node_modules/bare-path/**",
+  "./node_modules/bare-stream/**",
+  "./node_modules/bare-url/**",
+];
+
 const nextConfig: NextConfig = {
   // Next 16.3 writes AGENTS.md/CLAUDE.md into the repo root on `next dev`; this repo
   // keeps its own handoff docs, so the generated rules would only confuse agents.
@@ -21,9 +43,18 @@ const nextConfig: NextConfig = {
   outputFileTracingExcludes: {
     "/api/**": ["./node_modules/playwright-core/**", "./node_modules/@sparticuz/chromium/**"],
   },
+  // The pack's own runtime dependencies. `outputFileTracingIncludes` entries are raw globs, not
+  // trace roots: including `@sparticuz/chromium/**` ships the package's files and nothing it
+  // imports, and the matching `/api/**` exclude has already removed whatever the tracer reached
+  // through it. The deployed function therefore had the pack but not `tar-fs`, and every launch
+  // died with `ERR_MODULE_NOT_FOUND: Cannot find package 'tar-fs' imported from
+  // @sparticuz/chromium/build/helper.js` - read off the production function log, 2026-09-16.
+  // This is the whole transitive closure of `@sparticuz/chromium`'s dependencies (17 packages,
+  // a few hundred KB); the `bare-*` ones are only reached under the Bare runtime but cost
+  // nothing to carry and would fail the same way if a code path ever touched them.
   outputFileTracingIncludes: {
-    "/api/authoring": ["./node_modules/@sparticuz/chromium/**", "./node_modules/playwright-core/**"],
-    "/api/mcp": ["./node_modules/@sparticuz/chromium/**", "./node_modules/playwright-core/**"],
+    "/api/authoring": [CHROMIUM_TRACE, PLAYWRIGHT_TRACE, ...PACK_DEPENDENCY_TRACE],
+    "/api/mcp": [CHROMIUM_TRACE, PLAYWRIGHT_TRACE, ...PACK_DEPENDENCY_TRACE],
   },
 };
 

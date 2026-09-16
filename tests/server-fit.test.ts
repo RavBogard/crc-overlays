@@ -57,6 +57,20 @@ test('a launch failure is unavailable, not an exception',async()=>{
  assert.deepEqual(result,{verdict:'unavailable',reason:'browser_unavailable'});
 });
 
+test('a browser that launched but a stage that never answered says so',async()=>{
+ // The two failures wear one word to the caller, so the reason is the only place they part:
+ // `browser_unavailable` is "this function has no Chromium" (the tar-fs trace gap of
+ // 2026-09-16), `stage_unavailable` is "Chromium ran and /author/fit-stage did not answer".
+ let closed=0;
+ const launch:StageLauncher=async()=>({
+  async newPage(){return {async setViewportSize(){},async goto(){throw Error('net::ERR_ABORTED')},async waitForFunction(){return true},async evaluate<Result>(){return null as unknown as Result}}},
+  async close(){closed++;return null},
+ } satisfies StageBrowser);
+ const result=await measureCueOnServer(CUE,{origin:ORIGIN,launch});
+ assert.deepEqual(result,{verdict:'unavailable',reason:'stage_unavailable'});
+ assert.equal(closed,1);
+});
+
 test('the hard deadline is unavailable and still closes the browser',async()=>{
  const visited=fresh();
  const launch=fakeLauncher(()=>new Promise<StageMeasurement>(()=>{}),visited);

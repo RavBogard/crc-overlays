@@ -14,7 +14,7 @@ test('MCP initializes over Streamable HTTP and exposes authoring tools without w
  assert.equal(initialized.status,200);const initBody=await payload(initialized) as {result?:{serverInfo?:{name?:string}}};assert.equal(initBody.result?.serverInfo?.name,'CRC Overlay Authoring');
  const listed=await handler.fetch(request({jsonrpc:'2.0',id:2,method:'tools/list',params:{}}),{authInfo});
  assert.equal(listed.status,200);const listBody=await payload(listed) as {result?:{tools?:{name:string}[]}};const names=listBody.result?.tools?.map(tool=>tool.name)??[];
- assert.ok(names.includes('list_templates'));assert.ok(names.includes('import_cue'));assert.ok(names.includes('publish_draft'));assert.ok(!names.includes('review_draft'));assert.ok(!names.some(name=>name.includes('control')));
+ assert.ok(names.includes('list_templates'));assert.ok(names.includes('import_cue'));assert.ok(names.includes('publish_draft'));assert.ok(names.includes('review_draft'));assert.ok(!names.some(name=>name.includes('control')));
  assert.deepEqual(calls,[]);
 });
 
@@ -27,6 +27,25 @@ test('MCP supports template discovery followed by a source-reference draft creat
 
 test('preview response gives clients an absolute web-review URL without exposing review as a tool',async()=>{
  const handler=createAuthoringMcpHandler(async()=>({previewId:'preview-1',draftVersion:2,previewPath:'/author?draft=draft-1'}));const response=await handler.fetch(request({jsonrpc:'2.0',id:7,method:'tools/call',params:{name:'preview_draft',arguments:{draftId:'draft-1',expectedVersion:2}}}),{authInfo});const body=await payload(response) as {result:{content:{text:string}[]}};const output=JSON.parse(body.result.content[0].text);assert.equal(output.previewUrl,'https://crc-overlays.vercel.app/author?draft=draft-1');
+});
+
+test('review_draft is exposed to MCP and accepts no measurement of its own',async()=>{
+ // D18 - the tool exists so the attested path can be reached at all (without it publish_draft
+ // answers 409 review_required forever), and its schema is strict with no `browserMeasurement`
+ // field, so an MCP client can approve a preview but can never assert what a browser saw.
+ const calls:{operation:string;input:unknown;actor:string}[]=[];const handler=createAuthoringMcpHandler(async(operation,input,actor)=>{calls.push({operation,input,actor});return {review:{humanApproved:true}}});
+ const listed=await payload(await handler.fetch(request({jsonrpc:'2.0',id:20,method:'tools/list',params:{}}),{authInfo})) as {result:{tools:{name:string;inputSchema:{properties:Record<string,unknown>}}[]}};
+ const tool=listed.result.tools.find(entry=>entry.name==='review_draft');
+ assert.ok(tool,'review_draft is registered');
+ assert.deepEqual(Object.keys(tool.inputSchema.properties).sort(),['draftId','expectedVersion','humanApproved','previewId']);
+ const ok=await payload(await handler.fetch(request({jsonrpc:'2.0',id:21,method:'tools/call',params:{name:'review_draft',arguments:{draftId:'draft-1',expectedVersion:2,previewId:'preview-1',humanApproved:true}}}),{authInfo})) as {result:{content:{text:string}[]}};
+ assert.match(ok.result.content[0].text,/humanApproved/);
+ assert.deepEqual(calls,[{operation:'review_draft',input:{draftId:'draft-1',expectedVersion:2,previewId:'preview-1',humanApproved:true},actor:'mcp:test-actor'}]);
+ await handler.fetch(request({jsonrpc:'2.0',id:22,method:'tools/call',params:{name:'review_draft',arguments:{draftId:'draft-1',expectedVersion:2,previewId:'preview-1',humanApproved:true,browserMeasurement:{viewportWidth:1920,viewportHeight:1080,fontsReady:true,overflow:false,rendererVersion:'laptop/1',measuredAt:1}}}}),{authInfo});
+ // A measurement a client tries to assert anyway is dropped against the published schema and
+ // never reaches the authoring service - and even if it did, `isMcpActor` routes an `mcp:`
+ // actor to the stored server fit check and ignores what was sent.
+ assert.deepEqual(Object.keys(calls[1].input as object).sort(),['draftId','expectedVersion','humanApproved','previewId']);
 });
 
 test('MCP passes validated import input and authenticated actor to authoring service',async()=>{
@@ -76,9 +95,8 @@ test('MCP exposes fit_check_draft as a writing tool and passes its exact input t
  assert.match(called.result.content[0].text,/server-chromium/);
  assert.deepEqual(calls,[{operation:'fit_check_draft',input:{draftId:'draft-1',expectedVersion:2,previewId:'preview-1'},actor:'mcp:test-actor'}]);
  // The tool takes only the three identifiers: there is no place for a caller to assert a
- // measurement, and review_draft is still not an MCP tool at all.
+ // measurement here, and none in `review_draft` either.
  assert.deepEqual(Object.keys((calls[0].input as object)).sort(),['draftId','expectedVersion','previewId']);
- assert.ok(!listed.result?.tools?.some(entry=>entry.name==='review_draft'));
 });
 
 test('MCP offers prepare_service_from_setlist as a writing tool and routes its parsed input to authoring',async()=>{

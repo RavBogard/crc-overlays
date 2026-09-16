@@ -59,7 +59,10 @@ async function defaultLaunch():Promise<StageBrowser>{
  const plan=launchPlan();
  if(plan.kind==='sparticuz'){
   const loaded=await import('@sparticuz/chromium');
-  const pack=((loaded as {default?:unknown}).default??loaded) as {args:string[];executablePath:()=>Promise<string>};
+  const pack=((loaded as {default?:unknown}).default??loaded) as {args:string[];executablePath:()=>Promise<string>;setGraphicsMode:boolean};
+  // The overlay renderer uses no WebGL, so SwiftShader is extraction time and /tmp spent on
+  // nothing - and /tmp is the scarcest thing this function has across a long serial run.
+  pack.setGraphicsMode=false;
   return await chromium.launch({args:pack.args,executablePath:await pack.executablePath(),headless:true}) as unknown as StageBrowser;
  }
  if(plan.kind==='executable')return await chromium.launch({executablePath:process.env.PLAYWRIGHT_CHROMIUM_PATH,headless:true}) as unknown as StageBrowser;
@@ -129,7 +132,10 @@ export async function measureCueOnServer(cue:Cue,options:{origin:string;deadline
   // reaches the caller (an MCP client learns only that a human must look), so the only place it
   // can be read is the function log. Log it there, with what was attempted.
   if(!(error instanceof DeadlineExpired))console.error('server-fit launch failed',{plan:launchPlan(),origin:options.origin,error:error instanceof Error?(error.stack??error.message):String(error)});
-  return {verdict:'unavailable',reason:error instanceof DeadlineExpired?'deadline_exceeded':'browser_unavailable'};
+  // `browser` is assigned only once launch() resolved, so it separates "this function has no
+  // Chromium" from "Chromium ran and the stage did not answer" - the one distinction the log
+  // line alone could not make - without leaking any error text to the caller.
+  return {verdict:'unavailable',reason:error instanceof DeadlineExpired?'deadline_exceeded':browser?'stage_unavailable':'browser_unavailable'};
  }finally{
   // The browser is closed on every path, including the deadline: a leaked Chromium would
   // outlive the function invocation that started it. A launch that has already resolved is
