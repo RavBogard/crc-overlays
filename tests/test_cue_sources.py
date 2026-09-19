@@ -1,5 +1,6 @@
 import importlib.util
 import json
+import os
 import subprocess
 import sys
 import unittest
@@ -7,6 +8,12 @@ from pathlib import Path
 
 
 ROOT = Path(__file__).resolve().parents[1]
+
+# The authoring pack is built from a checkout of shireishabbat sitting beside this repo. That
+# checkout is not present on a CI runner, and the path is Daniel's machine's, so it is read from
+# the environment with the local default and the one test that needs it skips when it is absent.
+SOURCE_ROOT = Path(os.environ.get("CRC_SHIREISHABBAT_ROOT", "C:/Users/dsbog/shireishabbat"))
+HAVE_SOURCE_ROOT = SOURCE_ROOT.is_dir()
 
 
 def load_script(name):
@@ -219,6 +226,7 @@ class SourceAdapterTests(unittest.TestCase):
         )
         validator.validate(mapping, catalog)
 
+    @unittest.skipUnless(HAVE_SOURCE_ROOT, f"no shireishabbat checkout at {SOURCE_ROOT}")
     def test_authoring_pack_exposes_only_pinned_birchot_translations(self):
         result = subprocess.run(
             [
@@ -226,7 +234,7 @@ class SourceAdapterTests(unittest.TestCase):
                 str(ROOT / "scripts" / "build-authoring-sources.py"),
                 "--check",
                 "--source-root",
-                "C:/Users/dsbog/shireishabbat",
+                str(SOURCE_ROOT),
             ],
             cwd=ROOT,
             text=True,

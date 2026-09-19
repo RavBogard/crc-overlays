@@ -1,0 +1,116 @@
+# Run the suites on every push and pull request.
+#
+# Until 2026-09-19 this repository had exactly one workflow — the Monday siddur-library
+# regeneration — and 91 test files that nothing ran automatically. A push to `main` deploys CRC
+# production by itself through the Vercel git integration, so the suite needs to have an opinion
+# before that happens rather than after.
+#
+# Three workspaces have tests and each has its own lockfile and its own runner: the Next.js app
+# at the root (node:test through tsx), the Cloudflare worker in relay/ (vitest), and the
+# Bitfocus module in companion/ (vitest). They are separate jobs so a red relay does not hide a
+# green app, and so the slowest one does not serialise the others.
+#
+# This workflow builds nothing and deploys nothing. It touches no secret, no Vercel project, no
+# Neon branch and no Cloudflare worker; a fork's pull request can run it safely.
+name: Tests
+
+on:
+  push:
+  pull_request:
+  workflow_dispatch:
+
+# No workflow-level permissions: nothing here needs to write anything.
+permissions: {}
+
+# A second push to the same branch makes the first run irrelevant. `main` is exempt, because a
+# push to `main` is a production deploy and its run is the record of what shipped.
+concurrency:
+  group: tests-${{ github.ref }}
+  cancel-in-progress: ${{ github.ref != 'refs/heads/main' }}
+
+jobs:
+  app:
+    name: App (root)
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v5
+        with:
+          persist-credentials: false
+
+      - uses: actions/setup-node@v5
+        with:
+          # Matches the `engines.node` this repo declares and the runtime Vercel builds on.
+          node-version: '24'
+          cache: npm
+          cache-dependency-path: package-lock.json
+
+      - uses: actions/setup-python@v6
+        with:
+          python-version: '3.12'
+
+      - run: npm ci
+
+      # `npm test` is both suites the root owns: tests/*.test.ts and app/author/*.test.ts through
+      # tsx, then tests/*.test.mjs through node's own runner. The .mjs file was outside the glob
+      # and had never run once before this workflow existed.
+      - name: Tests
+        run: npm test
+
+      # The python suite covers scripts/generate-cues.py and scripts/validate-cues.py. One of its
+      # cases builds the authoring pack from a shireishabbat checkout beside this repo; there is
+      # no such checkout on a runner, so that case skips here and runs on Daniel's machine.
+      - name: Python tests
+        run: npm run test:py
+
+      - name: Types
+        run: npx tsc --noEmit
+
+      - name: Lint
+        run: npm run lint
+
+  relay:
+    name: Relay worker
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v5
+        with:
+          persist-credentials: false
+
+      - uses: actions/setup-node@v5
+        with:
+          node-version: '24'
+          cache: npm
+          cache-dependency-path: relay/package-lock.json
+
+      - run: npm ci
+        working-directory: relay
+
+      - name: Tests
+        run: npm test
+        working-directory: relay
+
+  companion:
+    name: Companion module
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v5
+        with:
+          persist-credentials: false
+
+      - uses: actions/setup-node@v5
+        with:
+          node-version: '24'
+          cache: npm
+          cache-dependency-path: companion/package-lock.json
+
+      - run: npm ci
+        working-directory: companion
+
+      - name: Tests
+        run: npm test
+        working-directory: companion
+
+      # The module's `lint` is `tsc --noEmit`; it is the only type check this workspace gets.
+      - name: Types
+        run: npm run lint
+        working-directory: companion
