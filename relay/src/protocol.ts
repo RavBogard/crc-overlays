@@ -150,14 +150,20 @@ export function parseCommand(value:unknown):Command|null{
 export const parseHistorySource=(value:unknown):HistorySource|null=>value==='control'||value==='companion'||value==='mcp'?value:null;
 
 /**
- * The library sources of the graphic that was pinned, taken from the payload the relay already
- * holds. Only `library:` ids are kept — they are the ones carrying a shireishabbat unit — and
- * only the first few, so one graphic can never widen a row without bound.
+ * The source ids of the graphic that was pinned, taken from the payload the relay already
+ * holds, and only the first few, so one graphic can never widen a row without bound.
+ *
+ * These are stored verbatim. An earlier version kept only `library:`-prefixed ids on the
+ * theory that they are the ones carrying a shireishabbat unit, but a cue may be published
+ * with a bare unit id instead (`shma.barchu@legacy-shabbat-morning`), and those rows stored
+ * `[]` — which is why four days of real liturgical cues logged a null position. The relay
+ * does not hold the siddur library and cannot tell a library id from any other, so it keeps
+ * what it was given and the web side decides what resolves (`lib/liturgy-index.ts`).
  */
 export function librarySourceIds(payload:CuePayload|null|undefined):string[]{
  const ids=(payload as {authoring?:{sourceIds?:unknown}}|null|undefined)?.authoring?.sourceIds;
  if(!Array.isArray(ids))return [];
- return ids.filter((id):id is string=>typeof id==='string'&&id.startsWith('library:')&&id.length<=160).slice(0,MAX_HISTORY_SOURCE_IDS);
+ return ids.filter((id):id is string=>typeof id==='string'&&id.length>0&&id.length<=160).slice(0,MAX_HISTORY_SOURCE_IDS);
 }
 
 /**

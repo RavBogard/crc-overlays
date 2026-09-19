@@ -102,10 +102,57 @@ function sourceIndex(sources?:readonly LiturgySource[]):Map<string,LiturgySource
 }
 
 /**
- * The liturgical position of one cue, from its first library source. Only `library:`
- * sources are considered: they are the ones that carry a shireishabbat unit pin. A cue
- * with no such source — a baseline cue, a custom graphic, an F3 template, a names panel —
- * resolves to all nulls, which is also what `/api/now` publishes for it.
+ * The same sources keyed by `authority.unitId`. A cue may pin a bare unit id
+ * (`shma.barchu@legacy-shabbat-morning`) rather than the library key that contains it
+ * (`library:legacy-shabbat-morning:shma.barchu@legacy-shabbat-morning`), and that cue still
+ * names a real position. Twenty of the 732 unit ids appear on more than one source; the first
+ * wins, the same rule `loadMoments` uses, because a duplicate is a genuine ambiguity and
+ * guessing differently on each read would be worse than guessing once.
+ */
+let libraryUnitIndex:Map<string,LiturgySource>|undefined;
+function unitIndex(sources?:readonly LiturgySource[]):Map<string,LiturgySource>{
+ const build=(list:readonly LiturgySource[])=>{
+  const map=new Map<string,LiturgySource>();
+  for(const source of list){
+   const unitId=source.authority?.unitId;
+   if(typeof unitId==='string'&&unitId&&!map.has(unitId))map.set(unitId,source);
+  }
+  return map;
+ };
+ if(sources)return build(sources);
+ if(!libraryUnitIndex)libraryUnitIndex=build(siddurLibrary.sources as LiturgySource[]);
+ return libraryUnitIndex;
+}
+
+/**
+ * An id that meant to name a liturgical unit: either the library key itself, or the bare
+ * `<section>.<name>@<feed>` unit id. A `custom:` or `upload:` source names no unit and its
+ * absence from the library is not a miss, so it is not reported as one.
+ */
+const namesAUnit=(id:string)=>id.startsWith('library:')||id.includes('@');
+
+const reportedMisses=new Set<string>();
+/**
+ * A pinned id that meant to name a unit and matched nothing. This is logged rather than
+ * swallowed because a silent miss and a cue with no liturgy look identical from outside —
+ * which is exactly how four days of null positions in the cue log went unnoticed. Reported
+ * once per distinct id and capped, so reading a page of history cannot flood the log.
+ */
+function reportLiturgyMiss(ids:readonly string[]){
+ for(const id of ids){
+  if(!namesAUnit(id)||reportedMisses.has(id))continue;
+  if(reportedMisses.size>=500)return;
+  reportedMisses.add(id);
+  console.warn(`liturgy: no library source matches the pinned id ${JSON.stringify(id)} by key or by authority.unitId; this cue reports no position`);
+ }
+}
+
+/**
+ * The liturgical position of one cue, from the first of its sources that the library can
+ * place — by library key, or failing that by bare `authority.unitId`. A cue with no such
+ * source — a baseline cue, a custom graphic, an F3 template, a names panel — resolves to
+ * all nulls, which is also what `/api/now` publishes for it. A source id that meant to name
+ * a unit and matched neither way is logged rather than silently nulled.
  */
 export function liturgyForCue(cue:{authoring?:{sourceIds?:string[]}}|null|undefined,lookups:LiturgyLookups={}):LiturgyRef{
  return liturgyForSourceIds(cue?.authoring?.sourceIds,lookups);
@@ -118,10 +165,19 @@ export function liturgyForCue(cue:{authoring?:{sourceIds?:string[]}}|null|undefi
  */
 export function liturgyForSourceIds(ids:readonly string[]|null|undefined,lookups:LiturgyLookups={}):LiturgyRef{
  if(!Array.isArray(ids))return {...NO_LITURGY};
+ const candidates=ids.filter((id):id is string=>typeof id==='string'&&id.length>0);
+ if(candidates.length===0)return {...NO_LITURGY};
  const index=sourceIndex(lookups.sources);
- const sourceId=ids.find(id=>typeof id==='string'&&id.startsWith('library:')&&index.has(id));
- if(!sourceId)return {...NO_LITURGY};
- const source=index.get(sourceId)!;
+ const keyed=candidates.find(id=>index.has(id));
+ let source=keyed===undefined?undefined:index.get(keyed);
+ if(!source){
+  // The cue pinned a bare unit id rather than a library key. Resolve it the other way round
+  // before giving up — this is the Barechu case, and it is a real position either way.
+  const units=unitIndex(lookups.sources);
+  const bare=candidates.find(id=>units.has(id));
+  if(bare!==undefined)source=units.get(bare);
+ }
+ if(!source){reportLiturgyMiss(candidates);return {...NO_LITURGY};}
  const unitId=typeof source.authority?.unitId==='string'&&source.authority.unitId?source.authority.unitId:null;
  const moments=lookups.moments??loadMoments();
  const moment=unitId?moments.find(entry=>entry.unitId===unitId):undefined;

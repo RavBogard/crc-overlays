@@ -28,12 +28,17 @@ describe('the cue log',()=>{
   expect(parseCommand({...base,serviceRef:'not-a-collection'})).toBeNull();
  });
 
- it('keeps the library sources of the graphic that was pinned, and nothing else about it',()=>{
+ it('keeps the source ids of the graphic that was pinned, and nothing else about it',()=>{
   const payload={id:'cue-a',name:'Barechu',texts:{textTitle:'Barechu'},authoring:{sourceIds:['library:barechu','custom:notes','library:second']}};
-  expect(librarySourceIds(payload)).toEqual(['library:barechu','library:second']);
-  expect(librarySourceIds({id:'cue-b',authoring:{sourceIds:['custom:only']}})).toEqual([]);
+  expect(librarySourceIds(payload)).toEqual(['library:barechu','custom:notes','library:second']);
+  // A cue published with a bare unit id and no `library:` prefix still names a real position.
+  // Dropping it here is what logged four days of null liturgy, so it is kept verbatim now and
+  // the web side, which is the only side holding the library, decides what resolves.
+  expect(librarySourceIds({id:'cue-b',authoring:{sourceIds:['shma.barchu@legacy-shabbat-morning']}}))
+   .toEqual(['shma.barchu@legacy-shabbat-morning']);
   expect(librarySourceIds({id:'cue-c'})).toEqual([]);
   expect(librarySourceIds(null)).toEqual([]);
+  expect(librarySourceIds({id:'cue-e',authoring:{sourceIds:['',`library:${'y'.repeat(200)}`]}})).toEqual([]);
   expect(librarySourceIds({id:'cue-d',authoring:{sourceIds:Array.from({length:40},(_,index)=>`library:${index}`)}}).length).toBe(MAX_HISTORY_SOURCE_IDS);
  });
 

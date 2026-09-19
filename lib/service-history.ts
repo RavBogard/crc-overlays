@@ -52,7 +52,13 @@ export function historyQuery(query:HistoryQuery):string{
 
 const text=(value:unknown,limit:number)=>typeof value==='string'&&value.length>0&&value.length<=limit?value:null;
 const count=(value:unknown)=>Number.isSafeInteger(value)&&(value as number)>=0?value as number:null;
-const sourceIdsOf=(value:unknown)=>Array.isArray(value)?value.filter((id):id is string=>typeof id==='string'&&id.startsWith('library:')):[];
+/**
+ * The pinned source ids of one row, kept verbatim. Like the relay side, this no longer drops
+ * everything without a `library:` prefix: a cue published with a bare unit id carries a real
+ * liturgical position and used to be filtered out twice before anything could resolve it.
+ * Deciding what an id means belongs to `liturgyForSourceIds`, which sees the library.
+ */
+const sourceIdsOf=(value:unknown)=>Array.isArray(value)?value.filter((id):id is string=>typeof id==='string'&&id.length>0&&id.length<=160):[];
 
 /**
  * One row, rebuilt from validated parts and joined to the library. An unrecognised row is

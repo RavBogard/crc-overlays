@@ -29,6 +29,35 @@ test('baseline, custom, template and names cues resolve to all nulls',()=>{
  assert.deepEqual(liturgyForCue(null),NO_LITURGY);
 });
 
+/* The Barechu case. A published revision may pin the bare unit id
+   (`shma.barchu@legacy-shabbat-morning`) rather than the library key that contains it. Until
+   2026-09-19 that id was filtered out in the relay, filtered again on the way out of the cue
+   log, and would have failed the key lookup here even if it had survived both — so every real
+   liturgical cue logged a null position for four days and it looked exactly like a cue that
+   simply has no liturgy. It resolves by unit id now, and a genuine miss says so out loud. */
+test('a cue that pinned a bare unit id resolves to the same position as the library key',()=>{
+ const key=librarySource.id;
+ const unitId=librarySource.authority.unitId;
+ assert.notEqual(key,unitId,'the fixture is only meaningful if the two spellings differ');
+ assert.deepEqual(liturgyForSourceIds([unitId]),liturgyForSourceIds([key]));
+ assert.equal(liturgyForSourceIds([unitId]).unitId,unitId);
+ // The library key still wins when both are present, and a custom source never blocks the unit.
+ assert.deepEqual(liturgyForSourceIds(['custom:notes',unitId]),liturgyForSourceIds([key]));
+});
+
+test('a pinned id that names no unit we hold is reported, not silently nulled',()=>{
+ const warnings:string[]=[];
+ const warn=console.warn;
+ console.warn=(...args:unknown[])=>{warnings.push(String(args[0]))};
+ try{
+  assert.deepEqual(liturgyForSourceIds(['shma.barchu@a-feed-we-do-not-have']),NO_LITURGY);
+  // A custom or uploaded source names no unit, so its absence is not a miss and stays quiet.
+  assert.deepEqual(liturgyForSourceIds(['custom:announcement']),NO_LITURGY);
+ }finally{console.warn=warn}
+ assert.equal(warnings.length,1,'the unit-shaped id is reported and the custom one is not');
+ assert.match(warnings[0],/shma\.barchu@a-feed-we-do-not-have/);
+});
+
 test('a moments.json entry names the moment of the unit the cue is built from',()=>{
  const moments:MomentEntry[]=[{momentId:'welcome',unitId:librarySource.authority.unitId}];
  assert.equal(liturgyForCue(authored('published',[librarySource.id]),{moments}).momentId,'welcome');
