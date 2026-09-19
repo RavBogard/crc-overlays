@@ -159,12 +159,25 @@ function derivePackageJson(body) {
   return Buffer.from(JSON.stringify(pkg) + trailer, 'utf8');
 }
 
+/**
+ * CRC is primary on overlays.centralreform.org since 2026-09-15 and TBI on
+ * overlays.templebnaiisrael.com since 2026-09-14, but both Vercel hostnames still answer and
+ * the module package committed today was built before the swap. So each CRC host maps to the
+ * matching TBI host and a package is allowed to carry either spelling: the one in the tree
+ * derives now, and one rebuilt from the current source derives after. Both are checked on the
+ * way out, so neither CRC host can survive into the TBI module.
+ */
+const CRC_HOSTS = ['https://overlays.centralreform.org', 'https://crc-overlays.vercel.app'];
+const TBI_HOSTS = ['https://overlays.templebnaiisrael.com', 'https://tbi-overlays.vercel.app'];
+const CRC_BARE = ['overlays.centralreform.org', 'crc-overlays.vercel.app'];
+const TBI_BARE = ['overlays.templebnaiisrael.com', 'tbi-overlays.vercel.app'];
+
 function deriveHelp(body) {
   let text = body.toString('utf8');
   text = text.split('CRC Overlay Controls').join('TBI Overlay Controls');
   text = text.split('CRC Overlays').join('TBI Overlays');
-  text = text.split('crc-overlays.vercel.app').join('tbi-overlays.vercel.app');
-  if (text.includes('crc-overlays.vercel.app')) fail('HELP.md still references the CRC deployment host');
+  CRC_BARE.forEach((host, index) => { text = text.split(host).join(TBI_BARE[index]); });
+  for (const host of CRC_BARE) if (text.includes(host)) fail(`HELP.md still references the CRC deployment host ${host}`);
   return Buffer.from(text, 'utf8');
 }
 
@@ -180,7 +193,11 @@ function deriveMainJs(body) {
   }
 
   let text = source;
-  text = replaceExactly(text, 'https://crc-overlays.vercel.app', 'https://tbi-overlays.vercel.app', 3, 'main.js base URL');
+  // Three base URLs, whichever CRC host this package was built against. The count is asserted
+  // over both spellings together so a package cannot quietly lose one.
+  const baseUrls = CRC_HOSTS.reduce((total, host) => total + countOf(text, host), 0);
+  if (baseUrls !== 3) fail(`main.js base URL: expected 3 CRC base URLs across ${CRC_HOSTS.join(' and ')}, found ${baseUrls}`);
+  CRC_HOSTS.forEach((host, index) => { text = text.split(host).join(TBI_HOSTS[index]); });
   text = replaceExactly(text, 'crc_overlay_controls', 'tbi_overlay_controls', 1, 'main.js preset category id');
   text = replaceExactly(text, 'CRC Overlay Controls', 'TBI Overlay Controls', 1, 'main.js preset category label');
 
@@ -188,7 +205,7 @@ function deriveMainJs(body) {
     const found = countOf(text, needle);
     if (found !== expected) fail(`main.js protocol identifier ${needle} changed: ${expected} before, ${found} after`);
   }
-  if (text.includes('crc-overlays.vercel.app')) fail('main.js still references the CRC deployment host');
+  for (const host of CRC_BARE) if (text.includes(host)) fail(`main.js still references the CRC deployment host ${host}`);
   return Buffer.from(text, 'utf8');
 }
 

@@ -17,7 +17,7 @@ npm run package
 
 The package command creates a Companion module archive in this directory. In Companion 5, open **Settings > Advanced > Developer modules** to load this directory for development, or install the generated archive using Companion's module installation UI. Add a **CRC Overlays** connection and set:
 
-- Overlay base URL: `https://crc-overlays.vercel.app` by default, or another deployment.
+- Overlay base URL: `https://overlays.centralreform.org` by default, or another deployment.
 - Pairing code: six digits issued from the deployment's setup page. See below.
 - Device token: written by the module when a code is accepted; it is not typed by hand.
 - Control key: the deployment's `CONTROL_KEY`. Companion stores this `secret-text` field in its secrets store; it must not be put in button text, logs, screenshots, or shared exports.

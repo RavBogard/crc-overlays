@@ -30,7 +30,7 @@ export function publicOrigins(){
 export function canonicalOrigin(request?:Request){
  const origins=publicOrigins();
  if(request){const url=new URL(request.url);if(origins.includes(url.origin))return url.origin;if(!origins.length&&url.protocol==='http:'&&isLoopback(url.hostname))return url.origin}
- return origins[0]??'https://crc-overlays.vercel.app';
+ return origins[0]??'https://overlays.centralreform.org';
 }
 export function mcpResource(request?:Request){return `${canonicalOrigin(request)}/api/mcp`}
 export function hashOpaque(value:string){return createHash('sha256').update(value).digest('hex')}

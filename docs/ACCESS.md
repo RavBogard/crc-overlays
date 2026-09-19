@@ -120,9 +120,13 @@ about Google. Each workspace must also have `PUBLIC_BASE_URL` set to its own add
 its Google sign-in stays disabled rather than sending anyone to the other congregation's
 site. Values are never read, printed, or committed; only the names appear here and in the
 configuration record. The callback address is the workspace's own address followed by
-`/api/auth/google/callback`, and the four addresses registered with Google are
-`https://crc-overlays.vercel.app`, `https://tbi-overlays.vercel.app`,
-`http://localhost:3000`, and `http://localhost:5175`. The application asks Google only for
+`/api/auth/google/callback`, and the six addresses registered with Google are
+`https://overlays.centralreform.org`, `https://crc-overlays.vercel.app`,
+`https://overlays.templebnaiisrael.com`, `https://tbi-overlays.vercel.app`,
+`http://localhost:3000`, and `http://localhost:5175` — both congregations' custom domains
+and both Vercel hostnames, which is `REGISTERED_ORIGINS` in `lib/google-sign-in.ts`. This
+paragraph said four until 2026-09-19 and had not been updated when the custom domains were
+attached. The application asks Google only for
 a name, an email address, and confirmation that the address is verified; it stores no
 Google token and never asks for offline access.
 

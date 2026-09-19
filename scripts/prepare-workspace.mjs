@@ -99,7 +99,7 @@ files.push(write(resolve(destination,'.env.example'),[
  'OUTPUT_KEY=',
  'RELAY_URL=',
  'RELAY_SECRET=',
- 'CRC_SHARED_LIBRARY_URL=https://crc-overlays.vercel.app/api/shared-library',
+ 'CRC_SHARED_LIBRARY_URL=https://overlays.centralreform.org/api/shared-library',
  'SHARED_LIBRARY_IMPORT_KEY=',
  'PUBLIC_BASE_URL=',
  '',

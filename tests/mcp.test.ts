@@ -26,7 +26,7 @@ test('MCP supports template discovery followed by a source-reference draft creat
 });
 
 test('preview response gives clients an absolute web-review URL without exposing review as a tool',async()=>{
- const handler=createAuthoringMcpHandler(async()=>({previewId:'preview-1',draftVersion:2,previewPath:'/author?draft=draft-1'}));const response=await handler.fetch(request({jsonrpc:'2.0',id:7,method:'tools/call',params:{name:'preview_draft',arguments:{draftId:'draft-1',expectedVersion:2}}}),{authInfo});const body=await payload(response) as {result:{content:{text:string}[]}};const output=JSON.parse(body.result.content[0].text);assert.equal(output.previewUrl,'https://crc-overlays.vercel.app/author?draft=draft-1');
+ const handler=createAuthoringMcpHandler(async()=>({previewId:'preview-1',draftVersion:2,previewPath:'/author?draft=draft-1'}));const response=await handler.fetch(request({jsonrpc:'2.0',id:7,method:'tools/call',params:{name:'preview_draft',arguments:{draftId:'draft-1',expectedVersion:2}}}),{authInfo});const body=await payload(response) as {result:{content:{text:string}[]}};const output=JSON.parse(body.result.content[0].text);assert.equal(output.previewUrl,'https://overlays.centralreform.org/author?draft=draft-1');
 });
 
 test('review_draft is exposed to MCP and accepts no measurement of its own',async()=>{

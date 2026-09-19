@@ -52,7 +52,7 @@ interface Manifest extends InstanceTypes {
 }
 
 export default class CrcOverlaysInstance extends InstanceBase<Manifest> {
-  #config: Config = { baseUrl: 'https://crc-overlays.vercel.app', pairingCode: '' }
+  #config: Config = { baseUrl: 'https://overlays.centralreform.org', pairingCode: '' }
   #credential = ''
   #controlKey = ''
   #deviceToken = ''
@@ -119,12 +119,12 @@ export default class CrcOverlaysInstance extends InstanceBase<Manifest> {
   }
 
   #baseUrl(config: Config | undefined): string {
-    return String(config?.baseUrl || 'https://crc-overlays.vercel.app').replace(/\/+$/, '')
+    return String(config?.baseUrl || 'https://overlays.centralreform.org').replace(/\/+$/, '')
   }
 
   getConfigFields(): SomeCompanionConfigField[] {
     return [
-      { type: 'textinput', id: 'baseUrl', label: 'Overlay base URL', width: 12, default: 'https://crc-overlays.vercel.app', regex: '^https?://.+' },
+      { type: 'textinput', id: 'baseUrl', label: 'Overlay base URL', width: 12, default: 'https://overlays.centralreform.org', regex: '^https?://.+' },
       { type: 'textinput', id: 'pairingCode', label: 'Pairing code', width: 6, default: '', regex: '^$|^[0-9]{6}$', tooltip: 'Six digits from the setup page. It is cleared once the device token is stored.' },
       { type: 'secret-text', id: 'deviceToken', label: 'Device token', width: 6, tooltip: 'Stored automatically when a pairing code is accepted.' },
       { type: 'secret-text', id: 'controlKey', label: 'Control key', width: 12, tooltip: 'The older shared key. When it is set it is used instead of the device token.' },

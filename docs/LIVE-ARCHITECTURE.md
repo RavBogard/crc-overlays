@@ -123,7 +123,7 @@ stopped afterward. Hosted deployment was verified separately below.
 
 ## Production cutover — September 10, 2026
 
-- Website: https://crc-overlays.vercel.app
+- Website: https://overlays.centralreform.org
 - Runtime commit: `98279e0` on private GitHub `main`.
 - Vercel deployment: `3VgavfA8bQTnbMmaPKD9F2pSVcEf`,
   `crc-overlays-8g1povmcx-ravbogards-projects.vercel.app`.

@@ -63,7 +63,10 @@ for (const [sourceName, destinationName, pageName] of sourcePages) {
   instance.secrets = { controlKey: '' };
   instance.enabled = false;
   const serialized = JSON.stringify(data);
-  if (serialized.includes('https://crc-overlays.vercel.app') || serialized.includes('CRC Morning') || serialized.includes('"crc-overlays"')) {
+  // Either CRC host counts as a leak: the swap to overlays.centralreform.org did not retire
+  // the Vercel hostname, and a config carrying either one points an operator at CRC.
+  const crcHosts = ['https://overlays.centralreform.org', 'https://crc-overlays.vercel.app'];
+  if (crcHosts.some(host => serialized.includes(host)) || serialized.includes('CRC Morning') || serialized.includes('"crc-overlays"')) {
     fail(`${sourceName} retained CRC operator-facing configuration`);
   }
   writeFileSync(resolve(downloadsRoot, destinationName), gzipSync(Buffer.from(serialized), { mtime: 0 }));

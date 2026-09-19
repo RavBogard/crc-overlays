@@ -13,6 +13,9 @@ function withEnv(values:Partial<Record<(typeof names)[number],string|undefined>>
  }
 }
 const PRIMARY='https://overlays.centralreform.org',VERCEL='https://crc-overlays.vercel.app';
+// What `canonicalOrigin` answers when nothing at all is configured. It is CRC's primary custom
+// domain, not the Vercel hostname, since the 2026-09-15 swap.
+const FALLBACK=PRIMARY;
 
 test('the deployment speaks as whichever of its configured origins the request arrived on',()=>{
  withEnv({PUBLIC_BASE_URL:PRIMARY,PUBLIC_ALTERNATE_ORIGINS:` ${VERCEL} ,`},()=>{
@@ -35,7 +38,7 @@ test('without alternates the primary answers every request; loopback echoes only
  withEnv({PUBLIC_BASE_URL:undefined,PUBLIC_ALTERNATE_ORIGINS:undefined},()=>{
   assert.deepEqual(publicOrigins(),[]);
   assert.equal(canonicalOrigin(new Request('http://localhost:5175/x')),'http://localhost:5175');
-  assert.equal(canonicalOrigin(),VERCEL);
+  assert.equal(canonicalOrigin(),FALLBACK);
  });
 });
 

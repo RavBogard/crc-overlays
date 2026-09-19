@@ -25,10 +25,10 @@ const tbiRoot=resolve(repoRoot,'work','deploy-staging',tbiRelative);
 mkdirSync(releaseRoot,{recursive:true});
 run(process.execPath,[resolve(repoRoot,'scripts','stage-workspace-source.mjs'),'--destination',tbiRelative]);
 run(process.execPath,[npmCli,'ci'],{cwd:tbiRoot});
-run(process.execPath,[npmCli,'run','build'],{cwd:tbiRoot,env:{WORKSPACE_ID:'temple-bnai-israel-kalamazoo',CRC_SHARED_LIBRARY_URL:'https://crc-overlays.vercel.app/api/shared-library',SHARED_LIBRARY_IMPORT_KEY:'release-build-availability-check'}});
+run(process.execPath,[npmCli,'run','build'],{cwd:tbiRoot,env:{WORKSPACE_ID:'temple-bnai-israel-kalamazoo',CRC_SHARED_LIBRARY_URL:'https://overlays.centralreform.org/api/shared-library',SHARED_LIBRARY_IMPORT_KEY:'release-build-availability-check'}});
 
 run(process.execPath,[vercelCli,'deploy','--prod','--yes','--cwd',repoRoot]);
 run(process.execPath,[vercelCli,'link','--yes','--project','tbi-overlays','--cwd',tbiRoot]);
 run(process.execPath,[vercelCli,'deploy','--prod','--yes','--cwd',tbiRoot]);
-writeFileSync(resolve(releaseRoot,'release.json'),JSON.stringify({version:1,status:'deployed',commit:head,workspaces:[{id:'crc',url:'https://crc-overlays.vercel.app'},{id:'temple-bnai-israel-kalamazoo',url:'https://tbi-overlays.vercel.app'}],libraryPolicy:'complete-current-library-and-owner-authorized-future-crc-additions',completedAt:new Date().toISOString()},null,2)+'\n');
+writeFileSync(resolve(releaseRoot,'release.json'),JSON.stringify({version:1,status:'deployed',commit:head,workspaces:[{id:'crc',url:'https://overlays.centralreform.org'},{id:'temple-bnai-israel-kalamazoo',url:'https://tbi-overlays.vercel.app'}],libraryPolicy:'complete-current-library-and-owner-authorized-future-crc-additions',completedAt:new Date().toISOString()},null,2)+'\n');
 console.log(`Both production workspaces deployed from ${head}.`);
