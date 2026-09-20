@@ -1,6 +1,6 @@
 # Handoff for Code — the agent publish path: server fit check, bulk publish, right-panel geometry (2026-09-14)
 
-Worktree: `C:\Users\dsbog\crc-overlays-vercel`, branch `codex/product-expansion`. Preserve tracked modifications and untracked files. Three parts, each independently shippable; Part 1 first, because Parts 2 and 3 are usable without it and it is what currently blocks every agent.
+Worktree: `C:\Users\dsbog\crc-overlays-vercel`, branch `codex/product-expansion`. Preserve tracked modifications and untracked files. Five parts, each independently shippable. Part 1A is the most serious — five published cues are wrong on air right now — so do it first, despite its position below; then Part 1, because Parts 2, 3 and 4 are usable without it and it is what currently blocks every agent.
 
 ## Symptom
 
@@ -27,6 +27,27 @@ The same measurement in a real browser works. On `/author/fit-stage`, signed in,
 - `fit_check_draft` over MCP on any of today's passing drafts returns `verdict:"pass"` with a `rendererVersion` beginning `server-chromium/`, and `review_draft` then `publish_draft` from the same MCP actor succeed end to end.
 - Any remaining `unavailable` leaves a line in the function logs naming the launch plan, the origin, and the underlying error.
 - `/api/mcp` and `/api/authoring` report the same `runtime` and `maxDuration`.
+
+## Part 1A — unresolvable source references must fail, never substitute
+
+This is the most serious defect in the app and should be fixed before anything else here. Five **published** cues were rendering another cue's text on air today.
+
+`Mi Chamocha (Sat 2)` (cue `5bad62c7-3005-4977-8349-230520c70211`) stored its content referencing the unit as `shma.mi-chamocha@legacy-shabbat-morning`. That string is real — it is a key in the `units` map of `content/legacy-crc-shabbat-morning.sources.json` — but it is not a source id. Every resolvable source id carries the `library:legacy-shabbat-morning:` prefix (`lib/authoring.ts` branches on `source.id.startsWith('library:')` in four places). So the reference resolved to nothing, and instead of erroring the cue rendered the text of `Mi Chamocha (Sat 1)`. The same class of failure left `Mourners Kaddish 3` identical to `Mourners Kaddish 2`, `Birchot Hashachar 3` and `Birchot Hashachar 4` identical to `Birchot Hashachar 2`, and `Psukei DZimrah 2` identical to `Psukei DZimrah 1`. A congregation watching the stream would never have seen the end of the Mourner's Kaddish. Corrected drafts exist for all five; they are not yet published.
+
+**(a) Make the resolver raise.** The lookup is in `buildCue` / `sourceBlockFor` (`lib/authoring-model.ts`). Look for a `sources.find(...)` or `blocks.find(...)` whose `undefined` result is then skipped (a `continue`, a `?.`, a `.filter(Boolean)`), leaving the texts built so far in place; that residue is what got published. Replace it with a named `AuthoringError('unresolvable_source_reference', …)` naming the offending `sourceId`/`blockId`. The precedent already exists: `assertRevisionAuthority` (`lib/authoring.ts`) does `sourceIds.map(id=>sourcePack.sources.find(item=>item.id===id))` then `if(sources.some(item=>!item)) throw … 'source_pin_mismatch'`. That guard runs only on `rollback_draft`, never on the build path, and never checks `blockId`. Note why `assertSourcePin` did not catch this: `sourcePinFor(content, sourceSnapshots)` appears to be computed over the references that did resolve, so a pin over an incomplete set agrees with itself. Confirm that in `authoring-model.ts`. `preview_draft` and `publish_draft` must both refuse; `previewValidation` returning `valid:false` suffices for publish (`validatePublishPreview` already throws `invalid_preview`), but preview should surface the named error, not a generic invalid verdict.
+
+**(b) Walk every published revision.** A one-off script that resolves every `sourceId`/`blockId` in every published revision against `sourcePack` and reports the unresolvable ones by cue id and name — to prove no sixth cue is affected.
+
+**(c) A regression test on duplicate bodies.** Assert that no two published cues share identical body text — `textMainheb` + `textMainEng` + `textMain` + serialized `contentRows`. It would have caught all five at once, without knowing anything about source ids.
+
+**(d) Rule on the bare form, once.** Because the bare key is a genuine identifier in the `units` namespace, `library:legacy-shabbat-morning:` + key is a derivable normalization — so decide deliberately whether the bare id is a legacy alias normalized at read time or simply invalid, and enforce that choice in exactly one function. Not both, and not two silently confusable namespaces.
+
+### Acceptance (Part 1A)
+
+- The five cues render distinct, correct text, and the corrected drafts publish.
+- `preview_draft` and `publish_draft` on a draft with a bare-id reference fail with the named error; neither falls back to previously built text.
+- The validator reports zero unresolvable references across all published revisions.
+- The duplicate-text test fails if any two published cues are made identical, and passes today.
 
 ## Part 2 — "Publish N reviewed drafts" in the Library
 
@@ -64,9 +85,28 @@ Fix: reset the channels inside panel rows rather than editing the legacy rule's 
 - A fixture in `tests/player.test.ts` (or the fit-check tests) renders a one-block bilingual cue on `right` and on `left` and asserts both produce `data-fit="fit"` and comparable fill; it fails against the current CSS.
 - `npm test` passes.
 
+## Part 4 — the title bar cannot hold an English title and a Hebrew accent title at once
+
+Sixteen High Holy Day lower thirds failed the browser fit check with `textTitle overlaps accentTextTitle`. The only remedy available was to delete the accent title, which was done on all sixteen, so those graphics now show English where the Hebrew belongs: *May the Memory, Vimru Amen, aleinu bot 1, aleinu bot 2, Bsefer Chayim, Esah Einai, Ve'Al Kulam, Shofar Blessing, Hashkiveinu HHD 1, Hashkiveinu HHD 2, Hashiveinu, 13 Attributes, Al Cheit Refrain, Pitchu Li, Shalom Alechem small, Shofar Call 1.1.* This is not a long-title problem: `Aleinu` (6 characters) with accent `עָלֵינוּ` (7) overlapped.
+
+The two titles are absolutely positioned over one another, and the CSS says exactly why. `Player.render` (`lib/player.ts`) emits them as siblings — `add('title',…,'textTitle')` and `add('title title-accent',…,'accentTextTitle')` — both `.part{position:absolute}`, with no row container. In `app/globals.css` the accent's own bottom rule is `.bottom .title-accent{right:68px;width:480px}`, but a **later** rule, `.bottom .title{left:250px;bottom:158px;width:1600px;height:46px;font-size:36px;font-weight:500}`, matches the accent element too (it carries both classes) at equal specificity, and wins. The accent therefore inherits the full-width title box, and since `.title-accent` sets `direction:rtl` with `justify-content:flex-end`, flex-end is the *left* edge — so the Hebrew ink lands on top of the left-aligned English ink at the same x. Any pair collides; combined width is irrelevant.
+
+The panel layouts escape this: their rules are written `.left .title:not(.title-accent)` / `.right .title:not(.title-accent)` and give the accent its own row (`top:42px` vs `top:94px`). That guard was never applied to `.bottom`. It also explains why `Mourner's Kaddish` (a panel) carries `קדיש` without colliding, while most published lower thirds sidestep the problem by baking the Hebrew into `textTitle` (`Bar'chu בָּרְכוּ`).
+
+Fix it as layout, not as a numbers tweak: give the lower-third title bar one row holding both — English at the start, Hebrew accent at the end, with a real gap — so they cannot overlap at any combined width, and shrink or elide predictably when too wide. Then restore the sixteen accent titles and re-publish.
+
+### Acceptance (Part 4)
+
+- A lower third with title `Aleinu` and accent `עָלֵינוּ` passes `findFitErrors` (`app/author/preview.ts`) with no `overlaps` entry from `overlapErrors`.
+- A deliberately long pair (for example `זֵכֶר צַדִּיק לִבְרָכָה` against a 23-character title) degrades — shrinks or elides — without overlapping.
+- The sixteen restored graphics pass a fresh fit check.
+- The shipped lower thirds that bake Hebrew into `textTitle` are pixel-identical before and after.
+
 ## Not in scope
 
 - Do not weaken `attestedMeasurement`. A stored `fitCheck` must still be `verdict:'pass'` with a `rendererVersion` starting `server-chromium/`, bound to the exact preview.
 - Do not let an MCP actor pass a hand-asserted `browserMeasurement`. The `isMcpActor` branch in `review_draft` stays as written; Part 2's asserted measurements come from a signed-in web session, which is the existing, unchanged path.
 - The per-graphic human review UI stays. `/author/fit-check` and the editor dock remain available for any graphic the owner wants to eyeball; Part 2 makes that optional for bulk imports he has authorised, not gone.
 - No cross-part coupling: Part 2 must work from browser measurements alone even if Part 1 has not shipped.
+- Do not resolve Part 1A by silently normalising bare unit keys wherever they turn up. Whichever way (d) is decided, one function owns it; a second quiet fallback anywhere else re-creates this defect in a new place.
+- Do not re-fix Part 4 by shortening titles or dropping accent titles. That was today's workaround and it is what put English where the Hebrew belongs; the title bar has to hold both.

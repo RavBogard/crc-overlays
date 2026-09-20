@@ -4,74 +4,55 @@
 
 ## 1. Where things stand
 
-Michael's Stream Deck points at 281 Singular compositions. Across the archived Shabbat set and then the High Holy Day and Special sets, 176 drafts were created — 166 sourced to blocks of the siddur or machzor feed, 10 as custom production cards. Five were then archived: four whose cue already exists in the live catalog (Mourners Kaddish 3, Birchot Hashachar 3, Birchot Hashachar 4, Psukei DZimrah 2 — the live ones stay in use), and "Take This Soul", a U2 lyric rather than liturgy; enter that one yourself if you want it. That leaves **171 drafts standing — 135 needing nothing from you, 36 carrying a flag** (section 2). Separately, **28 compositions have no source in the corpus** (section 3), **35 are per-service names lists** (section 4), and **11 are production notices whose text was never archived** (section 5). Every draft was measured in a real browser at 1920×1080 with the production renderer; 45 failed and were fixed with smaller type, a dropped Hebrew accent title, or a shorter block range. After the fixes all pass except **El Na R'fa Na**, where a right-panel template bug overflows two short lines at fill 4.06 (now in a Code handoff), and **Avinu Malkeinu 2**, where a font reduction landed after the last measurement — **re-measured: passes**. **Nothing has been published.** Publishing waits for the bulk-publish action in the publish-path handoff, or for you clicking through the Library.
+**175 graphics are built, measured and ready to publish**, and **five cues that are already live were rendering the wrong prayer** and now have corrective drafts waiting behind them (section 2 — read that one first). Of the 175, 152 are sourced to blocks of the siddur or machzor feed and 23 carry custom text that will not track siddur corrections; every one has been measured in a real browser at 1920×1080 with the production renderer and passes, except **El Na R'fa Na**, which is held up by a right-panel template bug now in the Code handoff. Twenty-one drafts were archived along the way: fourteen collapsed into siblings whose rendered text was byte-identical, four superseded by the corrective drafts on the live cues, and three — Who By Fire 1, 2 and 3 — pulled because their content was wrong (section 4). Twelve songs that had no source in the corpus were migrated out of the archive as custom-text graphics, and seven prayers that overran their panel were given continuation panels, so **no prayer ends mid-text any more**. That leaves **17 compositions with no source in the corpus** (section 4), **35 per-service names lists** (section 5), and **11 production notices whose wording was never archived** (section 6). **Nothing has been published yet** — publishing waits on the bulk-publish action in `HANDOFF-CODE-2026-09-14-publish-path.md`.
 
-## 2. Needs your ruling
+## 2. Five live cues were showing the wrong prayer
 
-### Trimmed for fit, now ending mid-prayer
+This is the serious one. Five cues that Michael has been firing on air were not rendering their own text. All five are corrected as **drafts**; the live cues still serve the old revision until someone publishes.
 
-Too long for their panels, and smaller type was not enough, so blocks were cut from the end. None should go on air like this without your say-so.
+| Cue | What was on screen | What it shows now |
+|---|---|---|
+| Mourners Kaddish 3 | A sibling slice's text, not Y'hei sh'lama / Oseh shalom | Blocks 17–23 of the Mourners Kaddish unit |
+| Birchot Hashachar 3 | A sibling slice's text | Blocks 13–14, 16–17 (malbish arumim, hanotein layaeif koach) |
+| Birchot Hashachar 4 | A sibling slice's text | Blocks 19–20, 22–23 |
+| Psukei DZimrah 2 | Psalm 91 and Psalm 92 groups sitting ahead of the right ones | The Ashrei-opening and Kol Han'shamah groups only |
+| Mi Chamocha (Sat 2) | Mi Chamocha (Sat 1)'s text, verbatim | Blocks 7–12 — Tzur Yisraeil through Shiru l'Adonai |
 
-- **Kiddush (long)** — blocks 2–9; the chatimah "m'kadeish haShabbat" is gone. Accept, re-add block 14, or split into two buttons.
-- **Kol Nidre** — blocks 2–9; the annulment formula is cut in half. A "Kol Nidre 2" from blocks 10–13 is all but mandatory.
-- **Sim Shalom 3** — blocks 15–22, losing "oseh hashalom" though meant to run to the end. Add a fourth slice, or re-cut slices 2 and 3.
-- **Mizmor L'David** — blocks 0–2; the cut block is Psalm 29's closing "Adonai oz l'amo yiten", the verse the room sings. Add a second button.
-- **Unetane Tokef** — blocks 1–7, ending "v'sofer umoneh," mid-sentence. Needs a "Unetane Tokef 2" from blocks 8–11.
-- **Festival Kiddsuh** — blocks 0–8; blocks 9–17 need a second graphic, spelling kept.
+**Root cause is the same in every case, and it is a code problem, not a data-entry problem.** The stored source reference omitted the `library:<book>:` prefix — it read `shma.mi-chamocha@legacy-shabbat-morning` where it should have read `library:legacy-shabbat-morning:shma.mi-chamocha@legacy-shabbat-morning`. The block indexes were right. But an unprefixed reference does not resolve, and when it fails to resolve the renderer does not error — it silently falls back to whatever text was baked into the cue when it was first created. So a broken reference looks exactly like a working one on the preview and on air.
 
-### Verses dropped, not trimmed
+Two things go into the Code handoff because of this: a **guard** that refuses an unqualified source id rather than falling through to baked text, and a **regression test asserting that no two published cues share body text**, which is what would have caught all five of these the day they were made.
 
-**Shalom Aleichem all** compressed four verses onto one screen with ellipses. No block selection reproduces that, so it carries verses 1 and 4: **verses 2 and 3 are dropped**. Accept, or use the four Shalom Aleichem buttons that already exist.
+### Sixteen High Holy Day lower thirds lost their Hebrew accent title
 
-### Drafts that duplicate each other
+When both the title and the accent title are set, the title bar overlaps itself — and it overlaps even when both are short (Aleinu at six characters plus עָלֵינוּ at seven still collided), so this is a template limitation, not a length problem. Dropping the accent was the only fix available to me. Casualties include ones you said were worth keeping: השיבנו, על חטא, פתחו לי, עֹשֶׂה שָׁלוֹם. It also means **Hashkiveinu HHD 1 and 2** now read identically, and **B'rosh Hashanah** and **Teshuvah** share a title. The root cause is now known: in `app/globals.css` the `.bottom .title` rule follows `.bottom .title-accent` at equal specificity, so the accent inherits the full-width title box, and its RTL `flex-end` puts the Hebrew ink at the left edge on top of the English — which is why every pair collides regardless of length, while the panels are immune because their rules use `:not(.title-accent)` and give the accent its own row. Part 4 of `HANDOFF-CODE-2026-09-14-publish-path.md` fixes the rule and restores all sixteen accents.
 
-- **Avot interp 1, Avot interp 2, Avot 2** — all three use blocks 6–14; interp 1 most likely wants 0–5.
-- **We Are Loved 1 and 2** — "Unending Love" is one undivided block, so both show the whole poem. Split it at source, allow a local variant, or use one button.
-- **Yotzer Or Interp 1 and 2** — identical Hebrew in the archive, and the interpretive English that told them apart has no source. Collapse to one, or add a local variant.
-- **Shofar Blessing and Shofar Call 1.1** — same three blocks. Merge, or give one the Shehecheyanu at blocks 6–9.
-- **Zochreinu (HHD) and Remember Us** — same chant, and a Shabbat-batch "Zochreinu" also exists. Rename or retire one.
-- **Yom Tov Candles (×2)** — created twice under one name from the same block. Delete one.
+## 3. Still needs a ruling
 
-### Language and mode choices
+- **"Untaneh Tokef" in the machzor** — the K'dushat Hayom unit is the actual *U'nitaneh tokef k'dushat hayom* text and that is what the Unetane Tokef cue uses. The unit the book *names* "Untaneh Tokef" is the B'Rosh Hashanah litany, and that is what Who By Fire uses. The naming is the book's, not mine, but you should know which is which before this goes live.
+- **El Malei, split across two panels at a mid-clause break** — 13 blocks cut 0–6 / 7–12, which breaks between "ba'al harachamim" and "yastireim b'seiter k'nafav". Breaking after block 4 reads better but makes panel 2 long. Also: only the communal plural form exists in the corpus, not the funeral form with a name blank.
+- **Olam Chesed Yibaneh cannot comply with the Hebrew-plus-transliteration ruling** — no CRC source carries Hebrew for it (the blocks hold a dash), so it stays English-only with the refrain in the title.
+- **Two graphics no longer track the siddur.** Sanctuary/Adonai Sifatai and Mi Sheberach each need both an English lyric and a Hebrew line on screen, and the app allows only one channel family per graphic. Both are now `custom` mode carrying CRC's own archived on-air text. That gets you what the congregation actually sings, at the cost that a future siddur correction will not reach them — someone has to edit them by hand.
+- **Hinei Ma Tov** — a separate "Hineh Mah Tov" already exists; this operator name may be a duplicate under a different spelling.
 
-- **Mi Sheberach** — the Debbie Friedman English couplets are source-en blocks and were excluded, so only the Hebrew and transliterated refrains show. Add them back, or leave it.
-- **Olam Chesed Yibaneh** — no CRC source carries Hebrew (the blocks hold a dash), so it is English-only, refrain in the title.
-- **Sanctuary / Adonai Sifatai** — the archive mixed a song line with a transliteration; a draft is one mode. Built source-en; bilingual is the alternative, losing the Sanctuary lyric.
-- **psalm 23** — English-only in the archive, matching the Yizkor translation exactly, so source-en. Flip to bilingual blocks 0–14 for Hebrew.
-- **El Malei TRANSLIT / El Mei Rachamim** — 13 blocks split into a pair, 0–6 then 7–12, and **the break falls mid-clause** ("ba'al harachamim" / "yastireim b'seiter k'nafav"); breaking after block 4 reads better but lengthens panel 2. Only the communal plural form exists in the corpus, not the funeral form with a name blank.
+## 4. No source in the siddur corpus
 
-### Readings and naming
+Seventeen left, down from twenty-eight. Each was searched by name and by first line; nothing came back and nothing was typed by hand. Counts are Stream Deck buttons.
 
-- **Sacred Assembly** — listed as a production notice, but Erev Rosh Hashanah has a unit by that name, so it was sourced. Delete if you meant a card.
-- **Who By Fire 1/2/3** — read as the liturgical litany, not the Leonard Cohen song. If the buttons are the song, all three are wrong.
-- **Unetane Tokef vs "Untaneh Tokef"** — the K'dushat Hayom unit is the real "U'nitaneh tokef" and was used for that cue; the unit named "Untaneh Tokef" is the B'Rosh Hashanah litany, used for Who By Fire.
-- **Mizmor L'David** — resolved to Psalm 29 on its "Kab Shab 1" page, not the Yizkor Psalm 23, which also opens "Mizmor L'David".
-- **Hinei Ma Tov** — "Hineh Mah Tov" already exists; this separate operator name may duplicate it.
-- **Hebrew plus transliteration throughout** — wherever the archive showed transliteration only, or an English translation or interpretive reading in its second channel, the draft was built he+tr from the same blocks, per your preference. No interpretive English was typed.
-- **Title accents dropped for fit** — 16 HHD drafts lost their Hebrew accent title to overlap, including ones you called worth keeping (השיבנו, על חטא, פתחו לי, עֹשֶׂה שָׁלוֹם); all restorable in one patch. As a result **Hashkiveinu HHD 1 and 2** both read "Hashkiveinu", and **B'rosh Hashanah / Teshuvah** share a title.
-
-## 3. No source in the siddur corpus
-
-These 28 were searched for; nothing came back, nothing was typed by hand. Counts are Stream Deck buttons.
-
-- **Od Yavo Shalom** (4) — "Od yavo shalom aleinu", עוֹד יָבוֹא שָׁלוֹם עֲלֵינוּ.
-- **Refa Tziri 1 / 2** (4 each) — "R'fa Tziri", רְפָא צִירִי, "Eil neeman rofeih uman".
-- **Jim Mi Sheb** (3) — "Mi Shebeirach healing" in four books; every hit is the Debbie Friedman text.
-- **Mazel Tov** (3) — "Siman tov u'mazal tov".
-- **One Love** (2) — "One love one blood one heart one soul".
-- **Psalm-ish 1 / 2** (2 each) — "Psalm-ish Praise Yah Halleluyah", "Kol han'shamah t'halel Yah".
-- **L'chi Lach** (1) — "L'chi Lach", "Lechi Lach"; its archived Hebrew field held stray Adon Olam text.
-- **Ozi vzimrat** (1) — exists only inside larger blocks (Psalm 118 block 4 adds five verses); needs your call.
-- **Havdalah Songs** (0) — the three songs searched; CRC Havdalah units carry only the blessings.
 - **May the Doors** (3) — "May the doors of this synagogue be wide enough".
-- **If It Be Your Will 1 / 2** (2 each) — "If It Be Your Will".
+- **If It Be Your Will 1 / 2** (2 each).
 - **Or Zarua** (1) — "Or Zarua", אוֹר זָרֻעַ.
-- **Tefilati** (1) — "Tefilati"; "Va'ani t'filati" returned only Mah Tovu.
+- **Tefilati** (1) — "Va'ani t'filati" returned only Mah Tovu.
 - **Chanukah 1 / 2** (1 each) — "Chanukah candles".
 
-And the whole Second Seder page — **there is no Haggadah in the corpus at all**. Each searched once by name, 1 button each: **Karpas**, **Yachatz**, **Dayenu**, **Avadim Hayinu**, **In Every Gen 1 / 2** (only V'shamru and K'dushat HaYom came back), **Plagues**, **Matzah Blessing**, **Birkat Hamazon**, **Motzi (Special)**. Three Seder buttons did find a source and were built: **Eliyahu**, **Wine Blessing**, **shehecheyanu**.
+And the whole **Second Seder page — there is no Haggadah in the corpus at all.** Ten buttons, one each: Karpas, Yachatz, Dayenu, Avadim Hayinu, In Every Gen 1 / 2 (only V'shamru and K'dushat HaYom came back), Plagues, Matzah Blessing, Birkat Hamazon, Motzi (Special). Three Seder buttons did find a source and were built: Eliyahu, Wine Blessing, shehecheyanu.
 
-## 4. Names lists deferred to the per-service names feature
+The eleven that came off this list — Od Yavo Shalom, Refa Tziri 1 and 2, Jim Mi Sheb, Mazel Tov, One Love, Psalm-ish 1 and 2, L'chi Lach, Ozi vzimrat, Havdalah Songs — now exist as **custom-text graphics** built from CRC's own archived on-air text, along with **Take This Soul**, which had been archived. They will not track siddur updates, because there is nothing in the siddur for them to track.
+
+### Who By Fire 1–3 join this list
+
+The three Who By Fire drafts were built as the liturgical *mi ba'eish u'mi vamayim* litany, but the ruling is that the operator's buttons are almost certainly the Leonard Cohen song. All three drafts are archived and the names are out of the catalog entirely, so the converter marks their nine Stream Deck buttons dead rather than firing the wrong prayer. The Cohen lyrics are in no book in the corpus and were never archived on air, so those buttons stay dead until you supply the text — at which point they become custom-text graphics like the other twelve migrated songs.
+
+## 5. Names lists deferred to the per-service names feature
 
 These 35 put a name on screen, so none got a draft; they belong to the per-service names feature, not the catalog.
 
@@ -79,15 +60,25 @@ Special: Student Name (6 buttons), Two Line Student Names (5), Remember Them 1/2
 
 HHD: President (2), Exec Committee, Presidential Families, Mourning Families, and the family cards Worthington, Glazier Snow, Nelson-Zoole, Cohan Federman, Coburn Skrainka, Wirthing-Mass, Young, Massa, Hertz, Goldman, E Beinfeld, O Beinfeld, Lazaroff Hanes, Kaplan Van Dellen, Cohan, Kepecs, Rehbein, Rothenberg M (1 each).
 
-## 5. Production notices with no archived text
+## 6. Production notices with no archived text
 
 Never archived, so there was nothing to rebuild and nothing was invented. Each needs wording from you or Michael once, then becomes a one-line custom draft. Buttons in brackets.
 
 Money pls (7, the HHD services) · Start soon right (7, everywhere) · Good Year (3) · Benediction (3 — may be Birkat Kohanim or a spoken blessing) · This Year (1) · HHD Benediction (1, same ambiguity) · HHD Logo (1) · Torah From Scratch, Speigel Corps, Garden and Undressers (1 each, all Yom Kip 2).
 
-## 6. Appendix — every draft created
+## 7. Appendix — every graphic
 
-176 rows: 171 standing, plus the five marked *(archived)*. "Blocks" is the range as it stands after any fit fix; "Btns" is how many Stream Deck buttons point at the composition. Books: `legacy-shabbat-morning` = CRC Shabbat Morning; `legacy-shabbat-evening` = CRC Kabbalat Shabbat; `legacy-beit-mitzvah` / `bm-shacharit` / `bm-maariv` = CRC Beit Mitzvah; `shabbat-maariv` / `shabbat-shacharit` = Shirei Shabbat; `crc-erev-rh`, `crc-rh-morning`, `crc-kol-nidre`, `crc-yk-morning`, `crc-neilah`, `crc-yizkor`, `legacy-slichot` = the CRC machzorim; `shirei-tshuvah` / `rh1-maariv` / `rh-shacharit` = Shirei T'shuvah.
+### What the converter has to do to Michael's deck
+
+Two changes, and only one of them he will notice.
+
+**The fourteen collapsed drafts cost him nothing.** Where two drafts rendered byte-identical text, the duplicate was archived and its Stream Deck button name is **aliased onto the survivor** by the converter. Every button on his deck still fires, and fires the same picture. The retirements: Avot interp 1 and 2 → Avot 2; **Yotzer Or Interp 1 and 2 → the live Yotzer Or 2 cue**, which they turned out to duplicate exactly; We Are Loved 2 → We Are Loved 1; Shofar Call 1.1 → Shofar Blessing; the HHD Zochreinu → Remember Us; the second Yom Tov Candles → the first; Gevurot Trans → Gevurot 2; Avodah Trans → Avodah; the Seder Eliyahu → Eliyahu Hanavi; Mourners Kaddish 2 TT → 2 T; 3 TT → 3 T; the Seder shehecheyanu → Shehechiyanu.
+
+**The eight continuation panels do need new buttons.** Kiddush (long) 2, Kol Nidre 2, Kol Nidre 3, Sim Shalom 4, Mizmor L'David 2, Unetane Tokef 2, Festival Kiddsuh 2 and psalm 23 (2) have no Singular composition behind them, so there is nothing to alias. The converter places eight brand-new buttons on a spare Companion page. Michael will want to know where they land and in what order before the next service that uses them.
+
+### The table
+
+201 rows: 178 standing and ready, 18 marked *(archived — collapsed)* or *(archived — parallel draft)*, and the 5 marked *(live cue — corrective draft)* from section 2. "Blocks" is the range as it stands after every fit fix and re-split. "Btns" is how many Stream Deck buttons point at the composition; on a collapsed row that count is the button names now aliased onto the survivor, so it is already counted on the survivor's row too. Books: `legacy-shabbat-morning` = CRC Shabbat Morning; `legacy-shabbat-evening` = CRC Kabbalat Shabbat; `legacy-beit-mitzvah` / `bm-shacharit` / `bm-maariv` = CRC Beit Mitzvah; `shabbat-maariv` / `shabbat-shacharit` = Shirei Shabbat; `crc-erev-rh`, `crc-rh-morning`, `crc-kol-nidre`, `crc-yk-morning`, `crc-neilah`, `crc-yizkor`, `legacy-slichot` = the CRC machzorim; `shirei-tshuvah` / `rh1-maariv` / `rh-shacharit` = Shirei T'shuvah.
 
 | Name | Conn. | Layout | Mode | Source book | Blocks | Btns | Fit | Note |
 |---|---|---|---|---|---|---|---|---|
@@ -99,7 +90,7 @@ Money pls (7, the HHD services) · Start soon right (7, everywhere) · Good Year
 | Shema | Master | bottom | bilingual | legacy-shabbat-evening | 0-2 | 10 | pass | CRC Shabbat Morning has no standalone Sh'ma unit (only the Torah-procession call), so the CRC Kabbalat Shabbat 'The Sh'ma' unit was used… |
 | Avot 1 | Master | left | bilingual | legacy-shabbat-morning | 0-5 | 8 | pass | Blocks 0-5 = Baruch atah ... Elohei Bilhah v'Elohei Zilpah, exactly the archived slice; Avot 2 continues at block 6 with no gap. |
 | Avot 2 | Master | left | bilingual | legacy-shabbat-morning | 6-14 | 8 | pass after font fix | Blocks 6-14 = Ha-Eil hagadol ... magein Avraham v'ezrat Sarah; block 5 carries a footnote asterisk which appears in Avot 1 only. |
-| Mi Sheberach | Master | left | bilingual | legacy-shabbat-morning | 0-1,3-4 | 8 | pass | DOUBT: the archive showed the Debbie Friedman English couplets ('May the source of strength...', 'Bless those in need of healing...')… |
+| Mi Sheberach | Master | left | custom | — | — | 8 | pass | **Mixed English + Hebrew, so now custom text.** Carries the archived on-air text verbatim — the Debbie Friedman English couplets interleaved with the Mi shebeirach lines. **No longer tracks siddur corrections.** |
 | Shehechiyanu | Master | bottom | bilingual | shabbat-maariv | 0 | 8 | pass | No Shehecheyanu unit surfaced in the CRC legacy siddurim; used Shirei Shabbat p.66 (single bilingual block)… |
 | Aleinu 3 | Master | left | bilingual | legacy-shabbat-morning | 14-21 | 7 | pass after font fix | Blocks 14-21 = Hu Eloheinu ein od ... v'al ha-aretz mitachat, ein od, matching the archived slice… |
 | Gevurot 1 | Master | left | bilingual | legacy-shabbat-morning | 0-1,4-8 | 7 | pass | Deliberate gap: source blocks 2-3 are the seasonal Mashiv haruach / Morid hatal insertions, which the archived slice did not include. |
@@ -122,23 +113,24 @@ Money pls (7, the HHD services) · Start soon right (7, everywhere) · Good Year
 | Starting Soon | Master | bottom | custom | — | — | 6 | pass | Non-liturgical production slate; archived text used verbatim. |
 | Torah Shema | Master | bottom | bilingual | legacy-shabbat-morning | 0-3 | 6 | pass | Sh'ma + Echad Eloheinu exactly as archived; archive spelling 'Yisrael'/'Adoneinu' vs source 'Yisraeil'/'Adoneinu', source used… |
 | Avodah | Master | left | bilingual | legacy-shabbat-morning | 0-3,9-10 | 5 | pass | Archived slice is the abridged Avodah: R'tzeih...avodat Yisrael amecha, then straight to the chatimah… |
-| Birchot Hashachar 3 *(archived)* | Master | left | bilingual | legacy-shabbat-morning | 13-14,16-17 | 5 | pass | Slice 3 = malbish arumim + hanotein layaeif koach; archive shows CRC's 'ruach ha'olam' variant but source reads 'melech ha-olam' and source was used. |
+| Birchot Hashachar 3 *(archived — parallel draft)* | Master | left | bilingual | legacy-shabbat-morning | 13-14,16-17 | — | n/a | Archived. The published cue of the same name was rendering the wrong prayer; it now carries blocks 13-14, 16-17 as a corrective draft of its own (section 2). |
+| Mourners Kaddish 3 *(archived — parallel draft)* | Master | left | bilingual | legacy-shabbat-morning | 17-23 | — | n/a | Archived. The published cue of the same name was rendering the wrong prayer; it now carries blocks 17-23 as a corrective draft of its own (section 2). |
 | Eitz Chayim | Master | left | bilingual | legacy-shabbat-morning | 0-7 | 5 | pass | Full archived text (Ki lekach tov through chadeish yameinu k'kedem) matches blocks 0-7 exactly. |
 | Olam Chesed Yibaneh | Master | left | source-en | legacy-shabbat-evening | 1 | 5 | pass | DOUBT: no CRC source carries Hebrew for this piece - the two 'bilingual' blocks have he = '—' and tr = the refrain… |
 | Yihyu | HHD | bottom | bilingual | shirei-tshuvah | 2 | 2 | pass | Used only on HHD pages; no CRC legacy machzor/siddur unit exposes Yih'yu l'ratzon as its own block… |
 | Am I Awake | Master | left | bilingual | legacy-shabbat-morning | 0-1 | 4 | pass | Barchu call and response. The 'Am I awake? Am I prepared?' poem in the archived English channel is not in any CRC source and was not typed… |
 | El Malei TRANSLIT | Master | left | bilingual | crc-yizkor | 0-6 | 4 | pass after re-cut | Archive held an English paraphrase with a blank for the deceased's name, not a transliteration… |
-| El Na R'fa Na | Master | right | bilingual | legacy-shabbat-morning | 1 | 4 | FAILS (right-panel bug) | Archive showed only the 'lah' line, but the composition title is 'Lah/Lo' and the siddur pairs them, so both blocks included… |
+| El Na R'fa Na | Master | right | bilingual | legacy-shabbat-morning | 1 | 4 | **FAILS** (right-panel template bug) | Block 1 only ('El na r'fa na lah'), matching the archive. Two short lines measure fill 4.06 because the legacy `.right .prayer` CSS forces each row into a fixed box — Part 3 of the Code handoff. The 'lo' line is still out, though the composition title reads 'Lah/Lo'. |
 | Haftarah Blessing AFTER 1 | Master | left | bilingual | legacy-shabbat-morning | 0-4 | 4 | pass after re-cut | Archived slice 1 (Baruch atah ... shekol d'varav emet vatzedek) maps exactly to blocks 0-4; slice 2 continues at block 5 with no gap. |
 | Haftarah Blessing AFTER 2 | Master | left | bilingual | legacy-shabbat-morning | 5-10 | 4 | pass after re-cut | Archived slice ends at 'anachnu modim lach,' which is mid-block 10 ('anachnu modim lach, um'varchim otach,')… |
 | Haftarah Blessing BEFORE | Master | left | bilingual | legacy-shabbat-morning | 0-6 | 4 | pass after re-cut | Whole blessing, blocks 0-6; translation block 7 excluded. Archive Hebrew used ה' for the divine name, source uses יְיָ; source used. |
-| Kiddush (long) | Master | left | bilingual | legacy-shabbat-evening | 2-9 | 4 | pass after re-cut | Friday-night Kiddush, CRC Kabbalat Shabbat pp.54-55; archived text starts at the second 'Baruch atah Adonai Eloheinu' (blocks 0-1 = borei p'ri hagafen… |
-| Sanctuary/Adonai Sifatai | Master | bottom | source-en | legacy-shabbat-evening | 1-2 | 4 | pass | DOUBT — NEEDS OWNER REVIEW: the archived graphic mixes an English song line and a Hebrew transliteration, but a draft can only use one content mode… |
+| Kiddush (long) | Master | left | bilingual | legacy-shabbat-evening | 2-9 | 4 | pass after re-cut | Friday-night Kiddush, CRC Kabbalat Shabbat pp.54-55. Continues on **Kiddush (long) 2** (blocks 10-14), which carries the chatimah. |
+| Sanctuary/Adonai Sifatai | Master | bottom | custom | — | — | 4 | pass | **Mixed English + Hebrew, so now custom text.** Carries CRC's archived on-air line verbatim (the 'Sanctuary' English plus the Adonai s'fatai transliteration). One channel family per graphic, so this is the only way to keep both. **No longer tracks siddur corrections.** |
 | Send Healing Names | Master | bottom | custom | — | — | 4 | pass | Non-liturgical production notice; archived text used verbatim. |
 | Send Kaddish Names | Master | bottom | custom | — | — | 4 | pass | Non-liturgical production notice; archived text used verbatim. |
 | Shalom Rav | Master | left | bilingual | legacy-shabbat-evening | 0-8 | 4 | pass after font fix | Whole prayer, CRC Kabbalat Shabbat p.35 (Kab Shab 3 is the first operator page). Archive spelling 'Yisrael' vs source 'Yisraeil'… |
 | We Are Loved 1 | Master | left | original-en | legacy-shabbat-morning | 0 | 4 | pass after re-cut | DOUBT — NEEDS OWNER REVIEW: Rami Shapiro 'Unending Love' exists in the feed as ONE block containing the whole poem… |
-| We Are Loved 2 | Master | left | original-en | legacy-shabbat-morning | 0 | 4 | pass after re-cut | DOUBT — NEEDS OWNER REVIEW: identical content to We Are Loved 1 because the source poem is a single undivided block… |
+| We Are Loved 2 *(archived — collapsed)* | Master | left | original-en | legacy-shabbat-morning | 0 | 4 | n/a | Rendered text byte-identical to **We Are Loved 1**; archived under the collapse ruling. Its Stream Deck button name is aliased onto We Are Loved 1 by the converter, so Michael's deck is unchanged. |
 | Adon Olam 3 | Master | left | bilingual | legacy-shabbat-evening | 16-19 | 3 | pass | Final verse 'B'yado afkid ruchi ... Adonai li v'lo ira' = blocks 16-19, exactly matching the archived Hebrew… |
 | Ahavah Raba (short) | Master | bottom | bilingual | legacy-beit-mitzvah | 0 | 3 | pass | Short cue = opening line only, block-0 'Ahavah rabah ahavtanu'. No legacy-shabbat-morning unit for this prayer exists in the corpus… |
 | Haftarah Blessing AFTER 3 | Master | left | bilingual | legacy-shabbat-morning | 10-14 | 3 | pass after re-cut | Archived slice begins mid-block-10 (at 'um'varchim otach'); included block 10 whole rather than leave a gap… |
@@ -150,18 +142,18 @@ Money pls (7, the HHD services) · Start soon right (7, everywhere) · Good Year
 | Maariv Arevim 2 | Master | left | bilingual | legacy-shabbat-evening | 8-16 | 3 | pass after font fix | Exact match to archived slice, 'Borei yom valailah ... Baruch atah Adonai hama-ariv aravim.' Block 17 is the English interpretation and was excluded. |
 | Mi Chamocha (Friday) 1 | Master | left | bilingual | legacy-shabbat-evening | 0-6 | 3 | pass | Matches archived slice through 'Adonai yimloch l'olam va-ed'. Source block 6 transliteration reads 'Adonai (Yah) yim'loch l'olam va-ed.' where the arc… |
 | Mi Chamocha (Friday) 2 | Master | left | bilingual | legacy-shabbat-evening | 7-10 | 3 | pass | Exact match to archived slice 'V'ne-emar: ki fadah ... Shiru laAdonai ki ga-oh ga-ah.' English blocks 11-15 (including the 'Then Miriam...' rubric) ex… |
-| Psukei DZimrah 2 *(archived)* | Master | left | bilingual | legacy-shabbat-morning | 0-1 | 3 | pass | Archived slice spans two consecutive P'sukei units in CRC Shabbat Morning… |
+| Psukei DZimrah 2 *(archived — parallel draft)* | Master | left | bilingual | legacy-shabbat-morning | 0-1 | — | n/a | Archived. The published cue of the same name was rendering the wrong prayer; it now carries the Ashrei-opening and Kol Han'shamah groups as a corrective draft of its own (section 2). |
 | Sim Shalom | Master | bottom | bilingual | legacy-shabbat-morning | 0-2 | 3 | pass | Archive stops at 'aleinu v'al kol yisrael amecha', so block 3 ('Baruch atah Adonai oseh hashalom') was excluded… |
 | Tallit Blessing | Master | bottom | bilingual | legacy-beit-mitzvah | 1-4 | 3 | pass | CRC Shabbat Morning has no Tallit unit (searched 'Tallit', 'Tallit blessing tzitzit', 'l'hitatef batzitzit')… |
 | Vshamru | Master | left | bilingual | legacy-shabbat-evening | 4-11 | 3 | pass | Blocks 4-11 are the full archived paragraph through 'u'vayom hashvi-i shavat vayinafash'… |
-| Avot interp 1 | Master | left | bilingual | legacy-shabbat-morning | 6-14 | 2 | pass after font fix | Archived Hebrew is the second half of Avot V'imahot, 'Ha-Eil hagadol ... magein Avraham v'ezrat Sarah' = blocks 6-14… |
-| Avot interp 2 | Master | left | bilingual | legacy-shabbat-morning | 6-14 | 2 | pass after font fix | Archived Hebrew is Ha-Eil hagadol ... magein Avraham v'ezrat Sarah = blocks 6-14 exactly… |
+| Avot interp 1 *(archived — collapsed)* | Master | left | bilingual | legacy-shabbat-morning | 6-14 | 2 | n/a | Rendered text byte-identical to **Avot 2**; archived under the collapse ruling. Its Stream Deck button name is aliased onto Avot 2 by the converter, so Michael's deck is unchanged. |
+| Avot interp 2 *(archived — collapsed)* | Master | left | bilingual | legacy-shabbat-morning | 6-14 | 2 | n/a | Rendered text byte-identical to **Avot 2**; archived under the collapse ruling. Its Stream Deck button name is aliased onto Avot 2 by the converter, so Michael's deck is unchanged. |
 | Barcheinu | Master | bottom | bilingual | legacy-shabbat-morning | 0-1 | 2 | pass | Archived text matches source verbatim including the bracketed repeat '[kulanu k'echad] b'or panecha'… |
-| Birchot Hashachar 4 *(archived)* | HHD | left | bilingual | legacy-shabbat-morning | 19-20,22-23 | 2 | pass | Slice 4 = 'asher heichin mitz'adei gaver' (19-20) plus the open-ended personal-gratitude blessing 'melech ha-olam, . . .' (22-23)… |
+| Birchot Hashachar 4 *(archived — parallel draft)* | HHD | left | bilingual | legacy-shabbat-morning | 19-20,22-23 | — | n/a | Archived. The published cue of the same name was rendering the wrong prayer; it now carries blocks 19-20, 22-23 as a corrective draft of its own (section 2). |
 | Candle LIghting | Master | bottom | bilingual | legacy-shabbat-evening | 0-4 | 2 | pass | Full Shabbat candle blessing from CRC Kabbalat Shabbat (the Friday-night book the operator uses on 'Kab Shab 1')… |
 | El Mei Rachamim | Master | left | bilingual | crc-yizkor | 7-12 | 2 | pass after re-cut | Only El Malei source in the corpus is the CRC Yizkor communal version; used all 13 bilingual blocks… |
 | Eliyahu Hanavi | Master | left | bilingual | legacy-beit-mitzvah | 0-3 | 2 | pass | Full song, all four bilingual blocks, from the CRC Beit Mitzvah Havdalah service (operator page 'BM Havdala'… |
-| Gevurot Trans | Master | left | bilingual | legacy-shabbat-morning | 9-13 | 2 | pass | Archived Hebrew Mi chamocha ba-al g'vurot ... Baruch atah Adonai m'chayeih hakol = blocks 9-13. Same range as the existing draft 'Gevurot 2'… |
+| Gevurot Trans *(archived — collapsed)* | Master | left | bilingual | legacy-shabbat-morning | 9-13 | 2 | n/a | Rendered text byte-identical to **Gevurot 2**; archived under the collapse ruling. Its Stream Deck button name is aliased onto Gevurot 2 by the converter, so Michael's deck is unchanged. |
 | Hagbahah | Master | left | bilingual | legacy-shabbat-morning | 0-1 | 2 | pass | V'zot haTorah (both bilingual blocks). DOUBT: the archive also showed a second stanza 'Al shloshah d'varim ha'olam omeid...' — no source unit for it e… |
 | Hallelu 1 | Master | bottom | bilingual | shirei-tshuvah | 0 | 2 | pass | Psalm 150 v.1-2 (Hal'lu-Yah ... hal'luhu k'rov gudlo) = block 0. Sourced to Shirei Tshuvah, the HHD book matching the operator page 'HHD Beginning'… |
 | Hallelu 2 | Master | bottom | bilingual | shirei-tshuvah | 2 | 2 | pass | Psalm 150 v.3-4 (b'teka shofar ... b'minim v'ugav) = block 2; block 1 skipped as source-en, so no gap in Hebrew between slices 1 and 2. |
@@ -186,13 +178,13 @@ Money pls (7, the HHD services) · Start soon right (7, everywhere) · Good Year
 | Thou Shalt Love | Master | left | original-en | legacy-shabbat-morning | 0-2 | 2 | pass | English-only Debbie Friedman setting; exists in CRC Shabbat Morning p.22 as original-en blocks. Archive slice = blocks 0-2 verbatim incl… |
 | Thou Shalt Love 2 | Master | left | original-en | legacy-shabbat-morning | 3-4 | 2 | pass | Consecutive continuation of Thou Shalt Love; blocks 3-4 match the archived slice exactly (source block 4 carries both the 'upon thy gates (2x)' and 't… |
 | Yedid Nefesh | Master | left | bilingual | shabbat-maariv | 0 | 2 | pass | Verse 1 only, matching archive. Not present in the CRC legacy siddurim; only Shirei Shabbat (shabbat-maariv) has it… |
-| Yotzer Or Interp 1 | Master | left | bilingual | legacy-shabbat-morning | 8-15 | 2 | pass | Archived Hebrew (Mah rabu ... yotzeir hamorot) = blocks 8-15. NOTE: the archive's second text channel was NOT a transliteration but an interpretive En… |
-| Yotzer Or Interp 2 | Master | left | bilingual | legacy-shabbat-morning | 8-15 | 2 | pass | DUPLICATE HEBREW BY DESIGN: the archive showed the identical Hebrew panel on Interp 1 and Interp 2… |
-| psalm 23 | Master | left | source-en | crc-yizkor | 15 | 2 | pass after font fix | DEVIATION FLAGGED: archive was English-only (Funerals/Yizkor buttons) and matches CRC Yizkor's translation block 15 word-for-word (only 'enemies;' vs… |
+| Yotzer Or Interp 1 *(archived — collapsed)* | Master | left | bilingual | legacy-shabbat-morning | 8-15 | 2 | n/a | Rendered text byte-identical to **the live cue Yotzer Or 2**; archived under the collapse ruling. Its Stream Deck button name is aliased onto the live cue Yotzer Or 2 by the converter, so Michael's deck is unchanged. |
+| Yotzer Or Interp 2 *(archived — collapsed)* | Master | left | bilingual | legacy-shabbat-morning | 8-15 | 2 | n/a | Rendered text byte-identical to **the live cue Yotzer Or 2**; archived under the collapse ruling. Its Stream Deck button name is aliased onto the live cue Yotzer Or 2 by the converter, so Michael's deck is unchanged. |
+| psalm 23 | Master | left | bilingual | crc-yizkor | 0-5 | 2 | pass | Hebrew + transliteration per the ruling; the English translation block 15 is dropped. Re-split: verses 1-3 here, ending cleanly at 'l'ma'an sh'mo'. Rest on **psalm 23 (2)**. Compact, he 24 / tr 20. |
 | Ahavat Olam 1 | Master | left | bilingual | legacy-shabbat-evening | 0-8 | 1 | pass after font fix | Opening through 'uv'mitzvotecha l'olam va-ed' = blocks 0-8. Archive spelling 'Yisrael' vs source 'Yisraeil'; source used. |
 | Ahavat Olam 2 | Master | left | bilingual | legacy-shabbat-evening | 9-12 | 1 | pass | 'Ki heim chayeinu' through the chatimah = blocks 9-12, consecutive with Ahavat Olam 1, no gap. Archive 'al tashir' is a typo for source 'al tasir'… |
 | Ana Bakoach | Master | bottom | bilingual | shabbat-maariv | 0 | 1 | pass | Archive showed verse 1 only (both lines), which is exactly source block 0. Only Shirei Shabbat (shabbat-maariv) carries Ana B'koach… |
-| Avodah Trans | Master | left | bilingual | legacy-shabbat-morning | 0-3,9-10 | 1 | pass | Archived slice is the short form: R'tzeih...avodat Yisrael amecha + the chatimah, skipping 'Eil karov...l'Tziyon b'rachamim' (source blocks 4-8)… |
+| Avodah Trans *(archived — collapsed)* | Master | left | bilingual | legacy-shabbat-morning | 0-3,9-10 | 1 | n/a | Rendered text byte-identical to **Avodah**; archived under the collapse ruling. Its Stream Deck button name is aliased onto Avodah by the converter, so Michael's deck is unchanged. |
 | Awaken, Arise | Master | bottom | bilingual | legacy-shabbat-evening | 1 | 1 | pass | Sourced (Hanna Tiferet Siegel, CRC Kabbalat Shabbat p.8). Only block 1 is bilingual… |
 | Hashkiveinu (Jim) | Master | left | bilingual | legacy-shabbat-evening | 5-7 | 1 | pass | Archived slice = Ufros aleinu + the chatimah (Baruch atah...haporeis sukkat shalom aleinu, v'al kol amo Yisrael, v'al Yerushalayim)… |
 | Mi Chamocha (short) | Master | bottom | bilingual | legacy-shabbat-morning | 0-2 | 1 | pass | Archived text is exactly the ba'eilim verse; blocks 0-2 match word for word… |
@@ -200,7 +192,7 @@ Money pls (7, the HHD services) · Start soon right (7, everywhere) · Good Year
 | Modim Anachnu Lach | Master | left | bilingual | legacy-shabbat-morning | 0-2 | 1 | pass | Archive showed only 'Modim anachnu lach…' (ellipsis) plus an interpretive English poem with no siddur counterpart… |
 | Passing the Torah | Master | right | custom | — | — | 1 | pass | Treated as production/ceremony title card, not liturgy: archived text is an English caption plus the unpointed words לדור ודור… |
 | Shalom Aleichem 1 | Master | left | bilingual | legacy-shabbat-evening | 0-3 | 1 | pass | Verse 1 only; matches the archive including the (malachei harachamim) parenthetical… |
-| Shalom Aleichem all | Master | left | bilingual | legacy-shabbat-evening | 0-3, 12-15 | 1 | pass after re-cut | Archive compressed all four verses onto one screen with ellipses; referenced all four verses in full (blocks 0-15)… |
+| Shalom Aleichem all | Master | left | bilingual | legacy-shabbat-evening | 0-3, 12-15 | 1 | pass (fill 0.88) | Verses 1 and 4. Four full verses measure 1.51x too tall even at the smallest permitted type, so a single all-four-verse panel is not possible; the four single-verse buttons already exist if you want the whole song. |
 | Shavua Tov | Master | bottom | bilingual | legacy-beit-mitzvah | 0 | 1 | pass | kindGuess said custom, but a real source unit exists in CRC Beit Mitzvah (matches the 'BM Havdala' page). Block-0 is the bilingual 'Shavua tov… |
 | Shiru La'Donai 1 | Master | left | bilingual | shabbat-maariv | 0-1 | 1 | pass | Psalm 96; only source in the corpus is the Shirei Shabbat unit (no CRC Kabbalat Shabbat Psalm 96)… |
 | Shiru La'Donai 2 | Master | left | bilingual | shabbat-maariv | 1-2 | 1 | pass | Archived slice 2 starts mid-block-1 ('Ki kol elohei ha'amim') and ends mid-block-2 ('uvo'u l'chatzrotav')… |
@@ -210,16 +202,16 @@ Money pls (7, the HHD services) · Start soon right (7, everywhere) · Good Year
 | Yom Zeh lYisrael 3 | Master | left | bilingual | legacy-shabbat-evening | 2-3,12-15 | 1 | pass | Chorus (2-3) + stanza 'Kidashta beirachta' (12-15); no overlap with slice 2's stanza, chorus intentionally repeated as in the archive… |
 | Mourners Kaddish 1 TT | Master | left | bilingual | legacy-shabbat-morning | 2-9 | 0 | pass | Yitgadal … l'alam ul'almei almaya — exactly the archived slice; rubric blocks 0-1 (PLEASE RISE/BE SEATED) excluded… |
 | Mourners Kaddish 2 T | Master | left | bilingual | legacy-shabbat-morning | 10-16 | 0 | pass | Yitbarach … da-amiran b'alma, v'imru amein — continues slice 1 with no gap… |
-| Mourners Kaddish 2 TT | Master | left | bilingual | legacy-shabbat-morning | 10-16 | 0 | pass | Identical archived text to 'Mourners Kaddish 2 T' (T/TT are template variants), so same blocks; built bilingual he+tr per owner preference. |
+| Mourners Kaddish 2 TT *(archived — collapsed)* | Master | left | bilingual | legacy-shabbat-morning | 10-16 | 0 | n/a | Rendered text byte-identical to **Mourners Kaddish 2 T**; archived under the collapse ruling. Its Stream Deck button name is aliased onto Mourners Kaddish 2 T by the converter, so Michael's deck is unchanged. |
 | Mourners Kaddish 3 T | Master | left | bilingual | legacy-shabbat-morning | 17-23 | 0 | pass | Y'hei sh'lama … Oseh shalom … v'imru amein; same blocks as the pre-existing 'Mourners Kaddish 3' draft… |
-| Mourners Kaddish 3 TT | Master | left | bilingual | legacy-shabbat-morning | 17-23 | 0 | pass | Identical archived text to 'Mourners Kaddish 3 T'; same blocks, bilingual he+tr. |
-| Take This Soul *(archived)* | Master | bottom | custom | — | — | 0 | pass | U2 'Yahweh' lyric used alongside Hashkiveinu — not a siddur text in any corpus book, so entered verbatim as custom rather than sourced… |
+| Mourners Kaddish 3 TT *(archived — collapsed)* | Master | left | bilingual | legacy-shabbat-morning | 17-23 | 0 | n/a | Rendered text byte-identical to **Mourners Kaddish 3 T**; archived under the collapse ruling. Its Stream Deck button name is aliased onto Mourners Kaddish 3 T by the converter, so Michael's deck is unchanged. |
+| Take This Soul | Master | bottom | custom | — | — | 0 | pass | Re-created from the archived on-air text (the U2 'Yahweh' lyric sung alongside Hashkiveinu). Custom text, so it will not track siddur corrections. No Stream Deck button points at it yet. |
 | Zochreinu | Master | bottom | bilingual | shabbat-maariv | 1 | 0 | pass | Archived text is the Zochreinu Avot insertion only (despite the graphic's 'Mi Chamocha' title, kept verbatim)… |
 | May the Memory | HHD | bottom | bilingual | crc-erev-rh | 1-3 | 9 | pass after title fix | Bonia Shur 'Zeicher tzadik livrachah' refrain; used the Erev Rosh Hashanah machzor copy (HHD book) over the Shabbat siblings… |
-| Zochreinu | HHD | left | bilingual | crc-erev-rh | 0,3,5 | 0 | pass | All three bilingual blocks of the Erev RH Zochreinu chant; server returned a duplicate-name warning (a Shabbat-batch draft named 'Zochreinu' already e… |
+| Zochreinu *(archived — collapsed)* | HHD | left | bilingual | crc-erev-rh | 0,3,5 | 0 | n/a | Rendered text byte-identical to **Remember Us**; archived under the collapse ruling. Its Stream Deck button name is aliased onto Remember Us by the converter, so Michael's deck is unchanged. |
 | Vimru Amen | HHD | bottom | bilingual | crc-yk-morning | 4-6 | 6 | pass after title fix | Read the button name as the sung Oseh Shalom ending on '…v'imru amen'; took the Oseh Shalom half of the YK-morning Yihyu/Oseh Shalom unit… |
 | Avinu Malkeinu 1 | HHD | left | bilingual | crc-erev-rh | 3,5,7-8,10-11,13-14 | 6 | pass | No archive: split the unit's 18 bilingual blocks into consecutive halves at a couplet boundary (8 here, 10 in slice 2)… |
-| Avinu Malkeinu 2 | HHD | left | bilingual | crc-erev-rh | 16-17,19-20,22-23,25-28 | 6 | re-measured: passes | Second consecutive half, no gap and no overlap with slice 1; rubric blocks (0, 30) and kavannah/English blocks excluded. |
+| Avinu Malkeinu 2 | HHD | left | bilingual | crc-erev-rh | 16-17,19-20,22-23,25-28 | 6 | pass | Second consecutive half of the Erev RH Avinu Malkeinu, no gap or overlap with slice 1; rubric and kavannah/English blocks excluded. Re-measured after the font reduction: passes. |
 | aleinu bot 1 | HHD | bottom | bilingual | legacy-slichot | 0-10 | 5 | pass after title fix | 'bot' read as bottom layout; no archive, so the 22 bilingual blocks were split into equal consecutive halves… |
 | aleinu bot 2 | HHD | bottom | bilingual | legacy-slichot | 11-21 | 5 | pass after title fix | Second half, continuous with slice 1; block 22 (long English paragraph) excluded. Slichot is the HHD-season CRC book that carries Aleinu. |
 | Bsefer Chayim | HHD | bottom | bilingual | shirei-tshuvah | 1 | 5 | pass after title fix | The HHD insertion 'B'sefer chayim…' isolated as one block in Shirei Tshuvah's evening Shalom Rav… |
@@ -235,35 +227,59 @@ Money pls (7, the HHD services) · Start soon right (7, everywhere) · Good Year
 | Hashkiveinu HHD 2 | HHD | bottom | bilingual | crc-erev-rh | 2,4 | 3 | pass after title fix | Second half (block 3 between them is the English line, skipped); ends at 'Ufros aleinu sukat sh'lomecha' — the rest of the prayer exists only as Engli… |
 | Who By Fire 1 | HHD | left | bilingual | crc-yk-morning | 0-4 | 3 | pass | Read as the liturgical 'who by fire' litany (B'Rosh Hashanah yikateivun / Mi ba'eish u'mi vamayim), not the Leonard Cohen song… |
 | Who By Fire 2 | HHD | left | bilingual | crc-yk-morning | 5-9 | 3 | pass | Middle third, continuous with slice 1. |
-| Unetane Tokef | HHD | left | bilingual | crc-yk-morning | 1-7 | 3 | pass after re-cut | Careful: the book's K'dushat Hayom unit is the actual 'U'nitaneh tokef k'dushat hayom…' text… |
+| Unetane Tokef | HHD | left | bilingual | crc-yk-morning | 1-7 | 3 | pass after re-cut | The book's K'dushat Hayom unit is the actual 'U'nitaneh tokef k'dushat hayom' text (see section 3 on the machzor's unit naming). Continues on **Unetane Tokef 2** (blocks 8-11). |
 | Who By Fire 3 | HHD | left | bilingual | crc-yk-morning | 10-13,15-16 | 3 | pass | Final third plus the U't'shuvah u't'filah u'tz'dakah response (15-16); block 14 between them is the English translation, skipped. |
 | Hashiveinu | HHD | bottom | bilingual | legacy-slichot | 0,3 | 3 | pass after title fix | CRC Slichot setting (A section + B 'Chadeish' section); both bilingual blocks included, the 'B · Sing twice' rubric and English glosses excluded. |
 | Mi Chamochah 2 HHD evening | HHD | left | bilingual | crc-erev-rh | 5-8 | 2 | pass | Evening HHD book chosen (pages Erev Rosh 1 / Kol Nidre 1); Erev RH preferred… |
 | Remember Us | HHD | left | bilingual | crc-erev-rh | 0,3,5 | 2 | pass | Zochreinu (Bonia Shur chant). Erev RH book chosen (pages Erev Rosh 2 / Rosh Hash 2). Only the 3 bilingual blocks used… |
-| Festival Kiddsuh | HHD | left | bilingual | crc-erev-rh | 0-8 | 2 | pass after re-cut | Operator name misspelling 'Kiddsuh' kept verbatim. Whole Yom HaZikaron kiddush (all 18 bilingual blocks) on one panel since there is only one button… |
+| Festival Kiddsuh | HHD | left | bilingual | crc-erev-rh | 0-8 | 2 | pass after re-cut | Operator misspelling 'Kiddsuh' kept verbatim. Yom HaZikaron kiddush, first half; continues on **Festival Kiddsuh 2** (blocks 9-17). |
 | Sim Shalom 1 | HHD | left | bilingual | crc-rh-morning | 1-6 | 2 | pass | RH Morning chosen (pages Rosh Hash 2 / Yom Kip 2; YK text is identical)… |
 | Sim Shalom 2 | HHD | left | bilingual | crc-rh-morning | 7-14 | 2 | pass | Slice 2 = Sim shalom + v'tov b'einecha l'vareich. Consecutive with slice 1, no gap or overlap. |
-| Sim Shalom 3 | HHD | left | bilingual | crc-rh-morning | 15-22 | 2 | pass after re-cut | Slice 3 = Sim shalom + B'seifer chayim through Baruch atah Adonai oseh hashalom; runs to the end of the unit's bilingual blocks. |
-| Kol Nidre | HHD | left | bilingual | crc-kol-nidre | 2-9 | 2 | pass after re-cut | Kol Nidre formula proper only (through ush'vuatana lo sh'vuot). The unit continues with V'nislach… |
+| Sim Shalom 3 | HHD | left | bilingual | crc-rh-morning | 15-22 | 2 | pass after re-cut | Slice 3, B'seifer chayim onward. Continues on **Sim Shalom 4** (blocks 23-27), which carries 'oseh hashalom'. |
+| Kol Nidre | HHD | left | bilingual | crc-kol-nidre | 2-9 | 2 | pass after re-cut | Kol Nidre formula proper, through ush'vuatana lo sh'vuot. Continues on **Kol Nidre 2** and **Kol Nidre 3**, which finish the paragraph, V'nislach, S'lach na and Vayomeir Adonai. |
 | 13 Attributes | HHD | bottom | bilingual | shirei-tshuvah | 1 | 2 | pass after title fix | Not in the legacy machzor books under any spelling I tried; found in Shirei Tshuvah Torah Service as 'The Thirteen Attributes'… |
 | Al Cheit Refrain | HHD | bottom | bilingual | crc-yk-morning | 42-43 | 2 | pass after title fix | The V'al kulam refrain. The unit repeats this refrain four times (blocks 1/2, 5/6, 9/10, 42/43)… |
-| Hayom | HHD | left | bilingual | crc-yk-morning | 0,3,6,9,12,15,18 | 2 | pass | All seven Hayom petitions; interleaved English and 'Amen' source-en blocks skipped… |
+| Hayom | HHD | left | bilingual | crc-yk-morning | 0,3,6 | 2 | pass | Re-sliced to t'amtzeinu / t'varcheinu / t'gadleinu so it no longer overlaps **Hayom 2** (9,12,15,18). Between the two, all seven petitions appear once. |
 | Pitchu Li | HHD | bottom | bilingual | crc-neilah | 0-1 | 2 | pass after title fix | Psalm 118:19 verse only. The same unit also carries Hashiveinu (blocks 5-6) and P'tach Lanu Sha'ar (8-11)… |
 | Ashamnu | HHD | left | bilingual | crc-neilah | 0-6 | 2 | pass | Full alphabetical confession from the Neilah book (page 'Neilah 2'). The trailing V'al kulam refrain (blocks 8-9) left out — covered by the 'Al Cheit… |
-| Mizmor L'David | Special | left | bilingual | shabbat-maariv | 0-2 | 1 | pass after re-cut | 'Kab Shab 1' page, so Psalm 29 (Mizmor l'David, Havu la'Adonai) from Shirei Shabbat Welcoming Shabbat — not the Yizkor Psalm 23… |
+| Mizmor L'David | Special | left | bilingual | shabbat-maariv | 0-2 | 1 | pass after re-cut | Psalm 29 from Shirei Shabbat Welcoming Shabbat (the 'Kab Shab 1' page), not the Yizkor Psalm 23. Continues on **Mizmor L'David 2** (block 3), the closing 'Adonai oz l'amo yiten' the room sings. |
 | Shalom Alechem small | Special | bottom | bilingual | shabbat-maariv | 5 | 1 | pass after title fix | 'small' read as the condensed one-line four-phrase form the source carries (block 5)… |
-| Eliyahu | Special | left | bilingual | legacy-beit-mitzvah | 0-3 | 1 | pass | Seder button but no Haggadah exists; used CRC Beit Mitzvah Havdalah 'Eliyahu Hanavi' (all four bilingual blocks)… |
+| Eliyahu *(archived — collapsed)* | Special | left | bilingual | legacy-beit-mitzvah | 0-3 | 1 | n/a | Rendered text byte-identical to **Eliyahu Hanavi**; archived under the collapse ruling. Its Stream Deck button name is aliased onto Eliyahu Hanavi by the converter, so Michael's deck is unchanged. |
 | Yom Tov Candles | Special | bottom | bilingual | shirei-tshuvah | 2 | 1 | pass | Festival candle blessing 'l'hadlik ner shel (Shabbat v'shel) yom tov' — only yom-tov candle unit in corpus (Shirei Tshuvah, Erev RH)… |
-| shehecheyanu | Special | bottom | bilingual | shabbat-maariv | 0 | 1 | pass | Seder (festival) shehecheyanu; used Shirei Shabbat seasonal insertion, the same unit family as the Wine Blessing kiddush… |
+| shehecheyanu *(archived — collapsed)* | Special | bottom | bilingual | shabbat-maariv | 0 | 1 | n/a | Rendered text byte-identical to **Shehechiyanu**; archived under the collapse ruling. Its Stream Deck button name is aliased onto Shehechiyanu by the converter, so Michael's deck is unchanged. |
 | Kol Hanshemah | Special | bottom | bilingual | legacy-shabbat-morning | 0-1 | 1 | pass | Operator spelling 'Hanshemah' vs source 'Kol Han'shamah'; source spelling used for title… |
 | Wine Blessing | Special | bottom | bilingual | shabbat-maariv | 0 | 1 | pass | Borei p'ri hagafen only, from the Festival Kiddush unit (its block 2 carries the Chag haMatzot insertion, so this is the right book for a seder)… |
 | Candle Lighting RH | HHD | bottom | bilingual | shirei-tshuvah | 2 | 1 | pass | Erev Rosh 1 page. Block 2 is the yom-tov candle blessing; block 0 ('L'shana tova tikatevu') deliberately left out… |
 | B'rosh Hashanah | HHD | bottom | bilingual | legacy-slichot | 0 | 1 | pass | CRC Slichot unit 'B'Rosh Hashanah Yikateivun' block 0 is exactly the one-line refrain… |
 | Teshuvah | HHD | bottom | bilingual | legacy-slichot | 3 | 1 | pass | U'teshuvah u'tefillah u'tzedakah line, consecutive slice after B'rosh Hashanah (English blocks 1-2 skipped, they are original-en)… |
-| Shofar Call 1.1 | HHD | bottom | bilingual | crc-rh-morning | 2-4 | 1 | pass after title fix | Rosh Hash 3 page. Blocks 2-4 are the lishmo'a kol shofar blessing (3 typeset lines)… |
+| Shofar Call 1.1 *(archived — collapsed)* | HHD | bottom | bilingual | crc-rh-morning | 2-4 | 1 | n/a | Rendered text byte-identical to **Shofar Blessing**; archived under the collapse ruling. Its Stream Deck button name is aliased onto Shofar Blessing by the converter, so Michael's deck is unchanged. |
 | Shofar Call 2 | HHD | bottom | bilingual | crc-rh-morning | 2 | 1 | pass | Shofar Call 1/2/3 = the machzor's three calls (Malchuyot/Zichronot/Shofarot)… |
 | Shofar Call 3 | HHD | bottom | bilingual | crc-rh-morning | 2,4 | 1 | pass | Third call, Shofarot. Blocks 2 and 3 are identical (TEKIAH·TERUAH·TEKIAH) so 3 was dropped… |
 | Candle Lighting YK | HHD | left | bilingual | crc-kol-nidre | 0-4 | 1 | pass | Kol Nidre 1 page → CRC Kol Nidre book, 'Candle Blessing' unit; all 5 bilingual blocks, English gloss block 5 excluded… |
 | Hayom 2 | HHD | left | bilingual | crc-yk-morning | 9,12,15,18 | 1 | pass | Yom Kip 3 page → CRC Yom Kippur Morning 'Hayom'. No archive to guide the cut: the unit's 7 bilingual blocks (0,3,6,9,12,15,18) split into consecutive… |
 | Sacred Assembly | HHD | left | bilingual | crc-erev-rh | 0-6 | 1 | pass | DEVIATION, flag for owner: the brief lists 'Sacred Assembly' under no-text… |
-| Yom Tov Candles | HHD | bottom | bilingual | shirei-tshuvah | 2 | 1 | pass | Festival candle blessing (…l'hadlik ner shel (Shabbat v'shel) yom tov) from Shirei Tshuvah 'Candle Lighting'… |
+| Yom Tov Candles *(archived — collapsed)* | HHD | bottom | bilingual | shirei-tshuvah | 2 | 1 | n/a | Rendered text byte-identical to **Yom Tov Candles (Special)**; archived under the collapse ruling. Its Stream Deck button name is aliased onto Yom Tov Candles (Special) by the converter, so Michael's deck is unchanged. |
+| psalm 23 (2) | Master | left | bilingual | crc-yizkor | 6-14 | 0 | pass | Continuation panel. Blocks 9 and 12 straddle verse boundaries internally, so 5/6 was the only clean split near the midpoint. No Singular composition — new Companion button. |
+| Kiddush (long) 2 | Master | left | bilingual | legacy-shabbat-evening | 10-14 | 0 | pass | Continuation of Kiddush (long): Ki vanu vacharta through the chatimah 'm'kadeish haShabbat'. No Singular composition — new Companion button. |
+| Kol Nidre 2 | HHD | left | bilingual | crc-kol-nidre | 10-13,15-17 | 0 | pass | Second of three panels: end of the Kol Nidre paragraph plus V'nislach. Blocks 14 and 18 are source-en, so the skips are not gaps. No Singular composition — new Companion button. |
+| Kol Nidre 3 | HHD | left | bilingual | crc-kol-nidre | 19-22,24 | 0 | pass | Third panel: S'lach na and Vayomeir Adonai; completes the unit's bilingual text. No Singular composition — new Companion button. |
+| Sim Shalom 4 | HHD | left | bilingual | crc-rh-morning | 23-27 | 0 | pass | Continuation of Sim Shalom 3, all remaining bilingual blocks (28-31 are source-en). No Singular composition — new Companion button. |
+| Mizmor L'David 2 | Special | left | bilingual | shabbat-maariv | 3 | 0 | pass | The one remaining bilingual block of Psalm 29, 'Adonai oz l'amo yiten'. No Singular composition — new Companion button. |
+| Unetane Tokef 2 | HHD | left | bilingual | crc-yk-morning | 8-11 | 0 | pass | Continuation; all remaining bilingual blocks of the K'dushat Hayom unit. No Singular composition — new Companion button. |
+| Festival Kiddsuh 2 | HHD | left | bilingual | crc-erev-rh | 9-17 | 0 | pass | Second half of the Yom HaZikaron kiddush. No Singular composition — new Companion button. |
+| Od Yavo Shalom | Master | bottom | custom | — | — | 4 | pass | Migrated from the archive as custom text — no source in the corpus. Will not track siddur updates. |
+| Refa Tziri 1 | Master | left | custom | — | — | 4 | pass | Migrated from the archive as custom text (transliteration plus Hebrew, compact). No source in the corpus. |
+| Refa Tziri 2 | Master | left | custom | — | — | 4 | pass | Migrated from the archive as custom text (transliteration plus Hebrew, compact). No source in the corpus. |
+| Jim Mi Sheb | Master | left | custom | — | — | 3 | pass | Migrated from the archive as custom text; the archive carried transliteration only. No source in the corpus. |
+| Mazel Tov | Master | bottom | custom | — | — | 3 | pass | Migrated from the archive as custom text. No source in the corpus. |
+| One Love | Master | left | custom | — | — | 2 | pass | Migrated from the archive as custom text; transliteration only. No source in the corpus. |
+| Psalm-ish 1 | Master | left | custom | — | — | 2 | pass | Migrated from the archive as custom text; transliteration only. No source in the corpus. |
+| Psalm-ish 2 | Master | left | custom | — | — | 2 | pass | Migrated from the archive as custom text (transliteration plus Hebrew). No source in the corpus. |
+| L'chi Lach | Master | left | custom | — | — | 1 | pass | Migrated from the archive as custom text. The archived Hebrew field held stray Adon Olam text and was not used. |
+| Ozi vzimrat | Master | bottom | custom | — | — | 1 | pass | Migrated from the archive as custom text rather than cut out of the middle of Psalm 118 block 4. |
+| Havdalah Songs | Master | left | custom | — | — | 0 | pass | Migrated from the archive as custom text; CRC Havdalah units carry only the blessings. No Stream Deck button points at it. |
+| Mourners Kaddish 3 *(live cue — corrective draft)* | Master | left | bilingual | legacy-shabbat-morning | 17-23 | 13 | pass | Was showing a sibling slice's text on air. Corrected draft at v2; **not yet published**. |
+| Birchot Hashachar 3 *(live cue — corrective draft)* | Master | left | bilingual | legacy-shabbat-morning | 13-14,16-17 | 5 | pass | Was showing a sibling slice's text on air. Corrected draft at v2; **not yet published**. |
+| Birchot Hashachar 4 *(live cue — corrective draft)* | Master | left | bilingual | legacy-shabbat-morning | 19-20,22-23 | 2 | pass | Was showing a sibling slice's text on air. Corrected draft at v2; **not yet published**. |
+| Psukei DZimrah 2 *(live cue — corrective draft)* | Master | left | bilingual | legacy-shabbat-morning | Ashrei 0-1 + Kol Han'shamah 0-1 | 3 | pass | Was carrying Psalm 91 and Psalm 92 groups ahead of the Ashrei / Kol Han'shamah groups; those are now removed. Corrected draft at v2; **not yet published**. |
+| Mi Chamocha (Sat 2) *(live cue — corrective draft)* | Master | left | bilingual | legacy-shabbat-morning | 7-12 | 6 | pass | Was showing Mi Chamocha (Sat 1)'s text on air. Now the continuation: Tzur Yisraeil through Shiru l'Adonai. Corrected draft at v2; **not yet published**. |
