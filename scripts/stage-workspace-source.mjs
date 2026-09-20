@@ -12,6 +12,7 @@ const destination=resolve(stagingRoot,requestedDestination);
 function fail(message){throw new Error(message)}
 function readJson(path){return JSON.parse(readFileSync(path,'utf8'))}
 function writeJson(path,value){writeFileSync(path,`${JSON.stringify(value,null,2)}\n`,'utf8')}
+function copyIfPresent(relativePath){if(existsSync(resolve(repoRoot,relativePath)))copy(relativePath)}
 function copy(relativePath){const from=resolve(repoRoot,relativePath),to=resolve(destination,relativePath);if(!existsSync(from))fail(`Required source path is missing: ${relativePath}`);mkdirSync(resolve(to,'..'),{recursive:true});cpSync(from,to,{recursive:true})}
 
 if(existsSync(destination))fail(`Allowlisted source staging already exists at ${destination}`);
@@ -19,7 +20,11 @@ const relativeDestination=relative(stagingRoot,destination);
 if(relativeDestination.startsWith(`..${sep}`)||relativeDestination==='..')fail('Source staging path escaped the deployment staging directory');
 
 mkdirSync(destination,{recursive:true});
-for(const directory of ['app','components','content','hooks','lib','schemas'])copy(directory);
+for(const directory of ['app','components','content','lib','schemas'])copy(directory);
+// hooks/ is allowlisted but not required: its only file served the vendored shadcn kit and went with
+// it, so the directory does not currently exist. Keeping it here means a future hook is staged the day
+// it is written, while its absence does not block a release. Nothing else may be staged optionally.
+for(const directory of ['hooks'])copyIfPresent(directory);
 for(const file of ['package.json','package-lock.json','next.config.ts','tsconfig.json','postcss.config.mjs','vercel.json','next-env.d.ts'])copy(file);
 copy('workspaces/temple-bnai-israel');
 for(const file of ['public/assets/QGY_z_wNahGAdqQ43RhVcIgYT2Xz5u32K0nXBi8Jpg.woff2','public/assets/QGY_z_wNahGAdqQ43RhVcIgYT2Xz5u32K3vXBi8Jpg.woff2','public/assets/NotoSansHebrew-Regular.ttf','public/assets/NotoSansHebrew-Medium.ttf','public/assets/NotoSansHebrew-OFL.txt','public/assets/DavidLibre-Regular.ttf','public/assets/DavidLibre-Medium.ttf','public/assets/DavidLibre-OFL.txt','public/assets/FrankRuhlLibre[wght].ttf','public/assets/FrankRuhlLibre-OFL.txt','public/workspaces/temple-bnai-israel'])copy(file);
