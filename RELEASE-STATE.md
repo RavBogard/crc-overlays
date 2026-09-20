@@ -14,8 +14,13 @@ both were released together on 2026-09-20.
 
 | Workspace | Host | Deployed commit | How it got there |
 |---|---|---|---|
-| CRC | `overlays.centralreform.org` (alt `crc-overlays.vercel.app`) | `c05e244` | `scripts/deploy-workspaces.mjs`, 2026-09-20 13:05 CT (the Git integration also builds every push to `main`) |
-| TBI | `overlays.templebnaiisrael.com` (alt `tbi-overlays.vercel.app`) | `c05e244` | `scripts/deploy-workspaces.mjs`, same run |
+| CRC | `overlays.centralreform.org` (alt `crc-overlays.vercel.app`) | `70ad8bb` | `scripts/deploy-workspaces.mjs`, 2026-09-20 13:32 CT (the Git integration also builds every push to `main`) |
+| TBI | `overlays.templebnaiisrael.com` (alt `tbi-overlays.vercel.app`) | `70ad8bb` | `scripts/deploy-workspaces.mjs`, same run |
+
+This file is written after the release it describes, so the commit carrying these words is always one
+ahead of the shas in the table. That one commit is documentation: CRC's Git integration builds it by
+itself and TBI is not owed a release for it. Any commit that touches `app/`, `lib/`, `content/`,
+`components/`, `schemas/` or `workspaces/` **is** owed one.
 
 The mechanism that produced the 09-16 split is still there and will produce another:
 
@@ -33,9 +38,9 @@ is not finished while they differ.
 (`d33408c`) was held back over Kol Nidre and Yom Kippur and merged on 2026-09-20 once Daniel confirmed
 the overlays are not used for either service and do not go live until the following week.
 
-**Four releases on 2026-09-20**, in order: `96cd715` (Wave 2 commits), `4d80925` (library at
+**Five releases on 2026-09-20**, in order: `96cd715` (Wave 2 commits), `4d80925` (library at
 shireishabbat `425f52f`), `a0913a4` (the shadcn strip and the staging fix it required), `c05e244`
-(library at shireishabbat `ad89282`). `relay/` did not change, so no relay release was owed.
+(library at shireishabbat `ad89282`), `70ad8bb` (this file, taken for parity). `relay/` did not change, so no relay release was owed.
 
 ## Relay workers
 
