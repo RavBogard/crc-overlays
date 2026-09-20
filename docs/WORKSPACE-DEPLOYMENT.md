@@ -61,6 +61,15 @@ Before inviting anyone or calling the workspace isolated:
 1. Create a separate deployment, database, relay namespace, credentials, backups, and monitoring.
 2. Configure and validate the prepared TBI identity.
 3. Include the complete current CRC source library and preserve its existing attribution and license metadata. Future owner-authorized CRC additions must become available without overwriting TBI-owned edits.
+
+   **Licensed units travel, and there is no filter (R-0919-audit-7).** Daniel's standing
+   authorization is that Simone and Temple B'nai Israel may use all current and future CRC
+   overlays and source material, *including* units whose licence line reads "not licensed for
+   redistribution". So `buildSharedLibraryPayload` in `lib/shared-library.ts` deliberately has
+   no licence filter, and the attribution and licence metadata that travels with each unit is
+   what records the provenance. This is written down because it looks like an oversight to
+   anyone reading the export for the first time, and it has been raised more than once. It is a
+   decision, not a gap; if it is ever revisited, that is Daniel's call and not a bug fix.
 4. Build a TBI-specific Companion page pack whose placeholder targets only the TBI deployment.
 5. Prove that CRC credentials, commands, catalogs, drafts, output URLs, and renderer tickets fail against TBI, and vice versa.
 6. Rehearse the real TBI OBS, Companion, and Stream Deck computer.
