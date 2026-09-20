@@ -5,9 +5,11 @@
 #
 # The overlay authoring library is generated, never hand-edited: scripts/build-siddur-library.py
 # reads the shireishabbat app surface (dist-app/) and emits the library the source-review inbox
-# draws on. This workflow runs that builder against a fresh checkout of the source repository and
+# draws on. This workflow runs that builder against the app surface the producer publishes and
 # opens a pull request when the generated file moves. It touches no deployment target — no Vercel,
 # no Neon, no Cloudflare — and needs exactly one secret, a read-only token for the source repo.
+# That token now reads one published artifact rather than cloning the repository; see the fetch
+# step below for why.
 #
 # Without that secret the job still runs, against tests/fixtures/siddur-source, and proves the
 # builder itself is healthy. That is the mode a first-time dispatch should use.
@@ -41,8 +43,8 @@ jobs:
       - name: Check out the overlays repository
         uses: actions/checkout@v5
         with:
-          # The source repository's build scripts run later in this job; they must not find a
-          # write token in this checkout's git config. create-pull-request authenticates itself.
+          # Nothing in this job needs to push with this checkout's credentials, and
+          # create-pull-request authenticates itself, so none are left lying in git config.
           persist-credentials: false
 
       - name: Set up Python
@@ -50,29 +52,18 @@ jobs:
         with:
           python-version: '3.12'
 
-      - name: Check out the shireishabbat source repository
+      # Until 2026-09-20 this job checked out the whole source repository with full history and
+      # ran the producer's build here. That stopped working the day the producer's build began
+      # making braille editions through liblouis, which this runner does not install: it wrote a
+      # complete dist-app/ and then exited 1, and the regeneration stopped with it. Building
+      # someone else's repository means adopting every dependency they add. shireishabbat now
+      # publishes the surface itself, so this takes it (master plan, Wave 2 item 2). The token
+      # is still needed -- the source repository is private -- but only to read an artifact.
+      - name: Fetch the published app surface (dist-app/)
         if: env.HAS_SOURCE_TOKEN == 'true' && inputs.dry_run != true
-        uses: actions/checkout@v5
-        with:
-          repository: RavBogard/ShireiShabbat
-          token: ${{ secrets.SHIREISHABBAT_TOKEN }}
-          path: source
-          persist-credentials: false
-          # Full history on purpose. dist-app/ is NOT committed upstream; it is produced by
-          # build/build-app.sh, which extracts each printed volume from a git worktree pinned to
-          # its press commit. A shallow clone has no such commit and the producer fails.
-          fetch-depth: 0
-
-      - name: Produce the source app surface (dist-app/)
-        if: env.HAS_SOURCE_TOKEN == 'true' && inputs.dry_run != true
-        working-directory: source
-        run: |
-          # setup.sh unpacks the vendored typst binary and regenerates the licensed-lane
-          # selectors; build-app.sh writes dist-app/. Both are zero-network and use only
-          # python3 and bash, which the runner already has.
-          bash build/setup.sh
-          bash build/build-app.sh
-          test -f dist-app/books.json
+        env:
+          GH_TOKEN: ${{ secrets.SHIREISHABBAT_TOKEN }}
+        run: python scripts/fetch-app-surface.py --into source/dist-app
 
       - name: Record the current library
         if: env.HAS_SOURCE_TOKEN == 'true' && inputs.dry_run != true
@@ -149,7 +140,7 @@ jobs:
         if: env.HAS_SOURCE_TOKEN == 'true' && inputs.dry_run != true && steps.diff.outputs.changed == 'true'
         run: |
           python - > "$RUNNER_TEMP/summary.md" <<'PY'
-          import json, os, subprocess
+          import json, os
 
           def load(path):
               with open(path, encoding="utf-8") as fh:
@@ -162,10 +153,11 @@ jobs:
           added = sorted(set(new) - set(old))
           removed = sorted(set(old) - set(new))
           changed = sorted(i for i in set(old) & set(new) if old[i] != new[i])
-          sha = subprocess.run(
-              ["git", "-C", "source", "rev-parse", "HEAD"],
-              check=True, capture_output=True, text=True,
-          ).stdout.strip()
+          # The surface is an artifact, not a checkout, so the commit comes from the
+          # provenance file the producer shipped beside it.
+          sha = load("source/dist-app/PROVENANCE.json")["sourceSha"]
+          with open(os.path.join(os.environ["RUNNER_TEMP"], "source-sha.txt"), "w") as fh:
+              fh.write(sha)
 
           def listing(title, ids):
               if not ids:
@@ -190,7 +182,7 @@ jobs:
             echo "body<<$delimiter"
             cat "$RUNNER_TEMP/summary.md"
             echo "$delimiter"
-            echo "short_sha=$(git -C source rev-parse --short HEAD)"
+            echo "short_sha=$(cut -c1-7 "$RUNNER_TEMP/source-sha.txt")"
           } >> "$GITHUB_OUTPUT"
 
       - name: Open the regeneration pull request

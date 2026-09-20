@@ -79,6 +79,28 @@ def object_sha256(value: Any) -> str:
 
 
 def repository_commit(source_root: Path) -> str:
+    """The source commit this app surface was built from.
+
+    Two ways in, because there are now two ways to get a `dist-app/`. A surface published by
+    shireishabbat's CI carries `PROVENANCE.json` naming the commit it was built from, and is
+    the only evidence available: an artifact is a directory of files, with no repository to
+    ask. A sibling checkout carries no provenance file, so its commit comes from git as it
+    always has. The provenance file wins where both exist, because it describes the surface
+    in hand rather than whatever the checkout happens to be pointed at.
+    """
+    provenance_path = source_root / "dist-app" / "PROVENANCE.json"
+    if provenance_path.is_file():
+        provenance = load_json(provenance_path)
+        if not isinstance(provenance, dict) or provenance.get("schemaVersion") != 1:
+            raise LibraryError(
+                f"app surface provenance is not a schemaVersion 1 document: {provenance_path}"
+            )
+        commit = provenance.get("sourceSha")
+        if not isinstance(commit, str) or not re.fullmatch(r"[0-9a-f]{40}", commit):
+            raise LibraryError(
+                f"app surface provenance names no source commit: {provenance_path}"
+            )
+        return commit
     try:
         return subprocess.run(
             ["git", "-C", str(source_root), "rev-parse", "HEAD"],
