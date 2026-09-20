@@ -4,21 +4,20 @@ What is deployed right now. Update this file on every release — it is the one 
 "what is live", and it is short so it can be read under pressure. The history is in
 `docs/planning/2026-09-deploys/` (25 deploy records, the release chain, the phase build notes).
 
-**Last updated: 2026-09-19** (Wave 1 of the four-project audit; see
-`docs/planning/2026-09-19-audit/`).
+**Last updated: 2026-09-20** (Wave 2 of the four-project audit; see
+`docs/planning/2026-09-19-audit/RETURN-CODE-AUDIT-2026-09-19-W2.md`).
 
 ## Web, per workspace
 
-Two congregations, one codebase, one deployment each. **They can drift, and right now they have.**
+Two congregations, one codebase, one deployment each. **Both are on the same commit today**, and
+both were released together on 2026-09-20.
 
 | Workspace | Host | Deployed commit | How it got there |
 |---|---|---|---|
-| CRC | `overlays.centralreform.org` (alt `crc-overlays.vercel.app`) | `1f9a5f3` | Vercel Git integration on `main` |
-| TBI | `overlays.templebnaiisrael.com` (alt `tbi-overlays.vercel.app`) | `7582b66` | `scripts/deploy-workspaces.mjs` (Deploy record 25, 2026-09-16 11:50 CT) |
+| CRC | `overlays.centralreform.org` (alt `crc-overlays.vercel.app`) | `0fb6514` | Vercel Git integration on `main` |
+| TBI | `overlays.templebnaiisrael.com` (alt `tbi-overlays.vercel.app`) | `0fb6514` | `scripts/deploy-workspaces.mjs`, 2026-09-20 09:27 CT |
 
-The difference between the two commits is documentation only — `1f9a5f3` is the Deploy record 25
-write-up on top of `7582b66` — so the two congregations are running the same code today. But the
-mechanism that produced the split is real and will produce a functional one:
+The mechanism that produced the 09-16 split is still there and will produce another:
 
 > **A push to `main` deploys CRC production by itself.** `crc-overlays` has Vercel's Git
 > integration enabled on `main`. TBI has no Git integration and is released by CLI only. So any
@@ -28,6 +27,10 @@ Until TBI gets a Git integration of its own, **every release records both shas i
 and a release is not finished while they differ. That is the discipline the audit asked for
 (`docs/planning/2026-09-19-audit/HANDOFF-CODE-AUDIT-2026-09-19.md`, "TBI deploy record").
 
+**Ahead of production:** `google-signin` carries two Wave 2 commits (`6123afa`, `2a5a6d7`) that
+are not on `main` — the moments agreement check and the rename forwarding list. Merging them is a
+CRC production deploy.
+
 ## Relay workers
 
 Both workers ship from the same commit, and they ship **before** the web (`docs/RELAY-RELEASE.md`).
@@ -36,11 +39,12 @@ the gate requires `renderers: 0` on both.
 
 | Worker | Environment | Version id | Commit |
 |---|---|---|---|
-| `crc-live-relay` | default | `4f23536f-3e37-4b03-9fbf-63c813778a32` | `c8ce9c5` |
-| `tbi-overlays-live-relay` | `tbi` | `7c280607-0c2d-4f58-9686-5d85c1d7115f` | `c8ce9c5` |
+| `crc-live-relay` | default | `c013c8eb-4ade-4477-ad5d-0fdb285f011c` | `0fb6514` |
+| `tbi-overlays-live-relay` | `tbi` | `47f7d260-5e95-4fe1-afe3-2a209461bb5a` | `0fb6514` |
 
-Released 2026-09-14 21:21 UTC (the cue log, fourth relay release). Record:
-`work/deploy-staging/releases/c8ce9c5…/relay.json`.
+Released 2026-09-20 14:21 UTC (the cue log's liturgical position, fifth relay release). Gate:
+both workspaces 0 renderers and 0 controllers. Record:
+`work/deploy-staging/releases/0fb6514…/relay.json`, `status: complete`.
 
 ## Environment deltas
 
@@ -61,4 +65,13 @@ Neon, one per workspace, 28 tables each. No migration is pending.
 - `isolationVerified` is `false` on both workspaces and has been since the first deploy. It is set
   honestly after the rehearsal with Michael, not before.
 - The MCP publish chain has never been watched end to end against the deployed function
-  (Deploy record 25, "Not verified end to end").
+  (Deploy record 25, "Not verified end to end"). It needs an authoring-scope MCP session, which
+  only Daniel can consent to.
+- `GET /api/history` cannot be read by anyone here: it answers an authoring member or a
+  `history_reader` credential, and no `history_reader` has been minted. A `CONTROL_KEY` is
+  refused. This is what stands between here and the Wave 3 confirmation.
+- **`content/siddur-library.json` and `content/moments.json` are both behind the upstream
+  rulings.** The library is pinned to shireishabbat `3625287` and still holds four ruled-retired
+  unit ids; the moments table is four pairs out (R9-b and R6-h). One dispatch of the Siddur
+  library workflow regenerates both and opens a pull request. Until then, three published cues
+  (Kedusha 1, 2 and 3) report no liturgical position on air.
