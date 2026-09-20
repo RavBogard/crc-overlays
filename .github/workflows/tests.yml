@@ -19,8 +19,12 @@ on:
   pull_request:
   workflow_dispatch:
 
-# No workflow-level permissions: nothing here needs to write anything.
-permissions: {}
+# Read the repository and nothing else. `permissions: {}` was wrong rather than strict: an empty map
+# grants the job token nothing at all, so `actions/checkout` could not read this private repository
+# and every run since this workflow was written failed at checkout with "Repository not found" —
+# before a single test ran. Read is the floor; nothing here writes anything.
+permissions:
+  contents: read
 
 # A second push to the same branch makes the first run irrelevant. `main` is exempt, because a
 # push to `main` is a production deploy and its run is the record of what shipped.
