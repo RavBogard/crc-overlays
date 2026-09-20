@@ -8,8 +8,8 @@
 # draws on. This workflow runs that builder against the app surface the producer publishes and
 # opens a pull request when the generated file moves. It touches no deployment target — no Vercel,
 # no Neon, no Cloudflare — and needs exactly one secret, a read-only token for the source repo.
-# That token now reads one published artifact rather than cloning the repository; see the fetch
-# step below for why.
+# That token reads one published artifact where it can, and clones the repository where it cannot;
+# see the fetch step below for why.
 #
 # Without that secret the job still runs, against tests/fixtures/siddur-source, and proves the
 # builder itself is healthy. That is the mode a first-time dispatch should use.
@@ -60,10 +60,57 @@ jobs:
       # publishes the surface itself, so this takes it (master plan, Wave 2 item 2). The token
       # is still needed -- the source repository is private -- but only to read an artifact.
       - name: Fetch the published app surface (dist-app/)
+        id: surface
         if: env.HAS_SOURCE_TOKEN == 'true' && inputs.dry_run != true
         env:
           GH_TOKEN: ${{ secrets.SHIREISHABBAT_TOKEN }}
-        run: python scripts/fetch-app-surface.py --into source/dist-app
+        run: |
+          # A refusal here must not end the job: the steps below can still build the surface,
+          # and a regeneration that stops because an artifact aged out or a token is scoped to
+          # contents-only is a regeneration nobody can rely on. Which path ran is reported.
+          if python scripts/fetch-app-surface.py --into source/dist-app; then
+            echo "fetched=true" >> "$GITHUB_OUTPUT"
+          else
+            echo "fetched=false" >> "$GITHUB_OUTPUT"
+            rm -rf source
+            {
+              echo '### App surface'
+              echo 'The published artifact could not be taken; built from a source checkout instead.'
+            } >> "$GITHUB_STEP_SUMMARY"
+          fi
+
+      # The fallback, and it is only a fallback. On 2026-09-20 SHIREISHABBAT_TOKEN could clone the
+      # source repository but not read its Actions (HTTP 403), so the artifact was out of reach;
+      # granting that token `Actions: read` retires these three steps.
+      - name: Check out the shireishabbat source repository
+        if: env.HAS_SOURCE_TOKEN == 'true' && inputs.dry_run != true && steps.surface.outputs.fetched == 'false'
+        uses: actions/checkout@v5
+        with:
+          repository: RavBogard/ShireiShabbat
+          token: ${{ secrets.SHIREISHABBAT_TOKEN }}
+          path: source
+          persist-credentials: false
+          # Full history on purpose. dist-app/ is NOT committed upstream; it is produced by
+          # build/build-app.sh, which extracts each printed volume from a git worktree pinned to
+          # its press commit. A shallow clone has no such commit and the producer fails.
+          fetch-depth: 0
+
+      - name: Install the producer's braille dependency
+        if: env.HAS_SOURCE_TOKEN == 'true' && inputs.dry_run != true && steps.surface.outputs.fetched == 'false'
+        # build-app.sh builds braille editions through liblouis and refuses to ship an
+        # untranslated file, so without this the whole build exits 1 after writing a perfectly
+        # good dist-app/. This is the cost of building someone else's repository, stated out loud.
+        run: sudo apt-get update && sudo apt-get install -y liblouis-bin python3-louis
+
+      - name: Produce the source app surface (dist-app/)
+        if: env.HAS_SOURCE_TOKEN == 'true' && inputs.dry_run != true && steps.surface.outputs.fetched == 'false'
+        working-directory: source
+        run: |
+          # setup.sh unpacks the vendored typst binary and regenerates the licensed-lane
+          # selectors; build-app.sh writes dist-app/.
+          bash build/setup.sh
+          bash build/build-app.sh
+          test -f dist-app/books.json
 
       - name: Record the current library
         if: env.HAS_SOURCE_TOKEN == 'true' && inputs.dry_run != true
@@ -140,7 +187,7 @@ jobs:
         if: env.HAS_SOURCE_TOKEN == 'true' && inputs.dry_run != true && steps.diff.outputs.changed == 'true'
         run: |
           python - > "$RUNNER_TEMP/summary.md" <<'PY'
-          import json, os
+          import json, os, subprocess
 
           def load(path):
               with open(path, encoding="utf-8") as fh:
@@ -153,9 +200,16 @@ jobs:
           added = sorted(set(new) - set(old))
           removed = sorted(set(old) - set(new))
           changed = sorted(i for i in set(old) & set(new) if old[i] != new[i])
-          # The surface is an artifact, not a checkout, so the commit comes from the
-          # provenance file the producer shipped beside it.
-          sha = load("source/dist-app/PROVENANCE.json")["sourceSha"]
+          # A fetched surface is an artifact with no repository to ask, so its commit comes
+          # from the provenance file the producer ships beside it. A surface built here came
+          # from a checkout, which can be asked directly.
+          if os.path.exists("source/dist-app/PROVENANCE.json"):
+              sha = load("source/dist-app/PROVENANCE.json")["sourceSha"]
+          else:
+              sha = subprocess.run(
+                  ["git", "-C", "source", "rev-parse", "HEAD"],
+                  check=True, capture_output=True, text=True,
+              ).stdout.strip()
           with open(os.path.join(os.environ["RUNNER_TEMP"], "source-sha.txt"), "w") as fh:
               fh.write(sha)
 
