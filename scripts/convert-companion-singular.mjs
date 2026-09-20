@@ -54,7 +54,15 @@ export function buildCatalogIndex(catalog) {
   const index = new Map()
   for (const [name, entry] of Object.entries(catalog)) {
     const cueId = typeof entry === 'string' ? entry : entry?.cueId
-    if (cueId) index.set(normName(name), { cueId, name })
+    if (!cueId) continue
+    const rec = { cueId, name }
+    if (entry && typeof entry === 'object') {
+      if (entry.aliasOf) rec.aliasOf = entry.aliasOf
+      if (entry.newButton) rec.newButton = true
+      if (entry.status) rec.status = entry.status
+      if (entry.source) rec.source = entry.source
+    }
+    index.set(normName(name), rec)
   }
   return index
 }
@@ -113,6 +121,167 @@ function feedback(definitionId, connectionId, options, style) {
   }
 }
 
+/* --------------------------------------------------------- new buttons --- */
+
+export const NEW_PAGE_DEFAULT = 53
+export const NEW_PAGE_NAME = 'Overlays — part 2'
+
+// Companion's own navigation controls; they sit on every page and are not
+// "content" for the purpose of picking an empty page.
+const NAV_TYPES = new Set(['pageup', 'pagedown', 'pagenum'])
+
+export function isNavControl(ctrl) {
+  return !!ctrl && typeof ctrl === 'object' && NAV_TYPES.has(ctrl.type)
+}
+
+export function pageHasContent(page) {
+  for (const row of Object.values(page?.controls ?? {})) {
+    for (const ctrl of Object.values(row ?? {})) {
+      if (ctrl && typeof ctrl === 'object' && !isNavControl(ctrl)) return true
+    }
+  }
+  return false
+}
+
+/** Wrap a graphic name onto two lines when it is longer than 10 characters. */
+export function wrapLabel(name, max = 10) {
+  const s = String(name ?? '')
+  if (s.length <= max) return s
+  // Greedy: pack as many whole words as fit on the first line.
+  let best = -1
+  for (let i = 0; i < s.length; i++) {
+    if (s[i] === ' ' && i <= max) best = i
+  }
+  if (best > 0) return s.slice(0, best) + '\n' + s.slice(best + 1)
+  // No usable space (one long word): split down the middle.
+  const mid = Math.floor(s.length / 2)
+  return s.slice(0, mid) + '\n' + s.slice(mid)
+}
+
+/** Every grid cell of a page, in row-then-column order. */
+export function gridCells(page) {
+  const g = page?.gridSize ?? { minRow: 0, maxRow: 3, minColumn: 0, maxColumn: 7 }
+  const cells = []
+  for (let r = Number(g.minRow ?? 0); r <= Number(g.maxRow ?? 3); r++) {
+    for (let c = Number(g.minColumn ?? 0); c <= Number(g.maxColumn ?? 7); c++) cells.push([r, c])
+  }
+  return cells
+}
+
+const DEFAULT_HOUSE = {
+  bgcolor: 10027059,
+  bankCurrentStep: {
+    definitionId: 'bank_current_step',
+    connectionId: 'internal',
+    options: {
+      location_target: 'this',
+      location_text: '$(this:page)/$(this:row)/$(this:column)',
+      location_expression: "concat($(this:page), '/', $(this:row), '/', $(this:column))",
+      step: 2,
+    },
+    type: 'feedback',
+    style: { color: 16777215, bgcolor: 16711680 },
+    isInverted: false,
+    children: {},
+  },
+}
+
+function makeNewButton(name, cueId, connectionId, house) {
+  const bcs = structuredClone(house.bankCurrentStep ?? DEFAULT_HOUSE.bankCurrentStep)
+  bcs.id = makeId()
+  return {
+    type: 'button',
+    style: {
+      text: wrapLabel(name),
+      textExpression: false,
+      size: '14',
+      png64: null,
+      alignment: 'center:center',
+      pngalignment: 'center:center',
+      color: 16777215,
+      bgcolor: house.bgcolor ?? DEFAULT_HOUSE.bgcolor,
+      show_topbar: 'default',
+      png: null,
+      latch: true,
+    },
+    options: { stepProgression: 'auto', stepExpression: '', rotaryActions: false },
+    feedbacks: [
+      feedback('requested', connectionId, { cue: cueId }, { ...FB_REQUESTED_STYLE }),
+      feedback('rendered', connectionId, { cue: cueId }, { ...FB_RENDERED_STYLE }),
+      bcs,
+    ],
+    steps: {
+      0: {
+        action_sets: {
+          down: [{ type: 'action', id: makeId(), definitionId: 'show_cue', connectionId, options: { cue: cueId }, upgradeIndex: -1 }],
+          up: [],
+        },
+        options: { runWhileHeld: [] },
+      },
+      1: {
+        action_sets: {
+          down: [{ type: 'action', id: makeId(), definitionId: 'animate_out', connectionId, options: { cue: cueId }, upgradeIndex: -1 }],
+          up: [],
+        },
+        options: { runWhileHeld: [] },
+      },
+    },
+    localVariables: [],
+  }
+}
+
+/**
+ * Append a button for every catalog entry flagged `newButton` to the
+ * requested page (or the next empty one), in row/column order.
+ */
+export function placeNewButtons(config, { entries, connectionId, requestedPage, house }) {
+  const result = {
+    requestedPage,
+    page: null,
+    pageName: null,
+    moved: false,
+    placed: 0,
+    skipped: [],
+    items: [],
+  }
+  if (!entries.length) return result
+
+  const pageIds = Object.keys(config.pages ?? {})
+  const startIdx = pageIds.indexOf(String(requestedPage))
+  let chosen = null
+  if (startIdx !== -1) {
+    for (let i = startIdx; i < pageIds.length; i++) {
+      if (!pageHasContent(config.pages[pageIds[i]])) {
+        chosen = pageIds[i]
+        break
+      }
+    }
+  }
+  if (chosen === null) return result
+  result.page = chosen
+  result.moved = String(chosen) !== String(requestedPage)
+
+  const page = config.pages[chosen]
+  page.controls = page.controls ?? {}
+  const free = gridCells(page).filter(([r, c]) => page.controls[r]?.[c] == null)
+
+  for (const e of entries) {
+    const cell = free.shift()
+    if (!cell) {
+      result.skipped.push(e.name)
+      continue
+    }
+    const [r, c] = cell
+    page.controls[r] = page.controls[r] ?? {}
+    page.controls[r][c] = makeNewButton(e.name, e.cueId, connectionId, house)
+    result.placed++
+    result.items.push({ name: e.name, cueId: e.cueId, row: r, column: c })
+  }
+  page.name = NEW_PAGE_NAME
+  result.pageName = page.name
+  return result
+}
+
 /* ---------------------------------------------------------- conversion --- */
 
 /**
@@ -167,6 +336,7 @@ function convertActionArray(arr, ctx) {
       ctx.stats.converted[action.definitionId]++
       ctx.button.mapped++
       if (action.definitionId === 'show_cue') ctx.setGained.cues.add(hit.cueId)
+      if (hit.aliasOf) ctx.buttonAliases.set(hit.name, hit.aliasOf)
       out.push(action)
       continue
     }
@@ -184,8 +354,9 @@ export function convert(config, opts) {
   const {
     catalogIndex,
     label = 'Overlays',
-    baseUrl = 'https://crc-overlays.vercel.app',
+    baseUrl = 'https://overlays.centralreform.org',
     bugNames = ['CRC Logo'],
+    newPage = NEW_PAGE_DEFAULT,
   } = opts
 
   const instances = config.instances ?? {}
@@ -208,10 +379,16 @@ export function convert(config, opts) {
     feedbacksAdded: 0,
     converted: { show_cue: 0, animate_out: 0, bug_on: 0, bug_off: 0, animate_clear: 0 },
     unmappedActions: 0,
+    aliasedButtons: 0,
+    newButtonsPlaced: 0,
   }
   // name -> { buttons:Set<string>, actions:number, pages:Map<pageName,count> }
   const unmapped = new Map()
   const pageCoverage = []
+  // catalog name -> { name, aliasOf, buttons }
+  const aliasUse = new Map()
+  // House pattern harvested from the first converted prayer button.
+  const house = { bgcolor: null, bankCurrentStep: null }
 
   const bugSet = new Set(bugNames.map(normName))
 
@@ -229,7 +406,9 @@ export function convert(config, opts) {
         const button = { singularTotal: 0, mapped: 0, unmapped: 0 }
         const setGained = { cues: new Set(), bug: false }
         const seenHere = new Set()
+        const buttonAliases = new Map()
         const ctx = {
+          buttonAliases,
           singularConnections,
           newConnectionId,
           catalog: catalogIndex,
@@ -270,6 +449,31 @@ export function convert(config, opts) {
         pageSingularButtons++
         if (button.mapped > 0) pageMappedButtons++
         stats.buttonsTouched++
+
+        for (const [name, aliasOf] of buttonAliases) {
+          let rec = aliasUse.get(name)
+          if (!rec) {
+            rec = { name, aliasOf, buttons: 0 }
+            aliasUse.set(name, rec)
+          }
+          rec.buttons++
+        }
+        if (buttonAliases.size) stats.aliasedButtons++
+
+        // Harvest the house pattern from a real converted prayer button.
+        if (button.mapped > 0 && setGained.cues.size) {
+          if (house.bgcolor === null && typeof btn.style?.bgcolor === 'number' && btn.style.bgcolor !== 0x333333) {
+            house.bgcolor = btn.style.bgcolor
+          }
+          if (house.bankCurrentStep === null && Array.isArray(btn.feedbacks)) {
+            const sample = btn.feedbacks.find((f) => f?.definitionId === 'bank_current_step')
+            if (sample) {
+              const clone = structuredClone(sample)
+              delete clone.id
+              house.bankCurrentStep = clone
+            }
+          }
+        }
 
         // Feedback improvement
         const newFeedbacks = []
@@ -315,13 +519,31 @@ export function convert(config, opts) {
     }))
     .sort((a, b) => b.buttons - a.buttons || a.name.localeCompare(b.name))
 
-  return { config, stats, unmapped: unmappedList, pageCoverage, newConnectionId, label }
+  const aliases = [...aliasUse.values()].sort((a, b) => b.buttons - a.buttons || a.name.localeCompare(b.name))
+
+  // New buttons for catalog entries that have no Singular composition at all.
+  const newEntries = []
+  const seenCue = new Set()
+  for (const rec of catalogIndex.values()) {
+    if (!rec.newButton || seenCue.has(rec.cueId)) continue
+    seenCue.add(rec.cueId)
+    newEntries.push(rec)
+  }
+  const newButtons = placeNewButtons(config, {
+    entries: newEntries,
+    connectionId: newConnectionId,
+    requestedPage: newPage,
+    house,
+  })
+  stats.newButtonsPlaced = newButtons.placed
+
+  return { config, stats, unmapped: unmappedList, pageCoverage, aliases, newButtons, newConnectionId, label }
 }
 
 /* -------------------------------------------------------------- report --- */
 
 export function buildReport(result) {
-  const { stats, unmapped, pageCoverage, label } = result
+  const { stats, unmapped, pageCoverage, label, aliases = [], newButtons } = result
   const c = stats.converted
   const L = []
   L.push('# Companion Singular.live → CRC Overlays conversion report', '')
@@ -335,7 +557,42 @@ export function buildReport(result) {
   L.push(`- Actions converted — show_cue: ${c.show_cue}, animate_out: ${c.animate_out}, bug_on: ${c.bug_on}, bug_off: ${c.bug_off}, animate_clear: ${c.animate_clear}`)
   L.push(`- Actions converted (total): ${c.show_cue + c.animate_out + c.bug_on + c.bug_off + c.animate_clear}`)
   L.push(`- Unmapped Singular actions removed: ${stats.unmappedActions} (${unmapped.length} distinct composition names)`)
+  L.push(`- Buttons aliased to another graphic: ${stats.aliasedButtons} (${aliases.length} distinct composition names)`)
+  const nbPage = newButtons?.page
+  L.push(`- New buttons placed: ${stats.newButtonsPlaced}${nbPage ? ` on page ${nbPage} ("${newButtons.pageName}")` : ''}`)
   L.push('')
+
+  L.push('## New buttons', '')
+  if (!newButtons || !newButtons.placed) {
+    L.push('_None placed._', '')
+  } else {
+    if (newButtons.moved) {
+      L.push(`Page ${newButtons.requestedPage} already had content, so the new buttons went to page **${newButtons.page}** instead, renamed "${newButtons.pageName}".`, '')
+    } else {
+      L.push(`Placed on page **${newButtons.page}**, renamed "${newButtons.pageName}".`, '')
+    }
+    L.push('| Graphic | Page | Row | Column |')
+    L.push('| --- | ---: | ---: | ---: |')
+    for (const i of newButtons.items) {
+      L.push(`| ${i.name.replace(/\|/g, '\\|')} | ${newButtons.page} | ${i.row} | ${i.column} |`)
+    }
+    if (newButtons.skipped.length) {
+      L.push('', `Did not fit on the page: ${newButtons.skipped.join(', ')}.`)
+    }
+    L.push('')
+  }
+
+  L.push('## Aliased to another graphic', '')
+  if (!aliases.length) L.push('_None._', '')
+  else {
+    L.push('These buttons keep their old name but now show the surviving graphic.', '')
+    L.push('| Button name | Now shows | Buttons |')
+    L.push('| --- | --- | ---: |')
+    for (const a of aliases) {
+      L.push(`| ${a.name.replace(/\|/g, '\\|')} | ${a.aliasOf.replace(/\|/g, '\\|')} | ${a.buttons} |`)
+    }
+    L.push('')
+  }
 
   L.push('## Unmapped compositions', '')
   if (!unmapped.length) L.push('_None._', '')
@@ -376,7 +633,13 @@ export function buildReportJson(result) {
       actionsConverted: result.stats.converted,
       unmappedActions: result.stats.unmappedActions,
       unmappedDistinctNames: result.unmapped.length,
+      aliasedButtons: result.stats.aliasedButtons,
+      aliasedDistinctNames: (result.aliases ?? []).length,
+      newButtonsPlaced: result.stats.newButtonsPlaced,
+      newButtonsPage: result.newButtons?.page ?? null,
     },
+    aliases: result.aliases ?? [],
+    newButtons: result.newButtons ?? null,
     unmapped: result.unmapped,
     pageCoverage: result.pageCoverage,
     publishNext: result.unmapped.map((u) => ({ name: u.name, buttons: u.buttons })),
@@ -386,7 +649,7 @@ export function buildReportJson(result) {
 /* ----------------------------------------------------------------- cli --- */
 
 export function parseArgs(argv) {
-  const out = { label: 'Overlays', baseUrl: 'https://crc-overlays.vercel.app', bugNames: ['CRC Logo'] }
+  const out = { label: 'Overlays', baseUrl: 'https://overlays.centralreform.org', bugNames: ['CRC Logo'], newPage: NEW_PAGE_DEFAULT }
   for (let i = 0; i < argv.length; i++) {
     const a = argv[i]
     const next = () => argv[++i]
@@ -397,6 +660,11 @@ export function parseArgs(argv) {
     else if (a === '--label') out.label = next()
     else if (a === '--base-url') out.baseUrl = next()
     else if (a === '--bug-names') out.bugNames = next().split(',').map((s) => s.trim()).filter(Boolean)
+    else if (a === '--new-page') {
+      const v = Number(next())
+      if (!Number.isInteger(v) || v < 1) throw new Error('--new-page must be a positive integer')
+      out.newPage = v
+    }
     else throw new Error(`Unknown argument: ${a}`)
   }
   for (const req of ['in', 'catalog', 'out', 'report']) {
@@ -414,6 +682,7 @@ function main(argv) {
     label: args.label,
     baseUrl: args.baseUrl,
     bugNames: args.bugNames,
+    newPage: args.newPage,
   })
   writeConfig(args.out, result.config, gzipped)
 
@@ -427,6 +696,7 @@ function main(argv) {
   console.log(`Wrote ${args.out} (${gzipped ? 'gzip' : 'plain'})`)
   console.log(`Pages ${result.stats.pagesScanned}, buttons ${result.stats.buttonsScanned}, touched ${result.stats.buttonsTouched}`)
   console.log(`Converted show_cue=${c.show_cue} animate_out=${c.animate_out} bug_on=${c.bug_on} bug_off=${c.bug_off} animate_clear=${c.animate_clear}; unmapped removed=${result.stats.unmappedActions}`)
+  console.log(`Aliased buttons=${result.stats.aliasedButtons}; new buttons placed=${result.stats.newButtonsPlaced}${result.newButtons?.page ? ` on page ${result.newButtons.page}` : ''}`)
   console.log(`Report: ${args.report} and ${jsonPath}`)
 }
 

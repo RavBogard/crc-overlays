@@ -10,6 +10,10 @@ import {
   writeConfig,
   isGzip,
   buildReportJson,
+  buildReport,
+  wrapLabel,
+  pageHasContent,
+  NEW_PAGE_NAME,
 } from '../scripts/convert-companion-singular.mjs'
 
 const SING = 'SiNgUlArConn000000001'
@@ -224,6 +228,161 @@ test('totals and page coverage', () => {
   const j = buildReportJson(r)
   assert.equal(j.totals.unmappedDistinctNames, 1)
   assert.deepEqual(j.publishNext, [{ name: 'Vidui', buttons: 1 }])
+})
+
+/* ------------------------------------------------------------ aliases --- */
+
+const ALIAS_CATALOG = {
+  ...CATALOG,
+  'Avot 2': { cueId: 'cue-avot-2', status: 'draft-fit-passed', source: 'master' },
+  'Avot interp 1': { cueId: 'cue-avot-2', status: 'alias', source: 'master', aliasOf: 'Avot 2' },
+}
+
+test('aliased entries map to the survivor cue and are reported separately', () => {
+  const cfg = fixture()
+  cfg.pages[1].controls[0][2] = button('Avot interp 1', [], {
+    0: { action_sets: { down: [action('e1', 'animateIn', SING, { comp: 'Avot interp 1' })], up: [] }, options: {} },
+    1: { action_sets: { down: [action('e2', 'animateOut', SING, { comp: 'Avot interp 1' })], up: [] }, options: {} },
+  })
+  const r = convert(cfg, { catalogIndex: buildCatalogIndex(ALIAS_CATALOG), bugNames: ['CRC Logo'] })
+  const b = r.config.pages[1].controls[0][2]
+
+  // maps exactly like a normal entry
+  assert.equal(b.steps[0].action_sets.down[0].definitionId, 'show_cue')
+  assert.deepEqual(b.steps[0].action_sets.down[0].options, { cue: 'cue-avot-2' })
+  assert.equal(b.steps[1].action_sets.down[0].definitionId, 'animate_out')
+  assert.deepEqual(b.steps[1].action_sets.down[0].options, { cue: 'cue-avot-2' })
+  assert.equal(b.style.text, 'Avot interp 1') // not marked dead
+  assert.equal(b.feedbacks[0].definitionId, 'requested')
+
+  // counted separately
+  assert.equal(r.stats.aliasedButtons, 1)
+  assert.deepEqual(r.aliases, [{ name: 'Avot interp 1', aliasOf: 'Avot 2', buttons: 1 }])
+
+  const j = buildReportJson(r)
+  assert.equal(j.totals.aliasedButtons, 1)
+  assert.equal(j.totals.aliasedDistinctNames, 1)
+  assert.deepEqual(j.aliases, [{ name: 'Avot interp 1', aliasOf: 'Avot 2', buttons: 1 }])
+
+  const md = buildReport(r)
+  assert.match(md, /## Aliased to another graphic/)
+  assert.match(md, /\| Avot interp 1 \| Avot 2 \| 1 \|/)
+
+  // a non-alias button is not counted as one
+  assert.equal(r.aliases.length, 1)
+})
+
+/* -------------------------------------------------------- new buttons --- */
+
+const nav = (type) => ({ type })
+
+function newButtonFixture() {
+  const cfg = fixture()
+  cfg.pages[3] = {
+    id: 'p3',
+    name: 'PAGE',
+    gridSize: { minColumn: 0, maxColumn: 7, minRow: 0, maxRow: 3 },
+    controls: { 0: { 7: nav('pageup') }, 1: { 7: nav('pagenum') }, 2: { 7: nav('pagedown') } },
+  }
+  return cfg
+}
+
+const NEW_CATALOG = {
+  ...CATALOG,
+  'Kol Nidre 2': { cueId: 'cue-kn2', status: 'draft-fit-passed', source: 'new', newButton: true },
+  'Sim Shalom 4': { cueId: 'cue-ss4', status: 'draft-fit-passed', source: 'new', newButton: true },
+}
+
+test('wrapLabel splits names longer than 10 characters onto two lines', () => {
+  assert.equal(wrapLabel('Barechu'), 'Barechu')
+  assert.equal(wrapLabel('Kol Nidre 2'), 'Kol Nidre\n2')
+  assert.equal(wrapLabel('Sim Shalom 4'), 'Sim Shalom\n4')
+  assert.equal(wrapLabel('AbcdefghijklmnO'), 'Abcdefg\nhijklmnO')
+})
+
+test('nav-only pages do not count as content', () => {
+  assert.equal(pageHasContent(newButtonFixture().pages[3]), false)
+  assert.equal(pageHasContent(newButtonFixture().pages[1]), true)
+})
+
+test('newButton entries get buttons on the target page in row/column order', () => {
+  const cfg = newButtonFixture()
+  const r = convert(cfg, { catalogIndex: buildCatalogIndex(NEW_CATALOG), bugNames: ['CRC Logo'], newPage: 3 })
+
+  assert.equal(r.stats.newButtonsPlaced, 2)
+  assert.equal(r.newButtons.page, '3')
+  assert.equal(r.newButtons.moved, false)
+  assert.equal(r.config.pages[3].name, NEW_PAGE_NAME)
+  assert.deepEqual(r.newButtons.items, [
+    { name: 'Kol Nidre 2', cueId: 'cue-kn2', row: 0, column: 0 },
+    { name: 'Sim Shalom 4', cueId: 'cue-ss4', row: 0, column: 1 },
+  ])
+  // occupied cells untouched
+  assert.deepEqual(r.config.pages[3].controls[0][7], { type: 'pageup' })
+
+  const b = r.config.pages[3].controls[0][0]
+  assert.equal(b.type, 'button')
+  assert.equal(b.style.text, 'Kol Nidre\n2')
+  assert.equal(b.style.size, '14')
+  assert.equal(b.style.color, 16777215)
+  assert.equal(b.style.latch, true)
+  // bgcolor harvested from a converted prayer button in this same file
+  assert.equal(b.style.bgcolor, 16777024)
+
+  const down0 = b.steps[0].action_sets.down
+  assert.equal(down0.length, 1)
+  assert.equal(down0[0].definitionId, 'show_cue')
+  assert.equal(down0[0].connectionId, r.newConnectionId)
+  assert.deepEqual(down0[0].options, { cue: 'cue-kn2' })
+  assert.match(down0[0].id, /^[A-Za-z0-9_-]{21}$/)
+
+  const down1 = b.steps[1].action_sets.down
+  assert.equal(down1[0].definitionId, 'animate_out')
+  assert.deepEqual(down1[0].options, { cue: 'cue-kn2' })
+  assert.notEqual(down1[0].id, down0[0].id)
+
+  assert.equal(b.feedbacks.length, 3)
+  assert.equal(b.feedbacks[0].definitionId, 'requested')
+  assert.deepEqual(b.feedbacks[0].style, { bgcolor: 16711680, color: 16777215 })
+  assert.equal(b.feedbacks[1].definitionId, 'rendered')
+  assert.deepEqual(b.feedbacks[1].style, { bgcolor: 65280, color: 0 })
+  assert.equal(b.feedbacks[2].definitionId, 'bank_current_step')
+  assert.equal(b.feedbacks[2].connectionId, 'internal')
+  assert.equal(b.feedbacks[2].options.step, 2)
+  assert.match(b.feedbacks[2].id, /^[A-Za-z0-9_-]{21}$/)
+
+  // placed after the scan, so they are not folded into the scan stats
+  assert.equal(r.stats.buttonsTouched, 4)
+  assert.equal(r.stats.converted.show_cue, 1)
+
+  const md = buildReport(r)
+  assert.match(md, /- New buttons placed: 2 on page 3/)
+})
+
+test('a target page with real content pushes the new buttons to the next empty page', () => {
+  const cfg = newButtonFixture()
+  cfg.pages[3].controls[0][0] = button('Occupied', [], { 0: { action_sets: { down: [], up: [] }, options: {} } })
+  cfg.pages[4] = {
+    id: 'p4', name: 'PAGE', gridSize: { minColumn: 0, maxColumn: 7, minRow: 0, maxRow: 3 },
+    controls: { 0: { 7: nav('pageup') } },
+  }
+  const r = convert(cfg, { catalogIndex: buildCatalogIndex(NEW_CATALOG), bugNames: ['CRC Logo'], newPage: 3 })
+  assert.equal(r.newButtons.page, '4')
+  assert.equal(r.newButtons.moved, true)
+  assert.equal(r.newButtons.requestedPage, 3)
+  assert.equal(r.config.pages[4].name, NEW_PAGE_NAME)
+  assert.equal(r.config.pages[3].name, 'PAGE')
+  assert.equal(r.config.pages[3].controls[0][0].style.text, 'Occupied')
+  assert.equal(r.config.pages[4].controls[0][0].style.text, 'Kol Nidre\n2')
+  assert.match(buildReport(r), /Page 3 already had content/)
+})
+
+test('no newButton entries means no page is touched', () => {
+  const cfg = newButtonFixture()
+  const r = convert(cfg, { catalogIndex: buildCatalogIndex(CATALOG), bugNames: ['CRC Logo'], newPage: 3 })
+  assert.equal(r.stats.newButtonsPlaced, 0)
+  assert.equal(r.config.pages[3].name, 'PAGE')
+  assert.deepEqual(Object.keys(r.config.pages[3].controls[0]), ['7'])
 })
 
 test('gzip round-trip: gzip in → gzip out, plain in → plain out', () => {
