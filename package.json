@@ -14,7 +14,7 @@
     "test": "npm run test:ts && npm run test:mjs",
     "test:ts": "node node_modules/tsx/dist/cli.mjs --test tests/*.test.ts app/author/*.test.ts",
     "test:mjs": "node --test \"tests/*.test.mjs\"",
-    "test:py": "python -m unittest tests.test_cue_sources -v",
+    "test:py": "python -m unittest discover -s tests -p \"test_*.py\" -t . -v",
     "test:renderer": "node --test --experimental-strip-types tests/player.test.ts",
     "test:mcp": "node node_modules/tsx/dist/cli.mjs --test tests/oauth*.test.ts tests/mcp*.test.ts",
     "rehearsal": "node node_modules/tsx/dist/cli.mjs scripts/rehearsal.mjs",

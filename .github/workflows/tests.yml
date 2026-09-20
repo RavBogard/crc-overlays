@@ -62,6 +62,16 @@ jobs:
       - name: Python tests
         run: npm run test:py
 
+      # The moments agreement check compares content/moments.json against the producer's table.
+      # The producer's table is not on this runner — the Siddur library workflow is the job that
+      # has a shireishabbat checkout, and that is where the real comparison runs and can fail a
+      # regeneration pull request. What runs here is the checker's own self-test, which asserts
+      # the verdict of nine cases including a renamed unit id. A check whose failing path has
+      # never been seen to fire is a check nobody should trust, and four renames went unnoticed
+      # in this repo's copy for days (R-0919-audit-1 item d).
+      - name: Moments agreement check — self-test
+        run: python scripts/check-moments-agree.py --self-test
+
       - name: Types
         run: npx tsc --noEmit
 

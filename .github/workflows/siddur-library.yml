@@ -98,6 +98,41 @@ jobs:
             echo "moments: the producer has not published dist-app/moments-pairs.json yet; content/moments.json unchanged" >> "$GITHUB_STEP_SUMMARY"
           fi
 
+      # R-0919-audit-1 item d, Wave 2. Two readings of the same check, either side of the
+      # adoption, because they answer different questions.
+      #
+      # The first is a report and never fails the job: it says what the committed table — the one
+      # in production right now — had drifted to. On 2026-09-20 that was four pairs (R9-b's
+      # shofar rename and three R6-h amidah renames), every one of them a cue that resolved to no
+      # moment at all, quietly. That number belongs in the pull request body, because it is the
+      # reason to merge it.
+      #
+      # The second is a gate. After a verbatim adoption the two tables must be identical; if they
+      # are not, the adoption did not do what it claims and the pull request must not open
+      # carrying a table nobody has reconciled. Note that the adoption step above is a no-op when
+      # the producer has published no table — and this check is exactly what turns that quiet
+      # else-branch into a visible failure instead of a silent stale copy.
+      - name: Report what the committed moments table had drifted to
+        if: env.HAS_SOURCE_TOKEN == 'true' && inputs.dry_run != true
+        run: |
+          {
+            echo '### Moments table, before adoption'
+            echo '```'
+            git show HEAD:content/moments.json > "$RUNNER_TEMP/moments-before.json"
+            python scripts/check-moments-agree.py \
+              --canonical source/dist-app \
+              --ours "$RUNNER_TEMP/moments-before.json" || true
+            echo '```'
+          } >> "$GITHUB_STEP_SUMMARY"
+
+      - name: The adopted moments table must match the producer's exactly
+        if: env.HAS_SOURCE_TOKEN == 'true' && inputs.dry_run != true
+        # The default shell is `bash -eo pipefail`, so a non-zero python exit fails the pipeline
+        # and the step, with the report already in the summary.
+        run: |
+          python scripts/check-moments-agree.py --canonical source/dist-app \
+            | tee -a "$GITHUB_STEP_SUMMARY"
+
       - name: Detect a change
         id: diff
         if: env.HAS_SOURCE_TOKEN == 'true' && inputs.dry_run != true
