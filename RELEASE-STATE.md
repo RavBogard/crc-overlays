@@ -4,8 +4,8 @@ What is deployed right now. Update this file on every release — it is the one 
 "what is live", and it is short so it can be read under pressure. The history is in
 `docs/planning/2026-09-deploys/` (25 deploy records, the release chain, the phase build notes).
 
-**Last updated: 2026-09-20** (Wave 2 of the four-project audit; see
-`docs/planning/2026-09-19-audit/RETURN-CODE-AUDIT-2026-09-19-W2.md`).
+**Last updated: 2026-09-20** (Wave 2 round two of the four-project audit; see
+`docs/planning/2026-09-19-audit/RETURN-CODE-AUDIT-2026-09-19-W2.md` and `-W2B.md`).
 
 ## Web, per workspace
 
@@ -14,8 +14,8 @@ both were released together on 2026-09-20.
 
 | Workspace | Host | Deployed commit | How it got there |
 |---|---|---|---|
-| CRC | `overlays.centralreform.org` (alt `crc-overlays.vercel.app`) | `0fb6514` | Vercel Git integration on `main` |
-| TBI | `overlays.templebnaiisrael.com` (alt `tbi-overlays.vercel.app`) | `0fb6514` | `scripts/deploy-workspaces.mjs`, 2026-09-20 09:27 CT |
+| CRC | `overlays.centralreform.org` (alt `crc-overlays.vercel.app`) | `4d80925` | Vercel Git integration on `main` |
+| TBI | `overlays.templebnaiisrael.com` (alt `tbi-overlays.vercel.app`) | `4d80925` | `scripts/deploy-workspaces.mjs`, 2026-09-20 11:40 CT |
 
 The mechanism that produced the 09-16 split is still there and will produce another:
 
@@ -23,13 +23,13 @@ The mechanism that produced the 09-16 split is still there and will produce anot
 > integration enabled on `main`. TBI has no Git integration and is released by CLI only. So any
 > push to `main` moves CRC and leaves TBI behind until someone runs the CLI release.
 
-Until TBI gets a Git integration of its own, **every release records both shas in this table**,
-and a release is not finished while they differ. That is the discipline the audit asked for
-(`docs/planning/2026-09-19-audit/HANDOFF-CODE-AUDIT-2026-09-19.md`, "TBI deploy record").
+**TBI keeps the CLI release.** The Git-integration recommendation was withdrawn on 2026-09-20
+(rulings addendum 2, correction): TBI deploys from a staged, allowlisted source tree that
+`scripts/deploy-workspaces.mjs` builds, not from the raw repository, so a plain Git integration
+would deploy the wrong tree. So **every release records both shas in this table**, and a release
+is not finished while they differ.
 
-**Ahead of production:** `google-signin` carries two Wave 2 commits (`6123afa`, `2a5a6d7`) that
-are not on `main` — the moments agreement check and the rename forwarding list. Merging them is a
-CRC production deploy.
+**Ahead of production:** nothing. `google-signin` and `main` are both `4d80925`.
 
 ## Relay workers
 
@@ -70,8 +70,13 @@ Neon, one per workspace, 28 tables each. No migration is pending.
 - `GET /api/history` cannot be read by anyone here: it answers an authoring member or a
   `history_reader` credential, and no `history_reader` has been minted. A `CONTROL_KEY` is
   refused. This is what stands between here and the Wave 3 confirmation.
-- **`content/siddur-library.json` and `content/moments.json` are both behind the upstream
-  rulings.** The library is pinned to shireishabbat `3625287` and still holds four ruled-retired
-  unit ids; the moments table is four pairs out (R9-b and R6-h). One dispatch of the Siddur
-  library workflow regenerates both and opens a pull request. Until then, three published cues
-  (Kedusha 1, 2 and 3) report no liturgical position on air.
+- ~~`content/siddur-library.json` and `content/moments.json` are behind the upstream rulings.~~
+  **Closed 2026-09-20.** Both were regenerated from shireishabbat `425f52f` and merged (PR #6,
+  `4d80925`): four ruled-retired unit ids out, four successors in, two changed, and the moments
+  table now matches the producer's exactly. On deployed production 153 of 206 cues carry a
+  position, including the three Kedusha cues and the five High Holy Day cues whose pins the
+  regeneration retired — those five forward through `content/retired-units.json`.
+- **`SHIREISHABBAT_TOKEN` cannot read the source repository's Actions** (HTTP 403 on the workflow
+  runs API), so the Siddur library workflow cannot take the published `dist-app` artifact and
+  falls back to cloning the repository and building it, braille dependency and all. Granting that
+  token `Actions: read` retires the fallback. Daniel's.
