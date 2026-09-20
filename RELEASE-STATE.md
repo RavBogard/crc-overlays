@@ -4,8 +4,8 @@ What is deployed right now. Update this file on every release — it is the one 
 "what is live", and it is short so it can be read under pressure. The history is in
 `docs/planning/2026-09-deploys/` (25 deploy records, the release chain, the phase build notes).
 
-**Last updated: 2026-09-20** (Wave 2 round two of the four-project audit; see
-`docs/planning/2026-09-19-audit/RETURN-CODE-AUDIT-2026-09-19-W2.md` and `-W2B.md`).
+**Last updated: 2026-09-20** (Wave 2 round two of the four-project audit, and the evening release
+that merged it; see `docs/planning/2026-09-19-audit/RETURN-CODE-AUDIT-2026-09-19-W2.md` and `-W2B.md`).
 
 ## Web, per workspace
 
@@ -14,8 +14,8 @@ both were released together on 2026-09-20.
 
 | Workspace | Host | Deployed commit | How it got there |
 |---|---|---|---|
-| CRC | `overlays.centralreform.org` (alt `crc-overlays.vercel.app`) | `4d80925` | Vercel Git integration on `main` |
-| TBI | `overlays.templebnaiisrael.com` (alt `tbi-overlays.vercel.app`) | `4d80925` | `scripts/deploy-workspaces.mjs`, 2026-09-20 11:40 CT |
+| CRC | `overlays.centralreform.org` (alt `crc-overlays.vercel.app`) | `c05e244` | `scripts/deploy-workspaces.mjs`, 2026-09-20 13:05 CT (the Git integration also builds every push to `main`) |
+| TBI | `overlays.templebnaiisrael.com` (alt `tbi-overlays.vercel.app`) | `c05e244` | `scripts/deploy-workspaces.mjs`, same run |
 
 The mechanism that produced the 09-16 split is still there and will produce another:
 
@@ -29,10 +29,13 @@ The mechanism that produced the 09-16 split is still there and will produce anot
 would deploy the wrong tree. So **every release records both shas in this table**, and a release
 is not finished while they differ.
 
-**Ahead of production:** `google-signin` carries two commits `main` does not — `6a6730a` (this file)
-and `d33408c`, which removes the 61 vendored shadcn files nothing imports and eighteen dependencies with
-them. Held back deliberately over Kol Nidre and Yom Kippur: it changes the production build's dependency
-tree for no user-visible benefit. Merging it is one `git push origin google-signin:main`.
+**Ahead of production: nothing.** `google-signin` and `main` are the same commit. The shadcn strip
+(`d33408c`) was held back over Kol Nidre and Yom Kippur and merged on 2026-09-20 once Daniel confirmed
+the overlays are not used for either service and do not go live until the following week.
+
+**Four releases on 2026-09-20**, in order: `96cd715` (Wave 2 commits), `4d80925` (library at
+shireishabbat `425f52f`), `a0913a4` (the shadcn strip and the staging fix it required), `c05e244`
+(library at shireishabbat `ad89282`). `relay/` did not change, so no relay release was owed.
 
 ## Relay workers
 
@@ -78,8 +81,25 @@ Neon, one per workspace, 28 tables each. No migration is pending.
   `4d80925`): four ruled-retired unit ids out, four successors in, two changed, and the moments
   table now matches the producer's exactly. On deployed production 153 of 206 cues carry a
   position, including the three Kedusha cues and the five High Holy Day cues whose pins the
-  regeneration retired — those five forward through `content/retired-units.json`.
-- **`SHIREISHABBAT_TOKEN` cannot read the source repository's Actions** (HTTP 403 on the workflow
-  runs API), so the Siddur library workflow cannot take the published `dist-app` artifact and
-  falls back to cloning the repository and building it, braille dependency and all. Granting that
-  token `Actions: read` retires the fallback. Daniel's.
+  regeneration retired — those five forward through `content/retired-units.json`. Regenerated again
+  the same evening from `ad89282` (PR #7, `c05e244`): no unit id added or removed, 26 Rosh Hashanah
+  morning units changed — 28 Hebrew strings recomposed into canonical order, byte-different and
+  NFC-identical, no wording touched — and four folios shifted down one where a page came out
+  upstream.
+- ~~`SHIREISHABBAT_TOKEN` cannot read the source repository's Actions.~~ **Closed 2026-09-20.**
+  Daniel granted `Actions: read`, and run 35526355940 took the published `dist-app` artifact
+  directly — 22.8 MB from the producer's run 35524500710, which concluded `failure` while its
+  `publish-app-surface` job succeeded, the exact case the fetcher was written for. The checkout
+  fallback stays in the workflow and is now the path nothing uses.
+
+## Two things the 2026-09-20 evening release found
+
+- **The TBI staging allowlist required `hooks/`**, which the shadcn strip emptied, so the first
+  release after it refused before touching anything. `scripts/stage-workspace-source.mjs` now copies
+  that one directory when present. CRC deploys from the repository and never saw it; only the staged
+  workspace did, which is the whole reason the two paths are worth keeping honest about each other.
+- **The Tests workflow had never run.** It declared `permissions: {}`, which grants a job token
+  nothing — not even `contents: read` — so `actions/checkout` could not read this private repository
+  and all twelve runs since 2026-09-19 died before a single test. Fixed in `1d217d4`; the first
+  green run on `main` is 35526516798, all three jobs. Anything merged to `main` between 09-19 and
+  09-20 was covered by local runs only.
