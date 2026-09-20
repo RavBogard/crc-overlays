@@ -1,6 +1,6 @@
 import assert from 'node:assert/strict';
 import test from 'node:test';
-import {liturgyForCue,liturgyForSourceIds,liturgyIndex,loadMoments,NO_LITURGY,type MomentEntry} from '../lib/liturgy-index.ts';
+import {liturgyForCue,liturgyForSourceIds,liturgyIndex,loadMoments,loadRetirements,NO_LITURGY,type MomentEntry} from '../lib/liturgy-index.ts';
 import {namesPanelCues} from '../lib/names-list.ts';
 import {siddurLibrary} from '../lib/source-library.ts';
 import type {Cue} from '../lib/player.ts';
@@ -104,4 +104,70 @@ test('liturgyIndex keys every cue in the catalog, referenced or not',()=>{
  assert.deepEqual(Object.keys(index),['published','baseline']);
  assert.equal(index.published.momentId,'welcome');
  assert.deepEqual(index.baseline,NO_LITURGY);
+});
+
+/* Wave 2 of the 2026-09-19 audit: the layer past the Barechu case. A published cue pins the
+   unit id that existed the day it was authored. When shireishabbat renames a unit, that pin
+   stops naming anything and the cue reports no position at all — the same silent null, one
+   cause further out. Three cues in CRC production were in exactly that state on 2026-09-20:
+   Kedusha 1, 2 and 3, all pinned to `library:legacy-shabbat-morning:amidah.kedushah@…`, which
+   the library no longer holds under that spelling. */
+test('a cue pinned to a retired unit id resolves to the unit it became',()=>{
+ const retirements=[{unitId:'amidah.kedushah@legacy-shabbat-morning',became:librarySource.authority.unitId,ruling:'R6-h'}];
+ const expected=liturgyForCue(authored('current',[librarySource.id]));
+ // Both spellings a cue may carry: the library key, and the bare unit id.
+ for(const pinned of [
+  'library:legacy-shabbat-morning:amidah.kedushah@legacy-shabbat-morning',
+  'amidah.kedushah@legacy-shabbat-morning',
+ ])assert.deepEqual(liturgyForCue(authored('retired',[pinned]),{retirements}),expected,`forwarded from ${pinned}`);
+});
+
+test('a retirement whose successor is not in the library is a miss, not a quieter miss',()=>{
+ // A forwarding list whose targets do not exist would turn a miss into a different miss and
+ // log neither. The successor must be present or the id falls through to the miss report.
+ const retirements=[{unitId:'amidah.kedushah@legacy-shabbat-morning',became:'amidah.nowhere@legacy-shabbat-morning',ruling:null}];
+ assert.deepEqual(liturgyForSourceIds(['amidah.kedushah@legacy-shabbat-morning'],{retirements}),NO_LITURGY);
+});
+
+test('an id that is not retired and names nothing still reports a miss',()=>{
+ const retirements=[{unitId:'amidah.kedushah@legacy-shabbat-morning',became:librarySource.authority.unitId,ruling:null}];
+ assert.deepEqual(liturgyForSourceIds(['shma.invented@legacy-shabbat-morning'],{retirements}),NO_LITURGY);
+ assert.deepEqual(liturgyForSourceIds(['custom:a-graphic'],{retirements}),NO_LITURGY,'and a custom source is not a miss at all');
+});
+
+test('no row of the retirements file can leave a cue with nowhere to go',()=>{
+ /* The rows are data the upstream rulings own, so this asserts the invariant the resolver
+    depends on rather than the contents.
+
+    Four of the five rows are PRE-POSITIONED: `content/siddur-library.json` in this repo has
+    not been regenerated since R5-a, R6-a, R6-h and R9-b, so it still holds all four retired
+    ids and is missing two of their successors. While a retired id is still in the library the
+    direct lookup answers first and the forwarding row is unreachable, which is why those rows
+    are harmless today and correct the moment the regeneration lands.
+
+    The invariant is therefore conditional, and it is the one that matters: once the library
+    has DROPPED a retired id, the successor must be there. A row where both are absent is a
+    line that looks like a fix and is not one — a cue pinned to it resolves to nothing and the
+    forwarding list quietly fails to help. */
+ const units=new Set(siddurLibrary.sources.map(source=>source.authority?.unitId).filter(Boolean));
+ const retired=loadRetirements();
+ assert.ok(retired.length>0,'the file ships with the retirements found in production');
+ for(const entry of retired){
+  assert.equal(typeof entry.unitId,'string');
+  assert.notEqual(entry.unitId,entry.became);
+  if(!units.has(entry.unitId))assert.ok(units.has(entry.became),`the library has dropped ${entry.unitId} and does not hold its successor ${entry.became}; a cue pinned to it resolves to nothing`);
+ }
+});
+
+test('while the library still holds a retired id, the direct lookup answers and forwarding never runs',()=>{
+ // Proves the pre-positioned rows above cannot change an answer that already resolves.
+ const retirements=[{unitId:librarySource.authority.unitId,became:siddurLibrary.sources[1].authority.unitId,ruling:'R6-a'}];
+ assert.deepEqual(
+  liturgyForCue(authored('present',[librarySource.id]),{retirements}),
+  liturgyForCue(authored('present',[librarySource.id])),
+  'a source the library holds is unaffected by a row that would forward it elsewhere');
+});
+
+test('a retired-units.json that cannot be read is an empty list, not a 503',()=>{
+ assert.deepEqual(loadRetirements(()=>{throw Error('Unexpected token } in JSON')}),[]);
 });

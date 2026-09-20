@@ -32,7 +32,8 @@ import type {Cue} from './player';
 export type LiturgyRef={unitId:string|null;momentId:string|null;book:string|null;folio:number|null};
 export type MomentEntry={momentId:string;unitId:string};
 export type LiturgySource={id:string;book?:string;authority?:{id?:string;unitId?:string};metadata?:Record<string,unknown>};
-export type LiturgyLookups={sources?:readonly LiturgySource[];moments?:readonly MomentEntry[]};
+export type RetirementEntry={unitId:string;became:string;ruling:string|null};
+export type LiturgyLookups={sources?:readonly LiturgySource[];moments?:readonly MomentEntry[];retirements?:readonly RetirementEntry[]};
 
 /** A baseline, custom, template or names cue resolves to this: it is backed by no library source. */
 export const NO_LITURGY:LiturgyRef={unitId:null,momentId:null,book:null,folio:null};
@@ -73,6 +74,56 @@ export function loadMoments(read:MomentsReader=readCommittedMoments):MomentEntry
  if(read!==readCommittedMoments)return momentsFrom(read);
  if(!committedMoments)committedMoments=momentsFrom(read);
  return committedMoments;
+}
+
+function readRetirements(value:unknown):RetirementEntry[]{
+ const raw=(value as {retired?:unknown}|null)?.retired;
+ if(!Array.isArray(raw))return [];
+ const seen=new Set<string>();const entries:RetirementEntry[]=[];
+ for(const item of raw){
+  const entry=item as {unitId?:unknown;became?:unknown;ruling?:unknown}|null;
+  if(!entry||typeof entry.unitId!=='string'||typeof entry.became!=='string')continue;
+  if(!entry.unitId||!entry.became||entry.unitId===entry.became)continue;
+  if(seen.has(entry.unitId))continue;
+  seen.add(entry.unitId);
+  entries.push({unitId:entry.unitId,became:entry.became,ruling:typeof entry.ruling==='string'?entry.ruling:null});
+ }
+ return entries;
+}
+
+let committedRetirements:RetirementEntry[]|undefined;
+let warnedAboutRetirements=false;
+const readCommittedRetirements:MomentsReader=()=>require('../content/retired-units.json');
+function retirementsFrom(read:MomentsReader):RetirementEntry[]{
+ try{return readRetirements(read())}
+ catch(error){
+  if(!warnedAboutRetirements){warnedAboutRetirements=true;console.warn('content/retired-units.json could not be read; a cue pinned to a renamed unit will report no position',error)}
+  return [];
+ }
+}
+/**
+ * The committed `content/retired-units.json`: upstream unit ids a ruling ended, and the id
+ * each became. Read with the same tolerance as the moments table and for the same reason —
+ * losing a convenience table must never take the live catalog down.
+ */
+export function loadRetirements(read:MomentsReader=readCommittedRetirements):RetirementEntry[]{
+ if(read!==readCommittedRetirements)return retirementsFrom(read);
+ if(!committedRetirements)committedRetirements=retirementsFrom(read);
+ return committedRetirements;
+}
+
+/**
+ * The unit id a pinned source id meant to name, in either spelling a cue may carry: the bare
+ * `<section>.<name>@<feed>`, or the library key `library:<feed>:<that same unit id>`. The feed
+ * slug can itself contain no colon, so everything after the second one is the unit id.
+ */
+function unitIdOf(id:string):string|null{
+ if(id.startsWith('library:')){
+  const parts=id.split(':');
+  const unitId=parts.slice(2).join(':');
+  return unitId.includes('@')?unitId:null;
+ }
+ return id.includes('@')?id:null;
 }
 
 /**
@@ -143,7 +194,7 @@ function reportLiturgyMiss(ids:readonly string[]){
   if(!namesAUnit(id)||reportedMisses.has(id))continue;
   if(reportedMisses.size>=500)return;
   reportedMisses.add(id);
-  console.warn(`liturgy: no library source matches the pinned id ${JSON.stringify(id)} by key or by authority.unitId; this cue reports no position`);
+  console.warn(`liturgy: no library source matches the pinned id ${JSON.stringify(id)} by key, by authority.unitId, or through content/retired-units.json; this cue reports no position`);
  }
 }
 
@@ -176,6 +227,20 @@ export function liturgyForSourceIds(ids:readonly string[]|null|undefined,lookups
   const units=unitIndex(lookups.sources);
   const bare=candidates.find(id=>units.has(id));
   if(bare!==undefined)source=units.get(bare);
+ }
+ if(!source){
+  // Both lookups missed, so the pin may predate a rename upstream. A retirement forwards the
+  // id it ended to the id it became — but only to a successor the library actually holds. A
+  // forwarding list whose targets do not exist would quietly turn a miss into a different
+  // miss, which is the loophole the miss log exists to close, so an unresolvable successor
+  // falls through to the miss below and is named there.
+  const units=unitIndex(lookups.sources);
+  const forwarding=new Map((lookups.retirements??loadRetirements()).map(entry=>[entry.unitId,entry.became]));
+  for(const id of candidates){
+   const pinned=unitIdOf(id);
+   const became=pinned===null?undefined:forwarding.get(pinned);
+   if(became!==undefined&&units.has(became)){source=units.get(became);break}
+  }
  }
  if(!source){reportLiturgyMiss(candidates);return {...NO_LITURGY};}
  const unitId=typeof source.authority?.unitId==='string'&&source.authority.unitId?source.authority.unitId:null;

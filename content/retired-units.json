@@ -1,0 +1,36 @@
+{
+ "schemaVersion": 1,
+ "_comment": "Upstream unit ids that a ruling ENDED, and the id each became. A published cue pins the unit id that existed the day it was authored; when shireishabbat renames a unit, that pin stops naming anything and the cue silently reports no liturgical position at all -- the Barechu defect, one layer further out. This list is how a pin from before a rename still finds its unit. It mirrors .live's RETIRED_UNITS (scripts/ops/emit-machzor-book.mjs) row for row so the two repos forward the same ids to the same successors; adding a row here is the whole change. A retirement is a permanent fact about an id, so these lines do not expire -- but a successor that is not in the library is refused at load, because a forwarding list whose targets do not exist is the loophole the miss log exists to close. R-0919-audit-1 Wave 2.",
+ "retired": [
+  {
+   "unitId": "amidah.kdushat-hayom@crc-yk-morning",
+   "became": "amidah.untaneh-tokef@crc-yk-morning",
+   "ruling": "R5-a",
+   "why": "The capture filed p.147's unit (Un'taneh Tokef) under the name printed on it, K'dushat Hayom, and p.148's B'rosh Hashanah under Un'taneh Tokef. shireishabbat 95a9836 corrected both."
+  },
+  {
+   "unitId": "amidah.kdushat-hayom@crc-rh-morning",
+   "became": "amidah.untaneh-tokef@crc-rh-morning",
+   "ruling": "R6-a",
+   "why": "The identical misfiling one service earlier, at pp.56 / 57-58. shireishabbat 10d3a58 corrected it the same way."
+  },
+  {
+   "unitId": "amidah.kdushat-hayom-kavannah@crc-rh-morning",
+   "became": "amidah.untaneh-tokef-kavannah@crc-rh-morning",
+   "ruling": "R6-h",
+   "why": "Once R6-a decided p.56 is Un'taneh Tokef, the kavannah introducing it is the Un'taneh Tokef kavannah."
+  },
+  {
+   "unitId": "shofar.service@crc-rh-morning",
+   "became": "shofar.shofar-service@crc-rh-morning",
+   "ruling": "R9-b",
+   "why": "The unit's stem gave the moments artifact the id `service` -- unique and meaningless. The corpus renamed the unit rather than special-case the derivation. shireishabbat e5a87e3."
+  },
+  {
+   "unitId": "amidah.kedushah@legacy-shabbat-morning",
+   "became": "amidah.kdushah@legacy-shabbat-morning",
+   "ruling": null,
+   "why": "Not a ruled retirement -- a spelling the corpus no longer uses, found here on 2026-09-20 because three published cues (Kedusha 1, 2 and 3) pinned it and reported no position. Verified rather than assumed: `amidah.kedushah@legacy-shabbat-morning` appears nowhere in content/siddur-library.json, `amidah.kdushah@...` does, and the three cues' Hebrew is 98 + 114 + 126 = 338 stripped characters, exactly the 338 of that unit's 33 blocks, each cue's opening falling inside it. Three slides of one unit. shireishabbat's own consumer check names `kedushah` as the reader's divergent spelling of this same unit. If Daniel would rather see a ruling id on this row, it is his to mint; the evidence is above either way."
+  }
+ ]
+}
