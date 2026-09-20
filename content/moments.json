@@ -643,6 +643,14 @@
   },
   {
    "momentId": "brosh-hashanah",
+   "unitId": "amidah.brosh-hashanah@crc-rh-morning"
+  },
+  {
+   "momentId": "brosh-hashanah",
+   "unitId": "amidah.brosh-hashanah@crc-yk-morning"
+  },
+  {
+   "momentId": "brosh-hashanah",
    "unitId": "slichot.brosh-hashanah@legacy-slichot"
   },
   {
@@ -1307,14 +1315,6 @@
   },
   {
    "momentId": "kdushat-hayom",
-   "unitId": "amidah.kdushat-hayom@crc-rh-morning"
-  },
-  {
-   "momentId": "kdushat-hayom",
-   "unitId": "amidah.kdushat-hayom@crc-yk-morning"
-  },
-  {
-   "momentId": "kdushat-hayom",
    "unitId": "amidah.kdushat-hayom@legacy-shabbat-evening"
   },
   {
@@ -1336,10 +1336,6 @@
   {
    "momentId": "kdushat-hayom",
    "unitId": "mincha.kdushat-hayom@rh1-mincha"
-  },
-  {
-   "momentId": "kdushat-hayom-kavannah",
-   "unitId": "amidah.kdushat-hayom-kavannah@crc-rh-morning"
   },
   {
    "momentId": "kedushat-hayom-tail",
@@ -2162,10 +2158,6 @@
    "unitId": "havdalah.separation@crc-neilah"
   },
   {
-   "momentId": "service",
-   "unitId": "shofar.service@crc-rh-morning"
-  },
-  {
    "momentId": "shabbat-presence-awaken-arise",
    "unitId": "opening.shabbat-presence-awaken-arise@legacy-shabbat-evening"
   },
@@ -2280,6 +2272,10 @@
   {
    "momentId": "shochein-ad",
    "unitId": "reserve.shochein-ad@shabbat-shacharit"
+  },
+  {
+   "momentId": "shofar-service",
+   "unitId": "shofar.shofar-service@crc-rh-morning"
   },
   {
    "momentId": "shofarot",
@@ -2572,6 +2568,10 @@
   {
    "momentId": "untaneh-tokef",
    "unitId": "amidah.untaneh-tokef@rh-shacharit"
+  },
+  {
+   "momentId": "untaneh-tokef-kavannah",
+   "unitId": "amidah.untaneh-tokef-kavannah@crc-rh-morning"
   },
   {
    "momentId": "uvchein",
