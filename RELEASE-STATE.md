@@ -29,7 +29,10 @@ The mechanism that produced the 09-16 split is still there and will produce anot
 would deploy the wrong tree. So **every release records both shas in this table**, and a release
 is not finished while they differ.
 
-**Ahead of production:** nothing. `google-signin` and `main` are both `4d80925`.
+**Ahead of production:** `google-signin` carries two commits `main` does not — `6a6730a` (this file)
+and `d33408c`, which removes the 61 vendored shadcn files nothing imports and eighteen dependencies with
+them. Held back deliberately over Kol Nidre and Yom Kippur: it changes the production build's dependency
+tree for no user-visible benefit. Merging it is one `git push origin google-signin:main`.
 
 ## Relay workers
 
