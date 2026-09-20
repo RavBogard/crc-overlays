@@ -105,6 +105,11 @@ jobs:
       - name: Produce the source app surface (dist-app/)
         if: env.HAS_SOURCE_TOKEN == 'true' && inputs.dry_run != true && steps.surface.outputs.fetched == 'false'
         working-directory: source
+        env:
+          # apt installs python3-louis for the system interpreter, but this job runs the
+          # setup-python one, which does not see Debian's dist-packages. Both are 3.12 and the
+          # louis binding is pure python over the shared library, so pointing at it is enough.
+          PYTHONPATH: /usr/lib/python3/dist-packages
         run: |
           # setup.sh unpacks the vendored typst binary and regenerates the licensed-lane
           # selectors; build-app.sh writes dist-app/.
