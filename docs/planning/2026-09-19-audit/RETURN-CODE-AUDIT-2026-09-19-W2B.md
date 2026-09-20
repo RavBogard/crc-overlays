@@ -154,14 +154,14 @@ expected to.** Installing the two lockfiles side by side in scratch directories,
 then timed:
 
 ```
-before   384 packages   1m09.7s
-after    328 packages   1m26.8s
+before   384 packages   1m09.7s   695 MB on disk
+after    328 packages   1m26.8s   605 MB on disk
 ```
 
 The stripped tree installed **slower**. Two runs of the identical stripped tree earlier in the session
 differed by 3m35s against 46s. `npm ci` wall time on this machine is filesystem noise, not package
 count, and **these numbers do not support a speed claim in either direction** — including the one the
-order half-expected. The honest figures are 384 → 328 packages and 3,178 deleted lockfile lines. The
+order half-expected. The honest figures are 384 → 328 packages, 3,178 deleted lockfile lines, and **90 MB less `node_modules`** — the one size that did move, measured over the same two scratch trees the timings used. The
 bundle does not move either, and should not: dead code nothing imports was never in it. What this buys
 is a smaller dependency surface to audit and update, which is worth having on its own terms.
 
