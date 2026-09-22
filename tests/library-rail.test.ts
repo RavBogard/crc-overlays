@@ -9,7 +9,9 @@ import {fileURLToPath} from 'node:url';
    editor's centre column, and a finder that only appears where a collection is open. */
 
 const read = (path: string) => readFileSync(fileURLToPath(new URL(path, import.meta.url)), 'utf8');
-const rail = read('../app/author/page.tsx');
+// W2B §5.6 - the editor page is `page.tsx` plus the panels lifted out of it; these assertions
+// are about the page as a whole, so they read both files as one.
+const rail = read('../app/author/page.tsx') + read('../app/author/panels.tsx');
 const review = read('../app/author/source-review.tsx');
 const prepared = read('../app/services/page.tsx');
 

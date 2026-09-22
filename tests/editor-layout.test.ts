@@ -7,7 +7,9 @@ import {fileURLToPath} from 'node:url';
    rather than panels, a toolbar that keeps only undo and redo, and Publish in one click. */
 
 const read = (path: string) => readFileSync(fileURLToPath(new URL(path, import.meta.url)), 'utf8');
-const editor = read('../app/author/page.tsx');
+// W2B §5.6 - the editor page is `page.tsx` plus the panels lifted out of it; these assertions
+// are about the page as a whole, so they read both files as one.
+const editor = read('../app/author/page.tsx') + read('../app/author/panels.tsx');
 const siddur = read('../app/author/siddur-editor.tsx');
 const custom = read('../app/author/custom-editor.tsx');
 const look = read('../app/author/look-drawer.tsx');

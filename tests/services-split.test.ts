@@ -34,7 +34,9 @@ test('an Operator sees Live only; an Editor adds Library; an Administrator adds 
 });
 
 test('nothing that was reachable disappears: the demoted pages are one level down', () => {
-  const rail = read('../app/author/page.tsx');
+  // W2B §5.6 - the editor page is `page.tsx` plus the panels lifted out of it; these assertions
+  // are about the page as a whole, so they read both files as one.
+  const rail = read('../app/author/page.tsx') + read('../app/author/panels.tsx');
   // D3: source review is a filter in the rail, not a link, and its old route sends bookmarks there.
   assert.ok(rail.includes('Source changes'), 'source changes is a filter in the library rail');
   assert.match(read('../app/sources-review/page.tsx'), /redirect\('\/author'\)/);
