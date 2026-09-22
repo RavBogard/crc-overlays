@@ -48,3 +48,9 @@ next-env.d.ts
 
 *.tsbuildinfo
 __pycache__/
+
+# The Claude desktop app's drop folder. A Cowork session writes its deliverables here
+# (handoffs, import sheets, converted deck files); the copies that belong to the repo are
+# committed under docs/planning/ and work/. Untracked files block the release script, so
+# this folder is named rather than left to trip it.
+/Claude outputs/
