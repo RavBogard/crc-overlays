@@ -8,7 +8,7 @@ import {spawn} from 'node:child_process';
 import {existsSync,mkdtempSync,writeFileSync} from 'node:fs';
 import {tmpdir} from 'node:os';
 import {join} from 'node:path';
-import {defaultScratchHost,measureCueOnServer,sharedExtraction,type ScratchHost,type StageBrowser,type StageLauncher,type StageMeasurement,type StagePage} from '../lib/server-fit.ts';
+import {defaultScratchHost,measureCueOnServer,packLaunchOptions,sharedExtraction,type ScratchHost,type StageBrowser,type StageLauncher,type StageMeasurement,type StagePage} from '../lib/server-fit.ts';
 import type {Cue} from '../lib/player.ts';
 
 const ORIGIN='https://crc-overlays.example';
@@ -182,3 +182,26 @@ test('every check shares one pack extraction, and a failed one is tried again',a
  assert.equal(await flaky(),'/tmp/chromium','a failure is not remembered');
  assert.equal(attempts,2);
 });
+
+test('the pack launch environment is read after the pack has loaded, so a cold first check gets its libraries',async()=>{
+ const saved={LD_LIBRARY_PATH:process.env.LD_LIBRARY_PATH,FONTCONFIG_PATH:process.env.FONTCONFIG_PATH};
+ try{
+  delete process.env.LD_LIBRARY_PATH;delete process.env.FONTCONFIG_PATH;
+  const options=await packLaunchOptions(async()=>{
+   // What the real pack does on a cold Vercel instance: importing it and extracting it both
+   // write into process.env.
+   process.env.LD_LIBRARY_PATH='/tmp/al2023/lib';
+   process.env.FONTCONFIG_PATH='/tmp/fonts';
+   return {args:['--headless'],executable:'/tmp/chromium'};
+  },'/scratch/check-1');
+  assert.equal(options.env.LD_LIBRARY_PATH,'/tmp/al2023/lib');
+  assert.equal(options.env.FONTCONFIG_PATH,'/tmp/fonts');
+  assert.equal(options.env.TMPDIR,'/scratch/check-1');
+  assert.equal(options.env.HOME,'/scratch/check-1');
+  assert.equal(options.executablePath,'/tmp/chromium');
+  assert.deepEqual(options.args,['--headless']);
+ }finally{
+  for(const [key,value] of Object.entries(saved)){if(value===undefined)delete process.env[key];else process.env[key]=value}
+ }
+});
+

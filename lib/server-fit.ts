@@ -95,22 +95,43 @@ export function sharedExtraction(extract:()=>Promise<string>){
 }
 let packExecutable:(()=>Promise<string>)|undefined;
 
+/**
+ * The browser's environment: this host's own, with TMPDIR and HOME moved into the check's scratch
+ * directory. Chromium reads its shared-memory and temp directory from TMPDIR, and writes caches and
+ * databases under HOME. The font directories and the fontconfig cache are absolute paths in the
+ * pack's fonts.conf, so moving HOME changes nothing about which fonts the stage sees.
+ */
+function browserEnv(scratch:string){
+ return {...process.env,TMPDIR:scratch,HOME:scratch} as Record<string,string>;
+}
+
+/**
+ * Launch options for the pack. The environment is read only after `load` has finished, because
+ * the pack writes into process.env as it goes: importing it on Vercel adds /tmp/al2023/lib to
+ * LD_LIBRARY_PATH, and extraction can set FONTCONFIG_PATH. Read any earlier and a cold
+ * instance's first check launches without its libraries (`libnspr4.so: cannot open shared object
+ * file`, reproduced on Linux) while every later check works.
+ */
+export async function packLaunchOptions(load:()=>Promise<{args:string[];executable:string}>,scratch:string){
+ const {args,executable}=await load();
+ return {args,executablePath:executable,headless:true,env:browserEnv(scratch)};
+}
+
 async function defaultLaunch(scratch:string):Promise<StageBrowser>{
  const {chromium}=await import('playwright-core');
  const plan=launchPlan();
- // Chromium reads its shared-memory and temp directory from TMPDIR, and writes caches and
- // databases under HOME. The font directories and the fontconfig cache are absolute paths in
- // the pack's fonts.conf, so moving HOME changes nothing about which fonts the stage sees.
- const env={...process.env,TMPDIR:scratch,HOME:scratch} as Record<string,string>;
  if(plan.kind==='sparticuz'){
-  const loaded=await import('@sparticuz/chromium');
-  const pack=((loaded as {default?:unknown}).default??loaded) as {args:string[];executablePath:()=>Promise<string>;setGraphicsMode:boolean};
-  // The overlay renderer uses no WebGL, so the GL flags are dropped. (This does not stop the
-  // pack extracting its SwiftShader libraries into /tmp: about 7 MB of the ~215 MB.)
-  pack.setGraphicsMode=false;
-  packExecutable??=sharedExtraction(()=>pack.executablePath());
-  return await chromium.launch({args:pack.args,executablePath:await packExecutable(),headless:true,env}) as unknown as StageBrowser;
+  return await chromium.launch(await packLaunchOptions(async()=>{
+   const loaded=await import('@sparticuz/chromium');
+   const pack=((loaded as {default?:unknown}).default??loaded) as {args:string[];executablePath:()=>Promise<string>;setGraphicsMode:boolean};
+   // The overlay renderer uses no WebGL, so the GL flags are dropped. (This does not stop the
+   // pack extracting its SwiftShader libraries into /tmp: about 7 MB of the ~215 MB.)
+   pack.setGraphicsMode=false;
+   packExecutable??=sharedExtraction(()=>pack.executablePath());
+   return {args:pack.args,executable:await packExecutable()};
+  },scratch)) as unknown as StageBrowser;
  }
+ const env=browserEnv(scratch);
  if(plan.kind==='executable')return await chromium.launch({executablePath:process.env.PLAYWRIGHT_CHROMIUM_PATH,headless:true,env}) as unknown as StageBrowser;
  return await chromium.launch({channel:'chrome',headless:true,env}) as unknown as StageBrowser;
 }
