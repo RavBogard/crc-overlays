@@ -6,12 +6,13 @@ Built from: your Companion export of 16 September 2026. Everything that is not a
 
 ## What changes for you
 
-- 803 of your 908 graphics buttons now drive Overlays instead of Singular. They sit in the same places with the same labels and colours.
+- 832 of your 908 graphics buttons now drive Overlays instead of Singular. They sit in the same places with the same labels and colours.
 - Most graphics buttons are now one press to show, one press to take out. The button turns **amber** the moment it's requested and **red** once the graphic is actually on screen. Red means it's really up — that's new; Singular never confirmed anything.
 - If the button goes **dark red**, Companion has lost contact with Overlays. Check the Overlays connection.
 - A **CLEAR NOW** button takes any graphic off instantly. There is one on the Home page (top row, third button) and one on page 53, "Overlays".
 - Page 53 also holds the second panels of long prayers that didn't have a button before (Kiddush long 2, Kol Nidre 2 and 3, Sim Shalom 4, Mizmor L'David 2, Unetane Tokef 2, Festival Kiddush 2, Psalm 23 part 2).
-- 105 buttons still point at Singular, untouched: the High Holy Day name cards and honoree cards, Seder graphics, Who By Fire, and the student name / Torah reading / Haftarah reading / guest name buttons. Those last ones move over as soon as the per-service "This service" page is ready. Nothing is dead — Singular still works for them as before.
+- 76 buttons still point at Singular, untouched: the High Holy Day name cards and honoree cards, Seder graphics and Who By Fire. Nothing is dead — Singular still works for them as before.
+- **The per-service buttons have moved over.** Student name, the two-line student card, Torah readings 1-7, Haftarah readings 1-3, guest name and the three Remember Them cards now drive Overlays. You never retype their labels again: the button's second line shows the current name by itself, and it changes within a few seconds of somebody saving the names on the website's **This service** page. A button whose name has not been filled in yet is dimmed and shows only its label, and pressing it puts nothing on screen.
 - "Starting Soon" now shows only the lower third; the right-hand side panel is gone (Overlays draws one graphic at a time).
 - The CRC Logo buttons now turn the Overlays scan card on and off instead of the Singular logo.
 

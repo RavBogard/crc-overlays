@@ -27,6 +27,7 @@ import fs from 'node:fs'
 import path from 'node:path'
 import zlib from 'node:zlib'
 import crypto from 'node:crypto'
+import { pathToFileURL } from 'node:url'
 
 export const SINGULAR_MODULE = 'singularlive-studio'
 export const NEW_MODULE = 'crc-overlays'
@@ -1267,7 +1268,7 @@ export function parseArgs(argv) {
 
 export const NAME_SEARCHES = [
   { name: 'Or Zarua', finding: 'No graphic with this name. The closest by sound are "Mizmor L\'David" and "Mizmor L\'David 2", which are a different psalm, so nothing was matched. Left on Singular.' },
-  { name: 'Guest Name', finding: 'No published graphic. "Name Card (one line)" and "Name Card (two lines)" are drafted but not published; they are the intended home for this once they go live. Left on Singular and listed as a slot button.' },
+  { name: 'Guest Name', finding: 'Now a slot. "Guest name" is published in the new system and this button points at it; the name itself is typed on the site’s This service page before each service, so the button never gets relabelled again.' },
   { name: 'Start soon right', finding: 'No graphic, and none wanted: it is the side panel beside "Starting Soon". Dropped wherever it shared a button with a real graphic.' },
   { name: 'Money pls', finding: 'No graphic and nothing close. It is the High Holy Day giving panel. Left on Singular.' },
   { name: 'CRC Logo', finding: 'No graphic, because the logo is not a graphic in the new system — it is the standing scan card, turned on and off with its own commands. Handled that way.' },
@@ -1321,6 +1322,9 @@ function main(argv) {
   console.log(`Report: ${mdPath} and ${jsonPath}`)
 }
 
-if (import.meta.url === `file://${process.argv[1]}`) {
+// `file://${process.argv[1]}` is never this module's URL on Windows: the path is
+// `C:\...` with backslashes, and import.meta.url is `file:///C:/.../`. The guard silently
+// failed, so running the converter from a Windows shell exited 0 and wrote nothing at all.
+if (process.argv[1] && import.meta.url === pathToFileURL(process.argv[1]).href) {
   main(process.argv.slice(2))
 }
