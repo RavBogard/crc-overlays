@@ -579,3 +579,38 @@ test('D18: an MCP actor cannot hand-assert a browser measurement, but the web do
  await dock.operation('publish_draft',{draftId:web.draftId,expectedVersion:1,previewId:web.previewId},'8d0f2f6e-web-member');
  assert.equal((await dock.publishedCues()).length,1);
 });
+
+/* Wave 2 item 7b - the source-commit stamp. It is recorded beside the revision, never inside the
+   cue, so the same publish must leave `cueHash` exactly where it was. */
+test('a published revision stamps the producer commits its sources came from, without moving the cue hash',async()=>{
+ const repo=new MemoryAuthoringRepository();const service=createAuthoringService(repo);
+ const created=await service.operation('create_draft',{...editableFromBaseline(BARECHU),name:'Stamped Barechu'},'tester') as DraftResult;const id=created.draft.id;
+ const preview=await service.operation('preview_draft',{draftId:id,expectedVersion:1},'tester') as PreviewDraftResult;
+ await service.operation('review_draft',{draftId:id,expectedVersion:1,previewId:preview.previewId,browserMeasurement:measurement,humanApproved:true},'reviewer');
+ await service.operation('publish_draft',{draftId:id,expectedVersion:1,previewId:preview.previewId},'publisher');
+
+ const [row]=await repo.revisions(id) as Revision[];
+ assert.equal(row.cueHash,preview.cueHash,'the stamp does not participate in the cue hash');
+
+ // Derived from the pack the service itself read, so a regeneration cannot fail this by moving on.
+ const authoring=(row.cue as AuthoringCue&{authoring?:{origin?:string;sourceIds?:string[]}}).authoring;
+ const expected=authoring&&authoring.origin!=='local'
+  ? [...new Set((authoring.sourceIds??[]).flatMap(sourceId=>{
+     const commit=(sourcePack.sources.find(item=>item.id===sourceId) as {authority?:{repositoryCommit?:string}}|undefined)?.authority?.repositoryCommit;
+     return commit?[commit]:[];
+    }))].sort()
+  : [];
+ assert.deepEqual(row.sourceCommits,expected.length?expected:null);
+ if(expected.length)for(const commit of expected)assert.match(commit,/^[0-9a-f]{40}$/,'a stamp is a full sha');
+});
+
+test('a cue with no upstream source carries no stamp rather than an empty one',async()=>{
+ const repo=new MemoryAuthoringRepository();const service=createAuthoringService(repo);
+ const created=await service.operation('create_draft',{name:'Local notice',title:'Local notice',layout:'bottom',templateCueId:BARECHU,presentation:{},content:{mode:'custom',text:'A local notice for tonight.'}},'tester') as DraftResult;
+ const id=created.draft.id;
+ const preview=await service.operation('preview_draft',{draftId:id,expectedVersion:1},'tester') as PreviewDraftResult;
+ await service.operation('review_draft',{draftId:id,expectedVersion:1,previewId:preview.previewId,browserMeasurement:measurement,humanApproved:true},'reviewer');
+ await service.operation('publish_draft',{draftId:id,expectedVersion:1,previewId:preview.previewId},'publisher');
+ const [row]=await repo.revisions(id) as Revision[];
+ assert.equal(row.sourceCommits,null);
+});
