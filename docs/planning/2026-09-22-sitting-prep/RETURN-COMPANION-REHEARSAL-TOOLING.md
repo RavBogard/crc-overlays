@@ -19,7 +19,12 @@ differences.
 
 This is explicitly **not Michael-ready**: it does not use any unpublished draft ids, has no
 reviewed replacement/fallback page map, and no live Companion import was attempted. When pending
-draft ids are reviewed and published, make a final deck with the same converter command and run:
+draft ids are reviewed and published, make a final deck with the same converter command and run.
+The exact nonsecret provisional generation command was:
+
+```powershell
+node scripts/convert-companion-singular.mjs --in C:/Users/dsbog/crc-overlays-vercel/work/companion-conversion/2026-09-22/ProductionDSKTP-2026-09-16-source.companionconfig --out work/companion-rehearsal/provisional/PROVISIONAL-ProductionDSKTP-2026-09-16.overlays.companionconfig --catalog C:/Users/dsbog/crc-overlays-vercel/work/companion-conversion/2026-09-22/catalog-map-2026-09-22.json --catalog-notes C:/Users/dsbog/crc-overlays-vercel/work/companion-conversion/2026-09-22/catalog-notes-2026-09-22.json --slots C:/Users/dsbog/crc-overlays-vercel/work/companion-conversion/2026-09-22/slots.json --report work/companion-rehearsal/provisional --report-name PROVISIONAL-conversion-report --no-gzip
+```
 
 ```powershell
 npm run audit:companion-rehearsal -- --deck <final.deck> --source <original-export> --slots <published-slots.json> --report <conversion-report.json> --fallback-pages <reviewed-fallback-pages> --out <final-manifest.json>
