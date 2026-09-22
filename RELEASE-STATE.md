@@ -4,9 +4,9 @@ What is deployed right now. Update this file on every release — it is the one 
 "what is live", and it is short so it can be read under pressure. The history is in
 `docs/planning/2026-09-deploys/` (25 deploy records, the release chain, the phase build notes).
 
-**Last updated: 2026-09-22** (unchanged deployment; the A2 resting-logo release is prepared and
-blocked — see "Ahead of production" below. Previous entry: the Companion cutover: slots, "This service", module 1.6.0 and the
-converter run; see `docs/planning/2026-09-22-companion-cutover/RETURN-CODE-2026-09-22-companion-cutover.md`).
+**Last updated: 2026-09-22** (the A2 release: the Siona resting logo, A1's overlay stylesheet, the fit
+stage hardening, Companion module 1.7.0 and a relay release; see
+`docs/planning/2026-09-22-sitting-prep/RETURN-A2.md` §8).
 
 ## Web, per workspace
 
@@ -15,8 +15,8 @@ both were released together on 2026-09-22.
 
 | Workspace | Host | Deployed commit | How it got there |
 |---|---|---|---|
-| CRC | `overlays.centralreform.org` (alt `crc-overlays.vercel.app`) | `603e593` | `scripts/deploy-workspaces.mjs`, 2026-09-22 15:00 UTC (the Git integration also builds every push to `main`) |
-| TBI | `overlays.templebnaiisrael.com` (alt `tbi-overlays.vercel.app`) | `603e593` | `scripts/deploy-workspaces.mjs`, same run |
+| CRC | `overlays.centralreform.org` (alt `crc-overlays.vercel.app`) | `8954415` | `scripts/deploy-workspaces.mjs`, 2026-09-22 19:50 UTC, `dpl_3tjPjxahb7oSBhKxRZxi3gGrwKwz` (the Git integration also builds every push to `main`) |
+| TBI | `overlays.templebnaiisrael.com` (alt `tbi-overlays.vercel.app`) | `8954415` | `scripts/deploy-workspaces.mjs`, same run, 19:52 UTC, `dpl_GEmLRnfPQcikNy7vEQ9bFDS66Rpa` |
 
 This file is written after the release it describes, so the commit carrying these words is always one
 ahead of the shas in the table. That one commit is documentation: CRC's Git integration builds it by
@@ -35,30 +35,18 @@ The mechanism that produced the 09-16 split is still there and will produce anot
 would deploy the wrong tree. So **every release records both shas in this table**, and a release
 is not finished while they differ.
 
-**Ahead of production: six commits, and a relay release is owed with them.** As of 2026-09-22 the
-checkout `google-signin` is at `9159d7c` plus the documentation commit carrying these words, six
-commits past the deployed `603e593`:
+**Ahead of production: nothing but documentation.** Released on 2026-09-22 from `google-signin` —
+`main` was **not** moved, so CRC's Git integration has not built this and will not until `main` is
+brought forward. Commits released, in order past `603e593`: `c5497ab` (slot graphics), `fa008ac` (A1,
+one overlay stylesheet), `d1ab609` (server fit-stage readiness hardening, another session's),
+`91a35a9` (A2, the Siona resting logo, module 1.7.0), `85e881d`, `9159d7c`, `6fc8bc3`, `2668bfd`
+(documents), `8954415` (keeps TBI's 1.6.0 archive in the staging allowlist; the first web attempt was
+refused by staging, before any deploy, for its absence).
 
-| Commit | What |
-|---|---|
-| `c5497ab` | the sixteen slot graphics |
-| `fa008ac` | A1 — one stylesheet, Hebrew above transliteration, room for the title |
-| `d1ab609` | another session's server fit-stage readiness hardening |
-| `91a35a9` | A2 — the Siona resting logo and its controls, Companion module 1.7.0 |
-| `85e881d`, `9159d7c` | planning documents, landed only so the release scripts see a clean tree |
-
-`relay/src/protocol.ts` and `relay/src/index.ts` changed in `91a35a9`, so **this release owes a relay
-release first** — a web build that can send `action: 'logo'` must not meet a `0fb6514` relay. The
-release is authorized (AUTHORIZATION.md, `PACKET-A2-RELEASE.md`) and every local gate passes, but it
-**has not run**: `scripts/deploy-relays.mjs` accepts only a read-only idle gate reading showing
-`renderers: 0` on both workspaces, and the session that prepared the release could not take that
-reading — its tool sandbox refuses production reads. Nothing was deployed, nothing was half-deployed,
-and no deployment record was written. The exact remaining commands and every owed hosted check are in
-`docs/planning/2026-09-22-sitting-prep/RETURN-A2.md` §8.
-
-Module archives 1.7.0 are built and committed but **not yet served**: production still serves 1.6.0.
-
-Historical note, still true of the deployed commit: `google-signin` and `main` were the same commit. The shadcn strip
+Owed after this release, recorded in RETURN-A2 §8: the resting logo has not yet been exercised on the
+production output — the releasing session's sandbox refused authenticated production commands — and
+the server fit stage still fails at `measure` after ten rapid checks (10/12 passed; checks 11–12
+`stage_unavailable`, `Target page, context or browser has been closed`).
 (`d33408c`) was held back over Kol Nidre and Yom Kippur and merged on 2026-09-20 once Daniel confirmed
 the overlays are not used for either service and do not go live until the following week; it has been
 on `main` and in production since then, and the 2026-09-22 order to merge it found nothing left to do.
@@ -69,10 +57,10 @@ release script needed). `4a61f2d`, the converter run, touches only `scripts/` an
 carried along. `relay/` did not change, so no relay release was owed. Both hosts answer 200, `/author`
 renders, and `/this-service` answers 200 on both.
 
-The Companion module archives moved with it: `public/downloads/crc-overlays-1.6.0.tgz` and
-`public/workspaces/temple-bnai-israel/downloads/tbi-overlays-1.6.0.tgz` are served, and
-`WORKSPACE_COMPANION_MODULE_PATH` points at each. 1.5.0 stays downloadable for anyone still running
-it. `@companion-module/base` and `runtime.apiVersion` are still 2.0.4 — Companion 5.0.3 silently
+The Companion module archives: **1.7.0** is served and `WORKSPACE_COMPANION_MODULE_PATH` points at
+it on both — CRC `public/downloads/crc-overlays-1.7.0.tgz` (sha256 `63ba9093…6555`), TBI
+`public/workspaces/temple-bnai-israel/downloads/tbi-overlays-1.7.0.tgz` (sha256 `b2435a42…6c90`), both
+verified byte-identical as served. 1.6.0 and earlier stay downloadable. `@companion-module/base` and `runtime.apiVersion` are still 2.0.4 — Companion 5.0.3 silently
 refuses 2.2.0 and above.
 
 **Earlier on 2026-09-22, three commits**, in order: `c5b8b96` (the author-page split), `d15a163` (the
@@ -92,12 +80,14 @@ the gate requires `renderers: 0` on both.
 
 | Worker | Environment | Version id | Commit |
 |---|---|---|---|
-| `crc-live-relay` | default | `c013c8eb-4ade-4477-ad5d-0fdb285f011c` | `0fb6514` |
-| `tbi-overlays-live-relay` | `tbi` | `47f7d260-5e95-4fe1-afe3-2a209461bb5a` | `0fb6514` |
+| `crc-live-relay` | default | `00f3c73f-0014-42cc-8a66-119544228b96` | `2668bfd` |
+| `tbi-overlays-live-relay` | `tbi` | `dd1e9899-c1a2-402b-88b6-b93c1e99219c` | `2668bfd` |
 
-Released 2026-09-20 14:21 UTC (the cue log's liturgical position, fifth relay release). Gate:
-both workspaces 0 renderers and 0 controllers. Record:
-`work/deploy-staging/releases/0fb6514…/relay.json`, `status: complete`.
+Released 2026-09-22 19:44 UTC (the resting logo's `logo` action and state field; sixth relay release).
+Gate, taken by Daniel read-only at 19:43: CRC 0 renderers / 1 controller, TBI 0 / 0. Record:
+`work/deploy-staging/releases/2668bfd…/relay.json`, `status: complete`. `relay/` is identical at the
+web commit `8954415`. Previous: `c013c8eb…` / `47f7d260…` from `0fb6514` (2026-09-20), which is the
+relay rollback target; the new relay serves the old web unchanged.
 
 ## Environment deltas
 
