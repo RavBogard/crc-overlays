@@ -205,3 +205,28 @@ test('the pack launch environment is read after the pack has loaded, so a cold f
  }
 });
 
+
+test('the time spent making the scratch directory counts against the deadline',async()=>{
+ const events:string[]=[];
+ const host=recordingHost(events,{async make(){events.push('make');await new Promise(resolve=>setTimeout(resolve,150));return '/scratch/check-1'}});
+ const never:StageLauncher=async()=>({async newPage(){return stage(()=>new Promise(()=>{}))},async close(){events.push('close');return null}});
+ const started=Date.now();
+ const {result}=await capture(()=>measureCueOnServer(CUE,{origin:ORIGIN,deadlineMs:200,host,launch:never}));
+ assert.deepEqual(result,{verdict:'unavailable',reason:'deadline_exceeded'});
+ const elapsed=Date.now()-started;
+ assert.ok(elapsed<320,`one budget from entry, not a fresh one after the preflight (took ${elapsed} ms)`);
+});
+
+test('a scratch directory that cannot be removed, or a survivor scan that fails, is logged and never changes the verdict',async()=>{
+ const events:string[]=[];
+ const host=recordingHost(events,{
+  async survivors(){throw Error('EACCES: /proc')},
+  async remove(){throw Error('EBUSY: resource busy or locked')},
+ });
+ const {result,warnings}=await capture(()=>measureCueOnServer(CUE,{origin:ORIGIN,host,launch:launcher(events,async()=>CLEAN)}));
+ assert.equal(result.verdict,'pass');
+ assert.equal(warnings[0]?.[0],'server-fit scratch residue');
+ const logged=warnings[0]?.[1] as {survivorsError?:string;removeError?:string};
+ assert.equal(logged.survivorsError,'EACCES: /proc');
+ assert.equal(logged.removeError,'EBUSY: resource busy or locked');
+});

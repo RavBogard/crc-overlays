@@ -93,16 +93,40 @@ Fix: `packLaunchOptions()` reads the environment only after the pack has loaded 
 unit test pins the order (the fake pack writes both variables while loading; the launch env must
 carry them plus the scratch `TMPDIR`/`HOME`). Non-pack launches are unchanged.
 
+## 3b. Astra review checkpoint (21:46 UTC): deadline accounting and cleanup observability
+
+- **Deadline accounting, corrected.** In `b06b0b9` the free-space reading and `mkdtemp` ran before
+  `withDeadline(deadlineMs)`, so the race got a fresh 25 s after them. Before `b06b0b9` the race
+  started at entry. The race now gets `remaining()`, so both count against the one budget. A test
+  pins it: 150 ms spent in `make()` with a 200 ms deadline returns by ~200 ms. Against the old
+  line the same test took 351 ms and failed.
+- **What the 25 s covers, stated in the code's docblock:** entry until the verdict is known (the
+  preflight, launch, navigation, readiness and measurement). **Not covered:** closing a browser
+  that did launch and releasing its scratch dir, which run after the verdict and before the
+  function returns. That was already true of the close before this packet; the release is new.
+  Both are bounded by the route's `maxDuration` (60 s on `/api/mcp` and `/api/authoring`), not by
+  the fit deadline. A launch still in flight at the deadline is closed without holding the caller.
+  `statfs` and `mkdtemp` are awaited without a timer of their own. So this is not an unchanged
+  hard end-to-end 25 s limit, and the return doesn't claim one.
+- **Cleanup failures are now visible.** `releaseScratch` still never throws, but a failed survivor
+  scan or a failed removal is returned as `survivorsError` / `removeError`, and either one forces
+  the `server-fit scratch residue` warning. Tested: both fail, the verdict stays `pass`, and both
+  messages are logged.
+- Production correlation (Astra's note): the Kiddush daytime first fit `stage_unavailable` ran on
+  production code, which has neither `b06b0b9` nor this follow-up. It matches the known /tmp crash
+  class. It is not the section 3a bug: that one would say `browser_unavailable`, and it was never
+  deployed.
+
 ## 4. Verification
 
 | Check | Result |
 |---|---|
 | `npx tsc --noEmit` (worktree) | clean |
-| `npm test` (worktree, at 997a72a) | 770 tests: 763 pass, 0 fail, 7 skipped (the Linux-only test skips on Windows) |
+| `npm test` (worktree, final) | 772 tests: 765 pass, 0 fail, 7 skipped (the Linux-only test skips on Windows) |
 | `npm run test:mjs` | 21/21 |
 | `npm run lint` | clean |
-| server-fit tests, Windows | 20: 19 pass, 1 Linux-only skip |
-| server-fit tests, Linux (WSL) | **20/20** at 997a72a, including the real `/proc` survivor test |
+| server-fit tests, Windows | 22: 21 pass, 1 Linux-only skip |
+| server-fit tests, Linux (WSL) | **22/22** at the final code, including the real `/proc` survivor test |
 | `npm run build` | `✓ Compiled successfully`, 42/42 static pages |
 
 New tests (`tests/server-fit-scratch.test.ts`): scratch handed to the launcher and released after
@@ -130,6 +154,7 @@ hit `deadline_exceeded` at `stage_ready`. That run, `real-A-cold.txt`, is not ev
 | `real-E-starved.txt` | follow-up | tmpfs, 20 MB free | 0/4 pass: three `stage_unavailable` (the production error at `measure`, Chromium's "Less than 64MB" warning, `tmpFreeBefore`/`tmpFreeNow` logged) and one `fail` (below) |
 | `real-F-starved.txt` | follow-up | tmpfs, 20 MB free | 0/10 pass: one `deadline_exceeded`, nine `stage_unavailable`; no false verdicts |
 | `real-G-orig.txt` | `d1ab609` (pre-fix) | ordinary | 12/12 pass; baseline for the close timings |
+| `real-I-cold-final.txt` | final (with 3b) | cold (pack wiped) | **16/16 pass**; 0 leftover dirs, 0 surviving Chromium |
 
 In every run, nothing was left in /tmp between checks, free space did not fall, and no Chromium
 outlived its check. When space ran short, the crash was reported honestly as `unavailable`, never

@@ -172,15 +172,18 @@ export const defaultScratchHost:ScratchHost={
 
 /**
  * After the browser is closed: end anything of this check's that is still running, then
- * remove its scratch directory. Returns what it found, for the log. Never throws - cleanup
+ * remove its scratch directory. Returns what it found, for the log - including a survivor scan
+ * or a removal that failed, so a directory left behind is never silent. Never throws: cleanup
  * must not turn a verdict into an error.
  */
 async function releaseScratch(host:ScratchHost,dir:string){
- const survivors=await host.survivors(dir).catch(()=>[] as number[]);
+ const problem=(error:unknown)=>error instanceof Error?error.message:String(error);
+ let survivorsError:string|undefined,removeError:string|undefined;
+ const survivors=await host.survivors(dir).catch(error=>{survivorsError=problem(error);return [] as number[]});
  for(const pid of survivors)host.kill(pid);
  const leftBytes=await host.bytes(dir).catch(()=>0);
- await host.remove(dir).catch(()=>{});
- return {survivors:survivors.length,leftBytes};
+ await host.remove(dir).catch(error=>{removeError=problem(error)});
+ return {survivors:survivors.length,leftBytes,...(survivorsError?{survivorsError}:{}),...(removeError?{removeError}:{})};
 }
 
 class DeadlineExpired extends Error{constructor(){super('deadline_exceeded')}}
@@ -216,6 +219,14 @@ function stageMeasurement(value:unknown):StageMeasurement|null{
  * Launch failure, a stage that never exposes `__measureCue`, a malformed measurement and the
  * hard deadline all resolve to `unavailable` rather than throwing - the caller's fallback is
  * to send a human to /author/fit-check.
+ *
+ * What the deadline covers: everything from entry until the verdict is known - the free-space
+ * reading, the scratch directory, launch, navigation, readiness and the measurement. What it
+ * does not: closing a browser that did launch and releasing its scratch directory, which run
+ * after the verdict and before this returns (a launch still in flight at the deadline is closed
+ * without holding the caller). Those are bounded by the route's own maxDuration, not by this
+ * deadline. The free-space reading and mkdtemp are local filesystem calls and are awaited
+ * without a timer of their own.
  */
 export async function measureCueOnServer(cue:Cue,options:{origin:string;deadlineMs?:number;launch?:StageLauncher;host?:ScratchHost}):Promise<ServerFitResult>{
  const deadlineMs=options.deadlineMs??SERVER_FIT_DEADLINE_MS;
@@ -241,7 +252,9 @@ export async function measureCueOnServer(cue:Cue,options:{origin:string;deadline
   // Made before the deadline race, so a deadline can never land between the directory
   // existing and this function knowing its name.
   const dir=scratch=await host.make();
-  const measurement=await withDeadline(deadlineMs,async()=>{
+  // The race gets what is left of the budget, not a fresh one: the free-space reading and the
+  // scratch directory above count against the same deadline as the launch and the measurement.
+  const measurement=await withDeadline(remaining(),async()=>{
    launching=Promise.resolve(launch(dir));
    browser=await launching;
    phase='new_page';
@@ -285,7 +298,7 @@ export async function measureCueOnServer(cue:Cue,options:{origin:string;deadline
    if(!dir)return;
    const released=await releaseScratch(host,dir);
    // Only a residue is worth a log line; a clean release is the expected case, every time.
-   if(released.survivors||released.leftBytes)console.warn('server-fit scratch residue',{...released,tmpFreeAfter:await host.free().catch(()=>null)});
+   if(released.survivors||released.leftBytes||'survivorsError' in released||'removeError' in released)console.warn('server-fit scratch residue',{...released,tmpFreeAfter:await host.free().catch(()=>null)});
   };
   if(browser){await Promise.resolve(browser.close()).catch(()=>{});await finish(scratch)}
   else if(launching){
