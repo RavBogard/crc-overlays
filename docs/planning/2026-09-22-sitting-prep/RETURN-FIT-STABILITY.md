@@ -98,11 +98,11 @@ carry them plus the scratch `TMPDIR`/`HOME`). Non-pack launches are unchanged.
 | Check | Result |
 |---|---|
 | `npx tsc --noEmit` (worktree) | clean |
-| `npm test` (worktree) | 769 tests: 762 pass, 0 fail, 7 skipped (the new Linux-only test skips on Windows) |
+| `npm test` (worktree, at 997a72a) | 770 tests: 763 pass, 0 fail, 7 skipped (the Linux-only test skips on Windows) |
 | `npm run test:mjs` | 21/21 |
 | `npm run lint` | clean |
-| server-fit tests, Windows | 19: 18 pass, 1 Linux-only skip |
-| server-fit tests, Linux (WSL, Node 24.14) | **19/19**, including the real `/proc` survivor test |
+| server-fit tests, Windows | 20: 19 pass, 1 Linux-only skip |
+| server-fit tests, Linux (WSL) | **20/20** at 997a72a, including the real `/proc` survivor test |
 | `npm run build` | `✓ Compiled successfully`, 42/42 static pages |
 
 New tests (`tests/server-fit-scratch.test.ts`): scratch handed to the launcher and released after
