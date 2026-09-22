@@ -108,15 +108,16 @@ row is NULL and nothing backfills them; the stamp starts with the next publish. 
   run for real — and every one recorded `sourceCommits: null`, correctly: a slot is a local custom
   graphic with no pinned library sources, so there is nothing to stamp. A published revision of a
   graphic built from the siddur is still what would show it.
-- **Ten of the sixteen slot graphics are not published yet**, and the reason is the server, not the
-  code: the production fit-check stage stopped being able to start a browser (`stage_unavailable`)
-  partway through, recovered after the release, and the rest were being published as this file was
-  written. A slot with no published graphic is simply absent from the catalog's slot index, declares
-  no Companion variable and is greyed on "This service", so nothing is broken in the meantime. See the
-  return document, §3.
-- **The fit-check stage ran out of browsers under sequential load.** Six publishes in a row exhausted
-  it, and it refused every attempt for roughly twenty minutes until the deployment restarted the
-  functions. Anyone publishing a batch should expect it and pace them.
+- **All sixteen slot graphics are published, and all sixteen still carry placeholder text.** They were
+  minted with *Reader Name* / *Guest Name* / *Name* because the fit check needs something to measure
+  and the MCP surface refuses an empty string. Nothing is on air — no button points at a slot until
+  Michael's converted deck is imported — but they want blanking through "This service" first. See the
+  return document, §8.
+- **The fit-check stage refuses after about five checks in a row.** It is the gate on every publish
+  in the system, not just slots. The refusals are `stage_unavailable` and `deadline_exceeded`, never
+  `browser_unavailable`, so Chromium launches and the `/author/fit-stage` page it loads is what fails
+  — that page answers 200 in 0.1 s from outside. Retrying the same preview immediately often gets
+  through; a deployment always clears it. Anyone publishing a batch should expect it.
 - **`save_slots` has not been exercised against Postgres.** Its tests run against the in-memory
   repository. The publish gate it widens is the same function in both repositories, and the six
   published slots went through the Postgres path by the ordinary route, but the one-click slot Save

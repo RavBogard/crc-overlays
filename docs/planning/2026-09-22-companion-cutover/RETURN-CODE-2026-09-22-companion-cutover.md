@@ -4,11 +4,15 @@
 **Answering:** `HANDOFF-CODE-2026-09-22-companion-cutover.md`
 **Released:** `603e5936` to both production workspaces.
 
-All eight sections were built, and both workspaces are released. The one thing that is not
-finished is not code: **eleven of the sixteen slot graphics are published and five are not**,
-because the production server's headless browser — the thing that runs the fit check every
-publish requires — gives out after about five publishes in a row and does not come back on
-its own. Details in §3, and a note on what that means beyond slots in §5.
+All eight sections were built, both workspaces are released, and **all sixteen slot graphics
+are published**. Getting the last ten out took hours longer than it should have, because the
+production fit-check stage — the gate in front of every publish in this system — refuses
+after about five checks in a row. That is a real production problem and it is written up in
+§3; it is not a problem with anything built here.
+
+The one thing genuinely still owed is a person's: the sixteen are published carrying their
+placeholder text and want blanking through "This service" before Michael imports his deck.
+See §8.
 
 ---
 
@@ -85,55 +89,58 @@ onto them.
 | Torah reading 7 | `42c78ed3-40d2-451b-8401-17a582b0e63f` | `slot_torah_7` | yes, rev 1 |
 | Haftarah reading 1 | `d2a51926-4b98-4e73-b1f4-9d016966fd52` | `slot_haftarah_1` | yes, rev 1 |
 | Haftarah reading 2 | `8a20aa8a-4515-4b6e-9c1f-27f6a4e76e2f` | `slot_haftarah_2` | yes, rev 1 |
-| Haftarah reading 3 | `92e23dc6-f7f4-40b6-8495-0a4605f321a8` | `slot_haftarah_3` | **no** |
-| Guest name | `bb52a63a-e892-4518-b7c2-a59e8ce730b9` | `slot_guest_name` | **no** |
-| Remember Them 1 | `35aba7f2-eba6-4373-80d7-513713192b72` | `slot_remember_1` | **no** |
-| Remember Them 2 | `4e67f479-357f-46d4-aab0-84bd0f6ce7de` | `slot_remember_2` | **no** |
-| Remember Them 3 | `16533b7f-017a-417a-a676-b457f53d8ea6` | `slot_remember_3` | **no** |
+| Haftarah reading 3 | `92e23dc6-f7f4-40b6-8495-0a4605f321a8` | `slot_haftarah_3` | yes, rev 1 |
+| Guest name | `bb52a63a-e892-4518-b7c2-a59e8ce730b9` | `slot_guest_name` | yes, rev 1 |
+| Remember Them 1 | `35aba7f2-eba6-4373-80d7-513713192b72` | `slot_remember_1` | yes, rev 1 |
+| Remember Them 2 | `4e67f479-357f-46d4-aab0-84bd0f6ce7de` | `slot_remember_2` | yes, rev 1 |
+| Remember Them 3 | `16533b7f-017a-417a-a676-b457f53d8ea6` | `slot_remember_3` | yes, rev 1 |
 
 The four drafts of 16 September became Student name, Student names (two lines), Torah
 reading 1 and Haftarah reading 1, as the handoff planned. The other twelve were created the
 same way — a `custom` lower third on the Barechu template.
 
-**The five unpublished ones are blocked on the server, not on anything here.** Every publish
-in this system requires a fit check measured by a real browser on the server, and that
-browser gives out: `stage_unavailable` — *"The server could not open a browser to check this
-graphic."*
+**All sixteen are published, at revision 1.** Getting there was the hard part, and the
+reason is worth recording because it will happen to the next person.
 
-The pattern, from three sessions of it today: it serves about five or six fit checks in a
-row and then refuses everything. It did **not** recover on its own over roughly twenty
-minutes of spaced retries, and it did **not** recover over a further fifteen minutes of
-waiting later. It recovered exactly once, immediately after the release redeployed the
-functions — which points at a leaked browser process per function instance rather than a
-rate limit. Eleven slots went through in two bursts either side of that redeploy.
+Every publish in this system requires a fit check measured by a real browser on the server,
+and that stage gives out: `stage_unavailable` — *"The server could not open a browser to
+check this graphic."*
 
-Nothing about the five remaining drafts is wrong; they are identical in shape to the eleven
-that went through, and one of them (Guest name) has a valid preview waiting
-(`8dca543d-fb9f-47b2-996b-063da9b6d8f6`) that only needs a passing fit check.
+The pattern, from a day of it: it serves about five or six fit checks in a row and then
+refuses. Waiting does not reliably clear it — twenty minutes of spaced retries did nothing,
+and so did a further fifteen. What does clear it is a deployment, and what also works is
+simply **retrying the same preview immediately**: several checks passed on the second or
+third attempt seconds after failing.
 
-The system behaves correctly in the meantime, by design: a slot with no published graphic is
+The refusal reason matters, and it is in the response. `lib/server-fit.ts` reports
+`browser_unavailable` when Chromium never launched, `stage_unavailable` when Chromium
+launched but `/author/fit-stage` never answered, and `deadline_exceeded` at the 25-second
+wall. Today's failures were **`stage_unavailable` and `deadline_exceeded`, not
+`browser_unavailable`** — so Chromium starts fine and the page it loads is the problem.
+Fetched from outside, `/author/fit-stage` answers 200 in 0.1–0.2 s every time, so it is not
+the route. That leaves the function's own network path to its public origin, or the stage's
+client JavaScript not reaching `__measureCue` inside a warm reused instance.
+
+Nothing was ever wrong with the drafts: the sixteen are identical in shape, and once the
+stage was answering they passed first time, every time.
+
+**If it happens again**, the way out that does not depend on the server is the web fit check:
+`/author/fit-check?draft=<id>` measures in the person's own browser, and `review_draft` from
+a web session takes that measurement rather than the server's. The server stage is only the
+MCP path's substitute for a person.
+
+Worth knowing about the shape of the system either way: a slot with no published graphic is
 simply not a slot. It is absent from the catalog's slot index, the module declares no
-variable and generates no preset for it, and "This service" shows the field greyed with a
-line naming which ones are not ready. Nothing is broken and nothing shows the wrong thing;
-eleven slots work end to end and five are waiting.
+variable and generates no preset for it, and "This service" greys the field and names it.
+That is why the half-finished state was harmless rather than broken, and it is how the
+sixteen were able to land one at a time.
 
-Michael's converted deck already points at all sixteen ids, so the five will start working
-the moment they publish, with no change to his file.
-
-**What finishes it:** for each of the five, either run the four-step chain
-(`preview_draft` → `fit_check_draft` → `review_draft` → `publish_draft`), pausing when the
-stage refuses and redeploying if it stays refused, or open each at
-`/author/fit-check?draft=<id>` in a browser and publish it from there — the web path uses
-the person's own browser measurement and does not touch the server stage at all, so it works
-whatever the stage is doing. Nothing else needs to change; `content/slot-cues.json` already
-names all sixteen.
-
-**One thing to decide.** The eleven that did publish carry a review receipt whose
+**One thing to decide.** All sixteen carry a review receipt whose
 `humanApproved` is true and whose measurement is the server's own attested fit check — the
 D18 path, which is what an MCP actor has always used and which ignores any claimed
 measurement. No person looked at those six renders. They are placeholder text on an approved
 layout, so this is within what D18 means, but if the intent is that a human eye sees every
-first publish, the eleven want a look before a service.
+first publish, they want a look before a service.
 
 ---
 
@@ -302,12 +309,16 @@ of its upgrade scripts. Both stay out of the repo; `tools/build.mjs` builds the 
 
 **Daniel / the server:**
 
-1. **The fit-check stage gives out after about five checks and does not recover on its own.**
-   Five slots are waiting on it, but the bigger point is that this is the gate on *every*
-   publish in the system, for every graphic, not just slots — an authoring session that
-   publishes half a dozen cues in a sitting will hit the same wall, and the only thing seen
-   to clear it today was a redeploy. Worth a look at `lib/server-fit.ts` and whether the
-   Chromium instance it launches is being closed on every path, including the failure ones.
+1. **The fit-check stage gives out after about five checks in a row.** No slot is waiting on
+   it any more, but this is the gate on *every* publish in the system, for every graphic — an
+   authoring session that publishes half a dozen cues in a sitting will hit the same wall, and
+   what it shows a person is "open Fit check and review it yourself", which reads like their
+   problem rather than the server's. The refusals are `stage_unavailable` and
+   `deadline_exceeded`, never `browser_unavailable`, so Chromium is launching and the stage
+   page it loads is what fails; that same page answers 200 in 0.1 s from outside. An immediate
+   retry of the same preview often gets through, and a deployment always clears it. Worth a
+   look at what a warm, reused Fluid instance does to the function's request for its own
+   public origin.
 2. The four checks of the handoff's section 8, with Michael. Check 2 is already answered in
    code (see §7) but is cheap to confirm.
 3. Whether the six already-published slots want a human eye (§3).
@@ -316,12 +327,11 @@ of its upgrade scripts. Both stay out of the repo; `tools/build.mjs` builds the 
 
 **Whoever picks this up next:**
 
-- Publish the remaining five (the web fit check at `/author/fit-check?draft=<id>` works
-  whatever the server stage is doing), then **blank all sixteen through "This service"** so
-  nothing ships carrying *Reader Name*. Every slot was minted with placeholder text because
-  the fit check needs something to measure and the MCP surface will not accept an empty
-  string; the one-click Save is what clears them, and it is also the first real exercise of
-  the `save_slots` path against Postgres.
-- They are unreachable from any button until Michael imports the converted file, so there is
-  no rush — but it should not be forgotten, and the deck should not be imported before the
-  blanking.
+- **Blank all sixteen through "This service"** before the converted deck is imported. Every
+  slot is published carrying placeholder text — *Reader Name*, *Guest Name*, *Name* —
+  because the fit check needs something to measure and the MCP surface refuses an empty
+  string. Open `/this-service`, clear the fields for each of the three service types, and
+  press Save: one click per type. It is also the first real exercise of the `save_slots` path
+  against Postgres, so it doubles as the test.
+- Nothing is on air in the meantime — no button points at a slot until the converted file is
+  imported — but the deck should not be imported before the blanking.
