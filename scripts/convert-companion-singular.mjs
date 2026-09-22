@@ -430,7 +430,7 @@ function planAction(a, ctx) {
 }
 
 /** Decide whether a button collapses to a single-step `toggle_cue`. */
-function toggleCandidate(ctrl, plans, ctx) {
+function toggleCandidate(ctrl, plans) {
   const steps = ctrl.steps ?? {}
   const keys = stepOrder(steps)
   if (keys.length !== 2) return null
@@ -554,7 +554,6 @@ export function convert(config, opts) {
         }
 
         const mappedPlans = [...plans.values()].filter((p) => p.kind === 'cue' || p.kind === 'bug' || p.kind === 'clear')
-        const unmappedPlans = [...plans.values()].filter((p) => p.kind === 'unmapped')
 
         // 2. nothing maps -> leave the whole button alone, untouched
         if (!mappedPlans.length) {
@@ -577,7 +576,7 @@ export function convert(config, opts) {
         }
 
         // 3. build the replacement button
-        const toggle = toggleCandidate(ctrl, plans, ctx)
+        const toggle = toggleCandidate(ctrl, plans)
         const bg = buttonBgColor(ctrl)
         const fg = buttonTextColor(ctrl)
         if (typeof bg === 'number') bgTally.set(bg, (bgTally.get(bg) || 0) + 1)

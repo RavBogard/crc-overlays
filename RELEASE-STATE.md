@@ -4,19 +4,18 @@ What is deployed right now. Update this file on every release — it is the one 
 "what is live", and it is short so it can be read under pressure. The history is in
 `docs/planning/2026-09-deploys/` (25 deploy records, the release chain, the phase build notes).
 
-**Last updated: 2026-09-22** (the author-page split of W2B §5, the Wave 2 item 7b source-commit
-stamp and the migration it needed on both databases; see
-`docs/planning/2026-09-19-audit/RETURN-CODE-AUDIT-2026-09-19-W2.md` §7 and `-W2B.md` §5).
+**Last updated: 2026-09-22** (the Companion cutover: slots, "This service", module 1.6.0 and the
+converter run; see `docs/planning/2026-09-22-companion-cutover/RETURN-CODE-2026-09-22-companion-cutover.md`).
 
 ## Web, per workspace
 
 Two congregations, one codebase, one deployment each. **Both are on the same commit today**, and
-both were released together on 2026-09-20.
+both were released together on 2026-09-22.
 
 | Workspace | Host | Deployed commit | How it got there |
 |---|---|---|---|
-| CRC | `overlays.centralreform.org` (alt `crc-overlays.vercel.app`) | `6ac07d2` | `scripts/deploy-workspaces.mjs`, 2026-09-22 (the Git integration also builds every push to `main`) |
-| TBI | `overlays.templebnaiisrael.com` (alt `tbi-overlays.vercel.app`) | `6ac07d2` | `scripts/deploy-workspaces.mjs`, same run |
+| CRC | `overlays.centralreform.org` (alt `crc-overlays.vercel.app`) | `603e593` | `scripts/deploy-workspaces.mjs`, 2026-09-22 15:00 UTC (the Git integration also builds every push to `main`) |
+| TBI | `overlays.templebnaiisrael.com` (alt `tbi-overlays.vercel.app`) | `603e593` | `scripts/deploy-workspaces.mjs`, same run |
 
 This file is written after the release it describes, so the commit carrying these words is always one
 ahead of the shas in the table. That one commit is documentation: CRC's Git integration builds it by
@@ -40,7 +39,19 @@ is not finished while they differ.
 the overlays are not used for either service and do not go live until the following week; it has been
 on `main` and in production since then, and the 2026-09-22 order to merge it found nothing left to do.
 
-**Three commits released on 2026-09-22**, in order: `c5b8b96` (the author-page split), `d15a163` (the
+**Three more commits released on 2026-09-22 at 15:00 UTC**, in order: `273ec83` (the Cowork handoff),
+`523178c` (slots, "This service", Companion module 1.6.0) and `603e593` (a `.gitignore` line the
+release script needed). `4a61f2d`, the converter run, touches only `scripts/` and `docs/` and is
+carried along. `relay/` did not change, so no relay release was owed. Both hosts answer 200, `/author`
+renders, and `/this-service` answers 200 on both.
+
+The Companion module archives moved with it: `public/downloads/crc-overlays-1.6.0.tgz` and
+`public/workspaces/temple-bnai-israel/downloads/tbi-overlays-1.6.0.tgz` are served, and
+`WORKSPACE_COMPANION_MODULE_PATH` points at each. 1.5.0 stays downloadable for anyone still running
+it. `@companion-module/base` and `runtime.apiVersion` are still 2.0.4 — Companion 5.0.3 silently
+refuses 2.2.0 and above.
+
+**Earlier on 2026-09-22, three commits**, in order: `c5b8b96` (the author-page split), `d15a163` (the
 source-commit stamp) and `6ac07d2` (four Companion research documents another session left untracked
 in this worktree, landed so the release ran from a clean tree). `relay/` did not change, so no relay
 release was owed. Both hosts answer 200 and `/author` renders.
@@ -92,10 +103,24 @@ row is NULL and nothing backfills them; the stamp starts with the next publish. 
 - The MCP publish chain has never been watched end to end against the deployed function
   (Deploy record 25, "Not verified end to end"). It needs an authoring-scope MCP session, which
   only Daniel can consent to.
-- **The source-commit stamp has never been seen on a real published revision.** The column is live on
-  both databases and the write path is covered by two unit tests, but confirming it end to end means
-  publishing a draft into a congregation's production library, which was not done. The first real
-  publish on either workspace will show it.
+- **The source-commit stamp still has not been seen carrying anything.** Seven real revisions were
+  published into CRC's production library on 2026-09-22 (the slot graphics), so the write path has now
+  run for real — and every one recorded `sourceCommits: null`, correctly: a slot is a local custom
+  graphic with no pinned library sources, so there is nothing to stamp. A published revision of a
+  graphic built from the siddur is still what would show it.
+- **Ten of the sixteen slot graphics are not published yet**, and the reason is the server, not the
+  code: the production fit-check stage stopped being able to start a browser (`stage_unavailable`)
+  partway through, recovered after the release, and the rest were being published as this file was
+  written. A slot with no published graphic is simply absent from the catalog's slot index, declares
+  no Companion variable and is greyed on "This service", so nothing is broken in the meantime. See the
+  return document, §3.
+- **The fit-check stage ran out of browsers under sequential load.** Six publishes in a row exhausted
+  it, and it refused every attempt for roughly twenty minutes until the deployment restarted the
+  functions. Anyone publishing a batch should expect it and pace them.
+- **`save_slots` has not been exercised against Postgres.** Its tests run against the in-memory
+  repository. The publish gate it widens is the same function in both repositories, and the six
+  published slots went through the Postgres path by the ordinary route, but the one-click slot Save
+  itself has only been proven in memory. The first real Save on "This service" is the test.
 - **`app/author/page.tsx` is 870 lines, not the under-500 the order asked for.** W2B §5's six
   extractions are all done and are what shipped; the remaining ~370 lines are the thirty async
   handlers and the 130-line return, and lifting them means either action hooks with ten to sixteen
