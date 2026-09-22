@@ -33,6 +33,21 @@ async function withWorkspace(workspaceId:string|undefined,run:()=>Promise<void>)
 }
 const measurement={viewportWidth:1920,viewportHeight:1080,fontsReady:true,overflow:false,rendererVersion:'test-renderer',measuredAt:Date.now()} as const;
 
+test('get_source and generated draft sets expose pointer-derived English slices without snapshot copies or parent overlap',async()=>{
+ const fixture:AuthoringSource={id:'boundary-fixture',name:'Boundary fixture',section:null,unitSha256:'f'.repeat(64),sourceBoundaries:{en:[{block:0,endAfter:'First sentence.'}]},blocks:[{id:'boundary-fixture#block-0',index:0,kind:'original-en',role:'original',en:'First sentence. Second sentence.',sourceBlockSha256:'b'.repeat(64)}]};
+ sourcePack.sources.push(fixture);
+ try{
+  const service=createAuthoringService(new MemoryAuthoringRepository());
+  const opened=await service.operation('get_source',{sourceId:fixture.id},'tester') as GetSourceResult;
+  assert.deepEqual(opened.source.blocks.map(block=>block.id),['boundary-fixture#block-0','boundary-fixture#block-0/slice-0','boundary-fixture#block-0/slice-1']);
+  const created=await service.operation('create_source_draft_set',{sourceId:fixture.id,mode:'original-en',layout:'bottom',templateCueId:BARECHU},'tester') as DraftSetResult;
+  assert.deepEqual(created.drafts.flatMap(draft=>(draft.content as OriginalEnglishContent).englishGroups.flatMap(group=>group.blockIds)),['boundary-fixture#block-0/slice-0','boundary-fixture#block-0/slice-1']);
+  assert.ok(created.drafts.every(draft=>draft.sourceSnapshots?.[0].blocks.length===1),'draft snapshots retain the canonical parent only');
+  const review=await service.operation('review_draft_set',{setId:created.set.id},'tester') as ReviewDraftSetResult;
+  assert.equal(review.status,'complete','exact-once coverage expects only resolved slices, never parent plus children');
+ }finally{sourcePack.sources.splice(sourcePack.sources.indexOf(fixture),1)}
+});
+
 type DraftResult={draft:Draft};
 type ImportCueResult=DraftResult&{created:boolean};
 type DuplicateDraftResult=DraftResult&{duplicatedFrom:{kind:string;id:string}};

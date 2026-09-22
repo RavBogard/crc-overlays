@@ -32,9 +32,10 @@ if(python===null){
    env:{...process.env,SIDDUR_SOURCE_ROOT:fixtureRoot},
   });
   assert.equal(run.status,0,`builder failed: ${run.stderr||run.stdout}`);
-  const library=JSON.parse(readFileSync(output,'utf8')) as {sources?:unknown[]};
+  const library=JSON.parse(readFileSync(output,'utf8')) as {sources?:{id:string;sourceBoundaries?:unknown}[]};
   assert.ok(Array.isArray(library.sources),'the generated library carries a sources array');
   assert.ok(library.sources.length>=1,'the fixture yields at least one source');
+  assert.deepEqual(library.sources.find(source=>source.id.endsWith('fixture-unit-original'))?.sourceBoundaries,{en:[{block:0,endAfter:'Placeholder original English'}]});
  });
 
  // A published `dist-app/` is an artifact, not a checkout: there is no repository to ask what

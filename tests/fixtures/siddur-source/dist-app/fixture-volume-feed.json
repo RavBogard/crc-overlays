@@ -73,6 +73,7 @@
       "group": "fixture-group",
       "printedFolio": "3",
       "folios": [3],
+      "sourceBoundaries": {"en": [{"block": 0, "endAfter": "Placeholder original English"}]},
       "blocks": [
         {
           "type": "english",

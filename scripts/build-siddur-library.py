@@ -382,6 +382,7 @@ def build_library(source_root: Path) -> dict[str, Any]:
                     "name": unit.get("name", unit_id),
                     "section": section_name or unit.get("section"),
                     "unitSha256": unit_hash,
+                    **({"sourceBoundaries": unit["sourceBoundaries"]} if unit.get("sourceBoundaries") else {}),
                     "origin": authority_id,
                     "sourceSha256": unit_hash,
                     "book": book["slug"],
