@@ -16,6 +16,7 @@
     "test:mjs": "node --test \"tests/*.test.mjs\"",
     "test:py": "python -m unittest discover -s tests -p \"test_*.py\" -t . -v",
     "test:renderer": "node --test --experimental-strip-types tests/player.test.ts",
+    "audit:companion-rehearsal": "node scripts/audit-companion-rehearsal.mjs",
     "test:mcp": "node node_modules/tsx/dist/cli.mjs --test tests/oauth*.test.ts tests/mcp*.test.ts",
     "rehearsal": "node node_modules/tsx/dist/cli.mjs scripts/rehearsal.mjs",
     "rehearsal:check": "node node_modules/tsx/dist/cli.mjs scripts/check-rehearsal.mjs"
