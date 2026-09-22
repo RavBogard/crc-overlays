@@ -43,6 +43,14 @@ one overlay stylesheet), `d1ab609` (server fit-stage readiness hardening, anothe
 (documents), `8954415` (keeps TBI's 1.6.0 archive in the staging allowlist; the first web attempt was
 refused by staging, before any deploy, for its absence).
 
+> **Hazard: `origin/main` is at `c5497ab`, behind production.** Any push to `main` of that line, or
+> a redeploy of CRC's latest Git build, would put CRC back on `c5497ab` — without the resting logo,
+> A1's stylesheet or the fit hardening, and under a Companion 1.7.0 whose logo buttons it would refuse.
+> The fix is a fast-forward: `git push origin be8e7da:main` (`origin/main` is an ancestor). The
+> Git integration then rebuilds the same tree. The releasing session's sandbox refused that push as
+> a production deploy, so it has not been done. Nothing is pushed: `origin/google-signin` is still
+> `ebcc893`.
+
 Owed after this release, recorded in RETURN-A2 §8: the resting logo has not yet been exercised on the
 production output — the releasing session's sandbox refused authenticated production commands — and
 the server fit stage still fails at `measure` after ten rapid checks (10/12 passed; checks 11–12
