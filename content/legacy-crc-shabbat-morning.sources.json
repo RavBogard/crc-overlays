@@ -51,6 +51,22 @@
         },
         "usage": "Private CRC authoring source; no publication, redistribution, attribution, or license grant is asserted by this declaration."
       }
+    },
+    {
+      "id": "shma.am-i-awake@legacy-shabbat-morning",
+      "name": "Am I Awake",
+      "section": 2,
+      "text": "Am I awake? Am I prepared? Are you listening to my prayer? Can you hear my voice? Can you understand? Am I awake? Am I prepared?\n\nBar'chu et Adonai hamvorach!\nBaruch Adonai hamvorach l’olam va’ed!",
+      "textSha256": "64d9f47c936f7998aab2f19abacef0d97e6f7030d37cbad3a55c5213d6ead213",
+      "provenance": {"source":"CRC private archive presentation composition; exact wording recovered for private authoring only.","archive":{"file":"Singular-CRC-Archive/2026-09-09-master/master-composition-449398.json","sha256":"9e372260b251d87a126dfba57dbb699531c466338a9134263963f453db3f8f1c","compositionId":"b825107b-9899-4d01-a162-645c4fd49c55","compositionName":"Am I Awake","titleProperty":"data[7cd7ec0e-5d00-4f73-af60-2ed5cc88fd34].text","textProperty":"data[a6f231ee-22c9-437a-a772-51a3cc09bd55].text"},"usage":"Private CRC authoring source; no publication, redistribution, attribution, or license grant is asserted by this declaration."}
+    },
+    {
+      "id": "shma.how-awesome@legacy-shabbat-morning",
+      "name": "How Awesome / Shema",
+      "section": 2,
+      "text": "How awesome is creation\nWith great love, we are loved\nWe are one\nEchad\n\nSh'ma Yisrael Adonai Eloheinu, Adonai Echad!\n(Baruch sheim k'vod malchuto l'olam va'ed)\n",
+      "textSha256": "c9c1064d151e3865a7121b11704f5447f0a4fc517ec27d7970c02f8857c37364",
+      "provenance": {"source":"CRC private archive presentation composition; exact wording recovered for private authoring only.","archive":{"file":"Singular-CRC-Archive/2026-09-09-master/master-composition-449398.json","sha256":"9e372260b251d87a126dfba57dbb699531c466338a9134263963f453db3f8f1c","compositionId":"c1f3a431-bc56-46d4-8893-761105a7fe5d","compositionName":"How Awesome / Shema","titleProperty":"data[7c4a53c8-bb63-49e4-bac3-5a2695b0e8b4].text","textProperty":"data[42565d78-b2f0-4299-9c57-a9876a7f775c].text"},"usage":"Private CRC authoring source; no publication, redistribution, attribution, or license grant is asserted by this declaration."}
     }
   ],
   "units": {

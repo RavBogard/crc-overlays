@@ -36,7 +36,7 @@ class SourceAdapterTests(unittest.TestCase):
             (ROOT / "content" / "legacy-crc-shabbat-morning.sources.json").read_text(encoding="utf-8")
         )
         records = mapping["privateOriginalEnglish"]
-        self.assertEqual(len(records), 1)
+        self.assertEqual(len(records), 3)
         record = records[0]
         self.assertEqual(record["id"], "amidah.gvurot-interpretation@legacy-shabbat-morning")
         self.assertEqual(record["name"], "G’vurot — Interpretation")
@@ -60,13 +60,33 @@ class SourceAdapterTests(unittest.TestCase):
         self.assertEqual(archive["compositionId"], "c313b482-efec-4c40-9ad9-43687e653de9")
         self.assertEqual(archive["textProperty"], "data[2fa62d82-48b2-4050-9597-459cf0940c5a].text")
         built = authoring_sources.private_original_english_sources(mapping)
-        self.assertEqual(len(built), 1)
+        self.assertEqual(len(built), 3)
         self.assertEqual(built[0]["blocks"][0]["en"], record["text"])
         self.assertEqual(built[0]["blocks"][0]["role"], "original")
         self.assertEqual(built[0]["provenance"], record["provenance"])
         pack = json.loads((ROOT / "content" / "authoring-sources.json").read_text(encoding="utf-8"))
         generated = next(source for source in pack["sources"] if source["id"] == record["id"])
         self.assertEqual(generated, built[0])
+
+    def test_recovered_song_records_preserve_exact_archive_bytes_and_provenance(self):
+        mapping = json.loads((ROOT / "content" / "legacy-crc-shabbat-morning.sources.json").read_text(encoding="utf-8"))
+        records = {record["id"]: record for record in mapping["privateOriginalEnglish"]}
+        expected = {
+            "shma.am-i-awake@legacy-shabbat-morning": ("Am I Awake", "b825107b-9899-4d01-a162-645c4fd49c55", "data[a6f231ee-22c9-437a-a772-51a3cc09bd55].text", "64d9f47c936f7998aab2f19abacef0d97e6f7030d37cbad3a55c5213d6ead213"),
+            "shma.how-awesome@legacy-shabbat-morning": ("How Awesome / Shema", "c1f3a431-bc56-46d4-8893-761105a7fe5d", "data[42565d78-b2f0-4299-9c57-a9876a7f775c].text", "c9c1064d151e3865a7121b11704f5447f0a4fc517ec27d7970c02f8857c37364"),
+        }
+        for source_id, (name, composition_id, property_id, digest) in expected.items():
+            record = records[source_id]
+            self.assertEqual(record["name"], name)
+            self.assertEqual(authoring_sources.text_sha256(record["text"]), digest)
+            archive = record["provenance"]["archive"]
+            self.assertEqual(archive["sha256"], "9e372260b251d87a126dfba57dbb699531c466338a9134263963f453db3f8f1c")
+            self.assertEqual(archive["compositionId"], composition_id)
+            self.assertEqual(archive["textProperty"], property_id)
+            self.assertEqual(record["provenance"]["usage"], "Private CRC authoring source; no publication, redistribution, attribution, or license grant is asserted by this declaration.")
+        built = {source["id"]: source for source in authoring_sources.private_original_english_sources(mapping)}
+        self.assertEqual(built["shma.am-i-awake@legacy-shabbat-morning"]["blocks"][0]["en"], records["shma.am-i-awake@legacy-shabbat-morning"]["text"])
+        self.assertEqual(built["shma.how-awesome@legacy-shabbat-morning"]["blocks"][0]["en"], records["shma.how-awesome@legacy-shabbat-morning"]["text"])
 
     def test_render_line_preserves_selected_channel_bytes(self):
         units = {
