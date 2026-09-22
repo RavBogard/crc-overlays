@@ -198,9 +198,89 @@ There is no migration. Both sibling layers ride the existing persisted `live_sta
 
 ## 8. Deployment
 
-Relay first, then both web workspaces, then the module archives are served by the web deploy.
+**Nothing from this packet is deployed. Production is still `603e593`, and both relay workers are
+still `0fb6514` (version ids `c013c8eb…` CRC, `47f7d260…` TBI).** The release is authorized and
+prepared; it is stopped at one step, described below.
 
-_Filled in by the release commit that follows this one; see `RELEASE-STATE.md` for what is live._
+Order, unchanged from §7: **both relays first, then both web workspaces.** `relay/src/protocol.ts`
+gained the `logo` action, so a web build that can send `action: 'logo'` must not meet an old relay.
+The web already handles that transition in one direction — an old relay's 400 is translated into
+"The resting logo needs the updated live service. Release the relay before the site." — but the
+correct order avoids the sentence entirely. Rollback is the reverse: the new relay serves the old
+web unchanged, because `logo` is an optional field on a state row the old web simply never reads.
+
+### Release-ready state
+
+| | |
+|---|---|
+| Branch | `google-signin` (unchanged; not switched, not reset) |
+| HEAD | `9159d7c`, plus the documentation commit carrying this section — tree clean including untracked, which both release scripts require. The commands below read HEAD rather than naming a sha, so they stay correct as documentation lands. |
+| Owed to production | six commits: `c5497ab`, `fa008ac` (A1), `d1ab609` (another session's fit hardening), `91a35a9` (this feature), `85e881d`, `9159d7c` (planning, landed only for a clean tree) |
+| Relay release owed? | **Yes** — `relay/src/protocol.ts` and `relay/src/index.ts` changed since `0fb6514` |
+| CRC archive | `public/downloads/crc-overlays-1.7.0.tgz`, sha256 `63ba9093…6555` |
+| TBI archive | `public/workspaces/temple-bnai-israel/downloads/tbi-overlays-1.7.0.tgz`, sha256 `b2435a42…6c90` |
+| Checks | the §3 run stands at HEAD: the only change since `85e881d` is one planning document, no source file |
+
+### The blocker
+
+`docs/RELAY-RELEASE.md` requires a read-only idle reading — one authenticated `GET /api/state` per
+workspace showing `renderers: 0`, stamped within ten minutes — and `scripts/deploy-relays.mjs`
+accepts no other evidence that no renderer is live. The script deliberately never holds a control
+key and never probes production itself; the operator takes the reading.
+
+`work/sitting-2026-09-22/a2/harness/relay-gate.mjs` takes exactly that reading. It reads each
+workspace's `CONTROL_KEY` from the operator's own local files, never prints or stores a key, sends
+nothing, and writes only counts, a cue id, a revision and a timestamp. Its output shape was checked
+against `parseGateFile` with a synthetic file: the shape is accepted, and a reading with one
+connected renderer is refused.
+
+**Running it is refused by this session's tool sandbox** — "Permission for this action was denied by
+the Claude Code auto mode classifier. Reason: [Production Reads]." This is a harness restriction, not
+a missing authorization: AUTHORIZATION.md covers the release, and `PACKET-A2-RELEASE.md` states no
+new permission question is needed. Nothing was routed around it, and no credential was read, printed
+or copied anywhere.
+
+Because the reading cannot be taken, the relay cannot ship; because the relay cannot ship, the web
+must not. Both deploys are therefore not started, not half-done. No deployment record was written and
+`work/deploy-staging/` is untouched.
+
+### The exact remaining steps
+
+Daniel can take the reading in this session by typing it with the `!` prefix, and the release then
+proceeds here:
+
+```
+! node work/sitting-2026-09-22/a2/harness/relay-gate.mjs work/relay-gates/gate-2026-09-22-resting-logo.json
+node scripts/deploy-relays.mjs --commit $(git rev-parse HEAD) --confirm-production --gate-file work/relay-gates/gate-2026-09-22-resting-logo.json
+node scripts/deploy-workspaces.mjs --commit $(git rev-parse HEAD) --confirm-production
+```
+
+The gate goes stale in ten minutes and is re-read before each worker, so the first two commands
+belong together. `--commit` must equal HEAD; if HEAD moves, both shas move with it.
+
+### Hosted verification still owed
+
+None of it could run, for the same reason. Recorded here so it is not lost, and so Astra can run it
+from an in-app session without new credentials:
+
+1. **Deployed identity.** Both hosts' deployed sha, both relay version ids, and the two served
+   archive hashes fetched from `/downloads/…` and compared against the sha256s in the table above.
+2. **The feature on production.** Resting logo on, then off; a cue in while it is on (it must be
+   held back, not drawn over the cue); normal animated out (it returns only once the exit finishes);
+   CUT (cue, scan card and logo all blank, and the preference goes off and stays off across a
+   reconnect); TBI shows no logo and its console offers no control. Leave both outputs clear with the
+   logo off.
+3. **Relay durability.** §7's durability claim is a unit-tested round trip of the persisted
+   `live_state` row plus a reading of `readState`/`writeState` — **an actual worker restart has not
+   been observed**, and the rehearsal stub is in-memory so it cannot show one. A real restart happens
+   naturally at the relay deploy; the preference surviving it can be read afterwards without
+   disturbing anything. Live state is not to be disrupted merely to claim this test.
+4. **The fit hardening.** `d1ab609` is not deployed either, so this check has not begun. Once the
+   web is released: at least ten sequential `fit_check_draft` calls on one unchanged, already
+   published preview — enough to cross the roughly fifth-check failure previously reported —
+   recording each success, its elapsed time, and for any failure the phase diagnostics. Nothing is
+   published or modified for it. A persistent failure is reported, not worked around by weakening
+   the readiness or review checks.
 
 ## 9. Unresolved, and what is not claimed
 
@@ -215,7 +295,10 @@ _Filled in by the release commit that follows this one; see `RELEASE-STATE.md` f
    queued for the renderer/catalog packet. Neither touched this work.
 6. **A smaller derived asset** would be tidier than reusing a 2.99 MB JPEG, even though it costs
    nothing extra today because the overlay already preloads it.
-7. **Stale renderer-path documentation** (`app/author/fit-stage/fit-stage-client.tsx:13`,
+7. **The release is prepared but not performed.** The idle gate reading the relay release requires
+   could not be taken from this session; the tool sandbox refuses production reads. Every hosted
+   verification the release packet asks for is therefore still owed, and §8 lists each one exactly.
+8. **Stale renderer-path documentation** (`app/author/fit-stage/fit-stage-client.tsx:13`,
    `docs/RENDERER.md`) still points at `globals.css` for overlay geometry after A1 moved it. This
    packet touched neither file, so per its own instruction the fix was left alone.
 8. **For the content/defaults and logo packets that follow:** the preference is workspace-scoped

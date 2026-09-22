@@ -4,7 +4,8 @@ What is deployed right now. Update this file on every release — it is the one 
 "what is live", and it is short so it can be read under pressure. The history is in
 `docs/planning/2026-09-deploys/` (25 deploy records, the release chain, the phase build notes).
 
-**Last updated: 2026-09-22** (the Companion cutover: slots, "This service", module 1.6.0 and the
+**Last updated: 2026-09-22** (unchanged deployment; the A2 resting-logo release is prepared and
+blocked — see "Ahead of production" below. Previous entry: the Companion cutover: slots, "This service", module 1.6.0 and the
 converter run; see `docs/planning/2026-09-22-companion-cutover/RETURN-CODE-2026-09-22-companion-cutover.md`).
 
 ## Web, per workspace
@@ -34,7 +35,30 @@ The mechanism that produced the 09-16 split is still there and will produce anot
 would deploy the wrong tree. So **every release records both shas in this table**, and a release
 is not finished while they differ.
 
-**Ahead of production: nothing.** `google-signin` and `main` are the same commit. The shadcn strip
+**Ahead of production: six commits, and a relay release is owed with them.** As of 2026-09-22 the
+checkout `google-signin` is at `9159d7c` plus the documentation commit carrying these words, six
+commits past the deployed `603e593`:
+
+| Commit | What |
+|---|---|
+| `c5497ab` | the sixteen slot graphics |
+| `fa008ac` | A1 — one stylesheet, Hebrew above transliteration, room for the title |
+| `d1ab609` | another session's server fit-stage readiness hardening |
+| `91a35a9` | A2 — the Siona resting logo and its controls, Companion module 1.7.0 |
+| `85e881d`, `9159d7c` | planning documents, landed only so the release scripts see a clean tree |
+
+`relay/src/protocol.ts` and `relay/src/index.ts` changed in `91a35a9`, so **this release owes a relay
+release first** — a web build that can send `action: 'logo'` must not meet a `0fb6514` relay. The
+release is authorized (AUTHORIZATION.md, `PACKET-A2-RELEASE.md`) and every local gate passes, but it
+**has not run**: `scripts/deploy-relays.mjs` accepts only a read-only idle gate reading showing
+`renderers: 0` on both workspaces, and the session that prepared the release could not take that
+reading — its tool sandbox refuses production reads. Nothing was deployed, nothing was half-deployed,
+and no deployment record was written. The exact remaining commands and every owed hosted check are in
+`docs/planning/2026-09-22-sitting-prep/RETURN-A2.md` §8.
+
+Module archives 1.7.0 are built and committed but **not yet served**: production still serves 1.6.0.
+
+Historical note, still true of the deployed commit: `google-signin` and `main` were the same commit. The shadcn strip
 (`d33408c`) was held back over Kol Nidre and Yom Kippur and merged on 2026-09-20 once Daniel confirmed
 the overlays are not used for either service and do not go live until the following week; it has been
 on `main` and in production since then, and the 2026-09-22 order to merge it found nothing left to do.
