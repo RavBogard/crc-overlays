@@ -4,8 +4,9 @@ What is deployed right now. Update this file on every release — it is the one 
 "what is live", and it is short so it can be read under pressure. The history is in
 `docs/planning/2026-09-deploys/` (25 deploy records, the release chain, the phase build notes).
 
-**Last updated: 2026-09-20** (Wave 2 round two of the four-project audit, and the evening release
-that merged it; see `docs/planning/2026-09-19-audit/RETURN-CODE-AUDIT-2026-09-19-W2.md` and `-W2B.md`).
+**Last updated: 2026-09-22** (the author-page split of W2B §5, the Wave 2 item 7b source-commit
+stamp and the migration it needed on both databases; see
+`docs/planning/2026-09-19-audit/RETURN-CODE-AUDIT-2026-09-19-W2.md` §7 and `-W2B.md` §5).
 
 ## Web, per workspace
 
@@ -14,8 +15,8 @@ both were released together on 2026-09-20.
 
 | Workspace | Host | Deployed commit | How it got there |
 |---|---|---|---|
-| CRC | `overlays.centralreform.org` (alt `crc-overlays.vercel.app`) | `70ad8bb` | `scripts/deploy-workspaces.mjs`, 2026-09-20 13:32 CT (the Git integration also builds every push to `main`) |
-| TBI | `overlays.templebnaiisrael.com` (alt `tbi-overlays.vercel.app`) | `70ad8bb` | `scripts/deploy-workspaces.mjs`, same run |
+| CRC | `overlays.centralreform.org` (alt `crc-overlays.vercel.app`) | `6ac07d2` | `scripts/deploy-workspaces.mjs`, 2026-09-22 (the Git integration also builds every push to `main`) |
+| TBI | `overlays.templebnaiisrael.com` (alt `tbi-overlays.vercel.app`) | `6ac07d2` | `scripts/deploy-workspaces.mjs`, same run |
 
 This file is written after the release it describes, so the commit carrying these words is always one
 ahead of the shas in the table. That one commit is documentation: CRC's Git integration builds it by
@@ -36,7 +37,13 @@ is not finished while they differ.
 
 **Ahead of production: nothing.** `google-signin` and `main` are the same commit. The shadcn strip
 (`d33408c`) was held back over Kol Nidre and Yom Kippur and merged on 2026-09-20 once Daniel confirmed
-the overlays are not used for either service and do not go live until the following week.
+the overlays are not used for either service and do not go live until the following week; it has been
+on `main` and in production since then, and the 2026-09-22 order to merge it found nothing left to do.
+
+**Three commits released on 2026-09-22**, in order: `c5b8b96` (the author-page split), `d15a163` (the
+source-commit stamp) and `6ac07d2` (four Companion research documents another session left untracked
+in this worktree, landed so the release ran from a clean tree). `relay/` did not change, so no relay
+release was owed. Both hosts answer 200 and `/author` renders.
 
 **Five releases on 2026-09-20**, in order: `96cd715` (Wave 2 commits), `4d80925` (library at
 shireishabbat `425f52f`), `a0913a4` (the shadcn strip and the staging fix it required), `c05e244`
@@ -69,7 +76,14 @@ both workspaces 0 renderers and 0 controllers. Record:
 
 ## Databases
 
-Neon, one per workspace, 28 tables each. No migration is pending.
+Neon, one per workspace, 28 tables each. **No migration is pending.**
+
+One ran on 2026-09-22, before the release that needed it, from `scripts/migrate-authoring.mjs`:
+`authoring_revisions` gained `source_commits text[]` on both, 9 columns to 10. `ADD COLUMN IF NOT
+EXISTS`, nullable, no default, so no table was rewritten and no row was touched — CRC 193 revisions /
+217 drafts and TBI 205 revisions / 220 drafts, unchanged either side, 28 tables still. Every existing
+row is NULL and nothing backfills them; the stamp starts with the next publish. Reversible with
+`DROP COLUMN`.
 
 ## Known-open, carried here so it is not lost
 
@@ -78,6 +92,26 @@ Neon, one per workspace, 28 tables each. No migration is pending.
 - The MCP publish chain has never been watched end to end against the deployed function
   (Deploy record 25, "Not verified end to end"). It needs an authoring-scope MCP session, which
   only Daniel can consent to.
+- **The source-commit stamp has never been seen on a real published revision.** The column is live on
+  both databases and the write path is covered by two unit tests, but confirming it end to end means
+  publishing a draft into a congregation's production library, which was not done. The first real
+  publish on either workspace will show it.
+- **`app/author/page.tsx` is 870 lines, not the under-500 the order asked for.** W2B §5's six
+  extractions are all done and are what shipped; the remaining ~370 lines are the thirty async
+  handlers and the 130-line return, and lifting them means either action hooks with ten to sixteen
+  injected dependencies or splitting `AuthorPage` into a library view and an editor view. The second
+  is the right answer and is a redesign, not a lift. See the commit message on `c5b8b96`.
+- **Nothing automated covers the authoring editor's behaviour.** The three test files that mention
+  `app/author/page.tsx` read it as text and assert on markup. Undo/redo, recovery copies, draft sets
+  and the shared shelf have no coverage at all, which is why the split above stopped where it did, and
+  why §5's own verification asks for a manual pass and a `fit_check_draft` comparison that only Daniel
+  can run.
+- **CRC's database carries three extra schemas holding copies of authoring data**:
+  `crc_authoring_rehearsal`, `recovery_1789266627016_4533dca5` and `recovery_1789306559735_c9c2c2d7`.
+  The last two are retained restores from `scripts/restore-recovery-rehearsal.mjs`, which prints a
+  `DROP SCHEMA … CASCADE` and leaves the schema for inspection. They are inert and were not touched by
+  the 09-22 migration, which alters `public` only. TBI has `public` alone. Dropping them is Daniel's
+  call.
 - `GET /api/history` cannot be read by anyone here: it answers an authoring member or a
   `history_reader` credential, and no `history_reader` has been minted. A `CONTROL_KEY` is
   refused. This is what stands between here and the Wave 3 confirmation.
