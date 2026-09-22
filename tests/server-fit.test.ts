@@ -108,7 +108,7 @@ test('a launch that outruns the deadline is closed when it finally lands',async(
  const wasClosed=new Promise<void>(resolve=>{closed=resolve});
  const slow=fakeLauncher(()=>({fitErrors:[],warnings:[],fill:0.5,artwork:'none'}),visited);
  const launch:StageLauncher=()=>new Promise<StageBrowser>(resolve=>{
-  setTimeout(async()=>{const browser=await slow();resolve({...browser,async close(){visited.closed++;closed();return null}})},60);
+  setTimeout(async()=>{const browser=await slow('');resolve({...browser,async close(){visited.closed++;closed();return null}})},60);
  });
  const started=Date.now();
  const result=await measureCueOnServer(CUE,{origin:ORIGIN,deadlineMs:10,launch});

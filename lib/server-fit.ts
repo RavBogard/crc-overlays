@@ -10,8 +10,21 @@
 // Off Linux - a maintainer's Windows or macOS machine - there is no pack, so the same
 // playwright-core launches a locally installed Chrome: PLAYWRIGHT_CHROMIUM_PATH if it is set,
 // otherwise the `chrome` channel. `launch` is injectable so tests never start a browser.
+//
+// Every check runs its Chromium inside a scratch directory of its own, and removes it when the
+// check ends. The pack passes --disable-dev-shm-usage, so Chromium's shared memory is ordinary
+// files in its temp directory: measuring one 1920x1080 cue holds 20-36 MB of it, in the same
+// /tmp that already holds the ~215 MB extracted pack. When that runs short the renderer dies
+// mid-measure ("Target page, context or browser has been closed", phase `measure` - production,
+// 2026-09-22, checks 11 and 12, with Chromium warning of 23 MB and then 15 MB free). Pointing the
+// browser's TMPDIR and HOME at the scratch directory means nothing a check writes can outlive
+// it, on the crash path as much as the clean one, and a check's own residue is measured and
+// logged rather than guessed at. See docs/planning/2026-09-22-sitting-prep/RETURN-FIT-STABILITY.md.
 
+import {mkdtemp,readdir,readFile,rm,stat,statfs} from 'node:fs/promises';
 import {createRequire} from 'node:module';
+import {tmpdir} from 'node:os';
+import {join} from 'node:path';
 import type {Cue} from './player';
 // The names every caller shares live in a dependency-free module, so importing one of them
 // never drags playwright-core or the Chromium pack into another entrypoint's trace. This
@@ -35,7 +48,21 @@ export type StagePage={
  evaluate<Result,Arg>(fn:(arg:Arg)=>Result|Promise<Result>,arg:Arg):Promise<Result>;
 };
 export type StageBrowser={newPage():Promise<StagePage>;close():Promise<unknown>};
-export type StageLauncher=()=>Promise<StageBrowser>;
+/** `scratch` is this check's own directory: the browser's TMPDIR and HOME, removed afterwards. */
+export type StageLauncher=(scratch:string)=>Promise<StageBrowser>;
+/**
+ * The filesystem and process operations the scratch lifecycle needs, injectable so a test can
+ * watch them. `survivors` returns the pids still carrying this scratch directory in their
+ * environment; `kill` ends one.
+ */
+export type ScratchHost={
+ make():Promise<string>;
+ remove(dir:string):Promise<void>;
+ bytes(dir:string):Promise<number>;
+ free():Promise<number|null>;
+ survivors(dir:string):Promise<number[]>;
+ kill(pid:number):void;
+};
 
 const requireFrom=createRequire(import.meta.url);
 
@@ -54,19 +81,85 @@ export function launchPlan(){
   :{kind:'channel' as const,detail:'local Chrome (channel: chrome)'};
 }
 
-async function defaultLaunch():Promise<StageBrowser>{
+/**
+ * One extraction for every check this instance runs. The pack's own `executablePath()` returns
+ * /tmp/chromium as soon as that file exists - including while a first extraction is still
+ * writing it. A cold check that loses its deadline mid-extraction leaves that write running, and
+ * without a shared promise the next check spawns the half-written binary (reproduced on Linux:
+ * `spawn ETXTBSY`, 14 checks in a row). A failed extraction is forgotten so the next check tries
+ * again rather than inheriting the failure.
+ */
+export function sharedExtraction(extract:()=>Promise<string>){
+ let pending:Promise<string>|undefined;
+ return ()=>pending??=extract().catch(error=>{pending=undefined;throw error});
+}
+let packExecutable:(()=>Promise<string>)|undefined;
+
+async function defaultLaunch(scratch:string):Promise<StageBrowser>{
  const {chromium}=await import('playwright-core');
  const plan=launchPlan();
+ // Chromium reads its shared-memory and temp directory from TMPDIR, and writes caches and
+ // databases under HOME. The font directories and the fontconfig cache are absolute paths in
+ // the pack's fonts.conf, so moving HOME changes nothing about which fonts the stage sees.
+ const env={...process.env,TMPDIR:scratch,HOME:scratch} as Record<string,string>;
  if(plan.kind==='sparticuz'){
   const loaded=await import('@sparticuz/chromium');
   const pack=((loaded as {default?:unknown}).default??loaded) as {args:string[];executablePath:()=>Promise<string>;setGraphicsMode:boolean};
-  // The overlay renderer uses no WebGL, so SwiftShader is extraction time and /tmp spent on
-  // nothing - and /tmp is the scarcest thing this function has across a long serial run.
+  // The overlay renderer uses no WebGL, so the GL flags are dropped. (This does not stop the
+  // pack extracting its SwiftShader libraries into /tmp: about 7 MB of the ~215 MB.)
   pack.setGraphicsMode=false;
-  return await chromium.launch({args:pack.args,executablePath:await pack.executablePath(),headless:true}) as unknown as StageBrowser;
+  packExecutable??=sharedExtraction(()=>pack.executablePath());
+  return await chromium.launch({args:pack.args,executablePath:await packExecutable(),headless:true,env}) as unknown as StageBrowser;
  }
- if(plan.kind==='executable')return await chromium.launch({executablePath:process.env.PLAYWRIGHT_CHROMIUM_PATH,headless:true}) as unknown as StageBrowser;
- return await chromium.launch({channel:'chrome',headless:true}) as unknown as StageBrowser;
+ if(plan.kind==='executable')return await chromium.launch({executablePath:process.env.PLAYWRIGHT_CHROMIUM_PATH,headless:true,env}) as unknown as StageBrowser;
+ return await chromium.launch({channel:'chrome',headless:true,env}) as unknown as StageBrowser;
+}
+
+async function treeBytes(dir:string):Promise<number>{
+ let total=0;
+ for(const entry of await readdir(dir,{withFileTypes:true}).catch(()=>[])){
+  const path=join(dir,entry.name);
+  if(entry.isDirectory())total+=await treeBytes(path);
+  else total+=await stat(path).then(info=>info.size,()=>0);
+ }
+ return total;
+}
+
+/**
+ * The real host. `survivors` reads /proc, so it answers only on Linux - which is where the
+ * function runs, and where a Chromium that outlived `close()` would keep its deleted
+ * shared-memory files, and their space, alive. Elsewhere it reports none.
+ */
+export const defaultScratchHost:ScratchHost={
+ make:()=>mkdtemp(join(tmpdir(),'server-fit-')),
+ remove:dir=>rm(dir,{recursive:true,force:true,maxRetries:3}),
+ bytes:treeBytes,
+ free:()=>statfs(tmpdir()).then(info=>Number(info.bavail)*Number(info.bsize),()=>null),
+ async survivors(dir){
+  if(process.platform!=='linux')return [];
+  const marker=`TMPDIR=${dir}`,found:number[]=[];
+  for(const name of await readdir('/proc').catch(()=>[] as string[])){
+   const pid=Number(name);
+   if(!Number.isInteger(pid)||pid===process.pid)continue;
+   const environ=await readFile(`/proc/${pid}/environ`,'latin1').catch(()=>'');
+   if(environ.split('\0').includes(marker))found.push(pid);
+  }
+  return found;
+ },
+ kill:pid=>{try{process.kill(pid,'SIGKILL')}catch{/* already gone */}},
+};
+
+/**
+ * After the browser is closed: end anything of this check's that is still running, then
+ * remove its scratch directory. Returns what it found, for the log. Never throws - cleanup
+ * must not turn a verdict into an error.
+ */
+async function releaseScratch(host:ScratchHost,dir:string){
+ const survivors=await host.survivors(dir).catch(()=>[] as number[]);
+ for(const pid of survivors)host.kill(pid);
+ const leftBytes=await host.bytes(dir).catch(()=>0);
+ await host.remove(dir).catch(()=>{});
+ return {survivors:survivors.length,leftBytes};
 }
 
 class DeadlineExpired extends Error{constructor(){super('deadline_exceeded')}}
@@ -103,10 +196,15 @@ function stageMeasurement(value:unknown):StageMeasurement|null{
  * hard deadline all resolve to `unavailable` rather than throwing - the caller's fallback is
  * to send a human to /author/fit-check.
  */
-export async function measureCueOnServer(cue:Cue,options:{origin:string;deadlineMs?:number;launch?:StageLauncher}):Promise<ServerFitResult>{
+export async function measureCueOnServer(cue:Cue,options:{origin:string;deadlineMs?:number;launch?:StageLauncher;host?:ScratchHost}):Promise<ServerFitResult>{
  const deadlineMs=options.deadlineMs??SERVER_FIT_DEADLINE_MS;
  const launch=options.launch??defaultLaunch;
+ const host=options.host??defaultScratchHost;
  const started=Date.now();
+ // Free space in the shared temp directory before this check starts. Logged with a failure, so
+ // a run that is short of /tmp says so instead of leaving it to Chromium's own stderr.
+ const tmpFreeBefore=await host.free().catch(()=>null);
+ let scratch:string|undefined;
  const remaining=()=>Math.max(1,deadlineMs-(Date.now()-started));
  let browser:StageBrowser|undefined;
  // Keep this separate from the public unavailable reason.  A browser assigned before
@@ -117,9 +215,13 @@ export async function measureCueOnServer(cue:Cue,options:{origin:string;deadline
  // itself outruns the deadline, `browser` is still undefined when the race rejects, and
  // without this handle the Chromium that arrives a moment later would never be closed.
  let launching:Promise<StageBrowser>|undefined;
+ let deadlineHit=false;
  try{
+  // Made before the deadline race, so a deadline can never land between the directory
+  // existing and this function knowing its name.
+  const dir=scratch=await host.make();
   const measurement=await withDeadline(deadlineMs,async()=>{
-   launching=Promise.resolve(launch());
+   launching=Promise.resolve(launch(dir));
    browser=await launching;
    phase='new_page';
    const page=await browser.newPage();
@@ -139,11 +241,12 @@ export async function measureCueOnServer(cue:Cue,options:{origin:string;deadline
   if(!measured)return {verdict:'unavailable',reason:'measurement_invalid'};
   return {verdict:measured.fitErrors.length?'fail':'pass',fitErrors:measured.fitErrors,warnings:measured.warnings,fill:measured.fill,artwork:measured.artwork,measuredAt:Date.now(),rendererVersion:serverRendererVersion()};
  }catch(error){
+  deadlineHit=error instanceof DeadlineExpired;
   // `unavailable` is one word for several very different failures - no Chromium binary in the
   // function, a launch the kernel killed, a stage this deployment does not serve. None of that
   // reaches the caller (an MCP client learns only that a human must look), so the only place it
   // can be read is the function log. Log it there, with what was attempted.
-  console.error('server-fit unavailable',{plan:launchPlan(),origin:options.origin,phase,elapsedMs:Date.now()-started,reason:error instanceof DeadlineExpired?'deadline_exceeded':'stage_error',error:error instanceof DeadlineExpired?undefined:(error instanceof Error?(error.stack??error.message):String(error))});
+  console.error('server-fit unavailable',{plan:launchPlan(),origin:options.origin,phase,elapsedMs:Date.now()-started,tmpFreeBefore,tmpFreeNow:await host.free().catch(()=>null),reason:error instanceof DeadlineExpired?'deadline_exceeded':'stage_error',error:error instanceof DeadlineExpired?undefined:(error instanceof Error?(error.stack??error.message):String(error))});
   // `browser` is assigned only once launch() resolved, so it separates "this function has no
   // Chromium" from "Chromium ran and the stage did not answer" - the one distinction the log
   // line alone could not make - without leaking any error text to the caller.
@@ -153,7 +256,23 @@ export async function measureCueOnServer(cue:Cue,options:{origin:string;deadline
   // outlive the function invocation that started it. A launch that has already resolved is
   // closed before this function returns; one still in flight when the deadline fired is
   // closed whenever it lands, without holding the caller behind it.
-  if(browser)await Promise.resolve(browser.close()).catch(()=>{});
-  else if(launching)void launching.then(late=>late.close()).catch(()=>{});
+  //
+  // Only once the browser is closed is its scratch directory released: a Chromium still
+  // running must not have its temp directory removed from under it. A late launch releases its
+  // scratch when it lands and has been closed, without holding the caller behind it.
+  const finish=async(dir:string|undefined)=>{
+   if(!dir)return;
+   const released=await releaseScratch(host,dir);
+   // Only a residue is worth a log line; a clean release is the expected case, every time.
+   if(released.survivors||released.leftBytes)console.warn('server-fit scratch residue',{...released,tmpFreeAfter:await host.free().catch(()=>null)});
+  };
+  if(browser){await Promise.resolve(browser.close()).catch(()=>{});await finish(scratch)}
+  else if(launching){
+   const dir=scratch,release=launching.then(late=>late.close()).catch(()=>{}).then(()=>finish(dir));
+   // A launch that already failed has settled, so its scratch is released before returning;
+   // only one still in flight when the deadline fired is left to land on its own.
+   if(deadlineHit)void release;else await release;
+  }
+  else await finish(scratch);
  }
 }
