@@ -23,6 +23,11 @@ const RIGHT_PANEL='09f50803-3288-4b78-bcc7-560025668e1a';
 const KOL_NIDRE='library:crc-kol-nidre:erev-yk.kol-nidre@crc-kol-nidre';
 const OPENING_PRAYER='library:crc-kol-nidre:erev-yk.opening-prayer@crc-kol-nidre';
 const PRIVATE_GVUROT='amidah.gvurot-interpretation@legacy-shabbat-morning';
+const PRIVATE_ORIGINAL_SOURCES=[
+ {id:PRIVATE_GVUROT,name:'G’vurot — Interpretation'},
+ {id:'shma.am-i-awake@legacy-shabbat-morning',name:'Am I Awake'},
+ {id:'shma.how-awesome@legacy-shabbat-morning',name:'How Awesome / Shema'},
+] as const;
 const TBI_WORKSPACE='temple-bnai-israel-kalamazoo';
 // Barechu as TBI's starter catalog publishes it (workspaces/temple-bnai-israel/catalog-map.json).
 const TBI_BARECHU='25694476-68e4-4092-943f-4bce41688370';
@@ -157,8 +162,9 @@ test('source search supports browsing, canonical text, and strict filters',async
  const service=createAuthoringService(new MemoryAuthoringRepository());
  const facets=await service.operation('source_facets',{},'tester') as {books:Array<{value:string;label:string;count:number}>;services:Array<{value:string;label:string;count:number}>};assert.ok(facets.books.length>1);assert.ok(facets.services.length>1);assert.ok(facets.books.every(item=>item.value&&item.label&&item.count>0));assert.ok(Buffer.byteLength(JSON.stringify(facets))<16*1024);
  const privateGvurot=sourcePack.sources.find(source=>source.id===PRIVATE_GVUROT)!;assert.equal(privateGvurot.origin,'legacy:authoring-sources');assert.equal(privateGvurot.book,'CRC Shabbat Morning Siddur');assert.deepEqual(privateGvurot.blocks.map(block=>block.kind),['original-en']);assert.equal(privateGvurot.blocks[0].role,'original');
+ for(const expected of PRIVATE_ORIGINAL_SOURCES){const source=sourcePack.sources.find(item=>item.id===expected.id);assert.ok(source,`private source pack includes ${expected.id}`);assert.equal(source.name,expected.name);assert.equal(source.origin,'legacy:authoring-sources');assert.deepEqual(source.blocks.map(block=>block.kind),['original-en']);assert.equal(source.blocks[0].role,'original')}
  const gvurot=await service.operation('search_sources',{query:'source of life',book:'legacy-shabbat-morning',limit:10},'tester') as SearchSourcesResult;const foundGvurot=gvurot.sources.find(source=>source.id===PRIVATE_GVUROT);assert.ok(foundGvurot);assert.equal(foundGvurot.coverage.originalEnglish,1);
- assert.ok(libraryUnitCount>=677);assert.equal(facets.books.reduce((sum,item)=>sum+item.count,0),libraryUnitCount+1,'legacy/expanded equivalents are counted once, English-only units remain browsable, and the declared private G’vurot interpretation remains available to CRC authoring');
+ assert.ok(libraryUnitCount>=677);assert.equal(facets.books.reduce((sum,item)=>sum+item.count,0),libraryUnitCount+PRIVATE_ORIGINAL_SOURCES.length,'legacy/expanded equivalents are counted once, English-only units remain browsable, and every declared private original-English source remains available to CRC authoring');
  const browse=await service.operation('search_sources',{query:'',limit:3},'tester') as SearchSourcesResult;assert.equal(browse.sources.length,3);
  assert.ok(Buffer.byteLength(JSON.stringify(await service.operation('search_sources',{query:'',limit:50},'tester')))<=128*1024);
  const hebrew=await service.operation('search_sources',{query:'הריני'},'tester') as SearchSourcesResult;assert.ok(hebrew.sources.some(source=>source.name==='Hareini'));

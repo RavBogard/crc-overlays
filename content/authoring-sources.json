@@ -5312,6 +5312,62 @@
         "usage": "Private CRC authoring source; no publication, redistribution, attribution, or license grant is asserted by this declaration."
       },
       "unitSha256": "17af487c5bf847fe84de9e4d421665c6567f5503bbdb01229aff7530a6ecff6f"
+    },
+    {
+      "id": "shma.am-i-awake@legacy-shabbat-morning",
+      "name": "Am I Awake",
+      "section": 2,
+      "blocks": [
+        {
+          "id": "shma.am-i-awake@legacy-shabbat-morning#block-0",
+          "index": 0,
+          "kind": "original-en",
+          "en": "Am I awake? Am I prepared? Are you listening to my prayer? Can you hear my voice? Can you understand? Am I awake? Am I prepared?\n\nBar'chu et Adonai hamvorach!\nBaruch Adonai hamvorach l’olam va’ed!",
+          "role": "original",
+          "sourceBlockSha256": "fa1bc05ee1489b7955788ff922ec9d3ac65027233712828fb10d38bd1d382ed0"
+        }
+      ],
+      "provenance": {
+        "source": "CRC private archive presentation composition; exact wording recovered for private authoring only.",
+        "archive": {
+          "file": "Singular-CRC-Archive/2026-09-09-master/master-composition-449398.json",
+          "sha256": "9e372260b251d87a126dfba57dbb699531c466338a9134263963f453db3f8f1c",
+          "compositionId": "b825107b-9899-4d01-a162-645c4fd49c55",
+          "compositionName": "Am I Awake",
+          "titleProperty": "data[7cd7ec0e-5d00-4f73-af60-2ed5cc88fd34].text",
+          "textProperty": "data[a6f231ee-22c9-437a-a772-51a3cc09bd55].text"
+        },
+        "usage": "Private CRC authoring source; no publication, redistribution, attribution, or license grant is asserted by this declaration."
+      },
+      "unitSha256": "e84316bed5c29f37b311ade4c05b31e511bb3e8bb3387f07ef18363e0a1c946c"
+    },
+    {
+      "id": "shma.how-awesome@legacy-shabbat-morning",
+      "name": "How Awesome / Shema",
+      "section": 2,
+      "blocks": [
+        {
+          "id": "shma.how-awesome@legacy-shabbat-morning#block-0",
+          "index": 0,
+          "kind": "original-en",
+          "en": "How awesome is creation\nWith great love, we are loved\nWe are one\nEchad\n\nSh'ma Yisrael Adonai Eloheinu, Adonai Echad!\n(Baruch sheim k'vod malchuto l'olam va'ed)\n",
+          "role": "original",
+          "sourceBlockSha256": "fe34623d1f4e232bd3921293b2626371e67905672a3e64246e565645347984d3"
+        }
+      ],
+      "provenance": {
+        "source": "CRC private archive presentation composition; exact wording recovered for private authoring only.",
+        "archive": {
+          "file": "Singular-CRC-Archive/2026-09-09-master/master-composition-449398.json",
+          "sha256": "9e372260b251d87a126dfba57dbb699531c466338a9134263963f453db3f8f1c",
+          "compositionId": "c1f3a431-bc56-46d4-8893-761105a7fe5d",
+          "compositionName": "How Awesome / Shema",
+          "titleProperty": "data[7c4a53c8-bb63-49e4-bac3-5a2695b0e8b4].text",
+          "textProperty": "data[42565d78-b2f0-4299-9c57-a9876a7f775c].text"
+        },
+        "usage": "Private CRC authoring source; no publication, redistribution, attribution, or license grant is asserted by this declaration."
+      },
+      "unitSha256": "f2626f66eb6978479a238d6d497095a1c8ca9fd6ca4d6b2809ccbc19c21430a4"
     }
   ]
 }
