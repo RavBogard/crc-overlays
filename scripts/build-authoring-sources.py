@@ -51,6 +51,52 @@ def load_supplements(mapping: dict[str, Any], source_root: Path) -> dict[str, st
     return result
 
 
+def private_original_english_sources(mapping: dict[str, Any]) -> list[dict[str, Any]]:
+    """Build reviewed CRC-original readings that are deliberately outside the print feed.
+
+    These records preserve an archive address and hashes in the generated private pack.
+    They are not a permission grant and cannot change the pinned printed source.
+    """
+    sources = []
+    seen_ids = set()
+    for record in mapping.get("privateOriginalEnglish", []):
+        source_id = record.get("id")
+        text = record.get("text")
+        provenance = record.get("provenance")
+        if not isinstance(source_id, str) or not source_id or source_id in seen_ids:
+            raise SystemExit("private original-English source ID is absent or duplicated")
+        if not isinstance(text, str) or not text:
+            raise SystemExit(f"private original-English source text is absent: {source_id}")
+        if text_sha256(text) != record.get("textSha256"):
+            raise SystemExit(f"private original-English source text hash changed: {source_id}")
+        if not isinstance(provenance, dict) or not isinstance(provenance.get("archive"), dict):
+            raise SystemExit(f"private original-English provenance is absent: {source_id}")
+        archive = provenance["archive"]
+        if not all(isinstance(archive.get(key), str) and archive[key] for key in ("file", "sha256", "compositionId", "textProperty")):
+            raise SystemExit(f"private original-English archive provenance is incomplete: {source_id}")
+        if len(archive["sha256"]) != 64:
+            raise SystemExit(f"private original-English archive hash is invalid: {source_id}")
+        block = {
+            "id": f"{source_id}#block-0",
+            "index": 0,
+            "kind": "original-en",
+            "en": text,
+            "role": "original",
+            "sourceBlockSha256": object_sha256({"text": text, "provenance": provenance}),
+        }
+        unit = {
+            "id": source_id,
+            "name": record.get("name") or source_id,
+            "section": record.get("section"),
+            "blocks": [block],
+            "provenance": provenance,
+        }
+        unit["unitSha256"] = object_sha256(unit)
+        sources.append(unit)
+        seen_ids.add(source_id)
+    return sources
+
+
 def main() -> int:
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument("--source-root", type=Path, default=ROOT.parent / "shireishabbat")
@@ -167,6 +213,7 @@ def main() -> int:
                 "blocks": blocks,
             }
         )
+    sources.extend(private_original_english_sources(mapping))
 
     artifact = {
         "schemaVersion": 1,

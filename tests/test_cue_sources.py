@@ -27,9 +27,47 @@ def load_script(name):
 
 generator = load_script("generate-cues.py")
 validator = load_script("validate-cues.py")
+authoring_sources = load_script("build-authoring-sources.py")
 
 
 class SourceAdapterTests(unittest.TestCase):
+    def test_gvurot_interpretation_is_a_private_exact_archive_source(self):
+        mapping = json.loads(
+            (ROOT / "content" / "legacy-crc-shabbat-morning.sources.json").read_text(encoding="utf-8")
+        )
+        records = mapping["privateOriginalEnglish"]
+        self.assertEqual(len(records), 1)
+        record = records[0]
+        self.assertEqual(record["id"], "amidah.gvurot-interpretation@legacy-shabbat-morning")
+        self.assertEqual(record["name"], "G’vurot — Interpretation")
+        self.assertEqual(record["section"], 4)
+        self.assertEqual(
+            record["text"],
+            "You are the eternal power, renewing life. Great is your power to save.\n"
+            "You sustain the living with lovingkindness;\n"
+            "You give life to all with great compassion.\n"
+            "You support those who fall, heal the sick, release the captives,\n"
+            "And keep faith with those that sleep in the dust.\n"
+            "Who is like you?\n"
+            "Who is similar to you, O God,\n"
+            "In whose hands are death and life,\n"
+            "And who causes salvation to spring forth?\n"
+            "Blessed is Yah, the source of life.",
+        )
+        self.assertEqual(authoring_sources.text_sha256(record["text"]), record["textSha256"])
+        archive = record["provenance"]["archive"]
+        self.assertEqual(archive["sha256"], "9e372260b251d87a126dfba57dbb699531c466338a9134263963f453db3f8f1c")
+        self.assertEqual(archive["compositionId"], "c313b482-efec-4c40-9ad9-43687e653de9")
+        self.assertEqual(archive["textProperty"], "data[2fa62d82-48b2-4050-9597-459cf0940c5a].text")
+        built = authoring_sources.private_original_english_sources(mapping)
+        self.assertEqual(len(built), 1)
+        self.assertEqual(built[0]["blocks"][0]["en"], record["text"])
+        self.assertEqual(built[0]["blocks"][0]["role"], "original")
+        self.assertEqual(built[0]["provenance"], record["provenance"])
+        pack = json.loads((ROOT / "content" / "authoring-sources.json").read_text(encoding="utf-8"))
+        generated = next(source for source in pack["sources"] if source["id"] == record["id"])
+        self.assertEqual(generated, built[0])
+
     def test_render_line_preserves_selected_channel_bytes(self):
         units = {
             "sample@legacy": {

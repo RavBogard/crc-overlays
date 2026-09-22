@@ -5268,6 +5268,34 @@
           "sourceBlockSha256": "64fb97462172d3dfa9ef7f34f652202832e3bf112c1ff19a8b4c2781fe90a775"
         }
       ]
+    },
+    {
+      "id": "amidah.gvurot-interpretation@legacy-shabbat-morning",
+      "name": "G’vurot — Interpretation",
+      "section": 4,
+      "blocks": [
+        {
+          "id": "amidah.gvurot-interpretation@legacy-shabbat-morning#block-0",
+          "index": 0,
+          "kind": "original-en",
+          "en": "You are the eternal power, renewing life. Great is your power to save.\nYou sustain the living with lovingkindness;\nYou give life to all with great compassion.\nYou support those who fall, heal the sick, release the captives,\nAnd keep faith with those that sleep in the dust.\nWho is like you?\nWho is similar to you, O God,\nIn whose hands are death and life,\nAnd who causes salvation to spring forth?\nBlessed is Yah, the source of life.",
+          "role": "original",
+          "sourceBlockSha256": "c4f9cfb746682246ae8518185b84879c9ba9300890bbbd8e8dc28629185a16d9"
+        }
+      ],
+      "provenance": {
+        "source": "CRC private archive presentation composition; exact wording recovered for private authoring only.",
+        "archive": {
+          "file": "Singular-CRC-Archive/2026-09-09-master/master-composition-449398.json",
+          "sha256": "9e372260b251d87a126dfba57dbb699531c466338a9134263963f453db3f8f1c",
+          "compositionId": "c313b482-efec-4c40-9ad9-43687e653de9",
+          "compositionName": "Gevurot Trans",
+          "titleProperty": "data[68e2e8ba-47ae-4d24-a7c0-dad76263f97e].text",
+          "textProperty": "data[2fa62d82-48b2-4050-9597-459cf0940c5a].text"
+        },
+        "usage": "Private CRC authoring source; no publication, redistribution, attribution, or license grant is asserted by this declaration."
+      },
+      "unitSha256": "17af487c5bf847fe84de9e4d421665c6567f5503bbdb01229aff7530a6ecff6f"
     }
   ]
 }

@@ -6,6 +6,12 @@ for sacred text. The Singular archive supplies only stable composition UUIDs,
 operator names, title labels, presentation records, and the authorized non-liturgical
 `Thank you` message.
 
+`privateOriginalEnglish` is the narrowly declared exception: a CRC-original English
+interpretation whose exact archive composition, field, and hashes are recorded in the
+mapping. The builder emits it as one `original-en` authoring unit without adding it to
+the pinned feed or any print source. Its declaration records provenance only; it does
+not assert publication, redistribution, attribution, or a license grant.
+
 The mapping pins the whole feed, each selected unit, the archive, each selected
 composition record, and each generated text-field object by SHA-256. Every prayer field names its `he` or `tr` channel and
 its exact block indexes. Generation stops if any pin, unit, stanza type, channel, or

@@ -30,8 +30,29 @@
   "archive": {
     "file": "master-composition-449398.json",
     "sha256": "9e372260b251d87a126dfba57dbb699531c466338a9134263963f453db3f8f1c",
-    "role": "presentation and operator-identity evidence only"
+    "role": "presentation and operator-identity evidence only, except the separately declared privateOriginalEnglish record with its own exact archive provenance"
   },
+  "privateOriginalEnglish": [
+    {
+      "id": "amidah.gvurot-interpretation@legacy-shabbat-morning",
+      "name": "G’vurot — Interpretation",
+      "section": 4,
+      "text": "You are the eternal power, renewing life. Great is your power to save.\nYou sustain the living with lovingkindness;\nYou give life to all with great compassion.\nYou support those who fall, heal the sick, release the captives,\nAnd keep faith with those that sleep in the dust.\nWho is like you?\nWho is similar to you, O God,\nIn whose hands are death and life,\nAnd who causes salvation to spring forth?\nBlessed is Yah, the source of life.",
+      "textSha256": "24a61acde057a8d936025a806af307d77d8d54fafb2cbef9de427cfabb500a89",
+      "provenance": {
+        "source": "CRC private archive presentation composition; exact wording recovered for private authoring only.",
+        "archive": {
+          "file": "Singular-CRC-Archive/2026-09-09-master/master-composition-449398.json",
+          "sha256": "9e372260b251d87a126dfba57dbb699531c466338a9134263963f453db3f8f1c",
+          "compositionId": "c313b482-efec-4c40-9ad9-43687e653de9",
+          "compositionName": "Gevurot Trans",
+          "titleProperty": "data[68e2e8ba-47ae-4d24-a7c0-dad76263f97e].text",
+          "textProperty": "data[2fa62d82-48b2-4050-9597-459cf0940c5a].text"
+        },
+        "usage": "Private CRC authoring source; no publication, redistribution, attribution, or license grant is asserted by this declaration."
+      }
+    }
+  ],
   "units": {
     "awakening.modeh-ani@legacy-shabbat-morning": "584132abec31b3563f197b8af6acd8f05f41afac77f8e6608af9aa35d9997716",
     "shma.barchu@legacy-shabbat-morning": "cf5d3b37a6f0ff55368581dbc087d58dbdd882282a78d553e866aa24c472a6ee",
