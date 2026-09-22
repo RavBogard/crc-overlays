@@ -47,8 +47,9 @@ export type EditableDraft={name:string;title:string;accentTitle?:string;layout:L
 export type SourceAuthorityPin={id:string;feedSha256:string;unitSha256:string;sourceSha256:string};
 export type SourcePin={feedSha256:string;unitSha256:Record<string,string>;blockSha256:Record<string,string>;sourceAuthority?:Record<string,SourceAuthorityPin>};
 export type EnglishRole='translation'|'interpretation'|'translation-interpretation'|'kavannah'|'reading'|'rubric'|'note'|'unclassified';
-export type SourceBlock={id:string;index:number;kind:'bilingual'|'original-en'|'source-en'|'translation-en';pairedBlockIds?:string[];parallelBlockIds?:string[];he?:string;tr?:string;en?:string;role?:'original';englishRole?:EnglishRole;automatic?:boolean;noteLike?:boolean;sourceLabel?:string;sourceBlockSha256:string};
-export type AuthoringSource={id:string;name:string;section:string|number|null;unitSha256:string;blocks:SourceBlock[];origin?:string;sourceSha256?:string;book?:string;service?:string;aliases?:string[];openingWords?:string[];metadata?:Record<string,unknown>;authority?:{id:string;repository:string;repositoryCommit:string;feed:string;feedSha256:string;unitId:string;unitSha256:string}};
+export type SourceBlock={id:string;index:number;kind:'bilingual'|'original-en'|'source-en'|'translation-en';pairedBlockIds?:string[];parallelBlockIds?:string[];he?:string;tr?:string;en?:string;role?:'original';englishRole?:EnglishRole;automatic?:boolean;noteLike?:boolean;sourceLabel?:string;sourceBlockSha256:string;canonicalParentBlockId?:string;canonicalParentBlockSha256?:string};
+export type SourceBoundary={block:number;endAfter:string};
+export type AuthoringSource={id:string;name:string;section:string|number|null;unitSha256:string;blocks:SourceBlock[];sourceBoundaries?:{en:SourceBoundary[]};origin?:string;sourceSha256?:string;book?:string;service?:string;aliases?:string[];openingWords?:string[];metadata?:Record<string,unknown>;authority?:{id:string;repository:string;repositoryCommit:string;feed:string;feedSha256:string;unitId:string;unitSha256:string}};
 export type SharedCueCopySpec=EditableDraft&{sourcePin:SourcePin;sourceSnapshots?:AuthoringSource[]};
 /**
  * What a TBI graphic remembers about the CRC graphic it was copied from. `upstream` is the
@@ -106,11 +107,41 @@ function integer(value:unknown,label:string,min:number,max:number){
  if(!Number.isInteger(value)||(value as number)<min||(value as number)>max)throw new AuthoringError('invalid_input',`${label} must be an integer from ${min} to ${max}`);
  return value as number;
 }
-function source(id:string,snapshots:AuthoringSource[]=[]){
+function rawSource(id:string,snapshots:AuthoringSource[]=[]){
  const found=snapshots.find(item=>item.id===id)??sourcePack.sources.find(item=>item.id===id);
  if(!found)throw new AuthoringError('unknown_source',`Unknown authoring source: ${id}`,404);
  return found;
 }
+function boundaryError(message:string){return new AuthoringError('invalid_source_boundary',message,409)}
+function derivedBlockHash(parent:SourceBlock,ordinal:number,en:string){return createHash('sha256').update(JSON.stringify(canonicalValue({canonicalParentBlockId:parent.id,canonicalParentBlockSha256:parent.sourceBlockSha256,ordinal,en}))).digest('hex')}
+/** Boundaries are pointers in the pack; children are resolved from canonical text at read time. */
+export function resolveSourceBoundaries(value:AuthoringSource):AuthoringSource{
+ const pointers=value.sourceBoundaries?.en;
+ if(!pointers?.length)return value;
+ const byBlock=new Map<number,SourceBoundary[]>();
+ for(const pointer of pointers){
+  if(!pointer||typeof pointer!=='object'||typeof pointer.block!=='number'||!Number.isInteger(pointer.block)||typeof pointer.endAfter!=='string'||!pointer.endAfter)throw boundaryError(`Source ${value.id} has an invalid source boundary pointer`);
+  const group=byBlock.get(pointer.block)??[];group.push(pointer);byBlock.set(pointer.block,group);
+ }
+ const derived:SourceBlock[]=[];
+ for(const [index,cuts] of byBlock){
+  const parent=value.blocks.find(block=>block.index===index);
+  if(!parent||parent.kind!=='original-en'||typeof parent.en!=='string'||!parent.en)throw boundaryError(`Source ${value.id} boundary block ${index} is not canonical original English`);
+  let start=0;const parts:string[]=[];
+  for(const cut of cuts){
+   const first=parent.en.indexOf(cut.endAfter);
+   if(first<0||first!==parent.en.lastIndexOf(cut.endAfter))throw boundaryError(`Source ${value.id} boundary anchor must occur exactly once in block ${index}`);
+   const end=first+cut.endAfter.length;
+   if(end<=start||end>=parent.en.length)throw boundaryError(`Source ${value.id} boundaries for block ${index} must be ordered interior cuts`);
+   parts.push(parent.en.slice(start,end));start=end;
+  }
+  parts.push(parent.en.slice(start));
+  if(parts.some(part=>!part)||parts.join('')!==parent.en)throw boundaryError(`Source ${value.id} boundaries for block ${index} do not form a lossless partition`);
+  parts.forEach((en,ordinal)=>derived.push({...parent,id:`${parent.id}/slice-${ordinal}`,en,sourceBlockSha256:derivedBlockHash(parent,ordinal,en),canonicalParentBlockId:parent.id,canonicalParentBlockSha256:parent.sourceBlockSha256}));
+ }
+ return {...value,blocks:[...value.blocks,...derived]};
+}
+function source(id:string,snapshots:AuthoringSource[]=[]){return resolveSourceBoundaries(rawSource(id,snapshots))}
 function parseGroups(value:unknown,label:string,kind:SourceBlock['kind'],snapshots:AuthoringSource[]=[]){
  if(!Array.isArray(value)||value.length<1||value.length>24)throw new AuthoringError('invalid_input',`${label} must contain 1-24 groups`);
  return value.map((raw,index)=>{
@@ -358,7 +389,7 @@ function selectedPairs(content:DraftContent,snapshots:AuthoringSource[]=[]){
 }
 export function sourceReferences(content:DraftContent,snapshots:AuthoringSource[]=[]){return selectedPairs(content,snapshots)}
 export function draftSetSelections(content:DraftContent,snapshots:AuthoringSource[]=[]):DraftSetSelection[]{if(content.mode==='local-variant')return draftSetSelections(content.base,snapshots);if(content.mode==='custom')return [];if(content.mode==='bilingual'){const base=content.hebrewGroups.flatMap(group=>group.blockIds.map(blockId=>({sourceId:group.sourceId,blockId,channels:['he','tr'] as VariantChannel[]})));if(!content.includeTranslation)return base;const baseKeys=new Set(base.map(item=>JSON.stringify([item.sourceId,item.blockId])));return [...base,...selectedPairs(content,snapshots).filter(item=>!baseKeys.has(JSON.stringify([item.sourceId,item.blockId]))).map(item=>({...item,channels:['en'] as VariantChannel[]}))]}return content.englishGroups.flatMap(group=>group.blockIds.map(blockId=>({sourceId:group.sourceId,blockId,channels:['en'] as VariantChannel[]})))}
-export function sourceSnapshotsFor(content:DraftContent,snapshots:AuthoringSource[]=[]){return [...new Set(selectedPairs(content,snapshots).map(pair=>pair.sourceId))].sort().map(id=>structuredClone(source(id,snapshots)))}
+export function sourceSnapshotsFor(content:DraftContent,snapshots:AuthoringSource[]=[]){return [...new Set(selectedPairs(content,snapshots).map(pair=>pair.sourceId))].sort().map(id=>structuredClone(rawSource(id,snapshots)))}
 export function sourceBlockFor(sourceId:string,blockId:string,snapshots:AuthoringSource[]=[]){const block=source(sourceId,snapshots).blocks.find(item=>item.id===blockId);if(!block)throw new AuthoringError('unknown_block',`Block ${blockId} does not belong to ${sourceId}`,400);return block}
 export function sourcePinFor(content:DraftContent,snapshots:AuthoringSource[]=[],feedSha256=sourcePack.authority.feedSha256):SourcePin{
  if(content.mode==='custom')return {feedSha256:'local',unitSha256:{},blockSha256:{}};
@@ -373,7 +404,7 @@ export function sourcePinFor(content:DraftContent,snapshots:AuthoringSource[]=[]
   feedSha256,
   unitSha256:Object.fromEntries(sourceIds.map(id=>[id,source(id,snapshots).unitSha256])),
   blockSha256:Object.fromEntries(pairs.map(({sourceId,blockId})=>{
-   const block=source(sourceId,snapshots).blocks.find(item=>item.id===blockId)!;
+   const block=sourceBlockFor(sourceId,blockId,snapshots);
    return [JSON.stringify([sourceId,blockId]),block.sourceBlockSha256];
   })),
   ...(Object.keys(sourceAuthority).length?{sourceAuthority}:{}),

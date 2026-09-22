@@ -211,6 +211,7 @@ def main() -> int:
                 "section": unit.get("section"),
                 "unitSha256": object_sha256(unit),
                 "blocks": blocks,
+                **({"sourceBoundaries": unit["sourceBoundaries"]} if unit.get("sourceBoundaries") else {}),
             }
         )
     sources.extend(private_original_english_sources(mapping))
