@@ -147,6 +147,12 @@ test('a transliteration and translation panel receives an explicit two-block sta
  assert.match(source,/textMainEng&&c\.texts\.textTranslation&&!c\.texts\.textMainheb/,'only the no-Hebrew pair receives the alternate stack');
 });
 
+test('a panel stack can republish when constrained text reflows taller',()=>{
+ const initial=panelStackGeometry(73,102),settled=panelStackGeometry(102,102);
+ assert.ok(settled.englishHeight>initial.englishHeight,'the upper channel receives its constrained height');
+ assert.equal(settled.englishTop-settled.hebrewTop-settled.hebrewHeight,settled.gap,'the lower channel remains separated after reflow');
+});
+
 test('structured source rows replace aggregate panel text without changing lower thirds',()=>{
  const contentRows:ContentRow[]=[{he:'עברית',tr:'Transliteration',en:'Translation'}];
  assert.equal(usesPanelRows({layout:'left',contentRows}),true);
