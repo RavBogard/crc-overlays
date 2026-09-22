@@ -109,6 +109,10 @@ export async function measureCueOnServer(cue:Cue,options:{origin:string;deadline
  const started=Date.now();
  const remaining=()=>Math.max(1,deadlineMs-(Date.now()-started));
  let browser:StageBrowser|undefined;
+ // Keep this separate from the public unavailable reason.  A browser assigned before
+ // `newPage()` can still fail before it ever makes a request, so `stage_unavailable` alone
+ // cannot establish that the public-origin request was the problem.
+ let phase='launch';
  // The launch promise is held separately from the browser it resolves to: if `launch()`
  // itself outruns the deadline, `browser` is still undefined when the race rejects, and
  // without this handle the Chromium that arrives a moment later would never be closed.
@@ -117,10 +121,18 @@ export async function measureCueOnServer(cue:Cue,options:{origin:string;deadline
   const measurement=await withDeadline(deadlineMs,async()=>{
    launching=Promise.resolve(launch());
    browser=await launching;
+   phase='new_page';
    const page=await browser.newPage();
    await page.setViewportSize({width:1920,height:1080});
-   await page.goto(new URL(STAGE_PATH,options.origin).toString(),{waitUntil:'load',timeout:remaining()});
+   // `load` waits for every subresource on the page, while this stage needs only its
+   // hydrated `__measureCue` function.  Waiting for DOM readiness first gives that explicit
+   // readiness check the remainder of the one hard budget; it does not accept an unhydrated
+   // or partially loaded stage.
+   phase='navigate';
+   await page.goto(new URL(STAGE_PATH,options.origin).toString(),{waitUntil:'domcontentloaded',timeout:remaining()});
+   phase='stage_ready';
    await page.waitForFunction('typeof window.__measureCue === "function"',undefined,{timeout:remaining()});
+   phase='measure';
    return await page.evaluate<unknown,Cue>(value=>(window as unknown as {__measureCue:(input:Cue)=>Promise<StageMeasurement>}).__measureCue(value),cue);
   });
   const measured=stageMeasurement(measurement);
@@ -131,7 +143,7 @@ export async function measureCueOnServer(cue:Cue,options:{origin:string;deadline
   // function, a launch the kernel killed, a stage this deployment does not serve. None of that
   // reaches the caller (an MCP client learns only that a human must look), so the only place it
   // can be read is the function log. Log it there, with what was attempted.
-  if(!(error instanceof DeadlineExpired))console.error('server-fit launch failed',{plan:launchPlan(),origin:options.origin,error:error instanceof Error?(error.stack??error.message):String(error)});
+  console.error('server-fit unavailable',{plan:launchPlan(),origin:options.origin,phase,elapsedMs:Date.now()-started,reason:error instanceof DeadlineExpired?'deadline_exceeded':'stage_error',error:error instanceof DeadlineExpired?undefined:(error instanceof Error?(error.stack??error.message):String(error))});
   // `browser` is assigned only once launch() resolved, so it separates "this function has no
   // Chromium" from "Chromium ran and the stage did not answer" - the one distinction the log
   // line alone could not make - without leaking any error text to the caller.

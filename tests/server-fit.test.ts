@@ -7,7 +7,7 @@ import type {Cue} from '../lib/player.ts';
 const ORIGIN='https://crc-overlays.example';
 const CUE={id:'cue-1',name:'Barechu',title:'Barechu',layout:'bottom',texts:{}} as unknown as Cue;
 
-type Visited={viewport:{width:number;height:number}|null;url:string|null;waited:string|null;evaluated:Cue|null;closed:number};
+type Visited={viewport:{width:number;height:number}|null;url:string|null;gotoWaitUntil:string|null;waited:string|null;evaluated:Cue|null;closed:number};
 
 /** A fake Playwright: no browser, no network. `page.evaluate` returns whatever the stage would. */
 function fakeLauncher(measure:(cue:Cue)=>Promise<StageMeasurement>|StageMeasurement,visited:Visited):StageLauncher{
@@ -15,7 +15,7 @@ function fakeLauncher(measure:(cue:Cue)=>Promise<StageMeasurement>|StageMeasurem
   async newPage(){
    return {
     async setViewportSize(size){visited.viewport=size},
-    async goto(url){visited.url=url;return null},
+    async goto(url,options){visited.url=url;visited.gotoWaitUntil=options?.waitUntil??null;return null},
     async waitForFunction(expression){visited.waited=expression;return true},
     async evaluate<Result,Arg>(_fn:(arg:Arg)=>Result|Promise<Result>,arg:Arg){visited.evaluated=arg as unknown as Cue;return await measure(arg as unknown as Cue) as unknown as Result},
    };
@@ -23,7 +23,7 @@ function fakeLauncher(measure:(cue:Cue)=>Promise<StageMeasurement>|StageMeasurem
   async close(){visited.closed++;return null},
  } satisfies StageBrowser);
 }
-const fresh=():Visited=>({viewport:null,url:null,waited:null,evaluated:null,closed:0});
+const fresh=():Visited=>({viewport:null,url:null,gotoWaitUntil:null,waited:null,evaluated:null,closed:0});
 
 test('a clean cue measured on the server passes and reports the server renderer',async()=>{
  const visited=fresh();
@@ -31,6 +31,7 @@ test('a clean cue measured on the server passes and reports the server renderer'
  assert.equal(result.verdict,'pass');
  assert.deepEqual(visited.viewport,{width:1920,height:1080});
  assert.equal(visited.url,`${ORIGIN}${STAGE_PATH}`);
+ assert.equal(visited.gotoWaitUntil,'domcontentloaded');
  assert.match(visited.waited??'',/__measureCue/);
  assert.equal(visited.evaluated?.id,'cue-1');
  assert.equal(visited.closed,1);
