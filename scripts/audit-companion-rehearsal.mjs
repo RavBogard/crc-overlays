@@ -8,7 +8,7 @@ for(const key of ['deck','slots','report','source'])if(!args[key])throw Error(`M
 const read=file=>{const bytes=fs.readFileSync(file);const text=bytes[0]===0x1f&&bytes[1]===0x8b?zlib.gunzipSync(bytes):bytes;return JSON.parse(text)}
 const cue=value=>value&&typeof value==='object'&&'value'in value?value.value:value
 const actions=control=>Object.values(control?.steps??{}).flatMap(step=>Object.values(step?.action_sets??{}).flat())
-const cameraActions=control=>Object.entries(control?.steps??{}).map(([step,record])=>[step,Object.entries(record?.action_sets??{}).map(([set,items])=>[set,items.filter(action=>!['animateIn','animateOut','takeOutAllOutput','toggle_cue','show_cue','animate_out','clear_now'].includes(action?.definitionId)).map(({id,upgradeIndex,...action})=>action)])]).filter(([,sets])=>sets.some(([,items])=>items.length))
+const cameraActions=control=>Object.entries(control?.steps??{}).map(([step,record])=>[step,Object.entries(record?.action_sets??{}).map(([set,items])=>[set,items.filter(action=>!['animateIn','animateOut','takeOutAllOutput','toggle_cue','show_cue','animate_out','clear_now'].includes(action?.definitionId)).map(action=>{const copy={...action};delete copy.id;delete copy.upgradeIndex;return copy})])]).filter(([,sets])=>sets.some(([,items])=>items.length))
 const cells=(config,page)=>Object.entries(config.pages?.[String(page)]?.controls??{}).flatMap(([row,columns])=>Object.entries(columns??{}).map(([column,control])=>({row,column,control})))
 const deck=read(args.deck), source=read(args.source), slots=read(args.slots), report=read(args.report)
 const required=Object.values(slots).map(item=>typeof item==='string'?item:item?.cueId).filter(Boolean)
