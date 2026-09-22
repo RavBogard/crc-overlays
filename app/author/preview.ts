@@ -12,6 +12,13 @@ const HEIGHT = 1080;
 // absorbs that font-metric overhang without masking real fit/overlap errors.
 export const FONT_METRIC_TOLERANCE = 6;
 
+function overflowTolerance(element: HTMLElement): number {
+  // The tolerance is for Noto Sans Hebrew's glyph metrics. A single-channel English
+  // panel has a real, fixed text box, so even a small scroll overflow there clips
+  // authored copy and must fail the fit verdict.
+  return element.classList.contains("single-channel") && !/[\u0590-\u05FF]/.test(element.textContent || "") ? 0 : FONT_METRIC_TOLERANCE;
+}
+
 export async function waitForPreviewAssets(root: HTMLElement) {
   await waitForRenderedOverlayAssets(root);
 }
@@ -76,10 +83,8 @@ export function findFitErrors(root: HTMLElement) {
       box.bottom > rootBox.top + HEIGHT * scale + 0.5
     )
       errors.push(`${name} extends beyond the frame.`);
-    if (
-      element.scrollWidth > element.clientWidth + FONT_METRIC_TOLERANCE ||
-      element.scrollHeight > element.clientHeight + FONT_METRIC_TOLERANCE
-    )
+    const tolerance = overflowTolerance(element);
+    if (element.scrollWidth > element.clientWidth + tolerance || element.scrollHeight > element.clientHeight + tolerance)
       errors.push(`${name} does not fit its box.`);
   }
   const occupied = occupiedRects(root);

@@ -1,6 +1,6 @@
 import assert from "node:assert/strict";
 import test from "node:test";
-import { BUG_RESERVED_NAME, FONT_METRIC_TOLERANCE, SPARSE_FILL, findBugCollisions, findFitWarnings, overlapErrors, panelFillRatio } from "./preview.ts";
+import { BUG_RESERVED_NAME, FONT_METRIC_TOLERANCE, SPARSE_FILL, findBugCollisions, findFitErrors, findFitWarnings, overlapErrors, panelFillRatio } from "./preview.ts";
 import { BUG_RESERVED_RECT } from "../../lib/bug-layer.ts";
 
 test("same-owner overlapping rects produce no error", () => {
@@ -12,6 +12,46 @@ test("same-owner overlapping rects produce no error", () => {
     2,
   );
   assert.deepEqual(errors, []);
+});
+
+function singleChannelRoot(text: string, scrollHeight: number, clientHeight: number): HTMLElement {
+  const box = { left: 48, top: 184, right: 624, bottom: 1024, width: 576, height: 840 };
+  const element = {
+    dataset: { element: "textMain" },
+    textContent: text,
+    classList: { contains: (name: string) => name === "single-channel" },
+    scrollWidth: 576,
+    clientWidth: 576,
+    scrollHeight,
+    clientHeight,
+    getBoundingClientRect: () => box,
+    rects: [box],
+  };
+  const createRange = () => {
+    let current: typeof element | null = null;
+    return { selectNodeContents(next: typeof element) { current = next; }, getClientRects() { return current ? current.rects : []; } };
+  };
+  return {
+    ownerDocument: { createRange },
+    getBoundingClientRect: () => ({ left: 0, top: 0, right: 1920, bottom: 1080, width: 1920, height: 1080 }),
+    querySelector: (selector: string) => selector === ".overlay" ? {} : null,
+    querySelectorAll: (selector: string) => selector === ".overlay .part, .overlay .content-row, .overlay .prayer" || selector === ".overlay .title, .overlay .prayer" ? [element] : [],
+  } as unknown as HTMLElement;
+}
+
+test("a single-channel English panel fails when its constrained text box scrolls by 6px", () => {
+  const root = singleChannelRoot("English interpretation", 846, 840);
+  assert.deepEqual(findFitErrors(root), ["textMain does not fit its box."]);
+});
+
+test("a single-channel English panel exactly fitting its constrained box still passes", () => {
+  const root = singleChannelRoot("English interpretation", 840, 840);
+  assert.deepEqual(findFitErrors(root), []);
+});
+
+test("a Hebrew single-channel panel retains the approved 6px metric tolerance", () => {
+  const root = singleChannelRoot("גְּבוּרוֹת", 846, 840);
+  assert.deepEqual(findFitErrors(root), []);
 });
 
 test("different-owner overlapping rects produce an overlap error", () => {
