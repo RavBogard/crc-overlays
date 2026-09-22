@@ -16,6 +16,7 @@ import {overlayAssetUrl,waitForRenderedOverlayAssets} from '@/lib/overlay-assets
 import {consoleKeyAction,nextInspected} from '@/lib/console-keys';
 import {BUG_PAGE_INPUT_PATTERN,bugPageLengthRefusal,commandErrorMessage} from '@/lib/console-messages';
 import type {BugState} from '@/lib/bug-layer';
+import {restingLogoStatus,type RestingLogoState} from '@/lib/resting-logo';
 
 type ModelContext={registerTool:(tool:unknown,options:{signal:AbortSignal})=>unknown};
 type Role='owner'|'editor'|'operator';
@@ -62,9 +63,9 @@ function LiveStage({cues,state,workspace,onReady,children}:{cues:Cue[];state:Rea
    stay mounted and one is hidden, so choosing a preview never disposes the live Player and throws
    away a graphic mid-animation. Neither stage touches the output; both re-render locally. */
 function OnAirPanel(props:{
- inspectedCue:Cue|null;liveCue:Cue|null;cues:Cue[];state:RealtimeSnapshot|null;workspace:PublicWorkspace|null;chip:ChipState;scanCardOn:boolean;
+ inspectedCue:Cue|null;liveCue:Cue|null;cues:Cue[];state:RealtimeSnapshot|null;workspace:PublicWorkspace|null;chip:ChipState;scanCardOn:boolean;restingLogoResting:boolean;
  onShow:()=>void;onAnimateOut:()=>void;onClear:()=>void;showGuard:ShowGuard;clearGuard:ShowGuard;controlReason:string}){
- const{inspectedCue,liveCue,cues,state,workspace,chip,scanCardOn,showGuard,clearGuard,controlReason}=props;
+ const{inspectedCue,liveCue,cues,state,workspace,chip,scanCardOn,restingLogoResting,showGuard,clearGuard,controlReason}=props;
  const[previewReady,setPreviewReady]=useState(false),[liveReady,setLiveReady]=useState(false);
  const previewing=Boolean(inspectedCue),liveName=liveCue?friendlyCueName(liveCue.name):'';
  const waiting=previewing?!previewReady&&Boolean(inspectedCue):Boolean(liveCue)&&!liveReady;
@@ -74,7 +75,7 @@ function OnAirPanel(props:{
    {previewing?<span className="on-air-badge">Preview</span>:chip==='disconnected'?<span className="state-chip disconnected">Disconnected</span>:null}
   </div>
   <div className="on-air-frame">
-   <div className="stage-slot" data-hidden={previewing||undefined} aria-hidden={previewing||undefined}><LiveStage cues={cues} state={state} workspace={workspace} onReady={setLiveReady}>{workspace&&!liveCue&&<p>Nothing on air.{scanCardOn?' The scan card is showing.':''}</p>}</LiveStage></div>
+   <div className="stage-slot" data-hidden={previewing||undefined} aria-hidden={previewing||undefined}><LiveStage cues={cues} state={state} workspace={workspace} onReady={setLiveReady}>{workspace&&!liveCue&&<p>Nothing on air.{scanCardOn?' The scan card is showing.':restingLogoResting?' The resting logo is showing.':''}</p>}</LiveStage></div>
    <div className="stage-slot" data-hidden={!previewing||undefined} aria-hidden={!previewing||undefined}><StillStage cue={inspectedCue} workspace={workspace} onReady={setPreviewReady}/></div>
   </div>
   {previewing&&<button className="show show-primary" aria-label={`Show ${friendlyCueName(inspectedCue!.name)} live`} {...showGuard} onClick={props.onShow}>Show</button>}
@@ -82,7 +83,7 @@ function OnAirPanel(props:{
   {waiting&&<p className="on-air-line">Preparing fonts and artwork…</p>}
   <div className="out-actions">
    <button className="animate-out" {...showGuard} onClick={props.onAnimateOut}>Animate out</button>
-   <button className="cut" title={clearGuard.title||'Clear also removes the scan card.'} disabled={clearGuard.disabled} onClick={props.onClear}>Clear</button>
+   <button className="cut" title={clearGuard.title||'Clear also removes the scan card and turns the resting logo off.'} disabled={clearGuard.disabled} onClick={props.onClear}>Clear</button>
   </div>
   {controlReason&&<small className="control-reason">{controlReason}</small>}
  </aside>;
@@ -106,7 +107,7 @@ export default function Console(){
  useEffect(()=>{client.current=sessionStorage.getItem('crc-controller-id')||crypto.randomUUID();sessionStorage.setItem('crc-controller-id',client.current);sequence.current=Number(sessionStorage.getItem('crc-controller-sequence')||0);setKey(sessionStorage.getItem('crc-control-key')||'');void fetchAccessUser().then(user=>{if(user){setKey('session');setRole(user.role as Role)}}).catch(()=>{});void fetch('/api/workspace').then(r=>r.ok?r.json():null).then(result=>{if(result?.organizationName)setWorkspace(result)}).catch(()=>{})},[]);
  useEffect(()=>{if(!key){connectedRef.current=false;setConnected(false);return}let stopped=false;setCues([]);catalogVersion.current='';setError('');const validCatalog=(next:unknown):next is Cue[]=>Array.isArray(next)&&next.every(c=>c&&typeof c.id==='string'&&typeof c.name==='string'&&typeof c.layout==='string'&&c.texts&&typeof c.texts==='object'&&Array.isArray(c.animations)&&c.duration&&typeof c.duration==='object');const catalogRefresh=new CatalogRefreshCoordinator({getVersion:()=>catalogVersion.current,load:async()=>{const response=await fetch('/api/catalog',{headers:key==='session'?{}:{Authorization:`Bearer ${key}`},cache:'no-store',signal:AbortSignal.timeout(4000)});const body:unknown=await response.json();const version=response.headers.get('X-CRC-Catalog-Version')||'';if(!response.ok||!validCatalog(body))throw Error('Graphic catalog unavailable: refresh failed.');return {cues:body,version}},apply:catalog=>{if(!stopped){catalogVersion.current=catalog.version;setCues(catalog.cues)}}});const refreshCatalog=(version:string)=>catalogRefresh.request(version).catch(()=>{if(!stopped)setError('Graphic catalog unavailable: refresh failed.')});void refreshCatalog('initial-http-load');const transport=new BrowserRealtimeTransport({key,role:'control',id:client.current,getCatalogVersion:()=>catalogVersion.current,onSnapshot:(snapshot:RealtimeSnapshot)=>{if(!stopped)accept(snapshot);if(snapshot.catalogVersion!==catalogVersion.current)void refreshCatalog(snapshot.catalogVersion)},onCatalog:refreshCatalog,onPresence:(renderers,serverTime)=>{if(stopped)return;setState(previous=>{if(!previous||serverTime<previous.serverTime)return previous;const next={...previous,renderers,serverTime};stateRef.current=next;return next})},onStatus:status=>{if(stopped)return;if(status==='live'){connectedRef.current=true;setConnected(true);setError(current=>current==='Realtime connection unavailable.'?'':current)}else if(status==='reconnecting'){connectedRef.current=false;setConnected(false);setError('Realtime connection unavailable.')}}});transport.start();return()=>{stopped=true;connectedRef.current=false;transport.stop()}},[key]);
  useEffect(()=>{if(!cues.length)return;const params=new URLSearchParams(window.location.search),id=params.get('preview')??params.get('inspect');if(id&&cues.some(cue=>cue.id===id))setInspected(id)},[cues]);
- async function command(action:string,cue?:string,bug?:BugState){const nextSequence=++sequence.current;sessionStorage.setItem('crc-controller-sequence',String(nextSequence));setPending(true);setError('');try{const r=await fetch('/api/command',{method:'POST',signal:AbortSignal.timeout(5000),headers:{...(key==='session'?{}:{Authorization:`Bearer ${key}`}), 'Content-Type':'application/json'},body:JSON.stringify({commandId:crypto.randomUUID(),clientId:client.current,sequence:nextSequence,action,cue,...(bug?{bug}:{})})});if(!r.ok){let refusal:unknown=null;try{refusal=await r.json()}catch{}throw Error(commandErrorMessage(refusal))}const result=await r.json() as RealtimeSnapshot;accept(result);return {revision:result.revision,cue:result.cue}}catch(e){setError(e instanceof Error?e.message:String(e));throw e}finally{setPending(false)}}
+ async function command(action:string,cue?:string,bug?:BugState,logo?:RestingLogoState){const nextSequence=++sequence.current;sessionStorage.setItem('crc-controller-sequence',String(nextSequence));setPending(true);setError('');try{const r=await fetch('/api/command',{method:'POST',signal:AbortSignal.timeout(5000),headers:{...(key==='session'?{}:{Authorization:`Bearer ${key}`}), 'Content-Type':'application/json'},body:JSON.stringify({commandId:crypto.randomUUID(),clientId:client.current,sequence:nextSequence,action,cue,...(bug?{bug}:{}),...(logo?{logo}:{})})});if(!r.ok){let refusal:unknown=null;try{refusal=await r.json()}catch{}throw Error(commandErrorMessage(refusal))}const result=await r.json() as RealtimeSnapshot;accept(result);return {revision:result.revision,cue:result.cue}}catch(e){setError(e instanceof Error?e.message:String(e));throw e}finally{setPending(false)}}
  useEffect(()=>{if(!key)return;const context=(document as Document&{modelContext?:ModelContext}).modelContext;if(!context?.registerTool)return;const lifecycle=new AbortController();const register=(tool:unknown)=>{try{void Promise.resolve(context.registerTool(tool,{signal:lifecycle.signal})).catch(()=>{})}catch{}};register({name:'read_overlay_status',description:'Read the requested graphic and recent graphics-output acknowledgments. Rendered does not establish that vMix or OBS is on air.',inputSchema:{type:'object',properties:{},additionalProperties:false},annotations:{readOnlyHint:true},execute:async()=>{if(!stateRef.current)throw Error('Status unavailable');return {...stateRef.current,transportConnected:connectedRef.current}}});register({name:'set_overlay_cue',description:'Change the graphics output: show a known prayer graphic, animate out, or clear immediately. This controls output, not just the preview.',inputSchema:{type:'object',properties:{action:{type:'string',enum:['in','clear','cut']},cue:{type:'string',enum:cues.map(c=>c.id)}},required:['action'],additionalProperties:false},annotations:{readOnlyHint:false},execute:async(input:unknown)=>{if(!input||typeof input!=='object'||Array.isArray(input))throw Error('Invalid action or prayer cue');const value=input as Record<string,unknown>;if(typeof value.action!=='string'||!['in','clear','cut'].includes(value.action)||Object.keys(value).some(k=>!['action','cue'].includes(k))||(value.action==='in'&&!cues.some(c=>c.id===value.cue)))throw Error('Invalid action or prayer cue');return command(value.action,typeof value.cue==='string'?value.cue:undefined)}});return()=>lifecycle.abort()},[key,cues]);
  const renderers:RendererAck[]=state?.renderers??[],settled=state?renderers.filter(r=>r.revision===state.revision&&r.cue===state.cue&&r.phase==='settled'):[],catalogReady=cues.length>0,liveCue=cues.find(c=>c.id===state?.cue)??null,inspectedCue=cues.find(c=>c.id===inspected)??null,filteredCues=searchCues(cues.filter(c=>!c.hidden),filter),inspect=(id:string)=>{setInspected(id);const url=new URL(window.location.href);url.searchParams.delete('inspect');url.searchParams.set('preview',id);history.replaceState(null,'',url)},clearInspected=()=>{setInspected(null);const url=new URL(window.location.href);url.searchParams.delete('inspect');url.searchParams.delete('preview');history.replaceState(null,'',url)};
  /* Unhealthy mirrors the Companion module: no transport, or no renderer attached. The chip keeps
@@ -122,6 +123,16 @@ export default function Console(){
     a disallowed character is refused by the relay, whose sentence command() now shows. */
  const bugOn=state?.bug?.on??false;
  function sendBug(on:boolean){const refusal=bugPageLengthRefusal(bugPage);if(refusal){setError(refusal);return}void command('bug',undefined,{on,page:bugPage.trim()||null}).catch(()=>{})}
+ /* The resting logo. Two states are deliberately shown as one control and two sentences: the
+    button carries the PREFERENCE, which is what the press changes and what survives a reload,
+    and the line under the name says whether anything is currently covering it. Pressing Turn on
+    during a graphic is a real, remembered change even though nothing appears; saying only "On"
+    there would be a control claiming a picture it cannot see. Neither line is a report from a
+    graphics browser -- it is derived from the same requested live state the button writes. */
+ const logoOn=state?.logo?.on??false;
+ const logoStatus=restingLogoStatus(workspace?.restingLogo??null,state?.logo??null,{cueOccupied:Boolean(state?.cue),scanCardVisible:bugOn});
+ const logoLine=logoStatus==='suppressed'?'On · held back while something else is up':logoStatus==='resting'?'On · showing while the output is clear':'Off · the output rests empty';
+ function sendLogo(on:boolean){void command('logo',undefined,undefined,{on}).catch(()=>{})}
  /* U6: the keyboard only moves the inspect selection. consoleKeyAction has no Show outcome, and
     nothing here calls command(...) — showing live stays a deliberate click, or Enter on a focused
     Show button, which is the browser's own button behaviour rather than a binding of ours. */
@@ -140,6 +151,14 @@ export default function Console(){
      <label className="scan-page" htmlFor="scan-card-page">Page<input id="scan-card-page" type="text" inputMode="text" autoComplete="off" maxLength={12} pattern={BUG_PAGE_INPUT_PATTERN} value={bugPage} onChange={event=>setBugPage(event.target.value)} onBlur={()=>{if(bugOn)sendBug(true)}} onKeyDown={event=>{if(event.key==='Enter'&&bugOn)sendBug(true)}}/></label>
      <button className="show" type="button" {...showGuard} onClick={()=>sendBug(!bugOn)}>{bugOn?'Hide':'Show'}</button>
     </div>}
+    {/* The resting logo is its own pinned row, beside the scan card and never the same
+        control: this one shows the congregation's artwork in the corner and never a QR code,
+        and Clear now turns it off along with everything else. */}
+    {workspace?.restingLogo?.enabled&&<div className="graphic-row scan-row">
+     <span className="row-thumb scan-thumb" aria-hidden>◕</span>
+     <span className="row-name"><strong>Resting logo</strong><small>{logoLine}</small></span>
+     <button className="show" type="button" {...showGuard} onClick={()=>sendLogo(!logoOn)}>{logoOn?'Turn off':'Turn on'}</button>
+    </div>}
     {filteredCues.length?filteredCues.map(c=>{const name=friendlyCueName(c.name),live=state?.cue===c.id;return <div className={`graphic-row${live?' live':''}${inspected===c.id?' inspected':''}`} data-cue={c.id} key={c.id} role="option" aria-selected={inspected===c.id} tabIndex={-1} onClick={()=>inspect(c.id)}>
      <GraphicThumbnail layout={c.layout} title={name} className="row-thumb"/>
      <span className="row-name"><strong>{name}</strong><small>{openingWords(c)||layoutLabel(c.layout)}</small></span>
@@ -148,7 +167,7 @@ export default function Console(){
     </div>}):<p role="status" className="no-matches">No matching graphics. Try fewer words or another spelling.</p>}
    </div>
   </section>
-  <OnAirPanel inspectedCue={inspectedCue} liveCue={liveCue} cues={cues} state={state} workspace={workspace} chip={chip} scanCardOn={bugOn}
+  <OnAirPanel inspectedCue={inspectedCue} liveCue={liveCue} cues={cues} state={state} workspace={workspace} chip={chip} scanCardOn={bugOn} restingLogoResting={logoStatus==='resting'}
    showGuard={showGuard} clearGuard={{disabled:!connected,title:controlReason||undefined}} controlReason={controlReason}
    onShow={()=>{if(inspectedCue)void command('in',inspectedCue.id).then(()=>clearInspected()).catch(()=>{})}}
    onAnimateOut={()=>void command('clear').catch(()=>{})}

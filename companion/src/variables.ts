@@ -18,6 +18,11 @@ export interface OverlayVariables {
   requested_name: string
   bug: string
   bug_page: string
+  // The resting logo. `logo` is the preference the operator set; `logo_state` adds whether
+  // something else is currently holding the mark back. Neither is a rendered report — the site
+  // decides visibility from the graphic actually on its stage, and no variable here sees that.
+  logo: string
+  logo_state: string
 }
 
 /**
@@ -41,6 +46,8 @@ export interface VariableInput {
   connection: ConnectionLabel
   /** Whether the live state carries a scan card. A snapshot without one is Off. */
   bugOn?: boolean
+  logoOn?: boolean
+  logoState?: string
   /** The page beside the scan card, blank whenever there is none. */
   bugPage?: string
 }
@@ -59,6 +66,8 @@ export function overlayVariables(input: VariableInput): OverlayVariables {
     connection: input.connection,
     revision: input.revision,
     bug: input.bugOn ? 'On' : 'Off',
+    logo: input.logoOn ? 'On' : 'Off',
+    logo_state: input.logoState ?? 'Off',
     bug_page: input.bugPage ?? '',
     renderer_status: input.connection === 'Disconnected' ? 'Disconnected' : input.currentName ? 'Rendered' : 'Requested',
   }

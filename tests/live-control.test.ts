@@ -57,7 +57,29 @@ test('the scan card is the first row of the list, not a block of its own', () =>
   assert.ok(list < scan && scan < first, 'it is pinned above the graphics');
   assert.ok(!consolePage.includes('<h3>Scan card</h3>'), 'its separate heading is gone');
   assert.ok(!consolePage.includes('Show scan card'), 'the row toggles with Show and Hide');
-  assert.ok(consolePage.includes("title={clearGuard.title||'Clear also removes the scan card.'}"), 'the note became the Clear tooltip');
+  assert.ok(consolePage.includes("title={clearGuard.title||'Clear also removes the scan card and turns the resting logo off.'}"), 'the note became the Clear tooltip, and names both layers Clear removes');
+});
+
+/* The resting logo is a second pinned row, and the two rows are deliberately not one control:
+   the scan card shows a QR panel with a caption and a page, the resting logo shows the
+   congregation's own artwork and nothing else. A single "logo" button doing both was the thing
+   the sitting asked us to stop doing. */
+test('the resting logo is its own row, and never sends a scan card', () => {
+  const scan = consolePage.indexOf('className="graphic-row scan-row"');
+  const logo = consolePage.indexOf('<strong>Resting logo</strong>');
+  const first = consolePage.indexOf('{filteredCues.length?filteredCues.map(');
+  assert.ok(scan < logo && logo < first, 'it is pinned above the graphics, below the scan card');
+  assert.ok(consolePage.includes("function sendLogo(on:boolean){void command('logo',undefined,undefined,{on})"), 'its button sends the logo action, with no bug attached');
+  assert.ok(consolePage.includes("workspace?.restingLogo?.enabled&&"), 'and only where the congregation is configured for one');
+  assert.ok(!consolePage.includes("sendBug(true)}}>{logoOn"), 'the two rows share no handler');
+});
+
+/* Preference and picture are different facts, and the row says both: the button carries the
+   setting, the line under the name says whether something else is holding the mark back. */
+test('the resting logo row distinguishes the setting from what is on screen', () => {
+  assert.ok(consolePage.includes("const logoOn=state?.logo?.on??false;"), 'the button reads the durable preference');
+  assert.ok(consolePage.includes("logoStatus==='suppressed'?'On · held back while something else is up'"), 'and a suppressed logo never reads as showing');
+  assert.ok(consolePage.includes("{logoOn?'Turn off':'Turn on'}"), 'the button names the setting it changes');
 });
 
 /* ---------- the on-air panel ---------- */

@@ -59,7 +59,7 @@ describe('variable derivation', () => {
     expect(variables).toEqual({
       requested_cue: 'Mah Tovu — 01 of 03', requested_cue_id: '', requested_name: 'Mah Tovu — 01 of 03', current_name: 'Mah Tovu — 01 of 03',
       current_panel: '01', panel_count: '03', connection: 'Connected', revision: 7, renderer_status: 'Rendered',
-      bug: 'Off', bug_page: '',
+      bug: 'Off', bug_page: '', logo: 'Off', logo_state: 'Off',
     })
   })
 

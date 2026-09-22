@@ -18,11 +18,15 @@ export const MAX_CONTROLLER_BYTES=112;
 // (`"bug":{"on":true,"page":"123"}`) serializes at ~34 bytes; 192 is deliberate slack
 // so a later widening of `page` is not a second reservation.
 export const MAX_BUG_BYTES=192;
+// Bytes reserved for the optional `logo` field -- the resting logo's preference, a separate
+// feature from the scan card above. `"logo":{"on":true}` serializes at ~20 bytes; 64 leaves
+// room for a later field without needing a second reservation.
+export const MAX_LOGO_BYTES=64;
 // Leave room for revision, renderer presence, a full controller set, the optional scan
 // card, and event framing around a pinned cue. Every one of those shares the SINGLE
 // MAX_SNAPSHOT_BYTES cap with the pinned cue, so each allowance comes out of the cue
 // payload headroom rather than sitting on top of it.
-export const MAX_CUE_PAYLOAD_BYTES=MAX_SNAPSHOT_BYTES-4096-MAX_CONTROLLERS*MAX_CONTROLLER_BYTES-MAX_BUG_BYTES;
+export const MAX_CUE_PAYLOAD_BYTES=MAX_SNAPSHOT_BYTES-4096-MAX_CONTROLLERS*MAX_CONTROLLER_BYTES-MAX_BUG_BYTES-MAX_LOGO_BYTES;
 export const MAX_RECEIPTS=2048;
 // The cue log (2026-09-14 integration ruling 7). A bounded operational history of what the
 // service actually did, never who did it: 2,000 rows or 14 days, whichever is smaller, and a
@@ -57,14 +61,22 @@ export type Hello={id:string;client:ClientKind;version:string|null};
 // a deploy unchanged and reads as "no scan card"; the field is present only while the
 // card is on, so a `{on:false}` is never stored.
 export type BugState={on:boolean;page:string|null};
-export type LiveState={revision:number;cue:string|null;mode:Mode;updated:number;cuePayload:CuePayload|null;catalogVersion:string;bug?:BugState};
+// The resting logo's preference: a third field on live state, and a DIFFERENT feature from the
+// scan card above. It carries no page and no address, because it is a standing mark rather than
+// a card. Optional for the same reason `bug` is: a row written by an earlier worker build reads
+// as "the operator has not turned the logo on", which is the quiet startup this product has now.
+// This field is the desired setting only. Whether the mark is actually on screen is decided by
+// the renderer (lib/resting-logo.ts), which hides it under any graphic; the relay never stores
+// that, and no surface may report this field as a picture.
+export type LogoState={on:boolean};
+export type LiveState={revision:number;cue:string|null;mode:Mode;updated:number;cuePayload:CuePayload|null;catalogVersion:string;bug?:BugState;logo?:LogoState};
 export type Snapshot=LiveState&{renderers:Renderer[];controllers:Controller[];serverTime:number};
-export type Command={action:'in'|'out'|'clear'|'cut'|'bug';cue:string|null;bug:BugState|null;commandId:string;clientId:string|null;sequence:number|null;source:HistorySource;serviceRef:string|null};
+export type Command={action:'in'|'out'|'clear'|'cut'|'bug'|'logo';cue:string|null;bug:BugState|null;logo:LogoState|null;commandId:string;clientId:string|null;sequence:number|null;source:HistorySource;serviceRef:string|null};
 // Where the command came from, for the cue log. Not an identity: 'control' is any web or
 // legacy caller, 'companion' the paired deck, 'mcp' an assistant acting on consent. A caller
 // that says nothing is 'control', so every already-deployed client keeps working unchanged.
 export type HistorySource='control'|'companion'|'mcp';
-export type HistoryAction='in'|'out'|'clear'|'cut'|'bug'|'history_cleared';
+export type HistoryAction='in'|'out'|'clear'|'cut'|'bug'|'logo'|'history_cleared';
 /**
  * One row of the cue log as the relay keeps it. Built in one place so no caller can widen it:
  * no graphic name, no text, no operator, no renderer presence — the same forbidden-key posture
@@ -99,6 +111,14 @@ export const parseBugState=(value:unknown):BugState|null=>{
  if(typeof input.on!=='boolean'||!validBugPage(input.page))return null;
  return {on:input.on,page:(input.page??null) as string|null};
 };
+// Normalizes to exactly {on}. A logo request carries nothing else -- no page, no address, no
+// size -- so anything extra is dropped rather than stored, and MAX_LOGO_BYTES bounds the field.
+export const parseLogoState=(value:unknown):LogoState|null=>{
+ if(!value||typeof value!=='object'||Array.isArray(value))return null;
+ const input=value as Record<string,unknown>;
+ if(typeof input.on!=='boolean')return null;
+ return {on:input.on};
+};
 export const validCatalogVersion=(value:unknown)=>typeof value==='string'&&value.length>0&&value.length<=160;
 // Presence derivation shared by the worker and the rehearsal stub so the two cannot
 // drift. Closing an expired socket stays with the caller (it owns the socket); this
@@ -120,7 +140,7 @@ export function parseCommand(value:unknown):Command|null{
  if(!value||typeof value!=='object'||Array.isArray(value))return null;
  const input=value as Record<string,unknown>;
  const action=input.action;
- if(!['in','out','clear','cut','bug'].includes(String(action))||!validToken(input.commandId))return null;
+ if(!['in','out','clear','cut','bug','logo'].includes(String(action))||!validToken(input.commandId))return null;
  const selects=action==='in'||action==='out';
  const cue=selects&&typeof input.cue==='string'&&input.cue.length<=160?input.cue:null;
  if(selects&&!cue)return null;
@@ -134,6 +154,15 @@ export function parseCommand(value:unknown):Command|null{
   bug=parseBugState(input.bug);
   if(!bug)return null;
  }else if(input.bug!==undefined&&input.bug!==null)return null;
+ // `logo` follows the same rule one field over, and the two never travel together: a command
+ // that attaches a logo to a 'bug' -- or a bug to a 'logo' -- is refused rather than half
+ // applied, which is what keeps the scan card and the resting logo genuinely separate on the
+ // wire. A caller that omits the field entirely, which is every deployed client, is unaffected.
+ let logo:LogoState|null=null;
+ if(action==='logo'){
+  logo=parseLogoState(input.logo);
+  if(!logo)return null;
+ }else if(input.logo!==undefined&&input.logo!==null)return null;
  const clientId=input.clientId;
  const sequence=input.sequence;
  if(clientId===null){if(sequence!==null)return null}
@@ -144,7 +173,7 @@ export function parseCommand(value:unknown):Command|null{
  if(!source)return null;
  const serviceRef=input.serviceRef===undefined||input.serviceRef===null?null:validUuid(input.serviceRef)?input.serviceRef as string:undefined;
  if(serviceRef===undefined)return null;
- return {action:action as Command['action'],cue,bug,commandId:input.commandId as string,clientId:clientId as string|null,sequence:sequence as number|null,source,serviceRef};
+ return {action:action as Command['action'],cue,bug,logo,commandId:input.commandId as string,clientId:clientId as string|null,sequence:sequence as number|null,source,serviceRef};
 }
 
 export const parseHistorySource=(value:unknown):HistorySource|null=>value==='control'||value==='companion'||value==='mcp'?value:null;
@@ -250,6 +279,12 @@ export function parseInitialState(value:unknown,catalogVersion:unknown):LiveStat
   if(!bug)return null;
   if(bug.on)state.bug=bug;
  }
+ // Same posture for the resting logo: absent means the operator has not turned it on.
+ if(input.logo!==undefined&&input.logo!==null){
+  const logo=parseLogoState(input.logo);
+  if(!logo)return null;
+  if(logo.on)state.logo=logo;
+ }
  return state;
 }
 
@@ -262,15 +297,27 @@ export function nextState(current:LiveState,command:Command,selected:CuePayload|
   else delete next.bug;
   return next;
  }
+ // The resting logo's preference, and nothing else: no cue, no payload, no mode, and not the
+ // scan card either. Off is stored as an absent field rather than {on:false}, so "never turned
+ // on" and "deliberately turned off" are the same durable answer, and a reconnecting renderer
+ // converges on it from the bumped revision.
+ if(command.action==='logo'){
+  const next:LiveState={...current,revision:current.revision+1,updated:now};
+  if(command.logo?.on)next.logo={on:true};
+  else delete next.logo;
+  return next;
+ }
  let cue:string|null=null;
  let cuePayload:CuePayload|null=null;
  if(command.action==='in'){cue=command.cue;cuePayload=selected}
  else if(command.action==='out'&&current.cue!==command.cue){cue=current.cue;cuePayload=current.cuePayload}
  const next:LiveState={...current,revision:current.revision+1,cue,mode:command.action==='cut'?'cut':'animate',updated:now,cuePayload};
- // F1: Clear now removes every layer, the scan card included, and that is authoritative
- // state, so a reconnect cannot resurrect it. 'in'/'out'/'clear' carry it through on the
- // spread above, untouched.
- if(command.action==='cut')delete next.bug;
+ // F1: Clear now removes every layer -- the scan card and the resting logo included -- and
+ // that is authoritative state, so a reconnect cannot resurrect either. Clearing the logo here
+ // turns the PREFERENCE off, not merely the picture: after a Clear now the mark stays away
+ // until an operator deliberately enables it again. 'in'/'out'/'clear' carry both layers
+ // through on the spread above, untouched.
+ if(command.action==='cut'){delete next.bug;delete next.logo}
  return next;
 }
 

@@ -1,10 +1,18 @@
 import { randomUUID } from 'node:crypto'
 
-export type OverlayAction = 'in' | 'out' | 'clear' | 'cut' | 'bug'
+export type OverlayAction = 'in' | 'out' | 'clear' | 'cut' | 'bug' | 'logo'
 /** The second live-state field: the scan card, and the optional short page beside it. */
 export interface BugState { on: boolean; page: string | null }
+/**
+ * The third live-state field: whether the operator wants the resting corner logo. A separate
+ * feature from the scan card above, with no page and no address of its own — and a preference,
+ * not a picture. The site hides the mark under any graphic without touching this field, so a
+ * button that paints `logo.on` as "showing" would be lying whenever a prayer is up. See
+ * `logoStatusLabel`.
+ */
+export interface LogoState { on: boolean }
 export interface RendererState { id: string; revision: number; cue: string | null; phase: 'settled' | 'transition' | 'error'; seen: number }
-export interface OverlaySnapshot { revision: number; cue: string | null; mode: string; updated: number; cuePayload?: unknown; catalogVersion: string; renderers: RendererState[]; serverTime: number; bug?: BugState }
+export interface OverlaySnapshot { revision: number; cue: string | null; mode: string; updated: number; cuePayload?: unknown; catalogVersion: string; renderers: RendererState[]; serverTime: number; bug?: BugState; logo?: LogoState }
 export interface CommandReceipt extends OverlaySnapshot { commandId: string }
 export interface FeedbackState { requestedCue: string | null; renderedCue: string | null; rendered: boolean; disconnected: boolean }
 export interface RealtimeBootstrap { url: string; ticket: string; heartbeatMs: number; staleMs: number; protocol: 1 }
@@ -71,12 +79,14 @@ export class OverlayClient {
     this.#version = options.version ?? null
   }
 
-  // `bug` is sent only for `action:'bug'`, and that action always carries an
-  // explicit `cue:null`, so the body matches the relay's command shape exactly.
-  activate(action: OverlayAction, cue?: string, bug?: BugState): Promise<CommandReceipt> {
+  // `bug` is sent only for `action:'bug'` and `logo` only for `action:'logo'`, and both of
+  // those actions always carry an explicit `cue:null`, so the body matches the relay's command
+  // shape exactly. The two fields never travel together: the relay refuses a command that
+  // carries the wrong one, which is what keeps the scan card and the resting logo separate.
+  activate(action: OverlayAction, cue?: string, bug?: BugState, logo?: LogoState): Promise<CommandReceipt> {
     const sequence = this.#nextSequence()
     const commandId = randomUUID()
-    const target = action === 'bug' ? { cue: null, bug: bug ?? { on: false, page: null } } : cue ? { cue } : {}
+    const target = action === 'bug' ? { cue: null, bug: bug ?? { on: false, page: null } } : action === 'logo' ? { cue: null, logo: logo ?? { on: false } } : cue ? { cue } : {}
     const body = JSON.stringify({ action, ...target, commandId, clientId: this.#clientId, sequence })
     return this.#request<CommandReceipt>('/api/command', { method: 'POST', body }, true)
   }
@@ -351,7 +361,11 @@ export function parseSnapshot(value: unknown): OverlaySnapshot | null {
   // A malformed bug is read as no bug. The card is an added layer, never a reason
   // to drop a snapshot that otherwise describes the graphic on screen correctly.
   const bug = Object.hasOwn(value, 'bug') ? parseBug(value.bug) : null
-  return { revision: value.revision, cue: value.cue, mode: value.mode, updated: value.updated, ...(Object.hasOwn(value, 'cuePayload') ? { cuePayload: value.cuePayload } : {}), catalogVersion: value.catalogVersion, renderers, serverTime: value.serverTime, ...(bug ? { bug } : {}) }
+  // Same posture for the resting logo, and for the same reason: an added layer is never a
+  // reason to drop an otherwise correct snapshot. An absent field reads as off, which is also
+  // what a server that predates the feature answers.
+  const logo = Object.hasOwn(value, 'logo') ? parseLogo(value.logo) : null
+  return { revision: value.revision, cue: value.cue, mode: value.mode, updated: value.updated, ...(Object.hasOwn(value, 'cuePayload') ? { cuePayload: value.cuePayload } : {}), catalogVersion: value.catalogVersion, renderers, serverTime: value.serverTime, ...(bug ? { bug } : {}), ...(logo ? { logo } : {}) }
 }
 
 // The same bounded page the relay accepts: an empty value, or at most twelve
@@ -363,6 +377,23 @@ function parseBug(value: unknown): BugState | null {
   if (!isRecord(value) || typeof value.on !== 'boolean') return null
   if (value.page !== null && !validBugPage(value.page)) return null
   return { on: value.on, page: value.page as string | null }
+}
+
+function parseLogo(value: unknown): LogoState | null {
+  if (!isRecord(value) || typeof value.on !== 'boolean') return null
+  return { on: value.on }
+}
+
+/**
+ * How a deck may describe the resting logo in one line, from the same live state the button
+ * writes. `Off` and `On` are the preference; `On (held)` says something else is requested and
+ * the site is keeping the mark out of the way. None of the three is a report from a graphics
+ * browser, so none of them may be shown as rendered truth — that is what the `rendered`
+ * feedback is for, and it only ever answers about a cue.
+ */
+export function logoStatusLabel(snapshot: OverlaySnapshot | null | undefined): 'Off' | 'On' | 'On (held)' {
+  if (snapshot?.logo?.on !== true) return 'Off'
+  return snapshot.cue !== null || snapshot.bug?.on === true ? 'On (held)' : 'On'
 }
 
 function parseRenderers(value: unknown): RendererState[] | null {

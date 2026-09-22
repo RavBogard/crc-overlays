@@ -32,6 +32,22 @@ export class Player{
  constructor(root:HTMLElement,cues:Cue[],branding:OverlayBranding=defaultBranding,options:PlayerOptions={}){this.root=root;this.cues=cues;this.branding=branding;this.options=options}
  set(state:PlayerState){if(!acceptsRevision(state,this.desired))return;this.desired=state;if(state.mode==='cut'){this.generation++;this.root.getAnimations({subtree:true}).forEach(a=>a.cancel());this.root.replaceChildren();this.current=null;this.revision=state.revision;this.phase='settled';this.busy=false;return}void this.drain()}
  dispose(){this.generation++;this.root.getAnimations({subtree:true}).forEach(a=>a.cancel());this.root.replaceChildren()}
+ /**
+  * Whether the renderer's stage is claimed: a graphic is requested, or settled, or still in the
+  * DOM on its way in or out. The sibling layers that share the 1920x1080 frame ask this rather
+  * than reading `current` or `phase`, because neither one alone answers the question:
+  *
+  *   in        `desired.cue` is set the instant the command lands, before anything paints, so a
+  *             resting layer is gone before the graphic arrives rather than a frame after it.
+  *   A to B    `desired.cue` is never null across a replacement, so nothing flashes between them.
+  *   out       `desired.cue` is already null while the Out animation runs, but `current` and the
+  *             box are still there, so a resting layer waits for the exit to finish.
+  *   cut       `set()` clears all three synchronously, so the stage is free immediately.
+  *
+  * It reports the renderer's own stage only. It is not an on-air or tally signal, and it says
+  * nothing about what a compositor is doing with the frame.
+  */
+ get occupied(){return this.desired.cue!==null||this.current!==null||this.root.childElementCount>0}
  render(c:Cue,imageAssetUrl?:string){const box=document.createElement('div');box.className=`overlay ${c.layout}`;box.style.setProperty('--crc-blue',this.branding.titleShade);box.style.setProperty('--crc-blue-deep',this.branding.titleShade);box.style.setProperty('--crc-turquoise',this.branding.titleColor);box.style.setProperty('--crc-gold',this.branding.accentColor);
 const add=(classes:string,text:string,name:string)=>{const el=document.createElement(classes==='logo'?'img':'div');el.className=`part ${classes}`;el.dataset.element=name;if(el instanceof HTMLImageElement){el.src=this.branding.logo;el.alt=this.branding.logoAlt}else el.textContent=text;box.appendChild(el);return el};
 add('base','','baseMain');add('titlebar','','baseTitle');const grad=add('titlebar titlegrad','','baseTitleGrad');grad.style.setProperty('background',`linear-gradient(90deg,${this.branding.titleShade},${this.branding.titleColor})`,'important');add('accent','','accentLineBottom');if(c.texts.textTitle)add('title',c.texts.textTitle,'textTitle');if(c.texts.accentTextTitle)add('title title-accent',c.texts.accentTextTitle,'accentTextTitle');if(usesPanelRows(c)){const rows=document.createElement('div');rows.className='part panel-rows';rows.dataset.rowCount=String(c.contentRows!.length);for(const [index,content] of c.contentRows!.entries()){const row=document.createElement('div');row.className='content-row';row.dataset.row=String(index+1);for(const item of panelRowChannels(content)){const channel=document.createElement('div');channel.className=`prayer ${item.classes}`;channel.textContent=item.text;channel.dataset.element=item.element;channel.dataset.animationElement=item.animationElement;row.appendChild(channel)}rows.appendChild(row)}box.appendChild(rows)}else for(const part of textParts(c.texts))add(part.classes,part.text,part.element);const logo=add('logo','','Image');if(logo instanceof HTMLImageElement&&imageAssetUrl)logo.src=imageAssetUrl;this.root.replaceChildren(box);if(c.presentation){applyPresentationFontSizes(box,c.presentation);const styles=presentationTextStyles(c.presentation);box.querySelectorAll<HTMLElement>('.prayer').forEach(element=>{if(styles.textAlign)element.style.textAlign=styles.textAlign;if(styles.lineHeight)element.style.lineHeight=styles.lineHeight})}this.applyFit(box,c);return box}

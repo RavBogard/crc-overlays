@@ -30,6 +30,12 @@ export type PublicWorkspace = {
   // D4: the scan card is congregation configuration, not code. A congregation with no
   // scan-card address ships the same commit with the feature absent.
   bug: {enabled: boolean; url: string | null; caption: string | null};
+  // The resting logo is congregation capability, not code, and it is deliberately NOT derived
+  // from `logo` above: every workspace has artwork for its in-cue medallion, and only a
+  // congregation that has asked for a standing corner mark gets one. TBI ships this off, so the
+  // same commit that gives CRC a Siona mark gives TBI a clean frame. `src` follows the
+  // workspace's own logo path, so a congregation can never be shown another's artwork.
+  restingLogo: {enabled: boolean; src: string | null; alt: string | null};
 };
 
 type WorkspaceEnvironment = Record<string, string | undefined>;
@@ -56,6 +62,9 @@ const CRC_PROFILE: WorkspaceEnvironment = {
   // anywhere else. The caption is the stream-kit house caption (stream-kit/bug.typ).
   WORKSPACE_BUG_URL: 'https://siddur.centralreform.org',
   WORKSPACE_BUG_CAPTION: 'DAVEN ALONG',
+  // CRC is the congregation that asked for the resting corner mark. Capable, not enabled: the
+  // live preference still starts off and an operator has to turn it on (lib/resting-logo.ts).
+  WORKSPACE_RESTING_LOGO: '1',
 };
 
 const BUILT_IN_PROFILES = new Map<string, WorkspaceEnvironment>([
@@ -127,7 +136,7 @@ function bugCaption(value: string | undefined) {
 function configuredDownloads(env: WorkspaceEnvironment, crcDefault: boolean): WorkspaceDownload[] {
   const modulePath = env.WORKSPACE_COMPANION_MODULE_PATH?.trim();
   const pagePaths = env.WORKSPACE_COMPANION_PAGE_PATHS?.split(',').map(item => item.trim()).filter(Boolean) ?? [];
-  const resolvedModule = modulePath || (crcDefault ? '/downloads/crc-overlays-1.6.0.tgz' : '');
+  const resolvedModule = modulePath || (crcDefault ? '/downloads/crc-overlays-1.7.0.tgz' : '');
   const resolvedPages = pagePaths.length
     ? pagePaths
     : crcDefault
@@ -214,6 +223,15 @@ export function getPublicWorkspace(env: WorkspaceEnvironment = process.env): Pub
     bug: (() => {
       const url = bugUrl(resolved.WORKSPACE_BUG_URL);
       return {enabled: Boolean(url), url, caption: url ? bugCaption(resolved.WORKSPACE_BUG_CAPTION) : null};
+    })(),
+    restingLogo: (() => {
+      const enabled = resolved.WORKSPACE_RESTING_LOGO === '1' || resolved.WORKSPACE_RESTING_LOGO === 'true';
+      if (!enabled) return {enabled: false, src: null, alt: null};
+      return {
+        enabled: true,
+        src: publicPath(resolved.WORKSPACE_LOGO_PATH, '', 'Workspace logo path'),
+        alt: textValue(resolved.WORKSPACE_LOGO_ALT, '', 'Workspace logo alt text'),
+      };
     })(),
   };
 }

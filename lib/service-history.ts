@@ -22,7 +22,7 @@ import {liturgyForSourceIds} from './liturgy-index';
 import {relayConfigured,relayRequest} from './relay';
 
 export const HISTORY_KEYS=['seq','at','action','cueId','unitId','momentId','book','folio','source','serviceRef'] as const;
-export const HISTORY_ACTIONS=['in','out','clear','cut','bug','history_cleared'] as const;
+export const HISTORY_ACTIONS=['in','out','clear','cut','bug','logo','history_cleared'] as const;
 export const HISTORY_SOURCES=['control','companion','mcp'] as const;
 export const MAX_HISTORY_PAGE=500;
 export type HistoryAction=typeof HISTORY_ACTIONS[number];

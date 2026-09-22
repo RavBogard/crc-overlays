@@ -31,7 +31,14 @@ import { pathToFileURL } from 'node:url'
 
 export const SINGULAR_MODULE = 'singularlive-studio'
 export const NEW_MODULE = 'crc-overlays'
-export const MODULE_VERSION = '1.6.0'
+// Pin to the module version that is installed on the operator's Companion.
+// 1.7.0 shipped 2026-09-22 with the resting logo; override with --module-version if a
+// different one is installed.
+export let MODULE_VERSION = '1.7.0'
+export function setModuleVersion(v) {
+  if (!/^\d+\.\d+\.\d+$/.test(String(v))) throw new Error('--module-version must look like 1.7.0')
+  MODULE_VERSION = String(v)
+}
 
 const ID_ALPHABET = 'ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789_-'
 
@@ -277,7 +284,7 @@ export const WHITE = 16777215
 export const FB_REQUESTED_STYLE = { bgcolor: (180 << 16) | (110 << 8) | 0, color: WHITE } // amber #b46e00
 export const FB_RENDERED_STYLE = { bgcolor: 16711680, color: WHITE } // Michael's red #ff0000
 export const FB_DISCONNECTED_STYLE = { bgcolor: 11141120, color: WHITE } // #aa0000
-export const FB_BUG_STYLE = { bgcolor: 16711680, color: WHITE }
+export const FB_LOGO_STYLE = { bgcolor: 16711680, color: WHITE }
 
 function feedback(definitionId, connectionId, plainOptions, style, wrap) {
   return {
@@ -407,7 +414,7 @@ function eachAction(steps, fn) {
 /**
  * Work out what a single Singular action should become.
  * Returns a plan object; `kind` is one of:
- *   'clear' | 'bug' | 'cue' | 'side-panel' | 'unmapped'
+ *   'clear' | 'logo' | 'cue' | 'side-panel' | 'unmapped'
  */
 function planAction(a, ctx) {
   const def = a.definitionId
@@ -416,7 +423,11 @@ function planAction(a, ctx) {
   if (def !== 'animateIn' && def !== 'animateOut') return { kind: 'unmapped', comp }
 
   const key = normName(comp)
-  if (ctx.bugNames.has(key)) return { kind: 'bug', comp, on: def === 'animateIn' }
+  // The CRC Logo composition becomes the RESTING LOGO, never the scan card. The sitting was
+  // explicit that pressing the logo must not put a QR code on screen, and the two are separate
+  // features in the product now: `logo_on`/`logo_off` control the corner mark, `bug_on`/`bug_off`
+  // the Daven Along card, and nothing here emits the latter.
+  if (ctx.logoNames.has(key)) return { kind: 'logo', comp, on: def === 'animateIn' }
   if (SIDE_PANEL_COMPS.has(key)) return { kind: 'side-panel', comp }
 
   const slot = ctx.slots.get(key)
@@ -469,7 +480,7 @@ export function convert(config, opts) {
     slots = new Map(),
     label = 'Overlays',
     baseUrl = 'https://overlays.centralreform.org',
-    bugNames = ['CRC Logo'],
+    logoNames = ['CRC Logo'],
     newPage = NEW_PAGE_DEFAULT,
   } = opts
 
@@ -502,7 +513,9 @@ export function convert(config, opts) {
     feedbacksAdded: 0,
     bankCurrentStepDropped: 0,
     sidePanelActionsDropped: 0,
-    converted: { toggle_cue: 0, show_cue: 0, animate_out: 0, bug_on: 0, bug_off: 0, animate_clear: 0 },
+    converted: { toggle_cue: 0, show_cue: 0, animate_out: 0, logo_on: 0, logo_off: 0, animate_clear: 0 },
+    // Inherited hide/restore macros the renderer now does by itself; see rewriteActions.
+    logoMacrosDropped: 0,
     singularActionsKept: 0,
     newButtonsPlaced: 0,
   }
@@ -517,8 +530,8 @@ export function convert(config, opts) {
   const pageCoverage = []
   const bgTally = new Map()
 
-  const bugSet = new Set(bugNames.map(normName))
-  const ctx = { catalog: catalogIndex, slots, bugNames: bugSet }
+  const logoSet = new Set(logoNames.map(normName))
+  const ctx = { catalog: catalogIndex, slots, logoNames: logoSet }
 
   for (const [pageId, page] of Object.entries(config.pages ?? {})) {
     stats.pagesScanned++
@@ -553,7 +566,16 @@ export function convert(config, opts) {
           slotWaiting.push({ ...where, comps: compsHere.filter((c) => SLOT_COMP_SET.has(normName(c))) })
         }
 
-        const mappedPlans = [...plans.values()].filter((p) => p.kind === 'cue' || p.kind === 'bug' || p.kind === 'clear')
+        const mappedPlans = [...plans.values()].filter((p) => p.kind === 'cue' || p.kind === 'logo' || p.kind === 'clear')
+        /* D15. Michael's deck pairs a logo hide with the prayer going up and a logo restore with
+           it coming down, and the pairing drifted: Aleinu 3 restores the logo in the middle of
+           its own series, with Aleinu 4 still to come. Those macros were a workaround for a
+           renderer that did not know what was on screen. It does now — the mark hides under any
+           graphic and returns when the graphic has gone — so on a button that also shows a
+           prayer the macro is dropped rather than converted. It would otherwise fight the
+           automatic rule, and a stray restore would switch the logo back on after the operator
+           had deliberately turned it off. A button whose only job is the logo keeps its press. */
+        const buttonShowsACue = mappedPlans.some((p) => p.kind === 'cue')
 
         // 2. nothing maps -> leave the whole button alone, untouched
         if (!mappedPlans.length) {
@@ -582,7 +604,7 @@ export function convert(config, opts) {
         if (typeof bg === 'number') bgTally.set(bg, (bgTally.get(bg) || 0) + 1)
 
         const gainedCues = []
-        const gainedBugOn = { v: false }
+        const gainedLogoOn = { v: false }
         const convertedNames = []
         const keptSingular = []
         let droppedHere = 0
@@ -627,7 +649,7 @@ export function convert(config, opts) {
               const isFirstDown = stepKey === firstStep && setKey === 'down'
               const cuesInSet = new Set()
               sets[setKey] = rewriteActions(step.action_sets[setKey], {
-                plans, wrap, newConnectionId, stats,
+                plans, wrap, newConnectionId, stats, dropLogoMacros: buttonShowsACue,
                 onCue: (cueId, plan) => {
                   cuesInSet.add(cueId)
                   if (isFirstDown && plan.show && !gainedCues.includes(cueId)) gainedCues.push(cueId)
@@ -643,9 +665,9 @@ export function convert(config, opts) {
                     aliasUse.set(plan.comp, rec)
                   }
                 },
-                onBug: (on) => {
+                onLogo: (on) => {
                   convertedNames.push(on ? 'CRC Logo (on)' : 'CRC Logo (off)')
-                  if (isFirstDown && on) gainedBugOn.v = true
+                  if (isFirstDown && on) gainedLogoOn.v = true
                 },
                 onClear: () => convertedNames.push('takeOutAllOutput'),
                 onKeep: (comp) => keptSingular.push(comp ?? '(no composition)'),
@@ -672,8 +694,11 @@ export function convert(config, opts) {
           added.push(feedback('requested', newConnectionId, { cue }, { ...FB_REQUESTED_STYLE }, wrap))
           added.push(feedback('rendered', newConnectionId, { cue }, { ...FB_RENDERED_STYLE }, wrap))
         }
-        if (!gainedCues.length && gainedBugOn.v) {
-          added.push(feedback('bug_visible', newConnectionId, {}, { ...FB_BUG_STYLE }, wrap))
+        if (!gainedCues.length && gainedLogoOn.v) {
+          // The setting, not a picture: `logo_enabled` lights when the operator has asked for
+          // the mark, which is the only thing this button changed. The module's `logo_held`
+          // feedback says the rest, and no feedback here claims the mark is on screen.
+          added.push(feedback('logo_enabled', newConnectionId, {}, { ...FB_LOGO_STYLE }, wrap))
         }
         added.push(feedback('disconnected', newConnectionId, {}, { ...FB_DISCONNECTED_STYLE }, wrap))
         stats.feedbacksAdded += added.length
@@ -851,11 +876,14 @@ function rewriteActions(arr, o) {
       o.onClear()
       continue
     }
-    if (plan.kind === 'bug') {
-      const def = plan.on ? 'bug_on' : 'bug_off'
+    if (plan.kind === 'logo') {
+      // On a button that also shows a prayer this is an inherited macro, not an instruction:
+      // drop it and let the renderer's own visibility rule stand.
+      if (o.dropLogoMacros) { o.stats.logoMacrosDropped++; o.onDrop(); continue }
+      const def = plan.on ? 'logo_on' : 'logo_off'
       out.push(action(def, o.newConnectionId, {}, o.wrap))
       o.stats.converted[def]++
-      o.onBug(plan.on)
+      o.onLogo(plan.on)
       continue
     }
     if (plan.kind === 'cue') {
@@ -1019,7 +1047,8 @@ export function buildReport(result, extra = {}) {
   D(`- Buttons that now do both (mixed): ${stats.buttonsMixed}`)
   D(`- Buttons turned into a one-press on/off button: ${stats.buttonsCollapsedToToggle}`)
   D(`- Buttons that kept their original multi-step shape: ${stats.buttonsKeptMultiAction}`)
-  D(`- Presses rewritten — on/off: ${c.toggle_cue}, show: ${c.show_cue}, take out: ${c.animate_out}, logo on: ${c.bug_on}, logo off: ${c.bug_off}, clear all: ${c.animate_clear}`)
+  D(`- Presses rewritten — on/off: ${c.toggle_cue}, show: ${c.show_cue}, take out: ${c.animate_out}, logo on: ${c.logo_on}, logo off: ${c.logo_off}, clear all: ${c.animate_clear}`)
+  D(`- Inherited logo hide/restore macros dropped from prayer buttons: ${stats.logoMacrosDropped}. The renderer hides the resting logo under any graphic by itself.`)
   D(`- Singular presses kept in place: ${stats.singularActionsKept}`)
   D(`- Side-panel presses dropped ("Start soon right"): ${stats.sidePanelActionsDropped}`)
   D(`- Old step-colour indicators removed: ${stats.bankCurrentStepDropped}`)
@@ -1237,7 +1266,7 @@ export function buildReport(result, extra = {}) {
 /* ----------------------------------------------------------------- cli --- */
 
 export function parseArgs(argv) {
-  const out = { label: 'Overlays', baseUrl: 'https://overlays.centralreform.org', bugNames: ['CRC Logo'], newPage: NEW_PAGE_DEFAULT }
+  const out = { label: 'Overlays', baseUrl: 'https://overlays.centralreform.org', logoNames: ['CRC Logo'], newPage: NEW_PAGE_DEFAULT }
   for (let i = 0; i < argv.length; i++) {
     const a = argv[i]
     const next = () => argv[++i]
@@ -1246,13 +1275,17 @@ export function parseArgs(argv) {
     else if (a === '--out') out.out = next()
     else if (a === '--report') out.report = next()
     else if (a === '--slots') out.slots = next()
+    else if (a === '--module-version') out.moduleVersion = next()
     else if (a === '--gzip') out.gzip = true
     else if (a === '--no-gzip') out.gzip = false
     else if (a === '--catalog-notes') out.catalogNotes = next()
     else if (a === '--label') out.label = next()
     else if (a === '--base-url') out.baseUrl = next()
     else if (a === '--report-name') out.reportName = next()
-    else if (a === '--bug-names') out.bugNames = next().split(',').map((s) => s.trim()).filter(Boolean)
+    // `--bug-names` is the old spelling from when this composition became the scan card. It
+    // still works so an existing command line does not break, and it means the same thing it
+    // always meant: which Singular composition is the logo.
+    else if (a === '--logo-names' || a === '--bug-names') out.logoNames = next().split(',').map((s) => s.trim()).filter(Boolean)
     else if (a === '--new-page') {
       const v = Number(next())
       if (!Number.isInteger(v) || v < 1) throw new Error('--new-page must be a positive integer')
@@ -1270,11 +1303,12 @@ export const NAME_SEARCHES = [
   { name: 'Guest Name', finding: 'Now a slot. "Guest name" is published in the new system and this button points at it; the name itself is typed on the site’s This service page before each service, so the button never gets relabelled again.' },
   { name: 'Start soon right', finding: 'No graphic, and none wanted: it is the side panel beside "Starting Soon". Dropped wherever it shared a button with a real graphic.' },
   { name: 'Money pls', finding: 'No graphic and nothing close. It is the High Holy Day giving panel. Left on Singular.' },
-  { name: 'CRC Logo', finding: 'No graphic, because the logo is not a graphic in the new system — it is the standing scan card, turned on and off with its own commands. Handled that way.' },
+  { name: 'CRC Logo', finding: 'No graphic, because the logo is not a graphic in the new system — it is the resting corner mark, turned on and off with its own commands (logo on / logo off), and never the Daven Along scan card. A button whose only job is the logo keeps its press. Where the old deck paired a logo hide or restore with a prayer button, the pairing is dropped: the renderer now hides the mark under any graphic and brings it back when the graphic has gone, so the macro would only fight it.' },
 ]
 
 function main(argv) {
   const args = parseArgs(argv)
+  if (args.moduleVersion) setModuleVersion(args.moduleVersion)
   const { data, gzipped: inputGzipped } = readConfig(args.in)
   // The real `.companionconfig` file is gzipped; the working copies here are not.
   const gzipped = typeof args.gzip === 'boolean' ? args.gzip : inputGzipped
@@ -1288,7 +1322,7 @@ function main(argv) {
     slots: loadSlots(args.slots),
     label: args.label,
     baseUrl: args.baseUrl,
-    bugNames: args.bugNames,
+    logoNames: args.logoNames,
     newPage: args.newPage,
   })
   writeConfig(args.out, result.config, gzipped)

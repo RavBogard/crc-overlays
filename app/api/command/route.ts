@@ -3,7 +3,8 @@ import {relayConfigured,relayRequest} from '@/lib/relay';
 import {json,db,catalog,snapshot} from '@/lib/server';
 import {getPublicWorkspace} from '@/lib/workspace';
 import {validBugPage,type BugState} from '@/lib/bug-layer';
-type CommandBody={action?:string;cue?:string|null;bug?:{on?:unknown;page?:unknown}|null;commandId?:string;clientId?:string|null;sequence?:number|null;serviceRef?:string|null};
+import type {RestingLogoState} from '@/lib/resting-logo';
+type CommandBody={action?:string;cue?:string|null;bug?:{on?:unknown;page?:unknown}|null;logo?:{on?:unknown}|null;commandId?:string;clientId?:string|null;sequence?:number|null;serviceRef?:string|null};
 export async function POST(r:Request){const actor=await authorizeRequest(r,'control');if(!actor)return json({error:'Control key required'},401);
 // The cue log records where a command came from, never who sent it. Only a paired Companion
 // holds a device credential that satisfies 'control', so that is the one distinction drawn;
@@ -13,7 +14,7 @@ try{if(Number(r.headers.get('content-length'))>4096)return json({error:'Request 
 const useRelay=relayConfigured();
 const selectedCatalog=!useRelay&&['in','out'].includes(b.action as string)?await catalog():null;
 const selected=selectedCatalog?.cues.find(c=>c.id===b.cue)??null;
-if(!['in','out','clear','cut','bug'].includes(b.action as string)||(['in','out'].includes(b.action as string)&&(typeof b.cue!=='string'||b.cue.length>160||(!useRelay&&!selected))))return json({error:'Unknown action or cue'},400);
+if(!['in','out','clear','cut','bug','logo'].includes(b.action as string)||(['in','out'].includes(b.action as string)&&(typeof b.cue!=='string'||b.cue.length>160||(!useRelay&&!selected))))return json({error:'Unknown action or cue'},400);
 // D2/D4: the scan card is a congregation-configured, relay-only layer. It is refused in plain
 // language rather than as a protocol error, because an operator sees these strings.
 let bug:BugState|null=null;
@@ -28,6 +29,21 @@ if(b.action==='bug'){
  if(!useRelay)return json({error:'The scan card needs the live connection.'},503);
  bug={on:requested.on,page:page as string|null};
 }
+// The resting logo: the same shape of refusal one feature over, and deliberately not the scan
+// card. A congregation without the capability is told so in plain words rather than quietly
+// getting nothing, and the request needs the live connection because the preference lives in
+// relay state -- there is no Postgres column for it and inventing one per browser would give
+// every output its own answer.
+let logo:RestingLogoState|null=null;
+if(b.action==='logo'){
+ if(b.cue!==undefined&&b.cue!==null)return json({error:'Unknown action or cue'},400);
+ let available=false;try{available=getPublicWorkspace().restingLogo.enabled}catch{available=false}
+ if(!available)return json({error:'The resting logo is not set up for this congregation.'},400);
+ const requested=b.logo;
+ if(!requested||typeof requested!=='object'||Array.isArray(requested)||typeof requested.on!=='boolean')return json({error:'Unknown action or cue'},400);
+ if(!useRelay)return json({error:'The resting logo needs the live connection.'},503);
+ logo={on:requested.on};
+}
 const id=b.commandId??crypto.randomUUID();if(typeof id!=='string'||!/^[a-zA-Z0-9_-]{8,80}$/.test(id))return json({error:'Invalid command ID'},400);
 const cue=['in','out'].includes(b.action as string)?b.cue:null;
 const client=b.clientId??null;const sequence=b.sequence??null;if(client!==null&&(typeof client!=='string'||!/^[a-zA-Z0-9_-]{8,80}$/.test(client)||!Number.isSafeInteger(sequence)||(sequence as number)<0))return json({error:'Invalid controller sequence'},400);
@@ -37,8 +53,15 @@ const client=b.clientId??null;const sequence=b.sequence??null;if(client!==null&&
 // inside the relay. The legacy Postgres path keeps no history and ignores it.
 const serviceRef=b.serviceRef??null;if(serviceRef!==null&&(typeof serviceRef!=='string'||!/^[0-9a-f]{8}-[0-9a-f]{4}-[1-8][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i.test(serviceRef)))return json({error:'Invalid service reference'},400);
 if(useRelay){
- const response=await relayRequest('/command',{action:b.action,cue,bug,commandId:id,clientId:client,sequence,source,serviceRef});
- return json(await response.json(),response.status);
+ const response=await relayRequest('/command',{action:b.action,cue,bug,logo,commandId:id,clientId:client,sequence,source,serviceRef});
+ const body=await response.json();
+ // The one release-order hazard this feature has: a relay that predates the resting logo
+ // refuses `action:'logo'` as an invalid command, and "Invalid command" would send an operator
+ // looking for a typo. Name the real cause instead. The relay ships before the web
+ // (docs/RELAY-RELEASE.md), so this sentence should never be seen in a finished release; it is
+ // here so a half-finished one explains itself.
+ if(b.action==='logo'&&response.status===400)return json({error:'The resting logo needs the updated live service. Release the relay before the site.'},503);
+ return json(body,response.status);
 }
 const connection=await db.connect();
 try{

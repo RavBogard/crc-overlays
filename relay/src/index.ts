@@ -258,11 +258,13 @@ export class LiveRoom extends DurableObject<Env>{
   if(outcome.accepted)this.broadcast({type:'snapshot',snapshot});
   return json({commandId:command.commandId,...snapshot});
  }
- // Every action -- 'in', 'out', 'clear', 'cut' and the scan card's 'bug' -- takes this
- // one path: the same command receipt, the same controller_sequences replay guard, the
- // same ensureSnapshotSize on the produced state, and the same broadcast in command().
- // 'bug' needs no storage key of its own; it rides inside the persisted live_state row,
- // which is what keeps this phase free of a migration. A malformed page is refused by
+ // Every action -- 'in', 'out', 'clear', 'cut', the scan card's 'bug' and the resting
+ // logo's 'logo' -- takes this one path: the same command receipt, the same
+ // controller_sequences replay guard, the same ensureSnapshotSize on the produced state,
+ // and the same broadcast in command(). Neither layer needs a storage key of its own; both
+ // ride inside the persisted live_state row, which is what keeps them free of a migration
+ // and is also what makes the logo preference survive a worker restart -- the row is in the
+ // Durable Object's SQL storage, not in memory. A malformed page or logo is refused by
  // parseCommand as a 400 'Invalid command' before reaching here, never a socket close.
  private applyCommand(command:Command){
   const current=this.readState();

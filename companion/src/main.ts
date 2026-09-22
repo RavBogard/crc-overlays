@@ -1,6 +1,6 @@
 import { combineRgb, InstanceBase, InstanceStatus, type CompanionActionDefinitions, type CompanionFeedbackDefinitions, type CompanionPresetDefinitions, type CompanionPresetSection, type InstanceTypes, type SomeCompanionConfigField } from '@companion-module/base'
 import { CatalogStore, categoryColour, cuePresetId, hasCatalogCue, slotCatalogCues, slotPresetId, slotVariableValue, visibleCatalogCues, type CatalogCue } from './catalog.js'
-import { CatalogRefreshCoordinator, deriveFeedback, isNewerSnapshot, OverlayClient, toggleAction, validBugPage, type BugState, type FeedbackState, type OverlaySnapshot, type RealtimeSubscription, type RendererState, type WebSocketFactory } from './client.js'
+import { CatalogRefreshCoordinator, deriveFeedback, isNewerSnapshot, logoStatusLabel, OverlayClient, toggleAction, validBugPage, type BugState, type FeedbackState, type LogoState, type OverlaySnapshot, type RealtimeSubscription, type RendererState, type WebSocketFactory } from './client.js'
 import { redeemPairingCode } from './pairing.js'
 import { panelSets, panelTarget } from './panel.js'
 import { connectionLabel, overlayVariables } from './variables.js'
@@ -42,6 +42,9 @@ interface Manifest extends InstanceTypes {
     refresh_catalog: { options: Record<string, never> }
     bug_on: { options: Record<string, never> }
     bug_off: { options: Record<string, never> }
+    logo_on: { options: Record<string, never> }
+    logo_off: { options: Record<string, never> }
+    logo_toggle: { options: Record<string, never> }
     set_page: { options: { page: string } }
     next_panel: { options: { set: string } }
     previous_panel: { options: { set: string } }
@@ -51,12 +54,15 @@ interface Manifest extends InstanceTypes {
     rendered: { type: 'boolean'; options: { cue: string } }
     disconnected: { type: 'boolean'; options: Record<string, never> }
     bug_visible: { type: 'boolean'; options: Record<string, never> }
+    logo_enabled: { type: 'boolean'; options: Record<string, never> }
+    logo_held: { type: 'boolean'; options: Record<string, never> }
     slot_empty: { type: 'boolean'; options: { cue: string } }
   }
   variables: {
     requested_cue: string; requested_cue_id: string; revision: number; renderer_status: string
     current_name: string; current_panel: string; panel_count: string; connection: string; requested_name: string
     bug: string; bug_page: string
+    logo: string; logo_state: string
     // One `slot_<key>` per slot in the catalog, declared dynamically by #defineVariables.
     [key: string]: string | number
   }
@@ -205,7 +211,7 @@ export default class CrcOverlaysInstance extends InstanceBase<Manifest> {
     if (this.#graceTimer) clearTimeout(this.#graceTimer)
     this.#graceTimer = null
   }
-  async #command(action: 'in' | 'out' | 'clear' | 'cut' | 'bug', cue?: string, bug?: BugState): Promise<void> {
+  async #command(action: 'in' | 'out' | 'clear' | 'cut' | 'bug' | 'logo', cue?: string, bug?: BugState, logo?: LogoState): Promise<void> {
     const client = this.#client
     const generation = this.#generation
     if (!client || this.#destroyed) return
@@ -216,7 +222,7 @@ export default class CrcOverlaysInstance extends InstanceBase<Manifest> {
     // of the feedback, so the button stays unlit until the socket is back.
     const offline = !this.#transportConnected
     try {
-      const snapshot = await client.activate(action, cue, bug)
+      const snapshot = await client.activate(action, cue, bug, logo)
       if (generation !== this.#generation || this.#destroyed) return
       this.#acceptSnapshot(snapshot)
       if (offline) this.updateStatus(InstanceStatus.UnknownWarning, 'Sent without the live connection. Confirmation will follow when it reconnects.')
@@ -291,6 +297,8 @@ export default class CrcOverlaysInstance extends InstanceBase<Manifest> {
       renderer_status: { name: 'Renderer status' },
       bug: { name: 'Scan card' },
       bug_page: { name: 'Scan card page' },
+      logo: { name: 'Resting logo' },
+      logo_state: { name: 'Resting logo state' },
     } as Record<string, { name: string }>
     for (const cue of slotCatalogCues(this.#catalog.cues)) definitions[`slot_${cue.slot!.key}`] = { name: `Slot: ${cue.name}` }
     this.setVariableDefinitions(definitions as Parameters<typeof this.setVariableDefinitions>[0])
@@ -327,6 +335,8 @@ export default class CrcOverlaysInstance extends InstanceBase<Manifest> {
       connection: connectionLabel(!rawDisconnected, state.disconnected),
       bugOn: this.#snapshot?.bug?.on === true,
       bugPage: this.#bugPage(),
+      logoOn: this.#snapshot?.logo?.on === true,
+      logoState: logoStatusLabel(this.#snapshot),
     }) })
     this.checkAllFeedbacks()
   }
@@ -389,6 +399,13 @@ export default class CrcOverlaysInstance extends InstanceBase<Manifest> {
       refresh_catalog: { name: 'Refresh cue catalog', description: 'Fetch and validate the authenticated cue catalog, retaining the prior list on failure.', options: [], callback: async () => this.#refreshCatalog() },
       bug_on: { name: 'Bug on', description: 'Show the scan card, keeping whichever page is set.', options: [], callback: async () => this.#command('bug', undefined, { on: true, page: this.#snapshot?.bug?.page ?? null }) },
       bug_off: { name: 'Bug off', description: 'Hide the scan card and its page.', options: [], callback: async () => this.#command('bug', undefined, { on: false, page: null }) },
+      // The resting logo, and never the scan card: these three change only the standing corner
+      // mark. "On" is a setting, not a picture — while a graphic is up the site holds the mark
+      // back and brings it out again once the graphic has finished leaving. Clear now turns the
+      // setting off, so after an urgent clear the mark waits for a deliberate press.
+      logo_on: { name: 'Resting logo on', description: 'Ask for the corner logo while the output is otherwise empty. It stays hidden under any graphic and returns when the graphic has gone.', options: [], callback: async () => this.#command('logo', undefined, undefined, { on: true }) },
+      logo_off: { name: 'Resting logo off', description: 'Stop showing the corner logo, now and after the next graphic clears.', options: [], callback: async () => this.#command('logo', undefined, undefined, { on: false }) },
+      logo_toggle: { name: 'Resting logo toggle', description: 'Turn the corner logo setting on or off.', options: [], callback: async () => this.#command('logo', undefined, undefined, { on: this.#snapshot?.logo?.on !== true }) },
       set_page: { name: 'Set page', description: 'Show the scan card with this page beside it.', options: [{ type: 'textinput', id: 'page', label: 'Page', default: '', regex: '^$|^[A-Za-z0-9 .,\\-–]{1,12}$', tooltip: PAGE_TOOLTIP }], callback: async event => this.#setPage(String(event.options.page ?? '')) },
       next_panel: { name: 'Next panel', description: 'Show the next panel of the multipart graphic on screen, wrapping at the last one. From anything else, show panel 01 of the chosen set.', options: [{ type: 'dropdown', id: 'set', label: 'Panel set', choices: setChoices, default: defaultSet }], callback: async event => this.#panelStep(1, String(event.options.set ?? '')) },
       previous_panel: { name: 'Previous panel', description: 'Show the previous panel of the multipart graphic on screen, wrapping at the first one. From anything else, show panel 01 of the chosen set.', options: [{ type: 'dropdown', id: 'set', label: 'Panel set', choices: setChoices, default: defaultSet }], callback: async event => this.#panelStep(-1, String(event.options.set ?? '')) },
@@ -403,6 +420,12 @@ export default class CrcOverlaysInstance extends InstanceBase<Manifest> {
       requested: { type: 'boolean', name: 'Cue requested', description: 'The API accepted this desired state; it does not prove rendering.', defaultStyle: { bgcolor: combineRgb(180, 110, 0), color: combineRgb(255, 255, 255) }, options: [{ type: 'dropdown', id: 'cue', label: 'Cue', choices: targets, default: defaultCue }], callback: event => String(event.options.cue || '') === (this.#snapshot?.cue ?? '') },
       rendered: { type: 'boolean', name: 'Cue rendered', description: 'A connected graphics browser reports this exact requested revision settled. Not an on-air/tally signal.', defaultStyle: { bgcolor: RENDERED_RED, color: combineRgb(255, 255, 255) }, options: [{ type: 'dropdown', id: 'cue', label: 'Cue', choices: targets, default: defaultCue }], callback: event => { const state = this.#feedbackState(); return state.rendered && String(event.options.cue || '') === (this.#snapshot?.cue ?? '') } },
       bug_visible: { type: 'boolean', name: 'Scan card visible', description: 'The live state carries a scan card.', defaultStyle: { bgcolor: combineRgb(0, 90, 140), color: combineRgb(255, 255, 255) }, options: [], callback: () => this.#snapshot?.bug?.on === true },
+      // Two feedbacks rather than one, because the operator's setting and what is on screen are
+      // different facts and a single lamp would have to lie about one of them. Neither is a
+      // rendered report: no graphics browser acknowledges the corner mark, and `rendered`
+      // remains the only feedback in this module that waits for one.
+      logo_enabled: { type: 'boolean', name: 'Resting logo enabled', description: 'The operator has asked for the corner logo. It is a setting, not proof of a picture.', defaultStyle: { bgcolor: combineRgb(90, 70, 0), color: combineRgb(255, 255, 255) }, options: [], callback: () => this.#snapshot?.logo?.on === true },
+      logo_held: { type: 'boolean', name: 'Resting logo held back', description: 'The corner logo is enabled but a graphic or the scan card is requested, so the site is keeping it off screen.', defaultStyle: { bgcolor: combineRgb(60, 60, 60), color: combineRgb(200, 200, 200) }, options: [], callback: () => logoStatusLabel(this.#snapshot) === 'On (held)' },
       slot_empty: { type: 'boolean', name: 'Slot is empty', description: 'The text of this slot has not been filled in for this service.', defaultStyle: { bgcolor: SLOT_EMPTY_BG, color: SLOT_EMPTY_TEXT }, options: [{ type: 'dropdown', id: 'cue', label: 'Cue', choices: slotTargets, default: slotTargets[0]?.id ?? '' }], callback: event => this.#slotIsEmpty(String(event.options.cue || '')) },
       disconnected: { type: 'boolean', name: 'Realtime or renderer disconnected', description: 'The realtime subscription is closed or no graphics browser presence has arrived for 30 seconds.', defaultStyle: { bgcolor: combineRgb(175, 0, 0), color: combineRgb(255, 255, 255) }, options: [], callback: () => this.#feedbackState().disconnected },
     }
@@ -447,6 +470,7 @@ export default class CrcOverlaysInstance extends InstanceBase<Manifest> {
     // painting them red would contradict the rule the colours now teach.
     presets.animate_out = { type: 'simple', name: 'Animate out', style: { text: 'Animate\nOut', size: '14', color: combineRgb(255, 255, 255), bgcolor: combineRgb(65, 65, 65) }, steps: [{ down: [{ actionId: 'animate_clear', options: {} }], up: [] }], feedbacks: [{ feedbackId: 'rendered', options: { cue: '' }, style: { bgcolor: CLEAR_CONFIRMED_GREEN } }, disconnected] }
     presets.clear_now = { type: 'simple', name: 'Clear now', style: { text: 'CLEAR\nNOW', size: '14', color: combineRgb(255, 255, 255), bgcolor: combineRgb(120, 0, 0) }, steps: [{ down: [{ actionId: 'clear_now', options: {} }], up: [] }], feedbacks: [{ feedbackId: 'rendered', options: { cue: '' }, style: { bgcolor: CLEAR_CONFIRMED_GREEN } }, disconnected] }
+    presets.logo = { type: 'simple', name: 'Resting logo', style: { text: 'Resting\nlogo', size: '14', color: combineRgb(255, 255, 255), bgcolor: CHARCOAL }, steps: [{ down: [{ actionId: 'logo_toggle', options: {} }], up: [] }], feedbacks: [{ feedbackId: 'logo_enabled', options: {}, style: { bgcolor: combineRgb(90, 70, 0) } }, { feedbackId: 'logo_held', options: {}, style: { bgcolor: combineRgb(60, 60, 60) } }, disconnected] }
     presets.bug = { type: 'simple', name: 'Scan card', style: { text: 'Scan\ncard', size: '14', color: combineRgb(255, 255, 255), bgcolor: CHARCOAL }, steps: [{ down: [{ actionId: 'bug_on', options: {} }], up: [] }, { down: [{ actionId: 'bug_off', options: {} }], up: [] }], feedbacks: [{ feedbackId: 'bug_visible', options: {}, style: { bgcolor: combineRgb(0, 90, 140) } }, disconnected] }
     presets.set_page = { type: 'simple', name: 'Set page', style: { text: 'Set\npage', size: '14', color: combineRgb(255, 255, 255), bgcolor: CHARCOAL }, steps: [{ down: [{ actionId: 'set_page', options: { page: '' } }], up: [] }], feedbacks: [disconnected] }
     presets.next_panel = { type: 'simple', name: 'Next panel', style: { text: 'Next\npanel', size: '14', color: combineRgb(255, 255, 255), bgcolor: CHARCOAL }, steps: [{ down: [{ actionId: 'next_panel', options: { set: '' } }], up: [] }], feedbacks: [disconnected] }

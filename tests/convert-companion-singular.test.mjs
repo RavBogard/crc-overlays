@@ -211,7 +211,7 @@ test('"Start soon right" is dropped beside a real graphic, and kept when it is a
   assert.deepEqual(cellOf(res.config, 1, 0, 1), aloneBefore, 'a side-panel-only button is untouched')
 })
 
-test('CRC Logo becomes the scan card on/off, and HHD Logo does not', () => {
+test('CRC Logo becomes the resting logo on/off — never the scan card — and HHD Logo does not', () => {
   const logo = v5Button('Toggle Logo', 16711680, twoStep(v5Action, 'CRC Logo'))
   const hhd = v5Button('HHD Logo', 6697728, twoStep(v5Action, 'HHD Logo'))
   const hhdBefore = structuredClone(hhd)
@@ -220,12 +220,21 @@ test('CRC Logo becomes the scan card on/off, and HHD Logo does not', () => {
 
   const b = cellOf(res.config, 1, 0, 0)
   const defs = Object.values(b.steps).flatMap((s) => s.action_sets.down.map((a) => a.definitionId))
-  assert.deepEqual(defs, ['bug_on', 'bug_off'])
-  assert.deepEqual(b.feedbacks.map((f) => f.definitionId), ['bug_visible', 'disconnected'])
+  // The sitting's instruction: pressing the logo must not put a QR code on screen. Nothing in
+  // the converted deck emits a scan-card action, and the feedback is the setting, not a picture.
+  assert.deepEqual(defs, ['logo_on', 'logo_off'])
+  assert.ok(!defs.some((d) => String(d).startsWith('bug_')), 'the scan card is a different feature and a different button')
+  assert.deepEqual(b.feedbacks.map((f) => f.definitionId), ['logo_enabled', 'disconnected'])
   assert.deepEqual(cellOf(res.config, 1, 0, 1), hhdBefore, 'HHD Logo has no match, so the button is untouched')
 })
 
-test('the logo-under-layer idiom keeps both steps and both actions', () => {
+/* D15, and the reason it is worth changing behaviour rather than copying the deck. Michael's
+   buttons paired a logo hide with the prayer going up and a restore with it coming down, because
+   the old renderer did not know what was on screen. Ours does. Keeping the macros would mean a
+   second, uncoordinated opinion about the mark — and, as Aleinu 3 shows, a restore that fires in
+   the middle of a series, or one that switches the logo back on after the operator turned it off.
+   So on a button that also shows a prayer the macro is dropped; the button's own job is intact. */
+test('a prayer button loses its inherited logo macro, keeping its steps and its cue actions', () => {
   const btn = v5Button('Mah Tovu', 26265, {
     0: { action_sets: { down: [v5Action('animateIn', 'Mah Tovu'), v5Action('animateOut', 'CRC Logo')], up: [] }, options: { runWhileHeld: [] } },
     1: { action_sets: { down: [v5Action('animateOut', 'Mah Tovu'), v5Action('animateIn', 'CRC Logo')], up: [] }, options: { runWhileHeld: [] } },
@@ -234,9 +243,40 @@ test('the logo-under-layer idiom keeps both steps and both actions', () => {
   const res = run(cfg)
   const b = cellOf(res.config, 1, 0, 0)
   assert.deepEqual(Object.keys(b.steps), ['0', '1'])
-  assert.deepEqual(b.steps[0].action_sets.down.map((a) => a.definitionId), ['show_cue', 'bug_off'])
-  assert.deepEqual(b.steps[1].action_sets.down.map((a) => a.definitionId), ['animate_out', 'bug_on'])
+  assert.deepEqual(b.steps[0].action_sets.down.map((a) => a.definitionId), ['show_cue'])
+  assert.deepEqual(b.steps[1].action_sets.down.map((a) => a.definitionId), ['animate_out'])
   assert.deepEqual(b.feedbacks.map((f) => f.definitionId), ['requested', 'rendered', 'disconnected'])
+  assert.equal(res.stats.logoMacrosDropped, 2, 'both halves of the pairing are dropped, and counted')
+})
+
+/* The Aleinu 3 case by name: a mid-series restore. The button still shows and clears its own
+   panel; the stray restore no longer fires while Aleinu 4 is still to come, and no longer
+   re-enables a mark the operator deliberately turned off. */
+test('a mid-series logo restore is dropped, and the panel button is otherwise unchanged', () => {
+  const btn = v5Button('Aleinu 3', 26265, {
+    0: { action_sets: { down: [v5Action('animateIn', 'Mah Tovu'), v5Action('animateIn', 'CRC Logo')], up: [] }, options: { runWhileHeld: [] } },
+  })
+  const cfg = v5Config({ 1: { name: 'Home', controls: { 0: { 0: btn } } }, 53: emptyPage() })
+  const res = run(cfg)
+  const b = cellOf(res.config, 1, 0, 0)
+  const defs = Object.values(b.steps).flatMap((s) => s.action_sets.down.map((a) => a.definitionId))
+  assert.deepEqual(defs, ['show_cue'])
+  assert.equal(res.stats.logoMacrosDropped, 1)
+  assert.ok(!b.feedbacks.some((f) => f.definitionId === 'logo_enabled'), 'a prayer button does not claim the logo setting')
+})
+
+/* A button whose only job is the logo is a deliberate operator control and keeps its press. */
+test('a logo-only button keeps its press while a prayer button loses the macro', () => {
+  const toggle = v5Button('Toggle Logo', 16711680, twoStep(v5Action, 'CRC Logo'))
+  const prayer = v5Button('Mah Tovu', 26265, {
+    0: { action_sets: { down: [v5Action('animateIn', 'Mah Tovu'), v5Action('animateOut', 'CRC Logo')], up: [] }, options: { runWhileHeld: [] } },
+  })
+  const cfg = v5Config({ 1: { name: 'Home', controls: { 0: { 0: toggle, 1: prayer } } }, 53: emptyPage() })
+  const res = run(cfg)
+  const kept = Object.values(cellOf(res.config, 1, 0, 0).steps).flatMap((s) => s.action_sets.down.map((a) => a.definitionId))
+  const dropped = Object.values(cellOf(res.config, 1, 0, 1).steps).flatMap((s) => s.action_sets.down.map((a) => a.definitionId))
+  assert.deepEqual(kept, ['logo_on', 'logo_off'], 'the deliberate control survives')
+  assert.deepEqual(dropped, ['show_cue'], 'the inherited macro does not')
 })
 
 test('mixed buttons keep their unmatched Singular actions, in place and in order', () => {

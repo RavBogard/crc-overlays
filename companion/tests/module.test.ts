@@ -110,7 +110,7 @@ describe('snapshot tolerance and published variables', () => {
     // A presence frame carrying the new controllers array must not break the client.
     h.sockets[0]!.message({ type: 'presence', renderers: snapshotFrame().snapshot.renderers, controllers: [{ id: 'c1', client: 'companion', version: '1.4.0', seen: 9_400 }], serverTime: 10_100 })
 
-    const keys = ['current_name', 'current_panel', 'panel_count', 'connection', 'requested_name', 'requested_cue', 'requested_cue_id', 'revision', 'renderer_status', 'bug', 'bug_page']
+    const keys = ['current_name', 'current_panel', 'panel_count', 'connection', 'requested_name', 'requested_cue', 'requested_cue_id', 'revision', 'renderer_status', 'bug', 'bug_page', 'logo', 'logo_state']
     expect(h.variables.length).toBeGreaterThan(1)
     for (const published of h.variables) expect(Object.keys(published).sort()).toEqual([...keys].sort())
     expect(h.variables.at(-1)).toMatchObject({ current_name: 'Barechu', requested_name: 'Barechu', requested_cue: 'Barechu', connection: 'Connected', renderer_status: 'Rendered', revision: 4, current_panel: '', panel_count: '', bug: 'Off', bug_page: '' })
@@ -131,6 +131,8 @@ describe('snapshot tolerance and published variables', () => {
       renderer_status: { name: 'Renderer status' },
       bug: { name: 'Scan card' },
       bug_page: { name: 'Scan card page' },
+      logo: { name: 'Resting logo' },
+      logo_state: { name: 'Resting logo state' },
     })
   })
 
@@ -166,6 +168,9 @@ describe('the action and feedback surface', () => {
       { id: 'refresh_catalog', name: 'Refresh cue catalog', options: [] },
       { id: 'bug_on', name: 'Bug on', options: [] },
       { id: 'bug_off', name: 'Bug off', options: [] },
+      { id: 'logo_on', name: 'Resting logo on', options: [] },
+      { id: 'logo_off', name: 'Resting logo off', options: [] },
+      { id: 'logo_toggle', name: 'Resting logo toggle', options: [] },
       { id: 'set_page', name: 'Set page', options: [{ id: 'page', type: 'textinput', label: 'Page' }] },
       { id: 'next_panel', name: 'Next panel', options: [{ id: 'set', type: 'dropdown', label: 'Panel set' }] },
       { id: 'previous_panel', name: 'Previous panel', options: [{ id: 'set', type: 'dropdown', label: 'Panel set' }] },
@@ -180,13 +185,15 @@ describe('the action and feedback surface', () => {
     expect(page.regex).toBe('^$|^[A-Za-z0-9 .,\\-–]{1,12}$')
   })
 
-  it('registers the scan card feedback beside the existing three', async () => {
+  it('registers the scan card and resting logo feedbacks beside the existing three', async () => {
     const h = start(harness())
     await h.instance.init(config(), true, secrets({ deviceToken: PAIRED_TOKEN }))
     expect(Object.entries(h.feedbacks).map(([id, feedback]) => ({ id, name: feedback.name, type: feedback.type }))).toEqual([
       { id: 'requested', name: 'Cue requested', type: 'boolean' },
       { id: 'rendered', name: 'Cue rendered', type: 'boolean' },
       { id: 'bug_visible', name: 'Scan card visible', type: 'boolean' },
+      { id: 'logo_enabled', name: 'Resting logo enabled', type: 'boolean' },
+      { id: 'logo_held', name: 'Resting logo held back', type: 'boolean' },
       { id: 'slot_empty', name: 'Slot is empty', type: 'boolean' },
       { id: 'disconnected', name: 'Realtime or renderer disconnected', type: 'boolean' },
     ])
