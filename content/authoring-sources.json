@@ -2,9 +2,9 @@
   "schemaVersion": 1,
   "authority": {
     "repository": "shireishabbat",
-    "repositoryCommit": "a3d88b6fccb5a87b1519d8bccefc78b5d52ef2e9",
+    "repositoryCommit": "38e274f6b40d62ad91cdd6ed9e6d93b9e085d553",
     "feed": "dist-app/legacy-shabbat-morning-feed.json",
-    "feedSha256": "ed92804dbe7279e9250feb58a4a06300b42b069c0f688a49fa1f5352d5430575",
+    "feedSha256": "a10872552140ed06ef937c2d04cd1fc6e39367ad2d38d555029a3f6a2eda732a",
     "feedSchemaVersion": 1,
     "printing": {
       "builtAt": "2026-09-06T14:47:09Z",
@@ -1382,7 +1382,7 @@
       "id": "shma.yotzer-or-interpretation@legacy-shabbat-morning",
       "name": "Yotzer Or Interpretation",
       "section": 3,
-      "unitSha256": "592755fdd4b50d43a04764e33e9aa43bea26c9653d3435cd143c357cb16feb8f",
+      "unitSha256": "8eef430924063e564f237c0389a2bd20044e00e8e1bd4e5cef1c75db07694ef4",
       "blocks": [
         {
           "id": "shma.yotzer-or-interpretation@legacy-shabbat-morning#block-0",
@@ -1400,7 +1400,15 @@
           "role": "original",
           "sourceBlockSha256": "975778f5049321ef867e76763845fefb8d50da4ad0850c0a5b9781672311c70f"
         }
-      ]
+      ],
+      "sourceBoundaries": {
+        "en": [
+          {
+            "block": 0,
+            "endAfter": "And breaks into tumultuous waves of leaves and flowers."
+          }
+        ]
+      }
     },
     {
       "id": "shma.ahavah-rabbah@legacy-shabbat-morning",
@@ -1486,7 +1494,7 @@
       "id": "shma.unending-love@legacy-shabbat-morning",
       "name": "Unending Love",
       "section": 3,
-      "unitSha256": "a95065c6343742659661ef58ac8f72016e1b3eec1fcca0c9e6be56ef7806139e",
+      "unitSha256": "0f09c240a6b81605a317f25bfae8760e002c62dbaa7a1a1ecd821249de0bf045",
       "blocks": [
         {
           "id": "shma.unending-love@legacy-shabbat-morning#block-0",
@@ -1504,7 +1512,15 @@
           "role": "original",
           "sourceBlockSha256": "add01e37d79ca861d5d5d0488513d5548ee015f298e692f0cec2228cccade9fe"
         }
-      ]
+      ],
+      "sourceBoundaries": {
+        "en": [
+          {
+            "block": 0,
+            "endAfter": "We are counseled by voices that guide us even when we are too embittered to hear."
+          }
+        ]
+      }
     },
     {
       "id": "shma.echad-yachid@legacy-shabbat-morning",

@@ -3,9 +3,9 @@
   "catalog": "lib/cues.json",
   "authority": {
     "repository": "shireishabbat",
-    "repositoryCommit": "a3d88b6fccb5a87b1519d8bccefc78b5d52ef2e9",
+    "repositoryCommit": "38e274f6b40d62ad91cdd6ed9e6d93b9e085d553",
     "feed": "dist-app/legacy-shabbat-morning-feed.json",
-    "feedSha256": "ed92804dbe7279e9250feb58a4a06300b42b069c0f688a49fa1f5352d5430575",
+    "feedSha256": "a10872552140ed06ef937c2d04cd1fc6e39367ad2d38d555029a3f6a2eda732a",
     "feedSchemaVersion": 1,
     "printing": {
       "builtAt": "2026-09-06T14:47:09Z",

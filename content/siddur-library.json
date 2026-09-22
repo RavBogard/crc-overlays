@@ -214,6 +214,22 @@
         "attribution": "Central Reform Congregation, St. Louis · Rabbi Daniel Bogard. CC BY-NC-SA 4.0.",
         "spdx": "CC-BY-NC-SA-4.0"
       }
+    },
+    {
+      "id": "shireishabbat:legacy-shabbat-morning:b4b653a76341344c",
+      "repository": "shireishabbat",
+      "repositoryCommit": "38e274f6b40d62ad91cdd6ed9e6d93b9e085d553",
+      "feed": "dist-app/legacy-shabbat-morning-feed.json",
+      "feedSha256": "b4b653a76341344c3a4147926594deb5aea842603de27c67a9b53b3e521021b7",
+      "feedSchemaVersion": 1,
+      "printing": {
+        "gitSha": "de9171d-LICENSED",
+        "pages": 54
+      },
+      "license": {
+        "attribution": "Central Reform Congregation, St. Louis. Contains third-party liturgical texts used by permission for CRC's non-commercial use; 31 printed credits retained verbatim. Not licensed for redistribution or adaptation by others.",
+        "spdx": "CRC-internal, non-commercial, for the TEXT and its reuse: permission confirmed 2026-08-31 by CRC's executive director (R-0831-license-1), NOT CC — see attribution. THE WHOLE-BOOK PDF IS UNDER NO HOLD: CRC publishes this volume publicly on its own website and has done so for years, and Daniel so ruled on 2026-09-05 (R-0904-corpus-cw-93 §4). The PDF the app serves is CRC's own original file, byte for byte, not a re-typeset of it."
+      }
     }
   ],
   "sources": [
@@ -11871,9 +11887,17 @@
       "id": "library:legacy-shabbat-morning:shma.yotzer-or-interpretation@legacy-shabbat-morning",
       "name": "Yotzer Or Interpretation",
       "section": "Sh’ma and Her Blessings",
-      "unitSha256": "592755fdd4b50d43a04764e33e9aa43bea26c9653d3435cd143c357cb16feb8f",
-      "origin": "shireishabbat:legacy-shabbat-morning:d00e67e66aeeef8b",
-      "sourceSha256": "592755fdd4b50d43a04764e33e9aa43bea26c9653d3435cd143c357cb16feb8f",
+      "unitSha256": "8eef430924063e564f237c0389a2bd20044e00e8e1bd4e5cef1c75db07694ef4",
+      "sourceBoundaries": {
+        "en": [
+          {
+            "block": 0,
+            "endAfter": "And breaks into tumultuous waves of leaves and flowers."
+          }
+        ]
+      },
+      "origin": "shireishabbat:legacy-shabbat-morning:b4b653a76341344c",
+      "sourceSha256": "8eef430924063e564f237c0389a2bd20044e00e8e1bd4e5cef1c75db07694ef4",
       "book": "legacy-shabbat-morning",
       "service": "CRC Shabbat Morning",
       "aliases": [
@@ -11898,13 +11922,13 @@
         ]
       },
       "authority": {
-        "id": "shireishabbat:legacy-shabbat-morning:d00e67e66aeeef8b",
+        "id": "shireishabbat:legacy-shabbat-morning:b4b653a76341344c",
         "repository": "shireishabbat",
-        "repositoryCommit": "ad8928231b1a26b9be758f7365403d8043a79709",
+        "repositoryCommit": "38e274f6b40d62ad91cdd6ed9e6d93b9e085d553",
         "feed": "dist-app/legacy-shabbat-morning-feed.json",
-        "feedSha256": "d00e67e66aeeef8b13f9bb9d1d6164576e428c1a4524d510efd7dd467558ef81",
+        "feedSha256": "b4b653a76341344c3a4147926594deb5aea842603de27c67a9b53b3e521021b7",
         "unitId": "shma.yotzer-or-interpretation@legacy-shabbat-morning",
-        "unitSha256": "592755fdd4b50d43a04764e33e9aa43bea26c9653d3435cd143c357cb16feb8f"
+        "unitSha256": "8eef430924063e564f237c0389a2bd20044e00e8e1bd4e5cef1c75db07694ef4"
       },
       "blocks": [
         {
@@ -12091,9 +12115,17 @@
       "id": "library:legacy-shabbat-morning:shma.unending-love@legacy-shabbat-morning",
       "name": "Unending Love",
       "section": "Sh’ma and Her Blessings",
-      "unitSha256": "a95065c6343742659661ef58ac8f72016e1b3eec1fcca0c9e6be56ef7806139e",
-      "origin": "shireishabbat:legacy-shabbat-morning:d00e67e66aeeef8b",
-      "sourceSha256": "a95065c6343742659661ef58ac8f72016e1b3eec1fcca0c9e6be56ef7806139e",
+      "unitSha256": "0f09c240a6b81605a317f25bfae8760e002c62dbaa7a1a1ecd821249de0bf045",
+      "sourceBoundaries": {
+        "en": [
+          {
+            "block": 0,
+            "endAfter": "We are counseled by voices that guide us even when we are too embittered to hear."
+          }
+        ]
+      },
+      "origin": "shireishabbat:legacy-shabbat-morning:b4b653a76341344c",
+      "sourceSha256": "0f09c240a6b81605a317f25bfae8760e002c62dbaa7a1a1ecd821249de0bf045",
       "book": "legacy-shabbat-morning",
       "service": "CRC Shabbat Morning",
       "aliases": [
@@ -12118,13 +12150,13 @@
         ]
       },
       "authority": {
-        "id": "shireishabbat:legacy-shabbat-morning:d00e67e66aeeef8b",
+        "id": "shireishabbat:legacy-shabbat-morning:b4b653a76341344c",
         "repository": "shireishabbat",
-        "repositoryCommit": "ad8928231b1a26b9be758f7365403d8043a79709",
+        "repositoryCommit": "38e274f6b40d62ad91cdd6ed9e6d93b9e085d553",
         "feed": "dist-app/legacy-shabbat-morning-feed.json",
-        "feedSha256": "d00e67e66aeeef8b13f9bb9d1d6164576e428c1a4524d510efd7dd467558ef81",
+        "feedSha256": "b4b653a76341344c3a4147926594deb5aea842603de27c67a9b53b3e521021b7",
         "unitId": "shma.unending-love@legacy-shabbat-morning",
-        "unitSha256": "a95065c6343742659661ef58ac8f72016e1b3eec1fcca0c9e6be56ef7806139e"
+        "unitSha256": "0f09c240a6b81605a317f25bfae8760e002c62dbaa7a1a1ecd821249de0bf045"
       },
       "blocks": [
         {

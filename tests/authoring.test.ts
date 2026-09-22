@@ -48,6 +48,26 @@ test('get_source and generated draft sets expose pointer-derived English slices 
  }finally{sourcePack.sources.splice(sourcePack.sources.indexOf(fixture),1)}
 });
 
+
+test('the released We Are Loved and Yotzer source records expose canonical parents plus selectable slices',async()=>{
+ const service=createAuthoringService(new MemoryAuthoringRepository());
+ const ids=['shma.unending-love@legacy-shabbat-morning','shma.yotzer-or-interpretation@legacy-shabbat-morning'];
+ for(const id of ids){
+  const opened=await service.operation('get_source',{sourceId:id},'tester') as GetSourceResult;
+  const canonical=sourcePack.sources.find(source=>source.id===id)!;
+  const parent=canonical.blocks.find(block=>block.kind==='original-en')!;
+  const displayed=opened.source.blocks.filter(block=>block.id===parent.id||block.id.startsWith(`${parent.id}/slice-`));
+  assert.deepEqual(displayed.map(block=>block.id),[parent.id,`${parent.id}/slice-0`,`${parent.id}/slice-1`]);
+  assert.equal(displayed[0].en,displayed.slice(1).map(block=>block.en).join(''));
+  const created=await service.operation('create_source_draft_set',{sourceId:id,mode:'original-en',layout:'bottom',templateCueId:BARECHU},'tester') as DraftSetResult;
+  const selected=created.drafts.flatMap(draft=>(draft.content as OriginalEnglishContent).englishGroups.flatMap(group=>group.blockIds));
+  assert.ok(selected.includes(`${parent.id}/slice-0`)&&selected.includes(`${parent.id}/slice-1`));
+  assert.ok(!selected.includes(parent.id),'the canonical parent is not selected alongside its derived children');
+  assert.ok(created.drafts.every(draft=>draft.sourceSnapshots?.[0].blocks.some(block=>block.id===parent.id)&&!draft.sourceSnapshots?.[0].blocks.some(block=>block.id.startsWith(`${parent.id}/slice-`))));
+  assert.equal((await service.operation('review_draft_set',{setId:created.set.id},'tester') as ReviewDraftSetResult).status,'complete');
+ }
+});
+
 type DraftResult={draft:Draft};
 type ImportCueResult=DraftResult&{created:boolean};
 type DuplicateDraftResult=DraftResult&{duplicatedFrom:{kind:string;id:string}};

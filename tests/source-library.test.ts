@@ -53,11 +53,12 @@ test('every expanded block preserves exact bilingual, original English, or class
 
 test('source authorities and coverage are complete and internally consistent',()=>{
  const authorityIds=new Set(siddurLibrary.authorities.map(authority=>authority.id));
- // One authority and one coverage entry per book on the shelf. The shelf grows with the regenerated
- // library, so the count is read from the sources rather than written down.
+ // A book may retain more than one authority when a narrowly regenerated source record pins a
+ // newer feed while every unrelated record keeps its established provenance. Coverage remains one
+ // entry per book.
  const shelf=new Set((siddurLibrary.sources as LibrarySource[]).map(source=>source.book));
  assert.ok(shelf.size>=12);
- assert.equal(authorityIds.size,shelf.size);
+ assert.ok(authorityIds.size>=shelf.size);
  assert.equal(siddurLibrary.coverage.books.length,shelf.size);
  for(const source of siddurLibrary.sources as LibrarySource[]){
   assert.ok(authorityIds.has(source.origin));
