@@ -3,7 +3,7 @@ import assert from 'node:assert/strict';
 import {readFileSync} from 'node:fs';
 import {fileURLToPath} from 'node:url';
 import {acceptsRevision,effectFrames,incomingStillDesired,measuredBottomTextHeight,textParts,tracksFor,type AnimationTrack} from '../lib/player-motion.ts';
-import {Player,panelRowChannels,panelRowGap,panelStackGeometry,presentationTextStyles,usesPanelRows,type ContentRow,type Cue} from '../lib/player.ts';
+import {Player,constrainedBottomTextHeight,panelRowChannels,panelRowGap,panelStackGeometry,presentationTextStyles,usesPanelRows,type ContentRow,type Cue} from '../lib/player.ts';
 import {OVERLAY_ASSET_TIMEOUT_MS,waitForRenderedOverlayAssets} from '../lib/overlay-assets.ts';
 import {branding} from '../lib/branding.ts';
 
@@ -131,6 +131,20 @@ test('bottom height follows unscaled measured content with a crest-safe minimum'
  assert.equal(measuredBottomTextHeight([128,167.2]),168);
  assert.equal(measuredBottomTextHeight([0,44]),84);
  assert.equal(measuredBottomTextHeight([]),84);
+});
+
+test('bottom fit expands only by the measured constrained overflow',()=>{
+ assert.equal(constrainedBottomTextHeight(109,2),111,'Barechu’s two-pixel Hebrew shortfall becomes panel geometry');
+ assert.equal(constrainedBottomTextHeight(84,0),84,'the crest-safe resting minimum does not move');
+ assert.equal(constrainedBottomTextHeight(111,-3),111,'a settled block does not gain speculative padding');
+});
+
+test('a transliteration and translation panel receives an explicit two-block stack',()=>{
+ const css=overlayCss();
+ assert.match(css,/\.panel-translation-stack \.english:not\(\.single-channel\)\{top:var\(--panel-hebrew-top\);height:var\(--panel-hebrew-height\)\}/);
+ assert.match(css,/\.panel-translation-stack \.translation:not\(\.single-channel\)\{top:var\(--panel-english-top\);height:var\(--panel-english-height\);width:576px/);
+ const source=readFileSync(fileURLToPath(new URL('../lib/player.ts',import.meta.url)),'utf8');
+ assert.match(source,/textMainEng&&c\.texts\.textTranslation&&!c\.texts\.textMainheb/,'only the no-Hebrew pair receives the alternate stack');
 });
 
 test('structured source rows replace aggregate panel text without changing lower thirds',()=>{
