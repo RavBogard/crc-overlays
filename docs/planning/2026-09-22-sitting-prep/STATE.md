@@ -47,3 +47,11 @@ Crash recovery: Codex update ended both prior worker processes; completed commit
 ## References
 
 PLAN.md; ACCEPTANCE.md; RETURN-B-DECISIONS.md; INTEGRATION-MAP.md; DYNAMIC-WORKFLOW.md; NEXT-SOURCE-BRIDGE.md. Detailed findings stay in their return files. .live working repo: C:/Users/dsbog/CentralReform.live/sheet-music-app. Reader: C:/Users/dsbog/shirei-tshuvah-web. Source: C:/Users/dsbog/shireishabbat. Active Overlays: C:/Users/dsbog/crc-overlays-vercel.
+
+## Confirmed Kiddush options
+Daniel explicitly confirmed full Friday-night Kiddush (including Vay'chulu), a distinct full Saturday daytime option, and the separate short wine blessing. Use existing CRC siddur wording wherever available; label supplemental sources honestly. This resolves the Kiddush options question above.
+
+
+## Content application checkpoint
+
+Root in-app author session now works. Subagents cannot see this browser. Root saved all five wave-1 repairs as version 2 through author UI; each reports Fits this frame. Ma'ariv full-screen preview inspected. None published; no server fit receipt claimed. See RETURN-CONTENT-W1-CODEX.md follow-up. Content worker completed wave-2 source proposals: Avot interpretations ready; We Are Loved/Yotzer need source segmentation; Gevurot interpretation lacks maintained source. Claude1 received PACKET-A2-RELEASE.md through Daniel to complete missing release evidence.

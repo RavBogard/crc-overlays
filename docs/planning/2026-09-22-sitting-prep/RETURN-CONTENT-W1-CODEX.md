@@ -23,3 +23,14 @@ Daniel's current source ruling is reflected here: the existing CRC siddur remain
 ## Required next action
 
 Sign in to the CRC workspace using an existing approved author or owner account, then execute the manifest through `get_draft` → versioned `update_draft` → exact-version `preview_draft` → `fit_check_draft`. A human must visually review the exact preview before any publication. No deployment is part of this wave.
+
+## Root application follow-up — 2026-09-22
+
+Daniel completed owner sign-in in the root task's in-app browser. That browser is not exposed to subagents. Root applied all five prepared repairs through the normal author UI, reading each current saved version 1 before editing and confirming saved version 2 afterward. No WebMCP tools were exposed by the document, so this was UI application rather than the proposed API manifest execution.
+
+- Send Healing Names: saved the manifest's shorter invitation.
+- Send Kaddish Names: saved the manifest's shorter invitation.
+- Psalm-ish 1 and 2: read the actual textarea values and removed only literal html/i opening and closing tags. All other characters and line breaks remained intact.
+- Maariv Arevim 1: confirmed CRC Kabbalat Shabbat pp.13–14, selected passages 1–8, Hebrew and transliteration, then selected In blocks. No source selection or wording changed.
+
+All five saved previews reported Fits this frame with fonts/artwork loaded. Root inspected Ma'ariv's full-screen preview: coherent Hebrew block above transliteration, no visible clipping. These UI preview checks are not a claim of separate server fit_check_draft receipts. No Publish action, human-review receipt, or publication occurred. Published output remains the prior revision until review/publication. Root's browser remains available for the next review.
