@@ -1,6 +1,9 @@
 import type { Metadata } from "next";
 import {getPublicWorkspace} from '@/lib/workspace';
 import "./globals.css";
+// The overlay stage and its layouts, then the opt-in book faces on top: the same order the
+// rules were written in, which the layered geometry in overlay.css depends on.
+import "./overlay.css";
 import "./overlay-faces.css";
 
 export function generateMetadata(): Metadata {

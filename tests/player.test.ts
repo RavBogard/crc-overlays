@@ -12,9 +12,71 @@ test('scale y and translate tracks keep their actual transform axis',()=>{
  assert.deepEqual(effectFrames({effect:'translate',property:'up'},'Out',40),[{transform:'translate(0, 0)'},{transform:'translateY(40px)'}]);
 });
 
-test('panel bilingual stack places Hebrew immediately after measured transliteration',()=>{
- assert.deepEqual(panelStackGeometry(337.2,431.1),{englishTop:209,englishHeight:338,gap:19,hebrewTop:566,hebrewHeight:432});
- assert.deepEqual(panelStackGeometry(120,180),{englishTop:410,englishHeight:120,gap:88,hebrewTop:618,hebrewHeight:180});
+test('panel bilingual stack places the transliteration immediately after measured Hebrew',()=>{
+ assert.deepEqual(panelStackGeometry(337.2,431.1),{englishTop:660,englishHeight:338,gap:19,hebrewTop:209,hebrewHeight:432});
+ assert.deepEqual(panelStackGeometry(120,180),{englishTop:678,englishHeight:120,gap:88,hebrewTop:410,hebrewHeight:180});
+});
+
+// The two channels are rarely the same height, and the taller one is usually the Hebrew. What
+// must hold whatever the heights are: Hebrew is on top, the gap between them is the published
+// gap, and the stack is centred in the 184..1024 body with equal space above and below.
+test('Hebrew leads the stack at every ratio of channel heights',()=>{
+ for(const [english,hebrew] of [[337.2,431.1],[120,180],[500,120],[431,431],[0,300],[300,0],[600,240],[600,600]]){
+  const stack=panelStackGeometry(english,hebrew);
+  assert.ok(stack.hebrewTop<=stack.englishTop,`Hebrew must lead for ${english}/${hebrew}`);
+  assert.equal(stack.englishTop-(stack.hebrewTop+stack.hebrewHeight),stack.gap,'the gap sits between the two blocks');
+  assert.equal(stack.hebrewHeight,Math.ceil(hebrew));
+  assert.equal(stack.englishHeight,Math.ceil(english));
+  if(Math.ceil(english)+Math.ceil(hebrew)>840)continue; // overfull: it starts at the top and runs over
+  const above=stack.hebrewTop-184,below=184+840-(stack.englishTop+stack.englishHeight);
+  assert.ok(Math.abs(above-below)<=1,`the stack stays centred for ${english}/${hebrew}`);
+ }
+});
+
+// A panel whose text only just fits gets the minimum gap and no centring slack; it must still
+// stack Hebrew first and must not push the transliteration past the bottom of the body.
+test('a stack with no room to spare still reads Hebrew first and stays inside the body',()=>{
+ const tight=panelStackGeometry(400,422);
+ assert.deepEqual(tight,{englishTop:624,englishHeight:400,gap:18,hebrewTop:184,hebrewHeight:422});
+ assert.equal(tight.englishTop+tight.englishHeight,1024);
+ const overfull=panelStackGeometry(600,600);
+ assert.equal(overfull.hebrewTop,184,'an overfull stack starts at the top of the body rather than above it');
+ assert.equal(overfull.gap,0);
+ assert.equal(overfull.englishTop,784);
+});
+
+const overlayCss=()=>readFileSync(fileURLToPath(new URL('../app/overlay.css',import.meta.url)),'utf8');
+
+// The four resting values in app/overlay.css and the four fitPanelCopy publishes describe the
+// same stack. Edit one without the other and a panel lays out transliteration-first until the
+// fit runs, then jumps. This reads the defaults out of the stylesheet and checks them against
+// the geometry function that overrides them.
+test('the stylesheet resting panel stack agrees with the fitted one',()=>{
+ const rule=overlayCss().match(/\.left,\.right\{--panel-[^}]*\}/g)?.at(-1);
+ assert.ok(rule,'app/overlay.css declares the panel stack variables');
+ const value=(name:string)=>Number(rule!.match(new RegExp(`--panel-${name}:(\\d+)px`))?.[1]);
+ assert.ok(value('hebrew-top')<value('english-top'),'Hebrew rests above the transliteration');
+ assert.equal(value('hebrew-top'),184,'the stack starts at the top of the body');
+ assert.equal(value('hebrew-top')+value('hebrew-height')+18,value('english-top'),'separated by the minimum gap');
+ assert.equal(value('english-top')+value('english-height'),1024,'and ends at the bottom of the body');
+ const fitted=panelStackGeometry(value('english-height'),value('hebrew-height'));
+ assert.ok(fitted.hebrewTop<fitted.englishTop,'which is the order the fit publishes');
+});
+
+// The sitting asked for space between a lower third's title and the decorative circle. The gap
+// is named once so it can be tuned in one place; what must not regress is that the title starts
+// clear of the circle, which ends at 240px, and still ends inside the bar.
+test('the lower third title clears the decorative circle',()=>{
+ const css=overlayCss();
+ const clearance=Number(css.match(/--bottom-title-clearance:(\d+)px/)?.[1]);
+ assert.ok(clearance>=32,`the lower third gives its title only ${clearance}px of clearance`);
+ assert.match(css,/\.bottom \.title\{left:calc\(240px \+ var\(--bottom-title-clearance\)\);width:calc\(1850px - 240px - var\(--bottom-title-clearance\)\)\}/);
+ assert.match(css,/\.bottom::before\{left:20px;bottom:60px;width:220px/,'measured from a circle that still ends at 240px');
+ // The title moved; the praised English-left / Hebrew-right pair beneath it did not.
+ const prayerLefts=[...css.matchAll(/\.bottom \.prayer\{([^}]*)\}/g)].flatMap(rule=>[...rule[1].matchAll(/left:(\d+)px/g)].map(match=>match[1]));
+ assert.equal(prayerLefts.at(-1),'250','the lower third body block keeps its left edge');
+ assert.match(css,/\.bottom \.english\{width:730px/,'the English column keeps its width');
+ assert.match(css,/\.bottom \.hebrew\{left:1010px;width:850px/,'and the Hebrew column keeps its place');
 });
 
 test('structured rows use bounded inter-row spacing that preserves four-row fit',()=>{

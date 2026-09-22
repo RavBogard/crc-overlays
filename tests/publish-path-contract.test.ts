@@ -26,7 +26,9 @@ test('the two routes that can launch a browser carry the same function config',(
 // has no counterpart rule, which is why only right-panel rows overflowed. Whatever a rule like
 // this does to a panel that has no rows, it must not reach a row channel.
 test('no panel rule reaches into structured row channels',()=>{
- const css=read('app/globals.css');
+ // The overlay rules live in app/overlay.css; globals.css keeps the console and site styles.
+ // Both are read so the guard still catches a panel rule wherever someone adds one.
+ const css=read('app/overlay.css')+read('app/globals.css');
  const offenders:string[]=[];
  for(const [,selector] of css.matchAll(/([^{}]+)\{[^{}]*\}/g)){
   for(const part of selector.split(',')){
