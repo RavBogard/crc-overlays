@@ -8,7 +8,7 @@ export interface OverlaySnapshot { revision: number; cue: string | null; mode: s
 export interface CommandReceipt extends OverlaySnapshot { commandId: string }
 export interface FeedbackState { requestedCue: string | null; renderedCue: string | null; rendered: boolean; disconnected: boolean }
 export interface RealtimeBootstrap { url: string; ticket: string; heartbeatMs: number; staleMs: number; protocol: 1 }
-export interface VersionedCatalog<T = unknown> { cues: T; version: string }
+export interface VersionedCatalog<T = unknown> { cues: T; version: string; slots?: unknown }
 export type RealtimeConnectionState = 'connecting' | 'connected' | 'disconnected'
 export interface RealtimeHandlers {
   onSnapshot(snapshot: OverlaySnapshot): void
@@ -82,11 +82,15 @@ export class OverlayClient {
   }
 
   catalog(): Promise<unknown> { return this.catalogWithVersion().then(result => result.cues) }
+  // `?include=slots` asks for the envelope. A deployment that does not carry the change
+  // ignores the query string and answers the bare array it always has, so both shapes are
+  // read here: a module that hard-failed against an older server would be a bad afternoon
+  // in the booth.
   catalogWithVersion(): Promise<VersionedCatalog> {
-    return this.#request<VersionedCatalog>('/api/catalog', { method: 'GET' }, false, async response => {
+    return this.#request<VersionedCatalog>('/api/catalog?include=slots', { method: 'GET' }, false, async response => {
       const version = response.headers.get('X-CRC-Catalog-Version')
       if (!version || version.length > 200) throw new ApiError('Overlay catalog version header is invalid', false)
-      return { cues: await response.json() as unknown, version }
+      return { ...parseCatalogBody(await response.json() as unknown), version }
     })
   }
   realtimeBootstrap(): Promise<RealtimeBootstrap> { return this.#request<RealtimeBootstrap>('/api/realtime?role=control', { method: 'GET' }, false) }
@@ -286,6 +290,17 @@ export class RealtimeSubscription {
     this.#handshakeTimer = null
     this.#reconnectTimer = null
   }
+}
+
+/**
+ * Either shape the catalog endpoint may answer with: the bare `Cue[]` every deployment has
+ * always returned, or the `{version, cues, slots}` envelope `?include=slots` adds. Anything
+ * else is left for the catalog validator to refuse.
+ */
+export function parseCatalogBody(body: unknown): { cues: unknown; slots?: unknown } {
+  if (Array.isArray(body)) return { cues: body }
+  if (isRecord(body) && Array.isArray(body.cues)) return { cues: body.cues, slots: body.slots }
+  return { cues: body }
 }
 
 export function toggleAction(requestedCue: string | null, cue: string): 'in' | 'out' {

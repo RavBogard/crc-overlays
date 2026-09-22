@@ -57,7 +57,7 @@ describe('variable derivation', () => {
   it('publishes the panel position of the rendered graphic', () => {
     const variables = overlayVariables({ requestedName: 'Mah Tovu — 01 of 03', currentName: 'Mah Tovu — 01 of 03', revision: 7, connection: 'Connected' })
     expect(variables).toEqual({
-      requested_cue: 'Mah Tovu — 01 of 03', requested_name: 'Mah Tovu — 01 of 03', current_name: 'Mah Tovu — 01 of 03',
+      requested_cue: 'Mah Tovu — 01 of 03', requested_cue_id: '', requested_name: 'Mah Tovu — 01 of 03', current_name: 'Mah Tovu — 01 of 03',
       current_panel: '01', panel_count: '03', connection: 'Connected', revision: 7, renderer_status: 'Rendered',
       bug: 'Off', bug_page: '',
     })

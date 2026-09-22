@@ -53,7 +53,7 @@ Each cue preset uses **Toggle cue**, which shows the cue with its In animation o
 
 ## TBI package
 
-The Temple B'nai Israel archive is not built from this source tree. `scripts/build-tbi-companion-module.mjs` derives it deterministically from the reviewed CRC archive (`public/downloads/crc-overlays-1.5.0.tgz`), rebranding the manifest to id `tbi-overlays`, name **TBI Overlays**, and default base URL `https://tbi-overlays.vercel.app`. Wire-protocol identifiers are left untouched. Because Companion keys installed modules by manifest id and the two ids differ, both modules can be installed in one Companion at the same time, each with its own connection and its own workspace control key. `scripts/audit-companion-packages.mjs` re-derives the archive and checks it byte for byte against the committed file.
+The Temple B'nai Israel archive is not built from this source tree. `scripts/build-tbi-companion-module.mjs` derives it deterministically from the reviewed CRC archive (`public/downloads/crc-overlays-1.6.0.tgz`), rebranding the manifest to id `tbi-overlays`, name **TBI Overlays**, and default base URL `https://tbi-overlays.vercel.app`. Wire-protocol identifiers are left untouched. Because Companion keys installed modules by manifest id and the two ids differ, both modules can be installed in one Companion at the same time, each with its own connection and its own workspace control key. `scripts/audit-companion-packages.mjs` re-derives the archive and checks it byte for byte against the committed file.
 
 ## Operator feedback
 
@@ -66,3 +66,5 @@ Rendered is deliberately not labeled "on air." It proves browser render state on
 ## Current limits
 
 CRC-first single-output operation only. Catalog refresh is explicit rather than periodic. Physical Stream Deck operation, broadcast tally, vMix/OBS integration, and failure rehearsal remain outside this milestone.
+
+Slots (1.6.0) are the graphics whose text changes weekly and whose identity does not: a button points at a slot's cue id forever, the words are typed on the site's **This service** page, and the module publishes each slot's text as `slot_<key>` so the button label follows by itself. The slot list is server-side data — a deployment that does not carry it answers the bare catalog and the module simply has no slot variables. Slots are read only here: nothing in the module writes a slot's text.

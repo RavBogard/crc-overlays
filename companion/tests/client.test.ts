@@ -38,7 +38,7 @@ describe('OverlayClient ordering', () => {
     })
     const client = new OverlayClient({ baseUrl: 'https://example.test/', credential: 'secret', clientId: 'companion-test', fetch: fetchMock })
     await client.catalog()
-    expect(request).toEqual({ url: 'https://example.test/api/catalog', authorization: 'Bearer secret' })
+    expect(request).toEqual({ url: 'https://example.test/api/catalog?include=slots', authorization: 'Bearer secret' })
   })
 
   it('returns the catalog version from the authenticated response header', async () => {

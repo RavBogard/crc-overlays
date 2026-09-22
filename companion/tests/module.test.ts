@@ -110,7 +110,7 @@ describe('snapshot tolerance and published variables', () => {
     // A presence frame carrying the new controllers array must not break the client.
     h.sockets[0]!.message({ type: 'presence', renderers: snapshotFrame().snapshot.renderers, controllers: [{ id: 'c1', client: 'companion', version: '1.4.0', seen: 9_400 }], serverTime: 10_100 })
 
-    const keys = ['current_name', 'current_panel', 'panel_count', 'connection', 'requested_name', 'requested_cue', 'revision', 'renderer_status', 'bug', 'bug_page']
+    const keys = ['current_name', 'current_panel', 'panel_count', 'connection', 'requested_name', 'requested_cue', 'requested_cue_id', 'revision', 'renderer_status', 'bug', 'bug_page']
     expect(h.variables.length).toBeGreaterThan(1)
     for (const published of h.variables) expect(Object.keys(published).sort()).toEqual([...keys].sort())
     expect(h.variables.at(-1)).toMatchObject({ current_name: 'Barechu', requested_name: 'Barechu', requested_cue: 'Barechu', connection: 'Connected', renderer_status: 'Rendered', revision: 4, current_panel: '', panel_count: '', bug: 'Off', bug_page: '' })
@@ -126,6 +126,7 @@ describe('snapshot tolerance and published variables', () => {
       connection: { name: 'Connection' },
       requested_name: { name: 'Requested graphic' },
       requested_cue: { name: 'Requested cue' },
+      requested_cue_id: { name: 'Requested cue ID' },
       revision: { name: 'Requested revision' },
       renderer_status: { name: 'Renderer status' },
       bug: { name: 'Scan card' },
@@ -186,6 +187,7 @@ describe('the action and feedback surface', () => {
       { id: 'requested', name: 'Cue requested', type: 'boolean' },
       { id: 'rendered', name: 'Cue rendered', type: 'boolean' },
       { id: 'bug_visible', name: 'Scan card visible', type: 'boolean' },
+      { id: 'slot_empty', name: 'Slot is empty', type: 'boolean' },
       { id: 'disconnected', name: 'Realtime or renderer disconnected', type: 'boolean' },
     ])
   })

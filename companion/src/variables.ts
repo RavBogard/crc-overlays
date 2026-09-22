@@ -8,6 +8,7 @@ export type ConnectionLabel = 'Connected' | 'Reconnecting' | 'Disconnected'
 
 export interface OverlayVariables {
   requested_cue: string
+  requested_cue_id: string
   revision: number
   renderer_status: string
   current_name: string
@@ -32,6 +33,8 @@ export function connectionLabel(healthy: boolean, disconnected: boolean): Connec
 export interface VariableInput {
   /** The requested graphic's catalog name, or the cleared label when nothing is requested. */
   requestedName: string
+  /** The requested graphic's catalog id, blank when nothing is requested. */
+  requestedCueId?: string
   /** The rendered graphic's catalog name, blank while nothing is confirmed rendered. */
   currentName: string
   revision: number
@@ -45,7 +48,10 @@ export interface VariableInput {
 export function overlayVariables(input: VariableInput): OverlayVariables {
   const panel = parsePanelName(input.currentName)
   return {
+    // `requested_cue` has held the cue's NAME since 1.3.0 and buttons depend on it, so it
+    // keeps that value for compatibility; `requested_cue_id` is the id it was named after.
     requested_cue: input.requestedName,
+    requested_cue_id: input.requestedCueId ?? '',
     requested_name: input.requestedName,
     current_name: input.currentName,
     current_panel: panel?.panel ?? '',

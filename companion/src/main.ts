@@ -1,5 +1,5 @@
 import { combineRgb, InstanceBase, InstanceStatus, type CompanionActionDefinitions, type CompanionFeedbackDefinitions, type CompanionPresetDefinitions, type CompanionPresetSection, type InstanceTypes, type SomeCompanionConfigField } from '@companion-module/base'
-import { CatalogStore, cuePresetId, hasCatalogCue, visibleCatalogCues, type CatalogCue } from './catalog.js'
+import { CatalogStore, categoryColour, cuePresetId, hasCatalogCue, slotCatalogCues, slotPresetId, slotVariableValue, visibleCatalogCues, type CatalogCue } from './catalog.js'
 import { CatalogRefreshCoordinator, deriveFeedback, isNewerSnapshot, OverlayClient, toggleAction, validBugPage, type BugState, type FeedbackState, type OverlaySnapshot, type RealtimeSubscription, type RendererState, type WebSocketFactory } from './client.js'
 import { redeemPairingCode } from './pairing.js'
 import { panelSets, panelTarget } from './panel.js'
@@ -11,6 +11,14 @@ import { moduleVersion } from './version.js'
 const DISCONNECTED_GRACE_MS = 3_000
 const RENDERER_STALE_MS = 30_000
 const PAGE_TOOLTIP = 'A page number or short label shown beside the scan card. Clear now removes it.'
+// Michael has operated for years with one rule in his hands: red means it is up. That red
+// used to come from Companion's own step feedback, which only knew he had pressed the
+// button. `rendered` knows the picture actually settled, so it takes the same red.
+const RENDERED_RED = combineRgb(255, 0, 0)
+const CLEAR_CONFIRMED_GREEN = combineRgb(0, 130, 70)
+const CHARCOAL = combineRgb(35, 35, 35)
+const SLOT_EMPTY_BG = combineRgb(50, 50, 50)
+const SLOT_EMPTY_TEXT = combineRgb(140, 140, 140)
 
 const FALLBACK_CUES: CatalogCue[] = [
   { id: 'efa9fad4-f7d5-4091-a708-82103028861b', name: 'Barechu', layout: 'bottom' },
@@ -43,11 +51,14 @@ interface Manifest extends InstanceTypes {
     rendered: { type: 'boolean'; options: { cue: string } }
     disconnected: { type: 'boolean'; options: Record<string, never> }
     bug_visible: { type: 'boolean'; options: Record<string, never> }
+    slot_empty: { type: 'boolean'; options: { cue: string } }
   }
   variables: {
-    requested_cue: string; revision: number; renderer_status: string
+    requested_cue: string; requested_cue_id: string; revision: number; renderer_status: string
     current_name: string; current_panel: string; panel_count: string; connection: string; requested_name: string
     bug: string; bug_page: string
+    // One `slot_<key>` per slot in the catalog, declared dynamically by #defineVariables.
+    [key: string]: string | number
   }
 }
 
@@ -80,19 +91,7 @@ export default class CrcOverlaysInstance extends InstanceBase<Manifest> {
 
   async init(config: Config, _isFirstInit: boolean, secrets: Secrets): Promise<void> {
     this.#destroyed = false
-    this.setVariableDefinitions({
-      current_name: { name: 'Current graphic' },
-      current_panel: { name: 'Current panel' },
-      panel_count: { name: 'Panels' },
-      connection: { name: 'Connection' },
-      requested_name: { name: 'Requested graphic' },
-      requested_cue: { name: 'Requested cue' },
-      revision: { name: 'Requested revision' },
-      renderer_status: { name: 'Renderer status' },
-      bug: { name: 'Scan card' },
-      bug_page: { name: 'Scan card page' },
-    })
-    this.#defineActions(); this.#defineFeedbacks(); this.#definePresets()
+    this.#defineVariables(); this.#defineActions(); this.#defineFeedbacks(); this.#definePresets()
     await this.#applyConfig(config, secrets)
   }
   async destroy(): Promise<void> { this.#destroyed = true; this.#generation += 1; this.#client = null; this.#stopRealtime() }
@@ -150,9 +149,12 @@ export default class CrcOverlaysInstance extends InstanceBase<Manifest> {
       () => client.catalogWithVersion(),
       catalog => {
         if (generation !== this.#generation || this.#destroyed) return
-        if (!this.#catalog.replace(catalog.cues)) throw new Error('Catalog validation failed')
+        if (!this.#catalog.replace(catalog.cues, catalog.slots)) throw new Error('Catalog validation failed')
         this.#catalogVersion = catalog.version
-        this.#defineActions(); this.#defineFeedbacks(); this.#definePresets()
+        // Slot variables are catalog-derived, so their definitions are redeclared here
+        // beside the actions, feedbacks and presets rather than only once in init().
+        this.#defineVariables(); this.#defineActions(); this.#defineFeedbacks(); this.#definePresets()
+        this.#publishFeedback()
       },
     )
     if (notice) this.updateStatus(InstanceStatus.UnknownWarning, notice)
@@ -207,16 +209,18 @@ export default class CrcOverlaysInstance extends InstanceBase<Manifest> {
     const client = this.#client
     const generation = this.#generation
     if (!client || this.#destroyed) return
-    if (!this.#transportConnected) {
-      this.updateStatus(InstanceStatus.ConnectionFailure, 'Realtime connection required before sending commands')
-      this.#publishFeedback()
-      return
-    }
+    // The command path is ordinary authenticated HTTP and does not need the realtime
+    // socket. A press during a reconnect used to be dropped with only a status line
+    // nobody reads mid-service; it is sent now. The feedback is not faked to match:
+    // `rendered` still waits for a graphics browser to report, which is the whole point
+    // of the feedback, so the button stays unlit until the socket is back.
+    const offline = !this.#transportConnected
     try {
       const snapshot = await client.activate(action, cue, bug)
       if (generation !== this.#generation || this.#destroyed) return
       this.#acceptSnapshot(snapshot)
-      this.updateStatus(InstanceStatus.Ok)
+      if (offline) this.updateStatus(InstanceStatus.UnknownWarning, 'Sent without the live connection. Confirmation will follow when it reconnects.')
+      else this.updateStatus(InstanceStatus.Ok)
     } catch (error) {
       if (generation !== this.#generation || this.#destroyed) return
       this.updateStatus(InstanceStatus.ConnectionFailure, this.#safeError(error))
@@ -269,6 +273,37 @@ export default class CrcOverlaysInstance extends InstanceBase<Manifest> {
   #feedbackState(): FeedbackState {
     return deriveFeedback(this.#snapshot, this.#transportConnected, this.#presenceReceivedAt, Date.now(), RENDERER_STALE_MS, this.#unhealthySince, DISCONNECTED_GRACE_MS)
   }
+  /**
+   * The fixed variables plus one `slot_<key>` per slot in the catalog. Slots come and go
+   * with the catalog, so this is redeclared on every catalog change rather than once in
+   * `init()`, in the same place the actions, feedbacks and presets are redeclared.
+   */
+  #defineVariables(): void {
+    const definitions = {
+      current_name: { name: 'Current graphic' },
+      current_panel: { name: 'Current panel' },
+      panel_count: { name: 'Panels' },
+      connection: { name: 'Connection' },
+      requested_name: { name: 'Requested graphic' },
+      requested_cue: { name: 'Requested cue' },
+      requested_cue_id: { name: 'Requested cue ID' },
+      revision: { name: 'Requested revision' },
+      renderer_status: { name: 'Renderer status' },
+      bug: { name: 'Scan card' },
+      bug_page: { name: 'Scan card page' },
+    } as Record<string, { name: string }>
+    for (const cue of slotCatalogCues(this.#catalog.cues)) definitions[`slot_${cue.slot!.key}`] = { name: `Slot: ${cue.name}` }
+    this.setVariableDefinitions(definitions as Parameters<typeof this.setVariableDefinitions>[0])
+  }
+
+  /** `slot_<key>` values, one Stream Deck line each. An empty slot is an empty string. */
+  #slotValues(): Record<string, string> {
+    const text = this.#catalog.slotText()
+    const values: Record<string, string> = {}
+    for (const cue of slotCatalogCues(this.#catalog.cues)) values[`slot_${cue.slot!.key}`] = slotVariableValue(text.get(cue.slot!.key) ?? '')
+    return values
+  }
+
   #publishFeedback(): void {
     const rawDisconnected = deriveFeedback(this.#snapshot, this.#transportConnected, this.#presenceReceivedAt).disconnected
     if (!rawDisconnected) this.#clearGrace()
@@ -282,8 +317,9 @@ export default class CrcOverlaysInstance extends InstanceBase<Manifest> {
     }
     const state = this.#feedbackState()
     const requestedName = this.#cueName(state.requestedCue)
-    this.setVariableValues(overlayVariables({
+    this.setVariableValues({ ...this.#slotValues(), ...overlayVariables({
       requestedName,
+      requestedCueId: state.requestedCue ?? '',
       // Rendered means a browser reports this exact requested revision settled, so
       // the current graphic is the requested one; otherwise nothing is known.
       currentName: state.rendered ? requestedName : '',
@@ -291,7 +327,7 @@ export default class CrcOverlaysInstance extends InstanceBase<Manifest> {
       connection: connectionLabel(!rawDisconnected, state.disconnected),
       bugOn: this.#snapshot?.bug?.on === true,
       bugPage: this.#bugPage(),
-    }))
+    }) })
     this.checkAllFeedbacks()
   }
 
@@ -326,6 +362,13 @@ export default class CrcOverlaysInstance extends InstanceBase<Manifest> {
     await this.#cueCommand('in', target)
   }
 
+  /** True when a cue is a slot whose text is blank — the dim state on the deck. */
+  #slotIsEmpty(cueId: string): boolean {
+    const cue = this.#catalog.cues.find(entry => entry.id === cueId)
+    if (!cue?.slot) return false
+    return (this.#catalog.slotText().get(cue.slot.key) ?? '').trim().length === 0
+  }
+
   #cueName(cue: string | null): string {
     return this.#catalog.cues.find(entry => entry.id === cue)?.name ?? cue ?? 'Clear'
   }
@@ -354,35 +397,64 @@ export default class CrcOverlaysInstance extends InstanceBase<Manifest> {
   }
   #defineFeedbacks(): void {
     const targets = [{ id: '', label: 'Clear' }, ...this.#catalog.cues.map(cue => ({ id: cue.id, label: cue.name }))]
+    const slotTargets = slotCatalogCues(this.#catalog.cues).map(cue => ({ id: cue.id, label: cue.name }))
     const defaultCue = this.#catalog.cues[0]?.id ?? FALLBACK_CUES[0]!.id
     const feedbacks: CompanionFeedbackDefinitions<Manifest['feedbacks']> = {
       requested: { type: 'boolean', name: 'Cue requested', description: 'The API accepted this desired state; it does not prove rendering.', defaultStyle: { bgcolor: combineRgb(180, 110, 0), color: combineRgb(255, 255, 255) }, options: [{ type: 'dropdown', id: 'cue', label: 'Cue', choices: targets, default: defaultCue }], callback: event => String(event.options.cue || '') === (this.#snapshot?.cue ?? '') },
-      rendered: { type: 'boolean', name: 'Cue rendered', description: 'A connected graphics browser reports this exact requested revision settled. Not an on-air/tally signal.', defaultStyle: { bgcolor: combineRgb(0, 130, 70), color: combineRgb(255, 255, 255) }, options: [{ type: 'dropdown', id: 'cue', label: 'Cue', choices: targets, default: defaultCue }], callback: event => { const state = this.#feedbackState(); return state.rendered && String(event.options.cue || '') === (this.#snapshot?.cue ?? '') } },
+      rendered: { type: 'boolean', name: 'Cue rendered', description: 'A connected graphics browser reports this exact requested revision settled. Not an on-air/tally signal.', defaultStyle: { bgcolor: RENDERED_RED, color: combineRgb(255, 255, 255) }, options: [{ type: 'dropdown', id: 'cue', label: 'Cue', choices: targets, default: defaultCue }], callback: event => { const state = this.#feedbackState(); return state.rendered && String(event.options.cue || '') === (this.#snapshot?.cue ?? '') } },
       bug_visible: { type: 'boolean', name: 'Scan card visible', description: 'The live state carries a scan card.', defaultStyle: { bgcolor: combineRgb(0, 90, 140), color: combineRgb(255, 255, 255) }, options: [], callback: () => this.#snapshot?.bug?.on === true },
+      slot_empty: { type: 'boolean', name: 'Slot is empty', description: 'The text of this slot has not been filled in for this service.', defaultStyle: { bgcolor: SLOT_EMPTY_BG, color: SLOT_EMPTY_TEXT }, options: [{ type: 'dropdown', id: 'cue', label: 'Cue', choices: slotTargets, default: slotTargets[0]?.id ?? '' }], callback: event => this.#slotIsEmpty(String(event.options.cue || '')) },
       disconnected: { type: 'boolean', name: 'Realtime or renderer disconnected', description: 'The realtime subscription is closed or no graphics browser presence has arrived for 30 seconds.', defaultStyle: { bgcolor: combineRgb(175, 0, 0), color: combineRgb(255, 255, 255) }, options: [], callback: () => this.#feedbackState().disconnected },
     }
     this.setFeedbackDefinitions(feedbacks)
   }
   #definePresets(): void {
     const presets: CompanionPresetDefinitions<Manifest> = {}
-    for (const cue of visibleCatalogCues(this.#catalog.cues)) presets[cuePresetId(cue.id)] = {
-      type: 'simple', name: `Toggle ${cue.name}`, style: { text: cue.name, size: '14', color: combineRgb(255, 255, 255), bgcolor: combineRgb(35, 35, 35) },
-      steps: [{ down: [{ actionId: 'toggle_cue', options: { cue: cue.id } }], up: [] }],
-      feedbacks: [
-        { feedbackId: 'requested', options: { cue: cue.id }, style: { bgcolor: combineRgb(180, 110, 0) } },
-        { feedbackId: 'rendered', options: { cue: cue.id }, style: { bgcolor: combineRgb(0, 130, 70) } },
-        { feedbackId: 'disconnected', options: {}, style: { bgcolor: combineRgb(175, 0, 0) } },
-      ],
+    const disconnected = { feedbackId: 'disconnected' as const, options: {}, style: { bgcolor: combineRgb(175, 0, 0) } }
+    for (const cue of visibleCatalogCues(this.#catalog.cues)) {
+      const colour = categoryColour(cue.category)
+      presets[cuePresetId(cue.id)] = {
+        type: 'simple', name: `Toggle ${cue.name}`, style: { text: cue.name, size: '14', color: colour.color, bgcolor: colour.bgcolor },
+        steps: [{ down: [{ actionId: 'toggle_cue', options: { cue: cue.id } }], up: [] }],
+        feedbacks: [
+          { feedbackId: 'requested', options: { cue: cue.id }, style: { bgcolor: combineRgb(180, 110, 0) } },
+          { feedbackId: 'rendered', options: { cue: cue.id }, style: { bgcolor: RENDERED_RED } },
+          disconnected,
+        ],
+      }
     }
-    presets.animate_out = { type: 'simple', name: 'Animate out', style: { text: 'Animate\nOut', size: '14', color: combineRgb(255, 255, 255), bgcolor: combineRgb(65, 65, 65) }, steps: [{ down: [{ actionId: 'animate_clear', options: {} }], up: [] }], feedbacks: [{ feedbackId: 'rendered', options: { cue: '' }, style: { bgcolor: combineRgb(0, 130, 70) } }, { feedbackId: 'disconnected', options: {}, style: { bgcolor: combineRgb(175, 0, 0) } }] }
-    presets.clear_now = { type: 'simple', name: 'Clear now', style: { text: 'CLEAR\nNOW', size: '14', color: combineRgb(255, 255, 255), bgcolor: combineRgb(120, 0, 0) }, steps: [{ down: [{ actionId: 'clear_now', options: {} }], up: [] }], feedbacks: [{ feedbackId: 'rendered', options: { cue: '' }, style: { bgcolor: combineRgb(0, 130, 70) } }, { feedbackId: 'disconnected', options: {}, style: { bgcolor: combineRgb(175, 0, 0) } }] }
-    presets.bug = { type: 'simple', name: 'Scan card', style: { text: 'Scan\ncard', size: '14', color: combineRgb(255, 255, 255), bgcolor: combineRgb(35, 35, 35) }, steps: [{ down: [{ actionId: 'bug_on', options: {} }], up: [] }, { down: [{ actionId: 'bug_off', options: {} }], up: [] }], feedbacks: [{ feedbackId: 'bug_visible', options: {}, style: { bgcolor: combineRgb(0, 90, 140) } }, { feedbackId: 'disconnected', options: {}, style: { bgcolor: combineRgb(175, 0, 0) } }] }
-    presets.next_panel = { type: 'simple', name: 'Next panel', style: { text: 'Next\npanel', size: '14', color: combineRgb(255, 255, 255), bgcolor: combineRgb(35, 35, 35) }, steps: [{ down: [{ actionId: 'next_panel', options: { set: '' } }], up: [] }], feedbacks: [{ feedbackId: 'disconnected', options: {}, style: { bgcolor: combineRgb(175, 0, 0) } }] }
     // Button text reads this connection's own variables, so the label is resolved
     // at definition time and redefined whenever the connection is renamed.
     const label = this.label || 'overlays'
-    presets.connection_status = { type: 'simple', name: 'Connection and current graphic', style: { text: `$(${label}:connection)\n$(${label}:current_name)`, size: '14', color: combineRgb(255, 255, 255), bgcolor: combineRgb(35, 35, 35) }, steps: [{ down: [], up: [] }], feedbacks: [{ feedbackId: 'disconnected', options: {}, style: { bgcolor: combineRgb(175, 0, 0) } }] }
-    presets.current_panel = { type: 'simple', name: 'Current panel', style: { text: `$(${label}:current_panel) of $(${label}:panel_count)`, size: '14', color: combineRgb(255, 255, 255), bgcolor: combineRgb(35, 35, 35) }, steps: [{ down: [], up: [] }], feedbacks: [{ feedbackId: 'disconnected', options: {}, style: { bgcolor: combineRgb(175, 0, 0) } }] }
+    // A slot preset carries the slot's short label over the slot's own variable, so the
+    // deck reads "Student / Noa" and changes by itself the moment the text is saved.
+    // Nobody ever relabels the button.
+    for (const cue of slotCatalogCues(this.#catalog.cues)) {
+      const colour = categoryColour('names')
+      presets[slotPresetId(cue.id)] = {
+        type: 'simple', name: `Slot: ${cue.name}`,
+        style: { text: `${cue.name}\n$(${label}:slot_${cue.slot!.key})`, size: '14', color: colour.color, bgcolor: colour.bgcolor },
+        steps: [{ down: [{ actionId: 'toggle_cue', options: { cue: cue.id } }], up: [] }],
+        feedbacks: [
+          { feedbackId: 'slot_empty', options: { cue: cue.id }, style: { bgcolor: SLOT_EMPTY_BG, color: SLOT_EMPTY_TEXT } },
+          { feedbackId: 'requested', options: { cue: cue.id }, style: { bgcolor: combineRgb(180, 110, 0) } },
+          { feedbackId: 'rendered', options: { cue: cue.id }, style: { bgcolor: RENDERED_RED } },
+          disconnected,
+        ],
+      }
+    }
+    // The two clear buttons stay green: they light when the output is confirmed CLEAR, so
+    // painting them red would contradict the rule the colours now teach.
+    presets.animate_out = { type: 'simple', name: 'Animate out', style: { text: 'Animate\nOut', size: '14', color: combineRgb(255, 255, 255), bgcolor: combineRgb(65, 65, 65) }, steps: [{ down: [{ actionId: 'animate_clear', options: {} }], up: [] }], feedbacks: [{ feedbackId: 'rendered', options: { cue: '' }, style: { bgcolor: CLEAR_CONFIRMED_GREEN } }, disconnected] }
+    presets.clear_now = { type: 'simple', name: 'Clear now', style: { text: 'CLEAR\nNOW', size: '14', color: combineRgb(255, 255, 255), bgcolor: combineRgb(120, 0, 0) }, steps: [{ down: [{ actionId: 'clear_now', options: {} }], up: [] }], feedbacks: [{ feedbackId: 'rendered', options: { cue: '' }, style: { bgcolor: CLEAR_CONFIRMED_GREEN } }, disconnected] }
+    presets.bug = { type: 'simple', name: 'Scan card', style: { text: 'Scan\ncard', size: '14', color: combineRgb(255, 255, 255), bgcolor: CHARCOAL }, steps: [{ down: [{ actionId: 'bug_on', options: {} }], up: [] }, { down: [{ actionId: 'bug_off', options: {} }], up: [] }], feedbacks: [{ feedbackId: 'bug_visible', options: {}, style: { bgcolor: combineRgb(0, 90, 140) } }, disconnected] }
+    presets.set_page = { type: 'simple', name: 'Set page', style: { text: 'Set\npage', size: '14', color: combineRgb(255, 255, 255), bgcolor: CHARCOAL }, steps: [{ down: [{ actionId: 'set_page', options: { page: '' } }], up: [] }], feedbacks: [disconnected] }
+    presets.next_panel = { type: 'simple', name: 'Next panel', style: { text: 'Next\npanel', size: '14', color: combineRgb(255, 255, 255), bgcolor: CHARCOAL }, steps: [{ down: [{ actionId: 'next_panel', options: { set: '' } }], up: [] }], feedbacks: [disconnected] }
+    presets.previous_panel = { type: 'simple', name: 'Previous panel', style: { text: 'Previous\npanel', size: '14', color: combineRgb(255, 255, 255), bgcolor: CHARCOAL }, steps: [{ down: [{ actionId: 'previous_panel', options: { set: '' } }], up: [] }], feedbacks: [disconnected] }
+    // The button to press when a publish did not reach the booth.
+    presets.refresh_catalog = { type: 'simple', name: 'Refresh catalog', style: { text: 'Refresh\ncatalog', size: '14', color: combineRgb(255, 255, 255), bgcolor: CHARCOAL }, steps: [{ down: [{ actionId: 'refresh_catalog', options: {} }], up: [] }], feedbacks: [disconnected] }
+    presets.connection_status = { type: 'simple', name: 'Connection and current graphic', style: { text: `$(${label}:connection)\n$(${label}:current_name)`, size: '14', color: combineRgb(255, 255, 255), bgcolor: CHARCOAL }, steps: [{ down: [], up: [] }], feedbacks: [disconnected] }
+    presets.current_panel = { type: 'simple', name: 'Current panel', style: { text: `$(${label}:current_panel) of $(${label}:panel_count)`, size: '14', color: combineRgb(255, 255, 255), bgcolor: CHARCOAL }, steps: [{ down: [], up: [] }], feedbacks: [disconnected] }
     const structure: CompanionPresetSection<Manifest>[] = [{ id: 'crc_overlay_controls', name: 'CRC Overlay Controls', definitions: Object.keys(presets) }]
     this.setPresetDefinitions(structure, presets)
   }

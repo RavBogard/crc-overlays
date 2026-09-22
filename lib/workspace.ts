@@ -127,7 +127,7 @@ function bugCaption(value: string | undefined) {
 function configuredDownloads(env: WorkspaceEnvironment, crcDefault: boolean): WorkspaceDownload[] {
   const modulePath = env.WORKSPACE_COMPANION_MODULE_PATH?.trim();
   const pagePaths = env.WORKSPACE_COMPANION_PAGE_PATHS?.split(',').map(item => item.trim()).filter(Boolean) ?? [];
-  const resolvedModule = modulePath || (crcDefault ? '/downloads/crc-overlays-1.5.0.tgz' : '');
+  const resolvedModule = modulePath || (crcDefault ? '/downloads/crc-overlays-1.6.0.tgz' : '');
   const resolvedPages = pagePaths.length
     ? pagePaths
     : crcDefault

@@ -26,6 +26,7 @@ If a code is refused, nothing changes: the previous credential stays and the ref
 - Press a cue button once and verify the program monitor.
 - Use **Animate out** for the normal exit.
 - Use **Clear now** when the graphic must disappear immediately.
+- If the Companion connection drops mid-service, **press the button anyway**. Since 1.6.0 the command is sent over the ordinary web request, which does not need the live connection; the status line says *Sent without the live connection*, and the red confirmation colour arrives when the connection returns. Verify on the program monitor in the meantime, because until then nothing has confirmed the picture.
 - If feedback becomes unavailable, stop issuing cues until the renderer connection is understood. Hide the browser source if a safe recovery is not immediate.
 - Do not edit or publish cues from the live operating surface during a service.
 
@@ -37,6 +38,20 @@ The scan card is the small card with a QR code in the bottom-right corner of the
 - In Companion, use **Bug on**, **Bug off** and **Set page**. The **Scan card** preset toggles the card and lights while it is visible.
 - **Clear now** removes the scan card along with the graphic. **Animate out** leaves the card alone.
 - **Next panel** and **Previous panel** work on any multipart graphic — names, Mourner's Kaddish, anything named `— 01 of 03`. From panel *n* they go to *n+1* or *n-1* and wrap at each end. From a single-part graphic or a cleared output they show panel 01 of the set chosen in the action's **Panel set** option; with **None** chosen nothing is sent. The **Next panel** preset ships with no set chosen.
+
+## This service — names and readings
+
+The words that change every week are typed on **This service** (`/this-service`), beside Live control. An Editor or an Administrator can open it. Nothing else changes: the graphic, its layout and the Stream Deck button that fires it all stay exactly as they are, week after week.
+
+1. **Pick the service type** at the top — B'nei mitzvah, Shabbat, or Funeral / Yizkor. That chooses which fields are shown; nothing else on the page moves.
+2. **Type the names.** A student name; two student names on one card; a reader and a portion for each Torah and Haftarah reading; a guest name; up to three Remember Them cards. A reading takes two fields — the reader, then the portion and verses, which read on air as *Vayera · 18:1–33*.
+3. **Press Save once.** Every slot of that service type whose text changed is republished and the library goes to the booth in the same step. There is no preview, no review and no second page: the layouts were approved once and only the words move.
+
+Within a few seconds the Stream Deck button labels change by themselves, because each slot publishes its text as a Companion variable (`slot_student_name`, `slot_torah_1`, and so on). Nobody relabels a button.
+
+**Leave a field blank if it is not used this week.** A blank slot publishes blank: the graphic draws nothing at all. It never shows last week's name, and it never shows *Reader Name*. On the deck the button dims and shows only its label, so an unfilled slot is visible at a glance before the service starts.
+
+If a name is too long the page says so, names the field, and the Save button stays disabled until it is shortened.
 
 ## Names for this service
 

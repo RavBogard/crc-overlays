@@ -36,17 +36,19 @@ export interface HarnessAction {
   options: Array<Record<string, unknown>>
   callback: (event: { options: Record<string, unknown> }) => Promise<void>
 }
+export interface HarnessStyle { text?: string; size?: string; color?: number; bgcolor?: number }
 export interface HarnessFeedback {
   type: string
   name: string
   options: Array<Record<string, unknown>>
+  defaultStyle?: HarnessStyle
   callback: (event: { options: Record<string, unknown> }) => boolean
 }
 export interface HarnessPreset {
   name?: string
-  style?: { text?: string }
+  style?: HarnessStyle
   steps?: Array<{ down: Array<{ actionId: string; options: Record<string, unknown> }>; up: unknown[] }>
-  feedbacks?: Array<{ feedbackId: string; options: Record<string, unknown> }>
+  feedbacks?: Array<{ feedbackId: string; options: Record<string, unknown>; style?: HarnessStyle }>
 }
 
 export interface Harness {

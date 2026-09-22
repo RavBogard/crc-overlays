@@ -180,7 +180,10 @@ export function parseContent(value:unknown,snapshots:AuthoringSource[]=[]):Draft
  }
  if(input.mode==='custom'){
   onlyKeys(input,['mode','text'],'content');
-  return {mode:'custom',text:text(input.text,'content.text',4000)!};
+  // Empty is a real value here, and only here: a slot with nothing typed into it this week
+  // publishes a graphic that draws no text at all. Every other content mode still refuses it,
+  // and previewValidation still refuses an empty graphic unless the caller says it is a slot.
+  return {mode:'custom',text:text(input.text,'content.text',4000,true)??''};
  }
  throw new AuthoringError('invalid_input','content.mode must be bilingual, original-en, source-en, local-variant, or custom');
 }
@@ -306,7 +309,10 @@ export function buildCue(draft:Draft):AuthoringCue{
   // 2026-09-14): the chip is dark unless an author lights it.
   if(layers.includes('en')&&draft.layout==='bottom')texts.textTranslation=englishRunTexts(content,draft.sourceSnapshots,overrides).map(item=>item.text).join(' ');
  }else if(content.mode==='original-en'||content.mode==='source-en')texts.textMain=content.englishGroups.map(group=>renderGroup(group,'en',draft.sourceSnapshots,overrides)).join('\n');
- else texts.textMain=content.text;
+ // An empty custom text writes no main layer at all, so the renderer draws the title bar and
+ // nothing else. `textParts` already skips a falsy channel; leaving the key out keeps the
+ // published cue free of an empty string nobody reads.
+ else if(content.text)texts.textMain=content.text;
  const sourceIds=[...new Set(groups.map(group=>group.sourceId))].sort();
  const animations=structuredClone(template.animations);
  if(content.mode==='bilingual'&&!animations.some(track=>track.element==='textMainheb'||track.element==='textMainEng')){
@@ -385,11 +391,12 @@ export function assertSourcePin(draft:Draft){
 }
 
 export function cueHash(cue:AuthoringCue){return createHash('sha256').update(JSON.stringify(cue)).digest('hex')}
-export function previewValidation(cue:AuthoringCue){
+export function previewValidation(cue:AuthoringCue,allowEmptyText=false){
  const errors:string[]=[];
  // C6: any combination of layers is authored deliberately, so a single channel is no longer an
- // error. What is still an error is a graphic with nothing to read on it.
- if(!cue.texts.textMain&&!cue.texts.textMainheb&&!cue.texts.textMainEng&&!cue.contentRows?.length)errors.push('This graphic has no text yet');
+ // error. What is still an error is a graphic with nothing to read on it -- except a slot left
+ // blank for this service, which is deliberately a graphic with nothing on it.
+ if(!allowEmptyText&&!cue.texts.textMain&&!cue.texts.textMainheb&&!cue.texts.textMainEng&&!cue.contentRows?.length)errors.push('This graphic has no text yet');
  return {valid:errors.length===0,errors,warnings:[],requiresBrowserReview:true};
 }
 

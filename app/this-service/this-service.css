@@ -1,0 +1,33 @@
+/* This service — a laptop form. Wide fields, no nesting, one Save. */
+.slots-shell{min-height:100vh;background:var(--bg);color:var(--text);padding:32px clamp(18px,4vw,64px) 72px;font-family:WorkRefresh,Work,Arial,sans-serif}
+.slots-shell *{box-sizing:border-box}
+.slots-shell>header,.slots-error,.slots-loading,.slots-types,.slots-grid,.slots-actions,.slots-unminted{max-width:1500px;margin-inline:auto}
+.slots-error{background:#4c282b;border:1px solid #b56569;padding:14px;border-radius:8px;margin-bottom:20px}
+.slots-loading{color:#aabbb7}
+
+.slots-types{margin-top:22px;display:flex;flex-wrap:wrap;gap:10px 22px;align-items:center;background:#152024;border:1px solid #33484c;border-radius:16px;padding:16px 22px}
+.slots-types legend{padding:0 8px;color:#d6b767;font-size:12px;letter-spacing:.16em;text-transform:uppercase}
+.slots-types label{display:flex;gap:8px;align-items:center;color:#dbe5e1;font-size:17px}
+
+.slots-unminted{margin:14px auto 0;background:#2a2418;border:1px solid #6d5c33;border-radius:9px;padding:12px 14px;color:#e6d9ae;line-height:1.45}
+
+.slots-grid{margin-top:22px;display:grid;grid-template-columns:repeat(auto-fill,minmax(340px,1fr));gap:14px}
+.slot{background:#152024;border:1px solid #33484c;border-radius:14px;padding:18px 20px}
+.slot.unready{opacity:.55}
+.slot h2{margin:0 0 12px;font-size:19px}
+.slot label{display:block;margin:12px 0}
+.slot label span{display:block;color:#aabbb7;font-size:13px;margin-bottom:6px}
+.slot input{display:block;width:100%;background:#0c1417;color:#f2f5f4;border:1px solid #52676a;border-radius:7px;padding:11px;font:inherit;font-size:17px}
+.slot input:disabled{opacity:.6}
+.slot-problem{display:block;margin-top:8px;color:#ffb5a9;font-size:13px;line-height:1.4;font-weight:400}
+.slot-blank{display:block;margin-top:8px;color:#849490;font-size:13px}
+
+.slots-actions{margin-top:26px;display:flex;flex-wrap:wrap;gap:14px;align-items:center}
+.slots-shell button{font:inherit;font-size:18px;color:#eef6f3;background:#286256;border:1px solid #478579;border-radius:7px;padding:13px 28px;cursor:pointer}
+.slots-shell button:hover{background:#34776a}
+.slots-shell button:disabled{opacity:.45;cursor:not-allowed}
+.slots-notice{margin:0;color:#bfe9d8}
+.slots-note{flex-basis:100%;margin:0;color:#849490;line-height:1.45}
+.slots-shell :focus-visible{outline:3px solid #e1c26d;outline-offset:3px}
+
+@media(max-width:620px){.slots-shell{padding-inline:12px}.slots-grid{grid-template-columns:1fr}}

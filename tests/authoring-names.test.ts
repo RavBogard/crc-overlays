@@ -107,7 +107,7 @@ test('a confirmed rename keeps the exact-version review evidence and still refus
  assert.equal((await api.operation('get_draft',{draftId:unreviewed.id},'tester') as {draft:Draft}).draft.name,'Modeh Ani','a refused publish never renames the draft');
  const reviewed=await publish(api,unreviewed,{confirmDuplicateName:true});
  assert.equal(reviewed.revision.review?.humanApproved,true);
- assert.equal(reviewed.revision.review?.browserMeasurement.viewportWidth,1920);
+ assert.equal(reviewed.revision.review?.browserMeasurement?.viewportWidth,1920);
  assert.match(reviewed.revision.cueHash,/^[a-f0-9]{64}$/);
 });
 

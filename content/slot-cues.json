@@ -1,0 +1,22 @@
+{
+  "schemaVersion": 1,
+  "comment": "The published graphic each slot is. These ids are permanent: Michael's Stream Deck buttons and the Singular converter both point at them, and a new revision never changes one. A key with no id here is a slot that has not been minted yet; it simply does not appear in the catalog's slot index, declares no Companion variable, and cannot be typed into on This service.",
+  "cues": {
+    "student_name": "17db1877-425a-4ea7-b123-664a9756f2ae",
+    "student_names": "25737a2e-167c-4049-81fb-9654cb54a8f1",
+    "torah_1": "e3624fda-b7ff-44a0-b3ef-7add80524ef7",
+    "torah_2": "643fb791-9836-4ae3-bec9-52b6d43759a8",
+    "torah_3": "319439b3-3e2f-47e4-a2b0-36645fb9239c",
+    "torah_4": "53240623-4182-4a65-bd01-ceaebc951f17",
+    "torah_5": "09651fcc-3ba7-438f-bd9b-b77e8095ff84",
+    "torah_6": "f976ce13-8388-413d-bb8d-8b67906fc36d",
+    "torah_7": "42c78ed3-40d2-451b-8401-17a582b0e63f",
+    "haftarah_1": "d2a51926-4b98-4e73-b1f4-9d016966fd52",
+    "haftarah_2": "8a20aa8a-4515-4b6e-9c1f-27f6a4e76e2f",
+    "haftarah_3": "92e23dc6-f7f4-40b6-8495-0a4605f321a8",
+    "guest_name": "bb52a63a-e892-4518-b7c2-a59e8ce730b9",
+    "remember_1": "35aba7f2-eba6-4373-80d7-513713192b72",
+    "remember_2": "4e67f479-357f-46d4-aab0-84bd0f6ce7de",
+    "remember_3": "16533b7f-017a-417a-a676-b457f53d8ea6"
+  }
+}

@@ -17,7 +17,17 @@ import {liveRelayConfigured} from './rehearsal';
 import {SERVER_RENDERER_PREFIX,type ServerFitArtwork,type ServerFitResult} from './server-fit-contract';
 
 export type BrowserMeasurement={viewportWidth:number;viewportHeight:number;fontsReady:true;overflow:false;rendererVersion:string;measuredAt:number};
-export type ReviewReceipt={humanApproved:true;browserMeasurement:BrowserMeasurement;reviewedAt:number;reviewedBy:string};
+/**
+ * Approval for one exact preview. Normally that approval IS a browser measurement: somebody
+ * looked at a 1920x1080 render of this exact version and said yes.
+ *
+ * A slot text edit is the one case where it is not. The slot's layout was reviewed once and
+ * approved standing; what changes weekly is a name in a box, and a fresh review round trip to
+ * type "Noa" on a Friday afternoon would turn a one-click save into a four-click ritual.
+ * `standingApproval` names what the receipt stands on, in place of the measurement, and only
+ * the slot path writes one. The publish gate refuses a receipt that carries neither.
+ */
+export type ReviewReceipt={humanApproved:true;browserMeasurement?:BrowserMeasurement;standingApproval?:string;reviewedAt:number;reviewedBy:string};
 // D17/D18 - the server-attested fit measurement `fit_check_draft` writes onto the preview it
 // measured. It is version-bound by construction: it lives on one preview, which is already
 // bound to one draft version and one cue hash.
@@ -384,6 +394,35 @@ export function createAuthoringService(repo:AuthoringRepository,workspace:Author
    const measurement=isMcpActor(who)?attestedMeasurement(preview):assertedMeasurement(data);
    const review:ReviewReceipt={humanApproved:true,browserMeasurement:measurement,reviewedAt:Date.now(),reviewedBy:who};await repo.saveReview(preview.id,review);return {draftId:draft.id,draftVersion:draft.version,previewId:preview.id,cueHash:preview.cueHash,review};
   }
+  // One Save on "This service", in one call: every slot of the chosen service type whose
+  // text changed is republished, and nothing else is touched. No review round trip and no
+  // second page — the slot's layout carries a standing approval, and the guard that replaces
+  // the per-edit review is a length check whose refusal names the field and says what to do.
+  //
+  // Every value is checked before anything is published, so a typo in the last field cannot
+  // leave half the service published and half not.
+  if(operation==='save_slots'){
+   keys(data,['serviceType','values']);
+   const {SERVICE_TYPES,slotDefinition,slotTextProblems}=await import('./slots');
+   const {slotCueRegister}=await import('./slot-catalog');
+   const serviceType=string(data.serviceType,'serviceType',80);
+   if(!SERVICE_TYPES.some(type=>type.id===serviceType))throw new AuthoringError('unknown_service_type','That service type does not exist',404);
+   const values=object(data.values,'values');
+   const register=slotCueRegister();
+   const wanted=Object.entries(values).map(([key,value])=>{
+    const definition=slotDefinition(key);
+    if(!definition)throw new AuthoringError('unknown_slot',`There is no slot called ${key}`,404);
+    const cueId=register.get(key);
+    if(!cueId)throw new AuthoringError('unminted_slot',`The graphic for ${definition.name} has not been created yet.`,409);
+    if(typeof value!=='string'||value.length>4000)throw new AuthoringError('invalid_input',`${definition.name} must be 4000 characters or fewer`);
+    return {definition,cueId,text:value};
+   });
+   const problems=wanted.flatMap(item=>slotTextProblems(item.definition,item.text));
+   if(problems.length)throw new AuthoringError('slot_text_too_long',problems.join(' '),400);
+   const saved:Array<{key:string;cueId:string;text:string;published:boolean}>=[];
+   for(const item of wanted)saved.push(await publishSlotText(repo,item.definition.key,item.cueId,item.text,who));
+   return {serviceType,slots:saved,published:saved.filter(item=>item.published).length};
+  }
   if(operation==='publish_draft'){
    keys(data,['draftId','expectedVersion','previewId','confirmDuplicateName']);const draft=await versionedDraft(repo,string(data.draftId,'draftId'),integer(data.expectedVersion,'expectedVersion',1));assertSourcePin(draft);
    if(data.confirmDuplicateName!==undefined&&typeof data.confirmDuplicateName!=='boolean')throw new AuthoringError('invalid_input','confirmDuplicateName must be boolean');
@@ -482,7 +521,39 @@ function attestedMeasurement(preview:PreviewRecord):BrowserMeasurement{
   throw new AuthoringError('review_required','Exact-version browser fit review is required',409);
  return {viewportWidth:1920,viewportHeight:1080,fontsReady:true,overflow:false,rendererVersion:stored.rendererVersion,measuredAt:stored.measuredAt};
 }
-function validatePublishPreview(draft:Draft,preview?:PreviewRecord){if(!preview)throw new AuthoringError('unknown_preview','Unknown preview',404);if(preview.draftId!==draft.id||preview.draftVersion!==draft.version)throw new AuthoringError('stale_preview','Preview does not match this draft version',409);if(!preview.validation.valid)throw new AuthoringError('invalid_preview','Preview validation failed',409);if(!preview.review?.humanApproved||preview.review.browserMeasurement.overflow||!preview.review.browserMeasurement.fontsReady)throw new AuthoringError('review_required','Exact-version browser fit review is required',409)}
+/**
+ * One slot's text, published under its standing approval. Unchanged text publishes nothing:
+ * a Save that moved one name must not mint fifteen identical revisions of the slots beside it.
+ */
+async function publishSlotText(repo:AuthoringRepository,key:string,cueId:string,text:string,who:string){
+ const current=await repo.getDraft(cueId);
+ if(!current)throw new AuthoringError('unknown_draft','That slot graphic no longer exists',404);
+ if(current.content.mode!=='custom')throw new AuthoringError('unknown_slot','That graphic is not a slot',409);
+ if(current.content.text===text&&current.activeRevision!==null)return {key,cueId,text,published:false};
+ const updated=await repo.updateDraft(cueId,current.version,{...editableOnly(current),content:{mode:'custom',text}},who);
+ if(!updated)throw conflict();
+ const cue=buildCue(updated);
+ // A slot with nothing typed in it carries only its title bar, which previewValidation would
+ // otherwise call "no text yet". An empty slot drawing nothing is the point.
+ const validation=previewValidation(cue,true);
+ if(!validation.valid)throw new AuthoringError('invalid_preview',validation.errors.join(' '),409);
+ const preview:PreviewRecord={id:randomUUID(),draftId:updated.id,draftVersion:updated.version,cueHash:cueHash(cue),cue,validation,review:null,createdAt:Date.now(),createdBy:who};
+ await repo.insertPreview(preview);
+ await repo.saveReview(preview.id,{humanApproved:true,standingApproval:`slot:${key}`,reviewedAt:Date.now(),reviewedBy:who});
+ await repo.publish(updated.id,updated.version,preview.id,who);
+ return {key,cueId,text,published:true};
+}
+function validatePublishPreview(draft:Draft,preview?:PreviewRecord){
+ if(!preview)throw new AuthoringError('unknown_preview','Unknown preview',404);
+ if(preview.draftId!==draft.id||preview.draftVersion!==draft.version)throw new AuthoringError('stale_preview','Preview does not match this draft version',409);
+ if(!preview.validation.valid)throw new AuthoringError('invalid_preview','Preview validation failed',409);
+ const review=preview.review;
+ if(!review?.humanApproved)throw new AuthoringError('review_required','Exact-version browser fit review is required',409);
+ // A standing approval stands in for the measurement, and only for a slot's text. Everything
+ // else still needs a browser that actually looked at this exact version.
+ if(review.standingApproval)return;
+ if(!review.browserMeasurement||review.browserMeasurement.overflow||!review.browserMeasurement.fontsReady)throw new AuthoringError('review_required','Exact-version browser fit review is required',409);
+}
 function assertRevisionAuthority(cue:AuthoringCue){
  const value=cue as AuthoringCue&{provenance?:{liturgy?:{feedSha256?:string}}};
  if(value.authoring?.origin==='local'){if(value.authoring.feedSha256!=='local'||value.authoring.sourceIds.length)throw new AuthoringError('source_pin_mismatch','Local revision authority is invalid',409);return}
@@ -576,7 +647,7 @@ export function authoringRepository(){if(defaultRepository)return defaultReposit
 const defaults=()=>{if(defaultService)return defaultService;const workspace=authoringRepositoryMode(process.env);return defaultService=createAuthoringService(authoringRepository(),workspace)};
 export async function authoringOperation(operation:string,input:unknown,actor:string){
  const result=await defaults().operation(operation,input,actor);
- if(['publish_draft','rollback_draft','import_cue'].includes(operation)){
+ if(['publish_draft','save_slots','rollback_draft','import_cue'].includes(operation)){
   const {relayConfigured}=await import('./relay');
   if(relayConfigured()){
    try{const {syncLiveCatalog}=await import('./sync-live-catalog');await syncLiveCatalog()}

@@ -14,6 +14,10 @@ export const permitted = (role: AccessRole, permission: NavPermission) =>
    the library rail — and Help is the `?` at the end of the nav, not a destination here. */
 export const destinations: ReadonlyArray<NavDestination> = [
   ['/', 'Live', 'member'],
+  /* The names and readings of the week ahead sit beside Live control, one level, not nested
+     behind the library or behind prepared services: filling them in is a weekly task on the
+     way to a service, not authoring. An Editor is who does it, so it is an `author` pill. */
+  ['/this-service', 'This service', 'author'],
   ['/author', 'Library', 'author'],
   ['/system', 'System', 'admin'],
 ];

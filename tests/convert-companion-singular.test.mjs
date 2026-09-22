@@ -1,410 +1,376 @@
+// node --test convert-companion-singular.test.mjs
 import test from 'node:test'
 import assert from 'node:assert/strict'
-import fs from 'node:fs'
-import os from 'node:os'
-import path from 'node:path'
+
 import {
-  convert,
-  buildCatalogIndex,
-  readConfig,
-  writeConfig,
-  isGzip,
-  buildReportJson,
-  buildReport,
-  wrapLabel,
-  pageHasContent,
-  NEW_PAGE_NAME,
+  val, wrapsOptions, buttonText, buttonBgColor, buttonTextColor,
+  buildCatalogIndex, lookupCue, convert, buildConnection, findOverlaysCollectionId,
+  NEW_MODULE, MODULE_VERSION,
 } from '../scripts/convert-companion-singular.mjs'
 
-const SING = 'SiNgUlArConn000000001'
+/* ------------------------------------------------------------ fixtures --- */
+
+const SING = 'sing-conn-id'
 const CATALOG = {
-  'Mah Tovu': { cueId: 'cue-mah-tovu', status: 'published' },
-  'Barechu': { cueId: 'cue-barechu', status: 'draft' },
+  'Hareini': { cueId: 'cue-hareini', status: 'published' },
+  'Mah Tovu': { cueId: 'cue-mahtovu', status: 'published' },
+  'Starting Soon': { cueId: 'cue-starting', status: 'published' },
+  'Retired Prayer': { cueId: 'cue-retired', status: 'unpublished' },
+  'Vahavta 2': { cueId: 'cue-vahavta2', status: 'published' },
+  'Spare Panel 2': { cueId: 'cue-spare2', status: 'published', newButton: true },
+}
+const index = () => buildCatalogIndex(CATALOG)
+
+const emptyPage = (name = 'PAGE') => ({
+  name,
+  gridSize: { minColumn: 0, maxColumn: 7, minRow: 0, maxRow: 3 },
+  controls: { 0: { 7: { type: 'pageup' } }, 1: { 7: { type: 'pagenum' } }, 2: { 7: { type: 'pagedown' } } },
+})
+
+function v4Action(definitionId, comp) {
+  return { type: 'action', id: 'a' + definitionId + comp, definitionId, connectionId: SING, options: comp === null ? {} : { comp }, upgradeIndex: -1 }
+}
+function v5Action(definitionId, comp) {
+  return {
+    type: 'action', id: 'a' + definitionId + comp, definitionId, connectionId: SING,
+    options: comp === null ? {} : { comp: { value: comp, isExpression: false } }, upgradeIndex: -1,
+  }
 }
 
-function action(id, definitionId, connectionId, options) {
-  return { type: 'action', id, definitionId, connectionId, options, upgradeIndex: -1 }
-}
-
-function button(text, feedbacks, steps) {
+function v4Button(text, bgcolor, steps, feedbacks = []) {
   return {
     type: 'button',
-    style: { text, size: 'auto', color: 0, bgcolor: 16777024 },
-    options: { stepProgression: 'auto' },
+    style: { text, textExpression: false, size: 'auto', png64: null, alignment: 'center:center', pngalignment: 'center:center', color: 16777215, bgcolor, show_topbar: 'default', png: null, latch: true },
+    options: { stepProgression: 'auto', stepExpression: '', rotaryActions: false },
     feedbacks,
     steps,
     localVariables: [],
   }
 }
 
-function fixture() {
+function v5Button(text, bgcolor, steps, feedbacks = []) {
   return {
-    version: 9,
+    type: 'button-layered',
+    style: {
+      layers: [
+        { id: 'canvas', type: 'canvas', decoration: { value: 'default', isExpression: false } },
+        { id: 'box0', type: 'box', color: { value: bgcolor, isExpression: false } },
+        { id: 'image0', type: 'image', base64Image: { value: null, isExpression: false } },
+        { id: 'text0', type: 'text', text: { value: text, isExpression: false }, color: { value: 16777215, isExpression: false }, fontsize: { value: 100, isExpression: false } },
+      ],
+    },
+    options: { stepProgression: 'auto', stepExpression: '', rotaryActions: false, canModifyStyleInApis: true, notes: '' },
+    feedbacks,
+    steps,
+    localVariables: [],
+  }
+}
+
+const twoStep = (mk, comp) => ({
+  0: { action_sets: { down: [mk('animateIn', comp)], up: [] }, options: { runWhileHeld: [] } },
+  1: { action_sets: { down: [mk('animateOut', comp)], up: [] }, options: { runWhileHeld: [] } },
+})
+
+function baseConfig({ version, instanceKey, pages }) {
+  const conf = {
+    version,
     type: 'full',
+    pages,
     instances: {
-      x32conn: { instance_type: 'behringer-x32', sortOrder: 1, label: 'x32', isFirstInit: false, config: { host: '10.0.0.1' }, lastUpgradeIndex: 0, enabled: true, moduleVersionId: '3.0.0', moduleInstanceType: 'connection' },
-      [SING]: { instance_type: 'singularlive-studio', sortOrder: 2, label: 'HHD', isFirstInit: false, config: { token: 'secret' }, lastUpgradeIndex: 0, enabled: true, moduleVersionId: '1.0.0', moduleInstanceType: 'connection' },
+      [SING]: { [instanceKey]: 'singularlive-studio', label: 'Master', sortOrder: 0, enabled: true, collectionId: 'coll-overlays', moduleInstanceType: 'connection', moduleVersionId: '2.1.2', updatePolicy: 'stable' },
+      other: { [instanceKey]: 'studiocoast-vmix', label: 'vmix', sortOrder: 1, enabled: true },
     },
-    pages: {
-      1: {
-        id: 'p1',
-        name: 'Home',
-        gridSize: { minColumn: 0, maxColumn: 7, minRow: 0, maxRow: 3 },
-        controls: {
-          0: {
-            // mapped in/out pair, with an x32 mute in the same action set
-            0: button('Mah Tovu', [
-              { id: 'fb-existing', definitionId: 'bank_current_step', connectionId: 'internal', options: { step: 2 }, type: 'feedback', style: { color: 16777215, bgcolor: 16711680 }, isInverted: false, children: {} },
-            ], {
-              0: { action_sets: { down: [action('a1', 'animateIn', SING, { comp: 'Mah Tovu' }), action('a2', 'mute_channel', 'x32conn', { channel: 3, mute: true })], up: [] }, options: { runWhileHeld: [] } },
-              1: { action_sets: { down: [action('a3', 'animateOut', SING, { comp: 'Mah Tovu' })], up: [] }, options: { runWhileHeld: [] } },
-            }),
-            // CRC Logo bug button
-            1: button('Toggle Logo', [], {
-              0: { action_sets: { down: [action('b1', 'animateIn', SING, { comp: 'CRC Logo' })], up: [] }, options: {} },
-              1: { action_sets: { down: [action('b2', 'animateOut', SING, { comp: 'CRC Logo' })], up: [] }, options: {} },
-            }),
-          },
-        },
-      },
-      2: {
-        id: 'p2',
-        name: 'HHD',
-        gridSize: { minColumn: 0, maxColumn: 7, minRow: 0, maxRow: 3 },
-        controls: {
-          0: {
-            // unmapped comp
-            0: button('Vidui', [], {
-              0: { action_sets: { down: [action('c1', 'animateIn', SING, { comp: 'Vidui' })], up: [] }, options: {} },
-              1: { action_sets: { down: [action('c2', 'animateOut', SING, { comp: 'Vidui' })], up: [] }, options: {} },
-            }),
-            // takeOutAllOutput, nested inside an internal action_group
-            1: button('Clear', [], {
-              0: {
-                action_sets: {
-                  down: [
-                    {
-                      type: 'action', id: 'g1', definitionId: 'action_group', connectionId: 'internal', options: { execution_mode: 'concurrent' }, upgradeIndex: -1,
-                      children: { default: [action('d1', 'takeOutAllOutput', SING, {})] },
-                    },
-                  ],
-                  up: [],
-                },
-                options: {},
-              },
-            }),
-          },
-        },
-      },
-    },
+    connectionCollections: [{ id: 'coll-overlays', label: 'Overlays', sortOrder: 0, children: [] }],
   }
+  if (instanceKey === 'moduleId') conf.instances[SING].secrets = {}
+  return conf
 }
 
-function run(cfg = fixture()) {
-  return convert(cfg, { catalogIndex: buildCatalogIndex(CATALOG), label: 'Overlays', baseUrl: 'https://crc-overlays.vercel.app', bugNames: ['CRC Logo'] })
-}
+const v4Config = (pages) => baseConfig({ version: 9, instanceKey: 'instance_type', pages })
+const v5Config = (pages) => baseConfig({ version: 12, instanceKey: 'moduleId', pages })
 
-const btn = (r, p, row, col) => r.config.pages[p].controls[row][col]
+const run = (config, extra = {}) => convert(config, { catalogIndex: index(), ...extra })
+const cellOf = (cfg, page, r, c) => cfg.pages[page].controls[r][c]
 
-test('adds one crc-overlays connection and preserves the Singular one', () => {
-  const r = run()
-  const entries = Object.entries(r.config.instances)
-  const crc = entries.filter(([, v]) => v.instance_type === 'crc-overlays')
-  assert.equal(crc.length, 1)
-  const [id, conn] = crc[0]
-  assert.equal(id.length, 21)
-  assert.match(id, /^[A-Za-z0-9_-]{21}$/)
-  assert.equal(conn.label, 'Overlays')
-  assert.equal(conn.enabled, true)
-  assert.deepEqual(conn.config, { baseUrl: 'https://crc-overlays.vercel.app', pairingCode: '', controlKey: '' })
-  assert.equal(conn.sortOrder, 3)
-  assert.equal(conn.lastUpgradeIndex, -1)
-  assert.equal(conn.moduleInstanceType, 'connection')
-  // Singular connection untouched and still enabled
-  assert.equal(r.config.instances[SING].instance_type, 'singularlive-studio')
-  assert.equal(r.config.instances[SING].enabled, true)
+/* --------------------------------------------------------------- tests --- */
+
+test('val() unwraps v5 options and passes plain values through', () => {
+  assert.equal(val({ value: 'Hareini', isExpression: false }), 'Hareini')
+  assert.equal(val('Hareini'), 'Hareini')
+  assert.equal(val(undefined), undefined)
+  assert.deepEqual(val({ a: 1 }), { a: 1 })
 })
 
-test('maps animateIn/animateOut and leaves non-Singular actions byte-identical', () => {
-  const r = run()
-  const b = btn(r, 1, 0, 0)
-  const down0 = b.steps[0].action_sets.down
-  assert.equal(down0.length, 2)
-  assert.deepEqual(down0[0], {
-    type: 'action', id: 'a1', definitionId: 'show_cue',
-    connectionId: r.newConnectionId, options: { cue: 'cue-mah-tovu' }, upgradeIndex: -1,
-  })
-  // x32 action untouched, still second in the set
-  assert.deepEqual(down0[1], action('a2', 'mute_channel', 'x32conn', { channel: 3, mute: true }))
-  const down1 = b.steps[1].action_sets.down
-  assert.deepEqual(down1[0], {
-    type: 'action', id: 'a3', definitionId: 'animate_out',
-    connectionId: r.newConnectionId, options: { cue: 'cue-mah-tovu' }, upgradeIndex: -1,
-  })
+test('wrapsOptions() tells a v4 file from a v5 file', () => {
+  assert.equal(wrapsOptions({ version: 9 }), false)
+  assert.equal(wrapsOptions({ version: 12 }), true)
 })
 
-test('draft-status catalog entries are still mappable', () => {
-  const idx = buildCatalogIndex(CATALOG)
-  assert.equal(idx.get('barechu').cueId, 'cue-barechu')
-})
-
-test('CRC Logo maps to bug_on / bug_off with empty options', () => {
-  const r = run()
-  const b = btn(r, 1, 0, 1)
-  assert.equal(b.steps[0].action_sets.down[0].definitionId, 'bug_on')
-  assert.deepEqual(b.steps[0].action_sets.down[0].options, {})
-  assert.equal(b.steps[1].action_sets.down[0].definitionId, 'bug_off')
-  assert.equal(b.steps[0].action_sets.down[0].connectionId, r.newConnectionId)
-})
-
-test('inserts requested+rendered feedbacks at the start and keeps bank_current_step', () => {
-  const r = run()
-  const fb = btn(r, 1, 0, 0).feedbacks
-  assert.equal(fb.length, 3)
-  assert.equal(fb[0].definitionId, 'requested')
-  assert.deepEqual(fb[0].options, { cue: 'cue-mah-tovu' })
-  assert.deepEqual(fb[0].style, { bgcolor: 16711680, color: 16777215 })
-  assert.equal(fb[0].type, 'feedback')
-  assert.equal(fb[0].isInverted, false)
-  assert.match(fb[0].id, /^[A-Za-z0-9_-]{21}$/)
-  assert.notEqual(fb[0].id, fb[1].id)
-  assert.equal(fb[1].definitionId, 'rendered')
-  assert.deepEqual(fb[1].style, { bgcolor: 65280, color: 0 })
-  assert.equal(fb[2].definitionId, 'bank_current_step')
-  // bug button gets a single bug_visible feedback
-  const bugFb = btn(r, 1, 0, 1).feedbacks
-  assert.equal(bugFb.length, 1)
-  assert.equal(bugFb[0].definitionId, 'bug_visible')
-  assert.deepEqual(bugFb[0].style, { bgcolor: 16711680, color: 16777215 })
-})
-
-test('unmapped button: actions removed, step kept, marked once with warning and grey', () => {
-  const r = run()
-  const b = btn(r, 2, 0, 0)
-  assert.deepEqual(b.steps[0].action_sets.down, [])
-  assert.deepEqual(b.steps[1].action_sets.down, [])
-  assert.ok(b.steps[1])
-  assert.equal(b.style.text, 'Vidui ⚠')
-  assert.equal((b.style.text.match(/⚠/g) || []).length, 1)
-  assert.equal(b.style.bgcolor, 0x333333)
-  assert.equal(b.feedbacks.length, 0)
-  assert.equal(r.stats.unmappedActions, 2)
-  assert.equal(r.unmapped[0].name, 'Vidui')
-  assert.equal(r.unmapped[0].buttons, 1)
-  assert.deepEqual(r.unmapped[0].pages, [{ page: 'HHD', buttons: 1 }])
-})
-
-test('mixed button keeps its colours and gains no marking', () => {
-  const r = run()
-  const b = btn(r, 1, 0, 0)
-  assert.equal(b.style.text, 'Mah Tovu')
-  assert.equal(b.style.bgcolor, 16777024)
-})
-
-test('takeOutAllOutput nested in an action_group becomes animate_clear', () => {
-  const r = run()
-  const group = btn(r, 2, 0, 1).steps[0].action_sets.down[0]
-  assert.equal(group.definitionId, 'action_group')
-  assert.equal(group.connectionId, 'internal')
-  const inner = group.children.default[0]
-  assert.equal(inner.definitionId, 'animate_clear')
-  assert.equal(inner.connectionId, r.newConnectionId)
-  assert.deepEqual(inner.options, {})
-  assert.equal(inner.id, 'd1')
-  assert.equal(inner.upgradeIndex, -1)
-})
-
-test('totals and page coverage', () => {
-  const r = run()
-  assert.equal(r.stats.pagesScanned, 2)
-  assert.equal(r.stats.buttonsScanned, 4)
-  assert.equal(r.stats.buttonsTouched, 4)
-  assert.equal(r.stats.buttonsMarkedDead, 1)
-  assert.deepEqual(r.stats.converted, { show_cue: 1, animate_out: 1, bug_on: 1, bug_off: 1, animate_clear: 1 })
-  assert.deepEqual(r.pageCoverage, [
-    { page: 'Home', mapped: 2, total: 2 },
-    { page: 'HHD', mapped: 1, total: 2 },
-  ])
-  const j = buildReportJson(r)
-  assert.equal(j.totals.unmappedDistinctNames, 1)
-  assert.deepEqual(j.publishNext, [{ name: 'Vidui', buttons: 1 }])
-})
-
-/* ------------------------------------------------------------ aliases --- */
-
-const ALIAS_CATALOG = {
-  ...CATALOG,
-  'Avot 2': { cueId: 'cue-avot-2', status: 'draft-fit-passed', source: 'master' },
-  'Avot interp 1': { cueId: 'cue-avot-2', status: 'alias', source: 'master', aliasOf: 'Avot 2' },
-}
-
-test('aliased entries map to the survivor cue and are reported separately', () => {
-  const cfg = fixture()
-  cfg.pages[1].controls[0][2] = button('Avot interp 1', [], {
-    0: { action_sets: { down: [action('e1', 'animateIn', SING, { comp: 'Avot interp 1' })], up: [] }, options: {} },
-    1: { action_sets: { down: [action('e2', 'animateOut', SING, { comp: 'Avot interp 1' })], up: [] }, options: {} },
-  })
-  const r = convert(cfg, { catalogIndex: buildCatalogIndex(ALIAS_CATALOG), bugNames: ['CRC Logo'] })
-  const b = r.config.pages[1].controls[0][2]
-
-  // maps exactly like a normal entry
-  assert.equal(b.steps[0].action_sets.down[0].definitionId, 'show_cue')
-  assert.deepEqual(b.steps[0].action_sets.down[0].options, { cue: 'cue-avot-2' })
-  assert.equal(b.steps[1].action_sets.down[0].definitionId, 'animate_out')
-  assert.deepEqual(b.steps[1].action_sets.down[0].options, { cue: 'cue-avot-2' })
-  assert.equal(b.style.text, 'Avot interp 1') // not marked dead
-  assert.equal(b.feedbacks[0].definitionId, 'requested')
-
-  // counted separately
-  assert.equal(r.stats.aliasedButtons, 1)
-  assert.deepEqual(r.aliases, [{ name: 'Avot interp 1', aliasOf: 'Avot 2', buttons: 1 }])
-
-  const j = buildReportJson(r)
-  assert.equal(j.totals.aliasedButtons, 1)
-  assert.equal(j.totals.aliasedDistinctNames, 1)
-  assert.deepEqual(j.aliases, [{ name: 'Avot interp 1', aliasOf: 'Avot 2', buttons: 1 }])
-
-  const md = buildReport(r)
-  assert.match(md, /## Aliased to another graphic/)
-  assert.match(md, /\| Avot interp 1 \| Avot 2 \| 1 \|/)
-
-  // a non-alias button is not counted as one
-  assert.equal(r.aliases.length, 1)
-})
-
-/* -------------------------------------------------------- new buttons --- */
-
-const nav = (type) => ({ type })
-
-function newButtonFixture() {
-  const cfg = fixture()
-  cfg.pages[3] = {
-    id: 'p3',
-    name: 'PAGE',
-    gridSize: { minColumn: 0, maxColumn: 7, minRow: 0, maxRow: 3 },
-    controls: { 0: { 7: nav('pageup') }, 1: { 7: nav('pagenum') }, 2: { 7: nav('pagedown') } },
-  }
-  return cfg
-}
-
-const NEW_CATALOG = {
-  ...CATALOG,
-  'Kol Nidre 2': { cueId: 'cue-kn2', status: 'draft-fit-passed', source: 'new', newButton: true },
-  'Sim Shalom 4': { cueId: 'cue-ss4', status: 'draft-fit-passed', source: 'new', newButton: true },
-}
-
-test('wrapLabel splits names longer than 10 characters onto two lines', () => {
-  assert.equal(wrapLabel('Barechu'), 'Barechu')
-  assert.equal(wrapLabel('Kol Nidre 2'), 'Kol Nidre\n2')
-  assert.equal(wrapLabel('Sim Shalom 4'), 'Sim Shalom\n4')
-  assert.equal(wrapLabel('AbcdefghijklmnO'), 'Abcdefg\nhijklmnO')
-})
-
-test('nav-only pages do not count as content', () => {
-  assert.equal(pageHasContent(newButtonFixture().pages[3]), false)
-  assert.equal(pageHasContent(newButtonFixture().pages[1]), true)
-})
-
-test('newButton entries get buttons on the target page in row/column order', () => {
-  const cfg = newButtonFixture()
-  const r = convert(cfg, { catalogIndex: buildCatalogIndex(NEW_CATALOG), bugNames: ['CRC Logo'], newPage: 3 })
-
-  assert.equal(r.stats.newButtonsPlaced, 2)
-  assert.equal(r.newButtons.page, '3')
-  assert.equal(r.newButtons.moved, false)
-  assert.equal(r.config.pages[3].name, NEW_PAGE_NAME)
-  assert.deepEqual(r.newButtons.items, [
-    { name: 'Kol Nidre 2', cueId: 'cue-kn2', row: 0, column: 0 },
-    { name: 'Sim Shalom 4', cueId: 'cue-ss4', row: 0, column: 1 },
-  ])
-  // occupied cells untouched
-  assert.deepEqual(r.config.pages[3].controls[0][7], { type: 'pageup' })
-
-  const b = r.config.pages[3].controls[0][0]
+test('a v4 input still converts', () => {
+  const pages = { 1: { name: 'Home', gridSize: { minColumn: 0, maxColumn: 7, minRow: 0, maxRow: 3 }, controls: { 0: { 0: v4Button('Hareini', 26265, twoStep(v4Action, 'Hareini')) } } }, 53: emptyPage() }
+  const cfg = v4Config(pages)
+  const res = run(cfg)
+  const b = cellOf(res.config, 1, 0, 0)
   assert.equal(b.type, 'button')
-  assert.equal(b.style.text, 'Kol Nidre\n2')
-  assert.equal(b.style.size, '14')
-  assert.equal(b.style.color, 16777215)
-  assert.equal(b.style.latch, true)
-  // bgcolor harvested from a converted prayer button in this same file
-  assert.equal(b.style.bgcolor, 16777024)
-
-  const down0 = b.steps[0].action_sets.down
-  assert.equal(down0.length, 1)
-  assert.equal(down0[0].definitionId, 'show_cue')
-  assert.equal(down0[0].connectionId, r.newConnectionId)
-  assert.deepEqual(down0[0].options, { cue: 'cue-kn2' })
-  assert.match(down0[0].id, /^[A-Za-z0-9_-]{21}$/)
-
-  const down1 = b.steps[1].action_sets.down
-  assert.equal(down1[0].definitionId, 'animate_out')
-  assert.deepEqual(down1[0].options, { cue: 'cue-kn2' })
-  assert.notEqual(down1[0].id, down0[0].id)
-
-  assert.equal(b.feedbacks.length, 3)
-  assert.equal(b.feedbacks[0].definitionId, 'requested')
-  assert.deepEqual(b.feedbacks[0].style, { bgcolor: 16711680, color: 16777215 })
-  assert.equal(b.feedbacks[1].definitionId, 'rendered')
-  assert.deepEqual(b.feedbacks[1].style, { bgcolor: 65280, color: 0 })
-  assert.equal(b.feedbacks[2].definitionId, 'bank_current_step')
-  assert.equal(b.feedbacks[2].connectionId, 'internal')
-  assert.equal(b.feedbacks[2].options.step, 2)
-  assert.match(b.feedbacks[2].id, /^[A-Za-z0-9_-]{21}$/)
-
-  // placed after the scan, so they are not folded into the scan stats
-  assert.equal(r.stats.buttonsTouched, 4)
-  assert.equal(r.stats.converted.show_cue, 1)
-
-  const md = buildReport(r)
-  assert.match(md, /- New buttons placed: 2 on page 3/)
+  assert.equal(b.style.text, 'Hareini')
+  assert.equal(b.style.bgcolor, 26265)
+  const a = b.steps[0].action_sets.down[0]
+  assert.equal(a.definitionId, 'toggle_cue')
+  assert.equal(a.options.cue, 'cue-hareini', 'v4 output keeps plain option values')
+  assert.equal(res.stats.buttonsConverted, 1)
 })
 
-test('a target page with real content pushes the new buttons to the next empty page', () => {
-  const cfg = newButtonFixture()
-  cfg.pages[3].controls[0][0] = button('Occupied', [], { 0: { action_sets: { down: [], up: [] }, options: {} } })
-  cfg.pages[4] = {
-    id: 'p4', name: 'PAGE', gridSize: { minColumn: 0, maxColumn: 7, minRow: 0, maxRow: 3 },
-    controls: { 0: { 7: nav('pageup') } },
+test('a v5 input is parsed for text, background and option values', () => {
+  const btn = v5Button('Student Name Noa', 16776768, twoStep(v5Action, 'Mah Tovu'))
+  assert.equal(buttonText(btn), 'Student Name Noa')
+  assert.equal(buttonBgColor(btn), 16776768)
+  assert.equal(buttonTextColor(btn), 16777215)
+
+  const cfg = v5Config({ 1: { name: 'Home', controls: { 0: { 0: btn } } }, 53: emptyPage() })
+  const res = run(cfg)
+  const b = cellOf(res.config, 1, 0, 0)
+  assert.equal(b.type, 'button')
+  assert.equal(b.style.text, 'Student Name Noa', 'the original label is kept exactly')
+  assert.equal(b.style.bgcolor, 16776768)
+  assert.equal(b.style.size, 'auto')
+  const a = b.steps[0].action_sets.down[0]
+  assert.deepEqual(a.options, { cue: { value: 'cue-mahtovu', isExpression: false } }, 'v5 output keeps wrapped option values')
+})
+
+test('untouched controls pass through deep-equal', () => {
+  const stranger = v5Button('vMix only', 102, {
+    0: { action_sets: { down: [{ type: 'action', id: 'x1', definitionId: 'command', connectionId: 'other', options: { command: { value: 'cut', isExpression: false } }, upgradeIndex: 3 }], up: [] }, options: { runWhileHeld: [] } },
+  })
+  const unmappedSingular = v5Button('Rehbein', 0, twoStep(v5Action, 'Rehbein'))
+  const before = structuredClone({ stranger, unmappedSingular })
+
+  const cfg = v5Config({
+    1: { name: 'Home', controls: { 0: { 0: stranger, 1: unmappedSingular, 7: { type: 'pageup' } } } },
+    53: emptyPage(),
+  })
+  const res = run(cfg)
+  assert.deepEqual(cellOf(res.config, 1, 0, 0), before.stranger)
+  assert.deepEqual(cellOf(res.config, 1, 0, 1), before.unmappedSingular)
+  assert.deepEqual(cellOf(res.config, 1, 0, 7), { type: 'pageup' })
+})
+
+test('a button with no matching graphic is left on Singular and reported', () => {
+  const cfg = v5Config({ 1: { name: 'Home', controls: { 0: { 0: v5Button('Rehbein', 0, twoStep(v5Action, 'Rehbein')) } } }, 53: emptyPage() })
+  const res = run(cfg)
+  assert.equal(res.stats.buttonsLeftOnSingular, 1)
+  assert.equal(res.stats.buttonsConverted, 0)
+  assert.equal(res.leftOnSingular[0].comps[0], 'Rehbein')
+  assert.equal(cellOf(res.config, 1, 0, 0).type, 'button-layered')
+})
+
+test('an unpublished catalogue entry counts as no match', () => {
+  const idx = index()
+  assert.equal(lookupCue(idx, 'Retired Prayer').usable, false)
+  const cfg = v5Config({ 1: { name: 'Home', controls: { 0: { 0: v5Button('Retired', 0, twoStep(v5Action, 'Retired Prayer')) } } }, 53: emptyPage() })
+  const res = run(cfg)
+  assert.equal(res.stats.buttonsLeftOnSingular, 1)
+})
+
+test('converted prayer buttons become one single-step toggle with the right colour indicators', () => {
+  const bcs = { id: 'fb1', definitionId: 'bank_current_step', connectionId: 'internal', type: 'feedback', options: {}, styleOverrides: [], children: {} }
+  const cfg = v5Config({ 1: { name: 'Home', controls: { 0: { 0: v5Button('Hareini', 26265, twoStep(v5Action, 'Hareini'), [bcs]) } } }, 53: emptyPage() })
+  const res = run(cfg)
+  const b = cellOf(res.config, 1, 0, 0)
+
+  assert.deepEqual(Object.keys(b.steps), ['0'], 'exactly one step')
+  assert.equal(b.steps[0].action_sets.down.length, 1)
+  assert.equal(b.steps[0].action_sets.down[0].definitionId, 'toggle_cue')
+  assert.deepEqual(b.options, { stepProgression: 'auto', stepExpression: '', rotaryActions: false })
+  assert.deepEqual(b.localVariables, [])
+
+  assert.equal(b.feedbacks.find((f) => f.definitionId === 'bank_current_step'), undefined, 'step indicator dropped')
+  assert.deepEqual(b.feedbacks.map((f) => f.definitionId), ['requested', 'rendered', 'disconnected'])
+  assert.deepEqual(b.feedbacks[0].style, { bgcolor: 11824640, color: 16777215 })
+  assert.deepEqual(b.feedbacks[1].style, { bgcolor: 16711680, color: 16777215 })
+  assert.deepEqual(b.feedbacks[2].style, { bgcolor: 11141120, color: 16777215 })
+  assert.equal(b.feedbacks[0].options.cue.value, 'cue-hareini')
+  assert.equal(res.stats.bankCurrentStepDropped, 1)
+})
+
+test('"Start soon right" is dropped beside a real graphic, and kept when it is alone', () => {
+  const paired = v5Button('Starting Soon', 102, {
+    0: { action_sets: { down: [v5Action('animateIn', 'Starting Soon'), v5Action('animateIn', 'Start soon right')], up: [] }, options: { runWhileHeld: [] } },
+    1: { action_sets: { down: [v5Action('animateOut', 'Starting Soon'), v5Action('animateOut', 'Start soon right')], up: [] }, options: { runWhileHeld: [] } },
+  })
+  const alone = v5Button('Side panel', 102, twoStep(v5Action, 'Start soon right'))
+  const aloneBefore = structuredClone(alone)
+
+  const cfg = v5Config({ 1: { name: 'Home', controls: { 0: { 0: paired, 1: alone } } }, 53: emptyPage() })
+  const res = run(cfg)
+
+  const b = cellOf(res.config, 1, 0, 0)
+  assert.deepEqual(Object.keys(b.steps), ['0'], 'still collapses to a toggle')
+  assert.equal(b.steps[0].action_sets.down.length, 1)
+  assert.equal(res.stats.sidePanelActionsDropped, 2)
+  assert.equal(res.stats.buttonsMixed, 0, 'the dropped side panel does not make it a mixed button')
+  assert.deepEqual(cellOf(res.config, 1, 0, 1), aloneBefore, 'a side-panel-only button is untouched')
+})
+
+test('CRC Logo becomes the scan card on/off, and HHD Logo does not', () => {
+  const logo = v5Button('Toggle Logo', 16711680, twoStep(v5Action, 'CRC Logo'))
+  const hhd = v5Button('HHD Logo', 6697728, twoStep(v5Action, 'HHD Logo'))
+  const hhdBefore = structuredClone(hhd)
+  const cfg = v5Config({ 1: { name: 'Home', controls: { 0: { 0: logo, 1: hhd } } }, 53: emptyPage() })
+  const res = run(cfg)
+
+  const b = cellOf(res.config, 1, 0, 0)
+  const defs = Object.values(b.steps).flatMap((s) => s.action_sets.down.map((a) => a.definitionId))
+  assert.deepEqual(defs, ['bug_on', 'bug_off'])
+  assert.deepEqual(b.feedbacks.map((f) => f.definitionId), ['bug_visible', 'disconnected'])
+  assert.deepEqual(cellOf(res.config, 1, 0, 1), hhdBefore, 'HHD Logo has no match, so the button is untouched')
+})
+
+test('the logo-under-layer idiom keeps both steps and both actions', () => {
+  const btn = v5Button('Mah Tovu', 26265, {
+    0: { action_sets: { down: [v5Action('animateIn', 'Mah Tovu'), v5Action('animateOut', 'CRC Logo')], up: [] }, options: { runWhileHeld: [] } },
+    1: { action_sets: { down: [v5Action('animateOut', 'Mah Tovu'), v5Action('animateIn', 'CRC Logo')], up: [] }, options: { runWhileHeld: [] } },
+  })
+  const cfg = v5Config({ 1: { name: 'Home', controls: { 0: { 0: btn } } }, 53: emptyPage() })
+  const res = run(cfg)
+  const b = cellOf(res.config, 1, 0, 0)
+  assert.deepEqual(Object.keys(b.steps), ['0', '1'])
+  assert.deepEqual(b.steps[0].action_sets.down.map((a) => a.definitionId), ['show_cue', 'bug_off'])
+  assert.deepEqual(b.steps[1].action_sets.down.map((a) => a.definitionId), ['animate_out', 'bug_on'])
+  assert.deepEqual(b.feedbacks.map((f) => f.definitionId), ['requested', 'rendered', 'disconnected'])
+})
+
+test('mixed buttons keep their unmatched Singular actions, in place and in order', () => {
+  const btn = v5Button('Mah Tovu + Rehbein', 26265, {
+    0: {
+      action_sets: {
+        down: [
+          v5Action('animateIn', 'Mah Tovu'),
+          { type: 'action', id: 'ptz', definitionId: 'recallPset', connectionId: 'other', options: { val: { value: 5, isExpression: false } }, upgradeIndex: 2 },
+          v5Action('animateIn', 'Rehbein'),
+        ],
+        up: [],
+      },
+      options: { runWhileHeld: [] },
+    },
+    1: { action_sets: { down: [v5Action('animateOut', 'Mah Tovu')], up: [] }, options: { runWhileHeld: [] } },
+  })
+  const cfg = v5Config({ 1: { name: 'Home', controls: { 0: { 0: btn } } }, 53: emptyPage() })
+  const res = run(cfg)
+  const b = cellOf(res.config, 1, 0, 0)
+  const down = b.steps[0].action_sets.down
+  assert.deepEqual(down.map((a) => a.definitionId), ['show_cue', 'recallPset', 'animateIn'])
+  assert.equal(down[2].connectionId, SING, 'the unmatched graphic still points at Singular')
+  assert.equal(down[2].options.comp.value, 'Rehbein')
+  assert.equal(down[1].connectionId, 'other', 'the camera move is kept where it was')
+  assert.equal(down[1].options.val.value, 5)
+  assert.equal(res.stats.buttonsMixed, 1)
+  assert.deepEqual(res.mixed[0].keptOnSingular, ['Rehbein'])
+})
+
+test('takeOutAllOutput becomes clear-all', () => {
+  const btn = v5Button('Start Up', 16711680, {
+    0: { action_sets: { down: [v5Action('takeOutAllOutput', null)], up: [] }, options: { runWhileHeld: [] } },
+  })
+  const cfg = v5Config({ 1: { name: 'Home', controls: { 0: { 0: btn } } }, 53: emptyPage() })
+  const res = run(cfg)
+  assert.equal(cellOf(res.config, 1, 0, 0).steps[0].action_sets.down[0].definitionId, 'animate_clear')
+})
+
+test('name aliases resolve (Veehavta 2 -> Vahavta 2)', () => {
+  const cfg = v5Config({ 1: { name: 'Home', controls: { 0: { 0: v5Button('Veehavta 2', 26265, twoStep(v5Action, 'Veehavta 2')) } } }, 53: emptyPage() })
+  const res = run(cfg)
+  assert.equal(cellOf(res.config, 1, 0, 0).steps[0].action_sets.down[0].options.cue.value, 'cue-vahavta2')
+  assert.equal(res.aliases[0].name, 'Veehavta 2')
+})
+
+test('the hand-confirmed spelling aliases resolve', () => {
+  const catalog = {
+    'Psukei DZimrah 1': { cueId: 'cue-pd1', status: 'published' },
+    'Elohai Nshama': { cueId: 'cue-en', status: 'published' },
+    'Ahava Rabbah Ahavtanu (Partial)': { cueId: 'cue-ara', status: 'published' },
+    'Mi Chamocha (Friday) 1': { cueId: 'cue-mcf1', status: 'published' },
+    'Kedusha 1': { cueId: 'cue-k1', status: 'published' },
+    'Kedusha 2': { cueId: 'cue-k2', status: 'published' },
+    'Kedusha 3': { cueId: 'cue-k3', status: 'published' },
   }
-  const r = convert(cfg, { catalogIndex: buildCatalogIndex(NEW_CATALOG), bugNames: ['CRC Logo'], newPage: 3 })
-  assert.equal(r.newButtons.page, '4')
-  assert.equal(r.newButtons.moved, true)
-  assert.equal(r.newButtons.requestedPage, 3)
-  assert.equal(r.config.pages[4].name, NEW_PAGE_NAME)
-  assert.equal(r.config.pages[3].name, 'PAGE')
-  assert.equal(r.config.pages[3].controls[0][0].style.text, 'Occupied')
-  assert.equal(r.config.pages[4].controls[0][0].style.text, 'Kol Nidre\n2')
-  assert.match(buildReport(r), /Page 3 already had content/)
-})
-
-test('no newButton entries means no page is touched', () => {
-  const cfg = newButtonFixture()
-  const r = convert(cfg, { catalogIndex: buildCatalogIndex(CATALOG), bugNames: ['CRC Logo'], newPage: 3 })
-  assert.equal(r.stats.newButtonsPlaced, 0)
-  assert.equal(r.config.pages[3].name, 'PAGE')
-  assert.deepEqual(Object.keys(r.config.pages[3].controls[0]), ['7'])
-})
-
-test('gzip round-trip: gzip in → gzip out, plain in → plain out', () => {
-  const dir = fs.mkdtempSync(path.join(os.tmpdir(), 'conv-'))
-  const gzPath = path.join(dir, 'in.companionconfig')
-  const plainPath = path.join(dir, 'in-plain.companionconfig')
-  writeConfig(gzPath, fixture(), true)
-  writeConfig(plainPath, fixture(), false)
-  assert.ok(isGzip(fs.readFileSync(gzPath)))
-  assert.ok(!isGzip(fs.readFileSync(plainPath)))
-
-  for (const [src, gz] of [[gzPath, true], [plainPath, false]]) {
-    const { data, gzipped } = readConfig(src)
-    assert.equal(gzipped, gz)
-    const r = convert(data, { catalogIndex: buildCatalogIndex(CATALOG), bugNames: ['CRC Logo'] })
-    const out = path.join(dir, `out-${gz}.companionconfig`)
-    writeConfig(out, r.config, gzipped)
-    assert.equal(isGzip(fs.readFileSync(out)), gz)
-    const back = readConfig(out)
-    assert.equal(back.data.version, 9)
-    assert.equal(Object.keys(back.data.pages).length, 2)
-    assert.equal(back.data.pages[1].controls[0][0].steps[0].action_sets.down[0].definitionId, 'show_cue')
+  const idx = buildCatalogIndex(catalog)
+  const pairs = [
+    ["Psukei d'Zimrah", 'cue-pd1'],
+    ['Elohai Neshama', 'cue-en'],
+    ['Ahavah Rabbah Ahavtanu', 'cue-ara'],
+    ['Mi Chamocha (Friday)', 'cue-mcf1'],
+    ['Keddusha 1', 'cue-k1'],
+    ['Keddusha 2', 'cue-k2'],
+    ['Keddusha 3', 'cue-k3'],
+  ]
+  for (const [comp, cueId] of pairs) {
+    const hit = lookupCue(idx, comp)
+    assert.equal(hit.usable, true, `${comp} should resolve`)
+    assert.equal(hit.rec.cueId, cueId, `${comp} should resolve to ${cueId}`)
   }
-  fs.rmSync(dir, { recursive: true, force: true })
+  // Names deliberately left alone.
+  for (const comp of ['Select composition', 'Money pls', 'HHD Logo']) {
+    assert.equal(lookupCue(idx, comp).usable, false, `${comp} should stay unmatched`)
+  }
+})
+
+test('slots convert only when a --slots map supplies a cue id', () => {
+  const page = () => ({ 1: { name: 'Home', controls: { 0: { 0: v5Button('Student Name Noa', 16777215, twoStep(v5Action, 'Student Name')) } } }, 53: emptyPage() })
+
+  const without = run(v5Config(page()))
+  assert.equal(without.stats.buttonsLeftOnSingular, 1)
+  assert.equal(without.slotWaiting.length, 1)
+
+  const slots = new Map([['student name', { name: 'Student Name', cueId: 'cue-slot-name', label: 'NAME' }]])
+  const withSlots = run(v5Config(page()), { slots })
+  const b = cellOf(withSlots.config, 1, 0, 0)
+  assert.equal(b.steps[0].action_sets.down[0].options.cue.value, 'cue-slot-name')
+  assert.equal(b.style.text, 'NAME', 'the label template wins when one is given')
+})
+
+test('the spare page gets CLEAR NOW plus the homeless continuation panels, and page 1 gets a CLEAR NOW', () => {
+  const cfg = v5Config({
+    1: { name: '1 Home', gridSize: { minColumn: 0, maxColumn: 7, minRow: 0, maxRow: 3 }, controls: { 0: { 0: v5Button('Hareini', 26265, twoStep(v5Action, 'Hareini')), 7: { type: 'pageup' } } } },
+    53: emptyPage(),
+  })
+  const res = run(cfg)
+
+  assert.equal(res.spare.page, '53')
+  assert.equal(res.config.pages[53].name, 'Overlays')
+  const clear = cellOf(res.config, 53, res.spare.clearNow.row, res.spare.clearNow.column)
+  assert.equal(clear.style.text, 'CLEAR\nNOW')
+  assert.equal(clear.style.bgcolor, 7864320)
+  assert.equal(clear.steps[0].action_sets.down[0].definitionId, 'clear_now')
+  assert.deepEqual(clear.feedbacks.map((f) => f.definitionId), ['disconnected'])
+
+  const spare2 = res.spare.items.find((i) => i.name === 'Spare Panel 2')
+  assert.ok(spare2, 'the newButton entry was placed')
+  assert.equal(cellOf(res.config, 53, spare2.row, spare2.column).steps[0].action_sets.down[0].definitionId, 'toggle_cue')
+
+  assert.equal(res.homeClear.page, 1)
+  assert.ok(res.homeClear.column <= 6)
+  assert.equal(cellOf(res.config, 1, res.homeClear.row, res.homeClear.column).style.text, 'CLEAR\nNOW')
+})
+
+test('the new connection joins the existing Overlays group and the Singular connections survive', () => {
+  const cfg = v5Config({ 1: { name: 'Home', controls: { 0: { 0: v5Button('Hareini', 26265, twoStep(v5Action, 'Hareini')) } } }, 53: emptyPage() })
+  assert.equal(findOverlaysCollectionId(cfg), 'coll-overlays')
+  const res = run(cfg)
+  const conn = res.config.instances[res.newConnectionId]
+  assert.equal(conn.moduleId, NEW_MODULE)
+  assert.equal(conn.moduleVersionId, MODULE_VERSION)
+  assert.equal(conn.enabled, true)
+  assert.equal(conn.collectionId, 'coll-overlays')
+  assert.deepEqual(conn.config, { baseUrl: 'https://overlays.centralreform.org', pairingCode: '' })
+  assert.deepEqual(conn.secrets, {}, 'no secrets are written into the file')
+  assert.equal(conn.sortOrder, 2)
+  assert.equal(res.config.instances[SING].enabled, true)
+  assert.equal(res.config.instances[SING].moduleId, 'singularlive-studio')
+})
+
+test('a v4 file gets a v4-shaped connection record', () => {
+  const cfg = v4Config({ 1: { name: 'Home', controls: {} }, 53: emptyPage() })
+  const { conn } = buildConnection(cfg, { label: 'Overlays', baseUrl: 'https://x' })
+  assert.equal(conn.instance_type, NEW_MODULE)
+  assert.equal(conn.moduleId, undefined)
 })

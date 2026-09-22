@@ -17,9 +17,13 @@ const logPage = read('../app/services/log/page.tsx');
 
 /* ---------- the workspace navigation (handoff #2, section A) ---------- */
 
-test('the bar carries three destinations in task order: Live, Library, System', () => {
+/* The 2026-09-22 Companion cutover adds a fourth: the names and readings of the week ahead
+   are a weekly task on the way to a service, so "This service" sits beside Live rather than
+   nested behind the library. It is an `author` pill, because an Editor is who fills it in. */
+test('the bar carries four destinations in task order: Live, This service, Library, System', () => {
   assert.deepEqual(destinations.map(([href, label]) => [href, label]), [
     ['/', 'Live'],
+    ['/this-service', 'This service'],
     ['/author', 'Library'],
     ['/system', 'System'],
   ]);
@@ -27,8 +31,8 @@ test('the bar carries three destinations in task order: Live, Library, System', 
 
 test('an Operator sees Live only; an Editor adds Library; an Administrator adds System', () => {
   assert.deepEqual(visibleDestinations('operator').map(([href]) => href), ['/']);
-  assert.deepEqual(visibleDestinations('editor').map(([href]) => href), ['/', '/author']);
-  assert.deepEqual(visibleDestinations('owner').map(([href]) => href), ['/', '/author', '/system']);
+  assert.deepEqual(visibleDestinations('editor').map(([href]) => href), ['/', '/this-service', '/author']);
+  assert.deepEqual(visibleDestinations('owner').map(([href]) => href), ['/', '/this-service', '/author', '/system']);
   // Before the role resolves the bar shows the member destination only.
   assert.deepEqual(visibleDestinations(undefined).map(([href]) => href), ['/']);
 });
