@@ -9,7 +9,7 @@ export const LAYER_NAMES: Record<TextLayer, string> = { he: "Hebrew", tr: "Trans
  * translation flag already implied, so a graphic authored before this change reads back exactly
  * as it was written: Hebrew and transliteration, together, plus translation when it had it.
  */
-export function layersOf(content: Draft["content"]): { layers: TextLayer[]; arrangement: TextArrangement } {
+export function layersOf(content: Draft["content"]): { layers: TextLayer[]; arrangement: TextArrangement; rowOrder?: TextLayer[] } {
   const base = content.mode === "local-variant" ? content.base : content;
   if (base.mode !== "bilingual") return { layers: ["he", "tr"], arrangement: "together" };
   const layers = base.layers?.length
@@ -17,7 +17,29 @@ export function layersOf(content: Draft["content"]): { layers: TextLayer[]; arra
     : base.includeTranslation
       ? (["he", "tr", "en"] as TextLayer[])
       : (["he", "tr"] as TextLayer[]);
-  return { layers, arrangement: base.arrangement === "blocks" ? "blocks" : "together" };
+  return {
+    layers,
+    arrangement: base.arrangement === "blocks" ? "blocks" : "together",
+    ...(isRowOrder(base.rowOrder) && !sameOrder(base.rowOrder, LAYER_ORDER) ? { rowOrder: [...base.rowOrder] } : {}),
+  };
+}
+
+function sameOrder(a: readonly TextLayer[], b: readonly TextLayer[]) {
+  return a.length === b.length && a.every((layer, index) => layer === b[index]);
+}
+
+function isRowOrder(order: TextLayer[] | undefined): order is TextLayer[] {
+  return order?.length === 3 && new Set(order).size === 3;
+}
+
+/** The six ways the three layers can stack on a side panel, default first. */
+export const ROW_ORDERS: readonly (readonly TextLayer[])[] = [
+  ["he", "tr", "en"], ["he", "en", "tr"], ["tr", "he", "en"], ["tr", "en", "he"], ["en", "he", "tr"], ["en", "tr", "he"],
+];
+
+/** The order the form stacks its layers in: the stored one, or the default. */
+export function formRowOrder(form: Pick<DraftForm, "rowOrder">): TextLayer[] {
+  return isRowOrder(form.rowOrder) ? [...form.rowOrder] : [...LAYER_ORDER];
 }
 
 function layerFormFields(draft: Draft) {
@@ -33,6 +55,7 @@ export function layerContentFields(form: DraftForm) {
     ...(translation ? { includeTranslation: true as const } : {}),
     ...(JSON.stringify(layers) === JSON.stringify(implicit) ? {} : { layers }),
     ...(form.arrangement === "blocks" ? { arrangement: "blocks" as const } : {}),
+    ...(sameOrder(formRowOrder(form), LAYER_ORDER) ? {} : { rowOrder: formRowOrder(form) }),
   };
 }
 

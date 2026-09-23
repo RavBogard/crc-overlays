@@ -18,14 +18,24 @@ export type SourceGroup={sourceId:string;blockIds:string[]};
 export type TextLayer='he'|'tr'|'en';
 export type TextArrangement='together'|'blocks';
 export const LAYER_ORDER=['he','tr','en'] as const;
-export type BilingualContent={mode:'bilingual';hebrewGroups:SourceGroup[];transliterationGroups:SourceGroup[];includeTranslation?:boolean;layers?:TextLayer[];arrangement?:TextArrangement};
+export type BilingualContent={mode:'bilingual';hebrewGroups:SourceGroup[];transliterationGroups:SourceGroup[];includeTranslation?:boolean;layers?:TextLayer[];arrangement?:TextArrangement;rowOrder?:TextLayer[]};
 export function textLayers(content:BilingualContent):TextLayer[]{
  if(content.layers?.length)return LAYER_ORDER.filter(layer=>content.layers!.includes(layer));
  return content.includeTranslation?['he','tr','en']:['he','tr'];
 }
 export function textArrangement(content:BilingualContent):TextArrangement{return content.arrangement==='blocks'?'blocks':'together'}
+/**
+ * The order the three layers stack in on a side panel, set per graphic. Hebrew, transliteration,
+ * translation is the default and is never stored, so a graphic that keeps it keeps its hash.
+ */
+export function textRowOrder(content:Pick<BilingualContent,'rowOrder'>):TextLayer[]{return content.rowOrder?.length===3?[...content.rowOrder]:[...LAYER_ORDER]}
+export function parseRowOrder(value:unknown,field='rowOrder'):TextLayer[]|undefined{
+ if(value===undefined)return undefined;
+ if(!Array.isArray(value)||value.length!==3||new Set(value).size!==3||!value.every(item=>item==='he'||item==='tr'||item==='en'))throw new AuthoringError('invalid_input',`${field} must list he, tr and en exactly once each`);
+ return JSON.stringify(value)===JSON.stringify(LAYER_ORDER)?undefined:[...value] as TextLayer[];
+}
 /** The stored form: the default pair (or trio) is left implicit, so old drafts never gain a field. */
-export function layerFields(layers:TextLayer[],arrangement:TextArrangement){
+export function layerFields(layers:TextLayer[],arrangement:TextArrangement,rowOrder?:TextLayer[]){
  const ordered=LAYER_ORDER.filter(layer=>layers.includes(layer));
  const translation=ordered.includes('en');
  const implicit=translation?['he','tr','en']:['he','tr'];
@@ -33,6 +43,7 @@ export function layerFields(layers:TextLayer[],arrangement:TextArrangement){
   ...(translation?{includeTranslation:true as const}:{}),
   ...(JSON.stringify(ordered)===JSON.stringify(implicit)?{}:{layers:ordered}),
   ...(arrangement==='blocks'?{arrangement:'blocks' as const}:{}),
+  ...(rowOrder&&JSON.stringify(rowOrder)!==JSON.stringify(LAYER_ORDER)?{rowOrder:[...rowOrder]}:{}),
  };
 }
 export type OriginalEnglishContent={mode:'original-en';englishGroups:SourceGroup[]};
@@ -165,7 +176,7 @@ function parseGroups(value:unknown,label:string,kind:SourceBlock['kind'],snapsho
 export function parseContent(value:unknown,snapshots:AuthoringSource[]=[]):DraftContent{
  const input=record(value,'content');
  if(input.mode==='bilingual'){
-  onlyKeys(input,['mode','hebrewGroups','transliterationGroups','includeTranslation','layers','arrangement'],'content');
+  onlyKeys(input,['mode','hebrewGroups','transliterationGroups','includeTranslation','layers','arrangement','rowOrder'],'content');
   const hebrewGroups=parseGroups(input.hebrewGroups,'content.hebrewGroups','bilingual',snapshots);
   const transliterationGroups=parseGroups(input.transliterationGroups,'content.transliterationGroups','bilingual',snapshots);
   const sequence=(groups:SourceGroup[])=>groups.flatMap(group=>group.blockIds.map(blockId=>`${group.sourceId}\u0000${blockId}`));
@@ -183,7 +194,7 @@ export function parseContent(value:unknown,snapshots:AuthoringSource[]=[]):Draft
    if(!layers.length)throw new AuthoringError('empty_layers','A graphic shows at least one text layer');
   }
   if(input.arrangement!==undefined&&input.arrangement!=='together'&&input.arrangement!=='blocks')throw new AuthoringError('invalid_input','arrangement must be together or blocks');
-  const content:BilingualContent={mode:'bilingual',hebrewGroups,transliterationGroups,...layerFields(layers,input.arrangement==='blocks'?'blocks':'together')};
+  const content:BilingualContent={mode:'bilingual',hebrewGroups,transliterationGroups,...layerFields(layers,input.arrangement==='blocks'?'blocks':'together',parseRowOrder(input.rowOrder,'content.rowOrder'))};
   if(layers.includes('en'))translationSelections(content,snapshots);
   return content;
  }
@@ -321,7 +332,8 @@ function englishRunTexts(content:BilingualContent,snapshots:AuthoringSource[]=[]
  * same passages into rows: **Together** gives each passage its own row carrying every lit layer;
  * **In blocks** gives each slide one row per lit layer, so the whole slide's Hebrew stands
  * together, then its transliteration, then its translation. A block never spans slides because a
- * slide is a group. A lower third is not a list of rows and keeps its own two columns.
+ * slide is a group. A lower third is not a list of rows and keeps its own two columns. The
+ * graphic's row order (default Hebrew, transliteration, translation) sets the order in both.
  */
 function composeContentRows(draft:Draft,content:BilingualContent,overrides:LocalVariantOverride[],layers:TextLayer[]):Array<{he:string;tr:string;en:string}>{
  if(draft.layout!=='left'&&draft.layout!=='right')return [];
@@ -332,9 +344,13 @@ function composeContentRows(draft:Draft,content:BilingualContent,overrides:Local
   const rows:Array<{he:string;tr:string;en:string}>=[];
   // Blocks means contiguous language paragraphs, not a Hebrew/transliteration pair for every
   // selection group. Real boundaries remain visible as paragraphs; no source selection changes.
-  if(layers.includes('he'))rows.push({he:joinGroupParagraphs(content.hebrewGroups,'he',snapshots,overrides),tr:'',en:''});
-  if(layers.includes('tr'))rows.push({he:'',tr:joinGroupParagraphs(content.transliterationGroups,'tr',snapshots,overrides),en:''});
-  if(layers.includes('en'))rows.push({he:'',tr:'',en:englishRunTexts(content,snapshots,overrides).map(run=>run.text).join('\n\n')});
+  // The rows follow the graphic's row order; the default is Hebrew, transliteration, translation.
+  const block:Record<TextLayer,()=>{he:string;tr:string;en:string}>={
+   he:()=>({he:joinGroupParagraphs(content.hebrewGroups,'he',snapshots,overrides),tr:'',en:''}),
+   tr:()=>({he:'',tr:joinGroupParagraphs(content.transliterationGroups,'tr',snapshots,overrides),en:''}),
+   en:()=>({he:'',tr:'',en:englishRunTexts(content,snapshots,overrides).map(run=>run.text).join('\n\n')}),
+  };
+  for(const layer of textRowOrder(content))if(layers.includes(layer))rows.push(block[layer]());
   return rows;
  }
  if(layers.includes('en'))return translationSelections(content,snapshots).map(({sourceId,block,pairIds})=>({he:text(sourceId,pairIds,'he'),tr:text(sourceId,pairIds,'tr'),en:english(sourceId,block)}));
@@ -384,7 +400,7 @@ export function buildCue(draft:Draft):AuthoringCue{
  }
  return {
   id:draft.id,name:draft.name,layout:draft.layout,texts,
-  ...(content.mode==='bilingual'?(rows=>rows.length?{contentRows:rows}:{})(composeContentRows(draft,content,overrides,layers)):{}),
+  ...(content.mode==='bilingual'?(rows=>rows.length?{contentRows:rows,...(content.rowOrder?{rowOrder:textRowOrder(content)}:{})}:{})(composeContentRows(draft,content,overrides,layers)):{}),
   animations,duration:structuredClone(template.duration),
   ...(template.template?{template:structuredClone(template.template)}:{}),
   ...(Object.keys(draft.presentation).length?{presentation:structuredClone(draft.presentation)}:{}),

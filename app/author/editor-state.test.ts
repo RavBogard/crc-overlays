@@ -54,6 +54,22 @@ test("a historical bilingual draft with omitted arrangement still loads as toget
   assert.equal(formFromDraft(historical).arrangement, "together");
 });
 
+test("a row order round-trips through the form, and the default is never written", () => {
+  const draft = {
+    id: "ordered", name: "Prayer", title: "Prayer", layout: "left" as const, templateCueId: "template",
+    content: { mode: "bilingual" as const, hebrewGroups: [{ sourceId: "source", blockIds: ["block"] }], transliterationGroups: [{ sourceId: "source", blockIds: ["block"] }], rowOrder: ["tr" as const, "he" as const, "en" as const] },
+    presentation: {}, version: 1, activeRevision: null, activeDraftVersion: null, updatedAt: 1,
+  };
+  const form = formFromDraft(draft);
+  assert.deepEqual(form.rowOrder, ["tr", "he", "en"]);
+  const content = editableFromForm(form).content;
+  assert.deepEqual(content.mode === "bilingual" ? content.rowOrder : undefined, ["tr", "he", "en"]);
+  const reset = editableFromForm({ ...form, rowOrder: ["he", "tr", "en"] }).content;
+  assert.equal("rowOrder" in reset, false);
+  const plain = formFromDraft({ ...draft, content: { ...draft.content, rowOrder: undefined } });
+  assert.equal("rowOrder" in plain, false);
+});
+
 test("whole-prayer selection preserves source order", () => {
   assert.deepEqual(selectWholeSource("siddur-1", ["a", "b", "c"]), [
     { sourceId: "siddur-1", blockIds: ["a", "b", "c"] },

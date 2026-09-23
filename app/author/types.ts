@@ -28,6 +28,8 @@ export type CanonicalDraftContent =
       includeTranslation?: boolean;
       layers?: TextLayer[];
       arrangement?: TextArrangement;
+      /** Side-panel stacking order; absent means Hebrew, transliteration, translation. */
+      rowOrder?: TextLayer[];
     }
   | { mode: "source-en" | "original-en"; englishGroups: SourceGroup[] };
 export type VariantChannel = "he" | "tr" | "en";
@@ -199,6 +201,8 @@ export type DraftForm = {
   includeTranslation?: boolean;
   layers: TextLayer[];
   arrangement: TextArrangement;
+  /** Side-panel stacking order; absent means the default Hebrew, transliteration, translation. */
+  rowOrder?: TextLayer[];
   name: string;
   title: string;
   accentTitle: string;

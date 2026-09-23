@@ -1,4 +1,4 @@
-import type {Draft, DraftContent, Layout, Presentation, TextArrangement} from './authoring-model';
+import {LAYER_ORDER, type Draft, type DraftContent, type Layout, type Presentation, type TextArrangement, type TextLayer} from './authoring-model';
 
 /** The small template shape required to plan a look change. */
 export type DraftStyleTemplate={id:string;layout:Layout};
@@ -8,6 +8,8 @@ export type DraftStyleOptions={
   layout?:Layout;
   /** Put each language in a contiguous reading block, or return to paired rows. */
   arrangement?:TextArrangement;
+  /** Stack a side panel's layers in this order (he, tr, en once each). Hebrew, transliteration, translation is the default and is stored as absent. */
+  rowOrder?:TextLayer[];
   /** Clear explicit density overrides while retaining artwork and alignment choices. */
   comfortableTypography?:boolean;
   /** Preserve authored Latin line breaks, or display soft breaks as paragraphs. */
@@ -15,12 +17,28 @@ export type DraftStyleOptions={
 };
 
 export type DraftStylePatch={layout?:Layout;templateCueId?:string;content?:DraftContent;presentation?:Presentation};
-export type DraftStyleSummary={layout:Layout;templateCueId:string;arrangement:TextArrangement|null;presentation:Presentation};
+export type DraftStyleSummary={layout:Layout;templateCueId:string;arrangement:TextArrangement|null;rowOrder?:TextLayer[];presentation:Presentation};
 export type DraftStylePlan={patch:DraftStylePatch;warnings:string[];before:DraftStyleSummary;after:DraftStyleSummary};
 
 function arrangementOf(content:DraftContent):TextArrangement|null{
   const base=content.mode==='local-variant'?content.base:content;
   return base.mode==='bilingual'?(base.arrangement==='blocks'?'blocks':'together'):null;
+}
+
+/** A non-default row order only; the default reads as absent so summaries of existing drafts are unchanged. */
+function rowOrderOf(content:DraftContent):TextLayer[]|undefined{
+  const base=content.mode==='local-variant'?content.base:content;
+  return base.mode==='bilingual'&&base.rowOrder?[...base.rowOrder]:undefined;
+}
+
+function withRowOrder(content:DraftContent, rowOrder:TextLayer[]):DraftContent|undefined{
+  const base=content.mode==='local-variant'?content.base:content;
+  if(base.mode!=='bilingual')return undefined;
+  const nextBase={...base};
+  if(same(rowOrder,LAYER_ORDER))delete nextBase.rowOrder;
+  else nextBase.rowOrder=[...rowOrder];
+  if(content.mode==='local-variant')return {...content,base:nextBase};
+  return nextBase;
 }
 
 function withArrangement(content:DraftContent, arrangement:TextArrangement):DraftContent|undefined{
@@ -42,7 +60,8 @@ function comfortable(presentation:Presentation):Presentation{
 function same(a:unknown,b:unknown){return JSON.stringify(a)===JSON.stringify(b)}
 
 function summary(draft:Pick<Draft,'layout'|'templateCueId'|'content'|'presentation'>):DraftStyleSummary{
-  return {layout:draft.layout,templateCueId:draft.templateCueId,arrangement:arrangementOf(draft.content),presentation:{...draft.presentation}};
+  const rowOrder=rowOrderOf(draft.content);
+  return {layout:draft.layout,templateCueId:draft.templateCueId,arrangement:arrangementOf(draft.content),...(rowOrder?{rowOrder}:{}),presentation:{...draft.presentation}};
 }
 
 /**
@@ -72,6 +91,15 @@ export function planDraftStyle(draft:Draft, options:DraftStyleOptions, templates
     else if(next&&arrangementOf(draft.content)!==requestedArrangement){patch.content=next;afterContent=next;}
   }
 
+  if(options.rowOrder!==undefined){
+    const next=withRowOrder(afterContent,options.rowOrder);
+    if(!next)warnings.push('Row order applies only to bilingual content or a local variant with a bilingual base.');
+    else {
+      if(!same(rowOrderOf(next),rowOrderOf(afterContent))){patch.content=next;afterContent=next;}
+      if(afterLayout!=='left'&&afterLayout!=='right')warnings.push('Row order shows only on a left or right panel; a lower third keeps its own columns.');
+    }
+  }
+
   const readablePresentation=options.comfortableTypography!==false?comfortable(draft.presentation):{...draft.presentation};
   // The style operation deliberately opts into paragraph display. Legacy drafts that never
   // pass through this operation retain their absent (preserve) setting.
@@ -79,5 +107,6 @@ export function planDraftStyle(draft:Draft, options:DraftStyleOptions, templates
   const nextPresentation={...readablePresentation,latinLineBreaks};
   if(!same(nextPresentation,draft.presentation)){patch.presentation=nextPresentation;afterPresentation=nextPresentation;}
 
-  return {patch,warnings,before:summary(draft),after:{layout:afterLayout,templateCueId:afterTemplateCueId,arrangement:arrangementOf(afterContent),presentation:{...afterPresentation}}};
+  const afterRowOrder=rowOrderOf(afterContent);
+  return {patch,warnings,before:summary(draft),after:{layout:afterLayout,templateCueId:afterTemplateCueId,arrangement:arrangementOf(afterContent),...(afterRowOrder?{rowOrder:afterRowOrder}:{}),presentation:{...afterPresentation}}};
 }
