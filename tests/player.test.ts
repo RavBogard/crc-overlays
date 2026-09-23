@@ -79,6 +79,16 @@ test('the lower third title clears the decorative circle',()=>{
  assert.match(css,/\.bottom \.hebrew\{left:1010px;width:850px/,'and the Hebrew column keeps its place');
 });
 
+test('a lower third reserves distinct title and RTL accent lanes without narrowing a lone title',()=>{
+ const css=overlayCss();
+ assert.match(css,/\.bottom \.title:not\(\.title-accent\)\{left:calc\(240px \+ var\(--bottom-title-clearance\)\);right:auto;width:1050px\}/);
+ assert.match(css,/\.bottom \.title-accent\{left:auto;right:50px;width:480px;direction:rtl;text-align:right\}/);
+ assert.match(css,/\.bottom:not\(:has\(\.title-accent\)\) \.title:not\(\.title-accent\)\{width:calc\(1850px - 240px - var\(--bottom-title-clearance\)\)\}/);
+ const mainStart=280,mainWidth=1050,accentStart=1920-50-480;
+ assert.ok(mainStart+mainWidth<=accentStart,'title ends before the accent lane begins');
+ assert.equal(1850-280,1570,'a lone title keeps the full safe title span');
+});
+
 test('structured rows use bounded inter-row spacing that preserves four-row fit',()=>{
  assert.equal(panelRowGap([190,190,190,190]),16);
  assert.equal(panelRowGap([205,205,205,205],844,4,24),4);
