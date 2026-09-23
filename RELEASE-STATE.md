@@ -4,24 +4,50 @@ What is deployed right now. Update this file on every release — it is the one 
 "what is live", and it is short so it can be read under pressure. The history is in
 `docs/planning/2026-09-deploys/` (25 deploy records, the release chain, the phase build notes).
 
-**Last updated: 2026-09-22** (the A2 release: the Siona resting logo, A1's overlay stylesheet, the fit
-stage hardening, Companion module 1.7.0 and a relay release; see
-`docs/planning/2026-09-22-sitting-prep/RETURN-A2.md` §8).
+**Last updated: 2026-09-23 00:08 UTC** (final release `9ab8f7b`: source-boundary slices, private
+G'vurot plus two recovered songs, corrected cue provenance, renderer geometry, the server-fit
+lifecycle fixes and the English overflow check; web only, no relay change. Evidence below under
+"Release 9ab8f7b". The A2 release before it is in `docs/planning/2026-09-22-sitting-prep/RETURN-A2.md` §8.)
 
 ## Web, per workspace
 
 Two congregations, one codebase, one deployment each. **Both are on the same commit today**, and
-both were released together on 2026-09-22.
+both were released together on 2026-09-23 UTC (2026-09-22 evening Central).
 
 | Workspace | Host | Deployed commit | How it got there |
 |---|---|---|---|
-| CRC | `overlays.centralreform.org` (alt `crc-overlays.vercel.app`) | `8954415` | `scripts/deploy-workspaces.mjs`, 2026-09-22 19:50 UTC, `dpl_3tjPjxahb7oSBhKxRZxi3gGrwKwz` (the Git integration also builds every push to `main`) |
-| TBI | `overlays.templebnaiisrael.com` (alt `tbi-overlays.vercel.app`) | `8954415` | `scripts/deploy-workspaces.mjs`, same run, 19:52 UTC, `dpl_GEmLRnfPQcikNy7vEQ9bFDS66Rpa` |
+| CRC | `overlays.centralreform.org` (alt `crc-overlays.vercel.app`) | `9ab8f7b` | `scripts/deploy-workspaces.mjs`, 2026-09-23 00:06 UTC, `dpl_EoncroMj91HYUYUSY2HRq9vEwEno` (the Git integration also builds every push to `main`) |
+| TBI | `overlays.templebnaiisrael.com` (alt `tbi-overlays.vercel.app`) | `9ab8f7b` | `scripts/deploy-workspaces.mjs`, same run, 00:07 UTC, `dpl_D78qFtYcXW3ifWYPVksxL8cu5tnf` |
 
 This file is written after the release it describes, so the commit carrying these words is always one
 ahead of the shas in the table. That one commit is documentation: CRC's Git integration builds it by
 itself and TBI is not owed a release for it. Any commit that touches `app/`, `lib/`, `content/`,
 `components/`, `schemas/` or `workspaces/` **is** owed one.
+
+### Release 9ab8f7b (2026-09-23 UTC)
+
+- Released from the active `google-signin` checkout, clean, HEAD = `9ab8f7b8d61ece034b5208718f53c325d78acc36`
+  (the script refuses any other HEAD or a dirty tree). Both builds 42/42 pages. Custom domains resolve to
+  the two deployment ids above, both Ready/production. CLI deployments carry no git metadata, so the sha
+  proof is the script guard plus served content: all five checked source `unitSha256` values equal this
+  commit's `content/authoring-sources.json`. `relay/` is unchanged since `8954415`; no relay release.
+  `main` was not moved and nothing was pushed (the `origin/main` hazard below still stands, now further behind).
+- Sources (authenticated `get_source`): Unending Love and Yotzer Or serve the canonical parent `#block-0`
+  plus `/slice-0` and `/slice-1` children carrying `canonicalParentBlockId`; the three private
+  original-English sources (G'vurot interpretation, Am I Awake, How Awesome / Shema) are present with
+  archive provenance.
+- Hosted fit, 16 checks on the unchanged published draft "Mah Tovu" `bbd7c98b…` v1, existing preview
+  `3d242037…`: **14 pass (fill 0.804, `server-chromium/1.63.0`), checks 7–8 `unavailable /
+  stage_unavailable`**, no false `fail`, no retry. Checks 9 and 10 were sent together and may have
+  overlapped; all others strictly serial. Failures: `phase: 'measure'`, `Target page, context or browser
+  has been closed`, `tmpFreeBefore` 21.1 MB and 16.9 MB. Every check logged 0 survivors and 66 KB left in
+  its scratch dir, but free `/tmp` fell 318 → 318 → 217 → 92 → 37 → 21 → 17 MB on the first instance and
+  185 (×5) → 60 → 41 → 41 MB on the second. So the per-check scratch fix holds, and the remaining
+  consumption is outside the scratch dir. Candidate, unverified: Playwright makes its
+  `playwright_chromiumdev_profile-*` and `playwright-artifacts-*` dirs in the Node process's
+  `os.tmpdir()`, not the browser's `TMPDIR`. **The server fit stage is improved (from 10/12) but not
+  fixed**; the web fit check remains the fallback. Return and details:
+  `crc-coordination/claude-1/STATUS.md`.
 
 The mechanism that produced the 09-16 split is still there and will produce another:
 
@@ -35,7 +61,8 @@ The mechanism that produced the 09-16 split is still there and will produce anot
 would deploy the wrong tree. So **every release records both shas in this table**, and a release
 is not finished while they differ.
 
-**Ahead of production: nothing but documentation.** Released on 2026-09-22 from `google-signin` —
+**Ahead of production: nothing but documentation** (as of `9ab8f7b`; the paragraph below describes the
+earlier `8954415` release). Released on 2026-09-22 from `google-signin` —
 `main` was **not** moved, so CRC's Git integration has not built this and will not until `main` is
 brought forward. Commits released, in order past `603e593`: `c5497ab` (slot graphics), `fa008ac` (A1,
 one overlay stylesheet), `d1ab609` (server fit-stage readiness hardening, another session's),
