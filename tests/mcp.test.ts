@@ -89,12 +89,25 @@ test('MCP accepts the canonical presentation fields and still rejects values out
  assert.equal(calls.length,2);
 });
 
+test('MCP accepts a per-graphic row order on draft content and style_draft, and refuses a bad one',async()=>{
+ const calls:{operation:string;input:unknown}[]=[];const handler=createAuthoringMcpHandler(async(operation,input)=>{calls.push({operation,input});return {draft:{id:'draft-1'}}});
+ const draft={name:'Prayer',title:'Prayer',layout:'left',templateCueId:'template-left',content:{mode:'bilingual',hebrewGroups:[{sourceId:'source',blockIds:['block']}],transliterationGroups:[{sourceId:'source',blockIds:['block']}],arrangement:'blocks',rowOrder:['tr','he','en']}};
+ const created=await payload(await handler.fetch(request({jsonrpc:'2.0',id:40,method:'tools/call',params:{name:'create_draft',arguments:draft}}),{authInfo})) as {result?:{isError?:boolean}};assert.notEqual(created.result?.isError,true);
+ const styled=await payload(await handler.fetch(request({jsonrpc:'2.0',id:41,method:'tools/call',params:{name:'style_draft',arguments:{draftId:'draft-1',expectedVersion:2,rowOrder:['en','tr','he']}}}),{authInfo})) as {result?:{isError?:boolean}};assert.notEqual(styled.result?.isError,true);
+ assert.deepEqual(calls.map(call=>call.operation),['create_draft','style_draft']);assert.deepEqual((calls[1].input as {rowOrder:string[]}).rowOrder,['en','tr','he']);
+ for(const rowOrder of [['he','tr'],['he','he','en'],['he','tr','xx']]){
+  const rejected=await payload(await handler.fetch(request({jsonrpc:'2.0',id:42,method:'tools/call',params:{name:'style_draft',arguments:{draftId:'draft-1',expectedVersion:2,rowOrder}}}),{authInfo})) as {error?:unknown;result?:{isError?:boolean}};
+  assert.ok(rejected.error||rejected.result?.isError,`${JSON.stringify(rowOrder)} is refused before the backend call`);
+ }
+ assert.equal(calls.length,2);
+});
+
 test('MCP exposes compact draft inspection and authenticated style planning without changing actors',async()=>{
  const calls:{operation:string;input:unknown;actor:string}[]=[];const handler=createAuthoringMcpHandler(async(operation,input,actor)=>{calls.push({operation,input,actor});return {drafts:[],nextCursor:null};});
  const listed=await payload(await handler.fetch(request({jsonrpc:'2.0',id:23,method:'tools/list',params:{}}),{authInfo})) as {result:{tools:{name:string;annotations?:{readOnlyHint?:boolean};inputSchema:{properties:Record<string,unknown>}}[]}};
  const drafts=listed.result.tools.find(tool=>tool.name==='list_drafts'),style=listed.result.tools.find(tool=>tool.name==='style_draft');
  assert.equal(drafts?.annotations?.readOnlyHint,true);assert.deepEqual(Object.keys(drafts!.inputSchema.properties).sort(),['book','compact','cursor','layout','limit','query','service']);
- assert.equal(style?.annotations?.readOnlyHint,false);assert.deepEqual(Object.keys(style!.inputSchema.properties).sort(),['arrangement','comfortableTypography','draftId','dryRun','expectedVersion','latinLineBreaks','layout']);
+ assert.equal(style?.annotations?.readOnlyHint,false);assert.deepEqual(Object.keys(style!.inputSchema.properties).sort(),['arrangement','comfortableTypography','draftId','dryRun','expectedVersion','latinLineBreaks','layout','rowOrder']);
  await payload(await handler.fetch(request({jsonrpc:'2.0',id:24,method:'tools/call',params:{name:'list_drafts',arguments:{query:'Shabbat',limit:10}}}),{authInfo}));
  await payload(await handler.fetch(request({jsonrpc:'2.0',id:25,method:'tools/call',params:{name:'style_draft',arguments:{draftId:'draft-1',expectedVersion:2,latinLineBreaks:'phrases'}}}),{authInfo}));
  assert.deepEqual(calls,[{operation:'list_drafts',input:{query:'Shabbat',limit:10},actor:'mcp:test-actor'},{operation:'style_draft',input:{draftId:'draft-1',expectedVersion:2,latinLineBreaks:'phrases'},actor:'mcp:test-actor'}]);

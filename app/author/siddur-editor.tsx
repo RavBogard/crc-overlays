@@ -3,7 +3,7 @@
 import { useEffect, useRef, useState } from "react";
 import { BookOpenText, ChevronLeft, ChevronRight, CircleAlert, FilePlus2, LoaderCircle, Search } from "lucide-react";
 import { fetchBookUnits, groupUnits, hasHebrew, visibleUnits } from "@/lib/siddur-shelf";
-import { LAYER_NAMES, LAYER_ORDER, blocksForMode, sourceDisplayCopy, sourceHeadline } from "./editor-state";
+import { LAYER_NAMES, LAYER_ORDER, ROW_ORDERS, blocksForMode, formRowOrder, sourceDisplayCopy, sourceHeadline } from "./editor-state";
 import type {
   BookUnit,
   BookUnitsResult,
@@ -123,9 +123,10 @@ type SiddurShelfProps = {
  */
 /**
  * C6. Two decisions the old "Include approved English" checkbox hid: which layers a graphic
- * shows, and how they sit on the slide. Layer order is fixed Hebrew - Transliteration -
- * Translation in both arrangements; the last lit chip simply stays lit rather than raising an
- * error. Translation is offered where the siddur actually carries authorized English for these
+ * shows, and how they sit on the slide. The layers stack Hebrew - Transliteration - Translation
+ * unless this graphic sets another order; the order applies in both arrangements on a left or
+ * right panel, and is stored only when it differs from that default. The last lit chip simply
+ * stays lit rather than raising an error. Translation is offered where the siddur actually carries authorized English for these
  * passages, which today is rare, and it needs the room of a left or right panel.
  */
 function TextLayerControls(props: { form: DraftForm; source: Source; changeForm: (patch: Partial<DraftForm>) => void; fitErrors: string[] }) {
@@ -139,6 +140,8 @@ function TextLayerControls(props: { form: DraftForm; source: Source; changeForm:
     if (!next.length) return;
     props.changeForm({ layers: next });
   };
+  const order = formRowOrder(props.form).join(",");
+  const orderLabel = (value: readonly TextLayer[]) => value.map((layer) => LAYER_NAMES[layer]).join(" · ");
   return <div className="text-layers">
     <div className="layer-chips" role="group" aria-label="Text layers">
       {LAYER_ORDER.map((layer) => {
@@ -155,6 +158,13 @@ function TextLayerControls(props: { form: DraftForm; source: Source; changeForm:
           disabled={!panel} title={panel ? "" : "A lower third keeps its two columns side by side."}
           onClick={() => props.changeForm({ arrangement: value })}>{label}</button>)}
     </div>}
+    {lit.length > 1 && <label className="layer-order" title={panel ? "The order the layers stack in, top to bottom." : "A lower third keeps its two columns side by side."}>
+      <span>Order</span>
+      <select aria-label="Layer order, top to bottom" value={order} disabled={!panel}
+        onChange={(event) => props.changeForm({ rowOrder: event.target.value.split(",") as TextLayer[] })}>
+        {ROW_ORDERS.map((value) => <option key={value.join(",")} value={value.join(",")}>{orderLabel(value)}</option>)}
+      </select>
+    </label>}
     {props.fitErrors.length > 0 && <p className="layer-fit"><CircleAlert size={15} /> {props.fitErrors[0]}</p>}
   </div>;
 }

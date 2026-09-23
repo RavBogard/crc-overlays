@@ -4,6 +4,7 @@ import {AuthoringError,assertSourcePin,staleSourceIds,baselineCues,buildCue,cueH
 import {compactDraftCatalog,type DraftCatalogInput} from './draft-catalog';
 import {planDraftStyle,type DraftStyleOptions,type DraftStylePlan} from './authoring-style';
 import {withCreateDefaultBilingualBlocks} from './authoring-defaults';
+import {LAYER_ORDER,parseRowOrder} from './authoring-model';
 import {layoutLabel} from './layout-label';
 // One source of truth for how much liturgy one panel holds, shared with the editor so a
 // selection warning and a server split can never disagree.
@@ -77,7 +78,7 @@ const browsableSources=sourcePack.sources.filter(raw=>{const source=raw as Searc
 const sourceFacets=(field:'book'|'service')=>{const facets=new Map<string,{value:string;label:string;count:number}>();for(const raw of browsableSources){const source=raw as SearchSource;const item=field==='book'?sourceBook(source):sourceService(source);if(!item.value)continue;const existing=facets.get(item.value);if(existing)existing.count++;else facets.set(item.value,{...item,count:1})}return [...facets.values()].sort((a,b)=>a.label.localeCompare(b.label)||a.value.localeCompare(b.value))};
 const compactStylePlan=(plan:DraftStylePlan)=>{
  const {content,...patch}=plan.patch;
- return {changedFields:Object.keys(plan.patch),patch:{...patch,...(content?{content:{arrangement:plan.after.arrangement}}:{})},warnings:plan.warnings,before:plan.before,after:plan.after,sourcePreserved:true as const};
+ return {changedFields:Object.keys(plan.patch),patch:{...patch,...(content?{content:{arrangement:plan.after.arrangement,...(plan.after.rowOrder?{rowOrder:plan.after.rowOrder}:{})}}:{})},warnings:plan.warnings,before:plan.before,after:plan.after,sourcePreserved:true as const};
 };
 /** One browsable unit as a book outline prints it: enough to choose by, never the text itself. */
 type BookUnit={id:string;name:string;folio:string|null;kinds:string[];blockCount:number;noteLikeOnly:boolean};
@@ -166,7 +167,7 @@ function splitDraftSetSegments(content:CanonicalContent,snapshots:Draft['sourceS
 function splitDraftContent(content:DraftContent,sourceId:string,blocks:SourceBlock[],source:SearchSource):DraftContent{
  const variant=content.mode==='local-variant'?content:null,base=(variant?.base??content) as CanonicalContent;
  const blockIds=blocks.map(block=>block.id),groups=base.mode==='bilingual'?[{sourceId,blockIds}]:blockIds.map(blockId=>({sourceId,blockIds:[blockId]}));
- const pageBase:CanonicalContent=base.mode==='bilingual'?{mode:'bilingual',hebrewGroups:groups,transliterationGroups:structuredClone(groups),...(base.includeTranslation?{includeTranslation:true}:{}),...(base.layers?{layers:structuredClone(base.layers)}:{}),...(base.arrangement?{arrangement:base.arrangement}:{})}:{mode:base.mode,englishGroups:groups};
+ const pageBase:CanonicalContent=base.mode==='bilingual'?{mode:'bilingual',hebrewGroups:groups,transliterationGroups:structuredClone(groups),...(base.includeTranslation?{includeTranslation:true}:{}),...(base.layers?{layers:structuredClone(base.layers)}:{}),...(base.arrangement?{arrangement:base.arrangement}:{}),...(base.rowOrder?{rowOrder:[...base.rowOrder]}:{})}:{mode:base.mode,englishGroups:groups};
  if(!variant)return pageBase;
  const selected=new Set(blockIds);if(base.mode==='bilingual'&&base.includeTranslation)for(const block of blocks){const translation=source.blocks.find(candidate=>candidate.kind==='translation-en'&&candidate.pairedBlockIds?.[0]===block.id);if(translation)selected.add(translation.id)}const overrides=variant.overrides.filter(override=>override.sourceId===sourceId&&selected.has(override.blockId));
  return overrides.length?{mode:'local-variant',label:variant.label,...(variant.reason?{reason:variant.reason}:{}),base:pageBase,overrides:structuredClone(overrides)}:pageBase;
@@ -434,11 +435,11 @@ export function createAuthoringService(repo:AuthoringRepository,workspace:Author
    try{return {draft:await repo.insertImportedDraft(draft,structuredClone(baseline),who),created:true}}catch(error){const raced=await repo.getDraft(cueId);if(raced)return {draft:raced,created:false};throw error}
   }
   if(operation==='style_draft'){
-   keys(data,['draftId','expectedVersion','layout','arrangement','comfortableTypography','latinLineBreaks','dryRun']);
+   keys(data,['draftId','expectedVersion','layout','arrangement','rowOrder','comfortableTypography','latinLineBreaks','dryRun']);
    const id=string(data.draftId,'draftId'),expected=integer(data.expectedVersion,'expectedVersion',1),current=await requiredDraft(repo,id);if(current.version!==expected)throw conflict();assertSourcePin(current);
    const layout=data.layout;if(layout!==undefined&&layout!=='left'&&layout!=='bottom'&&layout!=='right')throw new AuthoringError('invalid_input','layout must be left, bottom, or right');
    const arrangement=data.arrangement;if(arrangement!==undefined&&arrangement!=='together'&&arrangement!=='blocks')throw new AuthoringError('invalid_input','arrangement must be together or blocks');
-   const latinLineBreaks=data.latinLineBreaks;if(latinLineBreaks!==undefined&&latinLineBreaks!=='preserve'&&latinLineBreaks!=='paragraphs'&&latinLineBreaks!=='phrases')throw new AuthoringError('invalid_input','latinLineBreaks must be preserve, paragraphs, or phrases');const options:DraftStyleOptions={layout,arrangement,comfortableTypography:optionalBoolean(data.comfortableTypography,'comfortableTypography'),latinLineBreaks};
+   const latinLineBreaks=data.latinLineBreaks;if(latinLineBreaks!==undefined&&latinLineBreaks!=='preserve'&&latinLineBreaks!=='paragraphs'&&latinLineBreaks!=='phrases')throw new AuthoringError('invalid_input','latinLineBreaks must be preserve, paragraphs, or phrases');const rowOrder=data.rowOrder===undefined?undefined:parseRowOrder(data.rowOrder)??[...LAYER_ORDER];const options:DraftStyleOptions={layout,arrangement,rowOrder,comfortableTypography:optionalBoolean(data.comfortableTypography,'comfortableTypography'),latinLineBreaks};
    const dryRun=optionalBoolean(data.dryRun,'dryRun')??true;
    const templates=baselineCatalogForWorkspace().filter(template=>!template.hidden).map(template=>({id:baselineSourceCueId(template.id),layout:template.layout as Layout}));
    const plan=planDraftStyle(current,options,templates),compact=compactStylePlan(plan);
