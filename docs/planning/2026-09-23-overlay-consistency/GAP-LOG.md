@@ -102,7 +102,8 @@ dumps, source sets) were closed before 2026-09-23; see the handoff START-HERE.md
   (right 48, top 184, width 576, height 840, 38px); findFitErrors also reports "<element> extends
   beyond the panel." for side-panel copy outside `.base`. Tests: `tests/right-panel-geometry.test.ts`,
   `app/author/preview-panel.test.ts`.
-- Live proof: pending release.
+- Live proof: released `01eb7a1`; server fit images of Thank you, Passing the Torah and Silent Prayer
+  show the text inside the panel (receipts).
 
 ## I. Arabic letters render as empty boxes
 - Reproduction: Od Yavo Shalom `e7b73357…` ("سلام"); server preview shows tofu boxes.
@@ -111,7 +112,8 @@ dumps, source sets) were closed before 2026-09-23; see the handoff START-HERE.md
 - Shared fix: bundled Noto Sans Arabic (OFL, `public/assets/NotoSansArabic-*`) as a fallback in the
   overlay text stacks, `unicode-range` limited to Arabic so no other cue downloads it. Test:
   `tests/overlay-arabic-font.test.ts`.
-- Live proof: pending release.
+- Live proof: released `01eb7a1` (CRC; Od Yavo Shalom renders سلام) and `f753093` (TBI staging
+  allowlist; the font serves 200 on all four hosts).
 
 ## J. Leading space from an English slice (open, minor)
 - Reproduction: We Are Loved 2 `a2d94d09…` (original-en, block-0/slice-1) renders " We are loved…"

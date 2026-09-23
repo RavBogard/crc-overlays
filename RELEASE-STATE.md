@@ -4,7 +4,7 @@ What is deployed right now. Update this file on every release — it is the one 
 "what is live", and it is short so it can be read under pressure. The history is in
 `docs/planning/2026-09-deploys/` (25 deploy records, the release chain, the phase build notes).
 
-**Last updated: 2026-09-23** (paired release `5f149da`: an explicit refresh can rebase a stale-pinned draft. Evidence below under "Release 5f149da".)
+**Last updated: 2026-09-23** (paired release `f753093`: right-panel text inside the panel, Arabic fallback face, staged for TBI. Evidence below under "Release f753093" and "Release 01eb7a1".)
 
 ## Web, per workspace
 
@@ -13,13 +13,19 @@ both were released together on 2026-09-23 UTC (2026-09-22 evening Central).
 
 | Workspace | Host | Deployed commit | How it got there |
 |---|---|---|---|
-| CRC | `overlays.centralreform.org` (alt `crc-overlays.vercel.app`) | `5f149da` | paired staged release, 2026-09-23, `dpl_A7mB3xfnRCGWnsxQAF7XdLH9aay6` (the Git integration also builds every push to `main`) |
-| TBI | `overlays.templebnaiisrael.com` (alt `tbi-overlays.vercel.app`) | `5f149da` | same paired run, 2026-09-23, `dpl_GLNFjByjTgQydFA66kctkjQC6wje` |
+| CRC | `overlays.centralreform.org` (alt `crc-overlays.vercel.app`) | `f753093` | paired staged release, 2026-09-23, `dpl_BBa71ioKwDdswQHyVsKquyH67weR` (the Git integration also builds every push to `main`) |
+| TBI | `overlays.templebnaiisrael.com` (alt `tbi-overlays.vercel.app`) | `f753093` | same paired run, 2026-09-23, `dpl_7gtBaHhpfM5qYiYBg4yTU7T7LkSk` |
 
 This file is written after the release it describes, so the commit carrying these words is always one
 ahead of the shas in the table. That one commit is documentation: CRC's Git integration builds it by
 itself and TBI is not owed a release for it. Any commit that touches `app/`, `lib/`, `content/`,
 `components/`, `schemas/` or `workspaces/` **is** owed one.
+
+### Release f753093 (2026-09-23 UTC)
+
+- Released exact SHA `f753093026f487b8e4f592bbb55ec893c41647d7`. CRC `dpl_BBa71ioKwDdswQHyVsKquyH67weR` and TBI `dpl_7gtBaHhpfM5qYiYBg4yTU7T7LkSk` Ready; all four hosts returned HTTP 200 from `/health` and 200 (234,892 bytes) for `/assets/NotoSansArabic-Regular.ttf`. Logs: `work/sitting-2026-09-23/tbi-arabic-staging-release/`.
+- The TBI staging allowlist now carries the Arabic face; a test checks every stylesheet font face is staged. Also records the catalog receipts (packets 9-17, typo fixes).
+- Gates: `tsc --noEmit`; `npm test` exit 0 (848 TypeScript pass, 0 fail, 11 skipped; 24 MJS pass); `npm run lint` (two existing warnings); `npm run build`.
 
 ### Release 01eb7a1 (2026-09-23 UTC)
 
