@@ -4,7 +4,7 @@ What is deployed right now. Update this file on every release — it is the one 
 "what is live", and it is short so it can be read under pressure. The history is in
 `docs/planning/2026-09-deploys/` (25 deploy records, the release chain, the phase build notes).
 
-**Last updated: 2026-09-23** (paired release `9c4efa5`: Latin phrase presentation and contiguous bilingual block rows. Evidence below under "Release 9c4efa5".)
+**Last updated: 2026-09-23** (paired release `8f36dd8`: contiguous block groups stay one paragraph; no phrase separator at edge newlines. Evidence below under "Release 8f36dd8".)
 
 ## Web, per workspace
 
@@ -13,13 +13,19 @@ both were released together on 2026-09-23 UTC (2026-09-22 evening Central).
 
 | Workspace | Host | Deployed commit | How it got there |
 |---|---|---|---|
-| CRC | `overlays.centralreform.org` (alt `crc-overlays.vercel.app`) | `9c4efa5` | paired staged release, 2026-09-23, `dpl_GwdL4XfXh4EpwkFCTXZMpACjB48J` (the Git integration also builds every push to `main`) |
-| TBI | `overlays.templebnaiisrael.com` (alt `tbi-overlays.vercel.app`) | `9c4efa5` | same paired run, 2026-09-23, `dpl_AHpCFvM1q5nPuKFzyaiNvSQt9oZY` |
+| CRC | `overlays.centralreform.org` (alt `crc-overlays.vercel.app`) | `8f36dd8` | paired staged release, 2026-09-23, `dpl_5xETWdEHtsWtqSE7aQpwttEMmryt` (the Git integration also builds every push to `main`) |
+| TBI | `overlays.templebnaiisrael.com` (alt `tbi-overlays.vercel.app`) | `8f36dd8` | same paired run, 2026-09-23, `dpl_AvbDFWEsj4kGgHB1EjKMT9HCfYoy` |
 
 This file is written after the release it describes, so the commit carrying these words is always one
 ahead of the shas in the table. That one commit is documentation: CRC's Git integration builds it by
 itself and TBI is not owed a release for it. Any commit that touches `app/`, `lib/`, `content/`,
 `components/`, `schemas/` or `workspaces/` **is** owed one.
+
+### Release 8f36dd8 (2026-09-23 UTC)
+
+- Released exact SHA `8f36dd841a0c9f6fb1fa3235dcea66843d93166e`. CRC `dpl_5xETWdEHtsWtqSE7aQpwttEMmryt` and TBI `dpl_AvbDFWEsj4kGgHB1EjKMT9HCfYoy` both reported Ready; both custom domains serve those deployment ids. The two custom domains and two Vercel aliases returned HTTP 200 from `/health` (after its redirect to `/system#status`). Receipt: `work/deploy-staging/releases/8f36dd841a0c9f6fb1fa3235dcea66843d93166e/release.json`; gate, deploy and health logs: `work/sitting-2026-09-23/edge-phrase-group-join-release/`.
+- Blocks arrangement: selection groups of one source that skip no block join with a line break instead of a blank line (legacy drafts that cut one source into slices no longer overflow); a source change or skipped block keeps the blank line. Phrase display: an edge newline no longer becomes a dangling separator. Source selections, pins and text unchanged. Live proof: Psukei D'Zimrah 1 refit from fail (fill 1.077) to pass (0.997) and published as revision 2. Gap log: `docs/planning/2026-09-23-overlay-consistency/GAP-LOG.md` (A, B).
+- Gates: `tsc --noEmit`; `npm test` exit 0 (836 TypeScript pass, 0 fail, 11 skipped; 24 MJS pass, 0 fail); `npm run lint` exit 0 (two existing unused-type warnings); `npm run build`.
 
 ### Release 9c4efa5 (2026-09-23 UTC)
 

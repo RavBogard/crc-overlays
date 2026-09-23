@@ -33,10 +33,27 @@ dumps, source sets) were closed before 2026-09-23; see the handoff START-HERE.md
 - Status: open. Diagnose selected content vs metadata drift; do not weaken identity checks.
 
 ## E. Published cue retirement / supersession
-- Status: investigating. archive_draft changes authoring visibility only.
+- Finding (read-only trace): archiving hides a draft and its cue from the operator library
+  (`list_catalog`), but `published()` filters only on `active_revision`, so `/api/catalog`
+  (Companion) and the live relay still serve archived published cues. This is deliberate and
+  tested (`archive and restore hide editor records without changing published output`).
+- Decision: do not change archive semantics now (existing precedent; relay behavior for a
+  missing cue unverified). Instead reuse cue IDs where a superseded cue has a natural successor,
+  archive the rest, and bind the new Companion preset only to final IDs.
+- Remaining limitation: archived-but-published cues still appear in the Companion module's cue
+  picker. A reversible retire path (published() honouring archivedAt) needs relay verification.
 
 ## F. Inherited unrelated Hebrew accent titles
 - Status: open (Siyahamba example fixed by hand).
 
 ## G. Verbose tool results
-- Status: open. get_draft returns full source snapshots.
+- Reproduction: one publish_draft result for Psukei 1 was ~25 KB (cue twice, each with source
+  snapshots, animation tracks and per-block pin hashes); preview_draft ~12 KB.
+- Cause: MCP `result()` serialized the authoring service's full records for every operation.
+- Shared fix: non-read operations drop `sourceSnapshots`, `animations`, `openingWords`, and
+  replace `blockSha256` maps with `pinnedBlockCount`; results say `compacted.fullRecord:
+  get_draft`. Reads (get_draft, get_source, search_sources, list_*, list_revisions,
+  get_service_history) are unchanged. Test: `MCP mutation results omit source snapshots,
+  animations and per-block hashes; get_draft stays complete`.
+- Live proof: pending release.
+- Remaining: get_draft itself is still large; use list_drafts compact for inspection.

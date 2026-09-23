@@ -156,3 +156,19 @@ test('MCP offers get_service_history as a read-only tool bounded to graphics and
  assert.ok(rejected.error||rejected.result?.isError,'a time before the epoch is refused');
  assert.equal(calls.length,1);
 });
+
+test('MCP mutation results omit source snapshots, animations and per-block hashes; get_draft stays complete',async()=>{
+ const snapshot={id:'source',blocks:[{id:'block',he:'עברית',tr:'Ivrit'}],openingWords:['עברית']};
+ const cue={id:'cue-1',name:'Prayer',layout:'left',texts:{textTitle:'Prayer'},contentRows:[{he:'עברית',tr:'',en:''}],animations:[{element:'baseTitle'}],authoring:{draftId:'draft-1',draftVersion:2,sourceIds:['source'],copySpec:{name:'Prayer',title:'Prayer',layout:'left',content:{mode:'bilingual'},sourcePin:{feedSha256:'feed',unitSha256:{source:'u'},blockSha256:{a:'1',b:'2'}},sourceSnapshots:[snapshot]}}};
+ const draft={id:'draft-1',version:2,sourcePin:{feedSha256:'feed',unitSha256:{source:'u'},blockSha256:{a:'1',b:'2'}},sourceSnapshots:[snapshot]};
+ const handler=createAuthoringMcpHandler(async(operation)=>operation==='get_draft'?{draft}:operation==='publish_draft'?{revision:{draftId:'draft-1',revision:3,cueHash:'hash',cue},cue}:{previewId:'p',cueHash:'hash',cue,previewPath:'/author?draft=draft-1'});
+ const call=async(name:string,args:Record<string,unknown>)=>JSON.parse((await payload(await handler.fetch(request({jsonrpc:'2.0',id:91,method:'tools/call',params:{name,arguments:args}}),{authInfo})) as {result:{content:{text:string}[]}}).result.content[0].text);
+ for(const output of [await call('publish_draft',{draftId:'draft-1',expectedVersion:2,previewId:'p'}),await call('preview_draft',{draftId:'draft-1',expectedVersion:2})]){
+  const text=JSON.stringify({...output,compacted:undefined});
+  assert.doesNotMatch(text,/sourceSnapshots|openingWords|"animations"|blockSha256/);
+  assert.match(text,/"cueHash":"hash"/);assert.match(text,/"contentRows"/);assert.match(text,/"textTitle":"Prayer"/);
+  assert.equal(output.compacted?.fullRecord,'get_draft');
+ }
+ const full=await call('get_draft',{draftId:'draft-1'});
+ assert.deepEqual(full.draft,draft,'get_draft returns the complete record');
+});
