@@ -86,6 +86,9 @@ built from Michael's operating logic, bound only to final published cue IDs.
    chains, fixed columns, Bimah Mute x28, capability coverage 82+8+2, no secrets, 5.0.3 upgrade
    unchanged). Guide, import/rollback, manifest, rehearsal checklist in companion/. Hardware
    rehearsal with Michael/Daniel is still the acceptance step. Earlier plan was: packets 15-17, verification receipts for already-fine families, then the Companion preset.
+8. 2026-09-23 evening (Michael's review, docs/planning/2026-09-23-michael-review/): three corner
+   cards bound (El Na R'fa Na, V'imru Amen, Thank You); preset rebuilt `0757fbc`, sha256
+   `bfc718e1…`, 235 cue ids / 439 bindings / 1,460 keys, audit PASS. Supersedes the figures in item 7.
 
 ## Open questions
 - Source-text notes for a future shireishabbat review (no overlay change; exact wording kept):

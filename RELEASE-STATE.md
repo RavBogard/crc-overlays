@@ -4,7 +4,7 @@ What is deployed right now. Update this file on every release — it is the one 
 "what is live", and it is short so it can be read under pressure. The history is in
 `docs/planning/2026-09-deploys/` (25 deploy records, the release chain, the phase build notes).
 
-**Last updated: 2026-09-23** (paired release `f753093`: right-panel text inside the panel, Arabic fallback face, staged for TBI. Evidence below under "Release f753093" and "Release 01eb7a1".)
+**Last updated: 2026-09-23** (paired release `3636857`: Michael's review — Corner layout, per-graphic row order, inline siddur wording edits with a Wording changes list, right-justified lower-third Hebrew title, honest siddur-picker preview. Evidence below under "Release 3636857".)
 
 ## Web, per workspace
 
@@ -13,13 +13,20 @@ both were released together on 2026-09-23 UTC (2026-09-22 evening Central).
 
 | Workspace | Host | Deployed commit | How it got there |
 |---|---|---|---|
-| CRC | `overlays.centralreform.org` (alt `crc-overlays.vercel.app`) | `f753093` | paired staged release, 2026-09-23, `dpl_BBa71ioKwDdswQHyVsKquyH67weR` (the Git integration also builds every push to `main`) |
-| TBI | `overlays.templebnaiisrael.com` (alt `tbi-overlays.vercel.app`) | `f753093` | same paired run, 2026-09-23, `dpl_7gtBaHhpfM5qYiYBg4yTU7T7LkSk` |
+| CRC | `overlays.centralreform.org` (alt `crc-overlays.vercel.app`) | `3636857` | paired staged release, 2026-09-23, `dpl_H9vc1Yg55YAU3tQbZPnbEAMpVe9t` (the Git integration also builds every push to `main`) |
+| TBI | `overlays.templebnaiisrael.com` (alt `tbi-overlays.vercel.app`) | `3636857` | same paired run, 2026-09-23, `dpl_pYumE83i9ZM2vH7LDsSijzggDoBX` |
 
 This file is written after the release it describes, so the commit carrying these words is always one
 ahead of the shas in the table. That one commit is documentation: CRC's Git integration builds it by
 itself and TBI is not owed a release for it. Any commit that touches `app/`, `lib/`, `content/`,
 `components/`, `schemas/` or `workspaces/` **is** owed one.
+
+### Release 3636857 (2026-09-23 UTC)
+
+- Released exact SHA `363685785f5f8916b6ea1be6bc3f29f2fa7ae3b5`. CRC `dpl_H9vc1Yg55YAU3tQbZPnbEAMpVe9t` and TBI `dpl_pYumE83i9ZM2vH7LDsSijzggDoBX` Ready; all four hosts returned HTTP 200 from `/health` with those deployment ids; Arabic face 200 on both custom domains.
+- Contents (plan: `docs/planning/2026-09-23-michael-review/STATE.md`): new `corner` layout (640x200, bottom-right 48px inset); per-graphic `rowOrder`; inline wording edits saved as local-variant content, listed at `/author/wording-changes` and by the MCP tool `list_wording_changes`; lower-third Hebrew accent title right-justified; the siddur picker checks translated blessings whole, moves passages between slides, and shows "Preview unavailable" with the reason.
+- After release: published corner cards El Na R'fa Na `44ae41a4`, V'imru Amen `b06f734d`, Thank you `d39673be` (server fit pass).
+- Gates: `tsc --noEmit`; `npm test` exit 0 (886 TypeScript pass, 0 fail, 11 skipped; 32 MJS pass); `npm run lint` (two existing warnings); `npm run build`; `audit-companion-packages`; `audit-companion-preset` PASS.
 
 ### Release f753093 (2026-09-23 UTC)
 

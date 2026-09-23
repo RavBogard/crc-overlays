@@ -59,6 +59,13 @@ rebuilt to include the new corner graphics.
 - Gates at d6d4aa8: tsc 0; npm test 886 + 32 pass, 0 fail; lint 0 errors (2 known warnings);
   build OK; audit-companion-packages OK; audit-companion-preset PASS.
 
+- Release `3636857` (CRC dpl_H9vc1Yg55YAU3tQbZPnbEAMpVe9t, TBI dpl_pYumE83i9ZM2vH7LDsSijzggDoBX), four hosts 200.
+- Published corner cards: El Na R'fa Na 44ae41a4 (siddur block, CRC Shabbat Morning p. 46), V'imru Amen
+  b06f734d (custom; Kaddish wording, first letter capitalized as a standalone line), Thank you d39673be
+  (custom; the existing Thank you text). Server fit pass on all three.
+- Preset `0757fbc`: sha256 bfc718e1…, 8 new keys (p1 r3c4, p8 r3c2/r3c4, p9 r1c5, p15 r3c2/r3c4, p16 r1c4,
+  p23 r1c5); audit PASS. Not placed: Anytime page (full) and HHD Kaddish columns (no free cell).
+
 ## Open questions
 - "Slide" label for groups inside one graphic (see above).
 - Corner starter wording, and the default "Response" heading.
