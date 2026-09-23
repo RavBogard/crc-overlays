@@ -365,3 +365,9 @@ test('one shared deadline bounds the whole overlay asset wait instead of each st
  assert.ok(elapsed<500,`the shared deadline bounded the wait (${elapsed}ms)`);
  assert.deepEqual(target.listeners,[]);
 });
+
+test('bilingual lower-third columns align their text tops without changing a lone channel',()=>{
+ const css=overlayCss();
+ assert.match(css,/\.bottom \.english:not\(\.single-channel\),\.bottom \.hebrew:not\(\.single-channel\)\{[^}]*align-items:flex-start\}/);
+ assert.doesNotMatch(css,/\.bottom \.single-channel\{align-items:flex-start\}/);
+});
