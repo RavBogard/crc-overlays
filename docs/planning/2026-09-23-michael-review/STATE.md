@@ -67,5 +67,5 @@ rebuilt to include the new corner graphics.
   p23 r1c5); audit PASS. Not placed: Anytime page (full) and HHD Kaddish columns (no free cell).
 
 ## Open questions
-- "Slide" label for groups inside one graphic (see above).
-- Corner starter wording, and the default "Response" heading.
+- Answered (Daniel): the tabs for parts of one graphic say "Group"; "Corner card" wording is fine.
+- Anytime page placement of the corner cards: Daniel unsure; left as is (see final report).

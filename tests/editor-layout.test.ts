@@ -47,10 +47,11 @@ test('the search runs as you type, so there is no Search button to press', () =>
   assert.ok(siddur.includes('if (event.key === "Enter")'), 'Enter still runs it at once');
 });
 
-test('the editor says Slide, where Panel now means only the layout', () => {
-  assert.ok(siddur.includes('>Slide {index + 1}<') && siddur.includes('>+ Add slide<') && siddur.includes('>Remove slide {props.activeGroup + 1}<'));
+// Daniel, 2026-09-23: the parts of one graphic are Groups; Slide means a separate graphic in a set.
+test('the editor says Group for the parts of one graphic, where Panel means only the layout', () => {
+  assert.ok(siddur.includes('>Group {index + 1}<') && siddur.includes('>+ Add group<') && siddur.includes('>Remove group {props.activeGroup + 1}<'));
   assert.ok(!/>Panel \{index \+ 1\}</.test(siddur) && !siddur.includes('>+ Add panel<'));
-  assert.ok(!editor.includes('assigned to this panel'), 'and the refusal says slide too');
+  assert.ok(!editor.includes('assigned to this panel'), 'and the refusal says group too');
 });
 
 test('the toolbar keeps undo and redo; everything rare is one overflow menu', () => {

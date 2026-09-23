@@ -52,8 +52,8 @@ export type SiddurEditorProps = {
   controlKey: string;
   /** C6: the same one-line fit status the preview shows, repeated where the layers are chosen. */
   fitErrors: string[];
-  /** X2: the Slides row is shown only when the selection needs more than one slide (or already has one). Default true.
-   *  C3 of the 2026-09-14 layout pass: these are slides in the words an editor reads; "panel" now
+  /** X2: the Groups row is shown only when the selection needs more than one group (or already has one). Default true.
+   *  Daniel, 2026-09-23: these are Groups inside one graphic (Slide means a separate graphic in a set); "panel" now
    *  means only the layout (Left panel / Right panel). The prop and state names are unchanged. */
   showPanels?: boolean;
 };
@@ -109,7 +109,7 @@ export function SiddurEditor(props: SiddurEditorProps) {
       <SourceProvenance source={props.source} />
       <div className="content-mode-toggle">{props.source.blocks.some((block) => block.kind === "bilingual") && <button className={props.form.mode === "bilingual" ? "active" : ""} onClick={() => props.changeMode("bilingual")}>Hebrew + transliteration</button>}{blocksForMode(props.source, "source-en").length > 0 && <button className={props.form.mode === "source-en" ? "active" : ""} onClick={() => props.changeMode("source-en")}>English from siddur</button>}{props.source.blocks.some((block) => block.kind === "original-en") && <button className={props.form.mode === "original-en" ? "active" : ""} onClick={() => props.changeMode("original-en")}>Original English reading</button>}</div>
       {omittedFromAutomatic > 0 && <p className="source-mode-note">{omittedFromAutomatic} service {omittedFromAutomatic === 1 ? "note is" : "notes are"} available for manual selection below. Automatic slides use the prayer and reading text.</p>}
-      {props.showPanels !== false && <div className="panel-tabs">{props.form.groups.map((group, index) => <button key={`${group.sourceId}-${index}`} className={props.activeGroup === index ? "active" : ""} onClick={() => props.setActiveGroup(index)}>Slide {index + 1}<small>{group.blockIds.length} passages</small></button>)}<button onClick={props.addPanel}>+ Add slide</button></div>}
+      {props.showPanels !== false && <div className="panel-tabs">{props.form.groups.map((group, index) => <button key={`${group.sourceId}-${index}`} className={props.activeGroup === index ? "active" : ""} onClick={() => props.setActiveGroup(index)}>Group {index + 1}<small>{group.blockIds.length} passages</small></button>)}<button onClick={props.addPanel}>+ Add group</button></div>}
       {noteLikeBlocks > 0 && <label className="shelf-toggle"><input type="checkbox" checked={showNotes} onChange={(event) => setShowNotes(event.target.checked)} /> {SHOW_NOTES_LABEL}</label>}
       {props.form.mode === "bilingual" && <TextLayerControls form={props.form} source={props.source} changeForm={props.changeForm} fitErrors={props.fitErrors} />}
       {wordingEdits.length > 0 && <WordingSummary count={wordingEdits.length} reason={props.form.variantReason} setReason={(value) => props.changeForm({ variantReason: value })} />}
@@ -123,12 +123,12 @@ export function SiddurEditor(props: SiddurEditorProps) {
         };
         const open = editingPassages.has(block.id) && fields.length > 0;
         return <div key={block.id} className={`passage-row${selected ? " selected" : ""}${edited ? " edited" : ""}`}>
-          <label className={selected ? "selected" : ""}><input type="checkbox" checked={selected} onChange={(event) => props.toggleBlock(block.id, event.target.checked)} /><span className="passage-number">{block.index + 1}</span><span>{props.form.mode === "bilingual" ? <><b lang="he" dir="rtl">{shown("he", block.he)}</b><small>{shown("tr", block.tr)}</small></> : <><b>{shown("en", block.en)}</b>{props.form.mode === "source-en" && <small className="passage-meta">{englishRoleLabel[block.englishRole || "unclassified"]}{block.automatic === false ? " · manual selection" : ""}</small>}</>}</span>{props.showPanels !== false && (() => { const holder = slideHolding(props.form.groups, props.activeGroup, props.source!.id, block.id); return holder >= 0 ? <small className="passage-elsewhere" title="Checking it here moves it to this slide">On slide {holder + 1}</small> : null; })()}{edited && <small className="passage-edited" title="This graphic uses edited wording. The siddur text is kept beside it.">Edited</small>}</label>
+          <label className={selected ? "selected" : ""}><input type="checkbox" checked={selected} onChange={(event) => props.toggleBlock(block.id, event.target.checked)} /><span className="passage-number">{block.index + 1}</span><span>{props.form.mode === "bilingual" ? <><b lang="he" dir="rtl">{shown("he", block.he)}</b><small>{shown("tr", block.tr)}</small></> : <><b>{shown("en", block.en)}</b>{props.form.mode === "source-en" && <small className="passage-meta">{englishRoleLabel[block.englishRole || "unclassified"]}{block.automatic === false ? " · manual selection" : ""}</small>}</>}</span>{props.showPanels !== false && (() => { const holder = slideHolding(props.form.groups, props.activeGroup, props.source!.id, block.id); return holder >= 0 ? <small className="passage-elsewhere" title="Checking it here moves it to this group">In group {holder + 1}</small> : null; })()}{edited && <small className="passage-edited" title="This graphic uses edited wording. The siddur text is kept beside it.">Edited</small>}</label>
           {fields.length > 0 && <button type="button" className={open ? "passage-edit-toggle on" : "passage-edit-toggle"} aria-expanded={open} aria-label={`Edit wording of passage ${block.index + 1}`} title="Edit wording" onClick={() => toggleEditing(block.id)}><PencilLine size={14} /></button>}
           {open && <WordingFields fields={fields} mode={props.form.mode} edits={props.form.variantOverrides} change={(variantOverrides) => props.changeForm({ variantOverrides })} />}
         </div>;
       })}</div>
-      {props.showPanels !== false && props.form.groups.length > 1 && <button className="remove-panel" onClick={props.removePanel}>Remove slide {props.activeGroup + 1}</button>}
+      {props.showPanels !== false && props.form.groups.length > 1 && <button className="remove-panel" onClick={props.removePanel}>Remove group {props.activeGroup + 1}</button>}
     </div>}
   </EditorCard>;
 }
