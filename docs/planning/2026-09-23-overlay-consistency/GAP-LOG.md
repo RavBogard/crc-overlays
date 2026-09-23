@@ -84,7 +84,8 @@ dumps, source sets) were closed before 2026-09-23; see the handoff START-HERE.md
   get_draft`. Reads (get_draft, get_source, search_sources, list_*, list_revisions,
   get_service_history) are unchanged. Test: `MCP mutation results omit source snapshots,
   animations and per-block hashes; get_draft stays complete`.
-- Live proof: pending release.
+- Live proof: released `4673402`; every mutation result this sitting carries
+  `compacted.fullRecord: get_draft` (e.g. Miryam update_draft/publish_draft).
 - Round 2 (released `e0e80ea`): publish results name the repeated `cue` once
   (`"same as revision.cue"`); set mutation results summarize each member's `draftSetManifest` as
   `{version, selectionCount}` (an archive of a 5-member set repeated the 5-selection manifest 5 times).
