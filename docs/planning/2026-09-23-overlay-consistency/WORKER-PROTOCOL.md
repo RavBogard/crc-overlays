@@ -41,10 +41,15 @@ Tools: the CRC Overlays MCP (`mcp__claude_ai_CRC_Overlays__*`). Load schemas wit
    approvalBasis, notes, at (date).
 
 ## Holds
-Authority holds (diagnose only, do not rebase/refresh/publish): Birchot Hashachar 4 `2b3da7a3…`,
-Mi Chamocha Sat 2 `5bad62c7…`, Birchot Hashachar 3 `ceb24b8c…`, Mourners Kaddish 3 `dbf354df…`,
-Psukei 2 `f792daee…`. For these, write a receipt with status `held` and a diagnosis of what differs
-(selected content vs pinned metadata), from `get_draft`/`get_source`, without changing anything.
+Still held (diagnose only unless a packet from the main thread names the draft AND this file lists
+the decision below): Mi Chamocha Sat 2 `5bad62c7…`, Psukei 2 `f792daee…`.
+
+Resolved by main-thread decision (2026-09-23), recorded in STATE.md:
+- Mourners Kaddish 3 `dbf354df…`: superseded, archived. Do not touch.
+- Birchot Hashachar 3 `ceb24b8c…` and 4 `2b3da7a3…`: repoint to the canonical source
+  `awakening.birchot-hashachar@legacy-shabbat-morning` (the one B1/B2 use), same blocks
+  (13,14,16,17 / 19,20,22,23) with includeTranslation, because the he/tr hashes are byte-identical
+  and only the canonical source has paired English. They become panels 3-4 of the Birchot sequence.
 
 ## Return
 A short table: draft, action, status, fit, one-line note. List anything that needs a main-thread

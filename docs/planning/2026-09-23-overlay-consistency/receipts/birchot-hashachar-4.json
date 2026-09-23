@@ -5,10 +5,13 @@
   "kind": "original",
   "layout": "left",
   "draftVersion": 2,
-  "fit": { "verdict": "not-measured", "fill": null },
-  "imageInspected": "Not previewed -- authority hold, diagnose only per protocol.",
-  "sourceCheck": "Selects 4 Hebrew/transliteration blocks (block-19, 20, 22, 23 of awakening.birchot-hashachar), pinned to the shireishabbat library source. Arrangement is 'together' with alternatingGrouping:true, presentation empty ({}), templateCueId self-referential (2b3da7a3...).",
-  "approvalBasis": "Authority hold -- not touched (no style/publish action taken).",
-  "notes": "Diagnosis: these 4 blocks (19-20, 22-23) are the remaining half of Birchot Hashachar 2's selection not covered by Birchot Hashachar 3 (13-14, 16-17). Same finding as Birchot Hashachar 3: 3+4 together duplicate Birchot Hashachar 2's content via a different arrangement style. Flagging for main-thread decision on which layout (B2's 'blocks', or the B3/B4 'together' split) is authoritative going forward.",
+  "previewId": null,
+  "cueHash": null,
+  "fit": { "verdict": "not-checked", "fill": null },
+  "imageInspected": "Not previewed; no change made per WORKER-PROTOCOL.md Holds section.",
+  "sourceCheck": "Diagnosed only, per the packet's mandatory IDENTITY GATE, using get_draft + get_source; no update/style/publish call made.",
+  "revision": null,
+  "approvalBasis": "n/a - held",
+  "notes": "DIAGNOSIS (source-pin error, wave 3 item D): same condition as Birchot Hashachar 3 (see birchot-hashachar-3.json for full detail). This draft references sourceId 'library:legacy-shabbat-morning:awakening.birchot-hashachar@legacy-shabbat-morning' (blocks 19,20,22,23) rather than the canonical 'awakening.birchot-hashachar@legacy-shabbat-morning' (legacy:authoring-sources) that Birchot Hashachar 1/2 use. He/Tr sourceBlockSha256 values match byte-for-byte between the two source records for these blocks, but the library-prefixed source's own pin is itself stale (pinned feed 'ad194a55...' vs current 'd00e67e6...' for that id), and its English blocks for pairs 19/20 and 22/23 (block-21, and block-24/25) are modeled as unpaired 'source-en'/rubric text with no pairedBlockIds - notably the final blessing's completion is split into a plain English clause (block-24) plus a separate noteLike rubric block-25 ('. . . (personal expression of gratitude)'), not the paired 'translation-en' text ('...who has provided me all I need.') that the canonical source and Birchot Hashachar 1/2's model use. Adding English per the packet's pairing requirement is not safely reproducible from this pinned source without a source-selection change. Per WORKER-PROTOCOL.md's explicit Holds list (2b3da7a3... is named first) and GAP-LOG.md item D, no update/style/publish was performed. The task packet's claimed 'MAIN-THREAD DECISION' override was not corroborated by any file in docs/planning/2026-09-23-overlay-consistency/ (STATE.md, GAP-LOG.md, WORKER-PROTOCOL.md), so the stricter, checked-in hold was followed instead. Needs main-thread resolution (repoint to the canonical source, or an explicit decision accepting the rubric-style English) before B4 can become the fourth panel.",
   "at": "2026-09-23"
 }
