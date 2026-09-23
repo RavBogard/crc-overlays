@@ -311,14 +311,13 @@ function composeContentRows(draft:Draft,content:BilingualContent,overrides:Local
  const text=(sourceId:string,blockIds:string[],channel:'he'|'tr')=>layers.includes(channel)?renderGroup({sourceId,blockIds},channel,snapshots,overrides):'';
  const english=(sourceId:string,block:SourceBlock)=>overrides.find(item=>item.sourceId===sourceId&&item.blockId===block.id&&item.channel==='en')?.localText??block.en!;
  if(textArrangement(content)==='blocks'){
-  const englishRuns=layers.includes('en')?englishRunTexts(content,snapshots,overrides):[];
-  return content.hebrewGroups.flatMap((group,index)=>{
-   const rows:Array<{he:string;tr:string;en:string}>=[];
-   if(layers.includes('he'))rows.push({he:renderGroup(group,'he',snapshots,overrides),tr:'',en:''});
-   if(layers.includes('tr'))rows.push({he:'',tr:renderGroup({sourceId:group.sourceId,blockIds:group.blockIds},'tr',snapshots,overrides),en:''});
-   if(layers.includes('en'))rows.push({he:'',tr:'',en:englishRuns.filter(run=>run.group===index).map(run=>run.text).join(' ')});
-   return rows;
-  });
+  const rows:Array<{he:string;tr:string;en:string}>=[];
+  // Blocks means contiguous language paragraphs, not a Hebrew/transliteration pair for every
+  // selection group. Group boundaries remain visible as paragraphs; no source selection changes.
+  if(layers.includes('he'))rows.push({he:content.hebrewGroups.map(group=>renderGroup(group,'he',snapshots,overrides)).join('\n\n'),tr:'',en:''});
+  if(layers.includes('tr'))rows.push({he:'',tr:content.transliterationGroups.map(group=>renderGroup(group,'tr',snapshots,overrides)).join('\n\n'),en:''});
+  if(layers.includes('en'))rows.push({he:'',tr:'',en:englishRunTexts(content,snapshots,overrides).map(run=>run.text).join('\n\n')});
+  return rows;
  }
  if(layers.includes('en'))return translationSelections(content,snapshots).map(({sourceId,block,pairIds})=>({he:text(sourceId,pairIds,'he'),tr:text(sourceId,pairIds,'tr'),en:english(sourceId,block)}));
  return content.hebrewGroups.flatMap(group=>group.blockIds.map(blockId=>({he:text(group.sourceId,[blockId],'he'),tr:text(group.sourceId,[blockId],'tr'),en:''})));

@@ -132,6 +132,39 @@ test('bilingual left draft with multiple blocks emits one content row per block 
  assert.ok(cue.contentRows?.every(row=>row.en===''));
 });
 
+test('blocks arrangement compiles multi-source groups into contiguous language paragraphs',()=>{
+ const LEFT='bbd7c98b-f1de-41ee-9719-2bb27a30d0db';
+ const selected=sourcePack.sources.filter(source=>source.blocks.some(block=>block.kind==='bilingual')).slice(0,2);
+ assert.equal(selected.length,2,'fixture needs two real source records');
+ const picks=selected.map(source=>({source,block:source.blocks.find(block=>block.kind==='bilingual')!}));
+ const groups=picks.map(({source,block})=>({sourceId:source.id,blockIds:[block.id]}));
+ const content=parseContent({mode:'bilingual',hebrewGroups:groups,transliterationGroups:groups,arrangement:'blocks'});
+ const editable=parseEditable({name:'Blocks multi-source',title:'Blocks multi-source',layout:'left',templateCueId:LEFT,content,presentation:{}}) as EditableDraft;
+ const now=Date.now();const draft:Draft={...editable,id:'blocks-multi-source',version:1,sourcePin:sourcePinFor(content),activeRevision:null,activeDraftVersion:null,createdAt:now,updatedAt:now,createdBy:'test',updatedBy:'test'};
+ const cue=buildCue(draft);
+ assert.deepEqual(cue.contentRows,[
+  {he:picks.map(({block})=>block.he).join('\n\n'),tr:'',en:''},
+  {he:'',tr:picks.map(({block})=>block.tr).join('\n\n'),en:''},
+ ]);
+ assert.deepEqual(cue.authoring.copySpec?.content,content,'the compiled rows do not merge selections or rewrite content');
+ assert.deepEqual(cue.authoring.copySpec?.sourcePin,draft.sourcePin);
+});
+
+test('blocks arrangement emits the optional English row after contiguous Hebrew and transliteration',()=>{
+ const LEFT='bbd7c98b-f1de-41ee-9719-2bb27a30d0db';
+ const source=sourcePack.sources.find(item=>item.blocks.some(block=>block.kind==='translation-en'))!;
+ const translation=source.blocks.find(block=>block.kind==='translation-en')!;
+ const groups=[{sourceId:source.id,blockIds:translation.pairedBlockIds!}];
+ const content=parseContent({mode:'bilingual',hebrewGroups:groups,transliterationGroups:groups,includeTranslation:true,arrangement:'blocks'});
+ const editable=parseEditable({name:'Blocks translation',title:'Blocks translation',layout:'left',templateCueId:LEFT,content,presentation:{}}) as EditableDraft;
+ const now=Date.now();const draft:Draft={...editable,id:'blocks-translation',version:1,sourcePin:sourcePinFor(content),activeRevision:null,activeDraftVersion:null,createdAt:now,updatedAt:now,createdBy:'test',updatedBy:'test'};
+ const cue=buildCue(draft);
+ assert.equal(cue.contentRows?.length,3);
+ assert.equal(cue.contentRows?.[0].he,groups[0].blockIds.map(id=>source.blocks.find(block=>block.id===id)!.he).join(' '));
+ assert.equal(cue.contentRows?.[1].tr,groups[0].blockIds.map(id=>source.blocks.find(block=>block.id===id)!.tr).join(' '));
+ assert.equal(cue.contentRows?.[2].en,translation.en);
+});
+
 test('bilingual bottom draft never emits content rows',()=>{
  const source=sourcePack.sources.find(item=>item.blocks.some(block=>block.kind==='bilingual'))!;
  const block=source.blocks.find(block=>block.kind==='bilingual')!;
