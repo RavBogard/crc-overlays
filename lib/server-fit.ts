@@ -21,7 +21,8 @@
 // it, on the crash path as much as the clean one, and a check's own residue is measured and
 // logged rather than guessed at. See docs/planning/2026-09-22-sitting-prep/RETURN-FIT-STABILITY.md.
 
-import {mkdtemp,readdir,readFile,readlink,rm,stat,statfs} from 'node:fs/promises';
+import {createHash,randomBytes} from 'node:crypto';
+import {lstat,mkdtemp,readdir,readFile,readlink,rm,stat,statfs} from 'node:fs/promises';
 import {createRequire} from 'node:module';
 import {tmpdir} from 'node:os';
 import {join} from 'node:path';
@@ -70,7 +71,44 @@ export type ScratchHost={
  alive(process:OwnedProcess):Promise<boolean>;
  held(process:OwnedProcess):Promise<number>;
  kill(process:OwnedProcess):Promise<void>;
+ /** Where the shared temp directory's space is, by category. Optional: a host without it logs none. */
+ census?():Promise<TmpCensus>;
 };
+
+/**
+ * What one look at the shared temp directory finds, in bytes allocated on disk (the unit statfs
+ * counts in), so a fall in free space can be put against what caused it:
+ * - `files`: what is visible under the temp directory, by category. `pack` is @sparticuz/chromium's
+ *   extraction (about 220 MB, once per instance); `scratch` is server-fit-* directories, which
+ *   outside a check means another check's or a leftover; `playwright` is Playwright's own
+ *   directories; `other` is anything else.
+ * - `held`: deleted files under the temp directory that some process still holds open - this
+ *   process (`self`) or others - and, as `mapped`, those only a memory mapping keeps (an upper
+ *   bound: the mapped extent), with the number of processes holding any. Each file counts once.
+ * - `unattributed`: space the filesystem counts as used that neither of those explains. On a
+ *   filesystem of its own that is metadata, roughly constant; a growing figure means the space went
+ *   somewhere this process cannot see (another mount on the same device, or a process it cannot read).
+ * - `instance`: which process on which machine looked, so two log lines are compared only when they
+ *   come from the same place. `boot` is a short hash of the kernel's boot id, `id` is chosen when this
+ *   module loads, `check` counts this module's censuses.
+ * - `largestOther`: the three largest `other` entries, as name shapes (digits and random suffixes
+ *   masked) with their bytes - enough to name a kind of file, not to read anyone's.
+ * Names, sizes and counts only: no file contents, no environment. The walk is capped at
+ * CENSUS_ENTRY_LIMIT entries (`truncated` when it stops early). The real host takes one only on
+ * Vercel (VERCEL=1).
+ */
+export type TmpCensus={
+ instance:{id:string;boot:string|null;pid:number;uptimeS:number;check:number};
+ free:number|null;used:number|null;
+ files:Record<TmpCategory,{entries:number;bytes:number}>;
+ held:{self:number;others:number;mapped:number;processes:number};
+ unattributed:number|null;
+ largestOther:string[];
+ truncated?:true;
+ ms:number;
+};
+export type TmpCategory='pack'|'scratch'|'playwright'|'other';
+export const CENSUS_ENTRY_LIMIT=20_000;
 
 const requireFrom=createRequire(import.meta.url);
 
@@ -189,6 +227,97 @@ async function procStat(pid:number){
  return {state:fields[0],start:fields[19]};
 }
 
+/** Top-level names @sparticuz/chromium extracts into the temp directory (SwiftShader's go loose). */
+const PACK_NAMES=new Set(['chromium','al2023','fonts','fonts-cache','libEGL.so','libGLESv2.so','libvk_swiftshader.so','libvulkan.so.1','vk_swiftshader_icd.json']);
+export function tmpCategory(name:string):TmpCategory{
+ if(PACK_NAMES.has(name))return 'pack';
+ if(name.startsWith('server-fit-'))return 'scratch';
+ if(name.startsWith('playwright'))return 'playwright';
+ return 'other';
+}
+/** A name's shape: a random suffix and every run of digits masked, so it names a kind of file and no more. */
+export function nameShape(name:string){
+ return name.replace(/([-_.])[A-Za-z0-9]{6,}$/,'$1*').replace(/\d+/g,'#').slice(0,40);
+}
+const INSTANCE_ID=randomBytes(4).toString('hex');
+let censusCount=0;
+
+/**
+ * Takes a census of `root` (the shared temp directory by default). Reads only - lstat, readdir,
+ * statfs and /proc/<pid>/fd links - and never follows a symlink out of `root`.
+ */
+export async function tmpCensus(root:string=tmpdir(),limit=CENSUS_ENTRY_LIMIT):Promise<TmpCensus>{
+ const began=Date.now();
+ const files:TmpCensus['files']={pack:{entries:0,bytes:0},scratch:{entries:0,bytes:0},playwright:{entries:0,bytes:0},other:{entries:0,bytes:0}};
+ const others:{shape:string;bytes:number}[]=[];
+ let seen=0,truncated=false;
+ // Windows reports no blocks; there the apparent size stands in.
+ const allocated=(info:{blocks:number;size:number})=>process.platform==='win32'?Number(info.size):Number(info.blocks)*512;
+ const walk=async(path:string):Promise<number>=>{
+  if(++seen>limit){truncated=true;return 0}
+  const info=await lstat(path).catch(()=>null);
+  if(!info)return 0;
+  let total=allocated(info);
+  if(info.isDirectory())for(const name of await readdir(path).catch(()=>[] as string[])){if(truncated)break;total+=await walk(join(path,name))}
+  return total;
+ };
+ for(const name of await readdir(root).catch(()=>[] as string[])){
+  if(truncated)break;
+  const bytes=await walk(join(root,name)),category=tmpCategory(name);
+  files[category].entries++;files[category].bytes+=bytes;
+  if(category==='other')others.push({shape:nameShape(name),bytes});
+ }
+ const held={self:0,others:0,mapped:0,processes:0};
+ if(process.platform==='linux'){
+  const prefix=root.endsWith('/')?root:`${root}/`;
+  // Each deleted file once, however many processes or descriptors hold it: by inode.
+  const counted=new Set<string>(),mappings=new Map<string,number>();
+  for(const name of await readdir('/proc').catch(()=>[] as string[])){
+   const pid=Number(name);
+   if(!Number.isInteger(pid)||truncated)continue;
+   let bytes=0,holds=false;
+   for(const fd of await readdir(`/proc/${pid}/fd`).catch(()=>[] as string[])){
+    if(++seen>limit){truncated=true;break}
+    const target=await readlink(`/proc/${pid}/fd/${fd}`).catch(()=>'');
+    if(!target.startsWith(prefix)||!target.endsWith(' (deleted)'))continue;
+    const info=await stat(`/proc/${pid}/fd/${fd}`).catch(()=>null);
+    if(!info)continue;
+    holds=true;
+    const inode=String(info.ino);
+    if(counted.has(inode))continue;
+    counted.add(inode);bytes+=allocated(info);
+   }
+   // A deleted file can also be kept alive by a mapping alone, its descriptor long closed -
+   // how Chromium keeps much of its shared memory. /proc/<pid>/maps names it and its inode but
+   // not its size, so the mapped extent stands in: an upper bound.
+   for(const line of (await readFile(`/proc/${pid}/maps`,'latin1').catch(()=>'')).split('\n')){
+    if(!line.endsWith(' (deleted)'))continue;
+    const match=/^([0-9a-f]+)-([0-9a-f]+) \S+ \S+ \S+ (\d+)\s+(.*) \(deleted\)$/.exec(line);
+    if(!match||!match[4]!.startsWith(prefix))continue;
+    holds=true;
+    const extent=parseInt(match[2]!,16)-parseInt(match[1]!,16);
+    mappings.set(match[3]!,(mappings.get(match[3]!)??0)+extent);
+   }
+   if(holds)held.processes++;
+   if(pid===process.pid)held.self+=bytes;else held.others+=bytes;
+  }
+  for(const [inode,extent] of mappings)if(!counted.has(inode))held.mapped+=extent;
+ }
+ const fs=await statfs(root).catch(()=>null);
+ const free=fs?Number(fs.bavail)*Number(fs.bsize):null;
+ const used=fs?(Number(fs.blocks)-Number(fs.bfree))*Number(fs.bsize):null;
+ const visible=Object.values(files).reduce((sum,entry)=>sum+entry.bytes,0);
+ const boot=await readFile('/proc/sys/kernel/random/boot_id','utf8').then(text=>createHash('sha256').update(text.trim()).digest('hex').slice(0,8),()=>null);
+ return {
+  instance:{id:INSTANCE_ID,boot,pid:process.pid,uptimeS:Math.round(process.uptime()),check:++censusCount},
+  free,used,files,held,
+  unattributed:used===null?null:used-visible-held.self-held.others-held.mapped,
+  largestOther:others.sort((a,b)=>b.bytes-a.bytes).slice(0,3).map(entry=>`${entry.shape}~${entry.bytes}`),
+  ...(truncated?{truncated:true as const}:{}),
+  ms:Date.now()-began,
+ };
+}
+
 /**
  * The real host. The process operations read /proc, so they answer only on Linux - which is
  * where the function runs, and where a Chromium that outlived `close()` would keep its deleted
@@ -242,7 +371,13 @@ export const defaultScratchHost:ScratchHost={
   // this check started.
   if(await defaultScratchHost.alive(owned)){try{process.kill(owned.pid,'SIGKILL')}catch{/* already gone */}}
  },
+ // Only on Vercel, where the shared /tmp is the one whose space is in question: a maintainer's
+ // or CI machine's temp directory can be large enough that walking it would only add latency.
+ ...(process.env.VERCEL==='1'?{census:()=>tmpCensus()}:{}),
 };
+
+/** The most one census may take; one that runs longer is logged as `census_timeout`. */
+export const CENSUS_BUDGET_MS=250;
 
 /** How long a release waits for a killed survivor to be gone before reporting it. */
 export const SERVER_FIT_LINGER_MS=2_000;
@@ -330,7 +465,9 @@ function stageMeasurement(value:unknown):StageMeasurement|null{
  * Every release logs one `server-fit released` line: the processes this check owned, any that
  * outlived close() and what they held, the bytes its scratch directory (profile included) held
  * when it was removed, and free /tmp before and after. So a run whose free space still falls
- * says whether this check's own files account for it.
+ * says whether this check's own files account for it. With the real host it also carries a census
+ * of /tmp before and after (TmpCensus): which instance looked, and where the space is - the pack,
+ * a directory, a deleted file still held open, or nowhere this process can see.
  */
 export async function measureCueOnServer(cue:Cue,options:{origin:string;deadlineMs?:number;launch?:StageLauncher;host?:ScratchHost;lingerMs?:number}):Promise<ServerFitResult>{
  const deadlineMs=options.deadlineMs??SERVER_FIT_DEADLINE_MS;
@@ -342,6 +479,11 @@ export async function measureCueOnServer(cue:Cue,options:{origin:string;deadline
  let owned:OwnedProcess[]=[];
  let ownedError:string|undefined;
  const own=async(dir:string)=>{owned=await host.survivors(dir).catch(error=>{ownedError=error instanceof Error?error.message:String(error);return []})};
+ // Where /tmp's space is before this check touches it, and again once it is released. Taken
+ // before the deadline clock starts and bounded by CENSUS_BUDGET_MS, so accounting never costs a
+ // verdict; a census that fails or runs long is logged as such.
+ const census=()=>host.census?withDeadline(CENSUS_BUDGET_MS,()=>host.census!()).catch((error:unknown)=>({error:error instanceof DeadlineExpired?'census_timeout':error instanceof Error?error.message:String(error)})):Promise.resolve(undefined);
+ const censusBefore=await census();
  const started=Date.now();
  // Free space in the shared temp directory before this check starts. Logged with a failure, so
  // a run that is short of /tmp says so instead of leaving it to Chromium's own stderr.
@@ -411,7 +553,8 @@ export async function measureCueOnServer(cue:Cue,options:{origin:string;deadline
   const finish=async(dir:string|undefined)=>{
    if(!dir)return;
    const released=await releaseScratch(host,dir,owned,lingerMs);
-   const accounting={...released,...(ownedError?{ownedError}:{}),...(closeError?{closeError}:{}),tmpFreeBefore,tmpFreeAfter:await host.free().catch(()=>null)};
+   const tmpFreeAfter=await host.free().catch(()=>null),censusAfter=await census();
+   const accounting={...released,...(ownedError?{ownedError}:{}),...(closeError?{closeError}:{}),tmpFreeBefore,tmpFreeAfter,...(censusBefore||censusAfter?{census:{before:censusBefore,after:censusAfter}}:{})};
    console.info('server-fit released',accounting);
    // A warning only for what should not happen: a process that outlived close(), a close,
    // scan or removal that failed. Scratch bytes are expected - the profile lives there.

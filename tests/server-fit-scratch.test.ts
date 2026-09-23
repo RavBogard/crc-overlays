@@ -5,10 +5,10 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
 import {spawn} from 'node:child_process';
-import {existsSync,mkdtempSync,writeFileSync} from 'node:fs';
+import {closeSync,existsSync,mkdirSync,mkdtempSync,openSync,rmSync,unlinkSync,writeFileSync,writeSync} from 'node:fs';
 import {tmpdir} from 'node:os';
 import {join} from 'node:path';
-import {defaultScratchHost,launchStage,measureCueOnServer,packLaunchOptions,sharedExtraction,stageProfile,type OwnedProcess,type ScratchHost,type StageBrowser,type StageBrowserType,type StageLauncher,type StageMeasurement,type StagePage} from '../lib/server-fit.ts';
+import {defaultScratchHost,launchStage,measureCueOnServer,packLaunchOptions,sharedExtraction,stageProfile,tmpCensus,type OwnedProcess,type ScratchHost,type TmpCensus,type StageBrowser,type StageBrowserType,type StageLauncher,type StageMeasurement,type StagePage} from '../lib/server-fit.ts';
 import type {Cue} from '../lib/player.ts';
 
 const ORIGIN='https://crc-overlays.example';
@@ -354,5 +354,111 @@ test('the real host finds a browser by the profile on its command line, even one
  }finally{
   mine.kill('SIGKILL');lookalike.kill('SIGKILL');
   await defaultScratchHost.remove(dir);
+ }
+});
+
+/** A census as the real host would give one, sized so a test can tell before from after. */
+function fakeCensus(free:number,check:number):TmpCensus{
+ return {
+  instance:{id:'a1b2c3d4',boot:'0badf00d',pid:4,uptimeS:60,check},free,used:538_333_184-free,
+  files:{pack:{entries:9,bytes:220_565_504},scratch:{entries:0,bytes:0},playwright:{entries:1,bytes:4096},other:{entries:0,bytes:0}},
+  held:{self:0,others:0,mapped:0,processes:0},unattributed:0,largestOther:[],ms:3,
+ };
+}
+
+test('every release carries a census of /tmp from before the check and after its release, taken outside the deadline',async()=>{
+ const events:string[]=[];
+ let taken=0;
+ const host=recordingHost(events,{async census(){events.push('census');taken++;return fakeCensus(taken===1?317_767_680:195_379_200,taken)}});
+ const {result,infos}=await capture(()=>measureCueOnServer(CUE,{origin:ORIGIN,host,launch:launcher(events,async()=>CLEAN)}));
+ assert.equal(result.verdict,'pass');
+ assert.deepEqual(events,['census','make','launch','survivors','close','survivors','remove /scratch/check-1','census'],'before anything is made, and after everything is removed');
+ const line=infos[0]?.[1] as {census:{before:TmpCensus;after:TmpCensus}};
+ assert.equal(line.census.before.free,317_767_680);
+ assert.equal(line.census.after.free,195_379_200);
+ assert.equal(line.census.after.instance.check,2,'and says which instance, and which of its checks, looked');
+});
+
+test('a census that fails is logged as such and never changes the verdict',async()=>{
+ const events:string[]=[];
+ const host=recordingHost(events,{async census(){throw Error('EACCES: permission denied')}});
+ const {result,warnings,infos}=await capture(()=>measureCueOnServer(CUE,{origin:ORIGIN,host,launch:launcher(events,async()=>CLEAN)}));
+ assert.equal(result.verdict,'pass');
+ assert.equal(warnings.length,0,'accounting that could not be taken is not a residue');
+ assert.deepEqual((infos[0]?.[1] as {census:unknown}).census,{before:{error:'EACCES: permission denied'},after:{error:'EACCES: permission denied'}});
+});
+
+test('the census sorts /tmp into the pack, check scratch, Playwright and everything else, by bytes on disk',async()=>{
+ const root=mkdtempSync(join(tmpdir(),'census-root-'));
+ try{
+  writeFileSync(join(root,'chromium'),Buffer.alloc(96*1024));
+  mkdirSync(join(root,'al2023','lib'),{recursive:true});
+  writeFileSync(join(root,'al2023','lib','libnss3.so'),Buffer.alloc(32*1024));
+  writeFileSync(join(root,'libGLESv2.so'),Buffer.alloc(8*1024));
+  mkdirSync(join(root,'server-fit-Ab12Cd'));
+  writeFileSync(join(root,'server-fit-Ab12Cd','.org.chromium.Chromium.x'),Buffer.alloc(16*1024));
+  mkdirSync(join(root,'playwright-artifacts-Qw34Er'));
+  writeFileSync(join(root,'core.12345'),Buffer.alloc(64*1024));
+  writeFileSync(join(root,'upload-9f8e7d6c5b4a'),Buffer.alloc(4*1024));
+  const census=await tmpCensus(root);
+  assert.equal(census.files.pack.entries,3);
+  assert.ok(census.files.pack.bytes>=136*1024,'the pack, however its files are laid out');
+  assert.equal(census.files.scratch.entries,1);
+  assert.ok(census.files.scratch.bytes>=16*1024);
+  assert.equal(census.files.playwright.entries,1);
+  assert.equal(census.files.other.entries,2);
+  assert.ok(census.files.other.bytes>=68*1024);
+  assert.equal(census.largestOther.length,2);
+  assert.match(census.largestOther[0]!,/^core\.#~\d+$/,'the largest other entry, as a name shape');
+  assert.match(census.largestOther[1]!,/^upload-\*~\d+$/,'a random suffix is masked');
+  assert.equal(census.truncated,undefined);
+  assert.ok(typeof census.instance.id==='string'&&census.instance.pid===process.pid);
+  assert.ok(census.free===null||census.free>0);
+  // Bounded: a walk that reaches its limit stops and says so.
+  assert.equal((await tmpCensus(root,3)).truncated,true);
+ }finally{
+  rmSync(root,{recursive:true,force:true});
+ }
+});
+
+test('the census counts a deleted file this process still holds open, apart from the files it can see',{skip:process.platform!=='linux'&&'reads /proc, so Linux only'},async()=>{
+ const root=mkdtempSync(join(tmpdir(),'census-root-'));
+ const path=join(root,'held-by-me');
+ const fd=openSync(path,'w');
+ try{
+  writeSync(fd,Buffer.alloc(512*1024));
+  unlinkSync(path);
+  const census=await tmpCensus(root);
+  assert.ok(census.held.self>=512*1024,'deleted, open, still using the disk');
+  assert.equal(census.held.processes,1);
+  assert.equal(census.files.other.entries,0,'and not visible as a file');
+  assert.equal(census.held.mapped,0,'held by a descriptor, so not counted again as a mapping');
+  assert.ok(census.instance.boot&&/^[0-9a-f]{8}$/.test(census.instance.boot),'the machine, as a short hash of its boot id');
+ }finally{
+  closeSync(fd);
+  rmSync(root,{recursive:true,force:true});
+ }
+});
+
+test('the census counts a deleted file that only a memory mapping keeps alive',{skip:process.platform!=='linux'&&'reads /proc, so Linux only'},async context=>{
+ // Chromium's shared memory, as a child process: map a file, close its descriptor, delete it.
+ const root=mkdtempSync(join(tmpdir(),'census-root-'));
+ const script=`import ctypes,os,sys,time
+# libc's mmap, not Python's: Python's mmap keeps a duplicate descriptor of its own.
+libc=ctypes.CDLL(None,use_errno=True);libc.mmap.restype=ctypes.c_void_p;libc.mmap.argtypes=[ctypes.c_void_p,ctypes.c_size_t,ctypes.c_int,ctypes.c_int,ctypes.c_int,ctypes.c_long]
+p=sys.argv[1];fd=os.open(p,os.O_RDWR|os.O_CREAT);os.ftruncate(fd,1<<20);os.write(fd,b'x'*(1<<20))
+m=libc.mmap(None,1<<20,3,1,fd,0);assert m not in (None,ctypes.c_void_p(-1).value)
+os.close(fd);os.unlink(p);print('ready',flush=True);time.sleep(30)`;
+ const holder=spawn('python3',['-c',script,join(root,'.org.chromium.Chromium.mapped')]);
+ try{
+  const ready=await new Promise<boolean>(resolve=>{holder.stdout.once('data',()=>resolve(true));holder.once('error',()=>resolve(false))});
+  if(!ready){context.skip('needs python3 to hold a mapping');return}
+  const census=await tmpCensus(root);
+  assert.equal(census.held.mapped,1<<20,'the mapped extent');
+  assert.equal(census.held.others,0,'no descriptor holds it');
+  assert.equal(census.held.processes,1);
+ }finally{
+  holder.kill('SIGKILL');
+  rmSync(root,{recursive:true,force:true});
  }
 });
