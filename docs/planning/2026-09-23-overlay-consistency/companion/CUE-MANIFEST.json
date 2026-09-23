@@ -1,0 +1,6314 @@
+{
+ "generatedAt": "2026-09-23",
+ "source": "CRC Overlays MCP list_drafts (compact, all 5 pages, 236 non-archived drafts) + list_archived_drafts (43), read 2026-09-23",
+ "catalogEndpoint": "GET https://overlays.centralreform.org/api/catalog?include=slots returns 401 without the device token; not read.",
+ "moduleActions": {
+  "cueButtons": "toggle_cue (single-step) or show_cue + animate_out (two-step camera gesture)",
+  "feedbacks": [
+   "requested",
+   "rendered",
+   "disconnected"
+  ]
+ },
+ "counts": {
+  "publishedNonArchivedDrafts": 236,
+  "bindings": 431,
+  "uniqueCuesBound": 232,
+  "publishedButUnbound": 4,
+  "cameraGestureBindings": 20
+ },
+ "bindings": [
+  {
+   "cueId": "8e486f11-e9f5-4c2e-bd5f-071707788c14",
+   "draftName": "Be Right Back",
+   "title": "Central Reform Congregation",
+   "layout": "bottom",
+   "activeRevision": 1,
+   "page": 1,
+   "pageName": "Home",
+   "cell": "r3c6",
+   "label": "Be Right Back",
+   "role": "utility"
+  },
+  {
+   "cueId": "bb52a63a-e892-4518-b7c2-a59e8ce730b9",
+   "draftName": "Guest name",
+   "title": "Central Reform Congregation",
+   "layout": "bottom",
+   "activeRevision": 1,
+   "page": 1,
+   "pageName": "Home",
+   "cell": "r0c5",
+   "label": "Guest Speaker",
+   "role": "announcement"
+  },
+  {
+   "cueId": "0cd20c42-8310-4ddf-bab9-72bab6113e04",
+   "draftName": "Starting Soon",
+   "title": "Central Reform Congregation",
+   "layout": "bottom",
+   "activeRevision": 1,
+   "page": 1,
+   "pageName": "Home",
+   "cell": "r1c5",
+   "label": "Starting Soon",
+   "role": "announcement"
+  },
+  {
+   "cueId": "3d18426f-f8b6-49f5-831c-fc35e0f58f40",
+   "draftName": "Announcements",
+   "title": "Announcements",
+   "layout": "bottom",
+   "activeRevision": 1,
+   "page": 1,
+   "pageName": "Home",
+   "cell": "r2c5",
+   "label": "Announcements",
+   "role": "announcement"
+  },
+  {
+   "cueId": "09f50803-3288-4b78-bcc7-560025668e1a",
+   "draftName": "Thank you",
+   "title": "Central Reform Congregation",
+   "layout": "right",
+   "activeRevision": 1,
+   "page": 1,
+   "pageName": "Home",
+   "cell": "r3c5",
+   "label": "Thank You",
+   "role": "announcement"
+  },
+  {
+   "cueId": "8e486f11-e9f5-4c2e-bd5f-071707788c14",
+   "draftName": "Be Right Back",
+   "title": "Central Reform Congregation",
+   "layout": "bottom",
+   "activeRevision": 1,
+   "page": 2,
+   "pageName": "Output & Audio",
+   "cell": "r3c6",
+   "label": "Be Right Back",
+   "role": "utility"
+  },
+  {
+   "cueId": "0cd20c42-8310-4ddf-bab9-72bab6113e04",
+   "draftName": "Starting Soon",
+   "title": "Central Reform Congregation",
+   "layout": "bottom",
+   "activeRevision": 1,
+   "page": 2,
+   "pageName": "Output & Audio",
+   "cell": "r0c1",
+   "label": "Starting Soon",
+   "role": "announcement"
+  },
+  {
+   "cueId": "3d444058-8f16-40e7-9df5-86a7a36194a6",
+   "draftName": "Siddurim",
+   "title": "Welcome to Shabbat at CRC",
+   "layout": "bottom",
+   "activeRevision": 1,
+   "page": 2,
+   "pageName": "Output & Audio",
+   "cell": "r1c1",
+   "label": "Welcome",
+   "role": "announcement"
+  },
+  {
+   "cueId": "3d18426f-f8b6-49f5-831c-fc35e0f58f40",
+   "draftName": "Announcements",
+   "title": "Announcements",
+   "layout": "bottom",
+   "activeRevision": 1,
+   "page": 2,
+   "pageName": "Output & Audio",
+   "cell": "r2c1",
+   "label": "Announcements",
+   "role": "announcement"
+  },
+  {
+   "cueId": "09f50803-3288-4b78-bcc7-560025668e1a",
+   "draftName": "Thank you",
+   "title": "Central Reform Congregation",
+   "layout": "right",
+   "activeRevision": 1,
+   "page": 2,
+   "pageName": "Output & Audio",
+   "cell": "r3c1",
+   "label": "Thank You",
+   "role": "announcement"
+  },
+  {
+   "cueId": "8e486f11-e9f5-4c2e-bd5f-071707788c14",
+   "draftName": "Be Right Back",
+   "title": "Central Reform Congregation",
+   "layout": "bottom",
+   "activeRevision": 1,
+   "page": 3,
+   "pageName": "Anytime",
+   "cell": "r3c6",
+   "label": "Be Right Back",
+   "role": "utility"
+  },
+  {
+   "cueId": "0cd20c42-8310-4ddf-bab9-72bab6113e04",
+   "draftName": "Starting Soon",
+   "title": "Central Reform Congregation",
+   "layout": "bottom",
+   "activeRevision": 1,
+   "page": 3,
+   "pageName": "Anytime",
+   "cell": "r0c1",
+   "label": "Starting Soon",
+   "role": "announcement"
+  },
+  {
+   "cueId": "3d444058-8f16-40e7-9df5-86a7a36194a6",
+   "draftName": "Siddurim",
+   "title": "Welcome to Shabbat at CRC",
+   "layout": "bottom",
+   "activeRevision": 1,
+   "page": 3,
+   "pageName": "Anytime",
+   "cell": "r1c1",
+   "label": "Welcome",
+   "role": "announcement"
+  },
+  {
+   "cueId": "3d18426f-f8b6-49f5-831c-fc35e0f58f40",
+   "draftName": "Announcements",
+   "title": "Announcements",
+   "layout": "bottom",
+   "activeRevision": 1,
+   "page": 3,
+   "pageName": "Anytime",
+   "cell": "r2c1",
+   "label": "Announcements",
+   "role": "announcement"
+  },
+  {
+   "cueId": "09f50803-3288-4b78-bcc7-560025668e1a",
+   "draftName": "Thank you",
+   "title": "Central Reform Congregation",
+   "layout": "right",
+   "activeRevision": 1,
+   "page": 3,
+   "pageName": "Anytime",
+   "cell": "r3c1",
+   "label": "Thank You",
+   "role": "announcement"
+  },
+  {
+   "cueId": "bb52a63a-e892-4518-b7c2-a59e8ce730b9",
+   "draftName": "Guest name",
+   "title": "Central Reform Congregation",
+   "layout": "bottom",
+   "activeRevision": 1,
+   "page": 3,
+   "pageName": "Anytime",
+   "cell": "r0c2",
+   "label": "Guest name",
+   "role": "announcement"
+  },
+  {
+   "cueId": "17db1877-425a-4ea7-b123-664a9756f2ae",
+   "draftName": "Student name",
+   "title": "Central Reform Congregation",
+   "layout": "bottom",
+   "activeRevision": 1,
+   "page": 3,
+   "pageName": "Anytime",
+   "cell": "r1c2",
+   "label": "Student name",
+   "role": "announcement"
+  },
+  {
+   "cueId": "25737a2e-167c-4049-81fb-9654cb54a8f1",
+   "draftName": "Student names (two lines)",
+   "title": "Central Reform Congregation",
+   "layout": "bottom",
+   "activeRevision": 1,
+   "page": 3,
+   "pageName": "Anytime",
+   "cell": "r2c2",
+   "label": "Student names (2)",
+   "role": "announcement"
+  },
+  {
+   "cueId": "016b6fc4-6ff6-4a69-a42a-53f6403f846f",
+   "draftName": "Mazel Tov",
+   "title": "Mazel Tov",
+   "layout": "bottom",
+   "activeRevision": 1,
+   "page": 3,
+   "pageName": "Anytime",
+   "cell": "r3c2",
+   "label": "Mazel Tov",
+   "role": "announcement"
+  },
+  {
+   "cueId": "c1c6def3-330e-4e84-bf0c-d47164b78193",
+   "draftName": "Shehechiyanu",
+   "title": "A Blessing for a Sacred Moment",
+   "layout": "bottom",
+   "activeRevision": 1,
+   "page": 3,
+   "pageName": "Anytime",
+   "cell": "r0c3",
+   "label": "Shehechiyanu",
+   "role": "single"
+  },
+  {
+   "cueId": "fb5ee989-1027-44b2-8d80-b94dafeea9bf",
+   "draftName": "L'chi Lach",
+   "title": "L'chi Lach",
+   "layout": "left",
+   "activeRevision": 1,
+   "page": 3,
+   "pageName": "Anytime",
+   "cell": "r1c3",
+   "label": "L'chi Lach",
+   "role": "single"
+  },
+  {
+   "cueId": "089cce61-085b-49e9-9ede-f6ec81f65789",
+   "draftName": "Birkat Kohanim",
+   "title": "Priestly Blessing",
+   "layout": "bottom",
+   "activeRevision": 2,
+   "page": 3,
+   "pageName": "Anytime",
+   "cell": "r2c3",
+   "label": "Priestly Blessing",
+   "role": "single"
+  },
+  {
+   "cueId": "2d11c3f1-0162-4694-910c-f5a84ab50c81",
+   "draftName": "May the Memory",
+   "title": "May the Memory",
+   "layout": "bottom",
+   "activeRevision": 1,
+   "page": 3,
+   "pageName": "Anytime",
+   "cell": "r3c3",
+   "label": "May the Memory",
+   "role": "single"
+  },
+  {
+   "cueId": "5b21e5ef-e373-4ce8-a3da-f7a0b3f11162",
+   "draftName": "Torah Shema",
+   "title": "Taking Out the Torah",
+   "layout": "bottom",
+   "activeRevision": 2,
+   "page": 3,
+   "pageName": "Anytime",
+   "cell": "r0c4",
+   "label": "Torah Sh’ma",
+   "role": "single"
+  },
+  {
+   "cueId": "3b97ec53-7979-4f12-aa9c-6a882c47f3a4",
+   "draftName": "Aliyah Blessing BEFORE",
+   "title": "Blessings Before the Torah",
+   "layout": "bottom",
+   "activeRevision": 2,
+   "page": 3,
+   "pageName": "Anytime",
+   "cell": "r1c4",
+   "label": "Before Torah",
+   "role": "single"
+  },
+  {
+   "cueId": "00d6d775-c932-4895-8e77-162dac8101d2",
+   "draftName": "Aliyah Blessing AFTER",
+   "title": "Blessing After the Torah",
+   "layout": "bottom",
+   "activeRevision": 2,
+   "page": 3,
+   "pageName": "Anytime",
+   "cell": "r2c4",
+   "label": "After Torah",
+   "role": "single"
+  },
+  {
+   "cueId": "80f96159-5989-42dd-9620-c617057f1014",
+   "draftName": "Send Healing Names",
+   "title": "Healing Prayers",
+   "layout": "bottom",
+   "activeRevision": 2,
+   "page": 3,
+   "pageName": "Anytime",
+   "cell": "r3c4",
+   "label": "Healing Names",
+   "role": "announcement"
+  },
+  {
+   "cueId": "d0a1be50-2ee0-4604-81d6-c3083376bf89",
+   "draftName": "Send Kaddish Names",
+   "title": "Mourner's Kaddish",
+   "layout": "bottom",
+   "activeRevision": 2,
+   "page": 3,
+   "pageName": "Anytime",
+   "cell": "r0c5",
+   "label": "Kaddish Names",
+   "role": "announcement"
+  },
+  {
+   "cueId": "c2d2c129-7d7d-4bbc-a296-46cc1fb9f48e",
+   "draftName": "Mourners Kaddish 1",
+   "title": "Mourner's Kaddish",
+   "layout": "left",
+   "activeRevision": 2,
+   "page": 3,
+   "pageName": "Anytime",
+   "cell": "r1c5",
+   "label": "Kaddish 1/2",
+   "role": "sequence-part",
+   "sequence": {
+    "name": "Mourner's Kaddish",
+    "index": 1,
+    "count": 2
+   },
+   "note": "Plain 2-panel default (MK3 archived; T/TT family unbound)."
+  },
+  {
+   "cueId": "f15c1944-da76-4d61-95c8-05c032d47c4d",
+   "draftName": "Mourners Kaddish 2",
+   "title": "Mourner's Kaddish",
+   "layout": "left",
+   "activeRevision": 2,
+   "page": 3,
+   "pageName": "Anytime",
+   "cell": "r2c5",
+   "label": "Kaddish 2/2",
+   "role": "sequence-part",
+   "sequence": {
+    "name": "Mourner's Kaddish",
+    "index": 2,
+    "count": 2
+   }
+  },
+  {
+   "cueId": "1c78286d-319b-4025-8e5d-578e2888855e",
+   "draftName": "Oseh Shalom",
+   "title": "Oseh Shalom",
+   "layout": "bottom",
+   "activeRevision": 2,
+   "page": 3,
+   "pageName": "Anytime",
+   "cell": "r3c5",
+   "label": "Oseh Shalom",
+   "role": "single"
+  },
+  {
+   "cueId": "8e486f11-e9f5-4c2e-bd5f-071707788c14",
+   "draftName": "Be Right Back",
+   "title": "Central Reform Congregation",
+   "layout": "bottom",
+   "activeRevision": 1,
+   "page": 4,
+   "pageName": "Fri 1",
+   "cell": "r3c6",
+   "label": "Be Right Back",
+   "role": "utility"
+  },
+  {
+   "cueId": "0cd20c42-8310-4ddf-bab9-72bab6113e04",
+   "draftName": "Starting Soon",
+   "title": "Central Reform Congregation",
+   "layout": "bottom",
+   "activeRevision": 1,
+   "page": 4,
+   "pageName": "Fri 1",
+   "cell": "r0c1",
+   "label": "Starting Soon",
+   "role": "announcement"
+  },
+  {
+   "cueId": "3d444058-8f16-40e7-9df5-86a7a36194a6",
+   "draftName": "Siddurim",
+   "title": "Welcome to Shabbat at CRC",
+   "layout": "bottom",
+   "activeRevision": 1,
+   "page": 4,
+   "pageName": "Fri 1",
+   "cell": "r1c1",
+   "label": "Welcome",
+   "role": "announcement"
+  },
+  {
+   "cueId": "50da96e3-5b18-4bac-b95c-3f59927699c6",
+   "draftName": "Light These Lights",
+   "title": "Light These Lights",
+   "layout": "bottom",
+   "activeRevision": 2,
+   "page": 4,
+   "pageName": "Fri 1",
+   "cell": "r2c1",
+   "label": "Light These Lights",
+   "role": "single"
+  },
+  {
+   "cueId": "8a23af54-3594-4346-afc1-bef5497a5bd7",
+   "draftName": "Candle LIghting",
+   "title": "Shabbat Candle Lighting",
+   "layout": "bottom",
+   "activeRevision": 1,
+   "page": 4,
+   "pageName": "Fri 1",
+   "cell": "r3c1",
+   "label": "Candle Blessing",
+   "role": "single",
+   "cameraGesture": {
+    "in": {
+     "conn": "Left",
+     "preset": 1,
+     "input": "left cam 2"
+    },
+    "out": {
+     "conn": null,
+     "preset": null,
+     "input": "center cam 1"
+    }
+   }
+  },
+  {
+   "cueId": "e1bd7775-ddf1-468b-b3f7-ac98f11df958",
+   "draftName": "Hareini",
+   "title": "Hareini",
+   "layout": "bottom",
+   "activeRevision": 2,
+   "page": 4,
+   "pageName": "Fri 1",
+   "cell": "r0c2",
+   "label": "Hareini",
+   "role": "single",
+   "cameraGesture": {
+    "in": {
+     "conn": "Left",
+     "preset": 3,
+     "input": "left cam 2"
+    },
+    "out": {
+     "conn": null,
+     "preset": null,
+     "input": "center cam 1"
+    }
+   }
+  },
+  {
+   "cueId": "bbd7c98b-f1de-41ee-9719-2bb27a30d0db",
+   "draftName": "Mah Tovu",
+   "title": "Mah Tovu / Hineih Mah Tov",
+   "layout": "left",
+   "activeRevision": 2,
+   "page": 4,
+   "pageName": "Fri 1",
+   "cell": "r1c2",
+   "label": "Mah Tovu",
+   "role": "alternate",
+   "cameraGesture": {
+    "in": {
+     "conn": "Left",
+     "preset": 4,
+     "input": "left cam 2"
+    },
+    "out": {
+     "conn": null,
+     "preset": null,
+     "input": "center cam 1"
+    }
+   }
+  },
+  {
+   "cueId": "9c34f35c-7a84-4aa3-9233-80759fb63a64",
+   "draftName": "Hinei Ma Tov",
+   "title": "Hineih Mah Tov",
+   "layout": "bottom",
+   "activeRevision": 2,
+   "page": 4,
+   "pageName": "Fri 1",
+   "cell": "r2c2",
+   "label": "Hinei Ma Tov",
+   "role": "alternate"
+  },
+  {
+   "cueId": "a7740079-6ad7-4568-abe7-0bb102dfa274",
+   "draftName": "House of Prayer",
+   "title": "House of Prayer",
+   "layout": "bottom",
+   "activeRevision": 1,
+   "page": 4,
+   "pageName": "Fri 1",
+   "cell": "r3c2",
+   "label": "House of Prayer",
+   "role": "alternate"
+  },
+  {
+   "cueId": "e88e67d2-da7f-4c37-9b62-8407391f3030",
+   "draftName": "Shalom Aleichem 1",
+   "title": "Shalom Aleichem",
+   "layout": "left",
+   "activeRevision": 3,
+   "page": 4,
+   "pageName": "Fri 1",
+   "cell": "r0c3",
+   "label": "Sh. Aleichem 1 shalom",
+   "role": "sequence-part",
+   "sequence": {
+    "name": "Shalom Aleichem",
+    "index": 1,
+    "count": 4
+   },
+   "cameraGesture": {
+    "in": {
+     "conn": "Door_Cam (steve)",
+     "preset": 4,
+     "input": "right cam 3"
+    },
+    "out": null
+   }
+  },
+  {
+   "cueId": "c358195e-5242-4bc1-8925-56dd7d24e18e",
+   "draftName": "Shalom Aleichem 2",
+   "title": "Shalom Aleichem",
+   "layout": "left",
+   "activeRevision": 3,
+   "page": 4,
+   "pageName": "Fri 1",
+   "cell": "r1c3",
+   "label": "2 bo’achem",
+   "role": "sequence-part",
+   "sequence": {
+    "name": "Shalom Aleichem",
+    "index": 2,
+    "count": 4
+   }
+  },
+  {
+   "cueId": "63587034-db98-4786-9a23-f2fa74c8aa70",
+   "draftName": "Shalom Aleichem 3",
+   "title": "Shalom Aleichem",
+   "layout": "left",
+   "activeRevision": 3,
+   "page": 4,
+   "pageName": "Fri 1",
+   "cell": "r2c3",
+   "label": "3 barchuni",
+   "role": "sequence-part",
+   "sequence": {
+    "name": "Shalom Aleichem",
+    "index": 3,
+    "count": 4
+   }
+  },
+  {
+   "cueId": "b9ff38cb-ee87-4a0f-8ba0-6bffcf100891",
+   "draftName": "Shalom Aleichem 4",
+   "title": "Shalom Aleichem",
+   "layout": "left",
+   "activeRevision": 3,
+   "page": 4,
+   "pageName": "Fri 1",
+   "cell": "r3c3",
+   "label": "4 tzeitchem",
+   "role": "sequence-part",
+   "sequence": {
+    "name": "Shalom Aleichem",
+    "index": 4,
+    "count": 4
+   },
+   "cameraGesture": {
+    "in": null,
+    "out": {
+     "conn": "Center",
+     "preset": 1,
+     "input": "center cam 1"
+    }
+   }
+  },
+  {
+   "cueId": "703983e0-05d7-4ba7-82c7-3581311c6fd0",
+   "draftName": "Shalom Aleichem all",
+   "title": "Shalom Aleichem",
+   "layout": "left",
+   "activeRevision": 3,
+   "page": 4,
+   "pageName": "Fri 1",
+   "cell": "r0c4",
+   "label": "Sh. Aleichem vv. 1+4",
+   "role": "alternate"
+  },
+  {
+   "cueId": "32b2ae8c-e7f1-4c3a-9580-f8f31b12ead6",
+   "draftName": "Shalom Alechem small",
+   "title": "Shalom Aleichem",
+   "layout": "bottom",
+   "activeRevision": 1,
+   "page": 4,
+   "pageName": "Fri 1",
+   "cell": "r1c4",
+   "label": "Sh. Aleichem (short)",
+   "role": "short-selection"
+  },
+  {
+   "cueId": "e7094f7e-e90b-44f4-9ddf-365b8cca8be8",
+   "draftName": "Yedid Nefesh",
+   "title": "Yedid Nefesh",
+   "layout": "bottom",
+   "activeRevision": 2,
+   "page": 4,
+   "pageName": "Fri 1",
+   "cell": "r2c4",
+   "label": "Yedid Nefesh",
+   "role": "single"
+  },
+  {
+   "cueId": "316689ce-00df-4943-9ae8-938fb507031f",
+   "draftName": "Ozi vzimrat",
+   "title": "Psalm 118:14, Exodus 15:2",
+   "layout": "bottom",
+   "activeRevision": 1,
+   "page": 4,
+   "pageName": "Fri 1",
+   "cell": "r3c4",
+   "label": "Ozi v'Zimrat",
+   "role": "single"
+  },
+  {
+   "cueId": "5f31b743-b54d-4b47-8872-6f63985d4203",
+   "draftName": "Yom Zeh lYisrael",
+   "title": "Yom Zeh l'Yisrael",
+   "layout": "left",
+   "activeRevision": 2,
+   "page": 4,
+   "pageName": "Fri 1",
+   "cell": "r0c5",
+   "label": "Yom Zeh 1/3",
+   "role": "sequence-part",
+   "sequence": {
+    "name": "Yom Zeh l'Yisrael",
+    "index": 1,
+    "count": 3
+   }
+  },
+  {
+   "cueId": "c2e31718-3e6d-417f-acb5-0d294bbcedfd",
+   "draftName": "Yom Zeh lYisrael 2",
+   "title": "Yom Zeh l'Yisrael",
+   "layout": "left",
+   "activeRevision": 2,
+   "page": 4,
+   "pageName": "Fri 1",
+   "cell": "r1c5",
+   "label": "Yom Zeh 2/3",
+   "role": "sequence-part",
+   "sequence": {
+    "name": "Yom Zeh l'Yisrael",
+    "index": 2,
+    "count": 3
+   }
+  },
+  {
+   "cueId": "e2c3ce1c-731e-4162-ba48-f88c8a5e3a88",
+   "draftName": "Yom Zeh lYisrael 3",
+   "title": "Yom Zeh l'Yisrael",
+   "layout": "left",
+   "activeRevision": 2,
+   "page": 4,
+   "pageName": "Fri 1",
+   "cell": "r2c5",
+   "label": "Yom Zeh 3/3",
+   "role": "sequence-part",
+   "sequence": {
+    "name": "Yom Zeh l'Yisrael",
+    "index": 3,
+    "count": 3
+   }
+  },
+  {
+   "cueId": "c8cb82c3-67ec-470b-a946-a9eebb998bbb",
+   "draftName": "Awaken, Arise",
+   "title": "Awaken, Arise",
+   "layout": "bottom",
+   "activeRevision": 1,
+   "page": 4,
+   "pageName": "Fri 1",
+   "cell": "r3c5",
+   "label": "Awaken, Arise",
+   "role": "single"
+  },
+  {
+   "cueId": "8e486f11-e9f5-4c2e-bd5f-071707788c14",
+   "draftName": "Be Right Back",
+   "title": "Central Reform Congregation",
+   "layout": "bottom",
+   "activeRevision": 1,
+   "page": 5,
+   "pageName": "Fri 2",
+   "cell": "r3c6",
+   "label": "Be Right Back",
+   "role": "utility"
+  },
+  {
+   "cueId": "62cbf67d-20bf-40e9-a5fe-18b0b3976a67",
+   "draftName": "Shiru La'Adonai (Complete · Shirei supplement) — 1 of 3",
+   "title": "Shiru La'Adonai",
+   "layout": "left",
+   "activeRevision": 2,
+   "page": 5,
+   "pageName": "Fri 2",
+   "cell": "r0c1",
+   "label": "Shiru 1/3",
+   "role": "sequence-part",
+   "sequence": {
+    "name": "Shiru La'Adonai",
+    "index": 1,
+    "count": 3
+   }
+  },
+  {
+   "cueId": "56123a93-ba82-4a8d-83b7-0a38a47b809b",
+   "draftName": "Shiru La'Adonai (Complete · Shirei supplement) — 2 of 3",
+   "title": "Shiru La'Adonai",
+   "layout": "left",
+   "activeRevision": 2,
+   "page": 5,
+   "pageName": "Fri 2",
+   "cell": "r1c1",
+   "label": "Shiru 2/3",
+   "role": "sequence-part",
+   "sequence": {
+    "name": "Shiru La'Adonai",
+    "index": 2,
+    "count": 3
+   }
+  },
+  {
+   "cueId": "9147d046-e7f6-4ad4-9217-1b908839bdba",
+   "draftName": "Shiru La'Adonai (Complete · Shirei supplement) — 3 of 3",
+   "title": "Shiru La'Adonai",
+   "layout": "left",
+   "activeRevision": 2,
+   "page": 5,
+   "pageName": "Fri 2",
+   "cell": "r2c1",
+   "label": "Shiru 3/3",
+   "role": "sequence-part",
+   "sequence": {
+    "name": "Shiru La'Adonai",
+    "index": 3,
+    "count": 3
+   }
+  },
+  {
+   "cueId": "b5462a84-2f06-4302-b7ed-c960139ba9c7",
+   "draftName": "Shiru La'Adonai (Opening, vv. 1–3 · Shirei supplement)",
+   "title": "Shiru La'Adonai",
+   "layout": "bottom",
+   "activeRevision": 2,
+   "page": 5,
+   "pageName": "Fri 2",
+   "cell": "r3c1",
+   "label": "Shiru (opening only)",
+   "role": "short-selection"
+  },
+  {
+   "cueId": "cca3d8e7-7f99-4ba5-8bbd-ba278d992fc4",
+   "draftName": "Mizmor L'David",
+   "title": "Psalm 29",
+   "layout": "left",
+   "activeRevision": 4,
+   "page": 5,
+   "pageName": "Fri 2",
+   "cell": "r0c2",
+   "label": "Mizmor L'David 1/2",
+   "role": "sequence-part",
+   "sequence": {
+    "name": "Mizmor L'David (Ps 29)",
+    "index": 1,
+    "count": 2
+   }
+  },
+  {
+   "cueId": "1140bc23-b58e-4b6a-9fea-d09446d331fc",
+   "draftName": "Mizmor L'David 2",
+   "title": "Psalm 29",
+   "layout": "left",
+   "activeRevision": 4,
+   "page": 5,
+   "pageName": "Fri 2",
+   "cell": "r1c2",
+   "label": "Mizmor 2/2",
+   "role": "sequence-part",
+   "sequence": {
+    "name": "Mizmor L'David (Ps 29)",
+    "index": 2,
+    "count": 2
+   }
+  },
+  {
+   "cueId": "d7883f88-cec7-4583-8590-d526c336c5e7",
+   "draftName": "Ana Bakoach",
+   "title": "Ana Bakoach",
+   "layout": "bottom",
+   "activeRevision": 1,
+   "page": 5,
+   "pageName": "Fri 2",
+   "cell": "r2c2",
+   "label": "Ana Bakoach",
+   "role": "single"
+  },
+  {
+   "cueId": "e88c0333-db5f-4250-8afd-bbda364e39bb",
+   "draftName": "L'cha Dodi 1",
+   "title": "L'Chah Dodi",
+   "layout": "left",
+   "activeRevision": 3,
+   "page": 5,
+   "pageName": "Fri 2",
+   "cell": "r0c3",
+   "label": "L'cha Dodi 1 Shamor",
+   "role": "sequence-part",
+   "sequence": {
+    "name": "L'cha Dodi",
+    "index": 1,
+    "count": 9
+   },
+   "cameraGesture": {
+    "in": {
+     "conn": "Door_Cam (steve)",
+     "preset": 4,
+     "input": "right cam 3"
+    },
+    "out": null
+   }
+  },
+  {
+   "cueId": "79b44d3c-f2de-44ee-ac5a-6ca8961e7884",
+   "draftName": "L'cha Dodi 2",
+   "title": "L'Chah Dodi",
+   "layout": "left",
+   "activeRevision": 3,
+   "page": 5,
+   "pageName": "Fri 2",
+   "cell": "r1c3",
+   "label": "2 Likrat",
+   "role": "sequence-part",
+   "sequence": {
+    "name": "L'cha Dodi",
+    "index": 2,
+    "count": 9
+   }
+  },
+  {
+   "cueId": "d427d590-5ea7-4b83-a1f0-7f9c4a87d305",
+   "draftName": "L'cha Dodi — Mikdash Melech (Shirei Supplement)",
+   "title": "L'cha Dodi · 3",
+   "layout": "left",
+   "activeRevision": 3,
+   "page": 5,
+   "pageName": "Fri 2",
+   "cell": "r2c3",
+   "label": "3 Mikdash · Shirei",
+   "role": "sequence-part",
+   "sequence": {
+    "name": "L'cha Dodi",
+    "index": 3,
+    "count": 9
+   }
+  },
+  {
+   "cueId": "5888f9f2-781e-4310-aa86-1cb69cabc66d",
+   "draftName": "L'cha Dodi — Hitna'ari (Shirei Supplement)",
+   "title": "L'cha Dodi · 4",
+   "layout": "left",
+   "activeRevision": 3,
+   "page": 5,
+   "pageName": "Fri 2",
+   "cell": "r3c3",
+   "label": "4 Hitna'ari · Shirei",
+   "role": "sequence-part",
+   "sequence": {
+    "name": "L'cha Dodi",
+    "index": 4,
+    "count": 9
+   }
+  },
+  {
+   "cueId": "e6b242a4-22da-4008-b988-78145c53bfae",
+   "draftName": "L'cha Dodi 3",
+   "title": "L'Chah Dodi",
+   "layout": "left",
+   "activeRevision": 3,
+   "page": 5,
+   "pageName": "Fri 2",
+   "cell": "r0c4",
+   "label": "5 Hitoreri",
+   "role": "sequence-part",
+   "sequence": {
+    "name": "L'cha Dodi",
+    "index": 5,
+    "count": 9
+   }
+  },
+  {
+   "cueId": "4a9b3818-d96b-4af1-aeb0-eb69d78bd3c2",
+   "draftName": "L'cha Dodi — Lo Tevoshi (Shirei Supplement)",
+   "title": "L'cha Dodi · 6",
+   "layout": "left",
+   "activeRevision": 3,
+   "page": 5,
+   "pageName": "Fri 2",
+   "cell": "r1c4",
+   "label": "6 Lo Tevoshi · Shirei",
+   "role": "sequence-part",
+   "sequence": {
+    "name": "L'cha Dodi",
+    "index": 6,
+    "count": 9
+   }
+  },
+  {
+   "cueId": "fc0af076-b2cc-4a72-b467-6d808817bff5",
+   "draftName": "L'cha Dodi — V'hayu Limshisa (Shirei Supplement)",
+   "title": "L'cha Dodi · 7",
+   "layout": "left",
+   "activeRevision": 3,
+   "page": 5,
+   "pageName": "Fri 2",
+   "cell": "r2c4",
+   "label": "7 V'hayu · Shirei",
+   "role": "sequence-part",
+   "sequence": {
+    "name": "L'cha Dodi",
+    "index": 7,
+    "count": 9
+   }
+  },
+  {
+   "cueId": "e825eed2-9c7a-4116-ae5b-2826ef5b9ef8",
+   "draftName": "L'cha Dodi — Yamin u'Smol (Shirei Supplement)",
+   "title": "L'cha Dodi · 8",
+   "layout": "left",
+   "activeRevision": 3,
+   "page": 5,
+   "pageName": "Fri 2",
+   "cell": "r3c4",
+   "label": "8 Yamin · Shirei",
+   "role": "sequence-part",
+   "sequence": {
+    "name": "L'cha Dodi",
+    "index": 8,
+    "count": 9
+   }
+  },
+  {
+   "cueId": "62458934-4a41-46d0-8ade-e4f595a1c239",
+   "draftName": "L'cha Dodi 4",
+   "title": "L'Chah Dodi",
+   "layout": "left",
+   "activeRevision": 3,
+   "page": 5,
+   "pageName": "Fri 2",
+   "cell": "r0c5",
+   "label": "9 Boi v'shalom",
+   "role": "sequence-part",
+   "sequence": {
+    "name": "L'cha Dodi",
+    "index": 9,
+    "count": 9
+   },
+   "cameraGesture": {
+    "in": null,
+    "out": {
+     "conn": "Center",
+     "preset": 1,
+     "input": "center cam 1"
+    }
+   }
+  },
+  {
+   "cueId": "8e486f11-e9f5-4c2e-bd5f-071707788c14",
+   "draftName": "Be Right Back",
+   "title": "Central Reform Congregation",
+   "layout": "bottom",
+   "activeRevision": 1,
+   "page": 6,
+   "pageName": "Fri 3",
+   "cell": "r3c6",
+   "label": "Be Right Back",
+   "role": "utility"
+  },
+  {
+   "cueId": "efa9fad4-f7d5-4091-a708-82103028861b",
+   "draftName": "Barechu",
+   "title": "Bar'chu",
+   "layout": "bottom",
+   "activeRevision": 2,
+   "page": 6,
+   "pageName": "Fri 3",
+   "cell": "r0c1",
+   "label": "Bar'chu",
+   "role": "single",
+   "cameraGesture": {
+    "in": {
+     "conn": "Door_Cam (steve)",
+     "preset": 5,
+     "input": "right cam 3"
+    },
+    "out": {
+     "conn": "Center",
+     "preset": 1,
+     "input": "center cam 1"
+    }
+   }
+  },
+  {
+   "cueId": "1dc607cc-37fa-48d7-a13d-9030a28f332d",
+   "draftName": "As We Bless",
+   "title": "As We Bless",
+   "layout": "bottom",
+   "activeRevision": 2,
+   "page": 6,
+   "pageName": "Fri 3",
+   "cell": "r1c1",
+   "label": "As We Bless",
+   "role": "alternate"
+  },
+  {
+   "cueId": "23cc50be-1d16-4720-b073-d2ea207c4c12",
+   "draftName": "Am I Awake",
+   "title": "Am I Awake",
+   "layout": "bottom",
+   "activeRevision": 4,
+   "page": 6,
+   "pageName": "Fri 3",
+   "cell": "r2c1",
+   "label": "Am I Awake",
+   "role": "alternate"
+  },
+  {
+   "cueId": "7b8ab1d5-a60f-435d-81cf-fff8ca9c08f0",
+   "draftName": "Maariv Arevim 1",
+   "title": "Ma'ariv Aravim",
+   "layout": "left",
+   "activeRevision": 3,
+   "page": 6,
+   "pageName": "Fri 3",
+   "cell": "r0c2",
+   "label": "Ma'ariv Aravim 1/2",
+   "role": "sequence-part",
+   "sequence": {
+    "name": "Ma'ariv Aravim",
+    "index": 1,
+    "count": 2
+   }
+  },
+  {
+   "cueId": "48015508-912c-4a26-a20f-1023b1861b0c",
+   "draftName": "Maariv Arevim 2",
+   "title": "Ma'ariv Aravim",
+   "layout": "left",
+   "activeRevision": 2,
+   "page": 6,
+   "pageName": "Fri 3",
+   "cell": "r1c2",
+   "label": "Ma’ariv 2/2",
+   "role": "sequence-part",
+   "sequence": {
+    "name": "Ma'ariv Aravim",
+    "index": 2,
+    "count": 2
+   }
+  },
+  {
+   "cueId": "6be325d4-ee1f-442a-9c44-79c1950d57ac",
+   "draftName": "Maariv Arevim (Evening)",
+   "title": "Ma'ariv Aravim",
+   "layout": "bottom",
+   "activeRevision": 1,
+   "page": 6,
+   "pageName": "Fri 3",
+   "cell": "r2c2",
+   "label": "Ma'ariv (Evening)",
+   "role": "alternate"
+  },
+  {
+   "cueId": "8792f231-e183-4bac-9113-020d25054590",
+   "draftName": "Maariv Arevim (Roll into Dark)",
+   "title": "Ma'ariv Aravim",
+   "layout": "bottom",
+   "activeRevision": 1,
+   "page": 6,
+   "pageName": "Fri 3",
+   "cell": "r3c2",
+   "label": "Ma'ariv (Roll into Dark)",
+   "role": "alternate"
+  },
+  {
+   "cueId": "1e0f629f-65a7-4d12-985a-b83aa60cc62c",
+   "draftName": "Ahavat Olam 1",
+   "title": "Ahavat Olam",
+   "layout": "left",
+   "activeRevision": 2,
+   "page": 6,
+   "pageName": "Fri 3",
+   "cell": "r0c3",
+   "label": "Ahavat Olam 1/2",
+   "role": "sequence-part",
+   "sequence": {
+    "name": "Ahavat Olam",
+    "index": 1,
+    "count": 2
+   }
+  },
+  {
+   "cueId": "24f3bba1-e361-4e62-bce1-b10b9bda92b6",
+   "draftName": "Ahavat Olam 2",
+   "title": "Ahavat Olam",
+   "layout": "left",
+   "activeRevision": 2,
+   "page": 6,
+   "pageName": "Fri 3",
+   "cell": "r1c3",
+   "label": "Ahavat Olam 2/2",
+   "role": "sequence-part",
+   "sequence": {
+    "name": "Ahavat Olam",
+    "index": 2,
+    "count": 2
+   }
+  },
+  {
+   "cueId": "e62e68e1-08e3-4021-8806-e3118295f282",
+   "draftName": "We Are Loved 1",
+   "title": "We Are Loved",
+   "layout": "bottom",
+   "activeRevision": 4,
+   "page": 6,
+   "pageName": "Fri 3",
+   "cell": "r2c3",
+   "label": "We Are Loved 1/2",
+   "role": "alternate",
+   "sequence": {
+    "name": "We Are Loved",
+    "index": 1,
+    "count": 2
+   }
+  },
+  {
+   "cueId": "a2d94d09-e5fe-4466-bb62-9a3569e607a7",
+   "draftName": "We Are Loved 2",
+   "title": "We Are Loved",
+   "layout": "bottom",
+   "activeRevision": 2,
+   "page": 6,
+   "pageName": "Fri 3",
+   "cell": "r3c3",
+   "label": "We Are Loved 2/2",
+   "role": "alternate",
+   "sequence": {
+    "name": "We Are Loved",
+    "index": 2,
+    "count": 2
+   }
+  },
+  {
+   "cueId": "042e53fd-2f77-4b30-a951-13e7889e2297",
+   "draftName": "Shema",
+   "title": "The Sh'ma",
+   "layout": "bottom",
+   "activeRevision": 1,
+   "page": 6,
+   "pageName": "Fri 3",
+   "cell": "r0c4",
+   "label": "Sh'ma",
+   "role": "single",
+   "cameraGesture": {
+    "in": {
+     "conn": "Door_Cam (steve)",
+     "preset": 5,
+     "input": "right cam 3"
+    },
+    "out": {
+     "conn": "Center",
+     "preset": 1,
+     "input": "center cam 1"
+    }
+   }
+  },
+  {
+   "cueId": "111297d8-29c7-44b1-837f-b71e20b7e74e",
+   "draftName": "How Awesome / Shema",
+   "title": "How Awesome / Shema",
+   "layout": "bottom",
+   "activeRevision": 3,
+   "page": 6,
+   "pageName": "Fri 3",
+   "cell": "r1c4",
+   "label": "How Awesome / Sh’ma",
+   "role": "alternate"
+  },
+  {
+   "cueId": "dd0db929-cddb-49a5-b871-045dd80a511a",
+   "draftName": "One Love",
+   "title": "One Love",
+   "layout": "left",
+   "activeRevision": 1,
+   "page": 6,
+   "pageName": "Fri 3",
+   "cell": "r2c4",
+   "label": "One Love",
+   "role": "alternate"
+  },
+  {
+   "cueId": "2ed003b5-5a9a-4923-8e1c-6722a69c0104",
+   "draftName": "Vahavta 1",
+   "title": "V'ahavta",
+   "layout": "left",
+   "activeRevision": 2,
+   "page": 6,
+   "pageName": "Fri 3",
+   "cell": "r0c5",
+   "label": "V'ahavta 1/2",
+   "role": "sequence-part",
+   "sequence": {
+    "name": "V'ahavta (Fri)",
+    "index": 1,
+    "count": 2
+   },
+   "cameraGesture": {
+    "in": {
+     "conn": "Door_Cam (steve)",
+     "preset": 2,
+     "input": "right cam 3"
+    },
+    "out": null
+   }
+  },
+  {
+   "cueId": "4343d861-686f-449a-9f4e-2943da5a59db",
+   "draftName": "Vahavta 2",
+   "title": "V'ahavta",
+   "layout": "left",
+   "activeRevision": 2,
+   "page": 6,
+   "pageName": "Fri 3",
+   "cell": "r1c5",
+   "label": "V'ahavta 2/2",
+   "role": "sequence-part",
+   "sequence": {
+    "name": "V'ahavta (Fri)",
+    "index": 2,
+    "count": 2
+   },
+   "cameraGesture": {
+    "in": null,
+    "out": {
+     "conn": "Center",
+     "preset": 1,
+     "input": "center cam 1"
+    }
+   }
+  },
+  {
+   "cueId": "a4e5367c-a1e3-494f-b4e7-3f9e53522cc6",
+   "draftName": "Thou Shalt Love",
+   "title": "Thou Shalt Love",
+   "layout": "bottom",
+   "activeRevision": 2,
+   "page": 6,
+   "pageName": "Fri 3",
+   "cell": "r2c5",
+   "label": "Thou Shalt Love 1/2",
+   "role": "alternate",
+   "sequence": {
+    "name": "Thou Shalt Love",
+    "index": 1,
+    "count": 2
+   }
+  },
+  {
+   "cueId": "46f843c0-834e-484d-bc75-9bf4679508fc",
+   "draftName": "Thou Shalt Love 2",
+   "title": "Thou Shalt Love",
+   "layout": "bottom",
+   "activeRevision": 2,
+   "page": 6,
+   "pageName": "Fri 3",
+   "cell": "r3c5",
+   "label": "Thou Shalt Love 2/2",
+   "role": "alternate",
+   "sequence": {
+    "name": "Thou Shalt Love",
+    "index": 2,
+    "count": 2
+   }
+  },
+  {
+   "cueId": "8e486f11-e9f5-4c2e-bd5f-071707788c14",
+   "draftName": "Be Right Back",
+   "title": "Central Reform Congregation",
+   "layout": "bottom",
+   "activeRevision": 1,
+   "page": 7,
+   "pageName": "Fri 4",
+   "cell": "r3c6",
+   "label": "Be Right Back",
+   "role": "utility"
+  },
+  {
+   "cueId": "e8f2c035-e88e-4744-ab70-8625f9a77025",
+   "draftName": "Mi Chamocha (Friday) 1",
+   "title": "Mi Chamochah",
+   "layout": "bottom",
+   "activeRevision": 2,
+   "page": 7,
+   "pageName": "Fri 4",
+   "cell": "r0c1",
+   "label": "Mi Chamocha 1/2",
+   "role": "sequence-part",
+   "sequence": {
+    "name": "Mi Chamocha (Fri)",
+    "index": 1,
+    "count": 2
+   },
+   "cameraGesture": {
+    "in": {
+     "conn": "Door_Cam (steve)",
+     "preset": 4,
+     "input": "right cam 3"
+    },
+    "out": null
+   }
+  },
+  {
+   "cueId": "7514e0b4-212a-4687-a153-9c6eb602e82d",
+   "draftName": "Mi Chamocha (Friday) 2",
+   "title": "Mi Chamochah",
+   "layout": "bottom",
+   "activeRevision": 2,
+   "page": 7,
+   "pageName": "Fri 4",
+   "cell": "r1c1",
+   "label": "Mi Chamocha 2/2",
+   "role": "sequence-part",
+   "sequence": {
+    "name": "Mi Chamocha (Fri)",
+    "index": 2,
+    "count": 2
+   }
+  },
+  {
+   "cueId": "219230a4-5d95-40b6-876c-9492db9fbaef",
+   "draftName": "Siyahamba",
+   "title": "Siyahamba",
+   "layout": "bottom",
+   "activeRevision": 2,
+   "page": 7,
+   "pageName": "Fri 4",
+   "cell": "r2c1",
+   "label": "Siyahamba",
+   "role": "alternate",
+   "cameraGesture": {
+    "in": null,
+    "out": {
+     "conn": "Center",
+     "preset": 1,
+     "input": "center cam 1"
+    }
+   }
+  },
+  {
+   "cueId": "c8dbafb3-37bb-4c6b-96d5-96c9fddef38e",
+   "draftName": "Mi Chamocha (short)",
+   "title": "Mi Chamochah",
+   "layout": "bottom",
+   "activeRevision": 2,
+   "page": 7,
+   "pageName": "Fri 4",
+   "cell": "r3c1",
+   "label": "Mi Chamocha (short)",
+   "role": "short-selection"
+  },
+  {
+   "cueId": "1f1df522-f4c4-4fd3-9c20-14c6b52c54d9",
+   "draftName": "Hashkiveinu (plain)",
+   "title": "Hashkiveinu",
+   "layout": "bottom",
+   "activeRevision": 3,
+   "page": 7,
+   "pageName": "Fri 4",
+   "cell": "r0c2",
+   "label": "Hashkiveinu",
+   "role": "single",
+   "cameraGesture": {
+    "in": {
+     "conn": "Door_Cam (steve)",
+     "preset": 4,
+     "input": "right cam 3"
+    },
+    "out": {
+     "conn": "Center",
+     "preset": 1,
+     "input": "center cam 1"
+    }
+   }
+  },
+  {
+   "cueId": "567367c0-bf57-46e6-9220-049641f75c14",
+   "draftName": "Hashkiveinu (Randy)",
+   "title": "Hashkiveinu",
+   "layout": "bottom",
+   "activeRevision": 3,
+   "page": 7,
+   "pageName": "Fri 4",
+   "cell": "r1c2",
+   "label": "Hashki · Randy",
+   "role": "alternate"
+  },
+  {
+   "cueId": "f9231a22-88f9-4aca-8356-da01f572ad3d",
+   "draftName": "Hashkiveinu (Daniel)",
+   "title": "Hashkiveinu",
+   "layout": "bottom",
+   "activeRevision": 3,
+   "page": 7,
+   "pageName": "Fri 4",
+   "cell": "r2c2",
+   "label": "Hashki · Daniel",
+   "role": "alternate"
+  },
+  {
+   "cueId": "fa7f52e3-90b1-4253-8d43-1ccf94e65d9f",
+   "draftName": "Hashkiveinu (Jim)",
+   "title": "Hashkiveinu",
+   "layout": "bottom",
+   "activeRevision": 3,
+   "page": 7,
+   "pageName": "Fri 4",
+   "cell": "r3c2",
+   "label": "Hashki · Jim",
+   "role": "alternate"
+  },
+  {
+   "cueId": "ad0a8bf7-9245-4c12-a78c-30f9f012fa16",
+   "draftName": "Vshamru",
+   "title": "V'shamru",
+   "layout": "bottom",
+   "activeRevision": 2,
+   "page": 7,
+   "pageName": "Fri 4",
+   "cell": "r0c3",
+   "label": "V'shamru",
+   "role": "single",
+   "cameraGesture": {
+    "in": {
+     "conn": "Door_Cam (steve)",
+     "preset": 4,
+     "input": "right cam 3"
+    },
+    "out": {
+     "conn": "Center",
+     "preset": 1,
+     "input": "center cam 1"
+    }
+   }
+  },
+  {
+   "cueId": "0a4b12eb-1463-44d7-be91-329049e5ec82",
+   "draftName": "Readers Kaddish 1",
+   "title": "Hatzi Kaddish",
+   "layout": "left",
+   "activeRevision": 3,
+   "page": 7,
+   "pageName": "Fri 4",
+   "cell": "r1c3",
+   "label": "Hatzi Kaddish 1/2",
+   "role": "sequence-part",
+   "sequence": {
+    "name": "Hatzi Kaddish",
+    "index": 1,
+    "count": 2
+   }
+  },
+  {
+   "cueId": "7c087a0d-23cb-458e-af6a-3210982ff0d6",
+   "draftName": "Readers Kaddish 2",
+   "title": "Hatzi Kaddish",
+   "layout": "left",
+   "activeRevision": 2,
+   "page": 7,
+   "pageName": "Fri 4",
+   "cell": "r2c3",
+   "label": "Hatzi Kaddish 2/2",
+   "role": "sequence-part",
+   "sequence": {
+    "name": "Hatzi Kaddish",
+    "index": 2,
+    "count": 2
+   }
+  },
+  {
+   "cueId": "ef645335-1f59-4e0f-8aae-fbd176dc13c8",
+   "draftName": "Adonai Sifatai",
+   "title": "Adonai S'fatai",
+   "layout": "bottom",
+   "activeRevision": 2,
+   "page": 7,
+   "pageName": "Fri 4",
+   "cell": "r0c4",
+   "label": "Adonai S'fatai",
+   "role": "single",
+   "cameraGesture": {
+    "in": {
+     "conn": "Door_Cam (steve)",
+     "preset": 5,
+     "input": "right cam 3"
+    },
+    "out": {
+     "conn": "Center",
+     "preset": 1,
+     "input": "center cam 1"
+    }
+   }
+  },
+  {
+   "cueId": "f69d012c-a0c0-4f56-86bf-352e176a5ba7",
+   "draftName": "Sanctuary/Adonai Sifatai",
+   "title": "Sanctuary",
+   "layout": "bottom",
+   "activeRevision": 1,
+   "page": 7,
+   "pageName": "Fri 4",
+   "cell": "r1c4",
+   "label": "Sanctuary",
+   "role": "alternate"
+  },
+  {
+   "cueId": "b0989586-28eb-4fef-a48b-94b7fd728e24",
+   "draftName": "Avodah",
+   "title": "Avodah",
+   "layout": "left",
+   "activeRevision": 2,
+   "page": 7,
+   "pageName": "Fri 4",
+   "cell": "r2c4",
+   "label": "Avodah",
+   "role": "single"
+  },
+  {
+   "cueId": "0cf632bf-aab4-4354-8095-6aa5f9b3ec6a",
+   "draftName": "Hoda-Ah",
+   "title": "Hoda'ah",
+   "layout": "bottom",
+   "activeRevision": 2,
+   "page": 7,
+   "pageName": "Fri 4",
+   "cell": "r3c4",
+   "label": "Hoda'ah",
+   "role": "single"
+  },
+  {
+   "cueId": "feaacb05-dcb8-461e-8d49-ee1ded5b0596",
+   "draftName": "Shalom Rav",
+   "title": "Shalom Rav",
+   "layout": "bottom",
+   "activeRevision": 2,
+   "page": 7,
+   "pageName": "Fri 4",
+   "cell": "r0c5",
+   "label": "Shalom Rav",
+   "role": "single",
+   "cameraGesture": {
+    "in": {
+     "conn": "Door_Cam (steve)",
+     "preset": 4,
+     "input": "right cam 3"
+    },
+    "out": {
+     "conn": "Center",
+     "preset": 1,
+     "input": "center cam 1"
+    }
+   }
+  },
+  {
+   "cueId": "1c78286d-319b-4025-8e5d-578e2888855e",
+   "draftName": "Oseh Shalom",
+   "title": "Oseh Shalom",
+   "layout": "bottom",
+   "activeRevision": 2,
+   "page": 7,
+   "pageName": "Fri 4",
+   "cell": "r1c5",
+   "label": "Oseh Shalom",
+   "role": "single",
+   "cameraGesture": {
+    "in": {
+     "conn": "Door_Cam (steve)",
+     "preset": 5,
+     "input": "right cam 3"
+    },
+    "out": {
+     "conn": "Center",
+     "preset": 1,
+     "input": "center cam 1"
+    }
+   }
+  },
+  {
+   "cueId": "bf4eb2c9-fe1f-44bd-87ab-cc64186cd4f9",
+   "draftName": "Silent Prayer",
+   "title": "T'filah",
+   "layout": "right",
+   "activeRevision": 1,
+   "page": 7,
+   "pageName": "Fri 4",
+   "cell": "r2c5",
+   "label": "Silent Prayer",
+   "role": "single",
+   "cameraGesture": {
+    "in": {
+     "conn": "Door_Cam (steve)",
+     "preset": 5,
+     "input": "right cam 3"
+    },
+    "out": {
+     "conn": "Center",
+     "preset": 1,
+     "input": "center cam 1"
+    }
+   }
+  },
+  {
+   "cueId": "e7b73357-ae15-4880-8e8c-7d9f7ef754b4",
+   "draftName": "Od Yavo Shalom",
+   "title": "Od Yavo Shalom Aleinu",
+   "layout": "bottom",
+   "activeRevision": 1,
+   "page": 7,
+   "pageName": "Fri 4",
+   "cell": "r3c5",
+   "label": "Od Yavo Shalom",
+   "role": "single"
+  },
+  {
+   "cueId": "8e486f11-e9f5-4c2e-bd5f-071707788c14",
+   "draftName": "Be Right Back",
+   "title": "Central Reform Congregation",
+   "layout": "bottom",
+   "activeRevision": 1,
+   "page": 8,
+   "pageName": "Fri 5",
+   "cell": "r3c6",
+   "label": "Be Right Back",
+   "role": "utility"
+  },
+  {
+   "cueId": "80f96159-5989-42dd-9620-c617057f1014",
+   "draftName": "Send Healing Names",
+   "title": "Healing Prayers",
+   "layout": "bottom",
+   "activeRevision": 2,
+   "page": 8,
+   "pageName": "Fri 5",
+   "cell": "r0c1",
+   "label": "Healing Names",
+   "role": "announcement"
+  },
+  {
+   "cueId": "1f826b16-c4df-4256-bfb0-befdec2f9f71",
+   "draftName": "Mi Sheberach",
+   "title": "Prayer for Healing",
+   "layout": "left",
+   "activeRevision": 1,
+   "page": 8,
+   "pageName": "Fri 5",
+   "cell": "r1c1",
+   "label": "Mi Sheberach",
+   "role": "single",
+   "cameraGesture": {
+    "in": {
+     "conn": "Door_Cam (steve)",
+     "preset": 4,
+     "input": "right cam 3"
+    },
+    "out": {
+     "conn": "Center",
+     "preset": 1,
+     "input": "center cam 1"
+    }
+   }
+  },
+  {
+   "cueId": "2bfbe40e-ded5-4de3-8978-f347d9e99a83",
+   "draftName": "Jim Mi Sheb",
+   "title": "Prayer for Healing",
+   "layout": "left",
+   "activeRevision": 1,
+   "page": 8,
+   "pageName": "Fri 5",
+   "cell": "r2c1",
+   "label": "Mi Sheb · Jim",
+   "role": "alternate"
+  },
+  {
+   "cueId": "d541f3d2-f8c4-4a58-b733-579413e447c4",
+   "draftName": "El Na R'fa Na",
+   "title": "El Na R'fa Na Lah/Lo",
+   "layout": "bottom",
+   "activeRevision": 2,
+   "page": 8,
+   "pageName": "Fri 5",
+   "cell": "r3c1",
+   "label": "El Na R'fa Na",
+   "role": "single"
+  },
+  {
+   "cueId": "c17839d9-3e42-4a6d-9de6-875c1ae61f48",
+   "draftName": "Refa Tziri 1",
+   "title": "R'fa Tziri",
+   "layout": "left",
+   "activeRevision": 1,
+   "page": 8,
+   "pageName": "Fri 5",
+   "cell": "r0c2",
+   "label": "R'fa Tziri 1/2",
+   "role": "sequence-part",
+   "sequence": {
+    "name": "R'fa Tziri",
+    "index": 1,
+    "count": 2
+   }
+  },
+  {
+   "cueId": "eff3e584-6839-4e78-8c04-34518cbf8316",
+   "draftName": "Refa Tziri 2",
+   "title": "R'fa Tziri",
+   "layout": "left",
+   "activeRevision": 1,
+   "page": 8,
+   "pageName": "Fri 5",
+   "cell": "r1c2",
+   "label": "R'fa Tziri 2/2",
+   "role": "sequence-part",
+   "sequence": {
+    "name": "R'fa Tziri",
+    "index": 2,
+    "count": 2
+   }
+  },
+  {
+   "cueId": "add0f175-584f-472e-83e3-a0de82a261ff",
+   "draftName": "Olam Chesed Yibaneh",
+   "title": "Olam Chesed Yibaneh",
+   "layout": "bottom",
+   "activeRevision": 1,
+   "page": 8,
+   "pageName": "Fri 5",
+   "cell": "r2c2",
+   "label": "Olam Chesed Yibaneh",
+   "role": "single",
+   "note": "Published revision 1 is English-only; the maintained Hebrew is missing and draft v2 is held (OLAM-CHESSED-SOURCE-DIAGNOSIS). Bound as published; see OPEN-QUESTIONS."
+  },
+  {
+   "cueId": "67693694-1802-4262-9121-3ebc42a53bde",
+   "draftName": "Aleinu 1",
+   "title": "Aleinu",
+   "layout": "left",
+   "activeRevision": 2,
+   "page": 8,
+   "pageName": "Fri 5",
+   "cell": "r0c3",
+   "label": "Aleinu 1/4",
+   "role": "sequence-part",
+   "sequence": {
+    "name": "Aleinu",
+    "index": 1,
+    "count": 4
+   }
+  },
+  {
+   "cueId": "403eced5-770f-49f2-99bc-b8b2c2b59235",
+   "draftName": "Aleinu 2",
+   "title": "Aleinu",
+   "layout": "left",
+   "activeRevision": 2,
+   "page": 8,
+   "pageName": "Fri 5",
+   "cell": "r1c3",
+   "label": "Aleinu 2/4",
+   "role": "sequence-part",
+   "sequence": {
+    "name": "Aleinu",
+    "index": 2,
+    "count": 4
+   }
+  },
+  {
+   "cueId": "d126a475-8cbe-476c-9584-a84761e8b888",
+   "draftName": "Aleinu 3",
+   "title": "Aleinu",
+   "layout": "left",
+   "activeRevision": 2,
+   "page": 8,
+   "pageName": "Fri 5",
+   "cell": "r2c3",
+   "label": "Aleinu 3/4",
+   "role": "sequence-part",
+   "sequence": {
+    "name": "Aleinu",
+    "index": 3,
+    "count": 4
+   }
+  },
+  {
+   "cueId": "80e7acd3-ae25-4713-8c5b-d50cd9d792f1",
+   "draftName": "Aleinu 4",
+   "title": "Aleinu",
+   "layout": "left",
+   "activeRevision": 2,
+   "page": 8,
+   "pageName": "Fri 5",
+   "cell": "r3c3",
+   "label": "Aleinu 4/4",
+   "role": "sequence-part",
+   "sequence": {
+    "name": "Aleinu",
+    "index": 4,
+    "count": 4
+   }
+  },
+  {
+   "cueId": "d0a1be50-2ee0-4604-81d6-c3083376bf89",
+   "draftName": "Send Kaddish Names",
+   "title": "Mourner's Kaddish",
+   "layout": "bottom",
+   "activeRevision": 2,
+   "page": 8,
+   "pageName": "Fri 5",
+   "cell": "r0c4",
+   "label": "Kaddish Names",
+   "role": "announcement"
+  },
+  {
+   "cueId": "c2d2c129-7d7d-4bbc-a296-46cc1fb9f48e",
+   "draftName": "Mourners Kaddish 1",
+   "title": "Mourner's Kaddish",
+   "layout": "left",
+   "activeRevision": 2,
+   "page": 8,
+   "pageName": "Fri 5",
+   "cell": "r1c4",
+   "label": "Kaddish 1/2",
+   "role": "sequence-part",
+   "sequence": {
+    "name": "Mourner's Kaddish",
+    "index": 1,
+    "count": 2
+   },
+   "note": "Plain 2-panel default (MK3 archived; T/TT family unbound)."
+  },
+  {
+   "cueId": "f15c1944-da76-4d61-95c8-05c032d47c4d",
+   "draftName": "Mourners Kaddish 2",
+   "title": "Mourner's Kaddish",
+   "layout": "left",
+   "activeRevision": 2,
+   "page": 8,
+   "pageName": "Fri 5",
+   "cell": "r2c4",
+   "label": "Kaddish 2/2",
+   "role": "sequence-part",
+   "sequence": {
+    "name": "Mourner's Kaddish",
+    "index": 2,
+    "count": 2
+   }
+  },
+  {
+   "cueId": "a4c86b16-6677-46b8-ad39-871a2fb81224",
+   "draftName": "Adon Olam 1",
+   "title": "Adon Olam",
+   "layout": "left",
+   "activeRevision": 3,
+   "page": 8,
+   "pageName": "Fri 5",
+   "cell": "r0c5",
+   "label": "Adon Olam 1/3",
+   "role": "sequence-part",
+   "sequence": {
+    "name": "Adon Olam",
+    "index": 1,
+    "count": 3
+   }
+  },
+  {
+   "cueId": "7d337be4-8b25-4bbd-b532-87b8d0c7602c",
+   "draftName": "Adon Olam 2",
+   "title": "Adon Olam",
+   "layout": "left",
+   "activeRevision": 3,
+   "page": 8,
+   "pageName": "Fri 5",
+   "cell": "r1c5",
+   "label": "Adon Olam 2/3",
+   "role": "sequence-part",
+   "sequence": {
+    "name": "Adon Olam",
+    "index": 2,
+    "count": 3
+   }
+  },
+  {
+   "cueId": "9bb328cb-f218-40e3-9e91-56864144af6a",
+   "draftName": "Adon Olam 3",
+   "title": "Adon Olam",
+   "layout": "left",
+   "activeRevision": 3,
+   "page": 8,
+   "pageName": "Fri 5",
+   "cell": "r2c5",
+   "label": "Adon Olam 3/3",
+   "role": "sequence-part",
+   "sequence": {
+    "name": "Adon Olam",
+    "index": 3,
+    "count": 3
+   }
+  },
+  {
+   "cueId": "089cce61-085b-49e9-9ede-f6ec81f65789",
+   "draftName": "Birkat Kohanim",
+   "title": "Priestly Blessing",
+   "layout": "bottom",
+   "activeRevision": 2,
+   "page": 8,
+   "pageName": "Fri 5",
+   "cell": "r3c5",
+   "label": "Priestly Blessing",
+   "role": "single"
+  },
+  {
+   "cueId": "8e486f11-e9f5-4c2e-bd5f-071707788c14",
+   "draftName": "Be Right Back",
+   "title": "Central Reform Congregation",
+   "layout": "bottom",
+   "activeRevision": 1,
+   "page": 9,
+   "pageName": "Fri 6",
+   "cell": "r3c6",
+   "label": "Be Right Back",
+   "role": "utility"
+  },
+  {
+   "cueId": "e1a495c8-836c-4877-a2ac-06f3eec8ac1b",
+   "draftName": "Kiddush (long)",
+   "title": "Kiddush",
+   "layout": "left",
+   "activeRevision": 2,
+   "page": 9,
+   "pageName": "Fri 6",
+   "cell": "r0c1",
+   "label": "Kiddush 1/2",
+   "role": "sequence-part",
+   "sequence": {
+    "name": "Kiddush (CRC)",
+    "index": 1,
+    "count": 2
+   }
+  },
+  {
+   "cueId": "19661732-76c4-4845-a06d-83b71484f782",
+   "draftName": "Kiddush (long) 2",
+   "title": "Kiddush",
+   "layout": "left",
+   "activeRevision": 2,
+   "page": 9,
+   "pageName": "Fri 6",
+   "cell": "r1c1",
+   "label": "Kiddush 2/2",
+   "role": "sequence-part",
+   "sequence": {
+    "name": "Kiddush (CRC)",
+    "index": 2,
+    "count": 2
+   }
+  },
+  {
+   "cueId": "bb2d1b64-95dc-47c2-bbc6-1451233dcf53",
+   "draftName": "Kiddush (short)",
+   "title": "Kiddush",
+   "layout": "bottom",
+   "activeRevision": 2,
+   "page": 9,
+   "pageName": "Fri 6",
+   "cell": "r2c1",
+   "label": "Kiddush (short)",
+   "role": "short-selection"
+  },
+  {
+   "cueId": "503cbb1f-082e-4ff0-9d70-34f572490be1",
+   "draftName": "Wine Blessing",
+   "title": "Festival Kiddush",
+   "layout": "bottom",
+   "activeRevision": 1,
+   "page": 9,
+   "pageName": "Fri 6",
+   "cell": "r3c1",
+   "label": "Wine blessing",
+   "role": "short-selection",
+   "note": "Title field is \"Festival Kiddush\"; content is the one-block Shirei wine blessing. Bound as the shortest Friday option."
+  },
+  {
+   "cueId": "cb8057bd-8fd0-4737-8fa7-eee8e7a8b152",
+   "draftName": "Friday Night Kiddush with Vay'chulu (Supplement) — 1 of 2",
+   "title": "Friday Kiddush · Shirei",
+   "layout": "left",
+   "activeRevision": 2,
+   "page": 9,
+   "pageName": "Fri 6",
+   "cell": "r0c2",
+   "label": "Kiddush Shirei 1/2",
+   "role": "alternate",
+   "sequence": {
+    "name": "Kiddush · Shirei (Vay'chulu)",
+    "index": 1,
+    "count": 2
+   }
+  },
+  {
+   "cueId": "cf8def5a-8a88-4f74-8838-9684fa91c99e",
+   "draftName": "Friday Night Kiddush with Vay'chulu (Supplement) — 2 of 2",
+   "title": "Friday Kiddush · Shirei",
+   "layout": "left",
+   "activeRevision": 1,
+   "page": 9,
+   "pageName": "Fri 6",
+   "cell": "r1c2",
+   "label": "Kiddush Shirei 2/2",
+   "role": "alternate",
+   "sequence": {
+    "name": "Kiddush · Shirei (Vay'chulu)",
+    "index": 2,
+    "count": 2
+   }
+  },
+  {
+   "cueId": "0be48337-2cbf-4a89-82f5-a7280a36709e",
+   "draftName": "Motzi",
+   "title": "Motzi",
+   "layout": "bottom",
+   "activeRevision": 2,
+   "page": 9,
+   "pageName": "Fri 6",
+   "cell": "r0c3",
+   "label": "Motzi",
+   "role": "single"
+  },
+  {
+   "cueId": "c1c6def3-330e-4e84-bf0c-d47164b78193",
+   "draftName": "Shehechiyanu",
+   "title": "A Blessing for a Sacred Moment",
+   "layout": "bottom",
+   "activeRevision": 1,
+   "page": 9,
+   "pageName": "Fri 6",
+   "cell": "r1c3",
+   "label": "Shehechiyanu",
+   "role": "single"
+  },
+  {
+   "cueId": "016b6fc4-6ff6-4a69-a42a-53f6403f846f",
+   "draftName": "Mazel Tov",
+   "title": "Mazel Tov",
+   "layout": "bottom",
+   "activeRevision": 1,
+   "page": 9,
+   "pageName": "Fri 6",
+   "cell": "r2c3",
+   "label": "Mazel Tov",
+   "role": "announcement"
+  },
+  {
+   "cueId": "3d18426f-f8b6-49f5-831c-fc35e0f58f40",
+   "draftName": "Announcements",
+   "title": "Announcements",
+   "layout": "bottom",
+   "activeRevision": 1,
+   "page": 9,
+   "pageName": "Fri 6",
+   "cell": "r0c4",
+   "label": "Announcements",
+   "role": "announcement"
+  },
+  {
+   "cueId": "09f50803-3288-4b78-bcc7-560025668e1a",
+   "draftName": "Thank you",
+   "title": "Central Reform Congregation",
+   "layout": "right",
+   "activeRevision": 1,
+   "page": 9,
+   "pageName": "Fri 6",
+   "cell": "r1c4",
+   "label": "Thank You",
+   "role": "announcement"
+  },
+  {
+   "cueId": "8e486f11-e9f5-4c2e-bd5f-071707788c14",
+   "draftName": "Be Right Back",
+   "title": "Central Reform Congregation",
+   "layout": "bottom",
+   "activeRevision": 1,
+   "page": 10,
+   "pageName": "Sat 1",
+   "cell": "r3c6",
+   "label": "Be Right Back",
+   "role": "utility"
+  },
+  {
+   "cueId": "0cd20c42-8310-4ddf-bab9-72bab6113e04",
+   "draftName": "Starting Soon",
+   "title": "Central Reform Congregation",
+   "layout": "bottom",
+   "activeRevision": 1,
+   "page": 10,
+   "pageName": "Sat 1",
+   "cell": "r0c1",
+   "label": "Starting Soon",
+   "role": "announcement"
+  },
+  {
+   "cueId": "778b1e41-5c34-490e-8b32-079dd1a89da8",
+   "draftName": "Tallit Blessing",
+   "title": "Tallit Blessing",
+   "layout": "bottom",
+   "activeRevision": 1,
+   "page": 10,
+   "pageName": "Sat 1",
+   "cell": "r1c1",
+   "label": "Tallit Blessing",
+   "role": "single"
+  },
+  {
+   "cueId": "eac2dee3-17f3-4a52-9ca5-4d7611f0f9dc",
+   "draftName": "Modeh Ani (Bottom)",
+   "title": "Modeh Ani",
+   "layout": "bottom",
+   "activeRevision": 2,
+   "page": 10,
+   "pageName": "Sat 1",
+   "cell": "r2c1",
+   "label": "Modeh Ani",
+   "role": "single"
+  },
+  {
+   "cueId": "d4298cbf-d17e-498b-ad70-d7900e899718",
+   "draftName": "Elohai Nshama",
+   "title": "Elohai N'shama",
+   "layout": "bottom",
+   "activeRevision": 2,
+   "page": 10,
+   "pageName": "Sat 1",
+   "cell": "r3c1",
+   "label": "Elohai N'shama",
+   "role": "single"
+  },
+  {
+   "cueId": "bbd7c98b-f1de-41ee-9719-2bb27a30d0db",
+   "draftName": "Mah Tovu",
+   "title": "Mah Tovu / Hineih Mah Tov",
+   "layout": "left",
+   "activeRevision": 2,
+   "page": 10,
+   "pageName": "Sat 1",
+   "cell": "r0c2",
+   "label": "Mah Tovu",
+   "role": "single"
+  },
+  {
+   "cueId": "9c34f35c-7a84-4aa3-9233-80759fb63a64",
+   "draftName": "Hinei Ma Tov",
+   "title": "Hineih Mah Tov",
+   "layout": "bottom",
+   "activeRevision": 2,
+   "page": 10,
+   "pageName": "Sat 1",
+   "cell": "r1c2",
+   "label": "Hinei Ma Tov",
+   "role": "alternate"
+  },
+  {
+   "cueId": "e1bd7775-ddf1-468b-b3f7-ac98f11df958",
+   "draftName": "Hareini",
+   "title": "Hareini",
+   "layout": "bottom",
+   "activeRevision": 2,
+   "page": 10,
+   "pageName": "Sat 1",
+   "cell": "r2c2",
+   "label": "Hareini",
+   "role": "alternate"
+  },
+  {
+   "cueId": "df4b1219-7680-4cab-adba-5b93cf6a1afa",
+   "draftName": "Esah Einai",
+   "title": "Esah Einai",
+   "layout": "bottom",
+   "activeRevision": 1,
+   "page": 10,
+   "pageName": "Sat 1",
+   "cell": "r3c2",
+   "label": "Esa Einai",
+   "role": "alternate"
+  },
+  {
+   "cueId": "0135de3c-9a47-4fdc-91b9-99bacdf64970",
+   "draftName": "Birchot Hashachar 1",
+   "title": "Birchot Hashachar",
+   "layout": "left",
+   "activeRevision": 2,
+   "page": 10,
+   "pageName": "Sat 1",
+   "cell": "r0c3",
+   "label": "Birchot 1/4",
+   "role": "sequence-part",
+   "sequence": {
+    "name": "Birchot Hashachar",
+    "index": 1,
+    "count": 4
+   }
+  },
+  {
+   "cueId": "b60c1abc-2257-4316-9ae4-2a03f72133d6",
+   "draftName": "Birchot Hashachar 2",
+   "title": "Birchot Hashachar",
+   "layout": "left",
+   "activeRevision": 2,
+   "page": 10,
+   "pageName": "Sat 1",
+   "cell": "r1c3",
+   "label": "Birchot 2/4",
+   "role": "sequence-part",
+   "sequence": {
+    "name": "Birchot Hashachar",
+    "index": 2,
+    "count": 4
+   }
+  },
+  {
+   "cueId": "ceb24b8c-d9a7-4607-99bf-c0962e2a88ff",
+   "draftName": "Birchot Hashachar 3",
+   "title": "Birchot Hashachar",
+   "layout": "left",
+   "activeRevision": 3,
+   "page": 10,
+   "pageName": "Sat 1",
+   "cell": "r2c3",
+   "label": "Birchot 3/4",
+   "role": "sequence-part",
+   "sequence": {
+    "name": "Birchot Hashachar",
+    "index": 3,
+    "count": 4
+   }
+  },
+  {
+   "cueId": "2b3da7a3-dc18-46f1-a792-13a4771b343c",
+   "draftName": "Birchot Hashachar 4",
+   "title": "Birchot Hashachar",
+   "layout": "left",
+   "activeRevision": 3,
+   "page": 10,
+   "pageName": "Sat 1",
+   "cell": "r3c3",
+   "label": "Birchot 4/4",
+   "role": "sequence-part",
+   "sequence": {
+    "name": "Birchot Hashachar",
+    "index": 4,
+    "count": 4
+   }
+  },
+  {
+   "cueId": "65743cb0-95c9-4d26-b8eb-74c86f1f1b36",
+   "draftName": "Psukei DZimrah 1",
+   "title": "Psukei d'Zimrah",
+   "layout": "left",
+   "activeRevision": 2,
+   "page": 10,
+   "pageName": "Sat 1",
+   "cell": "r0c4",
+   "label": "P'sukei 1/2",
+   "role": "sequence-part",
+   "sequence": {
+    "name": "P'sukei d'Zimrah",
+    "index": 1,
+    "count": 2
+   }
+  },
+  {
+   "cueId": "f792daee-3663-4350-a3cb-783897e1f463",
+   "draftName": "Psukei DZimrah 2",
+   "title": "Psukei d'Zimrah",
+   "layout": "left",
+   "activeRevision": 3,
+   "page": 10,
+   "pageName": "Sat 1",
+   "cell": "r1c4",
+   "label": "P'sukei 2/2",
+   "role": "sequence-part",
+   "sequence": {
+    "name": "P'sukei d'Zimrah",
+    "index": 2,
+    "count": 2
+   }
+  },
+  {
+   "cueId": "fa6d1921-f475-4a8c-841c-2ffe4744ca19",
+   "draftName": "Hodu",
+   "title": "Hodu l'Adonai",
+   "layout": "bottom",
+   "activeRevision": 2,
+   "page": 10,
+   "pageName": "Sat 1",
+   "cell": "r2c4",
+   "label": "Hodu",
+   "role": "single"
+  },
+  {
+   "cueId": "847b8cd4-cd72-44cb-8722-7a024a119413",
+   "draftName": "Lev Tahor",
+   "title": "Lev Tahor",
+   "layout": "bottom",
+   "activeRevision": 2,
+   "page": 10,
+   "pageName": "Sat 1",
+   "cell": "r3c4",
+   "label": "Lev Tahor",
+   "role": "single"
+  },
+  {
+   "cueId": "a5784181-b4b5-4033-8ad2-4be46bac1fff",
+   "draftName": "Psalm 150",
+   "title": "Hal'lu Yah (Psalm 150)",
+   "layout": "left",
+   "activeRevision": 2,
+   "page": 10,
+   "pageName": "Sat 1",
+   "cell": "r0c5",
+   "label": "Hal'lu Yah (Ps 150)",
+   "role": "single"
+  },
+  {
+   "cueId": "8d70b40b-c072-452e-a016-9e47015056f6",
+   "draftName": "Psalm-ish 1",
+   "title": "Psalm-ish 150",
+   "layout": "bottom",
+   "activeRevision": 3,
+   "page": 10,
+   "pageName": "Sat 1",
+   "cell": "r1c5",
+   "label": "Psalm-ish 1/2",
+   "role": "alternate",
+   "sequence": {
+    "name": "Psalm-ish 150",
+    "index": 1,
+    "count": 2
+   }
+  },
+  {
+   "cueId": "ebbee099-e970-45e2-9aa8-db1992181e73",
+   "draftName": "Psalm-ish 2",
+   "title": "Psalm-ish 150",
+   "layout": "bottom",
+   "activeRevision": 3,
+   "page": 10,
+   "pageName": "Sat 1",
+   "cell": "r2c5",
+   "label": "Psalm-ish 2/2",
+   "role": "alternate",
+   "sequence": {
+    "name": "Psalm-ish 150",
+    "index": 2,
+    "count": 2
+   }
+  },
+  {
+   "cueId": "4ccb27d3-47a3-47a4-bf5b-e74ac427a71e",
+   "draftName": "Kol Hanshemah",
+   "title": "Kol Han'shamah",
+   "layout": "bottom",
+   "activeRevision": 2,
+   "page": 10,
+   "pageName": "Sat 1",
+   "cell": "r3c5",
+   "label": "Kol Han'shamah",
+   "role": "single"
+  },
+  {
+   "cueId": "8e486f11-e9f5-4c2e-bd5f-071707788c14",
+   "draftName": "Be Right Back",
+   "title": "Central Reform Congregation",
+   "layout": "bottom",
+   "activeRevision": 1,
+   "page": 11,
+   "pageName": "Sat 2",
+   "cell": "r3c6",
+   "label": "Be Right Back",
+   "role": "utility"
+  },
+  {
+   "cueId": "0a4b12eb-1463-44d7-be91-329049e5ec82",
+   "draftName": "Readers Kaddish 1",
+   "title": "Hatzi Kaddish",
+   "layout": "left",
+   "activeRevision": 3,
+   "page": 11,
+   "pageName": "Sat 2",
+   "cell": "r0c1",
+   "label": "Hatzi Kaddish 1/2",
+   "role": "sequence-part",
+   "sequence": {
+    "name": "Hatzi Kaddish",
+    "index": 1,
+    "count": 2
+   }
+  },
+  {
+   "cueId": "7c087a0d-23cb-458e-af6a-3210982ff0d6",
+   "draftName": "Readers Kaddish 2",
+   "title": "Hatzi Kaddish",
+   "layout": "left",
+   "activeRevision": 2,
+   "page": 11,
+   "pageName": "Sat 2",
+   "cell": "r1c1",
+   "label": "Hatzi Kaddish 2/2",
+   "role": "sequence-part",
+   "sequence": {
+    "name": "Hatzi Kaddish",
+    "index": 2,
+    "count": 2
+   }
+  },
+  {
+   "cueId": "efa9fad4-f7d5-4091-a708-82103028861b",
+   "draftName": "Barechu",
+   "title": "Bar'chu",
+   "layout": "bottom",
+   "activeRevision": 2,
+   "page": 11,
+   "pageName": "Sat 2",
+   "cell": "r0c2",
+   "label": "Bar'chu",
+   "role": "single"
+  },
+  {
+   "cueId": "1dc607cc-37fa-48d7-a13d-9030a28f332d",
+   "draftName": "As We Bless",
+   "title": "As We Bless",
+   "layout": "bottom",
+   "activeRevision": 2,
+   "page": 11,
+   "pageName": "Sat 2",
+   "cell": "r1c2",
+   "label": "As We Bless",
+   "role": "alternate"
+  },
+  {
+   "cueId": "23cc50be-1d16-4720-b073-d2ea207c4c12",
+   "draftName": "Am I Awake",
+   "title": "Am I Awake",
+   "layout": "bottom",
+   "activeRevision": 4,
+   "page": 11,
+   "pageName": "Sat 2",
+   "cell": "r2c2",
+   "label": "Am I Awake",
+   "role": "alternate"
+  },
+  {
+   "cueId": "aa4a2b0c-23d2-45d3-8268-735331466a60",
+   "draftName": "Yotzer Or 1",
+   "title": "Yotzeir Or",
+   "layout": "bottom",
+   "activeRevision": 2,
+   "page": 11,
+   "pageName": "Sat 2",
+   "cell": "r0c3",
+   "label": "Yotzeir Or 1/2",
+   "role": "sequence-part",
+   "sequence": {
+    "name": "Yotzeir Or",
+    "index": 1,
+    "count": 2
+   }
+  },
+  {
+   "cueId": "847f0ed9-cd05-44ed-b2a2-c7947cbb72d6",
+   "draftName": "Yotzer Or 2",
+   "title": "Yotzeir Or",
+   "layout": "bottom",
+   "activeRevision": 2,
+   "page": 11,
+   "pageName": "Sat 2",
+   "cell": "r1c3",
+   "label": "Yotzeir Or 2/2",
+   "role": "sequence-part",
+   "sequence": {
+    "name": "Yotzeir Or",
+    "index": 2,
+    "count": 2
+   }
+  },
+  {
+   "cueId": "263efa6c-73f8-46a8-9ea2-11fbbf14c6a2",
+   "draftName": "Yotzer Or (short)",
+   "title": "Yotzeir Or",
+   "layout": "bottom",
+   "activeRevision": 2,
+   "page": 11,
+   "pageName": "Sat 2",
+   "cell": "r2c3",
+   "label": "Yotzeir Or (short)",
+   "role": "short-selection"
+  },
+  {
+   "cueId": "d62c0799-efb3-40fa-8602-cce8768f2e1f",
+   "draftName": "Yotzer Or Interpretation 1",
+   "title": "Yotzer Or — Interpretation",
+   "layout": "bottom",
+   "activeRevision": 2,
+   "page": 11,
+   "pageName": "Sat 2",
+   "cell": "r0c4",
+   "label": "Yotzer Interp 1/2",
+   "role": "alternate",
+   "sequence": {
+    "name": "Yotzer Or — Interpretation",
+    "index": 1,
+    "count": 2
+   }
+  },
+  {
+   "cueId": "8515cb8c-5e09-4cee-a3f5-0fa018ec72db",
+   "draftName": "Yotzer Or Interpretation 2",
+   "title": "Yotzer Or — Interpretation",
+   "layout": "bottom",
+   "activeRevision": 2,
+   "page": 11,
+   "pageName": "Sat 2",
+   "cell": "r1c4",
+   "label": "Yotzer Interp 2/2",
+   "role": "alternate",
+   "sequence": {
+    "name": "Yotzer Or — Interpretation",
+    "index": 2,
+    "count": 2
+   }
+  },
+  {
+   "cueId": "4715aa3b-02c7-4ec9-899d-22e6a7d190c1",
+   "draftName": "Ahava Rabbah Ahavtanu (Partial)",
+   "title": "Ahavah Rabbah Ahavtanu",
+   "layout": "bottom",
+   "activeRevision": 2,
+   "page": 11,
+   "pageName": "Sat 2",
+   "cell": "r0c5",
+   "label": "Ahavah Rabbah (partial)",
+   "role": "single"
+  },
+  {
+   "cueId": "37e2c89b-c658-460b-8b64-ef20c22903cf",
+   "draftName": "Ahavah Raba (short)",
+   "title": "Ahavah Rabah",
+   "layout": "bottom",
+   "activeRevision": 1,
+   "page": 11,
+   "pageName": "Sat 2",
+   "cell": "r1c5",
+   "label": "Ahavah Rabah (short)",
+   "role": "short-selection"
+  },
+  {
+   "cueId": "e62e68e1-08e3-4021-8806-e3118295f282",
+   "draftName": "We Are Loved 1",
+   "title": "We Are Loved",
+   "layout": "bottom",
+   "activeRevision": 4,
+   "page": 11,
+   "pageName": "Sat 2",
+   "cell": "r2c5",
+   "label": "We Are Loved 1/2",
+   "role": "alternate",
+   "sequence": {
+    "name": "We Are Loved",
+    "index": 1,
+    "count": 2
+   }
+  },
+  {
+   "cueId": "a2d94d09-e5fe-4466-bb62-9a3569e607a7",
+   "draftName": "We Are Loved 2",
+   "title": "We Are Loved",
+   "layout": "bottom",
+   "activeRevision": 2,
+   "page": 11,
+   "pageName": "Sat 2",
+   "cell": "r3c5",
+   "label": "We Are Loved 2/2",
+   "role": "alternate",
+   "sequence": {
+    "name": "We Are Loved",
+    "index": 2,
+    "count": 2
+   }
+  },
+  {
+   "cueId": "8e486f11-e9f5-4c2e-bd5f-071707788c14",
+   "draftName": "Be Right Back",
+   "title": "Central Reform Congregation",
+   "layout": "bottom",
+   "activeRevision": 1,
+   "page": 12,
+   "pageName": "Sat 3",
+   "cell": "r3c6",
+   "label": "Be Right Back",
+   "role": "utility"
+  },
+  {
+   "cueId": "042e53fd-2f77-4b30-a951-13e7889e2297",
+   "draftName": "Shema",
+   "title": "The Sh'ma",
+   "layout": "bottom",
+   "activeRevision": 1,
+   "page": 12,
+   "pageName": "Sat 3",
+   "cell": "r0c1",
+   "label": "Sh'ma",
+   "role": "single"
+  },
+  {
+   "cueId": "111297d8-29c7-44b1-837f-b71e20b7e74e",
+   "draftName": "How Awesome / Shema",
+   "title": "How Awesome / Shema",
+   "layout": "bottom",
+   "activeRevision": 3,
+   "page": 12,
+   "pageName": "Sat 3",
+   "cell": "r1c1",
+   "label": "How Awesome / Sh’ma",
+   "role": "alternate"
+  },
+  {
+   "cueId": "dd0db929-cddb-49a5-b871-045dd80a511a",
+   "draftName": "One Love",
+   "title": "One Love",
+   "layout": "left",
+   "activeRevision": 1,
+   "page": 12,
+   "pageName": "Sat 3",
+   "cell": "r2c1",
+   "label": "One Love",
+   "role": "alternate"
+  },
+  {
+   "cueId": "2ed003b5-5a9a-4923-8e1c-6722a69c0104",
+   "draftName": "Vahavta 1",
+   "title": "V'ahavta",
+   "layout": "left",
+   "activeRevision": 2,
+   "page": 12,
+   "pageName": "Sat 3",
+   "cell": "r0c2",
+   "label": "V'ahavta 1/2",
+   "role": "sequence-part",
+   "sequence": {
+    "name": "V'ahavta",
+    "index": 1,
+    "count": 2
+   }
+  },
+  {
+   "cueId": "4343d861-686f-449a-9f4e-2943da5a59db",
+   "draftName": "Vahavta 2",
+   "title": "V'ahavta",
+   "layout": "left",
+   "activeRevision": 2,
+   "page": 12,
+   "pageName": "Sat 3",
+   "cell": "r1c2",
+   "label": "V'ahavta 2/2",
+   "role": "sequence-part",
+   "sequence": {
+    "name": "V'ahavta",
+    "index": 2,
+    "count": 2
+   }
+  },
+  {
+   "cueId": "a4e5367c-a1e3-494f-b4e7-3f9e53522cc6",
+   "draftName": "Thou Shalt Love",
+   "title": "Thou Shalt Love",
+   "layout": "bottom",
+   "activeRevision": 2,
+   "page": 12,
+   "pageName": "Sat 3",
+   "cell": "r2c2",
+   "label": "Thou Shalt Love 1/2",
+   "role": "alternate",
+   "sequence": {
+    "name": "Thou Shalt Love",
+    "index": 1,
+    "count": 2
+   }
+  },
+  {
+   "cueId": "46f843c0-834e-484d-bc75-9bf4679508fc",
+   "draftName": "Thou Shalt Love 2",
+   "title": "Thou Shalt Love",
+   "layout": "bottom",
+   "activeRevision": 2,
+   "page": 12,
+   "pageName": "Sat 3",
+   "cell": "r3c2",
+   "label": "Thou Shalt Love 2/2",
+   "role": "alternate",
+   "sequence": {
+    "name": "Thou Shalt Love",
+    "index": 2,
+    "count": 2
+   }
+  },
+  {
+   "cueId": "a5c90765-48c0-4384-a3e2-65b43cc2adf1",
+   "draftName": "Mi Chamocha (Sat 1)",
+   "title": "Mi Chamochah",
+   "layout": "left",
+   "activeRevision": 2,
+   "page": 12,
+   "pageName": "Sat 3",
+   "cell": "r0c3",
+   "label": "Mi Chamocha 1/2",
+   "role": "sequence-part",
+   "sequence": {
+    "name": "Mi Chamocha (Sat)",
+    "index": 1,
+    "count": 2
+   }
+  },
+  {
+   "cueId": "5bad62c7-3005-4977-8349-230520c70211",
+   "draftName": "Mi Chamocha (Sat 2)",
+   "title": "Mi Chamochah",
+   "layout": "left",
+   "activeRevision": 3,
+   "page": 12,
+   "pageName": "Sat 3",
+   "cell": "r1c3",
+   "label": "Mi Chamocha 2/2",
+   "role": "sequence-part",
+   "sequence": {
+    "name": "Mi Chamocha (Sat)",
+    "index": 2,
+    "count": 2
+   }
+  },
+  {
+   "cueId": "c8dbafb3-37bb-4c6b-96d5-96c9fddef38e",
+   "draftName": "Mi Chamocha (short)",
+   "title": "Mi Chamochah",
+   "layout": "bottom",
+   "activeRevision": 2,
+   "page": 12,
+   "pageName": "Sat 3",
+   "cell": "r2c3",
+   "label": "Mi Chamocha (short)",
+   "role": "short-selection"
+  },
+  {
+   "cueId": "219230a4-5d95-40b6-876c-9492db9fbaef",
+   "draftName": "Siyahamba",
+   "title": "Siyahamba",
+   "layout": "bottom",
+   "activeRevision": 2,
+   "page": 12,
+   "pageName": "Sat 3",
+   "cell": "r3c3",
+   "label": "Siyahamba",
+   "role": "alternate"
+  },
+  {
+   "cueId": "ef645335-1f59-4e0f-8aae-fbd176dc13c8",
+   "draftName": "Adonai Sifatai",
+   "title": "Adonai S'fatai",
+   "layout": "bottom",
+   "activeRevision": 2,
+   "page": 12,
+   "pageName": "Sat 3",
+   "cell": "r0c4",
+   "label": "Adonai S'fatai",
+   "role": "single"
+  },
+  {
+   "cueId": "f69d012c-a0c0-4f56-86bf-352e176a5ba7",
+   "draftName": "Sanctuary/Adonai Sifatai",
+   "title": "Sanctuary",
+   "layout": "bottom",
+   "activeRevision": 1,
+   "page": 12,
+   "pageName": "Sat 3",
+   "cell": "r1c4",
+   "label": "Sanctuary",
+   "role": "alternate"
+  },
+  {
+   "cueId": "750d3230-78c8-4cac-8852-b78cd0b6f304",
+   "draftName": "Avot 1",
+   "title": "Avot V'Imahot",
+   "layout": "left",
+   "activeRevision": 2,
+   "page": 12,
+   "pageName": "Sat 3",
+   "cell": "r0c5",
+   "label": "Avot 1/2",
+   "role": "sequence-part",
+   "sequence": {
+    "name": "Avot v'Imahot",
+    "index": 1,
+    "count": 2
+   }
+  },
+  {
+   "cueId": "23b881d2-d99e-42c6-a800-6004e67a5cdd",
+   "draftName": "Avot 2",
+   "title": "Avot V'Imahot",
+   "layout": "left",
+   "activeRevision": 2,
+   "page": 12,
+   "pageName": "Sat 3",
+   "cell": "r1c5",
+   "label": "Avot 2/2",
+   "role": "sequence-part",
+   "sequence": {
+    "name": "Avot v'Imahot",
+    "index": 2,
+    "count": 2
+   }
+  },
+  {
+   "cueId": "71e1273e-1eef-4754-9ddb-89c3221912ba",
+   "draftName": "Avot Interpretation 1",
+   "title": "Avot — Interpretation",
+   "layout": "bottom",
+   "activeRevision": 2,
+   "page": 12,
+   "pageName": "Sat 3",
+   "cell": "r2c5",
+   "label": "Avot Interp 1/2",
+   "role": "alternate",
+   "sequence": {
+    "name": "Avot — Interpretation",
+    "index": 1,
+    "count": 2
+   }
+  },
+  {
+   "cueId": "e8eb46a9-b898-4d1f-9343-cb5101a452d8",
+   "draftName": "Avot Interpretation 2",
+   "title": "Avot — Interpretation",
+   "layout": "bottom",
+   "activeRevision": 2,
+   "page": 12,
+   "pageName": "Sat 3",
+   "cell": "r3c5",
+   "label": "Avot Interp 2/2",
+   "role": "alternate",
+   "sequence": {
+    "name": "Avot — Interpretation",
+    "index": 2,
+    "count": 2
+   }
+  },
+  {
+   "cueId": "8e486f11-e9f5-4c2e-bd5f-071707788c14",
+   "draftName": "Be Right Back",
+   "title": "Central Reform Congregation",
+   "layout": "bottom",
+   "activeRevision": 1,
+   "page": 13,
+   "pageName": "Sat 4",
+   "cell": "r3c6",
+   "label": "Be Right Back",
+   "role": "utility"
+  },
+  {
+   "cueId": "b27ac87b-5db7-4537-923b-c86cb860d301",
+   "draftName": "Gevurot 1",
+   "title": "G'vurot",
+   "layout": "left",
+   "activeRevision": 2,
+   "page": 13,
+   "pageName": "Sat 4",
+   "cell": "r0c1",
+   "label": "G'vurot 1/2",
+   "role": "sequence-part",
+   "sequence": {
+    "name": "G'vurot",
+    "index": 1,
+    "count": 2
+   }
+  },
+  {
+   "cueId": "f241e548-c7f5-432c-8c86-2d9e01bd0a54",
+   "draftName": "Gevurot 2",
+   "title": "G'vurot",
+   "layout": "left",
+   "activeRevision": 2,
+   "page": 13,
+   "pageName": "Sat 4",
+   "cell": "r1c1",
+   "label": "G'vurot 2/2",
+   "role": "sequence-part",
+   "sequence": {
+    "name": "G'vurot",
+    "index": 2,
+    "count": 2
+   }
+  },
+  {
+   "cueId": "a04e815c-b1e1-451d-be57-827b0a5adee2",
+   "draftName": "G'vurot — Interpretation",
+   "title": "G'vurot — Interpretation",
+   "layout": "bottom",
+   "activeRevision": 2,
+   "page": 13,
+   "pageName": "Sat 4",
+   "cell": "r2c1",
+   "label": "G'vurot Interp",
+   "role": "alternate"
+  },
+  {
+   "cueId": "c1e8dc26-022d-4423-8279-ed48797fb510",
+   "draftName": "Kedusha 1",
+   "title": "K'dushah",
+   "layout": "left",
+   "activeRevision": 3,
+   "page": 13,
+   "pageName": "Sat 4",
+   "cell": "r0c2",
+   "label": "K'dushah 1/3",
+   "role": "sequence-part",
+   "sequence": {
+    "name": "K'dushah",
+    "index": 1,
+    "count": 3
+   }
+  },
+  {
+   "cueId": "4110135b-78c2-4983-9647-5e168999a912",
+   "draftName": "Kedusha 2",
+   "title": "K'dushah",
+   "layout": "left",
+   "activeRevision": 3,
+   "page": 13,
+   "pageName": "Sat 4",
+   "cell": "r1c2",
+   "label": "K'dushah 2/3",
+   "role": "sequence-part",
+   "sequence": {
+    "name": "K'dushah",
+    "index": 2,
+    "count": 3
+   }
+  },
+  {
+   "cueId": "14fa9413-0b2e-4c16-9a07-a37684c0b6f9",
+   "draftName": "Kedusha 3",
+   "title": "K'dushah",
+   "layout": "left",
+   "activeRevision": 2,
+   "page": 13,
+   "pageName": "Sat 4",
+   "cell": "r2c2",
+   "label": "K'dushah 3/3",
+   "role": "sequence-part",
+   "sequence": {
+    "name": "K'dushah",
+    "index": 3,
+    "count": 3
+   }
+  },
+  {
+   "cueId": "ad0a8bf7-9245-4c12-a78c-30f9f012fa16",
+   "draftName": "Vshamru",
+   "title": "V'shamru",
+   "layout": "bottom",
+   "activeRevision": 2,
+   "page": 13,
+   "pageName": "Sat 4",
+   "cell": "r0c3",
+   "label": "V'shamru",
+   "role": "single"
+  },
+  {
+   "cueId": "b0989586-28eb-4fef-a48b-94b7fd728e24",
+   "draftName": "Avodah",
+   "title": "Avodah",
+   "layout": "left",
+   "activeRevision": 2,
+   "page": 13,
+   "pageName": "Sat 4",
+   "cell": "r1c3",
+   "label": "Avodah",
+   "role": "single"
+  },
+  {
+   "cueId": "fb1a6b21-47c0-4d40-83c9-391d1f2cee53",
+   "draftName": "Modim Anachnu Lach",
+   "title": "Modim Anachnu Lach",
+   "layout": "left",
+   "activeRevision": 2,
+   "page": 13,
+   "pageName": "Sat 4",
+   "cell": "r2c3",
+   "label": "Modim Anachnu Lach",
+   "role": "single"
+  },
+  {
+   "cueId": "0cf632bf-aab4-4354-8095-6aa5f9b3ec6a",
+   "draftName": "Hoda-Ah",
+   "title": "Hoda'ah",
+   "layout": "bottom",
+   "activeRevision": 2,
+   "page": 13,
+   "pageName": "Sat 4",
+   "cell": "r3c3",
+   "label": "Hoda'ah",
+   "role": "single"
+  },
+  {
+   "cueId": "5b76564f-e32f-43e2-82b4-c0734c647985",
+   "draftName": "Sim Shalom",
+   "title": "Sim Shalom",
+   "layout": "bottom",
+   "activeRevision": 2,
+   "page": 13,
+   "pageName": "Sat 4",
+   "cell": "r0c4",
+   "label": "Sim Shalom",
+   "role": "single"
+  },
+  {
+   "cueId": "1c78286d-319b-4025-8e5d-578e2888855e",
+   "draftName": "Oseh Shalom",
+   "title": "Oseh Shalom",
+   "layout": "bottom",
+   "activeRevision": 2,
+   "page": 13,
+   "pageName": "Sat 4",
+   "cell": "r1c4",
+   "label": "Oseh Shalom",
+   "role": "single"
+  },
+  {
+   "cueId": "bf4eb2c9-fe1f-44bd-87ab-cc64186cd4f9",
+   "draftName": "Silent Prayer",
+   "title": "T'filah",
+   "layout": "right",
+   "activeRevision": 1,
+   "page": 13,
+   "pageName": "Sat 4",
+   "cell": "r2c4",
+   "label": "Silent Prayer",
+   "role": "single"
+  },
+  {
+   "cueId": "e7b73357-ae15-4880-8e8c-7d9f7ef754b4",
+   "draftName": "Od Yavo Shalom",
+   "title": "Od Yavo Shalom Aleinu",
+   "layout": "bottom",
+   "activeRevision": 1,
+   "page": 13,
+   "pageName": "Sat 4",
+   "cell": "r3c4",
+   "label": "Od Yavo Shalom",
+   "role": "single"
+  },
+  {
+   "cueId": "add0f175-584f-472e-83e3-a0de82a261ff",
+   "draftName": "Olam Chesed Yibaneh",
+   "title": "Olam Chesed Yibaneh",
+   "layout": "bottom",
+   "activeRevision": 1,
+   "page": 13,
+   "pageName": "Sat 4",
+   "cell": "r0c5",
+   "label": "Olam Chesed Yibaneh",
+   "role": "single",
+   "note": "Published revision 1 is English-only; the maintained Hebrew is missing and draft v2 is held (OLAM-CHESSED-SOURCE-DIAGNOSIS). Bound as published; see OPEN-QUESTIONS."
+  },
+  {
+   "cueId": "8e486f11-e9f5-4c2e-bd5f-071707788c14",
+   "draftName": "Be Right Back",
+   "title": "Central Reform Congregation",
+   "layout": "bottom",
+   "activeRevision": 1,
+   "page": 14,
+   "pageName": "Sat 5",
+   "cell": "r3c6",
+   "label": "Be Right Back",
+   "role": "utility"
+  },
+  {
+   "cueId": "5b21e5ef-e373-4ce8-a3da-f7a0b3f11162",
+   "draftName": "Torah Shema",
+   "title": "Taking Out the Torah",
+   "layout": "bottom",
+   "activeRevision": 2,
+   "page": 14,
+   "pageName": "Sat 5",
+   "cell": "r0c1",
+   "label": "Taking out · Sh’ma",
+   "role": "single"
+  },
+  {
+   "cueId": "cadc69dd-79b4-4cf0-b6d7-c64f7c2502b2",
+   "draftName": "Passing the Torah",
+   "title": "Passing the Torah",
+   "layout": "right",
+   "activeRevision": 1,
+   "page": 14,
+   "pageName": "Sat 5",
+   "cell": "r1c1",
+   "label": "Passing the Torah",
+   "role": "announcement"
+  },
+  {
+   "cueId": "3b97ec53-7979-4f12-aa9c-6a882c47f3a4",
+   "draftName": "Aliyah Blessing BEFORE",
+   "title": "Blessings Before the Torah",
+   "layout": "bottom",
+   "activeRevision": 2,
+   "page": 14,
+   "pageName": "Sat 5",
+   "cell": "r2c1",
+   "label": "Before Torah",
+   "role": "single"
+  },
+  {
+   "cueId": "00d6d775-c932-4895-8e77-162dac8101d2",
+   "draftName": "Aliyah Blessing AFTER",
+   "title": "Blessing After the Torah",
+   "layout": "bottom",
+   "activeRevision": 2,
+   "page": 14,
+   "pageName": "Sat 5",
+   "cell": "r3c1",
+   "label": "After Torah",
+   "role": "single"
+  },
+  {
+   "cueId": "e3624fda-b7ff-44a0-b3ef-7add80524ef7",
+   "draftName": "Torah reading 1",
+   "title": "Torah Reading",
+   "layout": "bottom",
+   "activeRevision": 1,
+   "page": 14,
+   "pageName": "Sat 5",
+   "cell": "r0c2",
+   "label": "Torah reader 1",
+   "role": "announcement"
+  },
+  {
+   "cueId": "643fb791-9836-4ae3-bec9-52b6d43759a8",
+   "draftName": "Torah reading 2",
+   "title": "Torah Reading",
+   "layout": "bottom",
+   "activeRevision": 1,
+   "page": 14,
+   "pageName": "Sat 5",
+   "cell": "r1c2",
+   "label": "Torah reader 2",
+   "role": "announcement"
+  },
+  {
+   "cueId": "319439b3-3e2f-47e4-a2b0-36645fb9239c",
+   "draftName": "Torah reading 3",
+   "title": "Torah Reading",
+   "layout": "bottom",
+   "activeRevision": 1,
+   "page": 14,
+   "pageName": "Sat 5",
+   "cell": "r2c2",
+   "label": "Torah reader 3",
+   "role": "announcement"
+  },
+  {
+   "cueId": "53240623-4182-4a65-bd01-ceaebc951f17",
+   "draftName": "Torah reading 4",
+   "title": "Torah Reading",
+   "layout": "bottom",
+   "activeRevision": 1,
+   "page": 14,
+   "pageName": "Sat 5",
+   "cell": "r3c2",
+   "label": "Torah reader 4",
+   "role": "announcement"
+  },
+  {
+   "cueId": "09651fcc-3ba7-438f-bd9b-b77e8095ff84",
+   "draftName": "Torah reading 5",
+   "title": "Torah Reading",
+   "layout": "bottom",
+   "activeRevision": 1,
+   "page": 14,
+   "pageName": "Sat 5",
+   "cell": "r0c3",
+   "label": "Torah reader 5",
+   "role": "announcement"
+  },
+  {
+   "cueId": "f976ce13-8388-413d-bb8d-8b67906fc36d",
+   "draftName": "Torah reading 6",
+   "title": "Torah Reading",
+   "layout": "bottom",
+   "activeRevision": 1,
+   "page": 14,
+   "pageName": "Sat 5",
+   "cell": "r1c3",
+   "label": "Torah reader 6",
+   "role": "announcement"
+  },
+  {
+   "cueId": "42c78ed3-40d2-451b-8401-17a582b0e63f",
+   "draftName": "Torah reading 7",
+   "title": "Torah Reading",
+   "layout": "bottom",
+   "activeRevision": 1,
+   "page": 14,
+   "pageName": "Sat 5",
+   "cell": "r2c3",
+   "label": "Torah reader 7",
+   "role": "announcement"
+  },
+  {
+   "cueId": "7f230f94-33b8-4293-8911-a0fc20091650",
+   "draftName": "Hagbahah",
+   "title": "Hagbahah",
+   "layout": "bottom",
+   "activeRevision": 2,
+   "page": 14,
+   "pageName": "Sat 5",
+   "cell": "r3c3",
+   "label": "Hagbahah",
+   "role": "single"
+  },
+  {
+   "cueId": "3c41f85a-f1d7-4e74-8485-fb4f975b9b59",
+   "draftName": "Haftarah Blessing BEFORE",
+   "title": "Before the Haftarah",
+   "layout": "bottom",
+   "activeRevision": 2,
+   "page": 14,
+   "pageName": "Sat 5",
+   "cell": "r0c4",
+   "label": "Before Haftarah",
+   "role": "single"
+  },
+  {
+   "cueId": "3985b540-d34d-4085-8f7f-1212b900c0d0",
+   "draftName": "Haftarah Blessing AFTER 1",
+   "title": "After the Haftarah 1",
+   "layout": "left",
+   "activeRevision": 3,
+   "page": 14,
+   "pageName": "Sat 5",
+   "cell": "r1c4",
+   "label": "After Haftarah 1/3",
+   "role": "sequence-part",
+   "sequence": {
+    "name": "After the Haftarah",
+    "index": 1,
+    "count": 3
+   }
+  },
+  {
+   "cueId": "053742de-cf3d-42e6-81b1-1f64e363f9ad",
+   "draftName": "Haftarah Blessing AFTER 2",
+   "title": "After the Haftarah 2",
+   "layout": "left",
+   "activeRevision": 3,
+   "page": 14,
+   "pageName": "Sat 5",
+   "cell": "r2c4",
+   "label": "After Haftarah 2/3",
+   "role": "sequence-part",
+   "sequence": {
+    "name": "After the Haftarah",
+    "index": 2,
+    "count": 3
+   }
+  },
+  {
+   "cueId": "05ba9c7a-d3cc-4c1f-b90d-015c267510d5",
+   "draftName": "Haftarah Blessing AFTER 3",
+   "title": "After the Haftarah 3",
+   "layout": "left",
+   "activeRevision": 3,
+   "page": 14,
+   "pageName": "Sat 5",
+   "cell": "r3c4",
+   "label": "After Haftarah 3/3",
+   "role": "sequence-part",
+   "sequence": {
+    "name": "After the Haftarah",
+    "index": 3,
+    "count": 3
+   }
+  },
+  {
+   "cueId": "d2a51926-4b98-4e73-b1f4-9d016966fd52",
+   "draftName": "Haftarah reading 1",
+   "title": "Haftarah Reading",
+   "layout": "bottom",
+   "activeRevision": 1,
+   "page": 14,
+   "pageName": "Sat 5",
+   "cell": "r0c5",
+   "label": "Haftarah reader 1",
+   "role": "announcement"
+  },
+  {
+   "cueId": "8a20aa8a-4515-4b6e-9c1f-27f6a4e76e2f",
+   "draftName": "Haftarah reading 2",
+   "title": "Haftarah Reading",
+   "layout": "bottom",
+   "activeRevision": 1,
+   "page": 14,
+   "pageName": "Sat 5",
+   "cell": "r1c5",
+   "label": "Haftarah reader 2",
+   "role": "announcement"
+  },
+  {
+   "cueId": "92e23dc6-f7f4-40b6-8495-0a4605f321a8",
+   "draftName": "Haftarah reading 3",
+   "title": "Haftarah Reading",
+   "layout": "bottom",
+   "activeRevision": 1,
+   "page": 14,
+   "pageName": "Sat 5",
+   "cell": "r2c5",
+   "label": "Haftarah reader 3",
+   "role": "announcement"
+  },
+  {
+   "cueId": "f1fcd94c-1ae7-4ef5-8941-0e13188204d9",
+   "draftName": "Eitz Chayim",
+   "title": "Eitz Chayim",
+   "layout": "bottom",
+   "activeRevision": 2,
+   "page": 14,
+   "pageName": "Sat 5",
+   "cell": "r3c5",
+   "label": "Eitz Chayim",
+   "role": "single"
+  },
+  {
+   "cueId": "8e486f11-e9f5-4c2e-bd5f-071707788c14",
+   "draftName": "Be Right Back",
+   "title": "Central Reform Congregation",
+   "layout": "bottom",
+   "activeRevision": 1,
+   "page": 15,
+   "pageName": "Sat 6",
+   "cell": "r3c6",
+   "label": "Be Right Back",
+   "role": "utility"
+  },
+  {
+   "cueId": "80f96159-5989-42dd-9620-c617057f1014",
+   "draftName": "Send Healing Names",
+   "title": "Healing Prayers",
+   "layout": "bottom",
+   "activeRevision": 2,
+   "page": 15,
+   "pageName": "Sat 6",
+   "cell": "r0c1",
+   "label": "Healing Names",
+   "role": "announcement"
+  },
+  {
+   "cueId": "1f826b16-c4df-4256-bfb0-befdec2f9f71",
+   "draftName": "Mi Sheberach",
+   "title": "Prayer for Healing",
+   "layout": "left",
+   "activeRevision": 1,
+   "page": 15,
+   "pageName": "Sat 6",
+   "cell": "r1c1",
+   "label": "Mi Sheberach",
+   "role": "single"
+  },
+  {
+   "cueId": "2bfbe40e-ded5-4de3-8978-f347d9e99a83",
+   "draftName": "Jim Mi Sheb",
+   "title": "Prayer for Healing",
+   "layout": "left",
+   "activeRevision": 1,
+   "page": 15,
+   "pageName": "Sat 6",
+   "cell": "r2c1",
+   "label": "Mi Sheb · Jim",
+   "role": "alternate"
+  },
+  {
+   "cueId": "d541f3d2-f8c4-4a58-b733-579413e447c4",
+   "draftName": "El Na R'fa Na",
+   "title": "El Na R'fa Na Lah/Lo",
+   "layout": "bottom",
+   "activeRevision": 2,
+   "page": 15,
+   "pageName": "Sat 6",
+   "cell": "r3c1",
+   "label": "El Na R'fa Na",
+   "role": "single"
+  },
+  {
+   "cueId": "c17839d9-3e42-4a6d-9de6-875c1ae61f48",
+   "draftName": "Refa Tziri 1",
+   "title": "R'fa Tziri",
+   "layout": "left",
+   "activeRevision": 1,
+   "page": 15,
+   "pageName": "Sat 6",
+   "cell": "r0c2",
+   "label": "R'fa Tziri 1/2",
+   "role": "sequence-part",
+   "sequence": {
+    "name": "R'fa Tziri",
+    "index": 1,
+    "count": 2
+   }
+  },
+  {
+   "cueId": "eff3e584-6839-4e78-8c04-34518cbf8316",
+   "draftName": "Refa Tziri 2",
+   "title": "R'fa Tziri",
+   "layout": "left",
+   "activeRevision": 1,
+   "page": 15,
+   "pageName": "Sat 6",
+   "cell": "r1c2",
+   "label": "R'fa Tziri 2/2",
+   "role": "sequence-part",
+   "sequence": {
+    "name": "R'fa Tziri",
+    "index": 2,
+    "count": 2
+   }
+  },
+  {
+   "cueId": "67693694-1802-4262-9121-3ebc42a53bde",
+   "draftName": "Aleinu 1",
+   "title": "Aleinu",
+   "layout": "left",
+   "activeRevision": 2,
+   "page": 15,
+   "pageName": "Sat 6",
+   "cell": "r0c3",
+   "label": "Aleinu 1/4",
+   "role": "sequence-part",
+   "sequence": {
+    "name": "Aleinu",
+    "index": 1,
+    "count": 4
+   }
+  },
+  {
+   "cueId": "403eced5-770f-49f2-99bc-b8b2c2b59235",
+   "draftName": "Aleinu 2",
+   "title": "Aleinu",
+   "layout": "left",
+   "activeRevision": 2,
+   "page": 15,
+   "pageName": "Sat 6",
+   "cell": "r1c3",
+   "label": "Aleinu 2/4",
+   "role": "sequence-part",
+   "sequence": {
+    "name": "Aleinu",
+    "index": 2,
+    "count": 4
+   }
+  },
+  {
+   "cueId": "d126a475-8cbe-476c-9584-a84761e8b888",
+   "draftName": "Aleinu 3",
+   "title": "Aleinu",
+   "layout": "left",
+   "activeRevision": 2,
+   "page": 15,
+   "pageName": "Sat 6",
+   "cell": "r2c3",
+   "label": "Aleinu 3/4",
+   "role": "sequence-part",
+   "sequence": {
+    "name": "Aleinu",
+    "index": 3,
+    "count": 4
+   }
+  },
+  {
+   "cueId": "80e7acd3-ae25-4713-8c5b-d50cd9d792f1",
+   "draftName": "Aleinu 4",
+   "title": "Aleinu",
+   "layout": "left",
+   "activeRevision": 2,
+   "page": 15,
+   "pageName": "Sat 6",
+   "cell": "r3c3",
+   "label": "Aleinu 4/4",
+   "role": "sequence-part",
+   "sequence": {
+    "name": "Aleinu",
+    "index": 4,
+    "count": 4
+   }
+  },
+  {
+   "cueId": "d0a1be50-2ee0-4604-81d6-c3083376bf89",
+   "draftName": "Send Kaddish Names",
+   "title": "Mourner's Kaddish",
+   "layout": "bottom",
+   "activeRevision": 2,
+   "page": 15,
+   "pageName": "Sat 6",
+   "cell": "r0c4",
+   "label": "Kaddish Names",
+   "role": "announcement"
+  },
+  {
+   "cueId": "c2d2c129-7d7d-4bbc-a296-46cc1fb9f48e",
+   "draftName": "Mourners Kaddish 1",
+   "title": "Mourner's Kaddish",
+   "layout": "left",
+   "activeRevision": 2,
+   "page": 15,
+   "pageName": "Sat 6",
+   "cell": "r1c4",
+   "label": "Kaddish 1/2",
+   "role": "sequence-part",
+   "sequence": {
+    "name": "Mourner's Kaddish",
+    "index": 1,
+    "count": 2
+   },
+   "note": "Plain 2-panel default (MK3 archived; T/TT family unbound)."
+  },
+  {
+   "cueId": "f15c1944-da76-4d61-95c8-05c032d47c4d",
+   "draftName": "Mourners Kaddish 2",
+   "title": "Mourner's Kaddish",
+   "layout": "left",
+   "activeRevision": 2,
+   "page": 15,
+   "pageName": "Sat 6",
+   "cell": "r2c4",
+   "label": "Kaddish 2/2",
+   "role": "sequence-part",
+   "sequence": {
+    "name": "Mourner's Kaddish",
+    "index": 2,
+    "count": 2
+   }
+  },
+  {
+   "cueId": "a4c86b16-6677-46b8-ad39-871a2fb81224",
+   "draftName": "Adon Olam 1",
+   "title": "Adon Olam",
+   "layout": "left",
+   "activeRevision": 3,
+   "page": 15,
+   "pageName": "Sat 6",
+   "cell": "r0c5",
+   "label": "Adon Olam 1/3",
+   "role": "sequence-part",
+   "sequence": {
+    "name": "Adon Olam",
+    "index": 1,
+    "count": 3
+   }
+  },
+  {
+   "cueId": "7d337be4-8b25-4bbd-b532-87b8d0c7602c",
+   "draftName": "Adon Olam 2",
+   "title": "Adon Olam",
+   "layout": "left",
+   "activeRevision": 3,
+   "page": 15,
+   "pageName": "Sat 6",
+   "cell": "r1c5",
+   "label": "Adon Olam 2/3",
+   "role": "sequence-part",
+   "sequence": {
+    "name": "Adon Olam",
+    "index": 2,
+    "count": 3
+   }
+  },
+  {
+   "cueId": "9bb328cb-f218-40e3-9e91-56864144af6a",
+   "draftName": "Adon Olam 3",
+   "title": "Adon Olam",
+   "layout": "left",
+   "activeRevision": 3,
+   "page": 15,
+   "pageName": "Sat 6",
+   "cell": "r2c5",
+   "label": "Adon Olam 3/3",
+   "role": "sequence-part",
+   "sequence": {
+    "name": "Adon Olam",
+    "index": 3,
+    "count": 3
+   }
+  },
+  {
+   "cueId": "089cce61-085b-49e9-9ede-f6ec81f65789",
+   "draftName": "Birkat Kohanim",
+   "title": "Priestly Blessing",
+   "layout": "bottom",
+   "activeRevision": 2,
+   "page": 15,
+   "pageName": "Sat 6",
+   "cell": "r3c5",
+   "label": "Priestly Blessing",
+   "role": "single"
+  },
+  {
+   "cueId": "8e486f11-e9f5-4c2e-bd5f-071707788c14",
+   "draftName": "Be Right Back",
+   "title": "Central Reform Congregation",
+   "layout": "bottom",
+   "activeRevision": 1,
+   "page": 16,
+   "pageName": "Sat 7",
+   "cell": "r3c6",
+   "label": "Be Right Back",
+   "role": "utility"
+  },
+  {
+   "cueId": "bb2d1b64-95dc-47c2-bbc6-1451233dcf53",
+   "draftName": "Kiddush (short)",
+   "title": "Kiddush",
+   "layout": "bottom",
+   "activeRevision": 2,
+   "page": 16,
+   "pageName": "Sat 7",
+   "cell": "r0c1",
+   "label": "Kiddush (short)",
+   "role": "short-selection"
+  },
+  {
+   "cueId": "a0bbdb60-18e7-4acb-b0ec-696402f7e40a",
+   "draftName": "Saturday Daytime Kiddush (Supplement) — 1 of 3",
+   "title": "Saturday Kiddush",
+   "layout": "left",
+   "activeRevision": 2,
+   "page": 16,
+   "pageName": "Sat 7",
+   "cell": "r1c1",
+   "label": "Sat Kiddush 1/3",
+   "role": "alternate",
+   "sequence": {
+    "name": "Kiddush · Shirei (Saturday)",
+    "index": 1,
+    "count": 3
+   }
+  },
+  {
+   "cueId": "cf1f78e3-bec8-49fe-84c5-e713a1ef6d53",
+   "draftName": "Saturday Daytime Kiddush (Supplement) — 2 of 3",
+   "title": "Saturday Kiddush",
+   "layout": "left",
+   "activeRevision": 1,
+   "page": 16,
+   "pageName": "Sat 7",
+   "cell": "r2c1",
+   "label": "Sat Kiddush 2/3",
+   "role": "alternate",
+   "sequence": {
+    "name": "Kiddush · Shirei (Saturday)",
+    "index": 2,
+    "count": 3
+   }
+  },
+  {
+   "cueId": "d0005eef-c1ea-43f6-9e72-caa5588a630b",
+   "draftName": "Saturday Daytime Kiddush (Supplement) — 3 of 3",
+   "title": "Saturday Kiddush",
+   "layout": "left",
+   "activeRevision": 1,
+   "page": 16,
+   "pageName": "Sat 7",
+   "cell": "r3c1",
+   "label": "Sat Kiddush 3/3",
+   "role": "alternate",
+   "sequence": {
+    "name": "Kiddush · Shirei (Saturday)",
+    "index": 3,
+    "count": 3
+   }
+  },
+  {
+   "cueId": "0be48337-2cbf-4a89-82f5-a7280a36709e",
+   "draftName": "Motzi",
+   "title": "Motzi",
+   "layout": "bottom",
+   "activeRevision": 2,
+   "page": 16,
+   "pageName": "Sat 7",
+   "cell": "r0c2",
+   "label": "Motzi",
+   "role": "single"
+  },
+  {
+   "cueId": "c1c6def3-330e-4e84-bf0c-d47164b78193",
+   "draftName": "Shehechiyanu",
+   "title": "A Blessing for a Sacred Moment",
+   "layout": "bottom",
+   "activeRevision": 1,
+   "page": 16,
+   "pageName": "Sat 7",
+   "cell": "r1c2",
+   "label": "Shehechiyanu",
+   "role": "single"
+  },
+  {
+   "cueId": "016b6fc4-6ff6-4a69-a42a-53f6403f846f",
+   "draftName": "Mazel Tov",
+   "title": "Mazel Tov",
+   "layout": "bottom",
+   "activeRevision": 1,
+   "page": 16,
+   "pageName": "Sat 7",
+   "cell": "r2c2",
+   "label": "Mazel Tov",
+   "role": "announcement"
+  },
+  {
+   "cueId": "3d18426f-f8b6-49f5-831c-fc35e0f58f40",
+   "draftName": "Announcements",
+   "title": "Announcements",
+   "layout": "bottom",
+   "activeRevision": 1,
+   "page": 16,
+   "pageName": "Sat 7",
+   "cell": "r0c3",
+   "label": "Announcements",
+   "role": "announcement"
+  },
+  {
+   "cueId": "09f50803-3288-4b78-bcc7-560025668e1a",
+   "draftName": "Thank you",
+   "title": "Central Reform Congregation",
+   "layout": "right",
+   "activeRevision": 1,
+   "page": 16,
+   "pageName": "Sat 7",
+   "cell": "r1c3",
+   "label": "Thank You",
+   "role": "announcement"
+  },
+  {
+   "cueId": "bb52a63a-e892-4518-b7c2-a59e8ce730b9",
+   "draftName": "Guest name",
+   "title": "Central Reform Congregation",
+   "layout": "bottom",
+   "activeRevision": 1,
+   "page": 16,
+   "pageName": "Sat 7",
+   "cell": "r2c3",
+   "label": "Guest name",
+   "role": "announcement"
+  },
+  {
+   "cueId": "8e486f11-e9f5-4c2e-bd5f-071707788c14",
+   "draftName": "Be Right Back",
+   "title": "Central Reform Congregation",
+   "layout": "bottom",
+   "activeRevision": 1,
+   "page": 17,
+   "pageName": "B'nai Mitzvah",
+   "cell": "r3c6",
+   "label": "Be Right Back",
+   "role": "utility"
+  },
+  {
+   "cueId": "17db1877-425a-4ea7-b123-664a9756f2ae",
+   "draftName": "Student name",
+   "title": "Central Reform Congregation",
+   "layout": "bottom",
+   "activeRevision": 1,
+   "page": 17,
+   "pageName": "B'nai Mitzvah",
+   "cell": "r0c1",
+   "label": "Student name",
+   "role": "announcement"
+  },
+  {
+   "cueId": "25737a2e-167c-4049-81fb-9654cb54a8f1",
+   "draftName": "Student names (two lines)",
+   "title": "Central Reform Congregation",
+   "layout": "bottom",
+   "activeRevision": 1,
+   "page": 17,
+   "pageName": "B'nai Mitzvah",
+   "cell": "r1c1",
+   "label": "Student names (2)",
+   "role": "announcement"
+  },
+  {
+   "cueId": "bb52a63a-e892-4518-b7c2-a59e8ce730b9",
+   "draftName": "Guest name",
+   "title": "Central Reform Congregation",
+   "layout": "bottom",
+   "activeRevision": 1,
+   "page": 17,
+   "pageName": "B'nai Mitzvah",
+   "cell": "r2c1",
+   "label": "Guest name",
+   "role": "announcement"
+  },
+  {
+   "cueId": "016b6fc4-6ff6-4a69-a42a-53f6403f846f",
+   "draftName": "Mazel Tov",
+   "title": "Mazel Tov",
+   "layout": "bottom",
+   "activeRevision": 1,
+   "page": 17,
+   "pageName": "B'nai Mitzvah",
+   "cell": "r3c1",
+   "label": "Mazel Tov",
+   "role": "announcement"
+  },
+  {
+   "cueId": "cadc69dd-79b4-4cf0-b6d7-c64f7c2502b2",
+   "draftName": "Passing the Torah",
+   "title": "Passing the Torah",
+   "layout": "right",
+   "activeRevision": 1,
+   "page": 17,
+   "pageName": "B'nai Mitzvah",
+   "cell": "r0c2",
+   "label": "Passing the Torah",
+   "role": "announcement"
+  },
+  {
+   "cueId": "778b1e41-5c34-490e-8b32-079dd1a89da8",
+   "draftName": "Tallit Blessing",
+   "title": "Tallit Blessing",
+   "layout": "bottom",
+   "activeRevision": 1,
+   "page": 17,
+   "pageName": "B'nai Mitzvah",
+   "cell": "r1c2",
+   "label": "Tallit Blessing",
+   "role": "single"
+  },
+  {
+   "cueId": "c1c6def3-330e-4e84-bf0c-d47164b78193",
+   "draftName": "Shehechiyanu",
+   "title": "A Blessing for a Sacred Moment",
+   "layout": "bottom",
+   "activeRevision": 1,
+   "page": 17,
+   "pageName": "B'nai Mitzvah",
+   "cell": "r2c2",
+   "label": "Shehechiyanu",
+   "role": "single"
+  },
+  {
+   "cueId": "089cce61-085b-49e9-9ede-f6ec81f65789",
+   "draftName": "Birkat Kohanim",
+   "title": "Priestly Blessing",
+   "layout": "bottom",
+   "activeRevision": 2,
+   "page": 17,
+   "pageName": "B'nai Mitzvah",
+   "cell": "r3c2",
+   "label": "Priestly Blessing",
+   "role": "single"
+  },
+  {
+   "cueId": "8e486f11-e9f5-4c2e-bd5f-071707788c14",
+   "draftName": "Be Right Back",
+   "title": "Central Reform Congregation",
+   "layout": "bottom",
+   "activeRevision": 1,
+   "page": 18,
+   "pageName": "Havdalah",
+   "cell": "r3c6",
+   "label": "Be Right Back",
+   "role": "utility"
+  },
+  {
+   "cueId": "7b8ab1d5-a60f-435d-81cf-fff8ca9c08f0",
+   "draftName": "Maariv Arevim 1",
+   "title": "Ma'ariv Aravim",
+   "layout": "left",
+   "activeRevision": 3,
+   "page": 18,
+   "pageName": "Havdalah",
+   "cell": "r0c1",
+   "label": "Ma'ariv Aravim 1/2",
+   "role": "sequence-part",
+   "sequence": {
+    "name": "Ma'ariv Aravim",
+    "index": 1,
+    "count": 2
+   }
+  },
+  {
+   "cueId": "48015508-912c-4a26-a20f-1023b1861b0c",
+   "draftName": "Maariv Arevim 2",
+   "title": "Ma'ariv Aravim",
+   "layout": "left",
+   "activeRevision": 2,
+   "page": 18,
+   "pageName": "Havdalah",
+   "cell": "r1c1",
+   "label": "Ma’ariv 2/2",
+   "role": "sequence-part",
+   "sequence": {
+    "name": "Ma'ariv Aravim",
+    "index": 2,
+    "count": 2
+   }
+  },
+  {
+   "cueId": "6be325d4-ee1f-442a-9c44-79c1950d57ac",
+   "draftName": "Maariv Arevim (Evening)",
+   "title": "Ma'ariv Aravim",
+   "layout": "bottom",
+   "activeRevision": 1,
+   "page": 18,
+   "pageName": "Havdalah",
+   "cell": "r2c1",
+   "label": "Ma'ariv (Evening)",
+   "role": "alternate"
+  },
+  {
+   "cueId": "8792f231-e183-4bac-9113-020d25054590",
+   "draftName": "Maariv Arevim (Roll into Dark)",
+   "title": "Ma'ariv Aravim",
+   "layout": "bottom",
+   "activeRevision": 1,
+   "page": 18,
+   "pageName": "Havdalah",
+   "cell": "r3c1",
+   "label": "Ma'ariv (Roll into Dark)",
+   "role": "alternate"
+  },
+  {
+   "cueId": "2e7853d1-f0bd-4227-a7f7-974f76f28489",
+   "draftName": "Havd 1",
+   "title": "Havdalah - Wine Blessing",
+   "layout": "left",
+   "activeRevision": 2,
+   "page": 18,
+   "pageName": "Havdalah",
+   "cell": "r0c2",
+   "label": "Havdalah 1/4 Wine",
+   "role": "sequence-part",
+   "sequence": {
+    "name": "Havdalah",
+    "index": 1,
+    "count": 4
+   }
+  },
+  {
+   "cueId": "0c37292f-2b7f-4b02-af66-7ce448c744e6",
+   "draftName": "Havd 2",
+   "title": "Havdalah - Spice Blessing",
+   "layout": "left",
+   "activeRevision": 2,
+   "page": 18,
+   "pageName": "Havdalah",
+   "cell": "r1c2",
+   "label": "Havdalah 2/4 Spices",
+   "role": "sequence-part",
+   "sequence": {
+    "name": "Havdalah",
+    "index": 2,
+    "count": 4
+   }
+  },
+  {
+   "cueId": "16bec1c7-6134-418b-9c09-ba0b7fb2b3b7",
+   "draftName": "Havd 3",
+   "title": "Havdalah - Fire Blessing",
+   "layout": "left",
+   "activeRevision": 2,
+   "page": 18,
+   "pageName": "Havdalah",
+   "cell": "r2c2",
+   "label": "Havdalah 3/4 Fire",
+   "role": "sequence-part",
+   "sequence": {
+    "name": "Havdalah",
+    "index": 3,
+    "count": 4
+   }
+  },
+  {
+   "cueId": "af98a247-7c87-481f-866a-07af9ab90691",
+   "draftName": "Havd 4",
+   "title": "Havdalah - Separation",
+   "layout": "left",
+   "activeRevision": 2,
+   "page": 18,
+   "pageName": "Havdalah",
+   "cell": "r3c2",
+   "label": "Havdalah 4/4 Separation",
+   "role": "sequence-part",
+   "sequence": {
+    "name": "Havdalah",
+    "index": 4,
+    "count": 4
+   }
+  },
+  {
+   "cueId": "c911529b-9758-4d0b-9416-22833d3c3aa7",
+   "draftName": "Eliyahu Hanavi",
+   "title": "Eliyahu Hanavi",
+   "layout": "left",
+   "activeRevision": 2,
+   "page": 18,
+   "pageName": "Havdalah",
+   "cell": "r0c3",
+   "label": "Eliyahu Hanavi",
+   "role": "single"
+  },
+  {
+   "cueId": "9595c648-5b57-4979-aa77-8f3c91a3013b",
+   "draftName": "Miryam Han'viah",
+   "title": "Miryam Han'viah",
+   "layout": "left",
+   "activeRevision": 3,
+   "page": 18,
+   "pageName": "Havdalah",
+   "cell": "r1c3",
+   "label": "Miryam Han'viah",
+   "role": "single"
+  },
+  {
+   "cueId": "9431b083-008f-4aec-ac44-ccfeb0fc1bd4",
+   "draftName": "Shavua Tov",
+   "title": "Shavua Tov",
+   "layout": "bottom",
+   "activeRevision": 1,
+   "page": 18,
+   "pageName": "Havdalah",
+   "cell": "r2c3",
+   "label": "Shavua Tov",
+   "role": "single"
+  },
+  {
+   "cueId": "3c8c6537-7895-45c6-b6fd-226a39def79c",
+   "draftName": "Havdalah Songs",
+   "title": "Havdalah",
+   "layout": "left",
+   "activeRevision": 1,
+   "page": 18,
+   "pageName": "Havdalah",
+   "cell": "r3c3",
+   "label": "Havdalah songs",
+   "role": "alternate"
+  },
+  {
+   "cueId": "17db1877-425a-4ea7-b123-664a9756f2ae",
+   "draftName": "Student name",
+   "title": "Central Reform Congregation",
+   "layout": "bottom",
+   "activeRevision": 1,
+   "page": 18,
+   "pageName": "Havdalah",
+   "cell": "r0c4",
+   "label": "Student name",
+   "role": "announcement"
+  },
+  {
+   "cueId": "25737a2e-167c-4049-81fb-9654cb54a8f1",
+   "draftName": "Student names (two lines)",
+   "title": "Central Reform Congregation",
+   "layout": "bottom",
+   "activeRevision": 1,
+   "page": 18,
+   "pageName": "Havdalah",
+   "cell": "r1c4",
+   "label": "Student names (2)",
+   "role": "announcement"
+  },
+  {
+   "cueId": "089cce61-085b-49e9-9ede-f6ec81f65789",
+   "draftName": "Birkat Kohanim",
+   "title": "Priestly Blessing",
+   "layout": "bottom",
+   "activeRevision": 2,
+   "page": 18,
+   "pageName": "Havdalah",
+   "cell": "r2c4",
+   "label": "Priestly Blessing",
+   "role": "single"
+  },
+  {
+   "cueId": "09f50803-3288-4b78-bcc7-560025668e1a",
+   "draftName": "Thank you",
+   "title": "Central Reform Congregation",
+   "layout": "right",
+   "activeRevision": 1,
+   "page": 18,
+   "pageName": "Havdalah",
+   "cell": "r3c4",
+   "label": "Thank You",
+   "role": "announcement"
+  },
+  {
+   "cueId": "8e486f11-e9f5-4c2e-bd5f-071707788c14",
+   "draftName": "Be Right Back",
+   "title": "Central Reform Congregation",
+   "layout": "bottom",
+   "activeRevision": 1,
+   "page": 19,
+   "pageName": "HHD 1",
+   "cell": "r3c6",
+   "label": "Be Right Back",
+   "role": "utility"
+  },
+  {
+   "cueId": "0cd20c42-8310-4ddf-bab9-72bab6113e04",
+   "draftName": "Starting Soon",
+   "title": "Central Reform Congregation",
+   "layout": "bottom",
+   "activeRevision": 1,
+   "page": 19,
+   "pageName": "HHD 1",
+   "cell": "r0c1",
+   "label": "Starting Soon",
+   "role": "announcement"
+  },
+  {
+   "cueId": "4c86c984-5f3e-44c4-9bc1-65a2a4be3616",
+   "draftName": "Candle Lighting RH",
+   "title": "Candle Lighting",
+   "layout": "bottom",
+   "activeRevision": 1,
+   "page": 19,
+   "pageName": "HHD 1",
+   "cell": "r1c1",
+   "label": "Candles · Rosh Hashanah",
+   "role": "single"
+  },
+  {
+   "cueId": "ab7451ab-a6b2-40c0-9853-8f7dd972c39d",
+   "draftName": "Yom Tov Candles",
+   "title": "Candle Lighting",
+   "layout": "bottom",
+   "activeRevision": 1,
+   "page": 19,
+   "pageName": "HHD 1",
+   "cell": "r2c1",
+   "label": "Candles · Yom Tov",
+   "role": "alternate"
+  },
+  {
+   "cueId": "4b36407f-6b0a-4431-bd9c-471046babe26",
+   "draftName": "Candle Lighting YK",
+   "title": "Candle Blessing",
+   "layout": "left",
+   "activeRevision": 2,
+   "page": 19,
+   "pageName": "HHD 1",
+   "cell": "r3c1",
+   "label": "Candles · Yom Kippur",
+   "role": "alternate"
+  },
+  {
+   "cueId": "50da96e3-5b18-4bac-b95c-3f59927699c6",
+   "draftName": "Light These Lights",
+   "title": "Light These Lights",
+   "layout": "bottom",
+   "activeRevision": 2,
+   "page": 19,
+   "pageName": "HHD 1",
+   "cell": "r0c2",
+   "label": "Light These Lights",
+   "role": "single"
+  },
+  {
+   "cueId": "c1c6def3-330e-4e84-bf0c-d47164b78193",
+   "draftName": "Shehechiyanu",
+   "title": "A Blessing for a Sacred Moment",
+   "layout": "bottom",
+   "activeRevision": 1,
+   "page": 19,
+   "pageName": "HHD 1",
+   "cell": "r1c2",
+   "label": "Shehechiyanu",
+   "role": "single"
+  },
+  {
+   "cueId": "df4b1219-7680-4cab-adba-5b93cf6a1afa",
+   "draftName": "Esah Einai",
+   "title": "Esah Einai",
+   "layout": "bottom",
+   "activeRevision": 1,
+   "page": 19,
+   "pageName": "HHD 1",
+   "cell": "r2c2",
+   "label": "Esa Einai",
+   "role": "single"
+  },
+  {
+   "cueId": "a2bf7ddd-7d2d-4ab2-bd34-66d208f89fbb",
+   "draftName": "Sacred Assembly",
+   "title": "Sacred Assembly",
+   "layout": "left",
+   "activeRevision": 2,
+   "page": 19,
+   "pageName": "HHD 1",
+   "cell": "r3c2",
+   "label": "Sacred Assembly",
+   "role": "single"
+  },
+  {
+   "cueId": "eac2dee3-17f3-4a52-9ca5-4d7611f0f9dc",
+   "draftName": "Modeh Ani (Bottom)",
+   "title": "Modeh Ani",
+   "layout": "bottom",
+   "activeRevision": 2,
+   "page": 19,
+   "pageName": "HHD 1",
+   "cell": "r0c3",
+   "label": "Modeh Ani",
+   "role": "single"
+  },
+  {
+   "cueId": "bbd7c98b-f1de-41ee-9719-2bb27a30d0db",
+   "draftName": "Mah Tovu",
+   "title": "Mah Tovu / Hineih Mah Tov",
+   "layout": "left",
+   "activeRevision": 2,
+   "page": 19,
+   "pageName": "HHD 1",
+   "cell": "r1c3",
+   "label": "Mah Tovu",
+   "role": "single"
+  },
+  {
+   "cueId": "9c34f35c-7a84-4aa3-9233-80759fb63a64",
+   "draftName": "Hinei Ma Tov",
+   "title": "Hineih Mah Tov",
+   "layout": "bottom",
+   "activeRevision": 2,
+   "page": 19,
+   "pageName": "HHD 1",
+   "cell": "r2c3",
+   "label": "Hinei Ma Tov",
+   "role": "alternate"
+  },
+  {
+   "cueId": "d4298cbf-d17e-498b-ad70-d7900e899718",
+   "draftName": "Elohai Nshama",
+   "title": "Elohai N'shama",
+   "layout": "bottom",
+   "activeRevision": 2,
+   "page": 19,
+   "pageName": "HHD 1",
+   "cell": "r3c3",
+   "label": "Elohai N'shama",
+   "role": "single"
+  },
+  {
+   "cueId": "0135de3c-9a47-4fdc-91b9-99bacdf64970",
+   "draftName": "Birchot Hashachar 1",
+   "title": "Birchot Hashachar",
+   "layout": "left",
+   "activeRevision": 2,
+   "page": 19,
+   "pageName": "HHD 1",
+   "cell": "r0c4",
+   "label": "Birchot 1/4",
+   "role": "sequence-part",
+   "sequence": {
+    "name": "Birchot Hashachar",
+    "index": 1,
+    "count": 4
+   }
+  },
+  {
+   "cueId": "b60c1abc-2257-4316-9ae4-2a03f72133d6",
+   "draftName": "Birchot Hashachar 2",
+   "title": "Birchot Hashachar",
+   "layout": "left",
+   "activeRevision": 2,
+   "page": 19,
+   "pageName": "HHD 1",
+   "cell": "r1c4",
+   "label": "Birchot 2/4",
+   "role": "sequence-part",
+   "sequence": {
+    "name": "Birchot Hashachar",
+    "index": 2,
+    "count": 4
+   }
+  },
+  {
+   "cueId": "ceb24b8c-d9a7-4607-99bf-c0962e2a88ff",
+   "draftName": "Birchot Hashachar 3",
+   "title": "Birchot Hashachar",
+   "layout": "left",
+   "activeRevision": 3,
+   "page": 19,
+   "pageName": "HHD 1",
+   "cell": "r2c4",
+   "label": "Birchot 3/4",
+   "role": "sequence-part",
+   "sequence": {
+    "name": "Birchot Hashachar",
+    "index": 3,
+    "count": 4
+   }
+  },
+  {
+   "cueId": "2b3da7a3-dc18-46f1-a792-13a4771b343c",
+   "draftName": "Birchot Hashachar 4",
+   "title": "Birchot Hashachar",
+   "layout": "left",
+   "activeRevision": 3,
+   "page": 19,
+   "pageName": "HHD 1",
+   "cell": "r3c4",
+   "label": "Birchot 4/4",
+   "role": "sequence-part",
+   "sequence": {
+    "name": "Birchot Hashachar",
+    "index": 4,
+    "count": 4
+   }
+  },
+  {
+   "cueId": "65743cb0-95c9-4d26-b8eb-74c86f1f1b36",
+   "draftName": "Psukei DZimrah 1",
+   "title": "Psukei d'Zimrah",
+   "layout": "left",
+   "activeRevision": 2,
+   "page": 19,
+   "pageName": "HHD 1",
+   "cell": "r0c5",
+   "label": "P'sukei 1/2",
+   "role": "sequence-part",
+   "sequence": {
+    "name": "P'sukei d'Zimrah",
+    "index": 1,
+    "count": 2
+   }
+  },
+  {
+   "cueId": "f792daee-3663-4350-a3cb-783897e1f463",
+   "draftName": "Psukei DZimrah 2",
+   "title": "Psukei d'Zimrah",
+   "layout": "left",
+   "activeRevision": 3,
+   "page": 19,
+   "pageName": "HHD 1",
+   "cell": "r1c5",
+   "label": "P'sukei 2/2",
+   "role": "sequence-part",
+   "sequence": {
+    "name": "P'sukei d'Zimrah",
+    "index": 2,
+    "count": 2
+   }
+  },
+  {
+   "cueId": "8e486f11-e9f5-4c2e-bd5f-071707788c14",
+   "draftName": "Be Right Back",
+   "title": "Central Reform Congregation",
+   "layout": "bottom",
+   "activeRevision": 1,
+   "page": 20,
+   "pageName": "HHD 2",
+   "cell": "r3c6",
+   "label": "Be Right Back",
+   "role": "utility"
+  },
+  {
+   "cueId": "700e2200-c903-4ba8-ba89-b93d3ae8f55f",
+   "draftName": "Hallelu 1",
+   "title": "Hallelu",
+   "layout": "left",
+   "activeRevision": 2,
+   "page": 20,
+   "pageName": "HHD 2",
+   "cell": "r0c1",
+   "label": "Hallelu 1/3",
+   "role": "sequence-part",
+   "sequence": {
+    "name": "Hallelu",
+    "index": 1,
+    "count": 3
+   }
+  },
+  {
+   "cueId": "9bcb37cc-17a0-46d9-9ad0-73447b4122fd",
+   "draftName": "Hallelu 2",
+   "title": "Hallelu",
+   "layout": "left",
+   "activeRevision": 2,
+   "page": 20,
+   "pageName": "HHD 2",
+   "cell": "r1c1",
+   "label": "Hallelu 2/3",
+   "role": "sequence-part",
+   "sequence": {
+    "name": "Hallelu",
+    "index": 2,
+    "count": 3
+   }
+  },
+  {
+   "cueId": "7d7f2592-5b60-4518-99f6-eec5c478626d",
+   "draftName": "Hallelu 3",
+   "title": "Hallelu",
+   "layout": "left",
+   "activeRevision": 2,
+   "page": 20,
+   "pageName": "HHD 2",
+   "cell": "r2c1",
+   "label": "Hallelu 3/3",
+   "role": "sequence-part",
+   "sequence": {
+    "name": "Hallelu",
+    "index": 3,
+    "count": 3
+   }
+  },
+  {
+   "cueId": "0a4b12eb-1463-44d7-be91-329049e5ec82",
+   "draftName": "Readers Kaddish 1",
+   "title": "Hatzi Kaddish",
+   "layout": "left",
+   "activeRevision": 3,
+   "page": 20,
+   "pageName": "HHD 2",
+   "cell": "r0c2",
+   "label": "Hatzi Kaddish 1/2",
+   "role": "sequence-part",
+   "sequence": {
+    "name": "Hatzi Kaddish",
+    "index": 1,
+    "count": 2
+   }
+  },
+  {
+   "cueId": "7c087a0d-23cb-458e-af6a-3210982ff0d6",
+   "draftName": "Readers Kaddish 2",
+   "title": "Hatzi Kaddish",
+   "layout": "left",
+   "activeRevision": 2,
+   "page": 20,
+   "pageName": "HHD 2",
+   "cell": "r1c2",
+   "label": "Hatzi Kaddish 2/2",
+   "role": "sequence-part",
+   "sequence": {
+    "name": "Hatzi Kaddish",
+    "index": 2,
+    "count": 2
+   }
+  },
+  {
+   "cueId": "efa9fad4-f7d5-4091-a708-82103028861b",
+   "draftName": "Barechu",
+   "title": "Bar'chu",
+   "layout": "bottom",
+   "activeRevision": 2,
+   "page": 20,
+   "pageName": "HHD 2",
+   "cell": "r2c2",
+   "label": "Bar'chu",
+   "role": "single"
+  },
+  {
+   "cueId": "1dc607cc-37fa-48d7-a13d-9030a28f332d",
+   "draftName": "As We Bless",
+   "title": "As We Bless",
+   "layout": "bottom",
+   "activeRevision": 2,
+   "page": 20,
+   "pageName": "HHD 2",
+   "cell": "r3c2",
+   "label": "As We Bless",
+   "role": "alternate"
+  },
+  {
+   "cueId": "4715aa3b-02c7-4ec9-899d-22e6a7d190c1",
+   "draftName": "Ahava Rabbah Ahavtanu (Partial)",
+   "title": "Ahavah Rabbah Ahavtanu",
+   "layout": "bottom",
+   "activeRevision": 2,
+   "page": 20,
+   "pageName": "HHD 2",
+   "cell": "r0c3",
+   "label": "Ahavah Rabbah (partial)",
+   "role": "single"
+  },
+  {
+   "cueId": "042e53fd-2f77-4b30-a951-13e7889e2297",
+   "draftName": "Shema",
+   "title": "The Sh'ma",
+   "layout": "bottom",
+   "activeRevision": 1,
+   "page": 20,
+   "pageName": "HHD 2",
+   "cell": "r1c3",
+   "label": "Sh'ma",
+   "role": "single"
+  },
+  {
+   "cueId": "111297d8-29c7-44b1-837f-b71e20b7e74e",
+   "draftName": "How Awesome / Shema",
+   "title": "How Awesome / Shema",
+   "layout": "bottom",
+   "activeRevision": 3,
+   "page": 20,
+   "pageName": "HHD 2",
+   "cell": "r2c3",
+   "label": "How Awesome / Sh’ma",
+   "role": "alternate"
+  },
+  {
+   "cueId": "2ed003b5-5a9a-4923-8e1c-6722a69c0104",
+   "draftName": "Vahavta 1",
+   "title": "V'ahavta",
+   "layout": "left",
+   "activeRevision": 2,
+   "page": 20,
+   "pageName": "HHD 2",
+   "cell": "r0c4",
+   "label": "V'ahavta 1/2",
+   "role": "sequence-part",
+   "sequence": {
+    "name": "V'ahavta",
+    "index": 1,
+    "count": 2
+   }
+  },
+  {
+   "cueId": "4343d861-686f-449a-9f4e-2943da5a59db",
+   "draftName": "Vahavta 2",
+   "title": "V'ahavta",
+   "layout": "left",
+   "activeRevision": 2,
+   "page": 20,
+   "pageName": "HHD 2",
+   "cell": "r1c4",
+   "label": "V'ahavta 2/2",
+   "role": "sequence-part",
+   "sequence": {
+    "name": "V'ahavta",
+    "index": 2,
+    "count": 2
+   }
+  },
+  {
+   "cueId": "a4e5367c-a1e3-494f-b4e7-3f9e53522cc6",
+   "draftName": "Thou Shalt Love",
+   "title": "Thou Shalt Love",
+   "layout": "bottom",
+   "activeRevision": 2,
+   "page": 20,
+   "pageName": "HHD 2",
+   "cell": "r2c4",
+   "label": "Thou Shalt Love 1/2",
+   "role": "alternate",
+   "sequence": {
+    "name": "Thou Shalt Love",
+    "index": 1,
+    "count": 2
+   }
+  },
+  {
+   "cueId": "46f843c0-834e-484d-bc75-9bf4679508fc",
+   "draftName": "Thou Shalt Love 2",
+   "title": "Thou Shalt Love",
+   "layout": "bottom",
+   "activeRevision": 2,
+   "page": 20,
+   "pageName": "HHD 2",
+   "cell": "r3c4",
+   "label": "Thou Shalt Love 2/2",
+   "role": "alternate",
+   "sequence": {
+    "name": "Thou Shalt Love",
+    "index": 2,
+    "count": 2
+   }
+  },
+  {
+   "cueId": "e8f2c035-e88e-4744-ab70-8625f9a77025",
+   "draftName": "Mi Chamocha (Friday) 1",
+   "title": "Mi Chamochah",
+   "layout": "bottom",
+   "activeRevision": 2,
+   "page": 20,
+   "pageName": "HHD 2",
+   "cell": "r0c5",
+   "label": "Mi Cham. eve 1/2",
+   "role": "sequence-part",
+   "sequence": {
+    "name": "Mi Chamocha (HHD evening)",
+    "index": 1,
+    "count": 2
+   }
+  },
+  {
+   "cueId": "d14ac228-5570-4b80-b9c5-dc8cc3d5831c",
+   "draftName": "Mi Chamochah 2 HHD evening",
+   "title": "Mi Chamocha",
+   "layout": "left",
+   "activeRevision": 2,
+   "page": 20,
+   "pageName": "HHD 2",
+   "cell": "r1c5",
+   "label": "Mi Cham. eve 2/2",
+   "role": "sequence-part",
+   "sequence": {
+    "name": "Mi Chamocha (HHD evening)",
+    "index": 2,
+    "count": 2
+   },
+   "note": "HHD evening Mi Chamocha pairs Mi Chamocha (Friday) 1 (bottom) with this left panel, as Michael had it; mixed layouts inside one piece."
+  },
+  {
+   "cueId": "a5c90765-48c0-4384-a3e2-65b43cc2adf1",
+   "draftName": "Mi Chamocha (Sat 1)",
+   "title": "Mi Chamochah",
+   "layout": "left",
+   "activeRevision": 2,
+   "page": 20,
+   "pageName": "HHD 2",
+   "cell": "r2c5",
+   "label": "Mi Cham. morn 1/2",
+   "role": "alternate",
+   "sequence": {
+    "name": "Mi Chamocha (HHD morning)",
+    "index": 1,
+    "count": 2
+   }
+  },
+  {
+   "cueId": "5bad62c7-3005-4977-8349-230520c70211",
+   "draftName": "Mi Chamocha (Sat 2)",
+   "title": "Mi Chamochah",
+   "layout": "left",
+   "activeRevision": 3,
+   "page": 20,
+   "pageName": "HHD 2",
+   "cell": "r3c5",
+   "label": "Mi Cham. morn 2/2",
+   "role": "alternate",
+   "sequence": {
+    "name": "Mi Chamocha (HHD morning)",
+    "index": 2,
+    "count": 2
+   }
+  },
+  {
+   "cueId": "8e486f11-e9f5-4c2e-bd5f-071707788c14",
+   "draftName": "Be Right Back",
+   "title": "Central Reform Congregation",
+   "layout": "bottom",
+   "activeRevision": 1,
+   "page": 21,
+   "pageName": "HHD 3",
+   "cell": "r3c6",
+   "label": "Be Right Back",
+   "role": "utility"
+  },
+  {
+   "cueId": "21ad0064-e792-44c2-a7d0-7415424cd971",
+   "draftName": "Hashkiveinu HHD 1",
+   "title": "Hashkiveinu",
+   "layout": "bottom",
+   "activeRevision": 1,
+   "page": 21,
+   "pageName": "HHD 3",
+   "cell": "r0c1",
+   "label": "Hashkiveinu 1/2",
+   "role": "sequence-part",
+   "sequence": {
+    "name": "Hashkiveinu (HHD)",
+    "index": 1,
+    "count": 2
+   }
+  },
+  {
+   "cueId": "e6227ed7-0bd3-4aa1-b33f-e0cbbd4a54ed",
+   "draftName": "Hashkiveinu HHD 2",
+   "title": "Hashkiveinu",
+   "layout": "bottom",
+   "activeRevision": 1,
+   "page": 21,
+   "pageName": "HHD 3",
+   "cell": "r1c1",
+   "label": "Hashkiveinu 2/2",
+   "role": "sequence-part",
+   "sequence": {
+    "name": "Hashkiveinu (HHD)",
+    "index": 2,
+    "count": 2
+   }
+  },
+  {
+   "cueId": "ef645335-1f59-4e0f-8aae-fbd176dc13c8",
+   "draftName": "Adonai Sifatai",
+   "title": "Adonai S'fatai",
+   "layout": "bottom",
+   "activeRevision": 2,
+   "page": 21,
+   "pageName": "HHD 3",
+   "cell": "r2c1",
+   "label": "Adonai S'fatai",
+   "role": "single"
+  },
+  {
+   "cueId": "750d3230-78c8-4cac-8852-b78cd0b6f304",
+   "draftName": "Avot 1",
+   "title": "Avot V'Imahot",
+   "layout": "left",
+   "activeRevision": 2,
+   "page": 21,
+   "pageName": "HHD 3",
+   "cell": "r0c2",
+   "label": "Avot 1/2",
+   "role": "sequence-part",
+   "sequence": {
+    "name": "Avot v'Imahot",
+    "index": 1,
+    "count": 2
+   }
+  },
+  {
+   "cueId": "23b881d2-d99e-42c6-a800-6004e67a5cdd",
+   "draftName": "Avot 2",
+   "title": "Avot V'Imahot",
+   "layout": "left",
+   "activeRevision": 2,
+   "page": 21,
+   "pageName": "HHD 3",
+   "cell": "r1c2",
+   "label": "Avot 2/2",
+   "role": "sequence-part",
+   "sequence": {
+    "name": "Avot v'Imahot",
+    "index": 2,
+    "count": 2
+   }
+  },
+  {
+   "cueId": "ba8fa5be-229e-469e-bf8e-ea1c33f6e97d",
+   "draftName": "Zochreinu",
+   "title": "Zochreinu",
+   "layout": "bottom",
+   "activeRevision": 2,
+   "page": 21,
+   "pageName": "HHD 3",
+   "cell": "r2c2",
+   "label": "Zochreinu",
+   "role": "single",
+   "note": "Title field reads \"Mi Chamocha מִי כָמכָה\" (possible inherited title, gap F). Bound where Michael used it (HHD Avot column)."
+  },
+  {
+   "cueId": "308fd787-843c-45d9-9b46-4857a693832f",
+   "draftName": "Remember Us",
+   "title": "Zochreinu",
+   "layout": "left",
+   "activeRevision": 2,
+   "page": 21,
+   "pageName": "HHD 3",
+   "cell": "r3c2",
+   "label": "Remember Us",
+   "role": "alternate"
+  },
+  {
+   "cueId": "b27ac87b-5db7-4537-923b-c86cb860d301",
+   "draftName": "Gevurot 1",
+   "title": "G'vurot",
+   "layout": "left",
+   "activeRevision": 2,
+   "page": 21,
+   "pageName": "HHD 3",
+   "cell": "r0c3",
+   "label": "G'vurot 1/2",
+   "role": "sequence-part",
+   "sequence": {
+    "name": "G'vurot",
+    "index": 1,
+    "count": 2
+   }
+  },
+  {
+   "cueId": "f241e548-c7f5-432c-8c86-2d9e01bd0a54",
+   "draftName": "Gevurot 2",
+   "title": "G'vurot",
+   "layout": "left",
+   "activeRevision": 2,
+   "page": 21,
+   "pageName": "HHD 3",
+   "cell": "r1c3",
+   "label": "G'vurot 2/2",
+   "role": "sequence-part",
+   "sequence": {
+    "name": "G'vurot",
+    "index": 2,
+    "count": 2
+   }
+  },
+  {
+   "cueId": "60ffe459-7f7a-4538-924c-5bf0ef9a69d5",
+   "draftName": "Unetane Tokef",
+   "title": "Un'taneh Tokef",
+   "layout": "left",
+   "activeRevision": 2,
+   "page": 21,
+   "pageName": "HHD 3",
+   "cell": "r2c3",
+   "label": "Un'taneh Tokef 1/2",
+   "role": "sequence-part",
+   "sequence": {
+    "name": "Un'taneh Tokef",
+    "index": 1,
+    "count": 2
+   }
+  },
+  {
+   "cueId": "d5a9999e-b062-4377-83dd-acf2e7d62ccd",
+   "draftName": "Unetane Tokef 2",
+   "title": "Un'taneh Tokef",
+   "layout": "left",
+   "activeRevision": 2,
+   "page": 21,
+   "pageName": "HHD 3",
+   "cell": "r3c3",
+   "label": "Un'taneh Tokef 2/2",
+   "role": "sequence-part",
+   "sequence": {
+    "name": "Un'taneh Tokef",
+    "index": 2,
+    "count": 2
+   }
+  },
+  {
+   "cueId": "e65f11e3-0b36-4b77-9e45-32e3e42dc360",
+   "draftName": "Unetane (Eng) 1",
+   "title": "Un'taneh Tokef",
+   "layout": "left",
+   "activeRevision": 1,
+   "page": 21,
+   "pageName": "HHD 3",
+   "cell": "r0c4",
+   "label": "Un'taneh Eng 1/2",
+   "role": "alternate",
+   "sequence": {
+    "name": "Un'taneh Tokef (English)",
+    "index": 1,
+    "count": 2
+   },
+   "note": "Original Slichot/YK buttons labelled this \"B’rosh 1\"; relabelled to its published title."
+  },
+  {
+   "cueId": "70e1c226-3fb4-4213-8d31-e55e6587f663",
+   "draftName": "Unetane (Eng) 2",
+   "title": "Un'taneh Tokef",
+   "layout": "left",
+   "activeRevision": 1,
+   "page": 21,
+   "pageName": "HHD 3",
+   "cell": "r1c4",
+   "label": "Un'taneh Eng 2/2",
+   "role": "alternate",
+   "sequence": {
+    "name": "Un'taneh Tokef (English)",
+    "index": 2,
+    "count": 2
+   },
+   "note": "Original Slichot/YK buttons labelled this \"B’rosh 2\"; relabelled to its published title."
+  },
+  {
+   "cueId": "289748c2-9635-4ba5-94ca-2529002b9707",
+   "draftName": "B'rosh Hashanah",
+   "title": "B'Rosh Hashanah Yikateivun",
+   "layout": "bottom",
+   "activeRevision": 1,
+   "page": 21,
+   "pageName": "HHD 3",
+   "cell": "r2c4",
+   "label": "B'rosh Hashanah 1/2",
+   "role": "sequence-part",
+   "sequence": {
+    "name": "B'Rosh Hashanah Yikateivun",
+    "index": 1,
+    "count": 2
+   }
+  },
+  {
+   "cueId": "070802ec-eed4-4052-b84c-72e6e3103020",
+   "draftName": "Teshuvah",
+   "title": "B'Rosh Hashanah Yikateivun",
+   "layout": "bottom",
+   "activeRevision": 1,
+   "page": 21,
+   "pageName": "HHD 3",
+   "cell": "r3c4",
+   "label": "T’shuvah 2/2",
+   "role": "sequence-part",
+   "sequence": {
+    "name": "B'Rosh Hashanah Yikateivun",
+    "index": 2,
+    "count": 2
+   }
+  },
+  {
+   "cueId": "c1e8dc26-022d-4423-8279-ed48797fb510",
+   "draftName": "Kedusha 1",
+   "title": "K'dushah",
+   "layout": "left",
+   "activeRevision": 3,
+   "page": 21,
+   "pageName": "HHD 3",
+   "cell": "r0c5",
+   "label": "K'dushah 1/3",
+   "role": "sequence-part",
+   "sequence": {
+    "name": "K'dushah",
+    "index": 1,
+    "count": 3
+   }
+  },
+  {
+   "cueId": "4110135b-78c2-4983-9647-5e168999a912",
+   "draftName": "Kedusha 2",
+   "title": "K'dushah",
+   "layout": "left",
+   "activeRevision": 3,
+   "page": 21,
+   "pageName": "HHD 3",
+   "cell": "r1c5",
+   "label": "K'dushah 2/3",
+   "role": "sequence-part",
+   "sequence": {
+    "name": "K'dushah",
+    "index": 2,
+    "count": 3
+   }
+  },
+  {
+   "cueId": "14fa9413-0b2e-4c16-9a07-a37684c0b6f9",
+   "draftName": "Kedusha 3",
+   "title": "K'dushah",
+   "layout": "left",
+   "activeRevision": 2,
+   "page": 21,
+   "pageName": "HHD 3",
+   "cell": "r2c5",
+   "label": "K'dushah 3/3",
+   "role": "sequence-part",
+   "sequence": {
+    "name": "K'dushah",
+    "index": 3,
+    "count": 3
+   }
+  },
+  {
+   "cueId": "b0989586-28eb-4fef-a48b-94b7fd728e24",
+   "draftName": "Avodah",
+   "title": "Avodah",
+   "layout": "left",
+   "activeRevision": 2,
+   "page": 21,
+   "pageName": "HHD 3",
+   "cell": "r3c5",
+   "label": "Avodah",
+   "role": "single"
+  },
+  {
+   "cueId": "8e486f11-e9f5-4c2e-bd5f-071707788c14",
+   "draftName": "Be Right Back",
+   "title": "Central Reform Congregation",
+   "layout": "bottom",
+   "activeRevision": 1,
+   "page": 22,
+   "pageName": "HHD 4",
+   "cell": "r3c6",
+   "label": "Be Right Back",
+   "role": "utility"
+  },
+  {
+   "cueId": "29dcb293-d769-4b83-bea1-8cdd4b0ea864",
+   "draftName": "Sim Shalom 1",
+   "title": "Sim Shalom",
+   "layout": "left",
+   "activeRevision": 2,
+   "page": 22,
+   "pageName": "HHD 4",
+   "cell": "r0c1",
+   "label": "Sim Shalom 1/4",
+   "role": "sequence-part",
+   "sequence": {
+    "name": "Sim Shalom (HHD)",
+    "index": 1,
+    "count": 4
+   }
+  },
+  {
+   "cueId": "d50342e2-62c2-40b5-a138-e442afe3faeb",
+   "draftName": "Sim Shalom 2",
+   "title": "Sim Shalom",
+   "layout": "left",
+   "activeRevision": 2,
+   "page": 22,
+   "pageName": "HHD 4",
+   "cell": "r1c1",
+   "label": "Sim Shalom 2/4",
+   "role": "sequence-part",
+   "sequence": {
+    "name": "Sim Shalom (HHD)",
+    "index": 2,
+    "count": 4
+   }
+  },
+  {
+   "cueId": "4811dea8-2cc0-402b-aec8-5ceb63478e81",
+   "draftName": "Sim Shalom 3",
+   "title": "Sim Shalom",
+   "layout": "left",
+   "activeRevision": 2,
+   "page": 22,
+   "pageName": "HHD 4",
+   "cell": "r2c1",
+   "label": "Sim Shalom 3/4",
+   "role": "sequence-part",
+   "sequence": {
+    "name": "Sim Shalom (HHD)",
+    "index": 3,
+    "count": 4
+   }
+  },
+  {
+   "cueId": "965427b6-f3d7-4abb-aa5a-39e9573e3c2a",
+   "draftName": "Sim Shalom 4",
+   "title": "Sim Shalom",
+   "layout": "left",
+   "activeRevision": 2,
+   "page": 22,
+   "pageName": "HHD 4",
+   "cell": "r3c1",
+   "label": "Sim Shalom 4/4",
+   "role": "sequence-part",
+   "sequence": {
+    "name": "Sim Shalom (HHD)",
+    "index": 4,
+    "count": 4
+   }
+  },
+  {
+   "cueId": "feaacb05-dcb8-461e-8d49-ee1ded5b0596",
+   "draftName": "Shalom Rav",
+   "title": "Shalom Rav",
+   "layout": "bottom",
+   "activeRevision": 2,
+   "page": 22,
+   "pageName": "HHD 4",
+   "cell": "r0c2",
+   "label": "Shalom Rav",
+   "role": "single"
+  },
+  {
+   "cueId": "c8379304-2369-4a47-81e7-2d435a15cf83",
+   "draftName": "Bsefer Chayim",
+   "title": "B'sefer Chayim",
+   "layout": "bottom",
+   "activeRevision": 1,
+   "page": 22,
+   "pageName": "HHD 4",
+   "cell": "r1c2",
+   "label": "B'sefer Chayim",
+   "role": "single"
+  },
+  {
+   "cueId": "0cf632bf-aab4-4354-8095-6aa5f9b3ec6a",
+   "draftName": "Hoda-Ah",
+   "title": "Hoda'ah",
+   "layout": "bottom",
+   "activeRevision": 2,
+   "page": 22,
+   "pageName": "HHD 4",
+   "cell": "r2c2",
+   "label": "Hoda'ah",
+   "role": "single"
+  },
+  {
+   "cueId": "1c78286d-319b-4025-8e5d-578e2888855e",
+   "draftName": "Oseh Shalom",
+   "title": "Oseh Shalom",
+   "layout": "bottom",
+   "activeRevision": 2,
+   "page": 22,
+   "pageName": "HHD 4",
+   "cell": "r3c2",
+   "label": "Oseh Shalom",
+   "role": "single"
+  },
+  {
+   "cueId": "bf4eb2c9-fe1f-44bd-87ab-cc64186cd4f9",
+   "draftName": "Silent Prayer",
+   "title": "T'filah",
+   "layout": "right",
+   "activeRevision": 1,
+   "page": 22,
+   "pageName": "HHD 4",
+   "cell": "r0c3",
+   "label": "Silent Prayer",
+   "role": "single"
+  },
+  {
+   "cueId": "29837b9e-3e2a-49c9-b013-74b19b8f23cc",
+   "draftName": "Yihyu",
+   "title": "Concluding T'filah",
+   "layout": "bottom",
+   "activeRevision": 1,
+   "page": 22,
+   "pageName": "HHD 4",
+   "cell": "r1c3",
+   "label": "Yih'yu",
+   "role": "single"
+  },
+  {
+   "cueId": "b22ee068-1073-4923-ae03-f31c6a101a56",
+   "draftName": "Hayom",
+   "title": "Hayom",
+   "layout": "left",
+   "activeRevision": 2,
+   "page": 22,
+   "pageName": "HHD 4",
+   "cell": "r2c3",
+   "label": "Hayom 1/2",
+   "role": "sequence-part",
+   "sequence": {
+    "name": "Hayom",
+    "index": 1,
+    "count": 2
+   }
+  },
+  {
+   "cueId": "d4f1601f-b8d9-4232-8d7f-ad2681b1f722",
+   "draftName": "Hayom 2",
+   "title": "Hayom",
+   "layout": "left",
+   "activeRevision": 2,
+   "page": 22,
+   "pageName": "HHD 4",
+   "cell": "r3c3",
+   "label": "Hayom 2/2",
+   "role": "sequence-part",
+   "sequence": {
+    "name": "Hayom",
+    "index": 2,
+    "count": 2
+   }
+  },
+  {
+   "cueId": "3cf82e7d-9016-4b62-af56-262900c17d51",
+   "draftName": "Vidui",
+   "title": "Vidui",
+   "layout": "left",
+   "activeRevision": 2,
+   "page": 22,
+   "pageName": "HHD 4",
+   "cell": "r0c4",
+   "label": "Vidui",
+   "role": "single"
+  },
+  {
+   "cueId": "63a423a6-eec4-4694-a6e8-eaa760e2da43",
+   "draftName": "Al Cheit Refrain",
+   "title": "Al Cheit",
+   "layout": "bottom",
+   "activeRevision": 1,
+   "page": 22,
+   "pageName": "HHD 4",
+   "cell": "r1c4",
+   "label": "Al Cheit (refrain)",
+   "role": "single"
+  },
+  {
+   "cueId": "14ec8894-822f-4c3f-b6f8-6228e60d10fc",
+   "draftName": "Ashamnu",
+   "title": "Ashamnu",
+   "layout": "left",
+   "activeRevision": 2,
+   "page": 22,
+   "pageName": "HHD 4",
+   "cell": "r2c4",
+   "label": "Ashamnu",
+   "role": "single"
+  },
+  {
+   "cueId": "1620ebcc-b77d-40d6-b7f3-7005493576c9",
+   "draftName": "Ve'Al Kulam",
+   "title": "V'al Kulam",
+   "layout": "bottom",
+   "activeRevision": 1,
+   "page": 22,
+   "pageName": "HHD 4",
+   "cell": "r3c4",
+   "label": "V'al Kulam",
+   "role": "single"
+  },
+  {
+   "cueId": "ffe1eedc-80c4-48e9-a9b8-e841131101bd",
+   "draftName": "13 Attributes",
+   "title": "13 Attributes",
+   "layout": "bottom",
+   "activeRevision": 1,
+   "page": 22,
+   "pageName": "HHD 4",
+   "cell": "r0c5",
+   "label": "13 Attributes",
+   "role": "single"
+  },
+  {
+   "cueId": "02175bd5-3d7b-4e57-9c63-33d38bc02ab0",
+   "draftName": "Avinu Malkeinu 1",
+   "title": "Avinu Malkeinu",
+   "layout": "left",
+   "activeRevision": 2,
+   "page": 22,
+   "pageName": "HHD 4",
+   "cell": "r1c5",
+   "label": "Avinu Malkeinu 1/2",
+   "role": "sequence-part",
+   "sequence": {
+    "name": "Avinu Malkeinu",
+    "index": 1,
+    "count": 2
+   }
+  },
+  {
+   "cueId": "7645c36b-1ace-4ba3-b1a6-b831de6c586c",
+   "draftName": "Avinu Malkeinu 2",
+   "title": "Avinu Malkeinu",
+   "layout": "left",
+   "activeRevision": 2,
+   "page": 22,
+   "pageName": "HHD 4",
+   "cell": "r2c5",
+   "label": "Avinu Malkeinu 2/2",
+   "role": "sequence-part",
+   "sequence": {
+    "name": "Avinu Malkeinu",
+    "index": 2,
+    "count": 2
+   }
+  },
+  {
+   "cueId": "4f4ba3b1-f52a-41e8-ada8-c9e22572018a",
+   "draftName": "Avinu Malkeinu Short",
+   "title": "Avinu Malkeinu",
+   "layout": "left",
+   "activeRevision": 2,
+   "page": 22,
+   "pageName": "HHD 4",
+   "cell": "r3c5",
+   "label": "Avinu Malkeinu (short)",
+   "role": "short-selection"
+  },
+  {
+   "cueId": "8e486f11-e9f5-4c2e-bd5f-071707788c14",
+   "draftName": "Be Right Back",
+   "title": "Central Reform Congregation",
+   "layout": "bottom",
+   "activeRevision": 1,
+   "page": 23,
+   "pageName": "HHD 5",
+   "cell": "r3c6",
+   "label": "Be Right Back",
+   "role": "utility"
+  },
+  {
+   "cueId": "5b21e5ef-e373-4ce8-a3da-f7a0b3f11162",
+   "draftName": "Torah Shema",
+   "title": "Taking Out the Torah",
+   "layout": "bottom",
+   "activeRevision": 2,
+   "page": 23,
+   "pageName": "HHD 5",
+   "cell": "r0c1",
+   "label": "Taking out · Sh’ma",
+   "role": "single"
+  },
+  {
+   "cueId": "3b97ec53-7979-4f12-aa9c-6a882c47f3a4",
+   "draftName": "Aliyah Blessing BEFORE",
+   "title": "Blessings Before the Torah",
+   "layout": "bottom",
+   "activeRevision": 2,
+   "page": 23,
+   "pageName": "HHD 5",
+   "cell": "r1c1",
+   "label": "Before Torah",
+   "role": "single"
+  },
+  {
+   "cueId": "00d6d775-c932-4895-8e77-162dac8101d2",
+   "draftName": "Aliyah Blessing AFTER",
+   "title": "Blessing After the Torah",
+   "layout": "bottom",
+   "activeRevision": 2,
+   "page": 23,
+   "pageName": "HHD 5",
+   "cell": "r2c1",
+   "label": "After Torah",
+   "role": "single"
+  },
+  {
+   "cueId": "1f826b16-c4df-4256-bfb0-befdec2f9f71",
+   "draftName": "Mi Sheberach",
+   "title": "Prayer for Healing",
+   "layout": "left",
+   "activeRevision": 1,
+   "page": 23,
+   "pageName": "HHD 5",
+   "cell": "r3c1",
+   "label": "Mi Sheberach",
+   "role": "single"
+  },
+  {
+   "cueId": "3c41f85a-f1d7-4e74-8485-fb4f975b9b59",
+   "draftName": "Haftarah Blessing BEFORE",
+   "title": "Before the Haftarah",
+   "layout": "bottom",
+   "activeRevision": 2,
+   "page": 23,
+   "pageName": "HHD 5",
+   "cell": "r0c2",
+   "label": "Before Haftarah",
+   "role": "single"
+  },
+  {
+   "cueId": "3985b540-d34d-4085-8f7f-1212b900c0d0",
+   "draftName": "Haftarah Blessing AFTER 1",
+   "title": "After the Haftarah 1",
+   "layout": "left",
+   "activeRevision": 3,
+   "page": 23,
+   "pageName": "HHD 5",
+   "cell": "r1c2",
+   "label": "After Haftarah 1/3",
+   "role": "sequence-part",
+   "sequence": {
+    "name": "After the Haftarah",
+    "index": 1,
+    "count": 3
+   }
+  },
+  {
+   "cueId": "053742de-cf3d-42e6-81b1-1f64e363f9ad",
+   "draftName": "Haftarah Blessing AFTER 2",
+   "title": "After the Haftarah 2",
+   "layout": "left",
+   "activeRevision": 3,
+   "page": 23,
+   "pageName": "HHD 5",
+   "cell": "r2c2",
+   "label": "After Haftarah 2/3",
+   "role": "sequence-part",
+   "sequence": {
+    "name": "After the Haftarah",
+    "index": 2,
+    "count": 3
+   }
+  },
+  {
+   "cueId": "05ba9c7a-d3cc-4c1f-b90d-015c267510d5",
+   "draftName": "Haftarah Blessing AFTER 3",
+   "title": "After the Haftarah 3",
+   "layout": "left",
+   "activeRevision": 3,
+   "page": 23,
+   "pageName": "HHD 5",
+   "cell": "r3c2",
+   "label": "After Haftarah 3/3",
+   "role": "sequence-part",
+   "sequence": {
+    "name": "After the Haftarah",
+    "index": 3,
+    "count": 3
+   }
+  },
+  {
+   "cueId": "13fb0999-99d1-45e9-bd5b-b9b00b2c40fb",
+   "draftName": "Shofar Blessing",
+   "title": "Shofar Blessing",
+   "layout": "bottom",
+   "activeRevision": 1,
+   "page": 23,
+   "pageName": "HHD 5",
+   "cell": "r0c3",
+   "label": "Shofar Blessing",
+   "role": "single"
+  },
+  {
+   "cueId": "dada44a8-ec83-4bae-a731-2b6af91f62a5",
+   "draftName": "Shofar Call 2",
+   "title": "Zichronot",
+   "layout": "bottom",
+   "activeRevision": 1,
+   "page": 23,
+   "pageName": "HHD 5",
+   "cell": "r1c3",
+   "label": "Zichronot",
+   "role": "single"
+  },
+  {
+   "cueId": "7661ad60-adbd-492d-9602-d7d297a3de1e",
+   "draftName": "Shofar Call 3",
+   "title": "Shofarot",
+   "layout": "bottom",
+   "activeRevision": 1,
+   "page": 23,
+   "pageName": "HHD 5",
+   "cell": "r2c3",
+   "label": "Shofarot",
+   "role": "single"
+  },
+  {
+   "cueId": "f1fcd94c-1ae7-4ef5-8941-0e13188204d9",
+   "draftName": "Eitz Chayim",
+   "title": "Eitz Chayim",
+   "layout": "bottom",
+   "activeRevision": 2,
+   "page": 23,
+   "pageName": "HHD 5",
+   "cell": "r3c3",
+   "label": "Eitz Chayim",
+   "role": "single"
+  },
+  {
+   "cueId": "80f96159-5989-42dd-9620-c617057f1014",
+   "draftName": "Send Healing Names",
+   "title": "Healing Prayers",
+   "layout": "bottom",
+   "activeRevision": 2,
+   "page": 23,
+   "pageName": "HHD 5",
+   "cell": "r0c4",
+   "label": "Healing Names",
+   "role": "announcement"
+  },
+  {
+   "cueId": "d541f3d2-f8c4-4a58-b733-579413e447c4",
+   "draftName": "El Na R'fa Na",
+   "title": "El Na R'fa Na Lah/Lo",
+   "layout": "bottom",
+   "activeRevision": 2,
+   "page": 23,
+   "pageName": "HHD 5",
+   "cell": "r1c4",
+   "label": "El Na R'fa Na",
+   "role": "single"
+  },
+  {
+   "cueId": "1dc6361e-ae4d-424c-ad90-4734a13b64aa",
+   "draftName": "Barcheinu",
+   "title": "Concluding T'filah",
+   "layout": "bottom",
+   "activeRevision": 2,
+   "page": 23,
+   "pageName": "HHD 5",
+   "cell": "r2c4",
+   "label": "Concluding T'filah",
+   "role": "single"
+  },
+  {
+   "cueId": "bb52a63a-e892-4518-b7c2-a59e8ce730b9",
+   "draftName": "Guest name",
+   "title": "Central Reform Congregation",
+   "layout": "bottom",
+   "activeRevision": 1,
+   "page": 23,
+   "pageName": "HHD 5",
+   "cell": "r3c4",
+   "label": "Guest name",
+   "role": "announcement"
+  },
+  {
+   "cueId": "8e486f11-e9f5-4c2e-bd5f-071707788c14",
+   "draftName": "Be Right Back",
+   "title": "Central Reform Congregation",
+   "layout": "bottom",
+   "activeRevision": 1,
+   "page": 24,
+   "pageName": "HHD 6",
+   "cell": "r3c6",
+   "label": "Be Right Back",
+   "role": "utility"
+  },
+  {
+   "cueId": "ea678128-2f4a-4909-b0b5-edb83f8b1e17",
+   "draftName": "Kol Nidre",
+   "title": "Kol Nidre",
+   "layout": "left",
+   "activeRevision": 2,
+   "page": 24,
+   "pageName": "HHD 6",
+   "cell": "r0c1",
+   "label": "Kol Nidre 1/3",
+   "role": "sequence-part",
+   "sequence": {
+    "name": "Kol Nidre",
+    "index": 1,
+    "count": 3
+   }
+  },
+  {
+   "cueId": "c3a08c80-c0e2-4dd5-b906-81dd4a94eba4",
+   "draftName": "Kol Nidre 2",
+   "title": "Kol Nidre",
+   "layout": "left",
+   "activeRevision": 2,
+   "page": 24,
+   "pageName": "HHD 6",
+   "cell": "r1c1",
+   "label": "Kol Nidre 2/3",
+   "role": "sequence-part",
+   "sequence": {
+    "name": "Kol Nidre",
+    "index": 2,
+    "count": 3
+   }
+  },
+  {
+   "cueId": "f5b532cc-e09f-400b-a939-8bb623d0ce90",
+   "draftName": "Kol Nidre 3",
+   "title": "Kol Nidre",
+   "layout": "left",
+   "activeRevision": 2,
+   "page": 24,
+   "pageName": "HHD 6",
+   "cell": "r2c1",
+   "label": "Kol Nidre 3/3",
+   "role": "sequence-part",
+   "sequence": {
+    "name": "Kol Nidre",
+    "index": 3,
+    "count": 3
+   }
+  },
+  {
+   "cueId": "fd92efa7-925c-4179-8e07-a78a8723a101",
+   "draftName": "Hashiveinu",
+   "title": "Hashiveinu",
+   "layout": "bottom",
+   "activeRevision": 1,
+   "page": 24,
+   "pageName": "HHD 6",
+   "cell": "r3c1",
+   "label": "Hashiveinu",
+   "role": "single"
+  },
+  {
+   "cueId": "f5c9a69e-4169-4f94-93df-ff259e696b7f",
+   "draftName": "Return Again",
+   "title": "Return Again",
+   "layout": "left",
+   "activeRevision": 1,
+   "page": 24,
+   "pageName": "HHD 6",
+   "cell": "r0c2",
+   "label": "Return Again",
+   "role": "single"
+  },
+  {
+   "cueId": "a6819b56-0e6a-49da-98f4-eb1bed16d3a3",
+   "draftName": "Pitchu Li",
+   "title": "Pitchu Li",
+   "layout": "bottom",
+   "activeRevision": 1,
+   "page": 24,
+   "pageName": "HHD 6",
+   "cell": "r1c2",
+   "label": "Pitchu Li",
+   "role": "single"
+  },
+  {
+   "cueId": "9595c648-5b57-4979-aa77-8f3c91a3013b",
+   "draftName": "Miryam Han'viah",
+   "title": "Miryam Han'viah",
+   "layout": "left",
+   "activeRevision": 3,
+   "page": 24,
+   "pageName": "HHD 6",
+   "cell": "r2c2",
+   "label": "Miryam Han'viah",
+   "role": "single"
+  },
+  {
+   "cueId": "add0f175-584f-472e-83e3-a0de82a261ff",
+   "draftName": "Olam Chesed Yibaneh",
+   "title": "Olam Chesed Yibaneh",
+   "layout": "bottom",
+   "activeRevision": 1,
+   "page": 24,
+   "pageName": "HHD 6",
+   "cell": "r3c2",
+   "label": "Olam Chesed Yibaneh",
+   "role": "single",
+   "note": "Published revision 1 is English-only; the maintained Hebrew is missing and draft v2 is held (OLAM-CHESSED-SOURCE-DIAGNOSIS). Bound as published; see OPEN-QUESTIONS."
+  },
+  {
+   "cueId": "8e486f11-e9f5-4c2e-bd5f-071707788c14",
+   "draftName": "Be Right Back",
+   "title": "Central Reform Congregation",
+   "layout": "bottom",
+   "activeRevision": 1,
+   "page": 25,
+   "pageName": "HHD 7",
+   "cell": "r3c6",
+   "label": "Be Right Back",
+   "role": "utility"
+  },
+  {
+   "cueId": "a0062802-ff01-4a0a-95f8-5d8006260a10",
+   "draftName": "aleinu bot 1",
+   "title": "Aleinu 1",
+   "layout": "left",
+   "activeRevision": 2,
+   "page": 25,
+   "pageName": "HHD 7",
+   "cell": "r0c1",
+   "label": "HHD Aleinu 1/2",
+   "role": "sequence-part",
+   "sequence": {
+    "name": "Aleinu (HHD / Slichot)",
+    "index": 1,
+    "count": 2
+   }
+  },
+  {
+   "cueId": "af1cb97f-b8ba-49d3-b338-85896cd56778",
+   "draftName": "aleinu bot 2",
+   "title": "Aleinu 2",
+   "layout": "left",
+   "activeRevision": 2,
+   "page": 25,
+   "pageName": "HHD 7",
+   "cell": "r1c1",
+   "label": "HHD Aleinu 2/2",
+   "role": "sequence-part",
+   "sequence": {
+    "name": "Aleinu (HHD / Slichot)",
+    "index": 2,
+    "count": 2
+   }
+  },
+  {
+   "cueId": "2d11c3f1-0162-4694-910c-f5a84ab50c81",
+   "draftName": "May the Memory",
+   "title": "May the Memory",
+   "layout": "bottom",
+   "activeRevision": 1,
+   "page": 25,
+   "pageName": "HHD 7",
+   "cell": "r2c1",
+   "label": "May the Memory",
+   "role": "single"
+  },
+  {
+   "cueId": "f7beaf09-ad9f-4c00-a949-7518a8d57db9",
+   "draftName": "Vimru Amen",
+   "title": "Oseh Shalom",
+   "layout": "bottom",
+   "activeRevision": 1,
+   "page": 25,
+   "pageName": "HHD 7",
+   "cell": "r3c1",
+   "label": "V'imru Amen",
+   "role": "single"
+  },
+  {
+   "cueId": "67693694-1802-4262-9121-3ebc42a53bde",
+   "draftName": "Aleinu 1",
+   "title": "Aleinu",
+   "layout": "left",
+   "activeRevision": 2,
+   "page": 25,
+   "pageName": "HHD 7",
+   "cell": "r0c2",
+   "label": "Aleinu 1/4",
+   "role": "alternate",
+   "sequence": {
+    "name": "Aleinu",
+    "index": 1,
+    "count": 4
+   }
+  },
+  {
+   "cueId": "403eced5-770f-49f2-99bc-b8b2c2b59235",
+   "draftName": "Aleinu 2",
+   "title": "Aleinu",
+   "layout": "left",
+   "activeRevision": 2,
+   "page": 25,
+   "pageName": "HHD 7",
+   "cell": "r1c2",
+   "label": "Aleinu 2/4",
+   "role": "alternate",
+   "sequence": {
+    "name": "Aleinu",
+    "index": 2,
+    "count": 4
+   }
+  },
+  {
+   "cueId": "d126a475-8cbe-476c-9584-a84761e8b888",
+   "draftName": "Aleinu 3",
+   "title": "Aleinu",
+   "layout": "left",
+   "activeRevision": 2,
+   "page": 25,
+   "pageName": "HHD 7",
+   "cell": "r2c2",
+   "label": "Aleinu 3/4",
+   "role": "alternate",
+   "sequence": {
+    "name": "Aleinu",
+    "index": 3,
+    "count": 4
+   }
+  },
+  {
+   "cueId": "80e7acd3-ae25-4713-8c5b-d50cd9d792f1",
+   "draftName": "Aleinu 4",
+   "title": "Aleinu",
+   "layout": "left",
+   "activeRevision": 2,
+   "page": 25,
+   "pageName": "HHD 7",
+   "cell": "r3c2",
+   "label": "Aleinu 4/4",
+   "role": "alternate",
+   "sequence": {
+    "name": "Aleinu",
+    "index": 4,
+    "count": 4
+   }
+  },
+  {
+   "cueId": "d0a1be50-2ee0-4604-81d6-c3083376bf89",
+   "draftName": "Send Kaddish Names",
+   "title": "Mourner's Kaddish",
+   "layout": "bottom",
+   "activeRevision": 2,
+   "page": 25,
+   "pageName": "HHD 7",
+   "cell": "r0c3",
+   "label": "Kaddish Names",
+   "role": "announcement"
+  },
+  {
+   "cueId": "c2d2c129-7d7d-4bbc-a296-46cc1fb9f48e",
+   "draftName": "Mourners Kaddish 1",
+   "title": "Mourner's Kaddish",
+   "layout": "left",
+   "activeRevision": 2,
+   "page": 25,
+   "pageName": "HHD 7",
+   "cell": "r1c3",
+   "label": "Kaddish 1/2",
+   "role": "sequence-part",
+   "sequence": {
+    "name": "Mourner's Kaddish",
+    "index": 1,
+    "count": 2
+   },
+   "note": "Plain 2-panel default (MK3 archived; T/TT family unbound)."
+  },
+  {
+   "cueId": "f15c1944-da76-4d61-95c8-05c032d47c4d",
+   "draftName": "Mourners Kaddish 2",
+   "title": "Mourner's Kaddish",
+   "layout": "left",
+   "activeRevision": 2,
+   "page": 25,
+   "pageName": "HHD 7",
+   "cell": "r2c3",
+   "label": "Kaddish 2/2",
+   "role": "sequence-part",
+   "sequence": {
+    "name": "Mourner's Kaddish",
+    "index": 2,
+    "count": 2
+   }
+  },
+  {
+   "cueId": "1c78286d-319b-4025-8e5d-578e2888855e",
+   "draftName": "Oseh Shalom",
+   "title": "Oseh Shalom",
+   "layout": "bottom",
+   "activeRevision": 2,
+   "page": 25,
+   "pageName": "HHD 7",
+   "cell": "r3c3",
+   "label": "Oseh Shalom",
+   "role": "single"
+  },
+  {
+   "cueId": "cef61697-af4c-4403-a53e-840aee94a065",
+   "draftName": "Festival Kiddush",
+   "title": "Festival Kiddush",
+   "layout": "left",
+   "activeRevision": 2,
+   "page": 25,
+   "pageName": "HHD 7",
+   "cell": "r0c4",
+   "label": "Festival Kiddush 1/2",
+   "role": "sequence-part",
+   "sequence": {
+    "name": "Festival Kiddush",
+    "index": 1,
+    "count": 2
+   }
+  },
+  {
+   "cueId": "0ad1ff58-11ac-429a-8d55-26cebc4c0a13",
+   "draftName": "Festival Kiddush 2",
+   "title": "Festival Kiddush",
+   "layout": "left",
+   "activeRevision": 2,
+   "page": 25,
+   "pageName": "HHD 7",
+   "cell": "r1c4",
+   "label": "Festival Kiddush 2/2",
+   "role": "sequence-part",
+   "sequence": {
+    "name": "Festival Kiddush",
+    "index": 2,
+    "count": 2
+   }
+  },
+  {
+   "cueId": "bb2d1b64-95dc-47c2-bbc6-1451233dcf53",
+   "draftName": "Kiddush (short)",
+   "title": "Kiddush",
+   "layout": "bottom",
+   "activeRevision": 2,
+   "page": 25,
+   "pageName": "HHD 7",
+   "cell": "r2c4",
+   "label": "Kiddush (short)",
+   "role": "short-selection"
+  },
+  {
+   "cueId": "0be48337-2cbf-4a89-82f5-a7280a36709e",
+   "draftName": "Motzi",
+   "title": "Motzi",
+   "layout": "bottom",
+   "activeRevision": 2,
+   "page": 25,
+   "pageName": "HHD 7",
+   "cell": "r3c4",
+   "label": "Motzi",
+   "role": "single"
+  },
+  {
+   "cueId": "3d18426f-f8b6-49f5-831c-fc35e0f58f40",
+   "draftName": "Announcements",
+   "title": "Announcements",
+   "layout": "bottom",
+   "activeRevision": 1,
+   "page": 25,
+   "pageName": "HHD 7",
+   "cell": "r0c5",
+   "label": "Announcements",
+   "role": "announcement"
+  },
+  {
+   "cueId": "089cce61-085b-49e9-9ede-f6ec81f65789",
+   "draftName": "Birkat Kohanim",
+   "title": "Priestly Blessing",
+   "layout": "bottom",
+   "activeRevision": 2,
+   "page": 25,
+   "pageName": "HHD 7",
+   "cell": "r1c5",
+   "label": "Priestly Blessing",
+   "role": "single"
+  },
+  {
+   "cueId": "09f50803-3288-4b78-bcc7-560025668e1a",
+   "draftName": "Thank you",
+   "title": "Central Reform Congregation",
+   "layout": "right",
+   "activeRevision": 1,
+   "page": 25,
+   "pageName": "HHD 7",
+   "cell": "r2c5",
+   "label": "Thank You",
+   "role": "announcement"
+  },
+  {
+   "cueId": "8e486f11-e9f5-4c2e-bd5f-071707788c14",
+   "draftName": "Be Right Back",
+   "title": "Central Reform Congregation",
+   "layout": "bottom",
+   "activeRevision": 1,
+   "page": 26,
+   "pageName": "Memorial",
+   "cell": "r3c6",
+   "label": "Be Right Back",
+   "role": "utility"
+  },
+  {
+   "cueId": "0cd20c42-8310-4ddf-bab9-72bab6113e04",
+   "draftName": "Starting Soon",
+   "title": "Central Reform Congregation",
+   "layout": "bottom",
+   "activeRevision": 1,
+   "page": 26,
+   "pageName": "Memorial",
+   "cell": "r0c1",
+   "label": "Starting Soon",
+   "role": "announcement"
+  },
+  {
+   "cueId": "df4b1219-7680-4cab-adba-5b93cf6a1afa",
+   "draftName": "Esah Einai",
+   "title": "Esah Einai",
+   "layout": "bottom",
+   "activeRevision": 1,
+   "page": 26,
+   "pageName": "Memorial",
+   "cell": "r1c1",
+   "label": "Esa Einai",
+   "role": "single"
+  },
+  {
+   "cueId": "cc36dc3a-b724-404d-83d2-bcd029d79158",
+   "draftName": "psalm 23",
+   "title": "Psalm 23",
+   "layout": "left",
+   "activeRevision": 2,
+   "page": 26,
+   "pageName": "Memorial",
+   "cell": "r2c1",
+   "label": "Psalm 23 1/2",
+   "role": "sequence-part",
+   "sequence": {
+    "name": "Psalm 23",
+    "index": 1,
+    "count": 2
+   }
+  },
+  {
+   "cueId": "85ae36a1-b602-4ded-87c1-7995fac4926b",
+   "draftName": "psalm 23 (2)",
+   "title": "Psalm 23",
+   "layout": "left",
+   "activeRevision": 2,
+   "page": 26,
+   "pageName": "Memorial",
+   "cell": "r3c1",
+   "label": "Psalm 23 2/2",
+   "role": "sequence-part",
+   "sequence": {
+    "name": "Psalm 23",
+    "index": 2,
+    "count": 2
+   }
+  },
+  {
+   "cueId": "a354e5ec-288e-45d4-bea6-0ca4e478a635",
+   "draftName": "El Mei Rachamim",
+   "title": "El Malei Rachamim",
+   "layout": "left",
+   "activeRevision": 2,
+   "page": 26,
+   "pageName": "Memorial",
+   "cell": "r0c2",
+   "label": "El Malei 1/2",
+   "role": "sequence-part",
+   "sequence": {
+    "name": "El Malei Rachamim",
+    "index": 1,
+    "count": 2
+   }
+  },
+  {
+   "cueId": "b560d3e3-d300-4745-affe-f6ba25ef8f01",
+   "draftName": "El Malei TRANSLIT",
+   "title": "El Malei Rachamim",
+   "layout": "left",
+   "activeRevision": 2,
+   "page": 26,
+   "pageName": "Memorial",
+   "cell": "r1c2",
+   "label": "El Malei 2/2",
+   "role": "sequence-part",
+   "sequence": {
+    "name": "El Malei Rachamim",
+    "index": 2,
+    "count": 2
+   }
+  },
+  {
+   "cueId": "2d11c3f1-0162-4694-910c-f5a84ab50c81",
+   "draftName": "May the Memory",
+   "title": "May the Memory",
+   "layout": "bottom",
+   "activeRevision": 1,
+   "page": 26,
+   "pageName": "Memorial",
+   "cell": "r2c2",
+   "label": "May the Memory",
+   "role": "single"
+  },
+  {
+   "cueId": "1f826b16-c4df-4256-bfb0-befdec2f9f71",
+   "draftName": "Mi Sheberach",
+   "title": "Prayer for Healing",
+   "layout": "left",
+   "activeRevision": 1,
+   "page": 26,
+   "pageName": "Memorial",
+   "cell": "r3c2",
+   "label": "Mi Sheberach",
+   "role": "single"
+  },
+  {
+   "cueId": "35aba7f2-eba6-4373-80d7-513713192b72",
+   "draftName": "Remember Them 1",
+   "title": "Remember Them",
+   "layout": "bottom",
+   "activeRevision": 1,
+   "page": 26,
+   "pageName": "Memorial",
+   "cell": "r0c3",
+   "label": "Remember Them 1",
+   "role": "announcement"
+  },
+  {
+   "cueId": "4e67f479-357f-46d4-aab0-84bd0f6ce7de",
+   "draftName": "Remember Them 2",
+   "title": "Remember Them",
+   "layout": "bottom",
+   "activeRevision": 1,
+   "page": 26,
+   "pageName": "Memorial",
+   "cell": "r1c3",
+   "label": "Remember Them 2",
+   "role": "announcement"
+  },
+  {
+   "cueId": "16533b7f-017a-417a-a676-b457f53d8ea6",
+   "draftName": "Remember Them 3",
+   "title": "Remember Them",
+   "layout": "bottom",
+   "activeRevision": 1,
+   "page": 26,
+   "pageName": "Memorial",
+   "cell": "r2c3",
+   "label": "Remember Them 3",
+   "role": "announcement"
+  },
+  {
+   "cueId": "d0a1be50-2ee0-4604-81d6-c3083376bf89",
+   "draftName": "Send Kaddish Names",
+   "title": "Mourner's Kaddish",
+   "layout": "bottom",
+   "activeRevision": 2,
+   "page": 26,
+   "pageName": "Memorial",
+   "cell": "r3c3",
+   "label": "Kaddish Names",
+   "role": "announcement"
+  },
+  {
+   "cueId": "c2d2c129-7d7d-4bbc-a296-46cc1fb9f48e",
+   "draftName": "Mourners Kaddish 1",
+   "title": "Mourner's Kaddish",
+   "layout": "left",
+   "activeRevision": 2,
+   "page": 26,
+   "pageName": "Memorial",
+   "cell": "r0c4",
+   "label": "Kaddish 1/2",
+   "role": "sequence-part",
+   "sequence": {
+    "name": "Mourner's Kaddish",
+    "index": 1,
+    "count": 2
+   },
+   "note": "Plain 2-panel default (MK3 archived; T/TT family unbound)."
+  },
+  {
+   "cueId": "f15c1944-da76-4d61-95c8-05c032d47c4d",
+   "draftName": "Mourners Kaddish 2",
+   "title": "Mourner's Kaddish",
+   "layout": "left",
+   "activeRevision": 2,
+   "page": 26,
+   "pageName": "Memorial",
+   "cell": "r1c4",
+   "label": "Kaddish 2/2",
+   "role": "sequence-part",
+   "sequence": {
+    "name": "Mourner's Kaddish",
+    "index": 2,
+    "count": 2
+   }
+  },
+  {
+   "cueId": "f7beaf09-ad9f-4c00-a949-7518a8d57db9",
+   "draftName": "Vimru Amen",
+   "title": "Oseh Shalom",
+   "layout": "bottom",
+   "activeRevision": 1,
+   "page": 26,
+   "pageName": "Memorial",
+   "cell": "r2c4",
+   "label": "V'imru Amen",
+   "role": "single"
+  },
+  {
+   "cueId": "1c78286d-319b-4025-8e5d-578e2888855e",
+   "draftName": "Oseh Shalom",
+   "title": "Oseh Shalom",
+   "layout": "bottom",
+   "activeRevision": 2,
+   "page": 26,
+   "pageName": "Memorial",
+   "cell": "r3c4",
+   "label": "Oseh Shalom",
+   "role": "single"
+  },
+  {
+   "cueId": "a4c86b16-6677-46b8-ad39-871a2fb81224",
+   "draftName": "Adon Olam 1",
+   "title": "Adon Olam",
+   "layout": "left",
+   "activeRevision": 3,
+   "page": 26,
+   "pageName": "Memorial",
+   "cell": "r0c5",
+   "label": "Adon Olam 1/3",
+   "role": "sequence-part",
+   "sequence": {
+    "name": "Adon Olam",
+    "index": 1,
+    "count": 3
+   }
+  },
+  {
+   "cueId": "7d337be4-8b25-4bbd-b532-87b8d0c7602c",
+   "draftName": "Adon Olam 2",
+   "title": "Adon Olam",
+   "layout": "left",
+   "activeRevision": 3,
+   "page": 26,
+   "pageName": "Memorial",
+   "cell": "r1c5",
+   "label": "Adon Olam 2/3",
+   "role": "sequence-part",
+   "sequence": {
+    "name": "Adon Olam",
+    "index": 2,
+    "count": 3
+   }
+  },
+  {
+   "cueId": "9bb328cb-f218-40e3-9e91-56864144af6a",
+   "draftName": "Adon Olam 3",
+   "title": "Adon Olam",
+   "layout": "left",
+   "activeRevision": 3,
+   "page": 26,
+   "pageName": "Memorial",
+   "cell": "r2c5",
+   "label": "Adon Olam 3/3",
+   "role": "sequence-part",
+   "sequence": {
+    "name": "Adon Olam",
+    "index": 3,
+    "count": 3
+   }
+  },
+  {
+   "cueId": "09f50803-3288-4b78-bcc7-560025668e1a",
+   "draftName": "Thank you",
+   "title": "Central Reform Congregation",
+   "layout": "right",
+   "activeRevision": 1,
+   "page": 26,
+   "pageName": "Memorial",
+   "cell": "r3c5",
+   "label": "Thank You",
+   "role": "announcement"
+  }
+ ],
+ "publishedButUnbound": [
+  {
+   "cueId": "02fe9320-56dd-4271-85b8-d046f683074d",
+   "draftName": "Take This Soul",
+   "title": "Hashkiveinu / U2",
+   "layout": "bottom",
+   "activeRevision": 2,
+   "reason": "Hashkiveinu (U2) arrangement never placed on any original page; the Friday Hashkiveinu column already holds four versions. Add on request."
+  },
+  {
+   "cueId": "2a4775f3-3339-4f1a-85c0-d51cdafd767c",
+   "draftName": "Mourners Kaddish 3 T",
+   "title": "Mourner's Kaddish",
+   "layout": "left",
+   "activeRevision": 2,
+   "reason": "Documented alternate (T/TT 3-panel family); plain MK1/MK2 is the default (STATE decision)."
+  },
+  {
+   "cueId": "4765962c-a61c-4c69-9169-9b9425d0483d",
+   "draftName": "Mourners Kaddish 1 TT",
+   "title": "Mourner's Kaddish",
+   "layout": "left",
+   "activeRevision": 2,
+   "reason": "Documented alternate (T/TT 3-panel family); plain MK1/MK2 is the default (STATE decision)."
+  },
+  {
+   "cueId": "57db75c5-baf6-479e-a32f-7a2abdcdd170",
+   "draftName": "Mourners Kaddish 2 T",
+   "title": "Mourner's Kaddish",
+   "layout": "left",
+   "activeRevision": 2,
+   "reason": "Documented alternate (T/TT 3-panel family); plain MK1/MK2 is the default (STATE decision)."
+  }
+ ]
+}

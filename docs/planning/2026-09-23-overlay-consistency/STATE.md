@@ -54,6 +54,13 @@ built from Michael's operating logic, bound only to final published cue IDs.
   reading 1-7 and stay lower thirds. R'fa Tziri 1-2 are custom text with no siddur source
   (search_sources "tziri" is empty); they stay published as they are (transliteration before
   Hebrew). Re-laying out custom text is a question for Daniel, not a silent edit.
+- GATE: Companion preset design (companion/PRESET-DESIGN.md) accepted with its defaults —
+  proceeded because each default follows an existing rule: CRC Kiddush 1-2 Friday / Kiddush
+  (short) Saturday with Shirei as labeled alternates (CRC source default); HHD by section (Michael's
+  own newer pages); module 1.7.0 shipped with the preset; pages+triggers import onto Michael's
+  existing connections (no credentials in the file); ordered sequence buttons (no catalog rename);
+  camera gesture only where Michael had it; both decks start on Home. Or Zarua left out, Olam
+  Chesed bound at its published revision, Singular-only graphics not rebuilt: listed for Daniel.
 - Authorization basis for every review: Daniel's blanket approval of graphic publication and paired
   deployment (handoff 2026-09-23); never a claim that Daniel inspected each graphic.
 
