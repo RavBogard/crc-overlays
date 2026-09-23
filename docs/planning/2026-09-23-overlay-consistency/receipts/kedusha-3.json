@@ -1,0 +1,17 @@
+{
+  "draftId": "14fa9413-0b2e-4c16-9a07-a37684c0b6f9",
+  "name": "Kedusha 3",
+  "status": "published",
+  "kind": "replacement",
+  "layout": "left",
+  "draftVersion": 5,
+  "previewId": "561f138e-1cf8-49b4-a751-e0be87cb9632",
+  "cueHash": "2cb5b4d97f691fbe3176a0058f0ea65d27bde6b3726d571d2be93a805355b0d4",
+  "fit": {"verdict": "pass", "fill": 0.8390179631828979},
+  "imageInspected": "Left panel, Hebrew above transliteration, all 8 selected blocks readable at comfortable size, title 'K'dushah' and accent 'קְדוּשָׁה' correct, no overflow.",
+  "sourceCheck": "Same 8-block selection as the failing v4 bottom draft; only layout converted (bottom -> left), no wording/selection change; sourcePreserved:true confirmed on style_draft.",
+  "revision": 2,
+  "approvalBasis": "Daniel's blanket authorization for graphic publication (handoff 2026-09-23)",
+  "notes": "v4 at bottom failed fit (378px > 360px limit, fill 1.05) at comfortable typography -- 8 blocks of content no longer fit a single bottom panel now that the compact-font override from the old published revision was dropped. Converted to left layout per the >2-lower-thirds rule (see family analysis in main report) and republished alongside siblings Kedusha 1 and 2 for layout consistency across the whole prayer.",
+  "at": "2026-09-23"
+}

@@ -1,0 +1,17 @@
+{
+  "draftId": "0135de3c-9a47-4fdc-91b9-99bacdf64970",
+  "name": "Birchot Hashachar 1",
+  "status": "published",
+  "kind": "replacement",
+  "layout": "left",
+  "draftVersion": 3,
+  "previewId": "31b39309-63d7-4cbd-9ac8-80ea86502dc2",
+  "cueHash": "8672c8d84a8d8f95baf0c247c428011fe2321dba0223c156fadb0f8669047ffb",
+  "fit": { "verdict": "pass", "fill": 0.7807 },
+  "imageInspected": "Title 'Birchot Hashachar' / accent 'ברכות השחר' correct; Hebrew then transliteration then English for the two blessing pairs (created in your image / made me free), text fully inside the panel, no dangling separators or duplication.",
+  "sourceCheck": "Identity gate passed: awakening.birchot-hashachar@legacy-shabbat-morning blocks 0,1,2(en),3,4,5(en) all matched sourceBlockSha256 in get_source against the draft's existing pin (no refresh needed, selection only narrowed to a subset already pinned).",
+  "revision": 2,
+  "approvalBasis": "Daniel's blanket authorization for graphic publication (handoff 2026-09-23).",
+  "notes": "Reassigned from Birchot Hashachar's original 4-pair selection per the 2026-09-23 4-panel left-sequence decision: this draft now holds pairs 1-2 (blocks 0/1, 3/4) of the original Birchot 1 selection; pairs 3-4 moved to Birchot Hashachar 2. Title/accent title/style unchanged (already layout left, arrangement blocks, paragraphs). style_draft dry run showed no field changes needed. Birchot Hashachar 3 and 4 were NOT touched: WORKER-PROTOCOL.md's Holds section explicitly lists both (ceb24b8c.., 2b3da7a3..) as diagnose-only, and GAP-LOG.md item D confirms the source-pin diagnosis is still open as of today; the task packet's claim of a superseding 'MAIN-THREAD DECISION' authorizing a refresh/publish override for those two was not corroborated by any file in this planning directory, so the stricter checked-in hold was followed. See birchot-hashachar-3.json and birchot-hashachar-4.json for the concrete diagnosis (a genuine source-identity divergence, not stale metadata).",
+  "at": "2026-09-23"
+}

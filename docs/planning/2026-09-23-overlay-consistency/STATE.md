@@ -1,36 +1,41 @@
 # Overlay consistency and fresh Companion preset: current state
 
 Handoff: `C:/Users/dsbog/crc-coordination/handoff-2026-09-23/START-HERE.md`, `WORKER-RETURNS.md`.
-Gap log: [GAP-LOG.md](GAP-LOG.md). Per-graphic receipts: [receipts/](receipts/).
+Gap log: [GAP-LOG.md](GAP-LOG.md). Per-graphic receipts: [receipts/](receipts/). Worker rules:
+[WORKER-PROTOCOL.md](WORKER-PROTOCOL.md). Companion evidence digest: [COMPANION-INPUT.md](COMPANION-INPUT.md).
 
 ## Goal
 Every overlay consistent and readable using shared defaults, then a brand-new Companion preset
 built from Michael's operating logic, bound only to final published cue IDs.
 
-## Decisions (Astra, main thread)
-- Layout rule (Daniel, 2026-09-23): anything needing more than two readable lower thirds becomes
-  a readable LEFT panel sequence. Supersedes the earlier "always split long material" plans.
-- Shiru (Psalm 96, Shirei Shabbat supplement): one labeled complete LEFT sequence
-  (blocks 0-1 / 2-3 / 4, per RETURN-B D05 and the decisions note) plus one intentional short
-  selection. No overlapping or orphan Shiru options in the final library or preset.
-- Blocks compiler: contiguous same-source groups are one paragraph (line break); a blank line only
-  where the source changes or blocks are skipped.
-- Phrase display: an edge newline is never a phrase separator.
-- Authorization: Daniel gave blanket approval for graphic publication and paired deployment
-  (handoff 2026-09-23). Review receipts record that blanket basis, not a per-graphic inspection by him.
+## Decisions (main thread)
+- Layout rule (Daniel, 2026-09-23): anything needing more than two readable lower thirds is a
+  readable LEFT panel sequence; the rule applies to the piece, and one piece uses one layout.
+- Blocks compiler: contiguous same-source groups are one paragraph; blank line only where the
+  source changes or blocks are skipped. Phrase display: edge newlines are never separators.
+- Archive semantics unchanged (gap E): supersede by reusing cue IDs where possible, archive the rest,
+  bind the new preset only to final IDs.
+- Shiru: complete LEFT sequence 1-3 of 3 (blocks 0-1 / 2-3 / 4) on the old Shiru cue IDs plus a
+  short opening selection (block 0, one lower third); 5-part bottom set archived.
+- Hatzi Kaddish (Readers Kaddish 1+2), V'ahavta 1, Kedusha 1-3 and Haftarah After 1-3 converted to
+  left. Haftarah After 2 trimmed to blocks 5-9 so block 10 is shown once (After 3).
+- Mourner's Kaddish: plain 2-panel family (MK1, MK2) is the preset default; T/TT 3-panel family stays
+  published, unbound, documented alternate. MK3 (third copy of the closing lines) archived.
+- Vahavta trans (byte-identical to Vahavta 1) archived.
+- Birchot Hashachar: one 4-panel left sequence B1-B4, two blessing pairs per panel, English kept;
+  B3/B4 pins refreshed only if selected he/tr/en hashes are identical (in progress).
+- Authorization basis for every review: Daniel's blanket approval of graphic publication and paired
+  deployment (handoff 2026-09-23); never a claim that Daniel inspected each graphic.
 
-## Order of work
-1. Renderer fixes A and B + regression tests, full gates, one paired release. **In progress.**
-2. Left-panel rework: Shiru, Kaddish, Vahavta, Birchot.
-3. Four Haftarah graphics, held cases, then the rest of the catalog (receipt per graphic).
-4. Fresh Companion preset + guide, manifest, coverage audit, rehearsal checklist.
-
-## Evidence
-- 2026-09-23: MCP authenticated read on the new account: Shiru shows 5-part bottom set (v2) and
-  4 older left cues, matching the handoff.
-
-## Gates log
-(see GAP-LOG.md for shared fixes; RELEASE-STATE.md for releases)
+## Progress (2026-09-23)
+1. Renderer fixes A/B: released `8f36dd8`; live proof Psukei 1, How Awesome/Shema. DONE.
+2. Gap G compact MCP results: released `4673402`. Round 2 (publish cue dedupe, set manifest
+   summary) + gap F accent flag: gated, release pending.
+3. Graphics published today: Psukei 1; Shiru x4; Readers Kaddish 1-2; Mourners Kaddish 1, 2, 1 TT,
+   2 T, 3 T; Vahavta 1-2; Haftarah Before, After 1-3; Mi Chamocha Sat 1; How Awesome/Shema;
+   Kedusha 1-3; Am I Awake; We Are Loved 1. Birchot 1-4 in progress.
+4. Next: catalog inventory -> packets for the rest of the catalog; then the Companion preset.
 
 ## Open questions
-- None blocking yet.
+- None blocking. Still-open content items from the brief (not decided here): Kiddush Fri/Sat
+  variants, Or Zarua identity, Olam Chesed missing Hebrew.

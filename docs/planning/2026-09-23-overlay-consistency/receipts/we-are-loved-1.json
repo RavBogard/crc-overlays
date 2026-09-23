@@ -1,0 +1,17 @@
+{
+  "draftId": "e62e68e1-08e3-4021-8806-e3118295f282",
+  "name": "We Are Loved 1",
+  "status": "published",
+  "kind": "original",
+  "layout": "bottom",
+  "draftVersion": 7,
+  "previewId": "1465d8fa-bc70-438a-8baa-9f9e80aefa0e",
+  "cueHash": "e093358a77083625cab2e66d20fed07743e4957de4c9ac9c51de1ea9c3314db3",
+  "fit": {"verdict": "pass", "fill": 0.6888888888888889},
+  "imageInspected": "Bottom panel, title 'We Are Loved' and accent 'אהבת עולם' correct, text plus attribution line visible, no overflow.",
+  "sourceCheck": "Current v7 uses the identical two-block selection (block-0/slice-0 + block-1 attribution) and layout (bottom) as the last-published revision 3 (v6); only diff was adding latinLineBreaks:paragraphs presentation -- a pure style change, no wording/selection change.",
+  "revision": 4,
+  "approvalBasis": "Daniel's blanket authorization for graphic publication (handoff 2026-09-23)",
+  "notes": "A prior worker restyled this after its last publication (v7 vs published v6). Compared content/selection via get_draft and list_revisions: identical to the published revision. Re-previewed, re-fit, and published the current version.",
+  "at": "2026-09-23"
+}

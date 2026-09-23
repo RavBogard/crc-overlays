@@ -29,7 +29,10 @@ export type DraftCatalogSummary={
   selectedBlockCount:number;
   warnings:Array<{code:'source_language_unavailable';sourceId:string;channel:TextLayer;message:string}>;
  };
- flags:{smallFont:boolean;alternatingGrouping:boolean};
+ accentTitle:string|null;
+ // Other titles in this catalog carrying the same accent title (niqqud-insensitive): a prompt to
+ // check an inherited label, never proof that either one is wrong.
+ flags:{smallFont:boolean;alternatingGrouping:boolean;accentTitleSharedWith:string[]};
 };
 
 const normalized=(value:unknown)=>String(value??'').normalize('NFKD').replace(/[\u0591-\u05c7\p{M}]/gu,'').toLocaleLowerCase().replace(/[^\p{L}\p{N}]+/gu,' ').trim();
@@ -117,12 +120,27 @@ function summary(draft:Draft):DraftCatalogSummary{
  // These are the editor's established Compact sizes. This is an authoring cue to inspect,
  // not a measurement or a visual-pass claim.
  const smallFont=(presentation.hebrewFontSize!==undefined&&presentation.hebrewFontSize<34)||(presentation.transliterationFontSize!==undefined&&presentation.transliterationFontSize<28)||(presentation.titleFontSize!==undefined&&presentation.titleFontSize<28);
- return {id:draft.id,name:draft.name,title:draft.title,version:draft.version,activeVersion:draft.activeDraftVersion,activeRevision:draft.activeRevision,layout:draft.layout,templateCueId:draft.templateCueId,presentation,arrangement,sourceBooks,sourceServices,contentSummary:contentSummary(draft),flags:{smallFont,alternatingGrouping:arrangement==='together'&&draft.layout!=='bottom'&&selectedBlocks>1&&visibleLanguages>1}};
+ return {id:draft.id,name:draft.name,title:draft.title,version:draft.version,activeVersion:draft.activeDraftVersion,activeRevision:draft.activeRevision,layout:draft.layout,templateCueId:draft.templateCueId,presentation,arrangement,sourceBooks,sourceServices,contentSummary:contentSummary(draft),accentTitle:draft.accentTitle||null,flags:{smallFont,alternatingGrouping:arrangement==='together'&&draft.layout!=='bottom'&&selectedBlocks>1&&visibleLanguages>1,accentTitleSharedWith:[]}};
+}
+
+function withSharedAccentTitles(rows:DraftCatalogSummary[]){
+ const titlesByAccent=new Map<string,Map<string,string>>();
+ for(const row of rows){
+  const accent=normalized(row.accentTitle);if(!accent)continue;
+  const titles=titlesByAccent.get(accent)??new Map<string,string>();
+  if(!titles.has(normalized(row.title)))titles.set(normalized(row.title),row.title);
+  titlesByAccent.set(accent,titles);
+ }
+ return rows.map(row=>{
+  const titles=titlesByAccent.get(normalized(row.accentTitle));if(!titles||titles.size<2)return row;
+  const others=[...titles].filter(([key])=>key!==normalized(row.title)).map(([,title])=>title).sort((a,b)=>a.localeCompare(b));
+  return {...row,flags:{...row.flags,accentTitleSharedWith:others}};
+ });
 }
 
 export function compactDraftCatalog(drafts:Draft[],input:DraftCatalogInput){
  const query=normalized(input.query),service=normalized(input.service),book=normalized(input.book);
- const rows=drafts.map(summary).filter(row=>{
+ const rows=withSharedAccentTitles(drafts.map(summary)).filter(row=>{
   if(input.layout&&row.layout!==input.layout)return false;
   if(service&&!row.sourceServices.some(value=>normalized(value)===service))return false;
   if(book&&!row.sourceBooks.some(value=>normalized(value.value)===book||normalized(value.label)===book))return false;

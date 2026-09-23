@@ -172,3 +172,14 @@ test('MCP mutation results omit source snapshots, animations and per-block hashe
  const full=await call('get_draft',{draftId:'draft-1'});
  assert.deepEqual(full.draft,draft,'get_draft returns the complete record');
 });
+
+test('MCP compact results name a repeated publish cue once and summarize set manifests',async()=>{
+ const cue={id:'cue-1',name:'Prayer',texts:{textTitle:'Prayer'}};
+ const manifest={version:1,selections:[{sourceId:'s',blockId:'b0',channels:['he','tr']},{sourceId:'s',blockId:'b1',channels:['he','tr']}]};
+ const handler=createAuthoringMcpHandler(async(operation)=>operation==='publish_draft'?{revision:{draftId:'d',revision:2,cue},cue}:{set:{id:'set'},drafts:[{id:'a',draftSetManifest:manifest},{id:'b',draftSetManifest:manifest}]});
+ const call=async(name:string,args:Record<string,unknown>)=>JSON.parse((await payload(await handler.fetch(request({jsonrpc:'2.0',id:92,method:'tools/call',params:{name,arguments:args}}),{authInfo})) as {result:{content:{text:string}[]}}).result.content[0].text);
+ const published=await call('publish_draft',{draftId:'d',expectedVersion:2,previewId:'p'});
+ assert.deepEqual(published.revision.cue,cue);assert.equal(published.cue,'same as revision.cue');
+ const archived=await call('archive_draft_set',{setId:'set',expectedDraftIds:['a','b']});
+ assert.deepEqual(archived.drafts.map((draft:{draftSetManifest:unknown})=>draft.draftSetManifest),[{version:1,selectionCount:2},{version:1,selectionCount:2}]);
+});

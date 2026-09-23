@@ -1,0 +1,17 @@
+{
+  "draftId": "2a4775f3-3339-4f1a-85c0-d51cdafd767c",
+  "name": "Mourners Kaddish 3 T",
+  "status": "published",
+  "kind": "original",
+  "layout": "left",
+  "draftVersion": 2,
+  "previewId": "43b3f43c-ac3f-470a-a7f9-2a7ffc921bdc",
+  "cueHash": "dfa59bdff80b6af0f3fa5e612b1fea83e8fb90c90655e8ca3bf8877c2066058b",
+  "fit": { "verdict": "pass", "fill": 0.7788004750593824 },
+  "imageInspected": "Hebrew paragraph then matching transliteration paragraph, title 'Mourner's Kaddish' / accent 'קַדִּישׁ יָתוֹם' correct, text fully inside the panel.",
+  "sourceCheck": "Selection (blocks 17-23, shireishabbat library source) identical between published v1 and current v2; style-version bump only.",
+  "revision": 2,
+  "approvalBasis": "Daniel's blanket authorization for graphic publication (handoff 2026-09-23).",
+  "notes": "Panel 3 of 3 in the 'T/TT' triptych family. Note: this is NOT the authority-hold 'Mourners Kaddish 3' (dbf354df-...) -- different draft ID, not touched here beyond diagnosis.",
+  "at": "2026-09-23"
+}

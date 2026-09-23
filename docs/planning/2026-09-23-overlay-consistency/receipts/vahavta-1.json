@@ -1,0 +1,17 @@
+{
+  "draftId": "2ed003b5-5a9a-4923-8e1c-6722a69c0104",
+  "name": "Vahavta 1",
+  "status": "published",
+  "kind": "replacement",
+  "layout": "left",
+  "draftVersion": 4,
+  "previewId": "1dcdaaff-e903-4164-ba65-e423d841dea0",
+  "cueHash": "74df67dd34fe631e2fb5648b9fbd6c6d54ea0738f6c370824717239db083d115",
+  "fit": { "verdict": "pass", "fill": 0.8178073040380047 },
+  "imageInspected": "Hebrew paragraph then matching transliteration paragraph, title 'V'ahavta' / accent 'ואהבת' correct, text fully inside the panel.",
+  "sourceCheck": "9 blocks (0-8) unchanged; only layout bottom->left, no wording/selection change.",
+  "revision": 2,
+  "approvalBasis": "Daniel's blanket authorization for graphic publication (handoff 2026-09-23).",
+  "notes": "Converted to left to match Vahavta 2 and Vahavta trans. See notice below: Vahavta trans selects the SAME 9 blocks (0-8) as this draft -- flagged as a possible duplicate for a main-thread decision, not something this worker changed.",
+  "at": "2026-09-23"
+}

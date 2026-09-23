@@ -31,8 +31,12 @@ function compactResult(value:unknown):unknown{
  for(const [key,item] of Object.entries(value as Record<string,unknown>)){
   if(OMITTED_RESULT_KEYS.has(key))continue;
   if(key==='blockSha256'&&item&&typeof item==='object'){output.pinnedBlockCount=Object.keys(item).length;continue}
+  if(key==='draftSetManifest'&&item&&typeof item==='object'){const manifest=item as {version?:unknown;selections?:unknown};output[key]={version:manifest.version,selectionCount:Array.isArray(manifest.selections)?manifest.selections.length:0};continue}
   output[key]=compactResult(item);
  }
+ // publish_draft returns the published cue twice, inside the revision and beside it.
+ const revision=output.revision as {cue?:unknown}|undefined;
+ if(output.cue&&revision?.cue&&JSON.stringify(output.cue)===JSON.stringify(revision.cue))output.cue='same as revision.cue';
  return output;
 }
 function result(operation:string,value:unknown){let output=value,previewImage:undefined|{mimeType:'image/jpeg'|'image/png';dataBase64:string;width:number;height:number};if(operation==='preview_draft'&&value&&typeof value==='object'&&typeof (value as {previewPath?:unknown}).previewPath==='string')output={...(value as Record<string,unknown>),previewUrl:new URL((value as {previewPath:string}).previewPath,canonicalOrigin()).toString()};if(operation==='fit_check_draft'&&output&&typeof output==='object'){const record=output as Record<string,unknown>,candidate=record.previewImage;if(candidate&&typeof candidate==='object'&&typeof (candidate as {dataBase64?:unknown}).dataBase64==='string'&&((candidate as {mimeType?:unknown}).mimeType==='image/jpeg'||(candidate as {mimeType?:unknown}).mimeType==='image/png')){const image=candidate as {mimeType:'image/jpeg'|'image/png';dataBase64:string;width:number;height:number};previewImage=image;output={...record,previewImage:{mimeType:image.mimeType,width:image.width,height:image.height}}}}if(!FULL_RECORD_OPERATIONS.has(operation)&&output&&typeof output==='object'&&!Array.isArray(output)){const compact=compactResult(output) as Record<string,unknown>;if(JSON.stringify(compact).length<JSON.stringify(output).length)output={...compact,compacted:{omitted:[...OMITTED_RESULT_KEYS,'blockSha256'],fullRecord:'get_draft'}}}return {content:[{type:'text' as const,text:JSON.stringify(output)},...(previewImage?[{type:'image' as const,data:previewImage.dataBase64,mimeType:previewImage.mimeType}]:[])]}}

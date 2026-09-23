@@ -1,0 +1,31 @@
+{
+ "draftId": "05ba9c7a-d3cc-4c1f-b90d-015c267510d5",
+ "name": "Haftarah Blessing AFTER 3",
+ "status": "published",
+ "kind": "original",
+ "layout": "left",
+ "draftVersion": 5,
+ "previewId": "c30b594f-055b-490a-8348-45bbbc583674",
+ "cueHash": "77b7e3a7118354ac26e1c5ebe108b317d2f953a4cf8d40859155424a7f50c0c0",
+ "fit": {
+  "verdict": "pass",
+  "fill": 0.5529
+ },
+ "imageInspected": "left panel, Hebrew then transliteration, full text inside panel, title and accent correct",
+ "sourceCheck": "Same source blocks (10-14 of blessings-after-the-haftarah) as prior published revision; no wording change.",
+ "revision": 3,
+ "approvalBasis": "Daniel's blanket authorization for graphic publication (handoff 2026-09-23)",
+ "notes": "Main thread 2026-09-23: the blessings after the Haftarah need 3 lower thirds, so under the >2 rule they are one LEFT sequence (After 1-3); Before stays one lower third. Coverage blocks 10-14; After 1-3 now cover blocks 0-14 exactly once.",
+ "at": "2026-09-23",
+ "firstPublication": {
+  "layout": "bottom",
+  "draftVersion": 4,
+  "previewId": "579edca5-571f-475f-a8da-14e569fb2590",
+  "cueHash": "3bb268ebd7d7b3a87228ee2d53d119e90e14c2a419b4e646fc1427e151cd7631",
+  "fit": {
+   "verdict": "pass",
+   "fill": 0.6888888888888889
+  },
+  "revision": 2
+ }
+}

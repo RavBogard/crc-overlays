@@ -1,0 +1,17 @@
+{
+  "draftId": "3c41f85a-f1d7-4e74-8485-fb4f975b9b59",
+  "name": "Haftarah Blessing BEFORE",
+  "status": "published",
+  "kind": "original",
+  "layout": "bottom",
+  "draftVersion": 4,
+  "previewId": "7eaaab4f-0122-4b55-b5eb-506510892059",
+  "cueHash": "30db1bb0915e74a33e521e8325e527bee8aeaef869d05cc5b230d53957012516",
+  "fit": {"verdict": "pass", "fill": 0.9277777777777778},
+  "imageInspected": "Hebrew and transliteration panels match block-for-block, title 'Before the Haftarah' and accent 'הפטרה' correct, text fully inside the panel with no overflow or stray separators.",
+  "sourceCheck": "Same CRC Shabbat Morning source blocks as the prior published revision; no wording or selection change.",
+  "revision": 2,
+  "approvalBasis": "Daniel's blanket authorization for graphic publication (handoff 2026-09-23)",
+  "notes": "First cue in the Haftarah before/after sequence; forms the opening of a sensible 4-graphic ordered set with After 1/2/3.",
+  "at": "2026-09-23"
+}

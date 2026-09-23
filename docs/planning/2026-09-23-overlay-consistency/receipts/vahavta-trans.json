@@ -1,0 +1,21 @@
+{
+ "draftId": "c773bd1c-5217-42cd-b62c-c9240eb340f1",
+ "name": "Vahavta trans",
+ "status": "superseded (archived)",
+ "kind": "superseded",
+ "layout": "left",
+ "draftVersion": 3,
+ "previewId": "7fc510f1-cb89-4aad-adc3-e532dd8a2874",
+ "cueHash": "e195f29f104671c6247b9de5d0024f5b636f9ba6ea82e5d7d4c89db70f707abf",
+ "fit": {
+  "verdict": "pass",
+  "fill": 0.8178073040380047
+ },
+ "imageInspected": "Hebrew paragraph then matching transliteration paragraph, title 'V'ahavta' / accent 'ואהבת' correct, text fully inside the panel.",
+ "sourceCheck": "9 blocks (0-8) selected, unchanged; already left, unpublished current version -> published as-is.",
+ "revision": 2,
+ "approvalBasis": "Daniel's blanket authorization for graphic publication (handoff 2026-09-23).",
+ "notes": "NEEDS A DECISION: despite the name 'Vahavta trans' (suggesting a translation variant), its selected blocks (0-8) and rendered content are IDENTICAL to Vahavta 1 -- both Hebrew + transliteration only, no English channel (source has none available for this pin). This looks like a duplicate/mislabeled draft rather than a distinct translation panel. Published per the packet's explicit instruction (preview/fit/inspect/publish all three) since it passed fit and reads correctly, but flagging the duplicate content for main-thread review.",
+ "at": "2026-09-23",
+ "supersession": "Superseded 2026-09-23 (main thread): byte-identical selection to Vahavta 1 (blocks 0-8, he/tr; source has no English). Archived as draft v4 after its v3 publication; published revision 2 still served by /api/catalog (gap E); must not be bound in the new preset."
+}

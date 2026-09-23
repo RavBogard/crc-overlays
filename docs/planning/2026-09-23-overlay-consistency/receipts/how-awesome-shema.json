@@ -1,0 +1,17 @@
+{
+  "draftId": "111297d8-29c7-44b1-837f-b71e20b7e74e",
+  "name": "How Awesome / Shema",
+  "status": "published",
+  "kind": "original",
+  "layout": "bottom",
+  "draftVersion": 5,
+  "previewId": "1bf65411-b31d-4e08-9a5f-1b5ff758e5b3",
+  "cueHash": "2e5e8258e939d05f996a845ce6172647994acb607ae79e573241724618b31fe1",
+  "fit": {"verdict": "pass", "fill": 0.5666666666666667},
+  "imageInspected": "Phrase mode renders 'How awesome is creation · With great love, we are loved · We are one · Echad' then a blank line then 'Sh'ma Yisrael... · (Baruch sheim...)'; no dangling ' · ' at the start or end of either line, confirming the leading/trailing-newline separator fix.",
+  "sourceCheck": "Same single original-en source block as prior published revision (rev 2, v2); wording unchanged, only latinLineBreaks:phrases presentation carried through.",
+  "revision": 3,
+  "approvalBasis": "Daniel's blanket authorization for graphic publication (handoff 2026-09-23)",
+  "notes": "Re-previewed and re-fit at the current renderer per instructions; confirmed no stray separators before publishing.",
+  "at": "2026-09-23"
+}

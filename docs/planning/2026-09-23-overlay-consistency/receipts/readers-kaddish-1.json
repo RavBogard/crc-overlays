@@ -1,0 +1,17 @@
+{
+  "draftId": "0a4b12eb-1463-44d7-be91-329049e5ec82",
+  "name": "Readers Kaddish 1",
+  "status": "published",
+  "kind": "replacement",
+  "layout": "left",
+  "draftVersion": 4,
+  "previewId": "1e846f73-88f9-4c13-b690-4e7a86209580",
+  "cueHash": "4effd4cd0144eb3992b8854d9da541c46a27cf706d447b1df04d0adcc6742717",
+  "fit": { "verdict": "pass", "fill": 0.7788004750593824 },
+  "imageInspected": "Hebrew paragraph then matching transliteration paragraph, title 'Hatzi Kaddish' / accent 'חצי קדיש' both correct, text fully inside the panel, no stray separators.",
+  "sourceCheck": "Same 6 blocks selected before and after the style change; no wording or selection change, only layout bottom->left per packet instruction.",
+  "revision": 3,
+  "approvalBasis": "Daniel's blanket authorization for graphic publication (handoff 2026-09-23).",
+  "notes": "Converted from bottom to left because the Hatzi Kaddish family (this + Readers Kaddish 2) needs >2 readable lower thirds. style_draft auto-selected templateCueId 0135de3c-9a47-4fdc-91b9-99bacdf64970 (Birchot Hashachar 1's cue) as the internal render template; this does not affect the displayed title/accent title, which remain this draft's own ('Hatzi Kaddish' / 'חצי קדיש'), so no visible accent-title mismatch.",
+  "at": "2026-09-23"
+}

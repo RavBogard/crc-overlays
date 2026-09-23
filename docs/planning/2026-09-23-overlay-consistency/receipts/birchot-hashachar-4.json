@@ -1,0 +1,14 @@
+{
+  "draftId": "2b3da7a3-dc18-46f1-a792-13a4771b343c",
+  "name": "Birchot Hashachar 4",
+  "status": "held",
+  "kind": "original",
+  "layout": "left",
+  "draftVersion": 2,
+  "fit": { "verdict": "not-measured", "fill": null },
+  "imageInspected": "Not previewed -- authority hold, diagnose only per protocol.",
+  "sourceCheck": "Selects 4 Hebrew/transliteration blocks (block-19, 20, 22, 23 of awakening.birchot-hashachar), pinned to the shireishabbat library source. Arrangement is 'together' with alternatingGrouping:true, presentation empty ({}), templateCueId self-referential (2b3da7a3...).",
+  "approvalBasis": "Authority hold -- not touched (no style/publish action taken).",
+  "notes": "Diagnosis: these 4 blocks (19-20, 22-23) are the remaining half of Birchot Hashachar 2's selection not covered by Birchot Hashachar 3 (13-14, 16-17). Same finding as Birchot Hashachar 3: 3+4 together duplicate Birchot Hashachar 2's content via a different arrangement style. Flagging for main-thread decision on which layout (B2's 'blocks', or the B3/B4 'together' split) is authoritative going forward.",
+  "at": "2026-09-23"
+}

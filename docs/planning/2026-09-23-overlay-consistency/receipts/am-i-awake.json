@@ -1,0 +1,17 @@
+{
+  "draftId": "23cc50be-1d16-4720-b073-d2ea207c4c12",
+  "name": "Am I Awake",
+  "status": "published",
+  "kind": "original",
+  "layout": "bottom",
+  "draftVersion": 4,
+  "previewId": "da6ecc20-0247-461f-8ab8-409df2183375",
+  "cueHash": "277f592a2a076889e9cc4f3fa31923dfe833626567a49718addcd84ccf97df37",
+  "fit": {"verdict": "pass", "fill": 0.6888888888888889},
+  "imageInspected": "Bottom panel, title 'Am I Awake' and accent 'בָּרְכוּ' correct, full original-en text plus Bar'chu lines visible, no overflow.",
+  "sourceCheck": "Current v4 uses the identical single source block and layout (bottom) as the last-published revision 3 (v3); the only diff was adding latinLineBreaks:paragraphs presentation -- a pure style change, no wording/selection change.",
+  "revision": 4,
+  "approvalBasis": "Daniel's blanket authorization for graphic publication (handoff 2026-09-23)",
+  "notes": "A prior worker restyled this after its last publication (v4 vs published v3). Compared content/selection via get_draft and list_revisions: identical. Re-previewed, re-fit, and published the current version.",
+  "at": "2026-09-23"
+}

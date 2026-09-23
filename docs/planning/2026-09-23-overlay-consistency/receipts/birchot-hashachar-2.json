@@ -1,0 +1,17 @@
+{
+  "draftId": "b60c1abc-2257-4316-9ae4-2a03f72133d6",
+  "name": "Birchot Hashachar 2",
+  "status": "published",
+  "kind": "replacement",
+  "layout": "left",
+  "draftVersion": 4,
+  "previewId": "71c58f49-383e-4fbc-9887-fb4aff125b35",
+  "cueHash": "4e7134471ebdb18d7bce7a88c6d16a48d8a22f3adf52701da71c628dbf354b36",
+  "fit": { "verdict": "pass", "fill": 0.7807 },
+  "imageInspected": "Title 'Birchot Hashachar' / accent 'ברכות השחר' correct; Hebrew then transliteration then English for the two blessing pairs (made me Yisraeil / opens the eyes of the blind), text fully inside the panel, no dangling separators or duplication.",
+  "sourceCheck": "Identity gate passed: awakening.birchot-hashachar@legacy-shabbat-morning blocks 6,7,8(en),10,11,12(en) matched sourceBlockSha256 in get_source; these blocks were already correctly pinned/present in the OTHER draft (Birchot 1)'s pin with matching hashes, so refreshSourceIds was used to add them to this draft's own pin (content unchanged, only newly selected here).",
+  "revision": 2,
+  "approvalBasis": "Daniel's blanket authorization for graphic publication (handoff 2026-09-23).",
+  "notes": "This draft's content was replaced: it previously held the original Birchot Hashachar 2 selection (blocks 13/14, 16/17, 19/20, 22/23 - 4 pairs), which has been reassigned to Birchot Hashachar 3 and 4 per the 4-panel decision. This draft now holds pairs 3-4 (blocks 6/7, 10/11) of the ORIGINAL Birchot Hashachar 1 selection. Title/accent title/style unchanged. style_draft dry run showed no field changes needed. Birchot Hashachar 3 and 4 were left untouched (see their receipts) because WORKER-PROTOCOL.md's Holds section explicitly names both as diagnose-only and GAP-LOG.md item D shows that diagnosis is still open; no corroborating record of a superseding main-thread override was found.",
+  "at": "2026-09-23"
+}

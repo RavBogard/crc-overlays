@@ -1,0 +1,18 @@
+{
+ "draftId": "dbf354df-e399-4d8b-bcfc-c067cc3cf2fc",
+ "name": "Mourners Kaddish 3",
+ "status": "superseded (archived)",
+ "kind": "superseded",
+ "layout": "left",
+ "draftVersion": 2,
+ "fit": {
+  "verdict": "not-measured",
+  "fill": null
+ },
+ "imageInspected": "Not previewed -- authority hold, diagnose only per protocol.",
+ "sourceCheck": "Selects 7 blocks (block-17 through block-23 of concluding.mourners-kaddish), pinned to the OLDER legacy:authoring-sources feed (same family as the plain Mourners Kaddish 1/2, accent title generic 'קדיש'), but arrangement is 'together' with alternatingGrouping:true (not 'blocks'), and this version (v2) is already both current AND published (activeVersion 2 == version 2, activeRevision 2).",
+ "approvalBasis": "Authority hold -- not touched (no style/publish action taken).",
+ "notes": "Diagnosis: this draft's block selection (17-23) exactly duplicates the second half of the published Mourners Kaddish 2 (13-23) and exactly matches the T/TT-family panel 'Mourners Kaddish 3 T' (also 17-23, but on the shireishabbat library pin with accent title 'קַדִּישׁ יָתוֹם'). So there are now THREE differently-styled cues covering the same closing lines of Kaddish: this hold ('together' arrangement, legacy pin, plain title), Mourners Kaddish 2 (part of the 'blocks' 2-panel family, legacy pin), and Mourners Kaddish 3 T (3-panel 'T/TT' family, library pin). This is content overlap across families, not a wording change -- flagging for main-thread reconciliation of which Kaddish family is authoritative going forward.",
+ "at": "2026-09-23",
+ "supersession": "Superseded 2026-09-23 (main thread): third copy of Kaddish closing lines (blocks 17-23) already covered by Mourners Kaddish 2 (default plain family) and Mourners Kaddish 3 T. Archived as draft v3; published revision 2 still served by /api/catalog (gap E); must not be bound in the new preset."
+}

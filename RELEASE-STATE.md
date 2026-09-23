@@ -4,7 +4,7 @@ What is deployed right now. Update this file on every release — it is the one 
 "what is live", and it is short so it can be read under pressure. The history is in
 `docs/planning/2026-09-deploys/` (25 deploy records, the release chain, the phase build notes).
 
-**Last updated: 2026-09-23** (paired release `8f36dd8`: contiguous block groups stay one paragraph; no phrase separator at edge newlines. Evidence below under "Release 8f36dd8".)
+**Last updated: 2026-09-23** (paired release `4673402`: compact MCP mutation results. Evidence below under "Release 4673402".)
 
 ## Web, per workspace
 
@@ -13,13 +13,20 @@ both were released together on 2026-09-23 UTC (2026-09-22 evening Central).
 
 | Workspace | Host | Deployed commit | How it got there |
 |---|---|---|---|
-| CRC | `overlays.centralreform.org` (alt `crc-overlays.vercel.app`) | `8f36dd8` | paired staged release, 2026-09-23, `dpl_5xETWdEHtsWtqSE7aQpwttEMmryt` (the Git integration also builds every push to `main`) |
-| TBI | `overlays.templebnaiisrael.com` (alt `tbi-overlays.vercel.app`) | `8f36dd8` | same paired run, 2026-09-23, `dpl_AvbDFWEsj4kGgHB1EjKMT9HCfYoy` |
+| CRC | `overlays.centralreform.org` (alt `crc-overlays.vercel.app`) | `4673402` | paired staged release, 2026-09-23, `dpl_C7b2jJYbmTsbTKcbPAEBfRexzj5x` (the Git integration also builds every push to `main`) |
+| TBI | `overlays.templebnaiisrael.com` (alt `tbi-overlays.vercel.app`) | `4673402` | same paired run, 2026-09-23, `dpl_Bjy6HXQgGas5eTLPWcP1C9HAxouL` |
 
 This file is written after the release it describes, so the commit carrying these words is always one
 ahead of the shas in the table. That one commit is documentation: CRC's Git integration builds it by
 itself and TBI is not owed a release for it. Any commit that touches `app/`, `lib/`, `content/`,
 `components/`, `schemas/` or `workspaces/` **is** owed one.
+
+### Release 4673402 (2026-09-23 UTC)
+
+- Released exact SHA `4673402af7f409f9bd85931fae8b486ed2890baa`. CRC `dpl_C7b2jJYbmTsbTKcbPAEBfRexzj5x` and TBI `dpl_Bjy6HXQgGas5eTLPWcP1C9HAxouL` Ready; both custom domains serve those ids; all four hosts returned HTTP 200 from `/health` (after its redirect). Logs: `work/sitting-2026-09-23/compact-mcp-results-release/`.
+- Non-read MCP results drop embedded source snapshots, animation tracks, opening words and per-block pin hashes and name `get_draft` as the full record (gap G). Live proof: update_draft results fell from ~12-25 KB to ~1.5 KB.
+- Gates: `tsc --noEmit`; `npm test` first run had one timing failure in `tests/rehearsal-relay.test.ts` (stale-deadline websocket `refused` vs `open` under load); isolated 3/3 pass and a full rerun passed (837 TypeScript, 0 fail, 11 skipped; 24 MJS). `npm run lint` (two existing warnings); `npm run build`.
+- Upload note: one untracked documentation file (`docs/planning/2026-09-23-overlay-consistency/WORKER-PROTOCOL.md`) was written after the script's clean-tree check and may be in the CRC upload; it is not imported by app code and was committed in the following ledger commit.
 
 ### Release 8f36dd8 (2026-09-23 UTC)
 

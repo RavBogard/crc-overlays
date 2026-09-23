@@ -1,0 +1,17 @@
+{
+  "draftId": "7c087a0d-23cb-458e-af6a-3210982ff0d6",
+  "name": "Readers Kaddish 2",
+  "status": "published",
+  "kind": "replacement",
+  "layout": "left",
+  "draftVersion": 4,
+  "previewId": "f276e6dc-085a-46ae-ae83-e90560f00e00",
+  "cueHash": "61416e498e4d7e921e6370c365ea5ecb68f4282e8c5a4f9f6332a53089ff06a6",
+  "fit": { "verdict": "pass", "fill": 0.8752597980997625 },
+  "imageInspected": "Hebrew paragraph then matching transliteration paragraph, title 'Hatzi Kaddish' / accent 'חצי קדיש' both correct, text fully inside the panel, no stray separators.",
+  "sourceCheck": "Same 9 blocks selected before and after the style change; no wording or selection change, only layout bottom->left. Was previously stuck at published v1 (bottom, failed at 378px); now republished on the current, passing content.",
+  "revision": 2,
+  "approvalBasis": "Daniel's blanket authorization for graphic publication (handoff 2026-09-23).",
+  "notes": "Converted from bottom to left to match Readers Kaddish 1 (Hatzi Kaddish needs >2 lower thirds as one layout). Same internal templateCueId note as Readers Kaddish 1: no visible accent-title mismatch.",
+  "at": "2026-09-23"
+}

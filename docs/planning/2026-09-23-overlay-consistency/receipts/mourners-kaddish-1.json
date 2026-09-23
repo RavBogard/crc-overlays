@@ -1,0 +1,17 @@
+{
+  "draftId": "c2d2c129-7d7d-4bbc-a296-46cc1fb9f48e",
+  "name": "Mourners Kaddish 1",
+  "status": "published",
+  "kind": "original",
+  "layout": "left",
+  "draftVersion": 2,
+  "previewId": "f6b9a282-b16d-4676-b486-c3b2431b2906",
+  "cueHash": "5cf90edf2defcd811f5539f640f94c41cc0d0762f6eca74536087a2e1a107c1e",
+  "fit": { "verdict": "pass", "fill": 0.9033551068883611 },
+  "imageInspected": "Hebrew paragraph then matching transliteration paragraph, title 'Mourner's Kaddish' / accent 'קדיש' correct, text fully inside the panel.",
+  "sourceCheck": "Selection (blocks 2-12 of concluding.mourners-kaddish, legacy:authoring-sources pin) is identical between the published v1 revision and current v2; only a style-version bump, no wording/selection change, so publish proceeded per packet rule.",
+  "revision": 2,
+  "approvalBasis": "Daniel's blanket authorization for graphic publication (handoff 2026-09-23).",
+  "notes": "Part of the 'plain' 2-panel Kaddish family (see T/TT finding in the return). Panel 1 of 2 (Mourners Kaddish 1 + 2), pinned to the older legacy:authoring-sources feed (he/tr channels only), accent title generic 'קדיש'.",
+  "at": "2026-09-23"
+}

@@ -1,0 +1,17 @@
+{
+  "draftId": "c1e8dc26-022d-4423-8279-ed48797fb510",
+  "name": "Kedusha 1",
+  "status": "published",
+  "kind": "replacement",
+  "layout": "left",
+  "draftVersion": 4,
+  "previewId": "2440d697-9106-44a7-b3b9-697961e9a469",
+  "cueHash": "965ccd2b511380876334e4c29382b67de8f163503367b21ece752fd6959893df",
+  "fit": {"verdict": "pass", "fill": 0.7788004750593824},
+  "imageInspected": "Left panel, Hebrew above transliteration, title 'K'dushah' and accent 'קְדוּשָׁה' correct, comfortable font, no overflow.",
+  "sourceCheck": "Same 6-block selection as the previously published bottom-layout revision; only layout changed, no wording/selection change.",
+  "revision": 3,
+  "approvalBasis": "Daniel's blanket authorization for graphic publication (handoff 2026-09-23)",
+  "notes": "Converted from bottom to left as part of the Kedusha family change (see kedusha-family analysis in the main report); was previously published and passing at bottom, converted for consistency with Kedusha 3.",
+  "at": "2026-09-23"
+}
