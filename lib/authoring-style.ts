@@ -63,13 +63,14 @@ export function planDraftStyle(draft:Draft, options:DraftStyleOptions, templates
     }
   }
 
-  if(options.arrangement!==undefined){
-    const next=withArrangement(draft.content,options.arrangement);
-    if(!next)warnings.push('Arrangement applies only to bilingual content or a local variant with a bilingual base.');
-    else if(arrangementOf(draft.content)!==options.arrangement){patch.content=next;afterContent=next;}
+  const requestedArrangement=options.arrangement??'blocks';
+  if(options.arrangement!==undefined||arrangementOf(draft.content)!==null){
+    const next=withArrangement(draft.content,requestedArrangement);
+    if(!next&&options.arrangement!==undefined)warnings.push('Arrangement applies only to bilingual content or a local variant with a bilingual base.');
+    else if(next&&arrangementOf(draft.content)!==requestedArrangement){patch.content=next;afterContent=next;}
   }
 
-  if(options.comfortableTypography){
+  if(options.comfortableTypography!==false){
     const next=comfortable(draft.presentation);
     if(!same(next,draft.presentation)){patch.presentation=next;afterPresentation=next;}
   }

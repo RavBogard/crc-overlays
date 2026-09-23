@@ -133,6 +133,22 @@ test('compact draft listing is bounded, source-text-free, and leaves the legacy 
  await assert.rejects(service.operation('list_drafts',{compact:false,limit:1},'tester'),(error)=>(error as AuthoringError).code==='invalid_input');
 });
 
+test('style_draft defaults to readable planning and applies through source-preserving optimistic updates',async()=>{
+ const repo=new MemoryAuthoringRepository(),service=createAuthoringService(repo);
+ const source=sourcePack.sources.find(item=>item.blocks.some(block=>block.kind==='bilingual'))!,block=source.blocks.find(item=>item.kind==='bilingual')!;
+ const content:BilingualContent={mode:'bilingual',hebrewGroups:[{sourceId:source.id,blockIds:[block.id]}],transliterationGroups:[{sourceId:source.id,blockIds:[block.id]}]};
+ const snapshot=structuredClone(source),now=Date.now(),draft:Draft={id:'style-draft',name:'Style draft',title:'Style draft',layout:'left',templateCueId:LEFT_PANEL,content,presentation:{hebrewFontSize:26,transliterationFontSize:22,titleFontSize:22,lineSpacing:'compact',alignment:'center'},sourceSnapshots:[snapshot],sourcePin:sourcePinFor(content,[snapshot]),version:4,activeRevision:null,activeDraftVersion:null,createdAt:now,updatedAt:now,createdBy:'tester',updatedBy:'tester'};
+ await repo.insertDraft(draft);
+ const dry=await service.operation('style_draft',{draftId:draft.id,expectedVersion:4},'tester') as {dryRun:boolean;applied:boolean;changedFields:string[];patch:{content?:{arrangement:string|null}};sourcePreserved:boolean};
+ assert.equal(dry.dryRun,true);assert.equal(dry.applied,false);assert.deepEqual(dry.patch.content,{arrangement:'blocks'});assert.ok(dry.changedFields.includes('presentation'));assert.equal(dry.sourcePreserved,true);assert.equal((await repo.getDraft(draft.id))!.version,4);
+ await assert.rejects(service.operation('style_draft',{draftId:draft.id,expectedVersion:3},'tester'),(error)=>(error as AuthoringError).code==='version_conflict');
+ const applied=await service.operation('style_draft',{draftId:draft.id,expectedVersion:4,dryRun:false},'tester') as {dryRun:boolean;applied:boolean;draft:{version:number};sourcePreserved:boolean};
+ assert.equal(applied.dryRun,false);assert.equal(applied.applied,true);assert.equal(applied.draft.version,5);assert.equal(applied.sourcePreserved,true);
+ const updated=(await repo.getDraft(draft.id))!;assert.deepEqual(updated.sourcePin,draft.sourcePin);assert.deepEqual(updated.sourceSnapshots,draft.sourceSnapshots);assert.equal((updated.content as BilingualContent).arrangement,'blocks');assert.deepEqual(updated.presentation,{alignment:'center'});
+ const noop=await service.operation('style_draft',{draftId:draft.id,expectedVersion:5,dryRun:false,comfortableTypography:false,arrangement:'blocks'},'tester') as {applied:boolean;draft:{version:number}};
+ assert.equal(noop.applied,false);assert.equal(noop.draft.version,5,'no style delta does not create a revision');
+});
+
 test('existing cue import seeds an immutable baseline and is idempotent',async()=>{
  const repo=new MemoryAuthoringRepository();const service=createAuthoringService(repo);
  const first=await service.operation('import_cue',{cueId:BARECHU},'tester') as ImportCueResult;

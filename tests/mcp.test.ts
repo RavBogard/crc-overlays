@@ -85,6 +85,17 @@ test('MCP accepts the canonical presentation fields and still rejects values out
  assert.equal(calls.length,2);
 });
 
+test('MCP exposes compact draft inspection and authenticated style planning without changing actors',async()=>{
+ const calls:{operation:string;input:unknown;actor:string}[]=[];const handler=createAuthoringMcpHandler(async(operation,input,actor)=>{calls.push({operation,input,actor});return {drafts:[],nextCursor:null};});
+ const listed=await payload(await handler.fetch(request({jsonrpc:'2.0',id:23,method:'tools/list',params:{}}),{authInfo})) as {result:{tools:{name:string;annotations?:{readOnlyHint?:boolean};inputSchema:{properties:Record<string,unknown>}}[]}};
+ const drafts=listed.result.tools.find(tool=>tool.name==='list_drafts'),style=listed.result.tools.find(tool=>tool.name==='style_draft');
+ assert.equal(drafts?.annotations?.readOnlyHint,true);assert.deepEqual(Object.keys(drafts!.inputSchema.properties).sort(),['book','compact','cursor','layout','limit','query','service']);
+ assert.equal(style?.annotations?.readOnlyHint,false);assert.deepEqual(Object.keys(style!.inputSchema.properties).sort(),['arrangement','comfortableTypography','draftId','dryRun','expectedVersion','layout']);
+ await payload(await handler.fetch(request({jsonrpc:'2.0',id:24,method:'tools/call',params:{name:'list_drafts',arguments:{query:'Shabbat',limit:10}}}),{authInfo}));
+ await payload(await handler.fetch(request({jsonrpc:'2.0',id:25,method:'tools/call',params:{name:'style_draft',arguments:{draftId:'draft-1',expectedVersion:2}}}),{authInfo}));
+ assert.deepEqual(calls,[{operation:'list_drafts',input:{query:'Shabbat',limit:10},actor:'mcp:test-actor'},{operation:'style_draft',input:{draftId:'draft-1',expectedVersion:2},actor:'mcp:test-actor'}]);
+});
+
 test('MCP exposes fit_check_draft as a writing tool and passes its exact input through',async()=>{
  const calls:{operation:string;input:unknown;actor:string}[]=[];const handler=createAuthoringMcpHandler(async(operation,input,actor)=>{calls.push({operation,input,actor});return {verdict:'pass',fitErrors:[],warnings:[],fill:0.5,measuredAt:1,rendererVersion:'server-chromium/1.63.0',message:'Checked in a browser on the server — no fit problems found.'}});
  const listed=await payload(await handler.fetch(request({jsonrpc:'2.0',id:30,method:'tools/list',params:{}}),{authInfo})) as {result?:{tools?:{name:string;annotations?:{readOnlyHint?:boolean}}[]}};

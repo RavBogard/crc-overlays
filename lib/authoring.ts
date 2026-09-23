@@ -2,6 +2,7 @@ import {randomUUID} from 'node:crypto';
 import type {Cue} from './player';
 import {AuthoringError,assertSourcePin,baselineCues,buildCue,cueHash,draftSetSelections,editableFromBaseline,newDraftId,normalizeGraphicName,parseEditable,previewValidation,resolveSourceBoundaries,sameStructuredValue,sourceBlockFor,sourcePack,sourcePinFor,sourceReferences,sourceSnapshotsFor,type AuthoringCue,type Draft,type DraftContent,type DraftSetSelection,type EditableDraft,type Layout,type LocalVariantOverride,type VariantChannel,type SourceBlock,type SharedCueUpstream} from './authoring-model';
 import {compactDraftCatalog,type DraftCatalogInput} from './draft-catalog';
+import {planDraftStyle,type DraftStyleOptions,type DraftStylePlan} from './authoring-style';
 import {layoutLabel} from './layout-label';
 // One source of truth for how much liturgy one panel holds, shared with the editor so a
 // selection warning and a server split can never disagree.
@@ -58,6 +59,7 @@ const keys=(value:Record<string,unknown>,allowed:string[],label='input')=>{const
 const string=(value:unknown,label:string,max=160)=>{if(typeof value!=='string'||!value.trim()||value.length>max)throw new AuthoringError('invalid_input',`${label} must be 1-${max} characters`);return value.trim()};
 const integer=(value:unknown,label:string,min=0,max=Number.MAX_SAFE_INTEGER)=>{if(!Number.isInteger(value)||(value as number)<min||(value as number)>max)throw new AuthoringError('invalid_input',`${label} must be an integer`);return value as number};
 const optionalString=(value:unknown,label:string,max=160)=>value===undefined||value===''?undefined:string(value,label,max);
+const optionalBoolean=(value:unknown,label:string)=>{if(value===undefined)return undefined;if(typeof value!=='boolean')throw new AuthoringError('invalid_input',`${label} must be boolean`);return value};
 const sourceRefreshIds=(value:unknown)=>{if(!Array.isArray(value)||value.length<1||value.length>24)throw new AuthoringError('invalid_input','refreshSourceIds must contain 1-24 source IDs');const ids=value.map((item,index)=>string(item,`refreshSourceIds[${index}]`,160));if(new Set(ids).size!==ids.length)throw new AuthoringError('invalid_input','refreshSourceIds must not repeat a source ID');return ids};
 const normalized=(value:unknown)=>String(value??'').normalize('NFKD').replace(/[\u0591-\u05c7\p{M}]/gu,'').toLocaleLowerCase().replace(/[^\p{L}\p{N}]+/gu,' ').trim();
 const MAX_SOURCE_RESPONSE_BYTES=128*1024;
@@ -72,6 +74,10 @@ const legacyBrowseByKey=new Map(legacyBrowseSources.map(source=>[browseEquivalen
 const richLibraryKeys=new Set(sourcePack.sources.filter(source=>source.id.startsWith('library:')&&source.blocks.length).filter(raw=>{const source=raw as SearchSource,legacy=legacyBrowseByKey.get(browseEquivalence(source));return legacy&&sourceEnglishCount(source)>sourceEnglishCount(legacy)}).map(source=>browseEquivalence(source as SearchSource)));
 const browsableSources=sourcePack.sources.filter(raw=>{const source=raw as SearchSource;if(!source.blocks.length)return false;const key=browseEquivalence(source),legacy=legacyBrowseByKey.get(key);return source.id.startsWith('library:')?(!legacy||richLibraryKeys.has(key)):!richLibraryKeys.has(key)});
 const sourceFacets=(field:'book'|'service')=>{const facets=new Map<string,{value:string;label:string;count:number}>();for(const raw of browsableSources){const source=raw as SearchSource;const item=field==='book'?sourceBook(source):sourceService(source);if(!item.value)continue;const existing=facets.get(item.value);if(existing)existing.count++;else facets.set(item.value,{...item,count:1})}return [...facets.values()].sort((a,b)=>a.label.localeCompare(b.label)||a.value.localeCompare(b.value))};
+const compactStylePlan=(plan:DraftStylePlan)=>{
+ const {content,...patch}=plan.patch;
+ return {changedFields:Object.keys(plan.patch),patch:{...patch,...(content?{content:{arrangement:plan.after.arrangement}}:{})},warnings:plan.warnings,before:plan.before,after:plan.after,sourcePreserved:true as const};
+};
 /** One browsable unit as a book outline prints it: enough to choose by, never the text itself. */
 type BookUnit={id:string;name:string;folio:string|null;kinds:string[];blockCount:number;noteLikeOnly:boolean};
 /** A unit that is only source English a siddur prints as a note, never prayer text to lead. */
@@ -188,7 +194,7 @@ export function createAuthoringService(repo:AuthoringRepository,workspace:Author
   const {taken}=await libraryNames(draft.id);
   return taken.has(normalizeGraphicName(draft.name))?[{code:'duplicate-name',suggestedName:suggestGraphicName(draft.name,draft.layout,taken)}]:[];
  };
- const operation=async(operation:string,input:unknown,actor:string):Promise<unknown>=>{
+ const execute=async(operation:string,input:unknown,actor:string):Promise<unknown>=>{
   const who=string(actor,'actor',80); const data=object(input);
   if(operation==='get_workspace'){keys(data,[]);return {workspace};}
   // D20 — G5 is one tool and nothing else: it delegates to D19's importer on the services
@@ -361,6 +367,22 @@ export function createAuthoringService(repo:AuthoringRepository,workspace:Author
    const baseline=workspaceCatalogCue(cueId)! as AuthoringCue;
    try{return {draft:await repo.insertImportedDraft(draft,structuredClone(baseline),who),created:true}}catch(error){const raced=await repo.getDraft(cueId);if(raced)return {draft:raced,created:false};throw error}
   }
+  if(operation==='style_draft'){
+   keys(data,['draftId','expectedVersion','layout','arrangement','comfortableTypography','dryRun']);
+   const id=string(data.draftId,'draftId'),expected=integer(data.expectedVersion,'expectedVersion',1),current=await requiredDraft(repo,id);if(current.version!==expected)throw conflict();assertSourcePin(current);
+   const layout=data.layout;if(layout!==undefined&&layout!=='left'&&layout!=='bottom'&&layout!=='right')throw new AuthoringError('invalid_input','layout must be left, bottom, or right');
+   const arrangement=data.arrangement;if(arrangement!==undefined&&arrangement!=='together'&&arrangement!=='blocks')throw new AuthoringError('invalid_input','arrangement must be together or blocks');
+   const options:DraftStyleOptions={layout,arrangement,comfortableTypography:optionalBoolean(data.comfortableTypography,'comfortableTypography')};
+   const dryRun=optionalBoolean(data.dryRun,'dryRun')??true;
+   const templates=baselineCatalogForWorkspace().filter(template=>!template.hidden).map(template=>({id:template.id,layout:template.layout as Layout}));
+   const plan=planDraftStyle(current,options,templates),compact=compactStylePlan(plan);
+   if(dryRun)return {draft:{id:current.id,version:current.version,activeVersion:current.activeDraftVersion},dryRun:true,applied:false,...compact};
+   if(layout!==undefined&&plan.warnings.some(warning=>warning.startsWith('No compatible ')))throw new AuthoringError('style_template_unavailable',`No compatible ${layout} template is available`,409);
+   if(!Object.keys(plan.patch).length)return {draft:{id:current.id,version:current.version,activeVersion:current.activeDraftVersion},dryRun:false,applied:false,...compact};
+   const updated=await execute('update_draft',{draftId:id,expectedVersion:expected,patch:plan.patch},who) as {draft:Draft};
+   if(!sameStructuredValue(current.sourcePin,updated.draft.sourcePin))throw new AuthoringError('style_source_changed','Style changes must preserve source authority',409);
+   return {draft:{id:updated.draft.id,version:updated.draft.version,activeVersion:updated.draft.activeDraftVersion},dryRun:false,applied:true,...compact};
+  }
   if(operation==='update_draft'){
    keys(data,['draftId','expectedVersion','patch','refreshSourceIds']);const id=string(data.draftId,'draftId');const expected=integer(data.expectedVersion,'expectedVersion',1);const current=await requiredDraft(repo,id);if(current.version!==expected)throw conflict();assertSourcePin(current);
    const requestedRefresh=data.refreshSourceIds===undefined?[]:sourceRefreshIds(data.refreshSourceIds);if(requestedRefresh.length&&(!data.patch||typeof data.patch!=='object'||Array.isArray(data.patch)||!Object.hasOwn(data.patch,'content')))throw new AuthoringError('source_refresh_requires_content','refreshSourceIds requires a content selection in patch',400);
@@ -468,7 +490,7 @@ export function createAuthoringService(repo:AuthoringRepository,workspace:Author
   if(operation==='rollback_draft'){keys(data,['draftId','expectedVersion','revision']);const id=string(data.draftId,'draftId');const revision=integer(data.revision,'revision',1);const selected=(await repo.revisions(id)).find(row=>row.revision===revision);if(!selected)throw new AuthoringError('unknown_revision','Unknown revision',404);assertRevisionAuthority(selected.cue);const result=await repo.rollback(id,integer(data.expectedVersion,'expectedVersion',1),revision,who);return result;}
   throw new AuthoringError('unknown_operation',`Unknown authoring operation: ${operation}`,404);
  };
- return {operation,publishedCues:()=>repo.published()};
+ return {operation:execute,publishedCues:()=>repo.published()};
 }
 
 const FIT_CONTRACT={viewport:{width:1920,height:1080},fontsReadyRequired:true,noOverflowRequired:true,browserReported:true,humanReviewRequired:true} as const;

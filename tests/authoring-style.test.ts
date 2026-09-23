@@ -10,18 +10,18 @@ function draft(content:DraftContent=bilingual):Draft{return {id:'draft',version:
 
 test('style plan chooses a deterministic compatible template and retains a compatible current one',()=>{
  const original=draft();
- const changed=planDraftStyle(original,{layout:'bottom'},templates);
+ const changed=planDraftStyle(original,{layout:'bottom',arrangement:'together',comfortableTypography:false},templates);
  assert.deepEqual(changed.patch,{layout:'bottom',templateCueId:'bottom-a'});
  assert.equal(changed.after.layout,'bottom');
  assert.equal(changed.after.templateCueId,'bottom-a');
  const alreadyBottom={...original,layout:'bottom' as const,templateCueId:'bottom-b'};
- assert.deepEqual(planDraftStyle(alreadyBottom,{layout:'bottom'},templates).patch,{});
+ assert.deepEqual(planDraftStyle(alreadyBottom,{layout:'bottom',arrangement:'together',comfortableTypography:false},templates).patch,{});
  const mismatchedBottom={...original,layout:'bottom' as const};
- assert.deepEqual(planDraftStyle(mismatchedBottom,{layout:'bottom'},templates).patch,{templateCueId:'bottom-a'});
+ assert.deepEqual(planDraftStyle(mismatchedBottom,{layout:'bottom',arrangement:'together',comfortableTypography:false},templates).patch,{templateCueId:'bottom-a'});
 });
 
 test('style plan refuses an ambiguous empty template fallback',()=>{
- const plan=planDraftStyle(draft(),{layout:'right'},templates);
+ const plan=planDraftStyle(draft(),{layout:'right',arrangement:'together',comfortableTypography:false},templates);
  assert.deepEqual(plan.patch,{});
  assert.match(plan.warnings[0],/No compatible right template/);
  assert.equal(plan.after.layout,'left');
@@ -51,6 +51,14 @@ test('comfortable typography removes only density fields and preserves artwork a
  const plan=planDraftStyle(draft(),{comfortableTypography:true},templates);
  assert.deepEqual(plan.patch.presentation,{imageAssetId:'asset_aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa',alignment:'center'});
  assert.deepEqual(plan.after.presentation,plan.patch.presentation);
+});
+
+test('omitted style choices plan readable defaults while explicit false and together retain them',()=>{
+ const original=draft();
+ const defaults=planDraftStyle(original,{},templates);
+ assert.equal(defaults.after.arrangement,'blocks');assert.deepEqual(defaults.after.presentation,{imageAssetId:'asset_aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa',alignment:'center'});
+ const retained=planDraftStyle(original,{arrangement:'together',comfortableTypography:false},templates);
+ assert.equal(retained.after.arrangement,'together');assert.deepEqual(retained.after.presentation,original.presentation);
 });
 
 test('non-bilingual arrangement and already-comfortable requests are explicit no-ops',()=>{
