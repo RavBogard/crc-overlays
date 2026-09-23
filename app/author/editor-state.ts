@@ -1,5 +1,6 @@
 import { exceedsOnePanel, type PanelBlock, type PanelLayout } from "@/lib/panel-budget";
 import type { ContentMode, Draft, DraftForm, Source, SourceDisplay, SourceGroup, TextArrangement, TextLayer } from "./types";
+import { loadWordingEdits, wordingEditsReady, withWordingEdits } from "./wording-edits";
 
 export const LAYER_ORDER: readonly TextLayer[] = ["he", "tr", "en"];
 export const LAYER_NAMES: Record<TextLayer, string> = { he: "Hebrew", tr: "Transliteration", en: "Translation" };
@@ -137,16 +138,19 @@ export function routeForDraft(draftId: string | null | undefined): string {
   return draftId ? `/author?draft=${encodeURIComponent(draftId)}` : "/author";
 }
 
+/**
+ * A local-variant draft opens in the siddur picker on its canonical selection, with its wording
+ * edits loaded beside the passages they change (app/author/wording-edits.ts). Saving it again
+ * writes the same local-variant shape; reverting every edit returns it to canonical content.
+ */
 export function formFromDraft(draft: Draft): DraftForm {
+  const variant = draft.content.mode === "local-variant" ? draft.content : null;
+  const content = variant ? variant.base : draft.content;
   const groups =
-    draft.content.mode === "local-variant"
-      ? draft.content.base.mode === "bilingual"
-        ? draft.content.base.hebrewGroups
-        : draft.content.base.englishGroups
-      : draft.content.mode === "bilingual"
-      ? draft.content.hebrewGroups
-      : draft.content.mode === "original-en" || draft.content.mode === "source-en"
-        ? draft.content.englishGroups
+    content.mode === "bilingual"
+      ? content.hebrewGroups
+      : content.mode === "original-en" || content.mode === "source-en"
+        ? content.englishGroups
         : [];
   return {
     name: draft.name,
@@ -154,16 +158,15 @@ export function formFromDraft(draft: Draft): DraftForm {
     accentTitle: draft.accentTitle || "",
     layout: draft.layout,
     templateCueId: draft.templateCueId,
-    mode: draft.content.mode,
+    mode: content.mode,
     includeTranslation:
-      draft.content.mode === "bilingual" && draft.content.includeTranslation,
+      content.mode === "bilingual" && content.includeTranslation,
     ...layerFormFields(draft),
     groups: structuredClone(groups),
-    customText: draft.content.mode === "custom" ? draft.content.text : "",
-    variantLabel: draft.content.mode === "local-variant" ? draft.content.label : "",
-    variantReason: draft.content.mode === "local-variant" ? draft.content.reason || "" : "",
-    variantBase: draft.content.mode === "local-variant" ? structuredClone(draft.content.base) : undefined,
-    variantOverrides: draft.content.mode === "local-variant" ? structuredClone(draft.content.overrides) : [],
+    customText: content.mode === "custom" ? content.text : "",
+    variantLabel: variant ? variant.label : "",
+    variantReason: variant ? variant.reason || "" : "",
+    variantOverrides: variant ? loadWordingEdits(variant.overrides, draft.sourceSnapshots) : [],
     presentation: { ...draft.presentation },
   };
 }
@@ -172,21 +175,21 @@ export function editableFromForm(form: DraftForm) {
   const groups = form.groups.filter((group) => group.blockIds.length);
   const content =
     form.mode === "bilingual"
-      ? {
+      ? withWordingEdits(form, {
           mode: "bilingual" as const,
           hebrewGroups: groups,
           transliterationGroups: structuredClone(groups),
           ...layerContentFields(form),
-        }
+        })
       : form.mode === "original-en" || form.mode === "source-en"
-        ? { mode: form.mode, englishGroups: groups }
+        ? withWordingEdits(form, { mode: form.mode, englishGroups: groups })
         : form.mode === "local-variant" && form.variantBase
           ? {
               mode: "local-variant" as const,
               label: form.variantLabel.trim(),
               ...(form.variantReason.trim() ? { reason: form.variantReason.trim() } : {}),
               base: structuredClone(form.variantBase),
-              overrides: structuredClone(form.variantOverrides),
+              overrides: form.variantOverrides.map(({ sourceId, blockId, channel, sourceText, localText }) => ({ sourceId, blockId, channel, sourceText, localText })),
             }
         : { mode: "custom" as const, text: form.customText.trim() };
   return {
@@ -206,7 +209,7 @@ export function formReady(form: DraftForm) {
       ? Boolean(form.customText.trim())
       : form.mode === "local-variant"
         ? Boolean(form.variantBase && form.variantLabel.trim() && form.variantOverrides.length && form.variantOverrides.every((item) => item.localText.trim()))
-      : form.groups.some((group) => group.blockIds.length);
+      : form.groups.some((group) => group.blockIds.length) && wordingEditsReady(form);
   return Boolean(
     form.name.trim() &&
       form.title.trim() &&

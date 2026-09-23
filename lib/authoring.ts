@@ -11,6 +11,7 @@ import {layoutLabel} from './layout-label';
 import {PANEL_BLOCK_LIMIT,blockCharacters,panelCharacterBudget} from './panel-budget';
 import {baselineCatalogForWorkspace,starterSourceMap} from './workspace-catalog';
 import {sourceDisplay} from './source-library';
+import {wordingChanges} from './wording-changes';
 import {sharedCueHash,sharedLibraryClient,type SharedLibraryEntry,type SharedLibraryPayload,type SharedLibrarySnapshot} from './shared-library';
 import {compareUpstream,groupSets,setState,shelfState} from './shared-shelf';
 import {AssetError,cueAssetId,defaultAssetRepository,importSharedAsset,markCueAssetPublished,type AssetRepository} from './assets';
@@ -367,6 +368,8 @@ export function createAuthoringService(repo:AuthoringRepository,workspace:Author
    return compactDraftCatalog(drafts,input);
   }
   if(operation==='list_archived_drafts'){keys(data,[]);return {drafts:(await repo.listDrafts()).filter(draft=>Boolean(draft.archivedAt))};}
+  // Wording changes: every edited siddur line in this workspace, archived drafts flagged, with the exact source text beside it. Read only (lib/wording-changes.ts).
+  if(operation==='list_wording_changes'){keys(data,[]);const changes=wordingChanges(await repo.listDrafts());return {changes,count:changes.length};}
   if(operation==='get_draft'){keys(data,['draftId']);const draft=await requiredDraft(repo,string(data.draftId,'draftId'));return {draft};}
   if(operation==='archive_draft'||operation==='restore_draft'){keys(data,['draftId','expectedVersion']);const id=string(data.draftId,'draftId'),expected=integer(data.expectedVersion,'expectedVersion',1);const current=await requiredDraft(repo,id);if(current.version!==expected)throw conflict();if(current.draftSetId)throw new AuthoringError('set_member_archive','Archive or restore multipart graphics as a complete set',409);if(operation==='archive_draft'&&current.archivedAt)return {draft:current};if(operation==='restore_draft'&&!current.archivedAt)return {draft:current};const draft=await repo.setArchived(id,expected,operation==='archive_draft',who);if(!draft)throw conflict();return {draft};}
   if(operation==='archive_draft_set'||operation==='restore_draft_set'){keys(data,['setId','expectedDraftIds']);const setId=string(data.setId,'setId');if(!Array.isArray(data.expectedDraftIds)||!data.expectedDraftIds.length||data.expectedDraftIds.length>200)throw new AuthoringError('invalid_input','expectedDraftIds must contain 1-200 draft IDs');const expectedDraftIds=data.expectedDraftIds.map((id,index)=>string(id,`expectedDraftIds[${index}]`,160));const drafts=await repo.setDraftSetArchived(setId,expectedDraftIds,operation==='archive_draft_set',who);return {set:{id:setId,count:drafts.length,draftIds:drafts.map(draft=>draft.id)},drafts};}

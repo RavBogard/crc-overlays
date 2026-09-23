@@ -81,6 +81,7 @@ export function LibrarySidebar(props: {
         rail, where the work it belongs to is. It is preparation, so operators never see it. */}
     {(props.role === "owner" || props.role === "editor") && <nav className="library-elsewhere" aria-label="More library work">
       <Link href="/services">Prepared services</Link>
+      <Link href="/author/wording-changes">Wording changes</Link>
     </nav>}
   </aside>;
 }

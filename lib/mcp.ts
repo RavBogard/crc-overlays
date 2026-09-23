@@ -23,7 +23,7 @@ function actor(authInfo:AuthInfo|undefined){const stored=authInfo?.extra?.actor;
 // Reads return the full record. Every other result drops what an agent never acts on - embedded
 // source snapshots, animation tracks and per-block pin hashes - which made one publish ~25 KB.
 // Ids, versions, cue hashes, texts, content rows, validation and review receipts stay.
-const FULL_RECORD_OPERATIONS=new Set(['get_draft','get_source','search_sources','list_drafts','list_archived_drafts','list_templates','list_revisions','get_service_history']);
+const FULL_RECORD_OPERATIONS=new Set(['get_draft','get_source','search_sources','list_drafts','list_archived_drafts','list_templates','list_revisions','get_service_history','list_wording_changes']);
 const OMITTED_RESULT_KEYS=new Set(['sourceSnapshots','animations','openingWords']);
 function compactResult(value:unknown):unknown{
  if(Array.isArray(value))return value.map(compactResult);
@@ -53,6 +53,7 @@ export function createAuthoringMcpHandler(authoringOperation:AuthoringOperation)
   register('list_drafts','List authoring drafts. With compact, query, service, book, layout, limit, or cursor, returns bounded summaries without source text.',z.object({compact:z.boolean().optional(),query:z.string().min(1).max(100).optional(),service:z.string().min(1).max(100).optional(),book:z.string().min(1).max(100).optional(),layout:z.enum(['left','bottom','right']).optional(),limit:z.number().int().min(1).max(50).optional(),cursor:z.string().min(1).max(200).optional()}).strict(),{readOnlyHint:true});
   register('list_archived_drafts','List recoverable archived authoring drafts.',z.object({}).strict(),{readOnlyHint:true});
   register('get_draft','Get one draft and its current version.',z.object({draftId:id}).strict(),{readOnlyHint:true});
+  register('list_wording_changes','List every edited siddur line in this workspace (local-variant wording): the draft, whether it is published or archived, the source and passage, the channel, the exact source text and the edited text, and why. Read only; use it to find source spellings to correct. It never changes a draft or the siddur.',z.object({}).strict(),{readOnlyHint:true});
   register('import_cue','Idempotently create or return a source-reference draft for an existing baseline cue. No plaintext prayer content is accepted.',z.object({cueId:id}).strict(),{readOnlyHint:false,idempotentHint:true});
   register('create_draft','Create a source-reference draft with a new stable ID.',draftFields,{readOnlyHint:false});
   register('create_local_variant','Create an unpublished local liturgical variant while retaining exact source text and pins.',z.object({draftId:id.optional(),cueId:id.optional(),label:z.string().min(1).max(80),reason:z.string().min(1).max(500).optional(),overrides:z.array(z.object({sourceId:z.string().min(1).max(160),blockId:z.string().min(1).max(220),channel:z.enum(['he','tr','en']),localText:z.string().min(1).max(4000)}).strict()).min(1).max(96)}).strict(),{readOnlyHint:false});

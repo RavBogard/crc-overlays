@@ -1,7 +1,8 @@
 "use client";
 
 import { useEffect, useRef, useState } from "react";
-import { BookOpenText, ChevronLeft, ChevronRight, CircleAlert, FilePlus2, LoaderCircle, Search } from "lucide-react";
+import Link from "next/link";
+import { BookOpenText, ChevronLeft, ChevronRight, CircleAlert, FilePlus2, LoaderCircle, PencilLine, RotateCcw, Search } from "lucide-react";
 import { fetchBookUnits, groupUnits, hasHebrew, visibleUnits } from "@/lib/siddur-shelf";
 import { LAYER_NAMES, LAYER_ORDER, ROW_ORDERS, blocksForMode, formRowOrder, sourceDisplayCopy, sourceHeadline } from "./editor-state";
 import type {
@@ -17,6 +18,7 @@ import type {
 } from "./types";
 import { EditorCard } from "./editor-card";
 import { slideHolding } from "./passage-selection";
+import { activeWordingEdits, findWordingEdit, passageWordingFields, revertWordingEdit, setWordingEdit, wordingKey, type WordingField } from "./wording-edits";
 import "./siddur-editor.css";
 
 const SHOW_NOTES_LABEL = "Show instructions and notes";
@@ -59,6 +61,8 @@ export type SiddurEditorProps = {
 export function SiddurEditor(props: SiddurEditorProps) {
   /** Off by default: a siddur's instructions and notes are not what a leader puts on screen. */
   const [showNotes, setShowNotes] = useState(false);
+  /** Passages whose wording editor is open. Closing one keeps its edits. */
+  const [editingPassages, setEditingPassages] = useState<Set<string>>(() => new Set());
   /** A search only takes over from the shelf once it has actually been run. */
   const [searchedQuery, setSearchedQuery] = useState("");
   const searching = searchedQuery !== "" && props.query.trim() !== "";
@@ -84,6 +88,13 @@ export function SiddurEditor(props: SiddurEditorProps) {
   const omittedFromAutomatic = props.form.mode === "source-en"
     ? visibleBlocks.filter((block) => block.automatic === false).length
     : 0;
+  const wordingEdits = activeWordingEdits(props.form);
+  const editedKeys = new Set(wordingEdits.map(wordingKey));
+  const toggleEditing = (blockId: string) => setEditingPassages((current) => {
+    const next = new Set(current);
+    if (next.has(blockId)) next.delete(blockId); else next.add(blockId);
+    return next;
+  });
   return <EditorCard number={1} title="Text" lede="Search by prayer, Hebrew, common spelling, or opening words." className="siddur-section">
     <div className="siddur-search-row"><label className="source-search"><span className="sr-only">Search siddur library</span><Search size={17} /><input aria-label="Search siddur library" value={props.query} onChange={(event) => props.setQuery(event.target.value)} onKeyDown={(event) => { if (event.key === "Enter") { event.preventDefault(); runSearch(); } }} placeholder="Search prayers and readings" />{props.busy === "search" && <LoaderCircle className="spin" size={16} />}</label></div>
     {(props.books.length > 0 || props.services.length > 0) && <div className="source-filters"><label>Source<select value={props.serviceFilter ? `service:${props.serviceFilter}` : props.bookFilter ? `book:${props.bookFilter}` : ""} onChange={(event) => {
@@ -101,7 +112,22 @@ export function SiddurEditor(props: SiddurEditorProps) {
       {props.showPanels !== false && <div className="panel-tabs">{props.form.groups.map((group, index) => <button key={`${group.sourceId}-${index}`} className={props.activeGroup === index ? "active" : ""} onClick={() => props.setActiveGroup(index)}>Slide {index + 1}<small>{group.blockIds.length} passages</small></button>)}<button onClick={props.addPanel}>+ Add slide</button></div>}
       {noteLikeBlocks > 0 && <label className="shelf-toggle"><input type="checkbox" checked={showNotes} onChange={(event) => setShowNotes(event.target.checked)} /> {SHOW_NOTES_LABEL}</label>}
       {props.form.mode === "bilingual" && <TextLayerControls form={props.form} source={props.source} changeForm={props.changeForm} fitErrors={props.fitErrors} />}
-      <div className="passage-list">{visibleBlocks.map((block) => <label key={block.id} className={props.selectedIds.has(block.id) ? "selected" : ""}><input type="checkbox" checked={props.selectedIds.has(block.id)} onChange={(event) => props.toggleBlock(block.id, event.target.checked)} /><span className="passage-number">{block.index + 1}</span><span>{props.form.mode === "bilingual" ? <><b lang="he" dir="rtl">{block.he}</b><small>{block.tr}</small></> : <><b>{block.en}</b>{props.form.mode === "source-en" && <small className="passage-meta">{englishRoleLabel[block.englishRole || "unclassified"]}{block.automatic === false ? " · manual selection" : ""}</small>}</>}</span>{props.showPanels !== false && (() => { const holder = slideHolding(props.form.groups, props.activeGroup, props.source!.id, block.id); return holder >= 0 ? <small className="passage-elsewhere" title="Checking it here moves it to this slide">On slide {holder + 1}</small> : null; })()}</label>)}</div>
+      {wordingEdits.length > 0 && <WordingSummary count={wordingEdits.length} reason={props.form.variantReason} setReason={(value) => props.changeForm({ variantReason: value })} />}
+      <div className="passage-list">{visibleBlocks.map((block) => {
+        const selected = props.selectedIds.has(block.id);
+        const fields = selected ? passageWordingFields(props.form, props.source!, block) : [];
+        const edited = fields.some((field) => editedKeys.has(wordingKey(field)));
+        const shown = (channel: "he" | "tr" | "en", fallback?: string) => {
+          const field = fields.find((item) => item.channel === channel && item.blockId === block.id);
+          return (field && editedKeys.has(wordingKey(field)) && findWordingEdit(props.form.variantOverrides, field)?.localText) || fallback;
+        };
+        const open = editingPassages.has(block.id) && fields.length > 0;
+        return <div key={block.id} className={`passage-row${selected ? " selected" : ""}${edited ? " edited" : ""}`}>
+          <label className={selected ? "selected" : ""}><input type="checkbox" checked={selected} onChange={(event) => props.toggleBlock(block.id, event.target.checked)} /><span className="passage-number">{block.index + 1}</span><span>{props.form.mode === "bilingual" ? <><b lang="he" dir="rtl">{shown("he", block.he)}</b><small>{shown("tr", block.tr)}</small></> : <><b>{shown("en", block.en)}</b>{props.form.mode === "source-en" && <small className="passage-meta">{englishRoleLabel[block.englishRole || "unclassified"]}{block.automatic === false ? " · manual selection" : ""}</small>}</>}</span>{props.showPanels !== false && (() => { const holder = slideHolding(props.form.groups, props.activeGroup, props.source!.id, block.id); return holder >= 0 ? <small className="passage-elsewhere" title="Checking it here moves it to this slide">On slide {holder + 1}</small> : null; })()}{edited && <small className="passage-edited" title="This graphic uses edited wording. The siddur text is kept beside it.">Edited</small>}</label>
+          {fields.length > 0 && <button type="button" className={open ? "passage-edit-toggle on" : "passage-edit-toggle"} aria-expanded={open} aria-label={`Edit wording of passage ${block.index + 1}`} title="Edit wording" onClick={() => toggleEditing(block.id)}><PencilLine size={14} /></button>}
+          {open && <WordingFields fields={fields} mode={props.form.mode} edits={props.form.variantOverrides} change={(variantOverrides) => props.changeForm({ variantOverrides })} />}
+        </div>;
+      })}</div>
       {props.showPanels !== false && props.form.groups.length > 1 && <button className="remove-panel" onClick={props.removePanel}>Remove slide {props.activeGroup + 1}</button>}
     </div>}
   </EditorCard>;
@@ -234,5 +260,38 @@ function SiddurShelf(props: SiddurShelfProps) {
 function SourceProvenance({ source }: { source: Source }) {
   const display = sourceDisplayCopy(source);
   const revision = source.authority?.repositoryCommit?.slice(0, 10) || source.unitSha256?.slice(0, 10);
-  return <details className="source-provenance"><summary><BookOpenText size={15} /><span><strong>{sourceHeadline(display)}</strong><small>Exact source text · view edition details</small></span></summary><dl><div><dt>Prayer or reading</dt><dd>{source.name}</dd></div>{display.sectionTitle && <div><dt>Section</dt><dd>{display.sectionTitle}</dd></div>}<div><dt>Book</dt><dd>{display.bookTitle}</dd></div>{display.folio && <div><dt>Pages</dt><dd>{display.folio}</dd></div>}{display.edition && <div><dt>Edition</dt><dd>{display.edition}</dd></div>}{revision && <div><dt>Source revision</dt><dd>{revision}</dd></div>}</dl><p>The selected words are copied exactly from this maintained source. Local changes require an explicitly labeled variant.</p></details>;
+  return <details className="source-provenance"><summary><BookOpenText size={15} /><span><strong>{sourceHeadline(display)}</strong><small>Exact source text · view edition details</small></span></summary><dl><div><dt>Prayer or reading</dt><dd>{source.name}</dd></div>{display.sectionTitle && <div><dt>Section</dt><dd>{display.sectionTitle}</dd></div>}<div><dt>Book</dt><dd>{display.bookTitle}</dd></div>{display.folio && <div><dt>Pages</dt><dd>{display.folio}</dd></div>}{display.edition && <div><dt>Edition</dt><dd>{display.edition}</dd></div>}{revision && <div><dt>Source revision</dt><dd>{revision}</dd></div>}</dl><p>The selected words are copied exactly from this maintained source. Wording you edit here is kept beside the exact words and listed under Wording changes; the source itself never changes.</p></details>;
+}
+
+const WORDING_CHANNEL: Record<"he" | "tr" | "en", string> = { he: "Hebrew", tr: "Transliteration", en: "Translation" };
+
+/**
+ * The inline wording editor for one selected passage: one field per line this graphic shows, the
+ * exact siddur text under any line that differs, and a way back to it.
+ */
+function WordingFields(props: { fields: WordingField[]; mode: DraftForm["mode"]; edits: DraftForm["variantOverrides"]; change: (edits: DraftForm["variantOverrides"]) => void }) {
+  return <div className="wording-fields">{props.fields.map((field) => {
+    const edit = findWordingEdit(props.edits, field);
+    const value = edit ? edit.localText : field.sourceText;
+    const changed = Boolean(edit) && value.trim() !== field.sourceText.trim();
+    const hebrew = field.channel === "he";
+    const name = field.channel === "en" && props.mode !== "bilingual" ? "English" : WORDING_CHANNEL[field.channel];
+    return <div key={wordingKey(field)} className={changed ? "wording-field changed" : "wording-field"}>
+      <header><span>{name}</span>{edit && <button type="button" className="text-button" onClick={() => props.change(revertWordingEdit(props.edits, field))}><RotateCcw size={13} /> Revert to siddur</button>}</header>
+      <textarea aria-label={`${name} wording`} lang={hebrew ? "he" : undefined} dir={hebrew ? "rtl" : undefined} value={value} maxLength={4000} rows={Math.min(6, Math.max(2, Math.ceil(value.length / 60)))} onChange={(event) => props.change(setWordingEdit(props.edits, field, event.target.value))} />
+      {edit && !value.trim() && <p className="wording-warning"><CircleAlert size={13} /> Blank wording can’t be saved. Revert to siddur to restore it.</p>}
+      {changed && <p className="wording-source"><span>Siddur</span><span lang={hebrew ? "he" : undefined} dir={hebrew ? "rtl" : undefined}>{field.sourceText}</span></p>}
+    </div>;
+  })}</div>;
+}
+
+function WordingSummary(props: { count: number; reason: string; setReason: (value: string) => void }) {
+  return <div className="wording-summary">
+    <PencilLine size={16} />
+    <div>
+      <strong>{props.count === 1 ? "1 wording edit on this graphic" : `${props.count} wording edits on this graphic`}</strong>
+      <small>The graphic uses the edited words. The exact siddur text is kept beside each edit and listed under <Link href="/author/wording-changes">Wording changes</Link> so the source can be corrected later.</small>
+      <label>Why? <span>optional</span><input value={props.reason} maxLength={500} onChange={(event) => props.setReason(event.target.value)} placeholder="Example: misspelled in the siddur" /></label>
+    </div>
+  </div>;
 }

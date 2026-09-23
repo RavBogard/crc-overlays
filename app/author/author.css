@@ -258,6 +258,31 @@
 .passage-list b { font-size: 12px; font-weight: 520; }
 .passage-list b[dir="rtl"] { font-family: "Noto Sans Hebrew", Arial, sans-serif; font-size: 16px; text-align: right; }
 .passage-list small { margin-top: 4px; color: #aabbb5; font-size: 11px; font-weight: 400; }
+/* Wording edits in the siddur picker: the graphic uses the edit, the siddur text stays beside it. */
+.passage-row { position: relative; display: grid; gap: 0; }
+.passage-row.selected > label { padding-right: 38px; }
+.passage-row.edited > label { border-color: #8a7433; }
+.passage-list .passage-edited { grid-column: 3; justify-self: start; margin-top: 5px; padding: 2px 7px; border-radius: 999px; background: #2e2814; color: #dfc879; font-size: 10px; font-weight: 650; letter-spacing: .03em; }
+.passage-edit-toggle { position: absolute; top: 6px; right: 6px; width: 28px; height: 28px; display: grid; place-items: center; padding: 0; border: 1px solid #3b5750; border-radius: 6px; background: #0f1d1a; color: #a9c9be; }
+.passage-edit-toggle:hover, .passage-edit-toggle.on { border-color: #8a7433; color: #dfc879; }
+.wording-fields { display: grid; gap: 8px; margin: -3px 0 0; padding: 10px 9px 9px; border: 1px solid #4d4329; border-top: 0; border-radius: 0 0 8px 8px; background: #15130d; }
+.wording-field { display: grid; gap: 5px; }
+.wording-field header { display: flex; align-items: center; justify-content: space-between; gap: 8px; color: #bcb18e; font-size: 9px; font-weight: 700; letter-spacing: .5px; text-transform: uppercase; }
+.wording-field .text-button { display: inline-flex; align-items: center; gap: 4px; padding: 3px 4px; border: 0; background: transparent; color: #dfc879; font-size: 10px; letter-spacing: 0; text-transform: none; }
+.wording-field textarea { width: 100%; min-height: 44px; resize: vertical; padding: 7px 8px; border: 1px solid #3b4c47; border-radius: 6px; background: #0a1211; color: #eaf3f0; font: inherit; font-size: 12px; line-height: 1.45; }
+.wording-field textarea[dir="rtl"] { font-family: "Noto Sans Hebrew", Arial, sans-serif; font-size: 15px; text-align: right; }
+.wording-field.changed textarea { border-color: #8a7433; }
+.wording-source { display: grid; gap: 2px; margin: 0; padding: 6px 8px; border-left: 2px solid #5c6e68; color: #aabbb5; font-size: 11px; line-height: 1.4; }
+.wording-source > span:first-child { color: var(--quiet); font-size: 8px; font-weight: 700; letter-spacing: .7px; text-transform: uppercase; }
+.wording-source > span[dir="rtl"] { font-family: "Noto Sans Hebrew", Arial, sans-serif; font-size: 14px; text-align: right; }
+.wording-warning { display: flex; align-items: center; gap: 5px; margin: 0; color: var(--danger); font-size: 10px; }
+.wording-summary { display: flex; align-items: flex-start; gap: 9px; margin: 0 0 8px; padding: 10px 11px; border: 1px solid #4d4329; border-radius: 8px; background: #211d13; color: #dfc879; }
+.wording-summary > div { display: grid; gap: 4px; min-width: 0; flex: 1; }
+.wording-summary small { color: #bcb18e; font-size: 10px; line-height: 1.4; }
+.wording-summary a { color: #dfc879; }
+.wording-summary label { display: grid; gap: 4px; margin-top: 3px; color: #bcb18e; font-size: 10px; font-weight: 650; }
+.wording-summary label span { color: var(--quiet); font-weight: 400; }
+.wording-summary input { width: 100%; padding: 6px 8px; border: 1px solid #4d4329; border-radius: 6px; background: #0a1211; color: #eaf3f0; font-size: 11px; }
 .remove-panel { margin-top: 8px; border-color: #68423e !important; background: transparent !important; color: var(--danger) !important; font-size: 10px !important; }
 .provenance-note { display: flex; align-items: flex-start; gap: 9px; margin-top: 11px; padding: 10px; border: 1px solid var(--line); border-radius: 8px; background: #101b19; color: var(--mint); }
 .provenance-note span { display: grid; gap: 2px; }

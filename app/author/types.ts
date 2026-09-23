@@ -214,7 +214,8 @@ export type DraftForm = {
   variantLabel: string;
   variantReason: string;
   variantBase?: CanonicalDraftContent;
-  variantOverrides: LocalVariantOverride[];
+  /** Wording edits; `passageId` anchors an English edit to the passage it translates (app/author/wording-edits.ts). */
+  variantOverrides: (LocalVariantOverride & { passageId?: string })[];
   presentation: Presentation;
 };
 
