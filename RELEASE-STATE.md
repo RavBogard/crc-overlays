@@ -4,7 +4,7 @@ What is deployed right now. Update this file on every release — it is the one 
 "what is live", and it is short so it can be read under pressure. The history is in
 `docs/planning/2026-09-deploys/` (25 deploy records, the release chain, the phase build notes).
 
-**Last updated: 2026-09-23** (paired release `c8d7d92`: source-preserving Latin paragraph presentation, lower-third fit budget, safe Chromium core-dump prevention, and related authoring tools. Evidence below under "Release c8d7d92".)
+**Last updated: 2026-09-23** (paired release `9c4efa5`: Latin phrase presentation and contiguous bilingual block rows. Evidence below under "Release 9c4efa5".)
 
 ## Web, per workspace
 
@@ -13,13 +13,19 @@ both were released together on 2026-09-23 UTC (2026-09-22 evening Central).
 
 | Workspace | Host | Deployed commit | How it got there |
 |---|---|---|---|
-| CRC | `overlays.centralreform.org` (alt `crc-overlays.vercel.app`) | `c8d7d92` | paired staged release, 2026-09-23, `dpl_AQuJHztCnTzccBYsrAB14BGXYc7N` (the Git integration also builds every push to `main`) |
-| TBI | `overlays.templebnaiisrael.com` (alt `tbi-overlays.vercel.app`) | `c8d7d92` | same paired run, 2026-09-23, `dpl_23tr7omUtWMB3qdzi64FtLVAxNR4` |
+| CRC | `overlays.centralreform.org` (alt `crc-overlays.vercel.app`) | `9c4efa5` | paired staged release, 2026-09-23, `dpl_GwdL4XfXh4EpwkFCTXZMpACjB48J` (the Git integration also builds every push to `main`) |
+| TBI | `overlays.templebnaiisrael.com` (alt `tbi-overlays.vercel.app`) | `9c4efa5` | same paired run, 2026-09-23, `dpl_AHpCFvM1q5nPuKFzyaiNvSQt9oZY` |
 
 This file is written after the release it describes, so the commit carrying these words is always one
 ahead of the shas in the table. That one commit is documentation: CRC's Git integration builds it by
 itself and TBI is not owed a release for it. Any commit that touches `app/`, `lib/`, `content/`,
 `components/`, `schemas/` or `workspaces/` **is** owed one.
+
+### Release 9c4efa5 (2026-09-23 UTC)
+
+- Released exact SHA `9c4efa584358ddb0dea77efa6e90d214ef46e99a`. CRC `dpl_GwdL4XfXh4EpwkFCTXZMpACjB48J` and TBI `dpl_AHpCFvM1q5nPuKFzyaiNvSQt9oZY` both reported Ready. The two custom domains and two Vercel aliases returned HTTP 200 from `/health`. Receipt: `work/deploy-staging/releases/9c4efa584358ddb0dea77efa6e90d214ef46e99a/release.json`; deployment and health logs: `work/sitting-2026-09-23/phrases-blocks-release/`.
+- Adds the optional source-preserving Latin `phrases` presentation (soft Latin line breaks display as separators while stanza and Hebrew boundaries remain intact) and compiles `blocks` arrangements into contiguous Hebrew, transliteration, and English paragraphs without changing source selections, snapshots, or published drafts.
+- Gates: `tsc --noEmit`; `npm test` exit 0 (832 TypeScript pass, 0 fail, 11 skipped; 24 MJS pass, 0 fail); `npm run lint` exit 0; and `npm run build` (42 routes). The final test-only commit updates two stale block-row assertions to the reviewed contiguous-row behavior.
 
 ### Release c8d7d92 (2026-09-23 UTC)
 
