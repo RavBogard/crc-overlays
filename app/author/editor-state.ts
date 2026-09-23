@@ -44,7 +44,9 @@ export const emptyForm: DraftForm = {
   templateCueId: "",
   mode: "bilingual",
   layers: ["he", "tr"],
-  arrangement: "together",
+  // Creation-only default. formFromDraft continues to read omitted historical arrangements as
+  // together, so existing drafts neither change shape nor gain a new stored field on save.
+  arrangement: "blocks",
   groups: [],
   customText: "",
   variantLabel: "",

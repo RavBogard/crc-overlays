@@ -8,6 +8,7 @@ import {
   draftThumbnailCopy,
   editableFromForm,
   emptyForm,
+  formFromDraft,
   formReady,
   libraryEmptyMessage,
   moveDraftId,
@@ -34,6 +35,23 @@ test("custom content is trimmed and requires an explicit template", () => {
     mode: "custom",
     text: "Welcome to our community.",
   });
+});
+
+test("a new bilingual form defaults to contiguous language blocks", () => {
+  assert.equal(emptyForm.mode, "bilingual");
+  assert.equal(emptyForm.arrangement, "blocks");
+  const content = editableFromForm({ ...emptyForm, name: "Prayer", title: "Prayer", templateCueId: "template", groups: [{ sourceId: "source", blockIds: ["block"] }] }).content;
+  assert.equal(content.mode, "bilingual");
+  assert.equal(content.mode === "bilingual" ? content.arrangement : undefined, "blocks");
+});
+
+test("a historical bilingual draft with omitted arrangement still loads as together", () => {
+  const historical = {
+    id: "old", name: "Prayer", title: "Prayer", layout: "left" as const, templateCueId: "template",
+    content: { mode: "bilingual" as const, hebrewGroups: [{ sourceId: "source", blockIds: ["block"] }], transliterationGroups: [{ sourceId: "source", blockIds: ["block"] }] },
+    presentation: {}, version: 1, activeRevision: null, activeDraftVersion: null, updatedAt: 1,
+  };
+  assert.equal(formFromDraft(historical).arrangement, "together");
 });
 
 test("whole-prayer selection preserves source order", () => {
