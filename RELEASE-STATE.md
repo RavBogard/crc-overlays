@@ -4,7 +4,7 @@ What is deployed right now. Update this file on every release — it is the one 
 "what is live", and it is short so it can be read under pressure. The history is in
 `docs/planning/2026-09-deploys/` (25 deploy records, the release chain, the phase build notes).
 
-**Last updated: 2026-09-23** (paired release `e0e80ea`: shared accent-title flag in compact drafts; publish/set results deduplicated. Evidence below under "Release e0e80ea".)
+**Last updated: 2026-09-23** (paired release `5f149da`: an explicit refresh can rebase a stale-pinned draft. Evidence below under "Release 5f149da".)
 
 ## Web, per workspace
 
@@ -13,13 +13,19 @@ both were released together on 2026-09-23 UTC (2026-09-22 evening Central).
 
 | Workspace | Host | Deployed commit | How it got there |
 |---|---|---|---|
-| CRC | `overlays.centralreform.org` (alt `crc-overlays.vercel.app`) | `e0e80ea` | paired staged release, 2026-09-23, `dpl_8RdUMaNdi9srxKNV5ZQAvd3uMMyb` (the Git integration also builds every push to `main`) |
-| TBI | `overlays.templebnaiisrael.com` (alt `tbi-overlays.vercel.app`) | `e0e80ea` | same paired run, 2026-09-23, `dpl_9y7p7DXz1kJotK7u7omL7MhSMNPK` |
+| CRC | `overlays.centralreform.org` (alt `crc-overlays.vercel.app`) | `5f149da` | paired staged release, 2026-09-23, `dpl_A7mB3xfnRCGWnsxQAF7XdLH9aay6` (the Git integration also builds every push to `main`) |
+| TBI | `overlays.templebnaiisrael.com` (alt `tbi-overlays.vercel.app`) | `5f149da` | same paired run, 2026-09-23, `dpl_GLNFjByjTgQydFA66kctkjQC6wje` |
 
 This file is written after the release it describes, so the commit carrying these words is always one
 ahead of the shas in the table. That one commit is documentation: CRC's Git integration builds it by
 itself and TBI is not owed a release for it. Any commit that touches `app/`, `lib/`, `content/`,
 `components/`, `schemas/` or `workspaces/` **is** owed one.
+
+### Release 5f149da (2026-09-23 UTC)
+
+- Released exact SHA `5f149dab1c8e91048729613ee060f2f5cf611026`. CRC `dpl_A7mB3xfnRCGWnsxQAF7XdLH9aay6` and TBI `dpl_GLNFjByjTgQydFA66kctkjQC6wje` Ready; both custom domains serve those ids; all four hosts returned HTTP 200 from `/health`. Logs: `work/sitting-2026-09-23/stale-pin-rebase-release/`.
+- `update_draft` no longer refuses the explicit rebase a stale pin asks for (gap D): without `refreshSourceIds` a stale-pinned draft is refused as before; with a refresh it proceeds only when every stale source it keeps is refreshed or dropped, and the pin is rebuilt from current sources. Also ships the catalog inventory and work queue (docs only).
+- Gates: `tsc --noEmit`; `npm test` exit 0 (843 TypeScript pass, 0 fail, 11 skipped; 24 MJS pass); `npm run lint` (two existing warnings); `npm run build`.
 
 ### Release e0e80ea (2026-09-23 UTC)
 

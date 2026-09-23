@@ -1,0 +1,17 @@
+{
+  "draftId": "d7883f88-cec7-4583-8590-d526c336c5e7",
+  "name": "Ana Bakoach",
+  "status": "verified-current",
+  "kind": "original",
+  "layout": "bottom",
+  "draftVersion": 1,
+  "previewId": "eb387d88-06b5-4308-85b0-2e10382dd29a",
+  "cueHash": "78f19543426ec0e2f485635ed02edd54e70d4e7dfdb2b184e7abc52417213a09",
+  "fit": { "verdict": "pass", "fill": 0.5667 },
+  "imageInspected": "Title 'Ana Bakoach' correct, single bilingual block fully inside the bottom panel, no dangling separators or duplication.",
+  "sourceCheck": "No selection or wording change; queue flagged no automatic rule.",
+  "revision": 1,
+  "approvalBasis": "Already published and current; server fit-check re-verified pass, no republish needed (protocol step 6).",
+  "notes": "Packet 1. No style or layout change made.",
+  "at": "2026-09-23"
+}

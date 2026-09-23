@@ -1,0 +1,17 @@
+{
+  "draftId": "14ec8894-822f-4c3f-b6f8-6228e60d10fc",
+  "name": "Ashamnu",
+  "status": "published",
+  "kind": "original",
+  "layout": "left",
+  "draftVersion": 2,
+  "previewId": "28daf126-1e16-412a-bc83-3798eea19073",
+  "cueHash": "c6cad59fd50bce0993b34e4aa09848c45cd39b004315a5bf8cddfcfb732020fa",
+  "fit": { "verdict": "pass", "fill": 0.8282 },
+  "imageInspected": "Title 'Ashamnu', accent title נְעִילָה, Hebrew block then matching transliteration block fully inside the left panel, no dangling separators or duplication.",
+  "sourceCheck": "No wording or selection change; style only (arrangement together->blocks, comfortable typography, latinLineBreaks paragraphs) per queue action for this family.",
+  "revision": 2,
+  "approvalBasis": "Daniel's blanket authorization for graphic publication (handoff 2026-09-23).",
+  "notes": "Packet 9.",
+  "at": "2026-09-23"
+}

@@ -30,11 +30,15 @@ built from Michael's operating logic, bound only to final published cue IDs.
 ## Progress (2026-09-23)
 1. Renderer fixes A/B: released `8f36dd8`; live proof Psukei 1, How Awesome/Shema. DONE.
 2. Gap G compact MCP results: released `4673402`. Round 2 (publish cue dedupe, set manifest
-   summary) + gap F accent flag: gated, release pending.
+   summary) + gap F accent flag: released `e0e80ea`; stale-pin refresh (gap D): released `5f149da`.
 3. Graphics published today: Psukei 1; Shiru x4; Readers Kaddish 1-2; Mourners Kaddish 1, 2, 1 TT,
    2 T, 3 T; Vahavta 1-2; Haftarah Before, After 1-3; Mi Chamocha Sat 1; How Awesome/Shema;
    Kedusha 1-3; Am I Awake; We Are Loved 1. Birchot 1-4 in progress.
-4. Next: catalog inventory -> packets for the rest of the catalog; then the Companion preset.
+4. Catalog: 17 packets in WORK-QUEUE.md. Packets 1-9 done with receipts (Packet 9: 14 drafts +
+   Festival Kiddush 1-2 accent -> "קִדּוּשׁ", name typo "Kiddsuh" fixed; no holds). Friday Kiddush
+   split 1-2 of 2; Saturday Daytime Kiddush (Supplement) split the same way (packet 10). Releases
+   through `5f149da` (gap log). Held: Olam Chesed (missing Hebrew, no invented provenance).
+5. Next: packets 10-17, verification receipts for already-fine families, then the Companion preset.
 
 ## Open questions
 - None blocking. Still-open content items from the brief (not decided here): Kiddush Fri/Sat

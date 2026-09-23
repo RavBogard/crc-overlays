@@ -1,0 +1,34 @@
+{
+  "name": "Yotzeir Or",
+  "notes": "Two-part family (Yotzer Or 1/2); per layout rule 1-2 lower thirds stay bottom, both already bottom with matching accent title 'יוֹצֵר אוֹר'. accentTitleSharedWith 'Yotzer Or — Interpretation' is a Packet 8 family (not touched here, not assessed) sharing the same prayer name legitimately, not this packet's DECISION to resolve.",
+  "approvalBasis": "Daniel's blanket authorization for graphic publication (handoff 2026-09-23)",
+  "at": "2026-09-23",
+  "graphics": [
+    {
+      "draftId": "aa4a2b0c-23d2-45d3-8268-735331466a60",
+      "name": "Yotzer Or 1",
+      "status": "verified-current",
+      "kind": "original",
+      "layout": "bottom",
+      "draftVersion": 3,
+      "previewId": "ecc6dfa6-cbd0-4500-8cf8-8a9547390b97",
+      "cueHash": "e08339ded9e7df758a0d61f16b1b6627cea777f06ef40e96cedc0a28d0920707",
+      "fit": { "verdict": "pass", "fill": 0.9278 },
+      "imageInspected": "Bottom lower third, Hebrew/transliteration paired, title 'Yotzeir Or', accent 'יוֹצֵר אוֹר', near-full but no overflow.",
+      "sourceCheck": "Current draft version equals published activeVersion (3); no selection or style change made."
+    },
+    {
+      "draftId": "847f0ed9-cd05-44ed-b2a2-c7947cbb72d6",
+      "name": "Yotzer Or 2",
+      "status": "verified-current",
+      "kind": "original",
+      "layout": "bottom",
+      "draftVersion": 3,
+      "previewId": "98278ef2-49a9-4893-ada8-7e121aedca5e",
+      "cueHash": "c6e9b5d51dd4acb25af1f420bc20a1f01508df9e5af14ac6f3c2c7a54125f0d0",
+      "fit": { "verdict": "pass", "fill": 0.9278 },
+      "imageInspected": "Bottom lower third, Hebrew/transliteration paired, title 'Yotzeir Or', accent 'יוֹצֵר אוֹר', near-full but no overflow.",
+      "sourceCheck": "Current draft version equals published activeVersion (3); no selection or style change made."
+    }
+  ]
+}

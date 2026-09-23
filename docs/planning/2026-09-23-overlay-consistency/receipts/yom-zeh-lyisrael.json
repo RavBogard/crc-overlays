@@ -1,0 +1,44 @@
+{
+  "family": "Yom Zeh l'Yisrael",
+  "status": "published",
+  "kind": "replacement",
+  "layout": "left",
+  "approvalBasis": "Daniel's blanket authorization for graphic publication (handoff 2026-09-23).",
+  "notes": "Packet 4. Real 3-part series (already left-panel layout, one existing part per panel). WORK-QUEUE flagged styleConcern: alternatingGrouping, latinLineBreaks-missing-bilingual-left, together>1block-on-side-panel on all three. Applied layout:left (unchanged), arrangement:blocks (was 'together'), comfortableTypography:true, latinLineBreaks:paragraphs to all three; style_draft dry run confirmed sourcePreserved:true for each before applying. Same selection per part, same accent title 'יוֹם זֶה לְיִשְׂרֵאל' and title across all three. All three passed server fit-check at comfortable typography with no overflow, no dangling separators, Hebrew block then transliteration block matching, and were published.",
+  "at": "2026-09-23",
+  "graphics": [
+    {
+      "draftId": "5f31b743-b54d-4b47-8872-6f63985d4203",
+      "name": "Yom Zeh lYisrael",
+      "draftVersion": 2,
+      "previewId": "37b1a5ad-059e-408f-99be-a41b0770c57f",
+      "cueHash": "b8ed6f88de5d85c032b5e7b046729a553129a12e8b4d11478ffa51170a44ce5d",
+      "fit": { "verdict": "pass", "fill": 0.7172 },
+      "imageInspected": "Title 'Yom Zeh l'Yisrael' / accent 'יוֹם זֶה לְיִשְׂרֵאל' correct in left-panel header; Hebrew block then transliteration block, fully inside panel, no dangling separators or duplication.",
+      "sourceCheck": "Selection unchanged (blocks 2-7, legacy-shabbat-evening opening.additional-soul-yom-zeh-lyisrael); only style/arrangement changed.",
+      "revision": 2
+    },
+    {
+      "draftId": "c2e31718-3e6d-417f-acb5-0d294bbcedfd",
+      "name": "Yom Zeh lYisrael 2",
+      "draftVersion": 2,
+      "previewId": "6b461cac-4faa-4a5f-9906-cd0d49373fcf",
+      "cueHash": "6c79e78e5359b25ebcf99cd051cea56fec1b6646c475ecdadab0d9a54d30384f",
+      "fit": { "verdict": "pass", "fill": 0.7788 },
+      "imageInspected": "Title 'Yom Zeh l'Yisrael' / accent 'יוֹם זֶה לְיִשְׂרֵאל' correct in left-panel header; Hebrew block then transliteration block, fully inside panel, no dangling separators or duplication.",
+      "sourceCheck": "Selection unchanged (blocks 2,3,8-11, legacy-shabbat-evening opening.additional-soul-yom-zeh-lyisrael); only style/arrangement changed.",
+      "revision": 2
+    },
+    {
+      "draftId": "e2c3ce1c-731e-4162-ba48-f88c8a5e3a88",
+      "name": "Yom Zeh lYisrael 3",
+      "draftVersion": 2,
+      "previewId": "69e920a6-dbec-48df-94fa-11c31b1a677d",
+      "cueHash": "c36e6c86942b3c32ddb85be81eded6bb28ad41a2b15ef00d720524c653266839",
+      "fit": { "verdict": "pass", "fill": 0.7788 },
+      "imageInspected": "Title 'Yom Zeh l'Yisrael' / accent 'יוֹם זֶה לְיִשְׂרֵאל' correct in left-panel header; Hebrew block then transliteration block, fully inside panel, no dangling separators or duplication.",
+      "sourceCheck": "Selection unchanged (blocks 2,3,12-15, legacy-shabbat-evening opening.additional-soul-yom-zeh-lyisrael); only style/arrangement changed.",
+      "revision": 2
+    }
+  ]
+}

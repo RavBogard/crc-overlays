@@ -1,0 +1,20 @@
+{
+  "draftId": "b0989586-28eb-4fef-a48b-94b7fd728e24",
+  "name": "Avodah",
+  "status": "published",
+  "kind": "original",
+  "layout": "left",
+  "draftVersion": 2,
+  "previewId": "daa94461-230e-4d61-a65f-5f0917f2c76d",
+  "cueHash": "27d151a33c0eb63fbda17999feaa9fb8695272d14cf5fb1fa7fe1d5675b84420",
+  "fit": {
+    "verdict": "pass",
+    "fill": 0.7171540973871734
+  },
+  "imageInspected": "Title, accent title עֲבוֹדָה, Hebrew and transliteration blocks sit inside the left panel with no overflow, dangling separators, or duplication.",
+  "sourceCheck": "No wording or selection change; style-only diff (draft version was ahead of published version, already at blocks/paragraphs). Republished current version.",
+  "revision": 2,
+  "approvalBasis": "Daniel's blanket authorization for graphic publication (handoff 2026-09-23).",
+  "notes": "",
+  "at": "2026-09-23"
+}

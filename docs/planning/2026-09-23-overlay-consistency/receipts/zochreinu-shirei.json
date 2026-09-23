@@ -1,0 +1,19 @@
+{
+ "draftId": "ba8fa5be-229e-469e-bf8e-ea1c33f6e97d",
+ "name": "Zochreinu",
+ "status": "published",
+ "kind": "original; inherited title corrected (gap F)",
+ "layout": "bottom",
+ "draftVersion": 2,
+ "previewId": "be9d79ef-b6fb-46a5-a24f-0afceaad069d",
+ "cueHash": "db31b579c6dc9cc70ea9da6cb4662b0c81689e31e9a9c35528d6cf91161c8430",
+ "fit": {
+  "verdict": "pass",
+  "fill": 0.5667
+ },
+ "revision": 2,
+ "imageInspected": "one lower third; title now Zochreinu; Hebrew and transliteration of Zochreinu l'chayim",
+ "sourceCheck": "selection unchanged (seasonal.remember-us-for-life block 1, Shirei Shabbat); only the on-screen title changed from the inherited 'Mi Chamocha מִי כָמכָה'",
+ "approvalBasis": "Daniel's blanket authorization for graphic publication (handoff 2026-09-23); not a per-graphic inspection by Daniel",
+ "at": "2026-09-23"
+}

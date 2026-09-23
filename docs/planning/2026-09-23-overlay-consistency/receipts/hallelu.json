@@ -1,0 +1,44 @@
+{
+  "family": "Hallelu הללו",
+  "status": "published",
+  "kind": "original",
+  "layout": "left",
+  "approvalBasis": "Daniel's blanket authorization for graphic publication (handoff 2026-09-23).",
+  "notes": "Packet 10. WORKER-PROTOCOL layout rule: 3 numbered/sequential parts of one piece (>2 bottom parts) converted bottom -> left, arrangement together -> blocks, comfortable typography, latinLineBreaks paragraphs. Same Psalm 150 source (library:shirei-tshuvah:psukei.psalm-150@shabbat-shacharit), sequential blocks 0/2/4, no wording/selection change.",
+  "at": "2026-09-23",
+  "graphics": [
+    {
+      "draftId": "700e2200-c903-4ba8-ba89-b93d3ae8f55f",
+      "name": "Hallelu 1",
+      "draftVersion": 2,
+      "previewId": "fa65399e-7f2b-4cbd-a42d-6ffff4d5b7d6",
+      "cueHash": "926dafffd3dc1a6af3fe05911a3051b49296fd677accb5452ff4a43e884c452e",
+      "fit": { "verdict": "pass", "fill": 0.4400 },
+      "imageInspected": "Title 'Hallelu הללו', no accent title; Hebrew then transliteration, fully inside left panel, no dangling separators or duplication.",
+      "sourceCheck": "No selection or wording change (block 0).",
+      "revision": 2
+    },
+    {
+      "draftId": "9bcb37cc-17a0-46d9-9ad0-73447b4122fd",
+      "name": "Hallelu 2",
+      "draftVersion": 2,
+      "previewId": "8c996259-d1ae-4685-b317-6ba0c890914e",
+      "cueHash": "7c31fa8aba5caedab4f921fef2a059568c0f15c791220cce37a08bcb9ed4b1d3",
+      "fit": { "verdict": "pass", "fill": 0.4400 },
+      "imageInspected": "Title 'Hallelu הללו', no accent title; Hebrew then transliteration, fully inside left panel, no dangling separators or duplication.",
+      "sourceCheck": "No selection or wording change (block 2).",
+      "revision": 2
+    },
+    {
+      "draftId": "7d7f2592-5b60-4518-99f6-eec5c478626d",
+      "name": "Hallelu 3",
+      "draftVersion": 2,
+      "previewId": "31045a0a-df7a-4e10-99f0-a768f8463fc5",
+      "cueHash": "7d679839744b1aa35868fd6ff6df801fa857c2beedd1ec8abc783d1ad4f3bb45",
+      "fit": { "verdict": "pass", "fill": 0.4400 },
+      "imageInspected": "Title 'Hallelu הללו', no accent title; Hebrew then transliteration, fully inside left panel, no dangling separators or duplication.",
+      "sourceCheck": "No selection or wording change (block 4).",
+      "revision": 2
+    }
+  ]
+}

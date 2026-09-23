@@ -1,0 +1,55 @@
+{
+  "graphics": [
+    {
+      "draftId": "02175bd5-3d7b-4e57-9c63-33d38bc02ab0",
+      "name": "Avinu Malkeinu 1",
+      "status": "published",
+      "kind": "original",
+      "layout": "left",
+      "draftVersion": 2,
+      "previewId": "86379a8c-cb8a-4e28-b295-d0c3cec38498",
+      "cueHash": "d30df43519351e1a8b46785d72b2646f1f5b3b0fa151f4441f30041561956532",
+      "fit": { "verdict": "pass", "fill": 0.9206 },
+      "imageInspected": "Title 'Avinu Malkeinu', accent title אָבִינוּ מַלְכֵּנוּ, Hebrew block then matching transliteration block fully inside the left panel, no dangling separators or duplication.",
+      "sourceCheck": "No wording or selection change; style only (arrangement together->blocks, comfortable typography, latinLineBreaks paragraphs) per queue action.",
+      "revision": 2,
+      "approvalBasis": "Daniel's blanket authorization for graphic publication (handoff 2026-09-23).",
+      "notes": "Packet 9. Part 1 of 2 (numbered sequence, layout already left, consistent with part 2).",
+      "at": "2026-09-23"
+    },
+    {
+      "draftId": "7645c36b-1ace-4ba3-b1a6-b831de6c586c",
+      "name": "Avinu Malkeinu 2",
+      "status": "published",
+      "kind": "original",
+      "layout": "left",
+      "draftVersion": 4,
+      "previewId": "839efd97-dd6e-4701-82bd-9c36ed27f127",
+      "cueHash": "a807af62679f71b62020c03aeeb15c48adecf4ff1dcc9fbadcbed30c8d5449f7",
+      "fit": { "verdict": "pass", "fill": 0.8979 },
+      "imageInspected": "Title 'Avinu Malkeinu', accent title אָבִינוּ מַלְכֵּנוּ, Hebrew block then matching transliteration block fully inside the left panel, no dangling separators or duplication; no overflow after moving off smallFont.",
+      "sourceCheck": "No wording or selection change; smallFont overrides removed to comfortable defaults, arrangement together->blocks, latinLineBreaks paragraphs, per queue action. Verified no overflow via fit-check before publish.",
+      "revision": 2,
+      "approvalBasis": "Daniel's blanket authorization for graphic publication (handoff 2026-09-23).",
+      "notes": "Packet 9. Part 2 of 2. Was flagged smallFont (hebrewFontSize 26, transliterationFontSize 22); confirmed fit passes at comfortable defaults.",
+      "at": "2026-09-23"
+    },
+    {
+      "draftId": "4f4ba3b1-f52a-41e8-ada8-c9e22572018a",
+      "name": "Avinu Malkeinu Short",
+      "status": "published",
+      "kind": "original",
+      "layout": "left",
+      "draftVersion": 2,
+      "previewId": "63bf91f6-8442-4ccc-80ff-62d0dd6db72a",
+      "cueHash": "1581ba2081182a6139d0990aa61450d060d51a3b65d1ee987abadee210e11455",
+      "fit": { "verdict": "pass", "fill": 0.44 },
+      "imageInspected": "Title 'Avinu Malkeinu', accent title אָבִינוּ מַלְכֵּנוּ, Hebrew block then matching transliteration block fully inside the left panel, no dangling separators or duplication.",
+      "sourceCheck": "No wording or selection change; style only (arrangement together->blocks, comfortable typography, latinLineBreaks paragraphs) per queue action.",
+      "revision": 2,
+      "approvalBasis": "Daniel's blanket authorization for graphic publication (handoff 2026-09-23).",
+      "notes": "Packet 9. Named ALTERNATE ('Short'), not a numbered part of the AM1/AM2 sequence per worker protocol; treated as its own graphic. Layout already left, consistent with siblings.",
+      "at": "2026-09-23"
+    }
+  ]
+}

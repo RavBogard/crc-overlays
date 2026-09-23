@@ -1,0 +1,16 @@
+{
+  "draftId": "8792f231-e183-4bac-9113-020d25054590",
+  "name": "Maariv Arevim (Roll into Dark)",
+  "status": "verified-current",
+  "kind": "original",
+  "layout": "bottom",
+  "draftVersion": 1,
+  "previewId": "c2c3e669-3548-4b30-9f9e-560e22d829d1",
+  "cueHash": "fdb49c35defa58afbe0ebe0adf5b0e8d0145d56f3949e8990af3b0173672e0fd",
+  "fit": { "verdict": "pass", "fill": 0.51 },
+  "imageInspected": "Bilingual lower third, Hebrew and transliteration side by side, fits cleanly, title and no accent title as authored.",
+  "sourceCheck": "3 pinned blocks from legacy-shabbat-evening maariv-aravim, unchanged, named alternate treatment (not a numbered part) so left panel from siblings does not apply.",
+  "approvalBasis": "n/a (verified-current, not republished)",
+  "notes": "Distinct named alternate from Maariv Arevim 1/2 (which are already a left-panel pair); left as its own bottom lower third per protocol's ALTERNATES rule.",
+  "at": "2026-09-23"
+}

@@ -1,0 +1,38 @@
+{
+  "graphics": [
+    {
+      "draftId": "7b8ab1d5-a60f-435d-81cf-fff8ca9c08f0",
+      "name": "Maariv Arevim 1",
+      "status": "published",
+      "kind": "original",
+      "layout": "left",
+      "draftVersion": 3,
+      "previewId": "70cc513f-c493-4fee-b697-653c2d8ab133",
+      "cueHash": "e7c3433709dbd5cf7e02d553d98f8f9e93b2546808f1f7fbcbe80a90cad9ec62",
+      "fit": { "verdict": "pass", "fill": 0.8917 },
+      "imageInspected": "Left panel, Hebrew block then matching transliteration paragraph, comfortable size, no overflow, title/accent מַעֲרִיב עֲרָבִים correct.",
+      "sourceCheck": "Same 8 blocks (shma.maariv-aravim), wording unchanged, no refreshSourceIds.",
+      "revision": 3,
+      "approvalBasis": "Daniel's blanket authorization for graphic publication (handoff 2026-09-23)",
+      "notes": "Part 1 of 2. Already arrangement blocks / no smallFont; only added latinLineBreaks paragraphs to match packet concern.",
+      "at": "2026-09-23"
+    },
+    {
+      "draftId": "48015508-912c-4a26-a20f-1023b1861b0c",
+      "name": "Maariv Arevim 2",
+      "status": "published",
+      "kind": "original",
+      "layout": "left",
+      "draftVersion": 3,
+      "previewId": "3af42488-c1e3-477c-a537-4c9dff0dde07",
+      "cueHash": "3cb4fdaa9101342022822e134ef2e84d626d927362dd47ba5202c045b8270c86",
+      "fit": { "verdict": "pass", "fill": 0.8494 },
+      "imageInspected": "Left panel, Hebrew block then matching transliteration paragraph, comfortable size, no overflow, title/accent מַעֲרִיב עֲרָבִים correct.",
+      "sourceCheck": "Same 9 blocks (shma.maariv-aravim), wording unchanged, no refreshSourceIds.",
+      "revision": 2,
+      "approvalBasis": "Daniel's blanket authorization for graphic publication (handoff 2026-09-23)",
+      "notes": "Part 2 of 2. Fixed smallFont->comfortable, together->blocks, latinLineBreaks paragraphs to match part 1's left layout.",
+      "at": "2026-09-23"
+    }
+  ]
+}

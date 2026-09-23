@@ -1,0 +1,72 @@
+{
+  "graphics": [
+    {
+      "draftId": "e88e67d2-da7f-4c37-9b62-8407391f3030",
+      "name": "Shalom Aleichem 1",
+      "status": "published",
+      "kind": "original",
+      "layout": "left",
+      "draftVersion": 4,
+      "previewId": "f5489379-e321-4c74-a0a3-333f46796d07",
+      "cueHash": "968c5f93505a19780b1d83782cd80b2a89fc009bc2a82a2cf72e1fe6abd439a6",
+      "fit": { "verdict": "pass", "fill": 0.55 },
+      "imageInspected": "Left panel, Hebrew block then transliteration, title/accent 'Shalom Aleichem' / שלום עליכם, clean.",
+      "sourceCheck": "4 pinned blocks (0-3) unchanged; only layout/style changed bottom->left, latinLineBreaks paragraphs.",
+      "revision": 3,
+      "approvalBasis": "Daniel's blanket authorization for graphic publication (handoff 2026-09-23)",
+      "notes": "layoutConcern resolved: 4-part series >2 lower thirds converted to left-panel sequence, same selections.",
+      "at": "2026-09-23"
+    },
+    {
+      "draftId": "c358195e-5242-4bc1-8925-56dd7d24e18e",
+      "name": "Shalom Aleichem 2",
+      "status": "published",
+      "kind": "original",
+      "layout": "left",
+      "draftVersion": 4,
+      "previewId": "22d4ff52-2119-481c-97df-a81c4ab5ff8e",
+      "cueHash": "e1cbd4f6e5deb7211238c82c0fedb35d02dd61fe30bc7491fe42667421e5b695",
+      "fit": { "verdict": "pass", "fill": 0.55 },
+      "imageInspected": "Left panel, Hebrew block then transliteration, title/accent match siblings, clean.",
+      "sourceCheck": "4 pinned blocks (4-7) unchanged; layout bottom->left, latinLineBreaks paragraphs.",
+      "revision": 3,
+      "approvalBasis": "Daniel's blanket authorization for graphic publication (handoff 2026-09-23)",
+      "notes": "Panel 2 of the series.",
+      "at": "2026-09-23"
+    },
+    {
+      "draftId": "63587034-db98-4786-9a23-f2fa74c8aa70",
+      "name": "Shalom Aleichem 3",
+      "status": "published",
+      "kind": "original",
+      "layout": "left",
+      "draftVersion": 4,
+      "previewId": "70bc350d-00ec-4231-913a-c043dd8a4461",
+      "cueHash": "c30cd3ab914cb27851f38fe897a3b78186a339b0148c81e9cc0273a7aec9db91",
+      "fit": { "verdict": "pass", "fill": 0.55 },
+      "imageInspected": "Left panel, Hebrew block then transliteration, title/accent match siblings, clean.",
+      "sourceCheck": "4 pinned blocks (8-11) unchanged; layout bottom->left, latinLineBreaks paragraphs.",
+      "revision": 3,
+      "approvalBasis": "Daniel's blanket authorization for graphic publication (handoff 2026-09-23)",
+      "notes": "Panel 3 of the series.",
+      "at": "2026-09-23"
+    },
+    {
+      "draftId": "b9ff38cb-ee87-4a0f-8ba0-6bffcf100891",
+      "name": "Shalom Aleichem 4",
+      "status": "published",
+      "kind": "original",
+      "layout": "left",
+      "draftVersion": 4,
+      "previewId": "fd2d6920-c345-4a5e-865f-c9824dc14b06",
+      "cueHash": "962878a2b84e2e11a9df16c6d4dbf8604d558bf6cf5fff614713fddc02325ba7",
+      "fit": { "verdict": "pass", "fill": 0.55 },
+      "imageInspected": "Left panel, Hebrew block then transliteration, title/accent match siblings, clean.",
+      "sourceCheck": "4 pinned blocks (12-15) unchanged; layout bottom->left, latinLineBreaks paragraphs.",
+      "revision": 3,
+      "approvalBasis": "Daniel's blanket authorization for graphic publication (handoff 2026-09-23)",
+      "notes": "Panel 4 of the series (final panel).",
+      "at": "2026-09-23"
+    }
+  ]
+}

@@ -1,0 +1,19 @@
+{
+  "draftId": "1dc607cc-37fa-48d7-a13d-9030a28f332d",
+  "name": "As We Bless",
+  "status": "verified-current",
+  "kind": "original",
+  "layout": "bottom",
+  "draftVersion": 2,
+  "previewId": "f8494bcf-87d5-4a5b-90dd-f5e603562c64",
+  "cueHash": "a8fffdd5f5bf506e79105d4410b7f7f3fa42944af7794346f27378675fa971e2",
+  "fit": {
+    "verdict": "pass",
+    "fill": 0.5666666666666667
+  },
+  "imageInspected": "Title and English lyric lines sit inside the bottom panel with no overflow or duplication; no Hebrew/transliteration, original-en source.",
+  "sourceCheck": "No wording or selection change; already paragraphs at default typography.",
+  "approvalBasis": "Daniel's blanket authorization for graphic publication (handoff 2026-09-23).",
+  "notes": "Already at published version 2; no republish needed.",
+  "at": "2026-09-23"
+}

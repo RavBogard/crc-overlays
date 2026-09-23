@@ -1,0 +1,34 @@
+{
+  "name": "Thou Shalt Love",
+  "notes": "Two-part family (parts 1-2); per layout rule 1-2 lower thirds stay bottom, both already bottom and consistent, so kept as-is. Both parts already published at current version.",
+  "approvalBasis": "Daniel's blanket authorization for graphic publication (handoff 2026-09-23)",
+  "at": "2026-09-23",
+  "graphics": [
+    {
+      "draftId": "a4e5367c-a1e3-494f-b4e7-3f9e53522cc6",
+      "name": "Thou Shalt Love",
+      "status": "verified-current",
+      "kind": "original",
+      "layout": "bottom",
+      "draftVersion": 2,
+      "previewId": "a3846dcc-cbde-4db2-91ed-af9e811693d5",
+      "cueHash": "9e35373e3a04fd235db8c3472a2c57e228e7762d066611cb8c4c6c3f01ca6240",
+      "fit": { "verdict": "pass", "fill": 0.8083 },
+      "imageInspected": "Bottom lower third shows English-only 'And thou shalt love...' text, title 'Thou Shalt Love', no overflow.",
+      "sourceCheck": "Current draft version equals published activeVersion (2); no selection or style change made."
+    },
+    {
+      "draftId": "46f843c0-834e-484d-bc75-9bf4679508fc",
+      "name": "Thou Shalt Love 2",
+      "status": "verified-current",
+      "kind": "original",
+      "layout": "bottom",
+      "draftVersion": 2,
+      "previewId": "9f5ac9fb-5681-4eb2-975c-7cb2d318f0c6",
+      "cueHash": "76199312d06b0a20ca9c36b6cc284ce93e92cabf8eb6c19d7eb5915527075e26",
+      "fit": { "verdict": "pass", "fill": 0.5667 },
+      "imageInspected": "Bottom lower third shows English-only 'And thou shalt bind them...' text, title 'Thou Shalt Love', no overflow.",
+      "sourceCheck": "Current draft version equals published activeVersion (2); no selection or style change made."
+    }
+  ]
+}

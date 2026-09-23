@@ -1,0 +1,38 @@
+{
+  "graphics": [
+    {
+      "draftId": "cca3d8e7-7f99-4ba5-8bbd-ba278d992fc4",
+      "name": "Mizmor L'David",
+      "status": "published",
+      "kind": "original",
+      "layout": "left",
+      "draftVersion": 5,
+      "previewId": "11e4948f-6ad3-473b-aade-6e091b430a46",
+      "cueHash": "9fa0f63674e98814df35cf13011e474a2b2c912b19a39fc5c748260e0a22d3d4",
+      "fit": { "verdict": "pass", "fill": 0.95 },
+      "imageInspected": "Left panel, Hebrew block then transliteration paragraph below, title Psalm 29 / accent קבלת שבת, no overflow, no dangling separators.",
+      "sourceCheck": "2 pinned blocks unchanged; only style patched (arrangement together->blocks, latinLineBreaks->paragraphs).",
+      "revision": 4,
+      "approvalBasis": "Daniel's blanket authorization for graphic publication (handoff 2026-09-23)",
+      "notes": "styleConcern resolved: alternatingGrouping/together replaced with blocks; latinLineBreaks set for bilingual left panel.",
+      "at": "2026-09-23"
+    },
+    {
+      "draftId": "1140bc23-b58e-4b6a-9fea-d09446d331fc",
+      "name": "Mizmor L'David 2",
+      "status": "published",
+      "kind": "original",
+      "layout": "left",
+      "draftVersion": 4,
+      "previewId": "581db1ca-f841-4bc7-aa58-d51950459216",
+      "cueHash": "00d6b7361361882fe3f8bf35bb01d47c7cb0178903fe0f6f210c6863dccfbfc7",
+      "fit": { "verdict": "pass", "fill": 0.88 },
+      "imageInspected": "Left panel, Hebrew block then transliteration paragraph below, title Psalm 29 / accent קבלת שבת, no overflow.",
+      "sourceCheck": "2 pinned blocks unchanged; only style patched (arrangement together->blocks, latinLineBreaks->paragraphs).",
+      "revision": 4,
+      "approvalBasis": "Daniel's blanket authorization for graphic publication (handoff 2026-09-23)",
+      "notes": "Companion part to Mizmor L'David; same style fix applied.",
+      "at": "2026-09-23"
+    }
+  ]
+}

@@ -1,0 +1,38 @@
+{
+  "graphics": [
+    {
+      "draftId": "cb8057bd-8fd0-4737-8fa7-eee8e7a8b152",
+      "name": "Friday Night Kiddush with Vay'chulu (Supplement) — 1 of 2",
+      "status": "published",
+      "kind": "replacement",
+      "layout": "left",
+      "draftVersion": 4,
+      "previewId": "eb639cbf-f4b4-4d4c-94c7-176c907feed3",
+      "cueHash": "56acf52f121eceaa8ca00a12f519def49acd60a3cf59d070f7050b316cc01251",
+      "fit": { "verdict": "pass", "fill": 0.85 },
+      "imageInspected": "Left panel, Hebrew Vay'chulu block (3 verses, Genesis 2:1-3) then transliteration paragraph, title 'Friday Kiddush · Shirei' / accent קידוש, no overflow.",
+      "sourceCheck": "Reduced from 7 to 3 pinned blocks (1,2,3 = the Vay'chulu verses), same source library:shabbat-maariv:seasonal.kiddush@shabbat-maariv, wording unchanged; kept title/accentTitle/templateCueId/presentation.",
+      "revision": 2,
+      "approvalBasis": "Daniel's blanket authorization for graphic publication (handoff 2026-09-23); split authorized by main-thread extra item",
+      "notes": "Part 1 of 2, split at the natural Vay'chulu / Kiddush-blessing boundary (previously overflowed as one 7-block panel at fill 1.52).",
+      "at": "2026-09-23"
+    },
+    {
+      "draftId": "cf8def5a-8a88-4f74-8838-9684fa91c99e",
+      "name": "Friday Night Kiddush with Vay'chulu (Supplement) — 2 of 2",
+      "status": "published",
+      "kind": "replacement",
+      "layout": "left",
+      "draftVersion": 1,
+      "previewId": "3d27120c-805a-4643-b647-27bdeec22ab1",
+      "cueHash": "47378ea561c7fe6becc4de92c09a17fda0ad64690e2195e73375bc3dbc6533e8",
+      "fit": { "verdict": "pass", "fill": 0.96 },
+      "imageInspected": "Left panel, Hebrew blessing-over-wine + full Kiddush sanctification blocks then transliteration paragraph, title/accent match part 1, no overflow.",
+      "sourceCheck": "New draft, 4 pinned blocks (5,7,8,9 = wine blessing + Shabbat-sanctification Kiddush text), same source library:shabbat-maariv:seasonal.kiddush@shabbat-maariv, wording unchanged; same title/accentTitle/templateCueId/presentation/layout/arrangement as part 1.",
+      "revision": 1,
+      "approvalBasis": "Daniel's blanket authorization for graphic publication (handoff 2026-09-23); split authorized by main-thread extra item",
+      "notes": "Part 2 of 2. Union of parts 1 (blocks 1,2,3) and 2 (blocks 5,7,8,9) equals the original 7 selected blocks exactly once, in order (blocks 0,4,6,10 were never selected in the original either).",
+      "at": "2026-09-23"
+    }
+  ]
+}

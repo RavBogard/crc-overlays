@@ -1,0 +1,33 @@
+{
+  "family": "Ahavat Olam",
+  "status": "published",
+  "kind": "replacement",
+  "layout": "left",
+  "approvalBasis": "Daniel's blanket authorization for graphic publication (handoff 2026-09-23).",
+  "notes": "Packet 1. Two-part left-panel family, already layout left. styleConcern flagged: alternatingGrouping/together on a left panel, missing latinLineBreaks, smallFont (Ahavat Olam 1 had explicit hebrewFontSize:30/transliterationFontSize:26 overrides shared with 'We Are Loved' accent title). Applied arrangement:blocks, comfortableTypography:true (drops the explicit font-size overrides), latinLineBreaks:paragraphs to both; style_draft dry run confirmed sourcePreserved:true before applying. Both passed server fit-check at comfortable typography with no overflow (fills 0.86 / 0.60) and were published. Accent title 'אֳהַבַת עוֹלָם' (shared with 'We Are Loved') left unchanged per protocol (shared accent titles not flagged as mismatches in the queue for this family).",
+  "at": "2026-09-23",
+  "graphics": [
+    {
+      "draftId": "1e0f629f-65a7-4d12-985a-b83aa60cc62c",
+      "name": "Ahavat Olam 1",
+      "draftVersion": 3,
+      "previewId": "8465672b-04d9-4537-bf21-3fb806da7676",
+      "cueHash": "4b9e9c6ffaf19e0e67fbfce9c78045bfe4a00d4f910ac73880cbe3eef206810f",
+      "fit": { "verdict": "pass", "fill": 0.8603 },
+      "imageInspected": "Title 'Ahavat Olam' / accent 'אֳהַבַת עוֹלָם' correct; Hebrew block then transliteration block at comfortable size, fully inside panel, no dangling separators or duplication.",
+      "sourceCheck": "Selection unchanged (blocks 0-8, legacy-shabbat-evening); only style changed (dropped smallFont overrides, arrangement->blocks, latinLineBreaks->paragraphs).",
+      "revision": 2
+    },
+    {
+      "draftId": "24f3bba1-e361-4e62-bce1-b10b9bda92b6",
+      "name": "Ahavat Olam 2",
+      "draftVersion": 2,
+      "previewId": "351c5e12-a828-4f20-a1b8-03aa0a53ae25",
+      "cueHash": "e65d36db874f8eb850308d8048615e772c17814b840490bd8fa69499501c3cfa",
+      "fit": { "verdict": "pass", "fill": 0.6042 },
+      "imageInspected": "Title 'Ahavat Olam' / accent 'אֳהַבַת עוֹלָם' correct; Hebrew block then transliteration block, fully inside panel, no dangling separators or duplication.",
+      "sourceCheck": "Selection unchanged (blocks 9-12, legacy-shabbat-evening); only style changed (arrangement->blocks, latinLineBreaks->paragraphs).",
+      "revision": 2
+    }
+  ]
+}

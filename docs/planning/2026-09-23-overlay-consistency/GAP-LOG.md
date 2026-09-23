@@ -46,7 +46,11 @@ dumps, source sets) were closed before 2026-09-23; see the handoff START-HERE.md
   `refreshSourceIds` (or it is dropped); the new snapshots and pin are rebuilt from current sources.
   Identity checks are not weakened: wording must still be verified before a refresh.
   Tests: `tests/stale-pin-refresh.test.ts` (refusals unchanged; rebase; repoint).
-- Live proof: pending release, then B3/B4 repoint to the canonical source.
+- Live proof: released `5f149da`; Birchot Hashachar 3 and 4 repointed to the canonical source on the
+  first refresh attempt and published (rev 3, fill 0.78 each). B1-B4 now show pairs 1-8 once, in order.
+- Mi Chamocha Sat 2 and Psukei 2: identity gate passed (byte-identical he/tr), repointed to the
+  canonical sources and published. All five wave-3 source-pin holds are resolved (MK3 superseded).
+- Remaining: none known.
 
 ## E. Published cue retirement / supersession
 - Finding (read-only trace): archiving hides a draft and its cue from the operator library

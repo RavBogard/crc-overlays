@@ -1,0 +1,19 @@
+{
+  "draftId": "4715aa3b-02c7-4ec9-899d-22e6a7d190c1",
+  "name": "Ahava Rabbah Ahavtanu (Partial)",
+  "status": "verified-current",
+  "kind": "original",
+  "layout": "bottom",
+  "draftVersion": 3,
+  "previewId": "92a99009-2ffd-4470-93b1-235ffca763d8",
+  "cueHash": "31a7320ae7830ba08a42e20e06a60ec1d2ec98deb7081530e89db0f20627bb6e",
+  "fit": {
+    "verdict": "pass",
+    "fill": 0.6888888888888889
+  },
+  "imageInspected": "Title, accent title אהבה רבה, Hebrew and transliteration blocks sit inside the panel with no overflow, dangling separators, or duplication.",
+  "sourceCheck": "No wording or selection change; already blocks/paragraphs at default typography.",
+  "approvalBasis": "Daniel's blanket authorization for graphic publication (handoff 2026-09-23).",
+  "notes": "Already at published version 3; no republish needed.",
+  "at": "2026-09-23"
+}

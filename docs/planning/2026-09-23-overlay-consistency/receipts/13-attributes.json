@@ -1,0 +1,16 @@
+{
+  "draftId": "ffe1eedc-80c4-48e9-a9b8-e841131101bd",
+  "name": "13 Attributes",
+  "status": "verified-current",
+  "kind": "original",
+  "layout": "bottom",
+  "draftVersion": 3,
+  "previewId": "ea94d22e-85fb-47f4-ab79-473abef7793c",
+  "cueHash": "9541192fb3583f6f648fcce8ebbbec9d853392d2b5450118d4b2b02c4bf394fa",
+  "fit": { "verdict": "pass", "fill": 0.6889 },
+  "imageInspected": "Title '13 Attributes', single bilingual block fully inside the bottom panel, no accent title, no dangling separators or duplication.",
+  "sourceCheck": "No wording or selection change; queue flagged no automatic rule for this family.",
+  "approvalBasis": "Already published and current; server fit-check re-verified pass, no republish needed (protocol step 6).",
+  "notes": "Packet 9.",
+  "at": "2026-09-23"
+}

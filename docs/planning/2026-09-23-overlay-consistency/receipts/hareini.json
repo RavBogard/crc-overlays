@@ -1,0 +1,17 @@
+{
+  "family": "Hareini הריני",
+  "status": "verified-current",
+  "kind": "original",
+  "layout": "bottom",
+  "approvalBasis": "Daniel's blanket authorization for graphic publication (handoff 2026-09-23).",
+  "notes": "Packet 6. No concerns in queue. Draft version already matched published version (v2); previewed and fit-checked current version only, no changes made.",
+  "at": "2026-09-23",
+  "draftId": "e1bd7775-ddf1-468b-b3f7-ac98f11df958",
+  "name": "Hareini",
+  "draftVersion": 2,
+  "previewId": "460349cc-ad9b-4fc0-80f9-f53519f288d6",
+  "cueHash": "536a00cdc8924063abf10bcb279d04e46a0798d656b19c3ff6150ed73ca3255e",
+  "fit": { "verdict": "pass", "fill": 0.5083 },
+  "imageInspected": "Title 'Hareini הריני' correct in bottom lower third; Hebrew right, transliteration left, fully inside panel, no duplication.",
+  "sourceCheck": "Bilingual, 3 blocks from awakening.hareini@legacy-shabbat-morning; unchanged."
+}

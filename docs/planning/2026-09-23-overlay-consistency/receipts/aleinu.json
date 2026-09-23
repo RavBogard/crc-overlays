@@ -1,0 +1,52 @@
+{
+  "name": "Aleinu (4-part left series)",
+  "status": "published",
+  "kind": "original",
+  "layout": "left",
+  "approvalBasis": "Daniel's blanket authorization for graphic publication (handoff 2026-09-23).",
+  "sourceCheck": "No wording or selection change on any part. Accent title decision: all four parts already used the unpointed form עלינו (no sibling in this family used the pointed עָלֵינוּ; Festival Kiddush's earlier duplicate/mismatch of עָלֵינוּ was resolved separately by main-thread decision, not by this family). Kept the family's existing unpointed form on all four per the packet rule; no accent change needed.",
+  "notes": "4-part left series correctly exceeds the >2 lower-thirds threshold; all parts already shared one style (left/blocks/paragraphs). Each draft had a pending unpublished style-only edit (draft version ahead of published version); republished each at its current version.",
+  "at": "2026-09-23",
+  "graphics": [
+    {
+      "draftId": "67693694-1802-4262-9121-3ebc42a53bde",
+      "name": "Aleinu 1",
+      "draftVersion": 2,
+      "previewId": "e3ddde14-cb3e-4ef7-8957-de05705ad4c1",
+      "cueHash": "ffed43c0277aa46debab1c2ed1e50635067b56fa0549e50c4d29d0bc86bb240b",
+      "fit": { "verdict": "pass", "fill": 0.7788004750593824 },
+      "imageInspected": "Title, accent title עלינו, Hebrew and transliteration blocks sit inside the left panel with no overflow or duplication.",
+      "revision": 2
+    },
+    {
+      "draftId": "403eced5-770f-49f2-99bc-b8b2c2b59235",
+      "name": "Aleinu 2",
+      "draftVersion": 2,
+      "previewId": "1227db13-6b7d-4778-9df4-029499b63fdb",
+      "cueHash": "a988951a40734666c86c65ef994546e94227ac4b2def24c5ea26e9a766bee7af",
+      "fit": { "verdict": "pass", "fill": 0.8178073040380047 },
+      "imageInspected": "Title, accent title עלינו, Hebrew and transliteration blocks sit inside the left panel with no overflow or duplication.",
+      "revision": 2
+    },
+    {
+      "draftId": "d126a475-8cbe-476c-9584-a84761e8b888",
+      "name": "Aleinu 3",
+      "draftVersion": 3,
+      "previewId": "e23e7563-dd3d-4da1-b4cf-d3950b717909",
+      "cueHash": "29518bb2ae9be4246dd65f01c2f0182f62b468a60bf71f204b4eb61797d98688",
+      "fit": { "verdict": "pass", "fill": 0.8300920427553444 },
+      "imageInspected": "Title, accent title עלינו, Hebrew and transliteration blocks sit inside the left panel with no overflow or duplication.",
+      "revision": 2
+    },
+    {
+      "draftId": "80e7acd3-ae25-4713-8c5b-d50cd9d792f1",
+      "name": "Aleinu 4",
+      "draftVersion": 2,
+      "previewId": "c497b83a-1091-454b-9cc8-7e64c5471367",
+      "cueHash": "774cdf9368da23d15bb8e2ecfb5d7f2954aa87a39d68319a836dc005337d6505",
+      "fit": { "verdict": "pass", "fill": 0.49127820665083133 },
+      "imageInspected": "Title, accent title עלינו, Hebrew and transliteration blocks sit inside the left panel with no overflow or duplication.",
+      "revision": 2
+    }
+  ]
+}

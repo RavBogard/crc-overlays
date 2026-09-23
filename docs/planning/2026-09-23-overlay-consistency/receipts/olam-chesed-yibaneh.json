@@ -1,0 +1,16 @@
+{
+  "draftId": "add0f175-584f-472e-83e3-a0de82a261ff",
+  "name": "Olam Chesed Yibaneh",
+  "status": "held",
+  "kind": "original",
+  "layout": "bottom",
+  "draftVersion": 2,
+  "previewId": null,
+  "cueHash": null,
+  "fit": { "verdict": "not checked", "fill": null },
+  "imageInspected": "Not previewed, per DECISION/report-only instruction.",
+  "sourceCheck": "Draft has an unpublished draft version 2 (activeDraftVersion still 1); content mode is source-en only, block-1: English-only refrain 'I will build this world from love... yai dai dai' (Rabbi Menachem Creditor), no Hebrew/transliteration available for that block (source_language_unavailable warning). This is the flagged contentWarning item.",
+  "approvalBasis": "n/a (report only, not changed)",
+  "notes": "Needs main-thread source/wording review before any style or publish action; left as-is.",
+  "at": "2026-09-23"
+}

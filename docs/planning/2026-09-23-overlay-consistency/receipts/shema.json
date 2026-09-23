@@ -1,0 +1,18 @@
+{
+  "draftId": "042e53fd-2f77-4b30-a951-13e7889e2297",
+  "name": "Shema",
+  "title": "The Sh'ma שְׁמַע",
+  "status": "verified-current",
+  "kind": "original",
+  "layout": "bottom",
+  "draftVersion": 1,
+  "previewId": "027cd14c-4024-4b3c-8310-ea48db1c4fd5",
+  "cueHash": "f57dc8c4cfc62a4a950facf4e792fc923bbbfd29ff630e6b2137add49960d30a",
+  "fit": { "verdict": "pass", "fill": 0.5667 },
+  "imageInspected": "Title \"The Sh'ma שְׁמַע\" correct in bottom lower third (no separate accent title field); Hebrew and transliteration side by side, fully inside panel, no dangling separators or duplication.",
+  "sourceCheck": "Selection unchanged (blocks 0-2, legacy-shabbat-evening shma.the-shma); arrangement 'together' fits comfortably as a short 3-block bottom third, no style concern flagged.",
+  "revision": 1,
+  "approvalBasis": "Daniel's blanket authorization for graphic publication (handoff 2026-09-23).",
+  "notes": "Packet 4. WORK-QUEUE listed no automatic concerns. Already published at current draft version 1 with a passing server fit-check on record; re-previewed and re-fit-checked to inspect the image myself, confirmed pass, no republish needed per protocol step 6. Note: a separate draft 'How Awesome / Shema' (111297d8) shares the accent title שְׁמַע with Mi Chamocha/One Love -- not part of this packet, not touched.",
+  "at": "2026-09-23"
+}

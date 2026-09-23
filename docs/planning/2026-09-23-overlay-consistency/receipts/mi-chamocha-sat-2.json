@@ -1,0 +1,20 @@
+{
+  "draftId": "5bad62c7-3005-4977-8349-230520c70211",
+  "name": "Mi Chamocha (Sat 2)",
+  "status": "published",
+  "kind": "replacement",
+  "layout": "left",
+  "draftVersion": 4,
+  "previewId": "28959e7f-d94c-432a-8b7e-5fd1e76be353",
+  "cueHash": "746280ed6dc7af8a2dcce3de9d37adcc1866985a5f7326f197957cdba9c01789",
+  "fit": {
+    "verdict": "pass",
+    "fill": 0.7788004750593824
+  },
+  "imageInspected": "Title, accent title מִי כָמכָה, Hebrew and transliteration blocks (blocks 7-12) sit inside the left panel with no overflow, dangling separators, or duplication.",
+  "sourceCheck": "IDENTITY GATE: fetched get_source for the pinned selector library:legacy-shabbat-morning:shma.mi-chamocha@legacy-shabbat-morning and for canonical shma.mi-chamocha@legacy-shabbat-morning (the source Mi Chamocha Sat 1 a5c90765 uses); all six selected block hashes (blocks 7-12) are byte-identical between the stale library-prefixed record and canonical. Repointed hebrewGroups/transliterationGroups to the canonical source (same blocks, same selection, no wording change) and refreshed the pin, matching the Birchot precedent. Then applied style defaults (left/blocks/comfortable/paragraphs) to match Mi Chamocha Sat 1.",
+  "revision": 3,
+  "approvalBasis": "Daniel's blanket authorization for graphic publication (handoff 2026-09-23); repoint and republish per main-thread decision unblocking this stale-pin hold (2026-09-23).",
+  "notes": "Resolves the Mi Chamocha (Sat 2) stale-pin hold listed in WORKER-PROTOCOL.md.",
+  "at": "2026-09-23"
+}

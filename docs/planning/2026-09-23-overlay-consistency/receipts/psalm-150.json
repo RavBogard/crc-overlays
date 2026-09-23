@@ -1,0 +1,18 @@
+{
+  "family": "Hal'lu Yah (Psalm 150)",
+  "status": "published",
+  "kind": "original",
+  "layout": "left",
+  "approvalBasis": "Daniel's blanket authorization for graphic publication (handoff 2026-09-23).",
+  "notes": "Packet 6. Queue styleConcern: latinLineBreaks-missing-bilingual-left. Layout already left, arrangement already blocks; style_draft dry run confirmed sourcePreserved:true, applied latinLineBreaks:paragraphs + comfortableTypography. Fit-checked pass, published. Accent title 'פְסוּקֵי דְּזִמְרָא' shared with 'Psukei d'Zimrah' is the correct section label (Psalm 150 is part of Psukei d'Zimrah), not a mismatch; left unchanged per protocol's shared-label allowance.",
+  "at": "2026-09-23",
+  "draftId": "a5784181-b4b5-4033-8ad2-4be46bac1fff",
+  "name": "Psalm 150",
+  "draftVersion": 3,
+  "previewId": "015be989-4cb5-4f04-bd3c-d471a4681140",
+  "cueHash": "76fe59404f40a3e09266bece2cd0e9a883f6d489740385f5bb205f6b7398122a",
+  "fit": { "verdict": "pass", "fill": 0.8606 },
+  "imageInspected": "Title 'Hal'lu Yah (Psalm 150)' / accent 'פְסוּקֵי דְּזִמְרָא' correct in left-panel header; Hebrew block then transliteration block, fully inside panel at comfortable typography, no dangling separators or duplication.",
+  "sourceCheck": "Selection unchanged (blocks 0-12, psukei.psalm-150@legacy-shabbat-morning); only style (latinLineBreaks, comfortable typography) changed.",
+  "revision": 2
+}

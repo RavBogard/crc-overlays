@@ -1,0 +1,36 @@
+{
+  "name": "Avot — Interpretation (1-2)",
+  "layout": "bottom",
+  "approvalBasis": "Daniel's blanket authorization for graphic publication (handoff 2026-09-23).",
+  "notes": "2-part English-only family had mixed layouts (Interp1 bottom, Interp2 left). Both blocks are similar length (~430-440 chars, 3-4 lines) and Interp1 already fit comfortably as bottom, so unified both to bottom (the family's existing working layout) per the 1-2-lower-thirds rule rather than promoting to left. style_draft dry-run confirmed sourcePreserved before applying.",
+  "at": "2026-09-23",
+  "graphics": [
+    {
+      "draftId": "71e1273e-1eef-4754-9ddb-89c3221912ba",
+      "name": "Avot Interpretation 1",
+      "status": "verified-current",
+      "kind": "original",
+      "draftVersion": 4,
+      "previewId": "fad758ca-bf65-4053-aafa-f7266b5ae8f2",
+      "cueHash": "1ba31021cf1f5847dfaeaefed3de5e7ff9e244d6234adfb6f1a40386e69f8590",
+      "fit": { "verdict": "pass", "fill": 0.6888888888888889 },
+      "imageInspected": "Title and English paragraph sit inside the bottom panel with no overflow or duplication.",
+      "sourceCheck": "No change; already at published version 4.",
+      "notes": "No republish needed."
+    },
+    {
+      "draftId": "e8eb46a9-b898-4d1f-9343-cb5101a452d8",
+      "name": "Avot Interpretation 2",
+      "status": "published",
+      "kind": "replacement",
+      "draftVersion": 4,
+      "previewId": "950f71a3-b429-4789-a46e-1160c2d7b541",
+      "cueHash": "023c4e2d7a1eb08a0407865dbb7ac9f54b034dd2cc5836984381e60a31c58069",
+      "fit": { "verdict": "pass", "fill": 0.8083333333333333 },
+      "imageInspected": "Title and English paragraph sit inside the bottom panel with no overflow or duplication; matches Interpretation 1's shape.",
+      "sourceCheck": "No wording or selection change; layout changed left->bottom via style_draft (dry-run verified sourcePreserved), templateCueId now matches Interpretation 1's.",
+      "revision": 2,
+      "notes": "Layout unified with sibling."
+    }
+  ]
+}

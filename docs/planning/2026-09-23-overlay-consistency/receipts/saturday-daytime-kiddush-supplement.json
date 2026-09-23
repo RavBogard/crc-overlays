@@ -1,0 +1,16 @@
+{
+  "draftId": "a0bbdb60-18e7-4acb-b0ec-696402f7e40a",
+  "name": "Saturday Daytime Kiddush (Supplement)",
+  "status": "held",
+  "kind": "original",
+  "layout": "left",
+  "draftVersion": 3,
+  "previewId": "ce491a5b-b0a0-4887-af05-ec949b103861",
+  "cueHash": "63ea3eb87eb79fa00e8503fc4934267e40a070f4280bd15faeab31fce6592683",
+  "fit": { "verdict": "fail", "fill": 1.5225 },
+  "imageInspected": "Applied comfortable typography (dropped smallFont overrides: hebrewFontSize 26/transliterationFontSize 22/compact spacing) and set latinLineBreaks=paragraphs per queue ACTION. Full V'shamru + Zachor + Ki sheshet + kiddush text at comfortable size overflows badly past the frame bottom (fill 1.52x, fitErrors: graphic and textMainEng extend beyond frame).",
+  "sourceCheck": "No wording/selection change; same 5 blocks from library:shabbat-shacharit:hallel.kiddusha-rabbah@shabbat-shacharit, accentTitle 'קִדּוּשׁ' unchanged.",
+  "approvalBasis": "n/a - not published",
+  "notes": "Per protocol: comfortable typography overflows here, so do NOT shrink below comfortable defaults - held, not published. The draft was left at version 3 (style patch applied, unpublished); the live/published overlay is unaffected and remains at activeVersion 2 with the old smallFont style. Needs a main-thread decision: either accept overflow via a left-panel content split (this text is unusually long for a left panel), or confirm the smallFont override should stay as an exception to the comfortable-default rule for this one draft. accentTitleSharedWith 'Friday Kiddush · Shirei' also noted but not resolved here (not a mismatch - both are 'קִדּוּשׁ' Kiddush labels, consistent with WORKER-PROTOCOL's list of accent titles to leave alone).",
+  "at": "2026-09-23"
+}

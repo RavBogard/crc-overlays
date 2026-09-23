@@ -1,0 +1,31 @@
+{
+  "family": "Hashkiveinu HHD",
+  "status": "verified-current",
+  "kind": "original",
+  "layout": "bottom",
+  "approvalBasis": "Already published and current; server fit-check re-verified pass for each (protocol step 6), no republish needed.",
+  "notes": "Packet 10. No automatic rule matched (queue: 'review, no automatic rule matched'). Two sequential parts of one Erev RH Hashkiveinu (source crc-erev-rh:shma.emaariv-hashkivenu), 2 parts stays bottom per the >2-lower-thirds rule. No smallFont/alternatingGrouping flags; already together arrangement, reads well as single lower thirds each. Left unchanged. Distinct from the unrelated 'Hashiveinu' (Slichot) draft also in this packet.",
+  "at": "2026-09-23",
+  "graphics": [
+    {
+      "draftId": "21ad0064-e792-44c2-a7d0-7415424cd971",
+      "name": "Hashkiveinu HHD 1",
+      "draftVersion": 2,
+      "previewId": "1b86de88-79c7-463f-9a82-4c9939efdf75",
+      "cueHash": "5be5b3104ec2e03c371db2b67837b195c2eabd582d5f1653d8957e1acc7ede4d",
+      "fit": { "verdict": "pass", "fill": 0.4389 },
+      "imageInspected": "Title 'Hashkiveinu', no accent title; Hebrew right, transliteration left, fully inside bottom panel, no dangling separators or duplication.",
+      "sourceCheck": "No selection or wording change (blocks 0-1)."
+    },
+    {
+      "draftId": "e6227ed7-0bd3-4aa1-b33f-e0cbbd4a54ed",
+      "name": "Hashkiveinu HHD 2",
+      "draftVersion": 2,
+      "previewId": "5a4475ae-ea6f-4386-9de5-3608800ff5dc",
+      "cueHash": "71bd74a79c2251b13413b73c809c5e83bdbad3ace437adb0ac3c05c0ae2765ad",
+      "fit": { "verdict": "pass", "fill": 0.5083 },
+      "imageInspected": "Title 'Hashkiveinu', no accent title; Hebrew right, transliteration left, fully inside bottom panel, no dangling separators or duplication.",
+      "sourceCheck": "No selection or wording change (blocks 2, 4)."
+    }
+  ]
+}

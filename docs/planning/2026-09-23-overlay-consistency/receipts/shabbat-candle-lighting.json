@@ -1,0 +1,16 @@
+{
+  "draftId": "8a23af54-3594-4346-afc1-bef5497a5bd7",
+  "name": "Candle LIghting",
+  "status": "verified-current",
+  "kind": "original",
+  "layout": "bottom",
+  "draftVersion": 1,
+  "previewId": "5a7e60c0-54c2-43c3-a575-011757327152",
+  "cueHash": "f43c275645289cdc8580eddb0bc60fe7ae26c1390ef8ab93c1d946442964b9a4",
+  "fit": { "verdict": "pass", "fill": 0.57 },
+  "imageInspected": "Bilingual lower third, Hebrew/transliteration paired, title 'Shabbat Candle Lighting', no accent title, no overflow.",
+  "sourceCheck": "5 pinned blocks from legacy-shabbat-evening opening.candles-candle-blessing, unchanged.",
+  "approvalBasis": "n/a (verified-current, not republished)",
+  "notes": "Single graphic, no numbered series; no style concerns.",
+  "at": "2026-09-23"
+}

@@ -1,0 +1,32 @@
+{
+  "name": "Avot V'Imahot (1-2)",
+  "status": "published",
+  "kind": "original",
+  "layout": "left",
+  "approvalBasis": "Daniel's blanket authorization for graphic publication (handoff 2026-09-23).",
+  "sourceCheck": "No wording or selection change on either part; style-only diffs (draft version ahead of published version, both already at blocks/paragraphs). Republished each at its current version.",
+  "notes": "2-part family, one layout (left) throughout.",
+  "at": "2026-09-23",
+  "graphics": [
+    {
+      "draftId": "750d3230-78c8-4cac-8852-b78cd0b6f304",
+      "name": "Avot 1",
+      "draftVersion": 2,
+      "previewId": "6a062f18-8638-4886-978e-dd204e8e14a1",
+      "cueHash": "0b7e485ac1be27db9906cfe01988b5d21a56eb349c8c49abec34e56650c4365f",
+      "fit": { "verdict": "pass", "fill": 0.8300920427553444 },
+      "imageInspected": "Title, accent title אָבוֹת וְאִמָּהוֹת, Hebrew and transliteration blocks sit inside the left panel with no overflow or duplication.",
+      "revision": 2
+    },
+    {
+      "draftId": "23b881d2-d99e-42c6-a800-6004e67a5cdd",
+      "name": "Avot 2",
+      "draftVersion": 3,
+      "previewId": "cdacabc8-bea7-461a-91d4-19f3a6eecb02",
+      "cueHash": "67772cd65930216eceaaeb45a50baf7b238253e8e932d9844769fc996ab0dc6b",
+      "fit": { "verdict": "pass", "fill": 0.8282363420427553 },
+      "imageInspected": "Title, accent title אָבוֹת וְאִמָּהוֹת, Hebrew and transliteration blocks sit inside the left panel with no overflow or duplication.",
+      "revision": 2
+    }
+  ]
+}

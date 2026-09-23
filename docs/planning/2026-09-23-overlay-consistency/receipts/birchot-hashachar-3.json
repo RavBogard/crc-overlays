@@ -1,17 +1,20 @@
 {
   "draftId": "ceb24b8c-d9a7-4607-99bf-c0962e2a88ff",
   "name": "Birchot Hashachar 3",
-  "status": "held",
+  "status": "published",
   "kind": "replacement",
   "layout": "left",
-  "draftVersion": 2,
-  "previewId": null,
-  "cueHash": null,
-  "fit": { "verdict": "not-checked", "fill": null },
-  "imageInspected": "Not previewed; update_draft never applied, so no new preview exists to inspect.",
-  "sourceCheck": "Identity gate PASSED: for blocks 13, 14, 16, 17, the canonical source awakening.birchot-hashachar@legacy-shabbat-morning (authority legacy:authoring-sources) has sourceBlockSha256 c4f9b36b...651f67 (13), 3578caac...4091b (14), c4f9b36b...651f67 (16), cf691da1...4de8eb8 (17) - byte-identical to the he/tr hashes already pinned on this draft for the same blocks under sourceId library:legacy-shabbat-morning:awakening.birchot-hashachar@legacy-shabbat-morning. All four are kind:bilingual in both source records. The canonical source's translation-en blocks 15 (pairedBlockIds [13,14]) and 18 (pairedBlockIds [16,17]) are the exact English pairs needed. Confirms the main-thread decision recorded in STATE.md/WORKER-PROTOCOL.md Holds section: the two source records are text-identical for these blocks, and only the canonical one carries paired English (the library-prefixed source's block-15/18 are unpaired kind:source-en with no pairedBlockIds - get_source on library:legacy-shabbat-morning:awakening.birchot-hashachar@legacy-shabbat-morning reconfirmed this today).",
-  "revision": null,
-  "approvalBasis": "n/a - held before preview/review/publish",
-  "notes": "BLOCKED AT update_draft, not by policy: identity gate passed and the main-thread decision authorizing the repoint is confirmed in STATE.md and WORKER-PROTOCOL.md's Holds section. Attempted update_draft to repoint hebrewGroups/transliterationGroups to sourceId 'awakening.birchot-hashachar@legacy-shabbat-morning' blocks 13/14 and 16/17 with arrangement:blocks, includeTranslation:true, presentation.latinLineBreaks:paragraphs (matching B1/B2's exact shape) three times: (1) refreshSourceIds:['awakening.birchot-hashachar@legacy-shabbat-morning'] only, (2) refreshSourceIds:['library:legacy-shabbat-morning:awakening.birchot-hashachar@legacy-shabbat-morning'] with an empty content patch, (3) refreshSourceIds with BOTH source ids together. All three attempts returned the identical error 'Pinned source authority has changed; explicit source rebase and review are required' and made no change (draft confirmed still at version 2, content untouched via a follow-up get_draft). No dedicated source-rebase tool exists among the loaded CRC Overlays MCP tools (list_drafts, get_draft, get_source, update_draft, style_draft, preview_draft, fit_check_draft, review_draft, publish_draft, create_draft, create_source_draft_set, split_draft_into_set, review_draft_set, reorder_draft_set, archive_draft, archive_draft_set, restore_draft - confirmed via ToolSearch). This is a tooling/API gap, not a source-identity or approval problem: the repoint this draft needs (adding a brand-new sourceId to its pin, not just refreshing an already-pinned one) appears to be rejected by update_draft/refreshSourceIds regardless of parameters. B3 is unchanged and remains published as-is at v2 (still pointed at the library:-prefixed source, no includeTranslation). Needs a main-thread/engineering decision: either a fix or documented workflow for update_draft to accept a new source pin under this error condition, or an alternate sanctioned path (e.g. explicit authorization to recreate B3 under a new draft while preserving its templateCueId/cue binding) - not attempted here since the packet did not authorize creating a new draft.",
+  "draftVersion": 3,
+  "previewId": "5b993274-ffe4-4e64-9ef8-aebc94da9deb",
+  "cueHash": "39c0037e84cc7ec9c7a4c695c1e8904e4b9f85cdf259ecaa721385d804d3336d",
+  "fit": {
+    "verdict": "pass",
+    "fill": 0.7806932897862233
+  },
+  "imageInspected": "Title, accent title, Hebrew and transliteration paragraphs (clothes/strength blessings), and English pairs all sit inside the panel with no overflow, dangling separators, or duplication.",
+  "sourceCheck": "Repointed hebrewGroups/transliterationGroups from library:legacy-shabbat-morning:awakening.birchot-hashachar@legacy-shabbat-morning to canonical awakening.birchot-hashachar@legacy-shabbat-morning, same blocks 13,14/16,17, arrangement changed together->blocks, includeTranslation added; refreshSourceIds succeeded on first attempt, no wording change.",
+  "revision": 3,
+  "approvalBasis": "Daniel's blanket authorization for graphic publication (handoff 2026-09-23); source repoint per main-thread decision recorded in WORKER-PROTOCOL.md Holds section.",
+  "notes": "Matches Birchot Hashachar 1/2 shape (title, accentTitle ברכות השחר, templateCueId=own id, presentation.latinLineBreaks=paragraphs). Now panel 3 of the Birchot sequence.",
   "at": "2026-09-23"
 }

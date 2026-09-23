@@ -51,6 +51,33 @@ Resolved by main-thread decision (2026-09-23), recorded in STATE.md:
   (13,14,16,17 / 19,20,22,23) with includeTranslation, because the he/tr hashes are byte-identical
   and only the canonical source has paired English. They become panels 3-4 of the Birchot sequence.
 
+## Catalog packets (WORK-QUEUE.md)
+- Work only the packet you are assigned. The queue's family grouping is a guide, not a ruling:
+  named ALTERNATES (e.g. "Hashkiveinu (Daniel)/(Jim)/(plain)", "(short)", "(Friday)" vs "(Sat)")
+  are separate graphics, not parts; only numbered/sequential parts of ONE piece count toward the
+  >2 lower thirds rule.
+- Multi-part series with more than two lower-third parts become left panels, one existing part per
+  panel, same selection: L'cha Dodi (CRC 1-4 and the Shirei supplement verses), Shalom Aleichem 1-4,
+  Adon Olam 1-3, and any similar numbered series. Keep "Shalom Aleichem all" (verses 1+4, intentional)
+  as its own graphic; do not expand it.
+- A family with mixed layouts: make all its parts one layout (left if >2 parts or if any part is too
+  tall as a lower third; otherwise bottom).
+- Style defaults: arrangement "blocks" for bilingual left panels (replace "together" /
+  alternatingGrouping), comfortable typography (drop smallFont overrides), latinLineBreaks
+  "paragraphs". If comfortable typography overflows, do NOT shrink: hold and report.
+- Families with no concerns: preview + fit with image the current version; if it passes and reads
+  well and is already published at that version, write a `verified-current` receipt (no republish).
+  If current != published and the diff is style-only, publish; if wording/selection changed, hold.
+- Accent titles: keep, except where listed below. A part of a family with no accent while its
+  siblings have one: align it to the siblings.
+- Resolved accent decisions (main thread): Festival Kiddush `cef61697…` accent -> "קִדּוּשׁ" (was
+  Aleinu's "עָלֵינוּ"); Mi Chamochah 2 HHD evening `d14ac228…` accent -> "מִי כָמֹכָה" (was "שְׁמַע").
+  Leave One Love's "שְׁמַע", the shared "תְּהִלִּים" and "קִדּוּשׁ" labels.
+- Anything marked DECISION in the queue, possible duplicates, source/wording questions, the draft
+  named "Zochreinu" `ba8fa5be…` titled "Mi Chamocha", Olam Chesed, and "Copy of Thank you": do not
+  change; report what you see.
+- Receipts: one file per draft (a family may share one file with a "graphics" array).
+
 ## Return
 A short table: draft, action, status, fit, one-line note. List anything that needs a main-thread
 decision. Do not include tool output dumps.

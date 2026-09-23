@@ -1,0 +1,19 @@
+{
+  "draftId": "efa9fad4-f7d5-4091-a708-82103028861b",
+  "name": "Barechu",
+  "status": "verified-current",
+  "kind": "original",
+  "layout": "bottom",
+  "draftVersion": 2,
+  "previewId": "11fab28f-c8ae-46ff-8ba1-f6331f2ca627",
+  "cueHash": "df160edaa7c94f1b4f73b971ab1cfa42b4eb4b1bccb4712aedde80a6337a8baf",
+  "fit": {
+    "verdict": "pass",
+    "fill": 0.5083333333333333
+  },
+  "imageInspected": "Title, two Hebrew and transliteration lines sit inside the bottom panel with no overflow or duplication.",
+  "sourceCheck": "No wording or selection change; already blocks/paragraphs at default typography.",
+  "approvalBasis": "Daniel's blanket authorization for graphic publication (handoff 2026-09-23).",
+  "notes": "Already at published version 2; no republish needed.",
+  "at": "2026-09-23"
+}

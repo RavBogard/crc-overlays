@@ -1,0 +1,16 @@
+{
+  "draftId": "eac2dee3-17f3-4a52-9ca5-4d7611f0f9dc",
+  "name": "Modeh Ani (Bottom)",
+  "status": "verified-current",
+  "kind": "original",
+  "layout": "bottom",
+  "draftVersion": 2,
+  "previewId": "3641afbd-8930-4d14-87b3-1c25c33728ce",
+  "cueHash": "f7e5b75df70d0dedb118ea34d0cd74389a19296c29dd8133f6cebf0ed638af51",
+  "fit": { "verdict": "pass", "fill": 0.5667 },
+  "imageInspected": "Bottom lower third shows Modeh Ani Hebrew/transliteration paired correctly, title 'Modeh Ani מוֹדָה אֲנִי', no overflow or stray separators.",
+  "sourceCheck": "Current draft version equals published activeVersion (2); no selection or style change made.",
+  "approvalBasis": "Daniel's blanket authorization for graphic publication (handoff 2026-09-23)",
+  "notes": "Already published at current version and passes; not republished per protocol step 6.",
+  "at": "2026-09-23"
+}

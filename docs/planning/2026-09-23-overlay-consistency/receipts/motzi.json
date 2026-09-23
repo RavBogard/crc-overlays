@@ -1,0 +1,16 @@
+{
+  "draftId": "0be48337-2cbf-4a89-82f5-a7280a36709e",
+  "name": "Motzi",
+  "status": "verified-current",
+  "kind": "original",
+  "layout": "bottom",
+  "draftVersion": 2,
+  "previewId": "dfc37d3e-58fd-4b27-a7e6-1443cff88efd",
+  "cueHash": "af8906e3f27e9058b6fbea6b422a627e52feb74708730256644f32c38ad128a8",
+  "fit": { "verdict": "pass", "fill": 0.5083 },
+  "imageInspected": "Bottom lower third shows Motzi blessing Hebrew/transliteration paired correctly, title 'Motzi', no accent title, no overflow.",
+  "sourceCheck": "Current draft version equals published activeVersion (2); no selection or style change made.",
+  "approvalBasis": "Daniel's blanket authorization for graphic publication (handoff 2026-09-23)",
+  "notes": "Already published at current version and passes; not republished per protocol step 6.",
+  "at": "2026-09-23"
+}

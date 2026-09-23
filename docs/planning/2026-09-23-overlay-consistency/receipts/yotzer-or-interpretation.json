@@ -1,0 +1,38 @@
+{
+  "title": "Yotzer Or — Interpretation",
+  "graphics": [
+    {
+      "draftId": "d62c0799-efb3-40fa-8602-cce8768f2e1f",
+      "name": "Yotzer Or Interpretation 1",
+      "status": "published",
+      "kind": "replacement",
+      "layout": "bottom",
+      "draftVersion": 3,
+      "previewId": "94adc89d-8470-4764-8018-da5333bf964b",
+      "cueHash": "b3d96c6ed112f78e30764e8a4bc0c2c310f15a1c2d7140f77195957120f1c2ea",
+      "fit": {"verdict": "pass", "fill": 0.8083333333333333},
+      "imageInspected": "Text fully inside the lower-third panel, Hebrew accent and English title correct, no overflow or stray separators, matches the source poem's first half plus attribution.",
+      "sourceCheck": "Source selection unchanged (slice-0 of block-0 + block-1); only layout changed from left to bottom to match part 2.",
+      "revision": 2,
+      "approvalBasis": "Daniel's blanket authorization for graphic publication (handoff 2026-09-23)",
+      "notes": "Packet 8 DECISION: family had mixed layouts (left/bottom) for a 2-part sequential poem. Per WORKER-PROTOCOL >2-lower-thirds rule, this is not a >2-part series, so default is bottom, not left. Converted part 1 from left to bottom (style_draft, comfortableTypography, latinLineBreaks paragraphs); fit passed at 0.81 fill, so no reason to escalate to left. Accent title 'יוֹצֵר אוֹר' confirmed correct/shared with 'Yotzeir Or' per instruction; left unchanged. Observed but did NOT change (not in scope): the attribution '~ R. Tagore' (block-1) is included in BOTH parts, so it appears twice across the sequence — flagging as a possible selection duplication for a future packet/decision, not touched here.",
+      "at": "2026-09-23"
+    },
+    {
+      "draftId": "8515cb8c-5e09-4cee-a3f5-0fa018ec72db",
+      "name": "Yotzer Or Interpretation 2",
+      "status": "verified-current",
+      "kind": "original",
+      "layout": "bottom",
+      "draftVersion": 3,
+      "previewId": "ec4fc09a-dc73-4396-a72b-66663225159b",
+      "cueHash": "8cd82035c03c588fadcb019106223849a2e7091e3e09200312d1b16a19fcd525",
+      "fit": {"verdict": "pass", "fill": 0.5666666666666667},
+      "imageInspected": "Text fully inside the lower-third panel, Hebrew accent and English title correct, no overflow or stray separators, matches the source poem's second half plus attribution.",
+      "sourceCheck": "No content or layout change needed; was already bottom layout, matching part 1 after unification.",
+      "approvalBasis": "Daniel's blanket authorization for graphic publication (handoff 2026-09-23)",
+      "notes": "Already published at current version (activeVersion == version 3); no republish per protocol step 6. Same duplicated-attribution observation as part 1 (block-1 also included here).",
+      "at": "2026-09-23"
+    }
+  ]
+}

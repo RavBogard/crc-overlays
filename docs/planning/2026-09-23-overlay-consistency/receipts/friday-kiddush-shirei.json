@@ -1,0 +1,16 @@
+{
+  "draftId": "cb8057bd-8fd0-4737-8fa7-eee8e7a8b152",
+  "name": "Friday Night Kiddush with Vay'chulu (Supplement)",
+  "status": "held",
+  "kind": "original",
+  "layout": "left",
+  "draftVersion": 3,
+  "previewId": "257cf53c-cf8f-4381-b5f8-c1d689caccf9",
+  "cueHash": "72c749fc1449d05dc14c1f4a90a60846ed736779ca1f2f72395c605685f1c78b",
+  "fit": { "verdict": "fail", "fill": 1.5225 },
+  "imageInspected": "Server fit-check failed: 'Graphic does not fit its box', 'Graphic extends beyond the frame', 'textMainEng extends beyond the frame' at comfortable typography (fill 1.52x of panel). Full 7-block Vay'chulu + Kiddush text does not fit a left panel at comfortable size.",
+  "sourceCheck": "No selection or wording change attempted. Title 'Friday Kiddush · Shirei' and accent title 'קִדּוּשׁ' (shared with 'Saturday Kiddush') left as-is per this packet's notes: the shared label is correct, only style defaults were to be applied.",
+  "approvalBasis": "Not published — held per WORKER-PROTOCOL.md: 'If comfortable typography overflows, do NOT shrink: hold and report.'",
+  "notes": "Packet 1. Applied latinLineBreaks:paragraphs and comfortableTypography (dropped smallFont hebrewFontSize:26/transliterationFontSize:22 overrides) per the queue's styleConcern; arrangement was already blocks and layout already left. The resulting draft (version 3, unpublished) overflows badly. The prior published state (revision 1, version 2) used explicit small font sizes to fit this same 7-block selection at left/blocks — that published version remains live and untouched; only the working draft was edited. This draft needs a main-thread decision: either accept the previously-shipped smallFont sizing as an exception, or split/trim the selection (exact-wording rule means trimming requires explicit authorization, not a worker call).",
+  "at": "2026-09-23"
+}

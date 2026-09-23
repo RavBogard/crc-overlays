@@ -1,0 +1,18 @@
+{
+  "draftId": "ad0a8bf7-9245-4c12-a78c-30f9f012fa16",
+  "name": "Vshamru",
+  "title": "V'shamru",
+  "status": "verified-current",
+  "kind": "original",
+  "layout": "bottom",
+  "draftVersion": 2,
+  "previewId": "cd2bad2d-3ed7-47db-94d0-fcecab4741bd",
+  "cueHash": "088ec353eebf218a01350f0813e601f396e064cd2da89b03b7071938454b9cba",
+  "fit": { "verdict": "pass", "fill": 0.9278 },
+  "imageInspected": "Title \"V'shamru\" / accent 'ושמרו' correct in bottom lower third; Hebrew and transliteration side by side, fully inside panel, no dangling separators or duplication.",
+  "sourceCheck": "Selection unchanged (blocks 4-11, legacy-shabbat-evening shma.vshamru); no wording/source change.",
+  "revision": 2,
+  "approvalBasis": "Daniel's blanket authorization for graphic publication (handoff 2026-09-23).",
+  "notes": "Packet 4. WORK-QUEUE listed no automatic concerns. Already published at current draft version 2 (arrangement blocks, layout bottom) with a passing server fit-check on record; re-previewed and re-fit-checked to inspect the image myself, confirmed pass, no republish needed per protocol step 6.",
+  "at": "2026-09-23"
+}

@@ -1,0 +1,44 @@
+{
+  "family": "Adon Olam",
+  "status": "published",
+  "kind": "replacement",
+  "layout": "left",
+  "approvalBasis": "Daniel's blanket authorization for graphic publication (handoff 2026-09-23).",
+  "notes": "Packet 1. Real 3-part series (CRC Shabbat Morning verses 1-2, CRC Kabbalat Shabbat verse 3), each part previously a separate bottom lower third -> layoutConcern '>2 bottom parts -> left' per WORKER-PROTOCOL.md. Applied layout:left, arrangement:blocks (already blocks), comfortableTypography:true, latinLineBreaks:paragraphs to all three; style_draft dry run confirmed sourcePreserved:true for each before applying. All three passed server fit-check at comfortable typography with no overflow and were published.",
+  "at": "2026-09-23",
+  "graphics": [
+    {
+      "draftId": "a4c86b16-6677-46b8-ad39-871a2fb81224",
+      "name": "Adon Olam 1",
+      "draftVersion": 3,
+      "previewId": "e39747e3-1e1a-416a-853e-84b5658d080f",
+      "cueHash": "d3876caa43fc7bada49b5dc2bbf066d5e706fdc497dca0b7acb45f81d115e031",
+      "fit": { "verdict": "pass", "fill": 0.7788 },
+      "imageInspected": "Title 'Adon Olam' / accent 'אֲדוֹן עוֹלָם' correct in left-panel header; Hebrew block then transliteration block, fully inside panel, no dangling separators or duplication.",
+      "sourceCheck": "Selection unchanged (blocks 0-7, legacy-shabbat-morning); only layout/style changed.",
+      "revision": 3
+    },
+    {
+      "draftId": "7d337be4-8b25-4bbd-b532-87b8d0c7602c",
+      "name": "Adon Olam 2",
+      "draftVersion": 3,
+      "previewId": "85e7e69b-e60d-442e-bf99-a9342c13f188",
+      "cueHash": "6d02ca65d6350cff62307668c4062d96e3466dda2f54db5f2bdf8b8cddf0d0be",
+      "fit": { "verdict": "pass", "fill": 0.7788 },
+      "imageInspected": "Title 'Adon Olam' / accent 'אֲדוֹן עוֹלָם' correct in left-panel header; Hebrew block then transliteration block, fully inside panel, no dangling separators or duplication.",
+      "sourceCheck": "Selection unchanged (blocks 8-15, legacy-shabbat-morning); only layout/style changed.",
+      "revision": 3
+    },
+    {
+      "draftId": "9bb328cb-f218-40e3-9e91-56864144af6a",
+      "name": "Adon Olam 3",
+      "draftVersion": 3,
+      "previewId": "7a46c434-8d5e-44a1-92ca-3f00c65a95d7",
+      "cueHash": "6732946a6e640d3f2b1981c6d962d57fe1c92080faac0eabd1dd7ad4a17b2f9f",
+      "fit": { "verdict": "pass", "fill": 0.3887 },
+      "imageInspected": "Title 'Adon Olam' / accent 'אֲדוֹן עוֹלָם' correct in left-panel header; Hebrew block then transliteration block, fully inside panel, no dangling separators or duplication.",
+      "sourceCheck": "Selection unchanged (blocks 16-19, legacy-shabbat-evening); only layout/style changed.",
+      "revision": 3
+    }
+  ]
+}

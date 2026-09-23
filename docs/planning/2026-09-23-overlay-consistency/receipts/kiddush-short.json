@@ -1,0 +1,17 @@
+{
+  "family": "Kiddush (short)",
+  "status": "verified-current",
+  "kind": "original",
+  "layout": "bottom",
+  "approvalBasis": "Daniel's blanket authorization for graphic publication (handoff 2026-09-23).",
+  "notes": "Packet 6. No concerns in queue. Draft version already matched published version (v2); previewed and fit-checked current version only, no changes made. Distinct from other Kiddush graphics (long/festival) already recorded in other receipts.",
+  "at": "2026-09-23",
+  "draftId": "bb2d1b64-95dc-47c2-bbc6-1451233dcf53",
+  "name": "Kiddush (short)",
+  "draftVersion": 2,
+  "previewId": "ebc69e28-b544-4b94-a41e-b44bd5b47d44",
+  "cueHash": "254d3b188a3f1a878f8fd42e24af1cfba7ea4982e71ddb53afb06d38c4eebada",
+  "fit": { "verdict": "pass", "fill": 0.4472 },
+  "imageInspected": "Title 'Kiddush' correct in bottom lower third; Hebrew right, transliteration left, fully inside panel, no duplication.",
+  "sourceCheck": "Bilingual, 2 blocks from legacy-shabbat-morning concluding.kiddush; unchanged."
+}

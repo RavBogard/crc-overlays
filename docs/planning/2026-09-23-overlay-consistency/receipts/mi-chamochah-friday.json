@@ -1,0 +1,36 @@
+{
+  "graphics": [
+    {
+      "draftId": "e8f2c035-e88e-4744-ab70-8625f9a77025",
+      "name": "Mi Chamocha (Friday) 1",
+      "status": "verified-current",
+      "kind": "original",
+      "layout": "bottom",
+      "draftVersion": 2,
+      "previewId": "11a384a3-f2c2-4adc-992c-608758538c33",
+      "cueHash": "7f76612b82fc84d0a7bfec34ff73f5d4fa90012cb15334fd1fc09a4220d59394",
+      "fit": { "verdict": "pass", "fill": 0.93 },
+      "imageInspected": "Bilingual lower third, Hebrew/transliteration paired, accent title matches, no overflow.",
+      "sourceCheck": "7 pinned blocks (0-6) from legacy-shabbat-evening shma.mi-chamochah, unchanged.",
+      "approvalBasis": "n/a (verified-current, not republished)",
+      "notes": "Only 2 numbered parts in this family, so bottom layout is correct per >2-lower-thirds rule.",
+      "at": "2026-09-23"
+    },
+    {
+      "draftId": "7514e0b4-212a-4687-a153-9c6eb602e82d",
+      "name": "Mi Chamocha (Friday) 2",
+      "status": "verified-current",
+      "kind": "original",
+      "layout": "bottom",
+      "draftVersion": 2,
+      "previewId": "5bfe3563-74bb-4d2a-ab88-729ec0981259",
+      "cueHash": "d2c9d22de54ba28d16cd6a5f6f6737dc1d679ce82b7977a0e177f124de41796d",
+      "fit": { "verdict": "pass", "fill": 0.69 },
+      "imageInspected": "Bilingual lower third, Hebrew/transliteration paired, accent title matches, no overflow.",
+      "sourceCheck": "4 pinned blocks (7-10) from legacy-shabbat-evening shma.mi-chamochah, unchanged.",
+      "approvalBasis": "n/a (verified-current, not republished)",
+      "notes": "Companion part to 1 of 2; family stays bottom (only 2 parts).",
+      "at": "2026-09-23"
+    }
+  ]
+}

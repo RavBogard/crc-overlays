@@ -1,0 +1,17 @@
+{
+  "family": "Lev Tahor לֵב טָהוֹר",
+  "status": "verified-current",
+  "kind": "original",
+  "layout": "bottom",
+  "approvalBasis": "Daniel's blanket authorization for graphic publication (handoff 2026-09-23).",
+  "notes": "Packet 6. No concerns in queue. Draft version already matched published version (v2); previewed and fit-checked current version only, no changes made.",
+  "at": "2026-09-23",
+  "draftId": "847b8cd4-cd72-44cb-8722-7a024a119413",
+  "name": "Lev Tahor",
+  "draftVersion": 2,
+  "previewId": "ad3d771f-4047-430d-9d87-7cb3ebab181a",
+  "cueHash": "9cf17ddf7577d97ed2ca36cc902b9afff05a5f5b68cb1ced92039dfd7335e1f0",
+  "fit": { "verdict": "pass", "fill": 0.4389 },
+  "imageInspected": "Title 'Lev Tahor לֵב טָהוֹר' correct in bottom lower third; English-only interpretive line, fully inside panel, no duplication.",
+  "sourceCheck": "English-only, 1 block from legacy-shabbat-morning awakening.tahor-lev; unchanged."
+}

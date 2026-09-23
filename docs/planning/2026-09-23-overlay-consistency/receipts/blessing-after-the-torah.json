@@ -1,0 +1,19 @@
+{
+  "draftId": "00d6d775-c932-4895-8e77-162dac8101d2",
+  "name": "Aliyah Blessing AFTER",
+  "status": "verified-current",
+  "kind": "original",
+  "layout": "bottom",
+  "draftVersion": 2,
+  "previewId": "e90a85ef-b590-4284-b925-b4f576150bf9",
+  "cueHash": "678330d6574b5e3e721ebd62c1f23733f4c6d8899e5cab8b0ba489249beebc22",
+  "fit": {
+    "verdict": "pass",
+    "fill": 0.6888888888888889
+  },
+  "imageInspected": "Title, accent title תורה, Hebrew and transliteration blocks sit inside the bottom panel with no overflow or duplication.",
+  "sourceCheck": "No wording or selection change; shares accent title תורה with Blessings Before the Torah as expected (same subject).",
+  "approvalBasis": "Daniel's blanket authorization for graphic publication (handoff 2026-09-23).",
+  "notes": "Already at published version 2; no republish needed.",
+  "at": "2026-09-23"
+}

@@ -1,0 +1,33 @@
+{
+  "family": "G'vurot",
+  "status": "published",
+  "kind": "replacement",
+  "layout": "left",
+  "approvalBasis": "Daniel's blanket authorization for graphic publication (handoff 2026-09-23).",
+  "notes": "Packet 6. Queue flagged both as 'publish current version(s) (style-only diff?) - verify'. get_draft comparison of draft v2 vs published revision 1 confirmed identical block selection/text; only change was presentation.latinLineBreaks -> paragraphs. Both previewed, fit-checked (pass), and published.",
+  "at": "2026-09-23",
+  "graphics": [
+    {
+      "draftId": "b27ac87b-5db7-4537-923b-c86cb860d301",
+      "name": "Gevurot 1",
+      "draftVersion": 2,
+      "previewId": "1b2e1896-73a7-4d36-a831-5dad9bb2823f",
+      "cueHash": "153c43b319d63a28ec73df19d1346b621056df4fb1583ebe74342b18815d5fc5",
+      "fit": { "verdict": "pass", "fill": 0.8301 },
+      "imageInspected": "Title 'G'vurot' / accent 'גְבוּרוֹת' correct in left-panel header; Hebrew block then transliteration block, fully inside panel, no dangling separators or duplication.",
+      "sourceCheck": "Selection unchanged (blocks 0,1,4-8, legacy-shabbat-morning amidah.gvurot); only presentation.latinLineBreaks changed.",
+      "revision": 2
+    },
+    {
+      "draftId": "f241e548-c7f5-432c-8c86-2d9e01bd0a54",
+      "name": "Gevurot 2",
+      "draftVersion": 2,
+      "previewId": "0b12983b-d00a-40fe-8575-e444147d30b5",
+      "cueHash": "a739406803d644465b4d19d2ca902241543e6bdf43a728449bf76fcb6f9f0eac",
+      "fit": { "verdict": "pass", "fill": 0.6555 },
+      "imageInspected": "Title 'G'vurot' / accent 'גְבוּרוֹת' correct in left-panel header; Hebrew block then transliteration block, fully inside panel, no dangling separators or duplication.",
+      "sourceCheck": "Selection unchanged (blocks 9-13, legacy-shabbat-morning amidah.gvurot); only presentation.latinLineBreaks changed.",
+      "revision": 2
+    }
+  ]
+}

@@ -1,0 +1,37 @@
+{
+  "graphics": [
+    {
+      "draftId": "32b2ae8c-e7f1-4c3a-9580-f8f31b12ead6",
+      "name": "Shalom Alechem small",
+      "status": "verified-current",
+      "kind": "original",
+      "layout": "bottom",
+      "draftVersion": 2,
+      "previewId": "ebb8c37a-20dd-4616-aa48-0c8fd9ee844d",
+      "cueHash": "a7b356c6a19e600e6d5247821ca1a00227810537bd5e8691e7c4bbe2f43d75a0",
+      "fit": { "verdict": "pass", "fill": 0.69 },
+      "imageInspected": "Bottom lower third, single condensed block combining all four verses with middot separators, reads cleanly, no overflow.",
+      "sourceCheck": "1 pinned condensed block (block-5) unchanged; selection not touched per instruction.",
+      "approvalBasis": "n/a (verified-current, not republished)",
+      "notes": "Separate graphic from the 1-4 series and from 'all'; kept its own bottom layout since it reads well as a single lower third.",
+      "at": "2026-09-23"
+    },
+    {
+      "draftId": "703983e0-05d7-4ba7-82c7-3581311c6fd0",
+      "name": "Shalom Aleichem all",
+      "status": "published",
+      "kind": "original",
+      "layout": "left",
+      "draftVersion": 7,
+      "previewId": "a90aae4c-cfe8-42c6-afbf-b86a8278bfb7",
+      "cueHash": "6424427ad4687b2af1bc0525816619351d63366d883d9ca8986fca9541f01f37",
+      "fit": { "verdict": "pass", "fill": 0.83 },
+      "imageInspected": "Left panel, Hebrew block then transliteration paragraph, verses 1+4 only as before, no overflow, no dangling separators.",
+      "sourceCheck": "8 pinned blocks (0-3, 12-15 = verses 1 and 4) UNCHANGED selection; only latinLineBreaks set to paragraphs (style-only fix).",
+      "revision": 3,
+      "approvalBasis": "Daniel's blanket authorization for graphic publication (handoff 2026-09-23)",
+      "notes": "Kept its intentional verses 1+4 selection and left layout; did not expand to all 4 verses. Only the missing latinLineBreaks style concern was fixed.",
+      "at": "2026-09-23"
+    }
+  ]
+}

@@ -1,0 +1,16 @@
+{
+  "draftId": "5b21e5ef-e373-4ce8-a3da-f7a0b3f11162",
+  "name": "Torah Shema",
+  "status": "verified-current",
+  "kind": "original",
+  "layout": "bottom",
+  "draftVersion": 2,
+  "previewId": "5f083c36-8da5-41c2-94f4-dc7a29ff199d",
+  "cueHash": "e9f14a93f1724ca25d1cd3e3834f046c29c9012d51450d5130ac6d4a284a1eac",
+  "fit": { "verdict": "pass", "fill": 0.5667 },
+  "imageInspected": "Bottom lower third shows Shema procession call Hebrew/transliteration paired correctly, title 'Taking Out the Torah', no overflow.",
+  "sourceCheck": "Current draft version equals published activeVersion (2); no selection or style change made.",
+  "approvalBasis": "Daniel's blanket authorization for graphic publication (handoff 2026-09-23)",
+  "notes": "Already published at current version and passes; not republished per protocol step 6.",
+  "at": "2026-09-23"
+}

@@ -1,0 +1,17 @@
+{
+  "family": "Eitz Chayim",
+  "status": "verified-current",
+  "kind": "original",
+  "layout": "bottom",
+  "approvalBasis": "Daniel's blanket authorization for graphic publication (handoff 2026-09-23).",
+  "notes": "Packet 6. No concerns in queue. Draft version already matched published version (v3); previewed and fit-checked current version only, no changes made.",
+  "at": "2026-09-23",
+  "draftId": "f1fcd94c-1ae7-4ef5-8941-0e13188204d9",
+  "name": "Eitz Chayim",
+  "draftVersion": 3,
+  "previewId": "a5b4bbb0-fe02-4bc2-a06d-963934b76f12",
+  "cueHash": "86bb56960aecda9ec5b108685350c4dc00cbc1e155e18a06bbcb1ea3437043fd",
+  "fit": { "verdict": "pass", "fill": 0.9278 },
+  "imageInspected": "Title 'Eitz Chayim' / accent 'עץ חיים' correct in bottom lower third; transliteration left, Hebrew right, fully inside panel, no dangling separators or duplication.",
+  "sourceCheck": "Bilingual, 8 blocks from legacy-shabbat-morning torah.eitz-chayim; unchanged."
+}

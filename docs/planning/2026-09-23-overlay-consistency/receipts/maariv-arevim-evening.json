@@ -1,0 +1,16 @@
+{
+  "draftId": "6be325d4-ee1f-442a-9c44-79c1950d57ac",
+  "name": "Maariv Arevim (Evening)",
+  "status": "verified-current",
+  "kind": "original",
+  "layout": "bottom",
+  "draftVersion": 1,
+  "previewId": "55bece3a-7ae6-46dc-857e-d18ccecc5726",
+  "cueHash": "b0d5ea19bcc76f3a77ffb18f52ddbe11266d83fa9f44026b1470f59557cbf174",
+  "fit": { "verdict": "pass", "fill": 0.4389 },
+  "imageInspected": "Single English lower third fits fully in panel, no overflow, title correct, no accent title (none expected).",
+  "sourceCheck": "Single English block from shma.maariv-aravim-evening-chant, unchanged.",
+  "approvalBasis": "Daniel's blanket authorization for graphic publication (handoff 2026-09-23)",
+  "notes": "Judged separately from Maariv Arevim 1/2 per packet note: this is a distinct alternate short English-only piece, not part of that 2-part sequence. No automatic rule matched; already at activeVersion 1/activeRevision 1, no republish needed.",
+  "at": "2026-09-23"
+}

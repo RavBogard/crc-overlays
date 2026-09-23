@@ -1,0 +1,16 @@
+{
+  "draftId": "c8dbafb3-37bb-4c6b-96d5-96c9fddef38e",
+  "name": "Mi Chamocha (short)",
+  "status": "verified-current",
+  "kind": "original",
+  "layout": "bottom",
+  "draftVersion": 2,
+  "previewId": "694c8368-2d0f-4f25-a931-6ed746e8649c",
+  "cueHash": "9d7527ead21470fe04ddf2ea946008c38d718c89a8ca58c1c574c22af576972d",
+  "fit": { "verdict": "pass", "fill": 0.5667 },
+  "imageInspected": "Bottom-third lower thirds bar reads correctly, Hebrew right / transliteration left, title 'Mi Chamochah מִי כָמֹכָה', no accent title, no overflow.",
+  "sourceCheck": "Current draft version equals published activeVersion (2); no selection or style change made.",
+  "approvalBasis": "Daniel's blanket authorization for graphic publication (handoff 2026-09-23)",
+  "notes": "Already published at current version and passes; not republished per protocol step 6.",
+  "at": "2026-09-23"
+}

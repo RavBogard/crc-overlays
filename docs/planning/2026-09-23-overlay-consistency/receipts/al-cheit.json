@@ -1,0 +1,16 @@
+{
+  "draftId": "63a423a6-eec4-4694-a6e8-eaa760e2da43",
+  "name": "Al Cheit Refrain",
+  "status": "verified-current",
+  "kind": "original",
+  "layout": "bottom",
+  "draftVersion": 2,
+  "previewId": "cf793cc6-a65b-4c06-a23c-b00153948c86",
+  "cueHash": "5566264ae02faeb1007636583ff4dec13c8a48db9b9cefba6b022b2d0ae9b8a3",
+  "fit": { "verdict": "pass", "fill": 0.5083 },
+  "imageInspected": "Title 'Al Cheit', single bilingual block fully inside the bottom panel, no accent title, no dangling separators or duplication.",
+  "sourceCheck": "No wording or selection change; queue flagged no automatic rule for this family.",
+  "approvalBasis": "Already published and current; server fit-check re-verified pass, no republish needed (protocol step 6).",
+  "notes": "Packet 9.",
+  "at": "2026-09-23"
+}

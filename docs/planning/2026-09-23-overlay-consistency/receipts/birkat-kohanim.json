@@ -1,0 +1,16 @@
+{
+  "draftId": "089cce61-085b-49e9-9ede-f6ec81f65789",
+  "name": "Birkat Kohanim",
+  "status": "verified-current",
+  "kind": "original",
+  "layout": "bottom",
+  "draftVersion": 2,
+  "previewId": "b62340bc-3de9-49ee-8ebb-24644af60c1a",
+  "cueHash": "e442117ddd2769041adc397a23bac91fe35213b8e0dfdc30f5725a3a43869332",
+  "fit": { "verdict": "pass", "fill": 0.6889 },
+  "imageInspected": "Bottom lower third shows Priestly Blessing Hebrew/transliteration paired correctly, title 'Priestly Blessing ברכת כהנים', no overflow.",
+  "sourceCheck": "Current draft version equals published activeVersion (2); no selection or style change made.",
+  "approvalBasis": "Daniel's blanket authorization for graphic publication (handoff 2026-09-23)",
+  "notes": "Already published at current version and passes; not republished per protocol step 6.",
+  "at": "2026-09-23"
+}

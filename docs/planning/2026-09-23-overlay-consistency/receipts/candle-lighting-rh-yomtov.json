@@ -1,0 +1,36 @@
+{
+  "graphics": [
+    {
+      "draftId": "4c86c984-5f3e-44c4-9bc1-65a2a4be3616",
+      "name": "Candle Lighting RH",
+      "status": "verified-current",
+      "kind": "original",
+      "layout": "bottom",
+      "draftVersion": 1,
+      "previewId": "699bf46e-799f-489b-8366-2214aed855e4",
+      "cueHash": "821d2670302cf6f234ee2d54c7989f67f58a36c163ec50142c50d6081ed53bf3",
+      "fit": { "verdict": "pass", "fill": 0.6889 },
+      "imageInspected": "Title 'Candle Lighting', single bilingual block fully inside the bottom panel, no accent title, no dangling separators or duplication.",
+      "sourceCheck": "No wording or selection change; queue flagged no automatic rule for this family.",
+      "approvalBasis": "Already published and current; server fit-check re-verified pass, no republish needed (protocol step 6).",
+      "notes": "Packet 9. Distinct family from 'Candle Blessing' (Candle Lighting YK, cef61697 family is unrelated). Same layout as Yom Tov Candles sibling, both bottom.",
+      "at": "2026-09-23"
+    },
+    {
+      "draftId": "ab7451ab-a6b2-40c0-9853-8f7dd972c39d",
+      "name": "Yom Tov Candles",
+      "status": "verified-current",
+      "kind": "original",
+      "layout": "bottom",
+      "draftVersion": 1,
+      "previewId": "0bd9d4fd-888b-4084-9ddc-ea40ee98752c",
+      "cueHash": "827726754e575ad6ae4796e9c28a510c7c65107e9b0c331b697643342c188bb3",
+      "fit": { "verdict": "pass", "fill": 0.6889 },
+      "imageInspected": "Title 'Candle Lighting', single bilingual block fully inside the bottom panel, no accent title, no dangling separators or duplication.",
+      "sourceCheck": "No wording or selection change; queue flagged no automatic rule for this family.",
+      "approvalBasis": "Already published and current; server fit-check re-verified pass, no republish needed (protocol step 6).",
+      "notes": "Packet 9. Same layout as Candle Lighting RH sibling, both bottom.",
+      "at": "2026-09-23"
+    }
+  ]
+}

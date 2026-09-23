@@ -1,0 +1,20 @@
+{
+  "draftId": "f792daee-3663-4350-a3cb-783897e1f463",
+  "name": "Psukei DZimrah 2",
+  "status": "published",
+  "kind": "replacement",
+  "layout": "left",
+  "draftVersion": 4,
+  "previewId": "0bf36ef9-def4-4f2e-b651-6d1fa507db5d",
+  "cueHash": "c05ac4109daee04a555fc2f0ae6f218c8bd90d88cd1b987c58837e337d7f8f5e",
+  "fit": {
+    "verdict": "pass",
+    "fill": 0.6658625296912114
+  },
+  "imageInspected": "Title, accent title פְסוּקֵי דְּזִמְרָא, two Hebrew/transliteration groups (Ashrei Opening, Kol Han'shamah) sit inside the left panel with no overflow or duplication.",
+  "sourceCheck": "IDENTITY GATE: fetched get_source for the pinned selectors library:legacy-shabbat-morning:psukei.ashrei-opening@legacy-shabbat-morning and library:legacy-shabbat-morning:psukei.kol-hanshamah@legacy-shabbat-morning, and for their canonical non-prefixed counterparts; all four selected block hashes are byte-identical between the stale library-prefixed records and canonical. Repointed both hebrewGroups/transliterationGroups to the canonical sources (same blocks, same selection, no wording change) and refreshed both pins, matching the Birchot precedent. Then applied style defaults (left/blocks/comfortable/paragraphs).",
+  "revision": 3,
+  "approvalBasis": "Daniel's blanket authorization for graphic publication (handoff 2026-09-23); repoint and republish per main-thread decision unblocking this stale-pin hold (2026-09-23).",
+  "notes": "Resolves the Psukei 2 stale-pin hold listed in WORKER-PROTOCOL.md.",
+  "at": "2026-09-23"
+}

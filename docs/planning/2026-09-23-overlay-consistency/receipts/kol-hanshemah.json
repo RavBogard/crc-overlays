@@ -1,0 +1,17 @@
+{
+  "family": "Kol Han’shamah",
+  "status": "verified-current",
+  "kind": "original",
+  "layout": "bottom",
+  "approvalBasis": "Daniel's blanket authorization for graphic publication (handoff 2026-09-23).",
+  "notes": "Packet 6. No concerns in queue. Draft version already matched published version (v2); previewed and fit-checked current version only, no changes made.",
+  "at": "2026-09-23",
+  "draftId": "4ccb27d3-47a3-47a4-bf5b-e74ac427a71e",
+  "name": "Kol Hanshemah",
+  "draftVersion": 2,
+  "previewId": "77df2793-1c3a-4212-8180-6b25114e4f35",
+  "cueHash": "aa0c7037a04b8e27c38abdb2d15867d075888fd1a1963c6fe63230cd9c2d0b00",
+  "fit": { "verdict": "pass", "fill": 0.5083 },
+  "imageInspected": "Title 'Kol Han'shamah' correct in bottom lower third; Hebrew right, transliteration left, fully inside panel, no duplication.",
+  "sourceCheck": "Bilingual, 2 blocks from legacy-shabbat-morning psukei.kol-hanshamah; unchanged."
+}

@@ -1,0 +1,33 @@
+{
+  "family": "El Malei Rachamim",
+  "status": "published",
+  "kind": "original",
+  "layout": "left",
+  "approvalBasis": "Daniel's blanket authorization for graphic publication (handoff 2026-09-23).",
+  "notes": "Packet 10. Two drafts on the same source (yizkor.el-malei-rachamim@crc-yizkor), different block ranges (opening vs closing passage), not duplicates. Applied queue ACTION: arrangement together -> blocks, comfortable typography (dropped smallFont), latinLineBreaks paragraphs. No wording/selection change.",
+  "at": "2026-09-23",
+  "graphics": [
+    {
+      "draftId": "a354e5ec-288e-45d4-bea6-0ca4e478a635",
+      "name": "El Mei Rachamim",
+      "draftVersion": 3,
+      "previewId": "648003b0-1797-4a31-8578-523488386dd8",
+      "cueHash": "81165cb500de20a99e5b1ffe63459c5ea53a883bf3a32bee042fc4aca5879a82",
+      "fit": { "verdict": "pass", "fill": 0.6659 },
+      "imageInspected": "Title 'El Malei Rachamim' / accent 'אֵל מָלֵא רַחֲמִים' correct; Hebrew then transliteration in matching blocks paragraphs, fully inside the left panel, no dangling separators or duplication.",
+      "sourceCheck": "No selection or wording change (blocks 7-12, closing passage).",
+      "revision": 2
+    },
+    {
+      "draftId": "b560d3e3-d300-4745-affe-f6ba25ef8f01",
+      "name": "El Malei TRANSLIT",
+      "draftVersion": 3,
+      "previewId": "01df4d84-bdfa-46cd-9367-b92f6c719336",
+      "cueHash": "4fc70c96cdf88e066c5dd2cec49af7c20c2f98fdd8d154106298b8c9b3704271",
+      "fit": { "verdict": "pass", "fill": 0.8301 },
+      "imageInspected": "Title 'El Malei Rachamim' / accent 'אֵל מָלֵא רַחֲמִים' correct; Hebrew then transliteration in matching blocks/paragraphs, fully inside the left panel, no dangling separators or duplication.",
+      "sourceCheck": "No selection or wording change (blocks 0-6, opening passage).",
+      "revision": 2
+    }
+  ]
+}

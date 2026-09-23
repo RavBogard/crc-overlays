@@ -1,0 +1,38 @@
+{
+  "graphics": [
+    {
+      "draftId": "e1a495c8-836c-4877-a2ac-06f3eec8ac1b",
+      "name": "Kiddush (long)",
+      "status": "published",
+      "kind": "original",
+      "layout": "left",
+      "draftVersion": 3,
+      "previewId": "6a8a6112-c746-4f01-b121-51705d35c573",
+      "cueHash": "fda13d8a8111119302b0ba0c9f2163fb45406f317f322e851fe9ed92d6189f5c",
+      "fit": { "verdict": "pass", "fill": 0.8494 },
+      "imageInspected": "Left panel, Hebrew block then matching transliteration paragraph, comfortable size, no overflow or duplication, title Kiddush / accent קידוש correct.",
+      "sourceCheck": "Same 8 blocks (concluding.kiddush-evening), wording unchanged, no refreshSourceIds.",
+      "revision": 2,
+      "approvalBasis": "Daniel's blanket authorization for graphic publication (handoff 2026-09-23)",
+      "notes": "Part 1 of 2. Fixed smallFont->comfortable, together->blocks, added latinLineBreaks paragraphs. Layout was already left; kept as-is (family layout unified, both parts left).",
+      "at": "2026-09-23"
+    },
+    {
+      "draftId": "19661732-76c4-4845-a06d-83b71484f782",
+      "name": "Kiddush (long) 2",
+      "status": "published",
+      "kind": "original",
+      "layout": "left",
+      "draftVersion": 2,
+      "previewId": "20fb2370-0919-43df-a065-b773be1c7e8e",
+      "cueHash": "ef611c3d746a1d2196daf16532de0753e3c75a411bd458aa7566f1d68dc9db63",
+      "fit": { "verdict": "pass", "fill": 0.6042 },
+      "imageInspected": "Left panel, Hebrew block then matching transliteration paragraph, comfortable size, no overflow or duplication, title Kiddush / accent קידוש correct.",
+      "sourceCheck": "Same 5 blocks (concluding.kiddush-evening), wording unchanged, no refreshSourceIds.",
+      "revision": 2,
+      "approvalBasis": "Daniel's blanket authorization for graphic publication (handoff 2026-09-23)",
+      "notes": "Part 2 of 2. Same fixes as part 1: smallFont->comfortable, together->blocks, latinLineBreaks paragraphs. 2-part piece, both left layout (unchanged from prior).",
+      "at": "2026-09-23"
+    }
+  ]
+}

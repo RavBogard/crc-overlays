@@ -1,0 +1,18 @@
+{
+  "family": "Hoda'ah הוֹדָאָה",
+  "status": "published",
+  "kind": "original",
+  "layout": "bottom",
+  "approvalBasis": "Daniel's blanket authorization for graphic publication (handoff 2026-09-23).",
+  "notes": "Packet 6. Queue flagged 'publish current version(s) (style-only diff?) - verify'. get_draft comparison of draft v2 vs published revision 1 confirmed identical block selection/text; only change was presentation.latinLineBreaks -> paragraphs. Previewed, fit-checked (pass), and published.",
+  "at": "2026-09-23",
+  "draftId": "0cf632bf-aab4-4354-8095-6aa5f9b3ec6a",
+  "name": "Hoda-Ah",
+  "draftVersion": 2,
+  "previewId": "4b695852-1e9d-4ce5-9480-6928b184d933",
+  "cueHash": "b62d4a11bffc7a8cb6a27bf177620227773687f5f417e587df29b0942d860da2",
+  "fit": { "verdict": "pass", "fill": 0.5667 },
+  "imageInspected": "Title 'Hoda'ah הוֹדָאָה' correct in bottom lower third; Hebrew right, transliteration left, fully inside panel, no duplication.",
+  "sourceCheck": "Selection unchanged (blocks 11-13, legacy-shabbat-morning amidah.modim); only presentation.latinLineBreaks changed.",
+  "revision": 2
+}

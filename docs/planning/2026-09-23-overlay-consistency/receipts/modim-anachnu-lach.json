@@ -1,0 +1,17 @@
+{
+  "draftId": "fb1a6b21-47c0-4d40-83c9-391d1f2cee53",
+  "name": "Modim Anachnu Lach",
+  "status": "published",
+  "kind": "original",
+  "layout": "left",
+  "draftVersion": 2,
+  "previewId": "abdeb846-72b6-4d94-875d-65e8337b85ad",
+  "cueHash": "adb44256128648df25e01616487f8a6977e00c4560365a88204f5b0ebe0163db",
+  "fit": { "verdict": "pass", "fill": 0.44 },
+  "imageInspected": "Left panel shows Hebrew block then matching transliteration block, title and accent title (מוֹדִים אֲנַחְנוּ לָךְ) intact, no overflow, plenty of headroom.",
+  "sourceCheck": "Selection unchanged from published revision 1 (same 3 blocks, same sourceId); only diff was presentation.latinLineBreaks=paragraphs, so this was a style-only publish.",
+  "revision": 2,
+  "approvalBasis": "Daniel's blanket authorization for graphic publication (handoff 2026-09-23)",
+  "notes": "Queue flagged as publish current version (style-only diff?) - verified true; published.",
+  "at": "2026-09-23"
+}
