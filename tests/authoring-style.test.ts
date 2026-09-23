@@ -74,3 +74,9 @@ test('style plan can explicitly preserve Latin soft breaks',()=>{
  const plan=planDraftStyle(draft(),{comfortableTypography:false,latinLineBreaks:'preserve'},templates);
  assert.equal(plan.after.presentation.latinLineBreaks,'preserve');
 });
+
+
+test('style plan can request phrase-separated Latin display without changing source content',()=>{
+ const plan=planDraftStyle(draft(),{comfortableTypography:false,latinLineBreaks:'phrases'},templates);
+ assert.equal(plan.after.presentation.latinLineBreaks,'phrases');
+});

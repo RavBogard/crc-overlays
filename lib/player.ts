@@ -3,14 +3,14 @@ import {waitForRenderedOverlayAssets} from './overlay-assets.ts';
 import {acceptsRevision,effectFrames,easingFor,incomingStillDesired,measuredBottomTextHeight,textParts,tracksFor,type AnimationDirection,type AnimationTrack,type PlayerState} from './player-motion.ts';
 export type CueTemplate={family?:'lower-third'|'panel-left'|'panel-right';version?:string;translatePx?:number};
 export type ContentRow={he:string;tr:string;en:string};
-export type CuePresentation={hebrewFontSize?:number;transliterationFontSize?:number;titleFontSize?:number;alignment?:'start'|'center';lineSpacing?:'compact'|'spacious';imageAssetId?:string;latinLineBreaks?:'preserve'|'paragraphs'};
+export type CuePresentation={hebrewFontSize?:number;transliterationFontSize?:number;titleFontSize?:number;alignment?:'start'|'center';lineSpacing?:'compact'|'spacious';imageAssetId?:string;latinLineBreaks?:'preserve'|'paragraphs'|'phrases'};
 export type Cue={id:string;name:string;layout:string;texts:Record<string,string>;animations:AnimationTrack[];duration:Record<string,number>;presentation?:CuePresentation;template?:CueTemplate;contentRows?:ContentRow[];hidden?:boolean;aliasOf?:string};
 export type PlayerOptions={resolveAssetUrl?:(cue:Cue)=>string|undefined|Promise<string|undefined>;waitForAssets?:(root:HTMLElement)=>Promise<void>};
 /** Display-only reflow for semantic English channels. Blank lines remain stanza boundaries. */
-export function reflowLatinParagraphs(text:string){return text.replace(/\r\n?/g,'\n').replace(/\n[\t ]*(?=\n)/g,'\n').split(/(\n{2,})/).map(part=>part.startsWith('\n')?part:part.replace(/[\t ]*\n[\t ]*/g,' ')).join('')}
+export function reflowLatinParagraphs(text:string,separator=' '){return text.replace(/\r\n?/g,'\n').replace(/\n[\t ]*(?=\n)/g,'\n').split(/(\n{2,})/).map(part=>part.startsWith('\n')?part:part.replace(/[\t ]*\n[\t ]*/g,separator)).join('')}
 /** Reflow only contiguous Latin runs in a legacy mixed body. Hebrew and blank stanza lines are boundaries. */
-export function reflowLatinRuns(text:string){
- const output:string[]=[],run:string[]=[],flush=()=>{if(!run.length)return;const value=run.join('\n');output.push(/[A-Za-z]/.test(value)?reflowLatinParagraphs(value):value);run.length=0};
+export function reflowLatinRuns(text:string,separator=' '){
+ const output:string[]=[],run:string[]=[],flush=()=>{if(!run.length)return;const value=run.join('\n');output.push(/[A-Za-z]/.test(value)?reflowLatinParagraphs(value,separator):value);run.length=0};
  for(const line of text.replace(/\r\n?/g,'\n').split('\n')){
   if(!line.trim()||/[\u0590-\u05FF]/.test(line)){flush();output.push(line)}else run.push(line);
  }
@@ -19,8 +19,9 @@ export function reflowLatinRuns(text:string){
 export function displayPresentationText(text:string,element:string,presentation:CuePresentation|undefined){
  const typedEnglish=element==='textMainEng'||element==='textTranslation';
  const legacyEnglish=element==='textMain'&&/[A-Za-z]/.test(text);
- if(presentation?.latinLineBreaks!=='paragraphs'||!(typedEnglish||legacyEnglish))return text;
- return typedEnglish||!/[\u0590-\u05FF]/.test(text)?reflowLatinParagraphs(text):reflowLatinRuns(text);
+ const mode=presentation?.latinLineBreaks;if((mode!=='paragraphs'&&mode!=='phrases')||!(typedEnglish||legacyEnglish))return text;
+ const separator=mode==='phrases'?' · ':' ';
+ return typedEnglish||!/[\u0590-\u05FF]/.test(text)?reflowLatinParagraphs(text,separator):reflowLatinRuns(text,separator);
 }
 export function presentationTextStyles(presentation:CuePresentation|undefined){return {textAlign:presentation?.alignment,lineHeight:presentation?.lineSpacing==='compact'?'1.12':presentation?.lineSpacing==='spacious'?'1.42':undefined}}
 export function usesPanelRows(cue:Pick<Cue,'layout'|'contentRows'>){return (cue.layout==='left'||cue.layout==='right')&&Boolean(cue.contentRows?.length)}

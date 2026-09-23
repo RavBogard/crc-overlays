@@ -382,6 +382,7 @@ test('legacy English textMain reflows Latin runs while preserving Hebrew and bla
  const presentation={latinLineBreaks:'paragraphs'} as const;
  const psalmish='First short verse\nSecond short verse\n\nThird short verse\nFinal short verse\nעברית בסוף';
  assert.equal(displayPresentationText(psalmish,'textMain',presentation),'First short verse Second short verse\n\nThird short verse Final short verse\nעברית בסוף');
+ assert.equal(displayPresentationText(psalmish,'textMain',{latinLineBreaks:'phrases'}),'First short verse · Second short verse\n\nThird short verse · Final short verse\nעברית בסוף');
  assert.equal(reflowLatinRuns('Before\nעברית\nAfter\nMore'),'Before\nעברית\nAfter More');
  assert.equal(displayPresentationText('English\nText','textMainEng',presentation),'English Text');
 });

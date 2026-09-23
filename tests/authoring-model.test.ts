@@ -159,7 +159,9 @@ test('presentation stores only the explicit Latin line-break policy',()=>{
  const base={name:'Latin display',title:'Latin display',layout:'bottom',templateCueId:BARECHU,content:{mode:'custom',text:'A\nB'}};
  const legacy=parseEditable({...base,presentation:{}}) as EditableDraft;
  const paragraphs=parseEditable({...base,presentation:{latinLineBreaks:'paragraphs'}}) as EditableDraft;
+ const phrases=parseEditable({...base,presentation:{latinLineBreaks:'phrases'}}) as EditableDraft;
  assert.equal(legacy.presentation.latinLineBreaks,undefined);
  assert.equal(paragraphs.presentation.latinLineBreaks,'paragraphs');
- assert.throws(()=>parseEditable({...base,presentation:{latinLineBreaks:'collapse'}}),/latinLineBreaks must be preserve or paragraphs/);
+ assert.equal(phrases.presentation.latinLineBreaks,'phrases');
+ assert.throws(()=>parseEditable({...base,presentation:{latinLineBreaks:'collapse'}}),/latinLineBreaks must be preserve, paragraphs, or phrases/);
 });

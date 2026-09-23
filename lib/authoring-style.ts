@@ -11,7 +11,7 @@ export type DraftStyleOptions={
   /** Clear explicit density overrides while retaining artwork and alignment choices. */
   comfortableTypography?:boolean;
   /** Preserve authored Latin line breaks, or display soft breaks as paragraphs. */
-  latinLineBreaks?:'preserve'|'paragraphs';
+  latinLineBreaks?:'preserve'|'paragraphs'|'phrases';
 };
 
 export type DraftStylePatch={layout?:Layout;templateCueId?:string;content?:DraftContent;presentation?:Presentation};
