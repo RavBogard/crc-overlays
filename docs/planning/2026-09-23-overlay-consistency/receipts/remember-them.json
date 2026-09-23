@@ -1,0 +1,64 @@
+{
+  "family": "Remember Them",
+  "at": "2026-09-23",
+  "notes": "Each part holds only the placeholder \"Name\": per-name graphics like Torah reading 1-7, so kept as bottom lower thirds by analogy with the main-thread ruling (queue auto-rule >2 -> left not applied). Confirm.",
+  "graphics": [
+    {
+      "draftId": "35aba7f2-eba6-4373-80d7-513713192b72",
+      "name": "Remember Them 1",
+      "status": "verified-current",
+      "kind": "original",
+      "layout": "bottom",
+      "draftVersion": 1,
+      "previewId": "2f8ed91b-1e29-452e-b079-0d33b8b19479",
+      "cueHash": "7cea62d19e2ed156d9b7959c7a6f0446f3f7e455424300d199fc9bd83ddfbe15",
+      "fit": {
+        "verdict": "pass",
+        "fill": 0.4389
+      },
+      "imageInspected": "Lower third titled Remember Them with placeholder Name, fully inside the bar, readable.",
+      "sourceCheck": "Custom placeholder text, unchanged.",
+      "approvalBasis": "Daniel blanket authorization for graphic publication (handoff 2026-09-23); no publish needed, current version already published",
+      "notes": "",
+      "at": "2026-09-23"
+    },
+    {
+      "draftId": "4e67f479-357f-46d4-aab0-84bd0f6ce7de",
+      "name": "Remember Them 2",
+      "status": "verified-current",
+      "kind": "original",
+      "layout": "bottom",
+      "draftVersion": 1,
+      "previewId": "5a0af03d-685e-426e-957b-f08c6b9977e6",
+      "cueHash": "8beb4dce7724e923a91eef1d6d8039410c5aa1394cd35319056b2905d25a2be4",
+      "fit": {
+        "verdict": "pass",
+        "fill": 0.4389
+      },
+      "imageInspected": "Lower third titled Remember Them with placeholder Name, fully inside the bar, readable.",
+      "sourceCheck": "Custom placeholder text, unchanged.",
+      "approvalBasis": "Daniel blanket authorization for graphic publication (handoff 2026-09-23); no publish needed, current version already published",
+      "notes": "",
+      "at": "2026-09-23"
+    },
+    {
+      "draftId": "16533b7f-017a-417a-a676-b457f53d8ea6",
+      "name": "Remember Them 3",
+      "status": "verified-current",
+      "kind": "original",
+      "layout": "bottom",
+      "draftVersion": 1,
+      "previewId": "ac5d0aca-25cb-498d-8fcd-2bbc1772fe89",
+      "cueHash": "4ddd8fb90aa413ad33b945baa4c77f575b5e3759cca25e9c2ba47c60e765402d",
+      "fit": {
+        "verdict": "pass",
+        "fill": 0.4389
+      },
+      "imageInspected": "Lower third titled Remember Them with placeholder Name, fully inside the bar, readable.",
+      "sourceCheck": "Custom placeholder text, unchanged.",
+      "approvalBasis": "Daniel blanket authorization for graphic publication (handoff 2026-09-23); no publish needed, current version already published",
+      "notes": "",
+      "at": "2026-09-23"
+    }
+  ]
+}

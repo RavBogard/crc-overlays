@@ -1,0 +1,140 @@
+{
+  "family": "Torah Reading",
+  "at": "2026-09-23",
+  "notes": "Main-thread ruling: per-reader placeholder graphics, not parts of one piece; stay bottom lower thirds (queue auto-rule >2 -> left not applied).",
+  "graphics": [
+    {
+      "draftId": "e3624fda-b7ff-44a0-b3ef-7add80524ef7",
+      "name": "Torah reading 1",
+      "status": "verified-current",
+      "kind": "original",
+      "layout": "bottom",
+      "draftVersion": 4,
+      "previewId": "5db247cc-3666-4f46-8561-5d67a7aa800c",
+      "cueHash": "042333c698ec18c5544106213dcee2c9addc325c2d6697f4851ac545f7cb395f",
+      "fit": {
+        "verdict": "pass",
+        "fill": 0.4472
+      },
+      "imageInspected": "Lower third with title Torah Reading and placeholder lines Reader Name / Portion · Chapter:Verse, fully inside the bar, readable.",
+      "sourceCheck": "Custom placeholder text, unchanged.",
+      "approvalBasis": "Daniel blanket authorization for graphic publication (handoff 2026-09-23); no publish needed, current version already published",
+      "notes": "",
+      "at": "2026-09-23"
+    },
+    {
+      "draftId": "643fb791-9836-4ae3-bec9-52b6d43759a8",
+      "name": "Torah reading 2",
+      "status": "verified-current",
+      "kind": "original",
+      "layout": "bottom",
+      "draftVersion": 1,
+      "previewId": "0d2240d6-cede-428f-9767-878829323db6",
+      "cueHash": "db8b84a46a69733c0a58d6e885b26a88334a889343ea67aaa3f30b8e5a641743",
+      "fit": {
+        "verdict": "pass",
+        "fill": 0.4472
+      },
+      "imageInspected": "Lower third with title Torah Reading and placeholder lines Reader Name / Portion · Chapter:Verse, fully inside the bar, readable.",
+      "sourceCheck": "Custom placeholder text, unchanged.",
+      "approvalBasis": "Daniel blanket authorization for graphic publication (handoff 2026-09-23); no publish needed, current version already published",
+      "notes": "",
+      "at": "2026-09-23"
+    },
+    {
+      "draftId": "319439b3-3e2f-47e4-a2b0-36645fb9239c",
+      "name": "Torah reading 3",
+      "status": "verified-current",
+      "kind": "original",
+      "layout": "bottom",
+      "draftVersion": 1,
+      "previewId": "3cac4a95-0282-4658-90b8-a91425b95931",
+      "cueHash": "f26fcd6a3c1662a9665f412395a5b2fa7764cece719d0ad441959909aa8fcf49",
+      "fit": {
+        "verdict": "pass",
+        "fill": 0.4472
+      },
+      "imageInspected": "Lower third with title Torah Reading and placeholder lines Reader Name / Portion · Chapter:Verse, fully inside the bar, readable.",
+      "sourceCheck": "Custom placeholder text, unchanged.",
+      "approvalBasis": "Daniel blanket authorization for graphic publication (handoff 2026-09-23); no publish needed, current version already published",
+      "notes": "",
+      "at": "2026-09-23"
+    },
+    {
+      "draftId": "53240623-4182-4a65-bd01-ceaebc951f17",
+      "name": "Torah reading 4",
+      "status": "verified-current",
+      "kind": "original",
+      "layout": "bottom",
+      "draftVersion": 1,
+      "previewId": "e8ca2e62-1f1a-4ed6-8465-323f2b1ded4a",
+      "cueHash": "464873917f3a2e77b679f428e2ae727408538a49dc40772fcc76e4fde6e41d87",
+      "fit": {
+        "verdict": "pass",
+        "fill": 0.4472
+      },
+      "imageInspected": "Lower third with title Torah Reading and placeholder lines Reader Name / Portion · Chapter:Verse, fully inside the bar, readable.",
+      "sourceCheck": "Custom placeholder text, unchanged.",
+      "approvalBasis": "Daniel blanket authorization for graphic publication (handoff 2026-09-23); no publish needed, current version already published",
+      "notes": "",
+      "at": "2026-09-23"
+    },
+    {
+      "draftId": "09651fcc-3ba7-438f-bd9b-b77e8095ff84",
+      "name": "Torah reading 5",
+      "status": "verified-current",
+      "kind": "original",
+      "layout": "bottom",
+      "draftVersion": 1,
+      "previewId": "a669dd58-8bc8-497d-a870-72c4828bd5b7",
+      "cueHash": "44fbf09ed491b355d4330fa453ad1d653649a342e977b6a09aeb35b706f3e19a",
+      "fit": {
+        "verdict": "pass",
+        "fill": 0.4472
+      },
+      "imageInspected": "Lower third with title Torah Reading and placeholder lines Reader Name / Portion · Chapter:Verse, fully inside the bar, readable.",
+      "sourceCheck": "Custom placeholder text, unchanged.",
+      "approvalBasis": "Daniel blanket authorization for graphic publication (handoff 2026-09-23); no publish needed, current version already published",
+      "notes": "",
+      "at": "2026-09-23"
+    },
+    {
+      "draftId": "f976ce13-8388-413d-bb8d-8b67906fc36d",
+      "name": "Torah reading 6",
+      "status": "verified-current",
+      "kind": "original",
+      "layout": "bottom",
+      "draftVersion": 1,
+      "previewId": "6139a5f3-7b3a-4062-be99-a9e1b29a2f25",
+      "cueHash": "227751256d4abe904f1d2d916d6381beb56619c26ffbd5e60f13d2a0f428286a",
+      "fit": {
+        "verdict": "pass",
+        "fill": 0.4472
+      },
+      "imageInspected": "Lower third with title Torah Reading and placeholder lines Reader Name / Portion · Chapter:Verse, fully inside the bar, readable.",
+      "sourceCheck": "Custom placeholder text, unchanged.",
+      "approvalBasis": "Daniel blanket authorization for graphic publication (handoff 2026-09-23); no publish needed, current version already published",
+      "notes": "",
+      "at": "2026-09-23"
+    },
+    {
+      "draftId": "42c78ed3-40d2-451b-8401-17a582b0e63f",
+      "name": "Torah reading 7",
+      "status": "verified-current",
+      "kind": "original",
+      "layout": "bottom",
+      "draftVersion": 1,
+      "previewId": "8583719f-2946-4577-a03f-3dca7cc57c64",
+      "cueHash": "334a64d7fa1677b2e1f028e9b5982b5980d4ee656643b0d5348f2377a5250c99",
+      "fit": {
+        "verdict": "pass",
+        "fill": 0.4472
+      },
+      "imageInspected": "Lower third with title Torah Reading and placeholder lines Reader Name / Portion · Chapter:Verse, fully inside the bar, readable.",
+      "sourceCheck": "Custom placeholder text, unchanged.",
+      "approvalBasis": "Daniel blanket authorization for graphic publication (handoff 2026-09-23); no publish needed, current version already published",
+      "notes": "",
+      "at": "2026-09-23"
+    }
+  ]
+}

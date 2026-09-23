@@ -1,58 +1,63 @@
 {
- "family": "Copy of Thank you",
- "status": "held",
- "kind": "possible duplicate",
- "notes": "Report only, nothing changed. All four copies are identical in title, text, layout, presentation and template, and also identical to the original Thank you 09f50803. Only b2ad1eba is published.",
- "graphics": [
-  {
-   "draftId": "54252ebd-5916-4001-a8ee-4dcc11e5cefd",
-   "name": "Copy of Thank you",
-   "title": "Central Reform Congregation",
-   "text": "Thank you for joining! Learn more at centralreform.org",
-   "layout": "right",
-   "presentation": {},
-   "templateCueId": "09f50803-3288-4b78-bcc7-560025668e1a",
-   "version": 3,
-   "activeVersion": null,
-   "published": false
-  },
-  {
-   "draftId": "aa3dec12-5c9e-4d1e-a7a9-67ca530acc14",
-   "name": "Copy of Thank you",
-   "title": "Central Reform Congregation",
-   "text": "Thank you for joining! Learn more at centralreform.org",
-   "layout": "right",
-   "presentation": {},
-   "templateCueId": "09f50803-3288-4b78-bcc7-560025668e1a",
-   "version": 1,
-   "activeVersion": null,
-   "published": false
-  },
-  {
-   "draftId": "b2ad1eba-016e-4cb9-a503-9e0923581da2",
-   "name": "Copy of Thank you",
-   "title": "Central Reform Congregation",
-   "text": "Thank you for joining! Learn more at centralreform.org",
-   "layout": "right",
-   "presentation": {},
-   "templateCueId": "09f50803-3288-4b78-bcc7-560025668e1a",
-   "version": 1,
-   "activeVersion": 1,
-   "published": true
-  },
-  {
-   "draftId": "c95443cf-e002-4669-ae7f-67af4d81934e",
-   "name": "Copy of Thank you",
-   "title": "Central Reform Congregation",
-   "text": "Thank you for joining! Learn more at centralreform.org",
-   "layout": "right",
-   "presentation": {},
-   "templateCueId": "09f50803-3288-4b78-bcc7-560025668e1a",
-   "version": 1,
-   "activeVersion": null,
-   "published": false
+  "family": "Copy of Thank you",
+  "status": "archived",
+  "kind": "possible duplicate",
+  "notes": "Report only, nothing changed. All four copies are identical in title, text, layout, presentation and template, and also identical to the original Thank you 09f50803. Only b2ad1eba is published.",
+  "graphics": [
+    {
+      "draftId": "54252ebd-5916-4001-a8ee-4dcc11e5cefd",
+      "name": "Copy of Thank you",
+      "title": "Central Reform Congregation",
+      "text": "Thank you for joining! Learn more at centralreform.org",
+      "layout": "right",
+      "presentation": {},
+      "templateCueId": "09f50803-3288-4b78-bcc7-560025668e1a",
+      "version": 3,
+      "activeVersion": null,
+      "published": false
+    },
+    {
+      "draftId": "aa3dec12-5c9e-4d1e-a7a9-67ca530acc14",
+      "name": "Copy of Thank you",
+      "title": "Central Reform Congregation",
+      "text": "Thank you for joining! Learn more at centralreform.org",
+      "layout": "right",
+      "presentation": {},
+      "templateCueId": "09f50803-3288-4b78-bcc7-560025668e1a",
+      "version": 1,
+      "activeVersion": null,
+      "published": false
+    },
+    {
+      "draftId": "b2ad1eba-016e-4cb9-a503-9e0923581da2",
+      "name": "Copy of Thank you",
+      "title": "Central Reform Congregation",
+      "text": "Thank you for joining! Learn more at centralreform.org",
+      "layout": "right",
+      "presentation": {},
+      "templateCueId": "09f50803-3288-4b78-bcc7-560025668e1a",
+      "version": 1,
+      "activeVersion": 1,
+      "published": true
+    },
+    {
+      "draftId": "c95443cf-e002-4669-ae7f-67af4d81934e",
+      "name": "Copy of Thank you",
+      "title": "Central Reform Congregation",
+      "text": "Thank you for joining! Learn more at centralreform.org",
+      "layout": "right",
+      "presentation": {},
+      "templateCueId": "09f50803-3288-4b78-bcc7-560025668e1a",
+      "version": 1,
+      "activeVersion": null,
+      "published": false
+    }
+  ],
+  "approvalBasis": "Daniel blanket authorization for graphic publication (handoff 2026-09-23); no review/publish performed in this packet; not a per-graphic inspection by Daniel",
+  "at": "2026-09-23",
+  "decision": {
+    "at": "2026-09-23",
+    "by": "main thread",
+    "action": "archived all four as byte-identical duplicates of Thank you 09f50803 (content, presentation, template, title); 54252ebd v4, aa3dec12 v2, b2ad1eba v2 (published rev 1 keeps serving per gap E), c95443cf v2. Reversible with restore_draft. The new preset binds only 09f50803."
   }
- ],
- "approvalBasis": "Daniel blanket authorization for graphic publication (handoff 2026-09-23); no review/publish performed in this packet; not a per-graphic inspection by Daniel",
- "at": "2026-09-23"
 }

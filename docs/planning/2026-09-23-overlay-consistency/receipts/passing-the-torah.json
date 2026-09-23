@@ -1,0 +1,23 @@
+{
+  "draftId": "cadc69dd-79b4-4cf0-b6d7-c64f7c2502b2",
+  "name": "Passing the Torah",
+  "status": "held",
+  "kind": "original",
+  "layout": "right",
+  "draftVersion": 1,
+  "activeRevision": 1,
+  "previewId": "e9820191-145f-4d24-9876-08fc5d3892e1",
+  "cueHash": "ee98550f046c587c547dbc5ec0ec53e153f10756f72c12daf88b71c122f9ac9b",
+  "fit": {
+    "verdict": "pass",
+    "fill": 0.0967,
+    "warnings": [
+      "Sparse — consider Lower third"
+    ]
+  },
+  "imageInspected": "Right panel: the two text lines are right-aligned to a point inside the panel and the first line overhangs the panel's left edge (the F of From is clipped outside); large empty panel.",
+  "sourceCheck": "Custom-text draft (no source blocks); published revision matches current draft version; no change made.",
+  "approvalBasis": "Not republished; held for main-thread decision (already live at this version).",
+  "notes": "Server fit reports pass (with warning Sparse, consider Lower third) but the image shows text escaping the panel. Already live at this version. Possible renderer bug for right layout with custom text, or a layout decision (bottom). Not changed.",
+  "at": "2026-09-23"
+}

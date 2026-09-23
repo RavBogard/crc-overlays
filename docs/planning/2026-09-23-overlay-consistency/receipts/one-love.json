@@ -1,0 +1,20 @@
+{
+  "draftId": "dd0db929-cddb-49a5-b871-045dd80a511a",
+  "name": "One Love",
+  "status": "verified-current",
+  "kind": "original",
+  "layout": "left",
+  "draftVersion": 1,
+  "activeRevision": 1,
+  "previewId": "ae68fc59-ab14-4afb-9220-e142883dc2d6",
+  "cueHash": "3c973265c9a3d96aa9517f5ac7e7f90158fb7e0cd98c604df24320d6dfae94db",
+  "fit": {
+    "verdict": "pass",
+    "fill": 0.7615
+  },
+  "imageInspected": "Left panel, title One Love + accent שְׁמַע, three English stanzas fully inside at readable size.",
+  "sourceCheck": "Custom-text draft (no source blocks); published revision matches current draft version; no change made.",
+  "approvalBasis": "No publish needed (already published at current version).",
+  "notes": "Accent שְׁמַע shared with How Awesome / Shema: kept per the resolved main-thread decision (leave One Love's שְׁמַע).",
+  "at": "2026-09-23"
+}

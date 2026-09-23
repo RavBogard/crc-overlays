@@ -1,0 +1,46 @@
+{
+  "family": "Prayer for Healing",
+  "graphics": [
+    {
+      "draftId": "2bfbe40e-ded5-4de3-8978-f347d9e99a83",
+      "name": "Jim Mi Sheb",
+      "status": "verified-current",
+      "kind": "original",
+      "layout": "left",
+      "draftVersion": 1,
+      "activeRevision": 1,
+      "previewId": "d84815c8-98ec-4b5e-83f4-4eca9dee8bd1",
+      "cueHash": "4d41416d5ae39cfebd4a46f3789e44d4807e71973b368c776fb22e7b87714e32",
+      "fit": {
+        "verdict": "pass",
+        "fill": 0.8121
+      },
+      "imageInspected": "Left panel, title Prayer for Healing + accent מי שברך, two English stanzas fully inside at readable size.",
+      "sourceCheck": "Custom-text draft (no source blocks); published revision matches current draft version; no change made.",
+      "approvalBasis": "No publish needed (already published at current version).",
+      "notes": "Named alternate (Jim), not a part; stays its own graphic.",
+      "at": "2026-09-23"
+    },
+    {
+      "draftId": "1f826b16-c4df-4256-bfb0-befdec2f9f71",
+      "name": "Mi Sheberach",
+      "status": "verified-current",
+      "kind": "original",
+      "layout": "left",
+      "draftVersion": 2,
+      "activeRevision": 1,
+      "previewId": "48405390-b3ec-4798-ac74-ad68519c467c",
+      "cueHash": "8123ddd76cc2a16e69867554ed5a592ce8155b8615659a1ab6908acfa106d471",
+      "fit": {
+        "verdict": "pass",
+        "fill": 0.8121
+      },
+      "imageInspected": "Left panel, title Prayer for Healing + accent מי שברך, two stanzas fully inside at readable size.",
+      "sourceCheck": "Custom-text draft (no source blocks); published revision matches current draft version; no change made.",
+      "approvalBasis": "No publish needed (already published at current version).",
+      "notes": "Draft version 2 is the active version (published revision 1 corresponds to it). Accent is unpointed, same as sibling.",
+      "at": "2026-09-23"
+    }
+  ],
+  "at": "2026-09-23"
+}

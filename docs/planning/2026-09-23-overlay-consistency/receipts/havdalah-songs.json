@@ -1,0 +1,20 @@
+{
+  "draftId": "3c8c6537-7895-45c6-b6fd-226a39def79c",
+  "name": "Havdalah Songs",
+  "status": "verified-current",
+  "kind": "original",
+  "layout": "left",
+  "draftVersion": 1,
+  "activeRevision": 1,
+  "previewId": "f13798a0-8ef8-41d6-bbf3-d83c356cc8bb",
+  "cueHash": "6318e671f602d46279af9f32f6726c0ca17f09c5534efdc647ab23fd2f10c82e",
+  "fit": {
+    "verdict": "pass",
+    "fill": 0.8121
+  },
+  "imageInspected": "Left panel, title Havdalah + accent הַבְדָּלָה, three transliterated paragraphs (Eliyahu, Miryam, Shavua Tov) fully inside at readable size.",
+  "sourceCheck": "Custom-text draft (no source blocks); published revision matches current draft version; no change made.",
+  "approvalBasis": "No publish needed (already published at current version).",
+  "notes": "Single graphic, transliteration only; lineSpacing compact is existing presentation.",
+  "at": "2026-09-23"
+}

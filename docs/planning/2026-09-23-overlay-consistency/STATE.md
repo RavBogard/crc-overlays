@@ -41,6 +41,19 @@ built from Michael's operating logic, bound only to final published cue IDs.
   as a lower third; one layout per piece); no accent added. Havd 1-4 stay one left sequence
   despite sparse single-blessing panels (>2 parts rule). Eliyahu Hanavi "(3x)" placement is
   source text, unchanged.
+- Packets 15-16 answers: Haftarah reading 1-3 and Torah reading 1-7 are per-reader placeholders
+  (separate graphics), so they stay lower thirds. The four "Copy of Thank you" drafts are archived
+  as byte-identical duplicates of Thank you 09f50803. Right-panel custom text outside the panel
+  (Thank you, Passing the Torah, Silent Prayer) and Arabic tofu (Od Yavo Shalom) are renderer
+  gaps H and I, fixed in code; those graphics are re-verified after the release. The doubled
+  patach in the Hashkiveinu accent/title (4 accents + Take This Soul title) is a typo fix like
+  Miryam's, applied after the release. One Love and Psalm-ish accents kept (earlier ruling).
+  Mazel Tov custom Hebrew "או לכל ישראל" (transliteration u'l'chol) is a wording question for
+  Daniel; unchanged.
+- Packet 17 answers: Remember Them 1-3 ("Name" placeholders) are per-reader graphics like Torah
+  reading 1-7 and stay lower thirds. R'fa Tziri 1-2 are custom text with no siddur source
+  (search_sources "tziri" is empty); they stay published as they are (transliteration before
+  Hebrew). Re-laying out custom text is a question for Daniel, not a silent edit.
 - Authorization basis for every review: Daniel's blanket approval of graphic publication and paired
   deployment (handoff 2026-09-23); never a claim that Daniel inspected each graphic.
 

@@ -1,0 +1,20 @@
+{
+  "draftId": "316689ce-00df-4943-9ae8-938fb507031f",
+  "name": "Ozi vzimrat",
+  "status": "verified-current",
+  "kind": "original",
+  "layout": "bottom",
+  "draftVersion": 1,
+  "activeRevision": 1,
+  "previewId": "017ff0d7-4c2b-4063-830a-5526eaa0e3a3",
+  "cueHash": "14504122630a7b7bff0b74f9341b442bf6dac6f26cd43bb88fd0415c3f577ef8",
+  "fit": {
+    "verdict": "pass",
+    "fill": 0.4472
+  },
+  "imageInspected": "Two-line lower third, transliteration then pointed Hebrew, fully inside at readable size.",
+  "sourceCheck": "Custom-text draft (no source blocks); published revision matches current draft version; no change made.",
+  "approvalBasis": "No publish needed (already published at current version).",
+  "notes": "Transliteration precedes Hebrew (custom text order); left unchanged.",
+  "at": "2026-09-23"
+}

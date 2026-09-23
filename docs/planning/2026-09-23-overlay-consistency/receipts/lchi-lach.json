@@ -1,0 +1,20 @@
+{
+  "draftId": "fb5ee989-1027-44b2-8d80-b94dafeea9bf",
+  "name": "L'chi Lach",
+  "status": "verified-current",
+  "kind": "original",
+  "layout": "left",
+  "draftVersion": 1,
+  "activeRevision": 1,
+  "previewId": "5ef684fb-073a-48b1-8912-7ab0a412e7f7",
+  "cueHash": "6d7ff1236153338f82521755b2694bacd04ab03ddcc53bdfe527f5591c007d62",
+  "fit": {
+    "verdict": "pass",
+    "fill": 0.8121
+  },
+  "imageInspected": "Left panel, title L'chi Lach + accent לְכִי לָךְ, eight English lines fully inside at readable size.",
+  "sourceCheck": "Custom-text draft (no source blocks); published revision matches current draft version; no change made.",
+  "approvalBasis": "No publish needed (already published at current version).",
+  "notes": "Single graphic.",
+  "at": "2026-09-23"
+}

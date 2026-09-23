@@ -1,0 +1,44 @@
+{
+  "family": "R'fa Tziri",
+  "at": "2026-09-23",
+  "graphics": [
+    {
+      "draftId": "c17839d9-3e42-4a6d-9de6-875c1ae61f48",
+      "name": "Refa Tziri 1",
+      "status": "held",
+      "kind": "original",
+      "layout": "left",
+      "draftVersion": 1,
+      "previewId": "278dba24-7dc1-4014-8fc9-d48d8fa95214",
+      "cueHash": "032f532dba0c264b6bf43381ceaa5c15d6eda344c11c41b45bcac97a5971aa51",
+      "fit": {
+        "verdict": "pass",
+        "fill": 0.8121
+      },
+      "imageInspected": "Left panel, fits; 8 transliteration lines then 4 Hebrew lines whose second half-verse wraps (e.g. a dangling final word on its own line); title and accent title correct.",
+      "sourceCheck": "Custom (local) text, not source-bound; cannot restyle to paired blocks without rewriting custom text, which the protocol forbids.",
+      "approvalBasis": "none (held; no review/publish)",
+      "notes": "Published version is current and passes fit, but image fails the reading check: all transliteration first, then all Hebrew (not paired paragraphs), and the two-column Hebrew half-lines wrap leaving dangling words. Left unchanged; needs main-thread decision.",
+      "at": "2026-09-23"
+    },
+    {
+      "draftId": "eff3e584-6839-4e78-8c04-34518cbf8316",
+      "name": "Refa Tziri 2",
+      "status": "held",
+      "kind": "original",
+      "layout": "left",
+      "draftVersion": 1,
+      "previewId": "d641a909-e708-434a-8edc-09d216861b29",
+      "cueHash": "a1691af9b4684381e7622934b21e2880250ce309ffce13bc29993c320ab8da6c",
+      "fit": {
+        "verdict": "pass",
+        "fill": 0.7108
+      },
+      "imageInspected": "Left panel, fits; transliteration block then Hebrew block, one Hebrew half-verse wraps to a dangling word; title and accent title correct.",
+      "sourceCheck": "Custom (local) text, not source-bound; cannot restyle to paired blocks without rewriting custom text, which the protocol forbids.",
+      "approvalBasis": "none (held; no review/publish)",
+      "notes": "Published version is current and passes fit, but image fails the reading check: all transliteration first, then all Hebrew (not paired paragraphs), and the two-column Hebrew half-lines wrap leaving dangling words. Left unchanged; needs main-thread decision.",
+      "at": "2026-09-23"
+    }
+  ]
+}

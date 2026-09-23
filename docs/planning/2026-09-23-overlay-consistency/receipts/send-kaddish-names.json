@@ -1,0 +1,20 @@
+{
+  "draftId": "d0a1be50-2ee0-4604-81d6-c3083376bf89",
+  "name": "Send Kaddish Names",
+  "status": "verified-current",
+  "kind": "original",
+  "layout": "bottom",
+  "draftVersion": 2,
+  "activeRevision": 2,
+  "previewId": "11f8f5b2-fbc6-4df0-83f4-ffc8932c8dd8",
+  "cueHash": "be8a43b91c681e88f23de1f792d5297f192ecabbefe5cbaf5aa7b73de67ffa8b",
+  "fit": {
+    "verdict": "pass",
+    "fill": 0.4389
+  },
+  "imageInspected": "One-line announcement lower third, title Mourner's Kaddish, fully inside at readable size.",
+  "sourceCheck": "Custom-text draft (no source blocks); published revision matches current draft version; no change made.",
+  "approvalBasis": "No publish needed (already published at current version).",
+  "notes": "Announcement; no accent title by design.",
+  "at": "2026-09-23"
+}

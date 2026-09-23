@@ -1,0 +1,19 @@
+{
+  "draftId": "f69d012c-a0c0-4f56-86bf-352e176a5ba7",
+  "name": "Sanctuary/Adonai Sifatai",
+  "status": "verified-current",
+  "kind": "original",
+  "layout": "bottom",
+  "draftVersion": 3,
+  "previewId": "d30367a7-7da8-4e04-bd03-4b5d007b1188",
+  "cueHash": "e3241f30220c56a0f26198847d636faf0a9d157e4ff7f8ceeb02d5180fa263bd",
+  "fit": {
+    "verdict": "pass",
+    "fill": 0.5361
+  },
+  "imageInspected": "Lower third titled Sanctuary with the English lyric (wraps to 2 lines) and the Adonai s'fatai transliteration line, all inside the bar, readable.",
+  "sourceCheck": "Custom text, unchanged; no Hebrew or accent title present.",
+  "approvalBasis": "Daniel blanket authorization for graphic publication (handoff 2026-09-23); no publish needed, current version already published",
+  "notes": "",
+  "at": "2026-09-23"
+}

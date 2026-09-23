@@ -52,15 +52,16 @@
 .left .logo{left:87px;bottom:68px;width:120px;height:120px;transform-origin:center}
 .left .accent{left:32px;bottom:32px;width:704px;height:8px;border-radius:0 0 26px 26px;transform-origin:center}
 
-/* Right panel - original geometry (still the winning rule for .right .prayer, which
-   carries :not(.content-row *) and so outranks the later .right .combined rules). */
+/* Right panel - original geometry. .right .prayer carries :not(.content-row *) and so outranks
+   the later .right .combined rules; it therefore holds the CURRENT panel geometry, mirroring the
+   left panel's lone-channel box, so a custom right panel's text stays inside the panel. */
 .right::before{width:188px;height:188px;right:54px;bottom:50px}
 .right::after{width:154px;height:154px;right:71px;bottom:67px}
 .right .base{right:32px;top:72px;width:680px;height:936px;border-radius:26px;transform-origin:center}
 .right .titlebar{right:32px;top:72px;width:680px;height:150px;border-radius:26px 26px 0 0;transform-origin:center bottom}
 .right .title{right:72px;top:107px;width:600px;height:74px;font-size:34px}
 .right .title-accent{right:72px;width:250px}
-.right .prayer:not(.content-row *){right:72px;top:266px;width:600px;height:560px;font-size:33px}
+.right .prayer:not(.content-row *){right:48px;top:184px;width:576px;height:840px;font-size:38px}
 .right .logo{right:87px;bottom:68px;width:120px;height:120px;transform-origin:center}
 .right .accent{right:32px;bottom:72px;width:680px;height:8px;border-radius:0 0 26px 26px;transform-origin:center}
 
@@ -69,9 +70,12 @@
 @font-face{font-family:WorkRefresh;src:url('/assets/QGY_z_wNahGAdqQ43RhVcIgYT2Xz5u32K3vXBi8Jpg.woff2') format('woff2');font-style:normal;font-weight:500;font-display:block}
 @font-face{font-family:Noto Sans Hebrew;src:url('/assets/NotoSansHebrew-Regular.ttf') format('truetype');font-style:normal;font-weight:400;font-display:block}
 @font-face{font-family:Noto Sans Hebrew;src:url('/assets/NotoSansHebrew-Medium.ttf') format('truetype');font-style:normal;font-weight:500;font-display:block}
-.overlay{font-family:WorkRefresh,Arial,sans-serif}
-.overlay .prayer{font-family:WorkRefresh,Arial,sans-serif}
-.overlay .hebrew,.overlay .row-hebrew,.overlay .title-accent{font-family:Noto Sans Hebrew,Arial,sans-serif}
+/* Arabic fallback (Od Yavo Shalom's سلام): the overlay faces carry no Arabic letters, so a renderer without a
+   system Arabic font drew empty boxes. unicode-range keeps it off the wire for every other cue. */
+@font-face{font-family:Noto Sans Arabic;src:url('/assets/NotoSansArabic-Regular.ttf') format('truetype');font-style:normal;font-weight:400 500;font-display:block;unicode-range:U+0600-06FF,U+0750-077F,U+08A0-08FF,U+FB50-FDFF,U+FE70-FEFF}
+.overlay{font-family:WorkRefresh,Noto Sans Arabic,Arial,sans-serif}
+.overlay .prayer{font-family:WorkRefresh,Noto Sans Arabic,Arial,sans-serif}
+.overlay .hebrew,.overlay .row-hebrew,.overlay .title-accent{font-family:Noto Sans Hebrew,Noto Sans Arabic,Arial,sans-serif}
 
 /* Refresh pass 1: the medallion logo, and a first re-cut of the lower third and left panel. */
 .logo{object-fit:cover;object-position:center;border-radius:50%;background:var(--crc-paper);border:3px solid rgba(217,166,46,.9);padding:5px;box-shadow:0 6px 18px rgba(3,26,45,.22)}
@@ -175,8 +179,8 @@
 .content-row{padding:12px 16px 13px;border-top:2px solid color-mix(in srgb,var(--crc-turquoise) 38%,transparent);background:color-mix(in srgb,var(--crc-paper) 82%,transparent)}
 .content-row:first-child{border-top-color:transparent}
 .row-hebrew{font-family:WorkRefresh,Arial,sans-serif;font-size:38px;line-height:1.18;direction:rtl;text-align:right;unicode-bidi:plaintext}
-.row-transliteration{margin-top:5px;font-family:WorkRefresh,Arial,sans-serif;font-size:30px;line-height:1.2;font-weight:500;unicode-bidi:plaintext}
-.row-translation{margin-top:4px;font-family:WorkRefresh,Arial,sans-serif;font-size:24px;line-height:1.22;color:#385365;unicode-bidi:plaintext}
+.row-transliteration{margin-top:5px;font-family:WorkRefresh,Noto Sans Arabic,Arial,sans-serif;font-size:30px;line-height:1.2;font-weight:500;unicode-bidi:plaintext}
+.row-translation{margin-top:4px;font-family:WorkRefresh,Noto Sans Arabic,Arial,sans-serif;font-size:24px;line-height:1.22;color:#385365;unicode-bidi:plaintext}
 .content-row>.prayer:first-child{margin-top:0}
 .panel-rows-dense{gap:10px;justify-content:flex-start}
 .panel-rows-dense .content-row{padding-block:8px 9px}

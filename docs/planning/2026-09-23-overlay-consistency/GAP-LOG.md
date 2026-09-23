@@ -89,3 +89,26 @@ dumps, source sets) were closed before 2026-09-23; see the handoff START-HERE.md
   (`"same as revision.cue"`); set mutation results summarize each member's `draftSetManifest` as
   `{version, selectionCount}` (an archive of a 5-member set repeated the 5-selection manifest 5 times).
 - Remaining: get_draft itself is still large; use list_drafts compact for inspection.
+
+## H. Custom right-panel text outside the panel, and a fit check that passed it
+- Reproduction: "Thank you" `09f50803…`, "Passing the Torah" `cadc69dd…`, "Silent Prayer"
+  `bf4eb2c9…` (all layout right, custom textMain). Preview image: the first letter of each line
+  sits left of the panel edge. Server fit check: pass.
+- Cause: `.right .prayer:not(.content-row *)` (specificity 0,3,0) kept the pre-redesign geometry
+  (right 72, width 600, top 266) and outranked the current `.right .combined` rule, so the box ran
+  from x1248 while the 640px panel starts at x1264. findFitErrors only checked the frame, not the
+  panel.
+- Shared fix: that rule now holds the current geometry mirroring the left lone-channel box
+  (right 48, top 184, width 576, height 840, 38px); findFitErrors also reports "<element> extends
+  beyond the panel." for side-panel copy outside `.base`. Tests: `tests/right-panel-geometry.test.ts`,
+  `app/author/preview-panel.test.ts`.
+- Live proof: pending release.
+
+## I. Arabic letters render as empty boxes
+- Reproduction: Od Yavo Shalom `e7b73357…` ("سلام"); server preview shows tofu boxes.
+- Cause: the overlay faces (Work, Noto Sans Hebrew) have no Arabic glyphs and the server Chromium
+  has no system Arabic font. Windows renderers may fall back to Arial; not verifiable here.
+- Shared fix: bundled Noto Sans Arabic (OFL, `public/assets/NotoSansArabic-*`) as a fallback in the
+  overlay text stacks, `unicode-range` limited to Arabic so no other cue downloads it. Test:
+  `tests/overlay-arabic-font.test.ts`.
+- Live proof: pending release.

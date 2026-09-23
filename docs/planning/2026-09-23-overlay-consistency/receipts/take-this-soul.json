@@ -1,0 +1,20 @@
+{
+  "draftId": "02fe9320-56dd-4271-85b8-d046f683074d",
+  "name": "Take This Soul",
+  "status": "verified-current",
+  "kind": "original",
+  "layout": "bottom",
+  "draftVersion": 1,
+  "activeRevision": 1,
+  "previewId": "c5b13fd6-300b-499a-827e-a67277422f65",
+  "cueHash": "a2b55300c9a4972ceab7a481e81c570091baef4325febcdf51cf6b6479af8f83",
+  "fit": {
+    "verdict": "pass",
+    "fill": 0.6889
+  },
+  "imageInspected": "Four-line English lower third fully inside the panel at readable size; title reads Hashkiveinu + Hebrew / U2.",
+  "sourceCheck": "Custom-text draft (no source blocks); published revision matches current draft version; no change made.",
+  "approvalBasis": "No publish needed (already published at current version).",
+  "notes": "Title Hebrew is spelled with a doubled patach (U+05B7 twice on the first he); renders acceptably, left unchanged, flagged for main thread.",
+  "at": "2026-09-23"
+}

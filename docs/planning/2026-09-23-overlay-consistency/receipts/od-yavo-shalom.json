@@ -1,0 +1,20 @@
+{
+  "draftId": "e7b73357-ae15-4880-8e8c-7d9f7ef754b4",
+  "name": "Od Yavo Shalom",
+  "status": "held",
+  "kind": "original",
+  "layout": "bottom",
+  "draftVersion": 1,
+  "activeRevision": 1,
+  "previewId": "946fecc8-6332-4d68-b040-52abb86ddcc6",
+  "cueHash": "29ee71875b8481427710758b9e21439ac31871117318bb4e68952e77650f0356",
+  "fit": {
+    "verdict": "pass",
+    "fill": 0.5667
+  },
+  "imageInspected": "Three mixed lines fit inside the panel, but the Arabic word سلام renders as missing-glyph boxes (tofu) in both places on line 3.",
+  "sourceCheck": "Custom-text draft (no source blocks); published revision matches current draft version; no change made.",
+  "approvalBasis": "Not republished; held for main-thread decision (already live at this version).",
+  "notes": "Fit passes but image not acceptable: the overlay font stack has no Arabic glyphs. Already live at this version with the same defect. Needs a font fallback (code) or a wording decision; not changed.",
+  "at": "2026-09-23"
+}

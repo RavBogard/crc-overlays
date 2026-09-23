@@ -1,0 +1,20 @@
+{
+  "draftId": "016b6fc4-6ff6-4a69-a42a-53f6403f846f",
+  "name": "Mazel Tov",
+  "status": "verified-current",
+  "kind": "original",
+  "layout": "bottom",
+  "draftVersion": 1,
+  "activeRevision": 1,
+  "previewId": "dc388f9e-8962-47aa-a2ee-a9a6e103b484",
+  "cueHash": "a9b978f2a791313e48cab7a737e52e26e9c26c58f8ec18c9d702c47c4823e318",
+  "fit": {
+    "verdict": "pass",
+    "fill": 0.5667
+  },
+  "imageInspected": "Three-line lower third (two transliteration lines, one unpointed Hebrew line) fully inside at readable size.",
+  "sourceCheck": "Custom-text draft (no source blocks); published revision matches current draft version; no change made.",
+  "approvalBasis": "No publish needed (already published at current version).",
+  "notes": "Wording left untouched but flagged: Hebrew line has transliteration before Hebrew and reads \"או לכל ישראל\" where the transliteration says u'l'chol (ולכל); also a stray space before the comma.",
+  "at": "2026-09-23"
+}

@@ -73,6 +73,9 @@ export function findFitErrors(root: HTMLElement) {
   const rootBox = root.getBoundingClientRect();
   if (!root.querySelector(".overlay")) return ["The graphic did not render."];
   const scale = rootBox.width / WIDTH || 1;
+  // A side panel's copy must also sit inside the panel itself, not merely inside the frame: a
+  // stale geometry rule once put a custom right panel's text 16px outside the panel's left edge.
+  const panel = root.querySelector<HTMLElement>(".overlay.left .base, .overlay.right .base")?.getBoundingClientRect();
   for (const element of root.querySelectorAll<HTMLElement>(".overlay .part, .overlay .content-row, .overlay .prayer")) {
     const box = element.getBoundingClientRect();
     const name = element.dataset.element || "Graphic";
@@ -83,6 +86,8 @@ export function findFitErrors(root: HTMLElement) {
       box.bottom > rootBox.top + HEIGHT * scale + 0.5
     )
       errors.push(`${name} extends beyond the frame.`);
+    if (panel && (box.left < panel.left - 0.5 || box.right > panel.right + 0.5 || box.top < panel.top - 0.5 || box.bottom > panel.bottom + 0.5))
+      errors.push(`${name} extends beyond the panel.`);
     const tolerance = overflowTolerance(element);
     if (element.scrollWidth > element.clientWidth + tolerance || element.scrollHeight > element.clientHeight + tolerance)
       errors.push(`${name} does not fit its box.`);

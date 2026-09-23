@@ -1,0 +1,20 @@
+{
+  "draftId": "80f96159-5989-42dd-9620-c617057f1014",
+  "name": "Send Healing Names",
+  "status": "verified-current",
+  "kind": "original",
+  "layout": "bottom",
+  "draftVersion": 2,
+  "activeRevision": 2,
+  "previewId": "2fe9491b-bc44-47f5-b48f-621dfd675328",
+  "cueHash": "25b0f68de6a9796e93e1ba10185e5351ac3e68c483adef8f88adbf1e770ea3ed",
+  "fit": {
+    "verdict": "pass",
+    "fill": 0.4389
+  },
+  "imageInspected": "One-line announcement lower third, title Healing Prayers, fully inside at readable size.",
+  "sourceCheck": "Custom-text draft (no source blocks); published revision matches current draft version; no change made.",
+  "approvalBasis": "No publish needed (already published at current version).",
+  "notes": "Announcement; no accent title by design.",
+  "at": "2026-09-23"
+}

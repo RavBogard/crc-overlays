@@ -1,0 +1,46 @@
+{
+  "family": "Psalm-ish 150",
+  "graphics": [
+    {
+      "draftId": "8d70b40b-c072-452e-a016-9e47015056f6",
+      "name": "Psalm-ish 1",
+      "status": "verified-current",
+      "kind": "original",
+      "layout": "bottom",
+      "draftVersion": 5,
+      "activeRevision": 3,
+      "previewId": "c4a829a2-bd96-465c-8790-e4682aadb7bd",
+      "cueHash": "a358372d84f1720c92740bf56c4e565ddf3050cd7359eba38b197d0ac6ebdc7a",
+      "fit": {
+        "verdict": "pass",
+        "fill": 0.6889
+      },
+      "imageInspected": "Four-line lower third, phrases joined with middle dots, title Psalm-ish 150 + accent תְּהִלִּים, all inside at readable size.",
+      "sourceCheck": "Custom-text draft (no source blocks); published revision matches current draft version; no change made.",
+      "approvalBasis": "No publish needed (already published at current version).",
+      "notes": "Two parts only; stay bottom. Accent תְּהִלִּים shared with Psalm 23 kept per main-thread decision.",
+      "at": "2026-09-23"
+    },
+    {
+      "draftId": "ebbee099-e970-45e2-9aa8-db1992181e73",
+      "name": "Psalm-ish 2",
+      "status": "verified-current",
+      "kind": "original",
+      "layout": "bottom",
+      "draftVersion": 5,
+      "activeRevision": 3,
+      "previewId": "ba2f3829-9a65-480f-bedf-9b0c1117f5b2",
+      "cueHash": "07af5947b662088e6c1458dc77e4e37e50b2d91b6f191f8c7e71908d12083966",
+      "fit": {
+        "verdict": "pass",
+        "fill": 0.9278
+      },
+      "imageInspected": "Two English paragraphs plus a pointed Hebrew line, all inside at readable size; no dangling separators.",
+      "sourceCheck": "Custom-text draft (no source blocks); published revision matches current draft version; no change made.",
+      "approvalBasis": "No publish needed (already published at current version).",
+      "notes": "Accent תְּהִלִּים shared with Psalm 23 kept per main-thread decision (shared label). Source text has a double space in \"With  every\"; left unchanged.",
+      "at": "2026-09-23"
+    }
+  ],
+  "at": "2026-09-23"
+}
