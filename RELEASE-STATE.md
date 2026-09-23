@@ -4,7 +4,7 @@ What is deployed right now. Update this file on every release — it is the one 
 "what is live", and it is short so it can be read under pressure. The history is in
 `docs/planning/2026-09-deploys/` (25 deploy records, the release chain, the phase build notes).
 
-**Last updated: 2026-09-23** (paired release `3636857`: Michael's review — Corner layout, per-graphic row order, inline siddur wording edits with a Wording changes list, right-justified lower-third Hebrew title, honest siddur-picker preview. Evidence below under "Release 3636857".)
+**Last updated: 2026-09-23** (paired release `ebd4be4`: group tabs renamed; before it `3636857`, Michael's review — Corner layout, per-graphic row order, inline siddur wording edits with a Wording changes list, right-justified lower-third Hebrew title, honest siddur-picker preview. Evidence below under "Release 3636857".)
 
 ## Web, per workspace
 
@@ -13,13 +13,17 @@ both were released together on 2026-09-23 UTC (2026-09-22 evening Central).
 
 | Workspace | Host | Deployed commit | How it got there |
 |---|---|---|---|
-| CRC | `overlays.centralreform.org` (alt `crc-overlays.vercel.app`) | `3636857` | paired staged release, 2026-09-23, `dpl_H9vc1Yg55YAU3tQbZPnbEAMpVe9t` (the Git integration also builds every push to `main`) |
-| TBI | `overlays.templebnaiisrael.com` (alt `tbi-overlays.vercel.app`) | `3636857` | same paired run, 2026-09-23, `dpl_pYumE83i9ZM2vH7LDsSijzggDoBX` |
+| CRC | `overlays.centralreform.org` (alt `crc-overlays.vercel.app`) | `ebd4be4` | paired staged release, 2026-09-23, `dpl_9eT5dbGBiJpCNfaNm1jqcVpiJPmA` (the Git integration also builds every push to `main`) |
+| TBI | `overlays.templebnaiisrael.com` (alt `tbi-overlays.vercel.app`) | `ebd4be4` | same paired run, 2026-09-23, `dpl_F9qerggQiJ8D53kGTPdjFU6T9yHA` |
 
 This file is written after the release it describes, so the commit carrying these words is always one
 ahead of the shas in the table. That one commit is documentation: CRC's Git integration builds it by
 itself and TBI is not owed a release for it. Any commit that touches `app/`, `lib/`, `content/`,
 `components/`, `schemas/` or `workspaces/` **is** owed one.
+
+### Release ebd4be4 (2026-09-23 UTC)
+
+- Released exact SHA `ebd4be4022d3b7a207b3f6bbe13ee2e6e4e5ae41`. CRC `dpl_9eT5dbGBiJpCNfaNm1jqcVpiJPmA`, TBI `dpl_F9qerggQiJ8D53kGTPdjFU6T9yHA`; four hosts 200 with those ids. The siddur picker's tabs for parts of one graphic say Group (Daniel); Slide still means a separate graphic in a set. Gates: tsc, npm test (886 + 32 pass, 0 fail), lint (2 known warnings), build.
 
 ### Release 3636857 (2026-09-23 UTC)
 
