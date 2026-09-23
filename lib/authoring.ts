@@ -157,12 +157,12 @@ export type SharedAssetImporter=(id:string,actor:string)=>Promise<unknown>;
  * deployment's own /author/fit-stage; the module is imported lazily so neither playwright-core
  * nor the Chromium pack is pulled into a process that never runs a fit check. Tests inject.
  */
-export type ServerFitRunner=(cue:AuthoringCue)=>Promise<ServerFitResult>;
-const defaultServerFitRunner:ServerFitRunner=async cue=>{
+export type ServerFitRunner=(cue:AuthoringCue,options?:{includePreviewImage?:boolean})=>Promise<ServerFitResult>;
+const defaultServerFitRunner:ServerFitRunner=async(cue,options)=>{
  const [{measureCueOnServer},{canonicalOrigin}]=await Promise.all([import('./server-fit'),import('./oauth-core')]);
  // The origin is the configured public base URL, never the request host: the stage must be
  // the page this deployment serves, and a request host is attacker-controllable.
- return measureCueOnServer(cue as unknown as Cue,{origin:canonicalOrigin()});
+ return measureCueOnServer(cue as unknown as Cue,{origin:canonicalOrigin(),includePreviewImage:options?.includePreviewImage});
 };
 export function createAuthoringService(repo:AuthoringRepository,workspace:AuthoringWorkspace={rehearsal:false,storage:'postgres',label:null},shared:SharedLibraryReader=sharedLibraryClient,sharedAssetImporter:SharedAssetImporter=(id,actor)=>importSharedAsset(id,actor),serverFit:ServerFitRunner=defaultServerFitRunner){
  // Every name a person can currently see in the library: the baseline catalog this
@@ -374,7 +374,7 @@ export function createAuthoringService(repo:AuthoringRepository,workspace:Author
    const arrangement=data.arrangement;if(arrangement!==undefined&&arrangement!=='together'&&arrangement!=='blocks')throw new AuthoringError('invalid_input','arrangement must be together or blocks');
    const options:DraftStyleOptions={layout,arrangement,comfortableTypography:optionalBoolean(data.comfortableTypography,'comfortableTypography')};
    const dryRun=optionalBoolean(data.dryRun,'dryRun')??true;
-   const templates=baselineCatalogForWorkspace().filter(template=>!template.hidden).map(template=>({id:template.id,layout:template.layout as Layout}));
+   const templates=baselineCatalogForWorkspace().filter(template=>!template.hidden).map(template=>({id:baselineSourceCueId(template.id),layout:template.layout as Layout}));
    const plan=planDraftStyle(current,options,templates),compact=compactStylePlan(plan);
    if(dryRun)return {draft:{id:current.id,version:current.version,activeVersion:current.activeDraftVersion},dryRun:true,applied:false,...compact};
    if(layout!==undefined&&plan.warnings.some(warning=>warning.startsWith('No compatible ')))throw new AuthoringError('style_template_unavailable',`No compatible ${layout} template is available`,409);
@@ -409,11 +409,12 @@ export function createAuthoringService(repo:AuthoringRepository,workspace:Author
   // R7/D17 - measure this exact preview in a real browser on the server and store the
   // verdict on the preview record. Nothing is published; nothing reaches live output.
   if(operation==='fit_check_draft'){
-   keys(data,['draftId','expectedVersion','previewId']);
+   keys(data,['draftId','expectedVersion','previewId','includePreviewImage']);
    const draft=await versionedDraft(repo,string(data.draftId,'draftId'),integer(data.expectedVersion,'expectedVersion',1));assertSourcePin(draft);
    const preview=await requiredPreview(repo,string(data.previewId,'previewId'));
    if(preview.draftId!==draft.id||preview.draftVersion!==draft.version)throw new AuthoringError('stale_preview','Preview does not match this draft version',409);
-   const result=await serverFit(preview.cue);
+   const includePreviewImage=optionalBoolean(data.includePreviewImage,'includePreviewImage')===true;
+   const result=await serverFit(preview.cue,{includePreviewImage});
    if(result.verdict==='unavailable')
     return {verdict:'unavailable',reason:result.reason,fitCheckUrl:`/author/fit-check?draft=${encodeURIComponent(draft.id)}`,message:FIT_CHECK_UNAVAILABLE};
    const fitCheck:ServerFitCheck={verdict:result.verdict,fitErrors:result.fitErrors,warnings:result.warnings,fill:result.fill,artwork:result.artwork,measuredAt:result.measuredAt,rendererVersion:result.rendererVersion};
@@ -421,7 +422,7 @@ export function createAuthoringService(repo:AuthoringRepository,workspace:Author
    // A pass whose artwork never loaded on the server is still a pass - findFitErrors never
    // evaluates artwork - but it says what it did not see rather than implying it did.
    const passMessage=fitCheck.artwork==='not-loaded'?FIT_CHECK_PASSED_NO_ARTWORK:FIT_CHECK_PASSED;
-   return {draftId:draft.id,draftVersion:draft.version,previewId:preview.id,cueHash:preview.cueHash,...fitCheck,...(fitCheck.verdict==='pass'?{message:passMessage}:{})};
+   return {draftId:draft.id,draftVersion:draft.version,previewId:preview.id,cueHash:preview.cueHash,...fitCheck,...(includePreviewImage?{previewImage:result.previewImage??null,...(result.previewImageUnavailable?{previewImageUnavailable:result.previewImageUnavailable}:{})}:{}),...(fitCheck.verdict==='pass'?{message:passMessage}:{})};
   }
   if(operation==='review_draft'){
    keys(data,['draftId','expectedVersion','previewId','browserMeasurement','humanApproved']);const draft=await versionedDraft(repo,string(data.draftId,'draftId'),integer(data.expectedVersion,'expectedVersion',1));assertSourcePin(draft);const preview=await requiredPreview(repo,string(data.previewId,'previewId'));if(preview.draftId!==draft.id||preview.draftVersion!==draft.version)throw new AuthoringError('stale_preview','Preview does not match this draft version',409);if(data.humanApproved!==true)throw new AuthoringError('review_required','Human approval is required',400);

@@ -110,6 +110,12 @@ test('MCP exposes fit_check_draft as a writing tool and passes its exact input t
  assert.deepEqual(Object.keys((calls[0].input as object)).sort(),['draftId','expectedVersion','previewId']);
 });
 
+test('MCP emits an opted-in fit image as content and never serializes its base64 in JSON',async()=>{
+ const handler=createAuthoringMcpHandler(async()=>({verdict:'pass',fitErrors:[],warnings:[],fill:0.5,artwork:'loaded',measuredAt:1,rendererVersion:'server-chromium/test',previewImage:{mimeType:'image/jpeg' as const,dataBase64:'AQID',width:1920,height:1080}}));
+ const body=await payload(await handler.fetch(request({jsonrpc:'2.0',id:32,method:'tools/call',params:{name:'fit_check_draft',arguments:{draftId:'draft-1',expectedVersion:2,previewId:'preview-1',includePreviewImage:true}}}),{authInfo})) as {result:{content:Array<{type:string;text?:string;data?:string;mimeType?:string}>}};
+ assert.equal(body.result.content.length,2);assert.deepEqual(body.result.content[1],{type:'image',data:'AQID',mimeType:'image/jpeg'});assert.doesNotMatch(body.result.content[0].text??'',/AQID/);assert.match(body.result.content[0].text??'',/1920/);
+});
+
 test('MCP offers prepare_service_from_setlist as a writing tool and routes its parsed input to authoring',async()=>{
  const calls:{operation:string;input:unknown;actor:string}[]=[];
  const handler=createAuthoringMcpHandler(async(operation,input,actor)=>{calls.push({operation,input,actor});return {collection:{id:'collection-1',name:'Shabbat Evening'},unmatched:[]}});

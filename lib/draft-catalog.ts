@@ -26,6 +26,7 @@ export type DraftCatalogSummary={
 };
 
 const normalized=(value:unknown)=>String(value??'').normalize('NFKD').replace(/[\u0591-\u05c7\p{M}]/gu,'').toLocaleLowerCase().replace(/[^\p{L}\p{N}]+/gu,' ').trim();
+const canonicalSources=new Map(sourcePack.sources.map(source=>[source.id,source]));
 
 function sourceIds(draft:Draft){
  const content=draft.content.mode==='local-variant'?draft.content.base:draft.content;
@@ -36,8 +37,7 @@ function sourceIds(draft:Draft){
 
 function sourceMetadata(draft:Draft){
  const snapshots=draft.sourceSnapshots??[];
- const canonical=new Map(sourcePack.sources.map(source=>[source.id,source]));
- return [...new Set(sourceIds(draft))].map(id=>snapshots.find(source=>source.id===id)??canonical.get(id)).filter((source):source is NonNullable<typeof source>=>Boolean(source));
+ return [...new Set(sourceIds(draft))].map(id=>snapshots.find(source=>source.id===id)??canonicalSources.get(id)).filter((source):source is NonNullable<typeof source>=>Boolean(source));
 }
 
 function summary(draft:Draft):DraftCatalogSummary{
@@ -54,7 +54,7 @@ function summary(draft:Draft):DraftCatalogSummary{
  // These are the editor's established Compact sizes. This is an authoring cue to inspect,
  // not a measurement or a visual-pass claim.
  const smallFont=(presentation.hebrewFontSize!==undefined&&presentation.hebrewFontSize<34)||(presentation.transliterationFontSize!==undefined&&presentation.transliterationFontSize<28)||(presentation.titleFontSize!==undefined&&presentation.titleFontSize<28);
- return {id:draft.id,name:draft.name,title:draft.title,version:draft.version,activeVersion:draft.activeDraftVersion,activeRevision:draft.activeRevision,layout:draft.layout,templateCueId:draft.templateCueId,presentation,arrangement,sourceBooks,sourceServices,flags:{smallFont,alternatingGrouping:arrangement==='blocks'}};
+ return {id:draft.id,name:draft.name,title:draft.title,version:draft.version,activeVersion:draft.activeDraftVersion,activeRevision:draft.activeRevision,layout:draft.layout,templateCueId:draft.templateCueId,presentation,arrangement,sourceBooks,sourceServices,flags:{smallFont,alternatingGrouping:arrangement==='together'}};
 }
 
 export function compactDraftCatalog(drafts:Draft[],input:DraftCatalogInput){
@@ -65,7 +65,7 @@ export function compactDraftCatalog(drafts:Draft[],input:DraftCatalogInput){
   if(book&&!row.sourceBooks.some(value=>normalized(value.value)===book||normalized(value.label)===book))return false;
   return !query||normalized([row.id,row.name,row.title,row.templateCueId,row.layout,row.arrangement??'',...row.sourceServices,...row.sourceBooks.flatMap(value=>[value.value,value.label])].join(' ')).includes(query);
  }).sort((a,b)=>a.id.localeCompare(b.id));
- const after=input.cursor?rows.filter(row=>row.id>input.cursor!):rows;
+ const after=input.cursor?rows.filter(row=>row.id.localeCompare(input.cursor!)>0):rows;
  const limit=input.limit??25, draftsPage=after.slice(0,limit);
  return {drafts:draftsPage,total:rows.length,nextCursor:after.length>draftsPage.length?draftsPage.at(-1)!.id:null};
 }

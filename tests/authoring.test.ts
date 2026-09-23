@@ -1,6 +1,6 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
-import {AuthoringError,baselineCues,buildCue,editableFromBaseline,sourcePack,type Draft,type AuthoringCue,type AuthoringSource,type BilingualContent,type OriginalEnglishContent,type SourceEnglishContent,type LocalVariantContent,type DraftSetSelection} from '../lib/authoring-model.ts';
+import {AuthoringError,baselineCues,buildCue,editableFromBaseline,sourcePack,type Draft,type DraftContent,type AuthoringCue,type AuthoringSource,type BilingualContent,type OriginalEnglishContent,type SourceEnglishContent,type LocalVariantContent,type DraftSetSelection} from '../lib/authoring-model.ts';
 import {MemoryAuthoringRepository,authoringRepositoryMode,createAuthoringService,type AuthoringWorkspace,type Revision} from '../lib/authoring.ts';
 import {exceedsOnePanel} from '../lib/panel-budget.ts';
 import type {BookUnitsResult} from '../app/author/types.ts';
@@ -117,19 +117,19 @@ test('compact draft listing is bounded, source-text-free, and leaves the legacy 
  const block=source.blocks.find(item=>item.kind==='bilingual')!;
  const content:BilingualContent={mode:'bilingual',hebrewGroups:[{sourceId:source.id,blockIds:[block.id]}],transliterationGroups:[{sourceId:source.id,blockIds:[block.id]}],arrangement:'blocks'};
  const now=Date.now(),snapshot=structuredClone(source);
- const makeDraft=(id:string,name:string,presentation:Draft['presentation']):Draft=>({id,name,title:`${name} title`,layout:'left',templateCueId:LEFT_PANEL,content,presentation,sourceSnapshots:[snapshot],sourcePin:sourcePinFor(content,[snapshot]),version:3,activeRevision:2,activeDraftVersion:3,createdAt:now,updatedAt:now,createdBy:'tester',updatedBy:'tester'});
+ const makeDraft=(id:string,name:string,presentation:Draft['presentation'],draftContent:DraftContent=content):Draft=>({id,name,title:`${name} title`,layout:'left',templateCueId:LEFT_PANEL,content:draftContent,presentation,sourceSnapshots:[snapshot],sourcePin:sourcePinFor(draftContent,[snapshot]),version:3,activeRevision:2,activeDraftVersion:3,createdAt:now,updatedAt:now,createdBy:'tester',updatedBy:'tester'});
  await repo.insertDraft(makeDraft('catalog-a','Alpha draft',{hebrewFontSize:30,transliterationFontSize:27,titleFontSize:26}));
- await repo.insertDraft(makeDraft('catalog-b','Beta draft',{}));
+ await repo.insertDraft(makeDraft('catalog-b','Beta draft',{}, {...content,arrangement:'together'}));
  const legacy=await service.operation('list_drafts',{},'tester') as ListDraftsResult;
  assert.equal(legacy.drafts.length,2);assert.ok(legacy.drafts[0].sourceSnapshots?.[0].blocks.length,'no-argument callers retain full draft snapshots');
  const first=await service.operation('list_drafts',{compact:true,limit:1},'tester') as CompactDraftResult;
- assert.equal(first.drafts.length,1);assert.equal(first.total,2);assert.equal(first.drafts[0].id,'catalog-a');assert.equal(first.drafts[0].arrangement,'blocks');assert.equal(first.drafts[0].flags.alternatingGrouping,true);assert.equal(first.drafts[0].flags.smallFont,true);assert.equal(first.drafts[0].activeVersion,3);assert.doesNotMatch(JSON.stringify(first),new RegExp(block.id));assert.equal('sourceSnapshots' in first.drafts[0],false);
+ assert.equal(first.drafts.length,1);assert.equal(first.total,2);assert.equal(first.drafts[0].id,'catalog-a');assert.equal(first.drafts[0].arrangement,'blocks');assert.equal(first.drafts[0].flags.alternatingGrouping,false);assert.equal(first.drafts[0].flags.smallFont,true);assert.equal(first.drafts[0].activeVersion,3);assert.doesNotMatch(JSON.stringify(first),new RegExp(block.id));assert.equal('sourceSnapshots' in first.drafts[0],false);
  const next=await service.operation('list_drafts',{compact:true,limit:1,cursor:first.nextCursor!},'tester') as CompactDraftResult;
  assert.deepEqual(next.drafts.map(draft=>draft.id),['catalog-b']);assert.equal(next.nextCursor,null);
  const bySource=await service.operation('list_drafts',{service:source.service,book:source.book},'tester') as CompactDraftResult;
  assert.deepEqual(bySource.drafts.map(draft=>draft.id),['catalog-a','catalog-b']);
  const byQuery=await service.operation('list_drafts',{query:'beta'},'tester') as CompactDraftResult;
- assert.deepEqual(byQuery.drafts.map(draft=>draft.id),['catalog-b']);
+ assert.deepEqual(byQuery.drafts.map(draft=>draft.id),['catalog-b']);assert.equal(byQuery.drafts[0].flags.alternatingGrouping,true,'together rows are the alternating grouping to inspect');
  await assert.rejects(service.operation('list_drafts',{compact:false,limit:1},'tester'),(error)=>(error as AuthoringError).code==='invalid_input');
 });
 
@@ -147,6 +147,16 @@ test('style_draft defaults to readable planning and applies through source-prese
  const updated=(await repo.getDraft(draft.id))!;assert.deepEqual(updated.sourcePin,draft.sourcePin);assert.deepEqual(updated.sourceSnapshots,draft.sourceSnapshots);assert.equal((updated.content as BilingualContent).arrangement,'blocks');assert.deepEqual(updated.presentation,{alignment:'center'});
  const noop=await service.operation('style_draft',{draftId:draft.id,expectedVersion:5,dryRun:false,comfortableTypography:false,arrangement:'blocks'},'tester') as {applied:boolean;draft:{version:number}};
  assert.equal(noop.applied,false);assert.equal(noop.draft.version,5,'no style delta does not create a revision');
+});
+
+test('style_draft resolves workspace templates to baseline source IDs before applying TBI layout',async()=>{
+ await withWorkspace(TBI_WORKSPACE,async()=>{
+  const repo=new MemoryAuthoringRepository(),service=createAuthoringService(repo);
+  const imported=await service.operation('import_cue',{cueId:TBI_BARECHU},'tester') as ImportCueResult;
+  const styled=await service.operation('style_draft',{draftId:TBI_BARECHU,expectedVersion:imported.draft.version,layout:'left',dryRun:false,comfortableTypography:false,arrangement:'together'},'tester') as {applied:boolean;draft:{version:number}};
+  assert.equal(styled.applied,true);
+  const updated=(await repo.getDraft(TBI_BARECHU))!;assert.equal(updated.layout,'left');assert.equal(updated.version,styled.draft.version);assert.doesNotThrow(()=>buildCue(updated),'the normalized template remains a valid baseline template');
+ });
 });
 
 test('existing cue import seeds an immutable baseline and is idempotent',async()=>{
@@ -584,6 +594,14 @@ test('fit_check_draft passes a clean cue, stores the server attestation on the p
  assert.equal(stored?.fitCheck?.verdict,'pass');
  assert.equal(stored?.fitCheck?.artwork,'loaded','the attestation records what the server could see of the artwork');
  assert.equal(stored?.fitCheck?.rendererVersion,result.rendererVersion);
+});
+
+test('fit_check_draft returns an opted-in image ephemerally and never stores its bytes',async()=>{
+ const repo=new MemoryAuthoringRepository();let requested=false;
+ const runner:ServerFitRunner=async(_cue,options)=>{requested=options?.includePreviewImage===true;return {verdict:'pass',fitErrors:[],warnings:[],fill:0.5,artwork:'loaded',measuredAt:1,rendererVersion:'server-chromium/test',previewImage:{mimeType:'image/jpeg',dataBase64:'AQID',width:1920,height:1080}};};
+ const service=createAuthoringService(repo,undefined,undefined,undefined,runner),{draftId,previewId}=await previewedDraft(service,'Image fit');
+ const result=await service.operation('fit_check_draft',{draftId,expectedVersion:1,previewId,includePreviewImage:true},'mcp:client') as FitCheckResult&{previewImage?:{dataBase64:string}};
+ assert.equal(requested,true);assert.equal(result.previewImage?.dataBase64,'AQID');const stored=await repo.getPreview(previewId);assert.equal('previewImage' in (stored!.fitCheck as object),false,'the fit record contains measurements only');
 });
 
 test('fit_check_draft fails with the same sentences findFitErrors produces',async()=>{
