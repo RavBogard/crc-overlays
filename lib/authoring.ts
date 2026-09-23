@@ -327,7 +327,7 @@ export function createAuthoringService(repo:AuthoringRepository,workspace:Author
    const templateCueId=baselineSourceCueId(string(data.templateCueId,'templateCueId',80));const template=baselineCues.find(cue=>cue.id===templateCueId);if(!template)throw new AuthoringError('unknown_template','Unknown baseline cue template',404);if(template.layout!==layout)throw new AuthoringError('template_layout_mismatch','Template cue layout must match the draft layout');
    const pages=sourceSetPages(source,mode,includeTranslation,layout);const setId=randomUUID();const count=pages.length;const width=Math.max(2,String(count).length);const now=Date.now();
    let drafts=pages.map((page,index)=>{
-    const groups=page.map(block=>({sourceId,blockIds:[block.id]}));
+    const groups=mode==='bilingual'?[{sourceId,blockIds:page.map(block=>block.id)}]:page.map(block=>({sourceId,blockIds:[block.id]}));
     const content:DraftContent=mode==='bilingual'?{mode,hebrewGroups:groups,transliterationGroups:structuredClone(groups),...(includeTranslation?{includeTranslation:true}:{})}:{mode,englishGroups:groups};
     const editable=parseEditable({name:`${source.name} — ${String(index+1).padStart(width,'0')} of ${String(count).padStart(width,'0')}`,title:source.name,layout,templateCueId,content:withCreateDefaultBilingualBlocks(content),presentation:{}}) as EditableDraft;
     const sourceSnapshots=[structuredClone(canonicalSource)];return {...editable,id:newDraftId(),version:1,sourcePin:sourcePinFor(editable.content,sourceSnapshots),sourceSnapshots,activeRevision:null,activeDraftVersion:null,createdAt:now,updatedAt:now,createdBy:who,updatedBy:who,draftSetId:setId,setIndex:index+1,setCount:count} satisfies Draft;

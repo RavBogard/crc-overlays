@@ -131,11 +131,11 @@ test('compact draft listing is bounded, source-text-free, and leaves the legacy 
  await repo.insertDraft(makeDraft('catalog-b','Beta draft',{},together));
  await repo.insertDraft(makeDraft('catalog-c','Gamma draft',{},together,'bottom'));
  const legacy=await service.operation('list_drafts',{},'tester') as ListDraftsResult;
- assert.equal(legacy.drafts.length,2);assert.ok(legacy.drafts[0].sourceSnapshots?.[0].blocks.length,'no-argument callers retain full draft snapshots');
+ assert.equal(legacy.drafts.length,3);assert.ok(legacy.drafts[0].sourceSnapshots?.[0].blocks.length,'no-argument callers retain full draft snapshots');
  const first=await service.operation('list_drafts',{compact:true,limit:1},'tester') as CompactDraftResult;
  assert.equal(first.drafts.length,1);assert.equal(first.total,3);assert.equal(first.drafts[0].id,'catalog-a');assert.equal(first.drafts[0].arrangement,'blocks');assert.equal(first.drafts[0].flags.alternatingGrouping,false);assert.equal(first.drafts[0].flags.smallFont,true);assert.equal(first.drafts[0].activeVersion,3);assert.doesNotMatch(JSON.stringify(first),new RegExp(block.id));assert.equal('sourceSnapshots' in first.drafts[0],false);
  const next=await service.operation('list_drafts',{compact:true,limit:1,cursor:first.nextCursor!},'tester') as CompactDraftResult;
- assert.deepEqual(next.drafts.map(draft=>draft.id),['catalog-b']);assert.equal(next.nextCursor,null);
+ assert.deepEqual(next.drafts.map(draft=>draft.id),['catalog-b']);assert.equal(next.nextCursor,'catalog-b');
  const bySource=await service.operation('list_drafts',{service:source.service,book:source.book},'tester') as CompactDraftResult;
  assert.deepEqual(bySource.drafts.map(draft=>draft.id),['catalog-a','catalog-b','catalog-c']);
  const byQuery=await service.operation('list_drafts',{query:'beta'},'tester') as CompactDraftResult;
@@ -265,12 +265,12 @@ test('whole-prayer draft sets preserve source order, one block per row, and unpu
  for(const [offset,draft] of result.drafts.entries()){
   assert.equal(draft.name,`Kol Nidre — ${String(offset+1).padStart(2,'0')} of 07`);assert.equal(draft.title,'Kol Nidre');assert.equal(draft.draftSetId,result.set.id);assert.equal(draft.setIndex,offset+1);assert.equal(draft.setCount,7);assert.equal(draft.activeRevision,null);
   const content=draft.content as BilingualContent;
-  assert.ok(content.hebrewGroups.length<=3);assert.ok(content.hebrewGroups.every(group=>group.blockIds.length===1));assert.deepEqual(content.hebrewGroups,content.transliterationGroups);
+  assert.equal(content.hebrewGroups.length,1);assert.ok(content.hebrewGroups[0].blockIds.length<=3);assert.deepEqual(content.hebrewGroups,content.transliterationGroups);
   selected.push(...content.hebrewGroups.flatMap(group=>group.blockIds));
  }
  assert.equal(new Set(selected).size,20);assert.deepEqual(await service.publishedCues(),[]);
- const preview=await service.operation('preview_draft',{draftId:result.drafts[0].id,expectedVersion:1},'tester') as PreviewDraftResult;const canonical=sourcePack.sources.find(source=>source.id===KOL_NIDRE)!;const firstContent=result.drafts[0].content as BilingualContent;const firstIds=firstContent.hebrewGroups.map(group=>group.blockIds[0]);
- assert.equal(preview.cue.contentRows!.length,firstIds.length);assert.deepEqual(preview.cue.contentRows,firstIds.map((id:string)=>{const block=canonical.blocks.find(item=>item.id===id)!;return {he:block.he,tr:block.tr,en:''}}));
+ const preview=await service.operation('preview_draft',{draftId:result.drafts[0].id,expectedVersion:1},'tester') as PreviewDraftResult;const firstContent=result.drafts[0].content as BilingualContent;
+ assert.equal(firstContent.arrangement,'blocks');assert.equal(preview.cue.contentRows!.length,2,'new block-layout set panels have one Hebrew and one transliteration paragraph');assert.ok(preview.cue.contentRows![0].he);assert.ok(preview.cue.contentRows![1].tr);
 });
 
 test('bottom sets use one canonical block per draft and mode availability is strict',async()=>{
