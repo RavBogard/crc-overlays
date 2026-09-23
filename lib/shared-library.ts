@@ -3,6 +3,7 @@ import {authoringCatalog} from './server';
 import {rehearsalMode,type RehearsalEnv} from './rehearsal';
 import {baselineCues,editableFromBaseline,sameStructuredValue,sourcePack,sourcePinFor,type AuthoringCue,type AuthoringSource,type Draft,type DraftContent,type EditableDraft,type SharedCueCopySpec} from './authoring-model';
 import type {Cue} from './player';
+import {templateLayoutFor} from './layout-label';
 
 export const CRC_WORKSPACE_ID='crc';
 export const TBI_WORKSPACE_ID='temple-bnai-israel-kalamazoo';
@@ -28,7 +29,7 @@ const baseEditable=(cue:Cue):EditableDraft|null=>{
  const baseline=baselineCues.find(item=>item.id===cue.id);
  if(baseline)try{return editableFromBaseline(cue.id)}catch{}
  const text=cue.texts.textMain;
- const template=baseline??baselineCues.find(item=>item.layout===cue.layout&&!item.hidden);
+ const template=baseline??baselineCues.find(item=>item.layout===templateLayoutFor(cue.layout)&&!item.hidden);
  if(typeof text!=='string'||!text.trim()||!template)return null;
  return {name:cue.name,title:cue.texts.textTitle??cue.name,accentTitle:cue.texts.accentTextTitle,layout:cue.layout as EditableDraft['layout'],templateCueId:template.id,content:{mode:'custom',text},presentation:cue.presentation??{}};
 };

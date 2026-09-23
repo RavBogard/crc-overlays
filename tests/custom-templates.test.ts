@@ -37,7 +37,7 @@ test('service begins at is a fixed title over a static time', () => {
 
 test('every template composes inside the draft limits, even at maximum input', () => {
   for (const template of CUSTOM_TEMPLATES) {
-    assert.ok(['bottom', 'left', 'right'].includes(template.layout), `${template.id} has a real layout`);
+    assert.ok(['bottom', 'left', 'right', 'corner'].includes(template.layout), `${template.id} has a real layout`);
     assert.ok(template.fields.length > 0, `${template.id} has fields`);
     const maxed = Object.fromEntries(template.fields.map(field => [field.key, 'W'.repeat(field.maxLength)]));
     const composed = template.compose(maxed);
