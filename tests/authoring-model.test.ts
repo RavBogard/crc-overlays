@@ -150,6 +150,32 @@ test('blocks arrangement compiles multi-source groups into contiguous language p
  assert.deepEqual(cue.authoring.copySpec?.sourcePin,draft.sourcePin);
 });
 
+test('blocks arrangement keeps contiguous groups of one source in one paragraph',()=>{
+ // Psukei 1 / Mi Chamocha Sat 1: legacy transliteration groups cut one source into arbitrary
+ // contiguous slices. Those slices are not stanzas, so they must not gain blank lines; a change
+ // of source or a skipped block is a real boundary and keeps its blank line.
+ const LEFT='bbd7c98b-f1de-41ee-9719-2bb27a30d0db';
+ const [first,second]=sourcePack.sources.filter(source=>source.blocks.filter(block=>block.kind==='bilingual').length>=4);
+ assert.ok(first&&second,'fixture needs two sources with four bilingual blocks');
+ const [a0,a1,a2,a3]=first.blocks.filter(block=>block.kind==='bilingual'),[b0,b1]=second.blocks.filter(block=>block.kind==='bilingual');
+ const hebrewGroups=[{sourceId:first.id,blockIds:[a0.id,a1.id,a2.id]},{sourceId:second.id,blockIds:[b0.id,b1.id]}];
+ const transliterationGroups=[{sourceId:first.id,blockIds:[a0.id]},{sourceId:first.id,blockIds:[a1.id,a2.id]},{sourceId:second.id,blockIds:[b0.id]},{sourceId:second.id,blockIds:[b1.id]}];
+ const build=(content:ReturnType<typeof parseContent>,id:string)=>{
+  const editable=parseEditable({name:id,title:id,layout:'left',templateCueId:LEFT,content,presentation:{}}) as EditableDraft;
+  const now=Date.now();return buildCue({...editable,id,version:1,sourcePin:sourcePinFor(content),activeRevision:null,activeDraftVersion:null,createdAt:now,updatedAt:now,createdBy:'test',updatedBy:'test'});
+ };
+ const cue=build(parseContent({mode:'bilingual',hebrewGroups,transliterationGroups,arrangement:'blocks'}),'blocks-contiguous');
+ assert.deepEqual(cue.contentRows,[
+  {he:`${a0.he} ${a1.he} ${a2.he}\n\n${b0.he} ${b1.he}`,tr:'',en:''},
+  {he:'',tr:`${a0.tr}\n${a1.tr} ${a2.tr}\n\n${b0.tr}\n${b1.tr}`,en:''},
+ ]);
+ assert.equal(cue.contentRows?.[1].tr.split('\n\n').length,cue.contentRows?.[0].he.split('\n\n').length,'transliteration paragraphs match the Hebrew paragraphs');
+ // A skipped block inside one source is still a boundary.
+ const gap=[{sourceId:first.id,blockIds:[a0.id]},{sourceId:first.id,blockIds:[a2.id,a3.id]}];
+ const gapped=build(parseContent({mode:'bilingual',hebrewGroups:gap,transliterationGroups:gap,arrangement:'blocks'}),'blocks-gap');
+ assert.equal(gapped.contentRows?.[1].tr,`${a0.tr}\n\n${a2.tr} ${a3.tr}`);
+});
+
 test('blocks arrangement emits the optional English row after contiguous Hebrew and transliteration',()=>{
  const LEFT='bbd7c98b-f1de-41ee-9719-2bb27a30d0db';
  const source=sourcePack.sources.find(item=>item.blocks.some(block=>block.kind==='translation-en'))!;

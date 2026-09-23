@@ -6,8 +6,8 @@ export type ContentRow={he:string;tr:string;en:string};
 export type CuePresentation={hebrewFontSize?:number;transliterationFontSize?:number;titleFontSize?:number;alignment?:'start'|'center';lineSpacing?:'compact'|'spacious';imageAssetId?:string;latinLineBreaks?:'preserve'|'paragraphs'|'phrases'};
 export type Cue={id:string;name:string;layout:string;texts:Record<string,string>;animations:AnimationTrack[];duration:Record<string,number>;presentation?:CuePresentation;template?:CueTemplate;contentRows?:ContentRow[];hidden?:boolean;aliasOf?:string};
 export type PlayerOptions={resolveAssetUrl?:(cue:Cue)=>string|undefined|Promise<string|undefined>;waitForAssets?:(root:HTMLElement)=>Promise<void>};
-/** Display-only reflow for semantic English channels. Blank lines remain stanza boundaries. */
-export function reflowLatinParagraphs(text:string,separator=' '){return text.replace(/\r\n?/g,'\n').replace(/\n[\t ]*(?=\n)/g,'\n').split(/(\n{2,})/).map(part=>part.startsWith('\n')?part:part.replace(/[\t ]*\n[\t ]*/g,separator)).join('')}
+/** Display-only reflow for semantic English channels. Blank lines remain stanza boundaries; an edge newline is not a phrase break. */
+export function reflowLatinParagraphs(text:string,separator=' '){return text.replace(/\r\n?/g,'\n').replace(/\n[\t ]*(?=\n)/g,'\n').replace(/^\s*\n[\t ]*|[\t ]*\n\s*$/g,'').split(/(\n{2,})/).map(part=>part.startsWith('\n')?part:part.replace(/[\t ]*\n[\t ]*/g,separator)).join('')}
 /** Reflow only contiguous Latin runs in a legacy mixed body. Hebrew and blank stanza lines are boundaries. */
 export function reflowLatinRuns(text:string,separator=' '){
  const output:string[]=[],run:string[]=[],flush=()=>{if(!run.length)return;const value=run.join('\n');output.push(/[A-Za-z]/.test(value)?reflowLatinParagraphs(value,separator):value);run.length=0};

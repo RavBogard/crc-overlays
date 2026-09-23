@@ -386,3 +386,14 @@ test('legacy English textMain reflows Latin runs while preserving Hebrew and bla
  assert.equal(reflowLatinRuns('Before\nעברית\nAfter\nMore'),'Before\nעברית\nAfter More');
  assert.equal(displayPresentationText('English\nText','textMainEng',presentation),'English Text');
 });
+
+test('phrase separators never appear at a leading or trailing newline',()=>{
+ const phrases={latinLineBreaks:'phrases'} as const;
+ // HowAwesome/Shema: a final newline once rendered as a dangling " · ".
+ assert.equal(displayPresentationText('Sh’ma Yisrael\nAdonai Eloheinu\n','textMainEng',phrases),'Sh’ma Yisrael · Adonai Eloheinu');
+ assert.equal(displayPresentationText('\r\n Sh’ma Yisrael\nAdonai echad \n','textMainEng',phrases),'Sh’ma Yisrael · Adonai echad');
+ assert.equal(displayPresentationText('One\nTwo\n\nThree\nFour\n','textMainEng',phrases),'One · Two\n\nThree · Four');
+ assert.equal(displayPresentationText('Before\nעברית\nAfter\nMore\n','textMain',phrases),'Before\nעברית\nAfter · More\n','mixed bodies keep their line structure; the edge gains no separator');
+ assert.equal(displayPresentationText('English\nText\n','textMainEng',{latinLineBreaks:'paragraphs'}),'English Text');
+ assert.equal(displayPresentationText('Kept\nas is\n','textMainEng',{latinLineBreaks:'preserve'}),'Kept\nas is\n','preserve mode leaves text untouched');
+});

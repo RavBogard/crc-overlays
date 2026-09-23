@@ -285,6 +285,24 @@ function renderGroup(group:SourceGroup,channel:'he'|'tr'|'en',snapshots:Authorin
 }
 
 /**
+ * Groups joined into one language paragraph run. Legacy selections often cut one source into
+ * arbitrary contiguous slices (one transliteration line per group); those slices are not stanzas,
+ * so they join with a line break. A blank line marks a real boundary only: a different source, or
+ * a selection that skips a block carrying this channel.
+ */
+function joinGroupParagraphs(groups:SourceGroup[],channel:'he'|'tr',snapshots:AuthoringSource[]=[],overrides:LocalVariantOverride[]=[]){
+ return groups.map((group,index)=>{
+  const text=renderGroup(group,channel,snapshots,overrides);
+  if(index===0)return text;
+  const previous=groups[index-1];
+  if(previous.sourceId!==group.sourceId)return `\n\n${text}`;
+  const order=source(group.sourceId,snapshots).blocks.filter(block=>typeof block[channel]==='string'&&block[channel]).map(block=>block.id);
+  const last=order.indexOf(previous.blockIds[previous.blockIds.length-1]),next=order.indexOf(group.blockIds[0]);
+  return `${last>=0&&next===last+1?'\n':'\n\n'}${text}`;
+ }).join('');
+}
+
+/**
  * The authorized English of a selection, as runs, each tagged with the slide (group) its first
  * block sits in. A pair may span the slides an author drew, so the runs are always computed over
  * the whole selection and then attributed; computing them per slide would refuse a legal split.
@@ -313,9 +331,9 @@ function composeContentRows(draft:Draft,content:BilingualContent,overrides:Local
  if(textArrangement(content)==='blocks'){
   const rows:Array<{he:string;tr:string;en:string}>=[];
   // Blocks means contiguous language paragraphs, not a Hebrew/transliteration pair for every
-  // selection group. Group boundaries remain visible as paragraphs; no source selection changes.
-  if(layers.includes('he'))rows.push({he:content.hebrewGroups.map(group=>renderGroup(group,'he',snapshots,overrides)).join('\n\n'),tr:'',en:''});
-  if(layers.includes('tr'))rows.push({he:'',tr:content.transliterationGroups.map(group=>renderGroup(group,'tr',snapshots,overrides)).join('\n\n'),en:''});
+  // selection group. Real boundaries remain visible as paragraphs; no source selection changes.
+  if(layers.includes('he'))rows.push({he:joinGroupParagraphs(content.hebrewGroups,'he',snapshots,overrides),tr:'',en:''});
+  if(layers.includes('tr'))rows.push({he:'',tr:joinGroupParagraphs(content.transliterationGroups,'tr',snapshots,overrides),en:''});
   if(layers.includes('en'))rows.push({he:'',tr:'',en:englishRunTexts(content,snapshots,overrides).map(run=>run.text).join('\n\n')});
   return rows;
  }
