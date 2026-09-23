@@ -1,0 +1,20 @@
+{
+ "draftId": "567367c0-bf57-46e6-9220-049641f75c14",
+ "name": "Hashkiveinu (Randy)",
+ "status": "verified-current",
+ "kind": "original",
+ "layout": "bottom",
+ "draftVersion": 5,
+ "previewId": "24d09321-b974-4e92-9609-9d9574fc54d0",
+ "cueHash": "40873b6dad731e147e593b92944830977fafce416149d752e5242e33498aabf5",
+ "fit": {
+  "verdict": "pass",
+  "fill": 0.8083
+ },
+ "imageInspected": "5 lines inside panel, readable; phrases joined by middots (latinLineBreaks phrases); title Hashkiveinu, accent renders as הַשְׁכִּיבֵנוּ",
+ "sourceCheck": "custom text (no source blocks); wording unchanged",
+ "revision": null,
+ "notes": "published at current version; no change. Stored accent string has a doubled patah (U+05B7 twice, \"הַַ\"); renders correctly; same string used by the Take This Soul family (packet 16). Not changed.",
+ "approvalBasis": "Daniel blanket authorization for graphic publication (handoff 2026-09-23); no review/publish performed in this packet; not a per-graphic inspection by Daniel",
+ "at": "2026-09-23"
+}

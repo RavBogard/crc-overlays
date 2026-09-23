@@ -1,0 +1,20 @@
+{
+ "draftId": "bb52a63a-e892-4518-b7c2-a59e8ce730b9",
+ "name": "Guest name",
+ "status": "verified-current",
+ "kind": "original",
+ "layout": "bottom",
+ "draftVersion": 1,
+ "previewId": "e11e12d2-6b4f-448d-8c77-d82753433cbe",
+ "cueHash": "c243feac2a2d468f89c27c2822c08863708c2d008c93f17061bd0a910dcb76ac",
+ "fit": {
+  "verdict": "pass",
+  "fill": 0.4389
+ },
+ "imageInspected": "placeholder \"Guest Name\" inside panel, readable",
+ "sourceCheck": "custom text (no source blocks); wording unchanged",
+ "revision": null,
+ "notes": "published at current version; no change",
+ "approvalBasis": "Daniel blanket authorization for graphic publication (handoff 2026-09-23); no review/publish performed in this packet; not a per-graphic inspection by Daniel",
+ "at": "2026-09-23"
+}

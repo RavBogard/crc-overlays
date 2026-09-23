@@ -55,8 +55,13 @@ built from Michael's operating logic, bound only to final published cue IDs.
    Festival Kiddush 1-2 accent -> "קִדּוּשׁ", name typo "Kiddsuh" fixed; no holds). Friday Kiddush
    split 1-2 of 2; Saturday Daytime Kiddush (Supplement) split the same way (packet 10). Releases
    through `5f149da` (gap log). Held: Olam Chesed (missing Hebrew, no invented provenance).
-5. Next: packets 10-17, verification receipts for already-fine families, then the Companion preset.
+5. Packets 10-14 done (Sim Shalom 1-4 + Shabbat Sim Shalom published at shared defaults).
+6. Next: packets 15-17, verification receipts for already-fine families, then the Companion preset.
 
 ## Open questions
+- Source-text notes for a future shireishabbat review (no overlay change; exact wording kept):
+  Sim Shalom RH 1-3 repeated refrain and bracketed "[v'al]", Sim Shalom 4 repeated "tovim
+  ulshalom." and missing final period; Eliyahu Hanavi "(3x)" placement; Sacred Assembly line
+  capitals; Shofar Call 3 "•" separator.
 - None blocking. Still-open content items from the brief (not decided here): Kiddush Fri/Sat
   variants, Or Zarua identity, Olam Chesed missing Hebrew.

@@ -1,0 +1,20 @@
+{
+ "draftId": "0cd20c42-8310-4ddf-bab9-72bab6113e04",
+ "name": "Starting Soon",
+ "status": "verified-current",
+ "kind": "original",
+ "layout": "bottom",
+ "draftVersion": 1,
+ "previewId": "43f96c1f-a2d1-4fe6-b388-8dfef672c338",
+ "cueHash": "45258cffff61e2c3b63888a7f2115372763bda00322b40199999a652cce57e5c",
+ "fit": {
+  "verdict": "pass",
+  "fill": 0.4389
+ },
+ "imageInspected": "single line inside panel, readable",
+ "sourceCheck": "custom text (no source blocks); wording unchanged",
+ "revision": null,
+ "notes": "published at current version; no change",
+ "approvalBasis": "Daniel blanket authorization for graphic publication (handoff 2026-09-23); no review/publish performed in this packet; not a per-graphic inspection by Daniel",
+ "at": "2026-09-23"
+}

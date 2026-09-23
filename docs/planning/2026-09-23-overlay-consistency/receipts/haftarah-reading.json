@@ -1,0 +1,50 @@
+{
+ "family": "Haftarah Reading",
+ "status": "held",
+ "kind": "original",
+ "notes": "Queue ACTION was 3 bottom parts -> left. Not applied: the three drafts hold identical placeholder text (Reader Name / Portion · Chapter:Verse). They are per-reader name lower thirds, not sequential parts of one piece, so the >2 lower-thirds rule does not seem to apply (protocol: only numbered parts of ONE piece count). All three are published at their current version and pass; no change. Main-thread decision needed (Torah reading 1-7 in packet 17 has the same pattern).",
+ "sourceCheck": "custom text (no source blocks); wording unchanged",
+ "graphics": [
+  {
+   "draftId": "d2a51926-4b98-4e73-b1f4-9d016966fd52",
+   "name": "Haftarah reading 1",
+   "layout": "bottom",
+   "draftVersion": 2,
+   "previewId": "6e1309bc-982f-4441-8bf3-c705184c639f",
+   "cueHash": "4893a79d3bf18defc87b4bd0199b1ce6b3047ace6d44344b61fa9cb5cdc135cf",
+   "fit": {
+    "verdict": "pass",
+    "fill": 0.4472
+   },
+   "imageInspected": "two placeholder lines inside panel, title Haftarah Reading, readable"
+  },
+  {
+   "draftId": "8a20aa8a-4515-4b6e-9c1f-27f6a4e76e2f",
+   "name": "Haftarah reading 2",
+   "layout": "bottom",
+   "draftVersion": 1,
+   "previewId": "146c121c-61d6-46b3-b0f8-ecb2aad4afb8",
+   "cueHash": "ba713697f245073457ba5bca88180e2a2d374a131c18c3d1b5b2743954be0a6a",
+   "fit": {
+    "verdict": "pass",
+    "fill": 0.4472
+   },
+   "imageInspected": "no image; content and presentation match reading 1 exactly"
+  },
+  {
+   "draftId": "92e23dc6-f7f4-40b6-8495-0a4605f321a8",
+   "name": "Haftarah reading 3",
+   "layout": "bottom",
+   "draftVersion": 1,
+   "previewId": "f3ccf8ae-4f10-4011-aa24-e48015bcbfb0",
+   "cueHash": "da5095002c443682f77f07157ecb0d862870e07c0c45657039aee87f0b9a4419",
+   "fit": {
+    "verdict": "pass",
+    "fill": 0.4472
+   },
+   "imageInspected": "no image; content and presentation match reading 1 exactly"
+  }
+ ],
+ "approvalBasis": "Daniel blanket authorization for graphic publication (handoff 2026-09-23); no review/publish performed in this packet; not a per-graphic inspection by Daniel",
+ "at": "2026-09-23"
+}

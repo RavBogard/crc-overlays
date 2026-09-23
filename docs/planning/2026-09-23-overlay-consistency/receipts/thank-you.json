@@ -1,0 +1,23 @@
+{
+ "draftId": "09f50803-3288-4b78-bcc7-560025668e1a",
+ "name": "Thank you",
+ "status": "held",
+ "kind": "original",
+ "layout": "right",
+ "draftVersion": 1,
+ "previewId": "137bbe3d-d940-4aec-96c0-a837c5e9134e",
+ "cueHash": "f97e8319e260c80818cb323c5fb30749f8db0bfd1df7eaa1707341634d452b17",
+ "fit": {
+  "verdict": "pass",
+  "fill": 0.0967,
+  "warnings": [
+   "Sparse — consider Lower third"
+  ]
+ },
+ "imageInspected": "right panel: the first letters of both body lines (T of Thank, c of centralreform) sit left of the panel edge and are partly cut off, although the server fit reports pass",
+ "sourceCheck": "custom text (no source blocks); wording unchanged",
+ "revision": null,
+ "notes": "already published at v1 (activeVersion 1); nothing changed or republished. Held for a main-thread decision on the right-panel rendering glitch (possibly the enter-animation frame) and the sparse-layout warning.",
+ "approvalBasis": "Daniel blanket authorization for graphic publication (handoff 2026-09-23); no review/publish performed in this packet; not a per-graphic inspection by Daniel",
+ "at": "2026-09-23"
+}

@@ -1,0 +1,20 @@
+{
+ "draftId": "8e486f11-e9f5-4c2e-bd5f-071707788c14",
+ "name": "Be Right Back",
+ "status": "verified-current",
+ "kind": "original",
+ "layout": "bottom",
+ "draftVersion": 1,
+ "previewId": "529f55cc-9461-47e1-9720-c1528fa00105",
+ "cueHash": "d74af5b7e61196c57cd43396cc21afcdc25d03a8ea6bad038bf8df2e95235fe8",
+ "fit": {
+  "verdict": "pass",
+  "fill": 0.4389
+ },
+ "imageInspected": "single line inside panel, readable",
+ "sourceCheck": "custom text (no source blocks); wording unchanged",
+ "revision": null,
+ "notes": "published at current version; no change",
+ "approvalBasis": "Daniel blanket authorization for graphic publication (handoff 2026-09-23); no review/publish performed in this packet; not a per-graphic inspection by Daniel",
+ "at": "2026-09-23"
+}

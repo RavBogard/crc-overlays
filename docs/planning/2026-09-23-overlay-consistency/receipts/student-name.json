@@ -1,0 +1,20 @@
+{
+ "draftId": "17db1877-425a-4ea7-b123-664a9756f2ae",
+ "name": "Student name",
+ "status": "verified-current",
+ "kind": "original",
+ "layout": "bottom",
+ "draftVersion": 2,
+ "previewId": "abe450c4-8bb4-4ab9-844a-7f847e9fa19c",
+ "cueHash": "9e441fed8820e68b5c44467a1dd6a5f648f5426e91f0955b1414b6ae8a9d7f01",
+ "fit": {
+  "verdict": "pass",
+  "fill": 0.4389
+ },
+ "imageInspected": "placeholder \"Reader Name\" inside panel, readable",
+ "sourceCheck": "custom text (no source blocks); wording unchanged",
+ "revision": null,
+ "notes": "published at current version; no change",
+ "approvalBasis": "Daniel blanket authorization for graphic publication (handoff 2026-09-23); no review/publish performed in this packet; not a per-graphic inspection by Daniel",
+ "at": "2026-09-23"
+}

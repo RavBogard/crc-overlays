@@ -1,0 +1,20 @@
+{
+ "draftId": "3d18426f-f8b6-49f5-831c-fc35e0f58f40",
+ "name": "Announcements",
+ "status": "verified-current",
+ "kind": "original",
+ "layout": "bottom",
+ "draftVersion": 1,
+ "previewId": "5ba88d57-144b-4dd1-9541-bf48f4f9a010",
+ "cueHash": "5c4d02aef4dadec88778b0db8fca445f7e9bbda4db24784e966a92e2b34f9211",
+ "fit": {
+  "verdict": "pass",
+  "fill": 0.4472
+ },
+ "imageInspected": "two-line lower third, calendar URL fully inside panel, readable",
+ "sourceCheck": "custom text (no source blocks); wording unchanged",
+ "revision": null,
+ "notes": "published at current version; no change",
+ "approvalBasis": "Daniel blanket authorization for graphic publication (handoff 2026-09-23); no review/publish performed in this packet; not a per-graphic inspection by Daniel",
+ "at": "2026-09-23"
+}
