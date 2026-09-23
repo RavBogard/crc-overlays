@@ -4,9 +4,8 @@ What is deployed right now. Update this file on every release — it is the one 
 "what is live", and it is short so it can be read under pressure. The history is in
 `docs/planning/2026-09-deploys/` (25 deploy records, the release chain, the phase build notes).
 
-**Last updated: 2026-09-23 01:42 UTC** (paired release `74f2051`: single-channel left/right
-panel copy begins beneath its title; web only, no relay change. Evidence below under "Release
-74f2051".)
+**Last updated: 2026-09-23** (paired release `80c9371`: the server-fit release line gains a
+read-only /tmp census; web only, no relay change. Evidence below under "Release 80c9371".)
 
 ## Web, per workspace
 
@@ -15,13 +14,30 @@ both were released together on 2026-09-23 UTC (2026-09-22 evening Central).
 
 | Workspace | Host | Deployed commit | How it got there |
 |---|---|---|---|
-| CRC | `overlays.centralreform.org` (alt `crc-overlays.vercel.app`) | `74f2051` | `scripts/deploy-workspaces.mjs`, 2026-09-23 01:42 UTC, `dpl_7y3jnWdf98JA3G1mJfLL3HVqgoSE` (the Git integration also builds every push to `main`) |
-| TBI | `overlays.templebnaiisrael.com` (alt `tbi-overlays.vercel.app`) | `74f2051` | `scripts/deploy-workspaces.mjs`, same run, `dpl_3TxGsHmHGBpSQpJDzhmdp5vLGuNB` |
+| CRC | `overlays.centralreform.org` (alt `crc-overlays.vercel.app`) | `80c9371` | `scripts/deploy-workspaces.mjs`, 2026-09-23, `dpl_DgnHxhQAK2zXJ7heqTgpRFtHQQM7` (the Git integration also builds every push to `main`) |
+| TBI | `overlays.templebnaiisrael.com` (alt `tbi-overlays.vercel.app`) | `80c9371` | `scripts/deploy-workspaces.mjs`, same run, `dpl_8L4bn5cbzp9k7zt99EPEn4QPAcBj` |
 
 This file is written after the release it describes, so the commit carrying these words is always one
 ahead of the shas in the table. That one commit is documentation: CRC's Git integration builds it by
 itself and TBI is not owed a release for it. Any commit that touches `app/`, `lib/`, `content/`,
 `components/`, `schemas/` or `workspaces/` **is** owed one.
+
+### Release 80c9371 (2026-09-23 UTC)
+
+- `80c9371` is the reviewed census commit `ddcf197` cherry-picked (patch-identical) onto `642f878`.
+  Released from clean exact-SHA guard `80c937139347b9d133f15b56d0dcc7a81cd86b5c`. CRC
+  `dpl_DgnHxhQAK2zXJ7heqTgpRFtHQQM7` and TBI `dpl_8L4bn5cbzp9k7zt99EPEn4QPAcBj` are Ready; both
+  custom domains resolve to them and all four aliases return HTTP 200.
+- Adds a read-only `census {before, after}` of /tmp to each `server-fit released` line (Vercel
+  only; caller latency capped at 250 ms, though a timed-out scan is not cancelled). Verdicts are
+  unchanged. No source, publication, relay or human-review action ran.
+- **Known defect, found after deploy:** Vercel records `console.info`, which prints nested objects
+  only two levels deep. The census's `instance`, `files`, `held` and `largestOther` therefore log as
+  `[Object]`; only `free`, `used`, `unattributed` and `ms` survive. Fix `d040865` (branch
+  `codex/fit-census-log`, logs the line as JSON) awaits review. The hosted fit series is held until
+  then.
+- Gates: `tsc --noEmit`; `npm test` (787 pass, 11 skipped; 24 MJS pass); `npm run lint`;
+  `npm run build` (42 routes). Logs: `work/sitting-2026-09-22/census-release-80c9371/`.
 
 ### Release 74f2051 (2026-09-23 UTC)
 
