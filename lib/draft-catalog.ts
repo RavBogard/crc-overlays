@@ -48,7 +48,7 @@ function sourceMetadata(draft:Draft){
 }
 
 const channelOrder:TextLayer[]=['he','tr','en'];
-const meaningful=(channel:TextLayer,value:unknown)=>typeof value==='string'&&(channel==='he'?/\p{Script=Hebrew}/u:/\p{L}/u).test(value);
+const meaningful=(channel:TextLayer,value:unknown)=>typeof value==='string'&&(channel==='he'?/[א-תװ-ײ]/u:/\p{L}/u).test(value.normalize('NFKC'));
 
 function canonicalContent(content:DraftContent){return content.mode==='local-variant'?content.base:content;}
 
@@ -83,10 +83,13 @@ function contentSummary(draft:Draft):DraftCatalogSummary['contentSummary']{
   // The source explicitly says a paired channel is unavailable (for example `he: "—"`).
   // Surface that fact even on an English-only draft so compact catalog callers do not need a
   // source snapshot to learn that a later bilingual revision cannot be sourced as-is.
-  if(typeof value==='string'&&value.trim())warn(source.id,channel,`${channel==='he'?'Hebrew':channel==='tr'?'Transliteration':'English'} is not printed in this source body.`);
+  if(typeof value==='string'&&value.trim())warn(source.id,channel,`Some source blocks lack meaningful ${channel==='he'?'Hebrew':channel==='tr'?'transliteration':'English'} text.`);
  }
  for(const {sourceId,blockId} of selected){
-  const source=sourceById.get(sourceId), block=source?.blocks.find(candidate=>candidate.id===blockId)??canonicalSources.get(sourceId)?.blocks.find(candidate=>candidate.id===blockId);
+  const source=sourceById.get(sourceId);
+  // A retained snapshot is the draft's authority. Do not fill an absent historical block from
+  // the current library, which could describe a later source revision.
+  const block=source?source.blocks.find(candidate=>candidate.id===blockId):canonicalSources.get(sourceId)?.blocks.find(candidate=>candidate.id===blockId);
   for(const channel of channels){
    // English for bilingual selections is derived only from validated translation pairs. It is
    // not a direct field on the selected Hebrew/transliteration block.

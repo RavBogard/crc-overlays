@@ -151,13 +151,17 @@ test('compact catalog reports meaningful source language availability without tr
   {id:'dash-en',index:1,kind:'source-en',en:'English lyric',englishRole:'unclassified',automatic:true,noteLike:false,sourceBlockSha256:'dash-en-hash'},
  ]};
  const normal:AuthoringSource={id:'normal-source',name:'Paired source',section:null,unitSha256:'normal-unit',blocks:[{id:'normal-he-tr',index:0,kind:'bilingual',he:'\u05d0\u05b8\u05dc\u05b8\u05dd \u05d7\u05b6\u05e1\u05b6\u05d3',tr:'Olam chesed',sourceBlockSha256:'normal-hash'}]};
+ const marks:AuthoringSource={id:'marks-source',name:'Hebrew marks only',section:null,unitSha256:'marks-unit',blocks:[{id:'marks-he-tr',index:0,kind:'bilingual',he:'\u05be\u05b0',tr:'Romanized',sourceBlockSha256:'marks-hash'}]};
  const now=1, make=(id:string,content:DraftContent,sources:AuthoringSource[]):Draft=>({id,name:id,title:id,layout:'left',templateCueId:LEFT_PANEL,content,presentation:{},sourceSnapshots:sources,sourcePin:sourcePinFor(content,sources),version:1,activeRevision:null,activeDraftVersion:null,createdAt:now,updatedAt:now,createdBy:'tester',updatedBy:'tester'});
  const english=make('english',{mode:'source-en',englishGroups:[{sourceId:dash.id,blockIds:['dash-en']}]},[dash]);
  const paired=make('paired',{mode:'bilingual',hebrewGroups:[{sourceId:normal.id,blockIds:['normal-he-tr']}],transliterationGroups:[{sourceId:normal.id,blockIds:['normal-he-tr']}]},[normal]);
  const mixed=make('mixed',{mode:'bilingual',hebrewGroups:[{sourceId:normal.id,blockIds:['normal-he-tr']},{sourceId:dash.id,blockIds:['dash-he-tr']}],transliterationGroups:[{sourceId:normal.id,blockIds:['normal-he-tr']},{sourceId:dash.id,blockIds:['dash-he-tr']}]},[normal,dash]);
- const rows=new Map(compactDraftCatalog([english,paired,mixed],{}).drafts.map(row=>[row.id,row]));
- assert.deepEqual(rows.get('english')!.contentSummary,{mode:'source-en',selectedChannels:['en'],sourceAvailableChannels:['tr','en'],selectedBlockCount:1,warnings:[{code:'source_language_unavailable',sourceId:'dash-source',channel:'he',message:'Hebrew is not printed in this source body.'}]});
+ const marked=make('marked',{mode:'bilingual',hebrewGroups:[{sourceId:marks.id,blockIds:['marks-he-tr']}],transliterationGroups:[{sourceId:marks.id,blockIds:['marks-he-tr']}]},[marks]);
+ const rows=new Map(compactDraftCatalog([english,paired,mixed,marked],{}).drafts.map(row=>[row.id,row]));
+ assert.deepEqual(rows.get('english')!.contentSummary,{mode:'source-en',selectedChannels:['en'],sourceAvailableChannels:['tr','en'],selectedBlockCount:1,warnings:[{code:'source_language_unavailable',sourceId:'dash-source',channel:'he',message:'Some source blocks lack meaningful Hebrew text.'}]});
  assert.deepEqual(rows.get('paired')!.contentSummary,{mode:'bilingual',selectedChannels:['he','tr'],sourceAvailableChannels:['he','tr'],selectedBlockCount:1,warnings:[]});
+ assert.deepEqual(rows.get('marked')!.contentSummary.sourceAvailableChannels,['tr'],'Hebrew punctuation and marks alone are unavailable');
+ assert.deepEqual(rows.get('marked')!.contentSummary.warnings.map(warning=>[warning.sourceId,warning.channel]),[['marks-source','he']]);
  assert.deepEqual(rows.get('mixed')!.contentSummary.sourceAvailableChannels,['he','tr','en']);
  assert.deepEqual(rows.get('mixed')!.contentSummary.warnings.map(warning=>[warning.code,warning.sourceId,warning.channel]),[['source_language_unavailable','dash-source','he']]);
 });
@@ -247,7 +251,7 @@ test('preview_content is ephemeral and cannot satisfy stored review publication'
 test('list_catalog exposes effective cues for edit or duplicate without mutating playback',async()=>{
  const repo=new MemoryAuthoringRepository();const service=createAuthoringService(repo);
  const baseline=await service.operation('list_catalog',{},'tester') as ListCatalogResult;const barechu=baseline.cues.find(cue=>cue.id===BARECHU)!;const thankYou=baseline.cues.find(cue=>cue.name==='Thank you')!;
- assert.equal(barechu.origin,'canonical');assert.equal(barechu.canEdit,true);assert.equal(barechu.editAction,'import');assert.equal(barechu.canDuplicate,true);assert.equal(thankYou.origin,'legacy');assert.equal(thankYou.editAction,'duplicate');
+ assert.equal(barechu.origin,'canonical');assert.equal(barechu.canEdit,true);assert.equal(barechu.editAction,'import');assert.equal(barechu.canDuplicate,true);assert.equal(thankYou.origin,'canonical');assert.equal(thankYou.editAction,'import');
  const imported=await service.operation('import_cue',{cueId:BARECHU},'tester') as ImportCueResult;
  const after=await service.operation('list_catalog',{},'tester') as ListCatalogResult;const editable=after.cues.find(cue=>cue.id===BARECHU)!;
  assert.equal(editable.canEdit,true);assert.equal(editable.editAction,'open');assert.equal(editable.draftId,imported.draft.id);assert.equal(editable.activeRevision,1);
@@ -413,8 +417,8 @@ test('preview_baseline_cue renders a baseline graphic without importing it',asyn
  assert.equal(preview.cue.texts.textTitle,baselineCues.find(cue=>cue.id===BARECHU)!.texts.textTitle);
  assert.equal((await service.operation('list_drafts',{},'tester') as ListDraftsResult).drafts.length,0,'looking at a baseline stores nothing');
  assert.deepEqual(await service.publishedCues(),[]);
- // The non-liturgical archive copy refuses here exactly as it refuses import.
- await assert.rejects(service.operation('preview_baseline_cue',{cueId:RIGHT_PANEL},'tester'),(error)=>(error as AuthoringError).code==='unmanaged_content');
+ // The supported non-liturgical archive copy previews through the same custom-text path as import.
+ const thankYou=await service.operation('preview_baseline_cue',{cueId:RIGHT_PANEL},'tester') as PreviewContentResult;assert.equal(thankYou.ephemeral,true);assert.equal(thankYou.cue.texts.textMain,baselineCues.find(cue=>cue.id===RIGHT_PANEL)!.texts.textMain,'a supported custom baseline previews without an import');
  await assert.rejects(service.operation('preview_baseline_cue',{cueId:'missing'},'tester'),(error)=>(error as AuthoringError).code==='unknown_cue');
 });
 
@@ -453,6 +457,17 @@ test('import_cue seeds a workspace starter graphic under the workspace id',async
  });
 });
 
+test('import_cue imports the supported non-liturgical baseline as one stable exact custom draft',async()=>{
+ const repo=new MemoryAuthoringRepository(),service=createAuthoringService(repo);const baseline=baselineCues.find(cue=>cue.id===RIGHT_PANEL)!;
+ const first=await service.operation('import_cue',{cueId:RIGHT_PANEL},'tester') as ImportCueResult;
+ const second=await service.operation('import_cue',{cueId:RIGHT_PANEL},'tester') as ImportCueResult;
+ assert.equal(first.created,true);assert.equal(second.created,false);assert.equal(first.draft.id,RIGHT_PANEL);
+ assert.deepEqual(first.draft.content,{mode:'custom',text:baseline.texts.textMain});
+ assert.equal(first.draft.title,baseline.texts.textTitle);assert.equal(first.draft.accentTitle,baseline.texts.accentTextTitle);
+ assert.equal(first.draft.layout,baseline.layout);assert.equal(first.draft.templateCueId,RIGHT_PANEL);assert.deepEqual(first.draft.presentation,baseline.presentation??{});
+ const cue=buildCue(first.draft);assert.equal(cue.id,RIGHT_PANEL);assert.deepEqual(cue.texts,baseline.texts);
+ assert.equal(cue.authoring.origin,'local');assert.deepEqual(cue.authoring.sourceIds,[]);assert.equal(cue.authoring.feedSha256,'local');
+});
 // list_catalog and list_templates enumerate baselineCatalogForWorkspace() - the same seam
 // lib/server.ts mergePublishedCatalog reads for the live catalog - so a TBI editor never sees
 // the CRC id underneath one of its starter graphics in either listing.
