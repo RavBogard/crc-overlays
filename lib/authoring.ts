@@ -3,6 +3,7 @@ import type {Cue} from './player';
 import {AuthoringError,assertSourcePin,baselineCues,buildCue,cueHash,draftSetSelections,editableFromBaseline,newDraftId,normalizeGraphicName,parseEditable,previewValidation,resolveSourceBoundaries,sameStructuredValue,sourceBlockFor,sourcePack,sourcePinFor,sourceReferences,sourceSnapshotsFor,type AuthoringCue,type Draft,type DraftContent,type DraftSetSelection,type EditableDraft,type Layout,type LocalVariantOverride,type VariantChannel,type SourceBlock,type SharedCueUpstream} from './authoring-model';
 import {compactDraftCatalog,type DraftCatalogInput} from './draft-catalog';
 import {planDraftStyle,type DraftStyleOptions,type DraftStylePlan} from './authoring-style';
+import {withCreateDefaultBilingualBlocks} from './authoring-defaults';
 import {layoutLabel} from './layout-label';
 // One source of truth for how much liturgy one panel holds, shared with the editor so a
 // selection warning and a server split can never disagree.
@@ -328,14 +329,14 @@ export function createAuthoringService(repo:AuthoringRepository,workspace:Author
    let drafts=pages.map((page,index)=>{
     const groups=page.map(block=>({sourceId,blockIds:[block.id]}));
     const content:DraftContent=mode==='bilingual'?{mode,hebrewGroups:groups,transliterationGroups:structuredClone(groups),...(includeTranslation?{includeTranslation:true}:{})}:{mode,englishGroups:groups};
-    const editable=parseEditable({name:`${source.name} — ${String(index+1).padStart(width,'0')} of ${String(count).padStart(width,'0')}`,title:source.name,layout,templateCueId,content,presentation:{}}) as EditableDraft;
+    const editable=parseEditable({name:`${source.name} — ${String(index+1).padStart(width,'0')} of ${String(count).padStart(width,'0')}`,title:source.name,layout,templateCueId,content:withCreateDefaultBilingualBlocks(content),presentation:{}}) as EditableDraft;
     const sourceSnapshots=[structuredClone(canonicalSource)];return {...editable,id:newDraftId(),version:1,sourcePin:sourcePinFor(editable.content,sourceSnapshots),sourceSnapshots,activeRevision:null,activeDraftVersion:null,createdAt:now,updatedAt:now,createdBy:who,updatedBy:who,draftSetId:setId,setIndex:index+1,setCount:count} satisfies Draft;
    });
    const draftSetManifest={version:1 as const,selections:drafts.flatMap(draft=>draftSetSelections(draft.content,draft.sourceSnapshots))};drafts=drafts.map(draft=>({...draft,draftSetManifest:structuredClone(draftSetManifest)}));
    const inserted=await repo.insertDraftSet(drafts);return {drafts:inserted,set:{id:setId,name:source.name,count,draftIds:inserted.map(draft=>draft.id)}};
   }
   if(operation==='create_draft'){
-   const editable=parseEditable(data) as EditableDraft;const sourceSnapshots=sourceSnapshotsFor(editable.content);const now=Date.now(); const draft:Draft={...editable,id:newDraftId(),version:1,sourcePin:sourcePinFor(editable.content,sourceSnapshots),...(sourceSnapshots.length?{sourceSnapshots}:{}),activeRevision:null,activeDraftVersion:null,createdAt:now,updatedAt:now,createdBy:who,updatedBy:who};
+   const rawContent=object(data.content,'content'),rawBase=rawContent.mode==='local-variant'?object(rawContent.base,'content.base'):rawContent,explicitArrangement=Object.hasOwn(rawBase,'arrangement');const parsed=parseEditable(data) as EditableDraft;const editable=explicitArrangement?parsed:{...parsed,content:withCreateDefaultBilingualBlocks(parsed.content)};const sourceSnapshots=sourceSnapshotsFor(editable.content);const now=Date.now(); const draft:Draft={...editable,id:newDraftId(),version:1,sourcePin:sourcePinFor(editable.content,sourceSnapshots),...(sourceSnapshots.length?{sourceSnapshots}:{}),activeRevision:null,activeDraftVersion:null,createdAt:now,updatedAt:now,createdBy:who,updatedBy:who};
    const warnings=await duplicateNameWarnings(draft);
    return {draft:await repo.insertDraft(draft),warnings};
   }

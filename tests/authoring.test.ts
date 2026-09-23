@@ -1,6 +1,6 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
-import {AuthoringError,baselineCues,buildCue,editableFromBaseline,sourcePack,type Draft,type DraftContent,type AuthoringCue,type AuthoringSource,type BilingualContent,type OriginalEnglishContent,type SourceEnglishContent,type LocalVariantContent,type DraftSetSelection} from '../lib/authoring-model.ts';
+import {AuthoringError,baselineCues,buildCue,editableFromBaseline,sourcePack,textArrangement,type Draft,type DraftContent,type AuthoringCue,type AuthoringSource,type BilingualContent,type OriginalEnglishContent,type SourceEnglishContent,type LocalVariantContent,type DraftSetSelection} from '../lib/authoring-model.ts';
 import {MemoryAuthoringRepository,authoringRepositoryMode,createAuthoringService,type AuthoringWorkspace,type Revision} from '../lib/authoring.ts';
 import {exceedsOnePanel} from '../lib/panel-budget.ts';
 import type {BookUnitsResult} from '../app/author/types.ts';
@@ -110,6 +110,14 @@ type SearchSourcesResult={sources:SourceSummary[];truncated:boolean};
 type GetSourceResult={source:AuthoringSource};
 type ReviewDraftSetResult={status:string;expected?:DraftSetSelection[];current?:DraftSetSelection[];issues:Array<{kind:string;selections:unknown[]}>};
 type GetWorkspaceResult={workspace:AuthoringWorkspace};
+
+test('new bilingual drafts default to blocks while explicit together remains together',async()=>{
+ const service=createAuthoringService(new MemoryAuthoringRepository()),source=sourcePack.sources.find(item=>item.blocks.some(block=>block.kind==='bilingual'))!,block=source.blocks.find(item=>item.kind==='bilingual')!;
+ const base={name:'New bilingual',title:'New bilingual',layout:'left' as const,templateCueId:LEFT_PANEL,presentation:{},content:{mode:'bilingual' as const,hebrewGroups:[{sourceId:source.id,blockIds:[block.id]}],transliterationGroups:[{sourceId:source.id,blockIds:[block.id]}]}};
+ const omitted=await service.operation('create_draft',base,'tester') as DraftResult;
+ const together=await service.operation('create_draft',{...base,name:'Explicit together',content:{...base.content,arrangement:'together'}},'tester') as DraftResult;
+ assert.equal((omitted.draft.content as BilingualContent).arrangement,'blocks');assert.equal(textArrangement(together.draft.content as BilingualContent),'together');assert.notEqual((together.draft.content as BilingualContent).arrangement,'blocks');
+});
 
 test('compact draft listing is bounded, source-text-free, and leaves the legacy listing intact',async()=>{
  const repo=new MemoryAuthoringRepository(),service=createAuthoringService(repo);
