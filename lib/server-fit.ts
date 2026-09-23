@@ -36,6 +36,8 @@ export const SERVER_FIT_DEADLINE_MS=25_000;
 export const STAGE_PATH='/author/fit-stage';
 /** JPEG bytes before base64 expansion, keeping the returned base64 payload at about 1 MB. */
 export const SERVER_FIT_PREVIEW_IMAGE_MAX_BYTES=750_000;
+/** A stalled stage cleanup must never hold Chromium close or scratch release hostage. */
+export const STAGE_DISPOSE_TIMEOUT_MS=250;
 
 export {SERVER_RENDERER_PREFIX};
 export type {ServerFitArtwork,ServerFitMeasured,ServerFitPreviewImage,ServerFitPreviewImageUnavailable,ServerFitResult,ServerFitUnavailable,StageMeasurement,StageMeasureOptions} from './server-fit-contract';
@@ -534,6 +536,7 @@ export async function measureCueOnServer(cue:Cue,options:{origin:string;deadline
    try{
     if(!page.screenshot)throw Error('stage_screenshot_unavailable');
     const bytes=await page.screenshot({type:'jpeg',quality:65});
+    if(!bytes.byteLength)throw Error('stage_screenshot_empty');
     if(bytes.byteLength>SERVER_FIT_PREVIEW_IMAGE_MAX_BYTES)return {measurement,previewImage:null as ServerFitPreviewImage|null,previewImageUnavailable:'image_too_large' as ServerFitPreviewImageUnavailable};
     return {measurement,previewImage:{mimeType:'image/jpeg' as const,dataBase64:Buffer.from(bytes).toString('base64'),width:1920,height:1080}};
    }catch{return {measurement,previewImage:null as ServerFitPreviewImage|null,previewImageUnavailable:'screenshot_failed' as ServerFitPreviewImageUnavailable};}
@@ -555,7 +558,7 @@ export async function measureCueOnServer(cue:Cue,options:{origin:string;deadline
  }finally{
   // Capture mode retains the exact fitted DOM only through screenshot(), then releases it
   // before Chromium closes. A failed image remains an explicit non-proof, never a fake pass.
-  if(wantsPreviewImage&&page)await page.evaluate<void,undefined>(()=>{(window as unknown as {__disposeMeasuredCue?:()=>void}).__disposeMeasuredCue?.()},undefined).catch(()=>{});
+  if(wantsPreviewImage&&page)await withDeadline(STAGE_DISPOSE_TIMEOUT_MS,()=>page!.evaluate<void,undefined>(()=>{(window as unknown as {__disposeMeasuredCue?:()=>void}).__disposeMeasuredCue?.()},undefined)).catch(()=>{});
   // The browser is closed on every path, including the deadline: a leaked Chromium would
   // outlive the function invocation that started it. A launch that has already resolved is
   // closed before this function returns; one still in flight when the deadline fired is

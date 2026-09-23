@@ -1,6 +1,6 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
-import {measureCueOnServer,serverRendererVersion,SERVER_FIT_PREVIEW_IMAGE_MAX_BYTES,SERVER_RENDERER_PREFIX,STAGE_PATH,type StageBrowser,type StageLauncher,type StageMeasurement} from '../lib/server-fit.ts';
+import {measureCueOnServer,serverRendererVersion,SERVER_FIT_PREVIEW_IMAGE_MAX_BYTES,SERVER_RENDERER_PREFIX,STAGE_DISPOSE_TIMEOUT_MS,STAGE_PATH,type StageBrowser,type StageLauncher,type StageMeasurement} from '../lib/server-fit.ts';
 import {SERVER_RENDERER_PREFIX as CONTRACT_PREFIX} from '../lib/server-fit-contract.ts';
 import type {Cue} from '../lib/player.ts';
 
@@ -10,7 +10,7 @@ const CUE={id:'cue-1',name:'Barechu',title:'Barechu',layout:'bottom',texts:{}} a
 type Visited={viewport:{width:number;height:number}|null;url:string|null;gotoWaitUntil:string|null;waited:string|null;evaluated:Cue|null;closed:number;screenshots:number;screenshotOptions:{type:'jpeg'|'png';quality?:number}|null;retainRequested:boolean;cleanups:number};
 
 /** A fake Playwright: no browser, no network. `page.evaluate` returns whatever the stage would. */
-function fakeLauncher(measure:(cue:Cue)=>Promise<StageMeasurement>|StageMeasurement,visited:Visited,screenshot?:()=>Promise<Uint8Array>):StageLauncher{
+function fakeLauncher(measure:(cue:Cue)=>Promise<StageMeasurement>|StageMeasurement,visited:Visited,screenshot?:()=>Promise<Uint8Array>,cleanup?:()=>Promise<void>):StageLauncher{
  return async()=>({
   async newPage(){
    return {
@@ -20,7 +20,7 @@ function fakeLauncher(measure:(cue:Cue)=>Promise<StageMeasurement>|StageMeasurem
     async evaluate<Result,Arg>(_fn:(arg:Arg)=>Result|Promise<Result>,arg:Arg){
      const input=arg as unknown as {cue?:Cue;options?:{retainRenderedCue?:boolean}}|undefined;
      if(input?.cue){visited.evaluated=input.cue;visited.retainRequested=input.options?.retainRenderedCue===true;return await measure(input.cue) as unknown as Result}
-     visited.cleanups++;return undefined as Result;
+     visited.cleanups++;if(cleanup)await cleanup();return undefined as Result;
     },
     ...(screenshot?{async screenshot(options:{type:'jpeg'|'png';quality?:number}){visited.screenshots++;visited.screenshotOptions=options;return await screenshot();}}:{}),
    };
@@ -63,6 +63,22 @@ test('a screenshot failure is explicit and does not fabricate visual proof for a
  const result=await measureCueOnServer(CUE,{origin:ORIGIN,includePreviewImage:true,launch:fakeLauncher(()=>({fitErrors:[],warnings:[],fill:0.5,artwork:'none'}),visited,async()=>{throw Error('screenshot failed')})});
  assert.equal(result.verdict,'pass');assert.equal(result.previewImage,null);assert.equal(result.previewImageUnavailable,'screenshot_failed');
  assert.equal(visited.cleanups,1);assert.equal(visited.closed,1);
+});
+
+test('an empty screenshot is withheld rather than encoded as visual proof',async()=>{
+ const visited=fresh();
+ const result=await measureCueOnServer(CUE,{origin:ORIGIN,includePreviewImage:true,launch:fakeLauncher(()=>({fitErrors:[],warnings:[],fill:0.5,artwork:'none'}),visited,async()=>new Uint8Array())});
+ assert.equal(result.verdict,'pass');assert.equal(result.previewImage,null);assert.equal(result.previewImageUnavailable,'screenshot_failed');
+ assert.equal(visited.cleanups,1);
+});
+
+test('a stalled stage cleanup is bounded before browser close and scratch release',async()=>{
+ const visited=fresh(),started=Date.now();
+ const result=await measureCueOnServer(CUE,{origin:ORIGIN,includePreviewImage:true,launch:fakeLauncher(()=>({fitErrors:[],warnings:[],fill:0.5,artwork:'none'}),visited,async()=>new Uint8Array([1]),()=>new Promise<void>(()=>{}))});
+ assert.equal(result.verdict,'pass');assert.equal(visited.cleanups,1);assert.equal(visited.closed,1);
+ const elapsed=Date.now()-started;
+ assert.ok(elapsed>=STAGE_DISPOSE_TIMEOUT_MS-15,`cleanup returned before its bounded wait: ${elapsed}ms`);
+ assert.ok(elapsed<STAGE_DISPOSE_TIMEOUT_MS+350,`cleanup stalled release for too long: ${elapsed}ms`);
 });
 
 test('an over-budget capture is withheld with an explicit reason',async()=>{
