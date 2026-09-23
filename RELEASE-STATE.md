@@ -4,8 +4,7 @@ What is deployed right now. Update this file on every release — it is the one 
 "what is live", and it is short so it can be read under pressure. The history is in
 `docs/planning/2026-09-deploys/` (25 deploy records, the release chain, the phase build notes).
 
-**Last updated: 2026-09-23** (paired release `80c9371`: the server-fit release line gains a
-read-only /tmp census; web only, no relay change. Evidence below under "Release 80c9371".)
+**Last updated: 2026-09-23** (paired release `43b9c8b`: server-fit census accounting is logged as JSON so Vercel retains nested attribution fields. Evidence below under "Release 43b9c8b".)
 
 ## Web, per workspace
 
@@ -14,14 +13,19 @@ both were released together on 2026-09-23 UTC (2026-09-22 evening Central).
 
 | Workspace | Host | Deployed commit | How it got there |
 |---|---|---|---|
-| CRC | `overlays.centralreform.org` (alt `crc-overlays.vercel.app`) | `80c9371` | `scripts/deploy-workspaces.mjs`, 2026-09-23, `dpl_DgnHxhQAK2zXJ7heqTgpRFtHQQM7` (the Git integration also builds every push to `main`) |
-| TBI | `overlays.templebnaiisrael.com` (alt `tbi-overlays.vercel.app`) | `80c9371` | `scripts/deploy-workspaces.mjs`, same run, `dpl_8L4bn5cbzp9k7zt99EPEn4QPAcBj` |
+| CRC | `overlays.centralreform.org` (alt `crc-overlays.vercel.app`) | `43b9c8b` | `scripts/deploy-workspaces.mjs`, 2026-09-23, `dpl_4pguDygcJi1w7oLxdmmWWtUhzmeS` (the Git integration also builds every push to `main`) |
+| TBI | `overlays.templebnaiisrael.com` (alt `tbi-overlays.vercel.app`) | `43b9c8b` | `scripts/deploy-workspaces.mjs`, same run, `dpl_5oTbzWg7hMjqMLA8Tvjdq7RsTng9` |
 
 This file is written after the release it describes, so the commit carrying these words is always one
 ahead of the shas in the table. That one commit is documentation: CRC's Git integration builds it by
 itself and TBI is not owed a release for it. Any commit that touches `app/`, `lib/`, `content/`,
 `components/`, `schemas/` or `workspaces/` **is** owed one.
 
+### Release 43b9c8b (2026-09-23 UTC)
+
+- `43b9c8b` is the reviewed JSON logging fix `d040865`, cherry-picked onto `088379e`. Released from clean exact-SHA guard `43b9c8b2a81ab608d63459601db15c7ffc667d65`. CRC `dpl_4pguDygcJi1w7oLxdmmWWtUhzmeS` and TBI `dpl_5oTbzWg7hMjqMLA8Tvjdq7RsTng9` are Ready; the two custom and two Vercel aliases returned HTTP 200 from `/health`.
+- The read-only server-fit census and verdict behavior are unchanged. The `server-fit released` and residue lines now carry JSON strings, preventing Vercel console formatting from collapsing nested census categories, instance attribution, held files, or largest-other data to `[Object]`. No source, publication, relay, or hosted-fit action ran.
+- Gates: `tsc --noEmit`; `npm test` (24 MJS checks included); `npm run lint`; and `npm run build` (42 routes). Logs: `work/sitting-2026-09-22/census-json-release-43b9c8b/`.
 ### Release 80c9371 (2026-09-23 UTC)
 
 - `80c9371` is the reviewed census commit `ddcf197` cherry-picked (patch-identical) onto `642f878`.
