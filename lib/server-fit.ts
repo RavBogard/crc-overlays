@@ -30,13 +30,15 @@ import type {Cue} from './player';
 // The names every caller shares live in a dependency-free module, so importing one of them
 // never drags playwright-core or the Chromium pack into another entrypoint's trace. This
 // file is the only one allowed to reach either package - see lib/server-fit-contract.ts.
-import {SERVER_RENDERER_PREFIX,type ServerFitArtwork,type ServerFitResult,type StageMeasurement} from './server-fit-contract';
+import {SERVER_RENDERER_PREFIX,type ServerFitArtwork,type ServerFitPreviewImage,type ServerFitPreviewImageUnavailable,type ServerFitResult,type StageMeasurement,type StageMeasureOptions} from './server-fit-contract';
 
 export const SERVER_FIT_DEADLINE_MS=25_000;
 export const STAGE_PATH='/author/fit-stage';
+/** JPEG bytes before base64 expansion, keeping the returned base64 payload at about 1 MB. */
+export const SERVER_FIT_PREVIEW_IMAGE_MAX_BYTES=750_000;
 
 export {SERVER_RENDERER_PREFIX};
-export type {ServerFitArtwork,ServerFitMeasured,ServerFitResult,ServerFitUnavailable,StageMeasurement} from './server-fit-contract';
+export type {ServerFitArtwork,ServerFitMeasured,ServerFitPreviewImage,ServerFitPreviewImageUnavailable,ServerFitResult,ServerFitUnavailable,StageMeasurement,StageMeasureOptions} from './server-fit-contract';
 
 /**
  * The slice of Playwright this module actually uses, named structurally so a test can hand in
@@ -47,6 +49,7 @@ export type StagePage={
  goto(url:string,options?:{waitUntil?:'load'|'domcontentloaded'|'networkidle'|'commit';timeout?:number}):Promise<unknown>;
  waitForFunction(expression:string,arg?:unknown,options?:{timeout?:number}):Promise<unknown>;
  evaluate<Result,Arg>(fn:(arg:Arg)=>Result|Promise<Result>,arg:Arg):Promise<Result>;
+ screenshot?(options:{type:'jpeg'|'png';quality?:number}):Promise<Uint8Array>;
 };
 export type StageBrowser={newPage():Promise<StagePage>;close():Promise<unknown>};
 /** `scratch` is this check's own directory: the browser's TMPDIR and HOME, removed afterwards. */
@@ -469,7 +472,7 @@ function stageMeasurement(value:unknown):StageMeasurement|null{
  * of /tmp before and after (TmpCensus): which instance looked, and where the space is - the pack,
  * a directory, a deleted file still held open, or nowhere this process can see.
  */
-export async function measureCueOnServer(cue:Cue,options:{origin:string;deadlineMs?:number;launch?:StageLauncher;host?:ScratchHost;lingerMs?:number}):Promise<ServerFitResult>{
+export async function measureCueOnServer(cue:Cue,options:{origin:string;deadlineMs?:number;launch?:StageLauncher;host?:ScratchHost;lingerMs?:number;includePreviewImage?:boolean}):Promise<ServerFitResult>{
  const deadlineMs=options.deadlineMs??SERVER_FIT_DEADLINE_MS;
  const launch=options.launch??defaultLaunch;
  const host=options.host??defaultScratchHost;
@@ -491,6 +494,8 @@ export async function measureCueOnServer(cue:Cue,options:{origin:string;deadline
  let scratch:string|undefined;
  const remaining=()=>Math.max(1,deadlineMs-(Date.now()-started));
  let browser:StageBrowser|undefined;
+ let page:StagePage|undefined;
+ const wantsPreviewImage=options.includePreviewImage===true;
  // Keep this separate from the public unavailable reason.  A browser assigned before
  // `newPage()` can still fail before it ever makes a request, so `stage_unavailable` alone
  // cannot establish that the public-origin request was the problem.
@@ -506,13 +511,13 @@ export async function measureCueOnServer(cue:Cue,options:{origin:string;deadline
   const dir=scratch=await host.make();
   // The race gets what is left of the budget, not a fresh one: the free-space reading and the
   // scratch directory above count against the same deadline as the launch and the measurement.
-  const measurement=await withDeadline(remaining(),async()=>{
+  const stageRun=await withDeadline(remaining(),async()=>{
    launching=Promise.resolve(launch(dir));
    browser=await launching;
    // A launch that lands after the deadline is recorded by the late-release path instead.
    if(!deadlineHit)await own(dir);
    phase='new_page';
-   const page=await browser.newPage();
+   page=await browser.newPage();
    await page.setViewportSize({width:1920,height:1080});
    // `load` waits for every subresource on the page, while this stage needs only its
    // hydrated `__measureCue` function.  Waiting for DOM readiness first gives that explicit
@@ -523,11 +528,19 @@ export async function measureCueOnServer(cue:Cue,options:{origin:string;deadline
    phase='stage_ready';
    await page.waitForFunction('typeof window.__measureCue === "function"',undefined,{timeout:remaining()});
    phase='measure';
-   return await page.evaluate<unknown,Cue>(value=>(window as unknown as {__measureCue:(input:Cue)=>Promise<StageMeasurement>}).__measureCue(value),cue);
+   const measurement=await page.evaluate<unknown,{cue:Cue;options:StageMeasureOptions}>(value=>(window as unknown as {__measureCue:(input:Cue,options?:StageMeasureOptions)=>Promise<StageMeasurement>}).__measureCue(value.cue,value.options),{cue,options:wantsPreviewImage?{retainRenderedCue:true}:{}});
+   if(!wantsPreviewImage)return {measurement};
+   phase='screenshot';
+   try{
+    if(!page.screenshot)throw Error('stage_screenshot_unavailable');
+    const bytes=await page.screenshot({type:'jpeg',quality:65});
+    if(bytes.byteLength>SERVER_FIT_PREVIEW_IMAGE_MAX_BYTES)return {measurement,previewImage:null as ServerFitPreviewImage|null,previewImageUnavailable:'image_too_large' as ServerFitPreviewImageUnavailable};
+    return {measurement,previewImage:{mimeType:'image/jpeg' as const,dataBase64:Buffer.from(bytes).toString('base64'),width:1920,height:1080}};
+   }catch{return {measurement,previewImage:null as ServerFitPreviewImage|null,previewImageUnavailable:'screenshot_failed' as ServerFitPreviewImageUnavailable};}
   });
-  const measured=stageMeasurement(measurement);
+  const measured=stageMeasurement(stageRun.measurement);
   if(!measured)return {verdict:'unavailable',reason:'measurement_invalid'};
-  return {verdict:measured.fitErrors.length?'fail':'pass',fitErrors:measured.fitErrors,warnings:measured.warnings,fill:measured.fill,artwork:measured.artwork,measuredAt:Date.now(),rendererVersion:serverRendererVersion()};
+  return {verdict:measured.fitErrors.length?'fail':'pass',fitErrors:measured.fitErrors,warnings:measured.warnings,fill:measured.fill,artwork:measured.artwork,measuredAt:Date.now(),rendererVersion:serverRendererVersion(),...(wantsPreviewImage?{previewImage:stageRun.previewImage??null,...(stageRun.previewImageUnavailable?{previewImageUnavailable:stageRun.previewImageUnavailable}:{})}:{})};
  }catch(error){
   deadlineHit=error instanceof DeadlineExpired;
   // `unavailable` is one word for several very different failures - no Chromium binary in the
@@ -540,6 +553,9 @@ export async function measureCueOnServer(cue:Cue,options:{origin:string;deadline
   // line alone could not make - without leaking any error text to the caller.
   return {verdict:'unavailable',reason:error instanceof DeadlineExpired?'deadline_exceeded':browser?'stage_unavailable':'browser_unavailable'};
  }finally{
+  // Capture mode retains the exact fitted DOM only through screenshot(), then releases it
+  // before Chromium closes. A failed image remains an explicit non-proof, never a fake pass.
+  if(wantsPreviewImage&&page)await page.evaluate<void,undefined>(()=>{(window as unknown as {__disposeMeasuredCue?:()=>void}).__disposeMeasuredCue?.()},undefined).catch(()=>{});
   // The browser is closed on every path, including the deadline: a leaked Chromium would
   // outlive the function invocation that started it. A launch that has already resolved is
   // closed before this function returns; one still in flight when the deadline fired is

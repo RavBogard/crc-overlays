@@ -31,6 +31,11 @@ export type ServerFitArtwork='none'|'loaded'|'not-loaded';
 
 /** What the stage hands back; the shape of `window.__measureCue`'s resolution. */
 export type StageMeasurement={fitErrors:string[];warnings:string[];fill:number|null;artwork:ServerFitArtwork};
-export type ServerFitMeasured={verdict:'pass'|'fail';fitErrors:string[];warnings:string[];fill:number|null;artwork:ServerFitArtwork;measuredAt:number;rendererVersion:string};
+/** Retaining the stage DOM is opt-in and only lasts until the caller captures its frame. */
+export type StageMeasureOptions={retainRenderedCue?:boolean};
+/** An ephemeral, server-rendered preview. It is never written to a draft, preview, or revision. */
+export type ServerFitPreviewImage={mimeType:'image/jpeg'|'image/png';dataBase64:string;width:number;height:number};
+export type ServerFitPreviewImageUnavailable='screenshot_failed'|'image_too_large';
+export type ServerFitMeasured={verdict:'pass'|'fail';fitErrors:string[];warnings:string[];fill:number|null;artwork:ServerFitArtwork;measuredAt:number;rendererVersion:string;previewImage?:ServerFitPreviewImage|null;previewImageUnavailable?:ServerFitPreviewImageUnavailable};
 export type ServerFitUnavailable={verdict:'unavailable';reason:string};
 export type ServerFitResult=ServerFitMeasured|ServerFitUnavailable;

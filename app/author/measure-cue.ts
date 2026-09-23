@@ -22,17 +22,27 @@ export function artworkState(root: HTMLElement, cue: Cue): ServerFitArtwork {
     : "not-loaded";
 }
 
-export async function measureCue(root: HTMLElement, cue: Cue, branding: OverlayBranding): Promise<StageMeasurement> {
+export type PreparedCueMeasurement={measurement:StageMeasurement;dispose:()=>void};
+
+/** Render and fit a cue once. The caller owns disposal, which lets the inert fit stage retain
+ * this exact DOM only long enough for the same Chromium page to take an opt-in screenshot. */
+export async function prepareCueMeasurement(root: HTMLElement, cue: Cue, branding: OverlayBranding): Promise<PreparedCueMeasurement> {
   const player = new Player(root, [cue], branding, { resolveAssetUrl: (next) => overlayAssetUrl(next, "preview") });
+  let disposed=false;
+  const dispose=()=>{if(!disposed){disposed=true;player.dispose();}};
   try {
     player.render(cue, overlayAssetUrl(cue, "preview"));
     await waitForPreviewAssets(root);
     const box = root.firstElementChild;
     if (box instanceof HTMLElement) player.applyFit(box, cue);
-    return { fitErrors: findFitErrors(root), warnings: findFitWarnings(root), fill: panelFillRatio(root), artwork: artworkState(root, cue) };
+    return {measurement:{ fitErrors: findFitErrors(root), warnings: findFitWarnings(root), fill: panelFillRatio(root), artwork: artworkState(root, cue) },dispose};
   } catch {
-    return { fitErrors: ["Fonts or artwork did not load in time."], warnings: [], fill: null, artwork: artworkState(root, cue) };
-  } finally {
-    player.dispose();
+    return {measurement:{ fitErrors: ["Fonts or artwork did not load in time."], warnings: [], fill: null, artwork: artworkState(root, cue) },dispose};
   }
+}
+
+/** The ordinary editor and fit paths retain the historical measure-then-dispose lifecycle. */
+export async function measureCue(root: HTMLElement, cue: Cue, branding: OverlayBranding): Promise<StageMeasurement> {
+ const prepared=await prepareCueMeasurement(root,cue,branding);
+ try{return prepared.measurement}finally{prepared.dispose()}
 }

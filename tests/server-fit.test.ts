@@ -1,29 +1,34 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
-import {measureCueOnServer,serverRendererVersion,SERVER_RENDERER_PREFIX,STAGE_PATH,type StageBrowser,type StageLauncher,type StageMeasurement} from '../lib/server-fit.ts';
+import {measureCueOnServer,serverRendererVersion,SERVER_FIT_PREVIEW_IMAGE_MAX_BYTES,SERVER_RENDERER_PREFIX,STAGE_PATH,type StageBrowser,type StageLauncher,type StageMeasurement} from '../lib/server-fit.ts';
 import {SERVER_RENDERER_PREFIX as CONTRACT_PREFIX} from '../lib/server-fit-contract.ts';
 import type {Cue} from '../lib/player.ts';
 
 const ORIGIN='https://crc-overlays.example';
 const CUE={id:'cue-1',name:'Barechu',title:'Barechu',layout:'bottom',texts:{}} as unknown as Cue;
 
-type Visited={viewport:{width:number;height:number}|null;url:string|null;gotoWaitUntil:string|null;waited:string|null;evaluated:Cue|null;closed:number};
+type Visited={viewport:{width:number;height:number}|null;url:string|null;gotoWaitUntil:string|null;waited:string|null;evaluated:Cue|null;closed:number;screenshots:number;screenshotOptions:{type:'jpeg'|'png';quality?:number}|null;retainRequested:boolean;cleanups:number};
 
 /** A fake Playwright: no browser, no network. `page.evaluate` returns whatever the stage would. */
-function fakeLauncher(measure:(cue:Cue)=>Promise<StageMeasurement>|StageMeasurement,visited:Visited):StageLauncher{
+function fakeLauncher(measure:(cue:Cue)=>Promise<StageMeasurement>|StageMeasurement,visited:Visited,screenshot?:()=>Promise<Uint8Array>):StageLauncher{
  return async()=>({
   async newPage(){
    return {
     async setViewportSize(size){visited.viewport=size},
     async goto(url,options){visited.url=url;visited.gotoWaitUntil=options?.waitUntil??null;return null},
     async waitForFunction(expression){visited.waited=expression;return true},
-    async evaluate<Result,Arg>(_fn:(arg:Arg)=>Result|Promise<Result>,arg:Arg){visited.evaluated=arg as unknown as Cue;return await measure(arg as unknown as Cue) as unknown as Result},
+    async evaluate<Result,Arg>(_fn:(arg:Arg)=>Result|Promise<Result>,arg:Arg){
+     const input=arg as unknown as {cue?:Cue;options?:{retainRenderedCue?:boolean}}|undefined;
+     if(input?.cue){visited.evaluated=input.cue;visited.retainRequested=input.options?.retainRenderedCue===true;return await measure(input.cue) as unknown as Result}
+     visited.cleanups++;return undefined as Result;
+    },
+    ...(screenshot?{async screenshot(options:{type:'jpeg'|'png';quality?:number}){visited.screenshots++;visited.screenshotOptions=options;return await screenshot();}}:{}),
    };
   },
   async close(){visited.closed++;return null},
  } satisfies StageBrowser);
 }
-const fresh=():Visited=>({viewport:null,url:null,gotoWaitUntil:null,waited:null,evaluated:null,closed:0});
+const fresh=():Visited=>({viewport:null,url:null,gotoWaitUntil:null,waited:null,evaluated:null,closed:0,screenshots:0,screenshotOptions:null,retainRequested:false,cleanups:0});
 
 test('a clean cue measured on the server passes and reports the server renderer',async()=>{
  const visited=fresh();
@@ -39,6 +44,32 @@ test('a clean cue measured on the server passes and reports the server renderer'
  assert.equal(SERVER_RENDERER_PREFIX,CONTRACT_PREFIX,'the prefix comes from the contract module, re-exported');
  assert.equal(result.fill,0.62);
  assert.equal(result.artwork,'loaded');
+ assert.equal(visited.screenshots,0,'a normal fit never captures an image');
+ assert.equal(visited.cleanups,0,'the ordinary stage path disposes itself');
+});
+
+test('an opt-in image captures the exact retained 1920 by 1080 stage and explicitly cleans it up',async()=>{
+ const visited=fresh(),bytes=new Uint8Array([1,2,3,4]);
+ const result=await measureCueOnServer(CUE,{origin:ORIGIN,includePreviewImage:true,launch:fakeLauncher(()=>({fitErrors:[],warnings:[],fill:0.62,artwork:'not-loaded'}),visited,async()=>bytes)});
+ assert.equal(result.verdict,'pass');
+ assert.deepEqual(result.previewImage,{mimeType:'image/jpeg',dataBase64:Buffer.from(bytes).toString('base64'),width:1920,height:1080});
+ assert.equal(result.artwork,'not-loaded','private artwork remains an explicit caveat');
+ assert.equal(visited.retainRequested,true);assert.deepEqual(visited.screenshotOptions,{type:'jpeg',quality:65});
+ assert.equal(visited.screenshots,1);assert.equal(visited.cleanups,1);assert.equal(visited.closed,1);
+});
+
+test('a screenshot failure is explicit and does not fabricate visual proof for a passing fit',async()=>{
+ const visited=fresh();
+ const result=await measureCueOnServer(CUE,{origin:ORIGIN,includePreviewImage:true,launch:fakeLauncher(()=>({fitErrors:[],warnings:[],fill:0.5,artwork:'none'}),visited,async()=>{throw Error('screenshot failed')})});
+ assert.equal(result.verdict,'pass');assert.equal(result.previewImage,null);assert.equal(result.previewImageUnavailable,'screenshot_failed');
+ assert.equal(visited.cleanups,1);assert.equal(visited.closed,1);
+});
+
+test('an over-budget capture is withheld with an explicit reason',async()=>{
+ const visited=fresh(),bytes=new Uint8Array(SERVER_FIT_PREVIEW_IMAGE_MAX_BYTES+1);
+ const result=await measureCueOnServer(CUE,{origin:ORIGIN,includePreviewImage:true,launch:fakeLauncher(()=>({fitErrors:[],warnings:[],fill:0.5,artwork:'none'}),visited,async()=>bytes)});
+ assert.equal(result.verdict,'pass');assert.equal(result.previewImage,null);assert.equal(result.previewImageUnavailable,'image_too_large');
+ assert.equal(visited.cleanups,1);
 });
 
 test('the server verdict carries the same error strings findFitErrors produces',async()=>{
