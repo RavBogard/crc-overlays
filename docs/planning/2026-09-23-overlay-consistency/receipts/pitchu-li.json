@@ -1,0 +1,16 @@
+{
+  "draftId": "a6819b56-0e6a-49da-98f4-eb1bed16d3a3",
+  "name": "Pitchu Li",
+  "status": "verified-current",
+  "kind": "original",
+  "layout": "bottom",
+  "draftVersion": 2,
+  "previewId": "aea91c33-ae32-4a57-86f4-3a29dea1a36e",
+  "cueHash": "490d728015f881813a13ed1db8221511e20d111132b1a430dcefd001f65c69f5",
+  "fit": { "verdict": "pass", "fill": 0.447 },
+  "imageInspected": "Bottom lower third: transliteration left, Hebrew right on one line, inside the bar, readable; title Pitchu Li, artwork present.",
+  "sourceCheck": "Blocks 0-1 of neilah.pitchu-li@crc-neilah; unchanged.",
+  "approvalBasis": "Already published at draftVersion 2 (activeRevision 1); no republish.",
+  "notes": "No changes.",
+  "at": "2026-09-23"
+}

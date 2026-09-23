@@ -28,6 +28,9 @@ built from Michael's operating logic, bound only to final published cue IDs.
   {0,1} | {2 Zachor} | {3,4} ("— 1/2/3 of 3") — proceeded because both 2-way splits overflow at
   comfortable typography (receipt saturday-daytime-kiddush-supplement-split.json), the layout rule
   already calls for readable left panels, and each of {0,1} and {3,4} alone passes.
+- Packet 11 answers: Miryam Han'viah accent title corrected to the source's own spelling
+  (revision 3); Sacred Assembly mid-line capitals accepted (exact source text, shared paragraphs
+  default kept); Kol Nidre 2/3 skip blocks 14/23 intentionally (English-only translation blocks).
 - Authorization basis for every review: Daniel's blanket approval of graphic publication and paired
   deployment (handoff 2026-09-23); never a claim that Daniel inspected each graphic.
 

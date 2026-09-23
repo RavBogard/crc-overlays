@@ -1,0 +1,16 @@
+{
+  "draftId": "13fb0999-99d1-45e9-bd5b-b9b00b2c40fb",
+  "name": "Shofar Blessing",
+  "status": "verified-current",
+  "kind": "original",
+  "layout": "bottom",
+  "draftVersion": 2,
+  "previewId": "d8e3f423-139a-4792-8935-692cdc1ee17d",
+  "cueHash": "65a7cec8bd6c229ade66d888267adfa5d2d1f1bc684c0f04b3ff9da2309ad868",
+  "fit": { "verdict": "pass", "fill": 0.567 },
+  "imageInspected": "Bottom lower third: transliteration left (3 lines), Hebrew right (2 lines), inside the bar, readable; title Shofar Blessing.",
+  "sourceCheck": "Blocks 2-4 of shofar.service@crc-rh-morning; unchanged.",
+  "approvalBasis": "Already published at draftVersion 2 (activeRevision 1); no republish.",
+  "notes": "No changes.",
+  "at": "2026-09-23"
+}

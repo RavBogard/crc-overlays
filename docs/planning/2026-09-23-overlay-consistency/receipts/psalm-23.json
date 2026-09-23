@@ -1,0 +1,40 @@
+{
+  "family": "Psalm 23",
+  "packet": "Packet 11",
+  "graphics": [
+    {
+      "draftId": "cc36dc3a-b724-404d-83d2-bcd029d79158",
+      "name": "psalm 23",
+      "status": "published",
+      "kind": "original",
+      "layout": "left",
+      "draftVersion": 6,
+      "previewId": "1b2aa443-1411-4865-99b9-df6a9e24b2a9",
+      "cueHash": "ba525de13f7a57341039c33b3cdb3f2a2dfd33a1501cc823ac27390a7fb8c804",
+      "fit": { "verdict": "pass", "fill": 0.604 },
+      "imageInspected": "Left panel: Hebrew verses 1-3 paragraph then transliteration paragraph, comfortable size, fully inside; title Psalm 23, accent תְּהִלִּים, artwork present.",
+      "sourceCheck": "sourcePreserved true; blocks 0-5 of yizkor.psalm-23@crc-yizkor unchanged.",
+      "revision": 2,
+      "approvalBasis": "Daniel's blanket authorization for graphic publication (handoff 2026-09-23); worker-inspected, not Daniel-inspected.",
+      "notes": "Style-only: together -> blocks, dropped compact/smallFont (24/20) for comfortable typography, latinLineBreaks paragraphs. Shared accent תְּהִלִּים kept per protocol.",
+      "at": "2026-09-23"
+    },
+    {
+      "draftId": "85ae36a1-b602-4ded-87c1-7995fac4926b",
+      "name": "psalm 23 (2)",
+      "status": "published",
+      "kind": "original",
+      "layout": "left",
+      "draftVersion": 2,
+      "previewId": "f083df7c-9da7-4526-a121-1a633e489e9c",
+      "cueHash": "ad9c3c93a9b79b378b544362c08f43f46ade439cf9deeb1a1510475300d1556d",
+      "fit": { "verdict": "pass", "fill": 0.875 },
+      "imageInspected": "Left panel: Hebrew verses 4-6 then transliteration, comfortable size, fully inside with a small margin; paseq mark is source text; title/accent match part 1.",
+      "sourceCheck": "sourcePreserved true; blocks 6-14 of yizkor.psalm-23@crc-yizkor unchanged.",
+      "revision": 2,
+      "approvalBasis": "Daniel's blanket authorization for graphic publication (handoff 2026-09-23); worker-inspected, not Daniel-inspected.",
+      "notes": "Style-only, same as part 1. Shared accent תְּהִלִּים kept per protocol.",
+      "at": "2026-09-23"
+    }
+  ]
+}

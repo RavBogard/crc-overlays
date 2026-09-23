@@ -1,0 +1,17 @@
+{
+  "draftId": "a2bf7ddd-7d2d-4ab2-bd34-66d208f89fbb",
+  "name": "Sacred Assembly",
+  "status": "published",
+  "kind": "original",
+  "layout": "left",
+  "draftVersion": 2,
+  "previewId": "ff742efe-d585-48e5-b546-60b6a2cb3a65",
+  "cueHash": "5acbb22a3469233de240c312d7b0325bf057d4b391c259c56e1a58a75e31cc3c",
+  "fit": { "verdict": "pass", "fill": 0.553 },
+  "imageInspected": "Left panel: Hebrew paragraph then transliteration paragraph, readable, fully inside; title Sacred Assembly, no accent, artwork present.",
+  "sourceCheck": "sourcePreserved true; blocks 0-6 of erev-rh.sacred-assembly@crc-erev-rh unchanged.",
+  "revision": 2,
+  "approvalBasis": "Daniel's blanket authorization for graphic publication (handoff 2026-09-23); worker-inspected, not Daniel-inspected.",
+  "notes": "Style-only: together -> blocks, latinLineBreaks paragraphs. Source transliteration capitalizes each original line, so joined paragraphs show mid-line capitals (B'echad, Y'hiyeh, Lo); wording unchanged. No accent title (none before).",
+  "at": "2026-09-23"
+}

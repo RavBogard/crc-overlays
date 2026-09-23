@@ -1,0 +1,38 @@
+{
+  "family": "Oseh Shalom",
+  "packet": "Packet 11",
+  "graphics": [
+    {
+      "draftId": "1c78286d-319b-4025-8e5d-578e2888855e",
+      "name": "Oseh Shalom",
+      "status": "verified-current",
+      "kind": "original",
+      "layout": "bottom",
+      "draftVersion": 2,
+      "previewId": "6ec40f88-03de-4086-afdf-e2fc570884ef",
+      "cueHash": "5526fe2a6d67bec693ea7a68032b2c86910f7915e99cde4168f3d7411ddfa4ef",
+      "fit": { "verdict": "pass", "fill": 0.567 },
+      "imageInspected": "Bottom lower third: transliteration left, Hebrew right, both inside the bar and readable; title Oseh Shalom, artwork present.",
+      "sourceCheck": "Blocks 0-2 of amidah.oseh-shalom@legacy-shabbat-morning (CRC siddur); unchanged.",
+      "approvalBasis": "Already published at draftVersion 2 (activeRevision 2); no republish.",
+      "notes": "No changes.",
+      "at": "2026-09-23"
+    },
+    {
+      "draftId": "f7beaf09-ad9f-4c00-a949-7518a8d57db9",
+      "name": "Vimru Amen",
+      "status": "verified-current",
+      "kind": "original",
+      "layout": "bottom",
+      "draftVersion": 2,
+      "previewId": "362e9208-0c1b-438e-a098-df11aa269bf5",
+      "cueHash": "a87c9a7e609ea437f56998c39cba00a4e6096acd1b33299fd074ebfedc3fa4fa",
+      "fit": { "verdict": "pass", "fill": 0.567 },
+      "imageInspected": "Bottom lower third, same visual pattern as Oseh Shalom; text inside the bar, readable; title Oseh Shalom.",
+      "sourceCheck": "Blocks 4-6 of vidui.yihyu-lratzon-oseh-shalom@crc-yk-morning; unchanged.",
+      "approvalBasis": "Already published at draftVersion 2 (activeRevision 1); no republish.",
+      "notes": "Separate YK-morning graphic (different source, slightly different transliteration), not a part of Oseh Shalom. Arrangement 'together' on a bottom single graphic left as is. No changes.",
+      "at": "2026-09-23"
+    }
+  ]
+}

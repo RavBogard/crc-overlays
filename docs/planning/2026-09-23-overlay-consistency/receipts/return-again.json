@@ -1,0 +1,16 @@
+{
+  "draftId": "f5c9a69e-4169-4f94-93df-ff259e696b7f",
+  "name": "Return Again",
+  "status": "verified-current",
+  "kind": "original",
+  "layout": "left",
+  "draftVersion": 1,
+  "previewId": "6fdfa758-0a39-413f-a203-ffbd77430f42",
+  "cueHash": "9bf2aeb80f17ab29cba9c3995711a0a791f45e90af9abffc190e1f2659ffa6cf",
+  "fit": { "verdict": "pass", "fill": 0.458 },
+  "imageInspected": "English-only left panel, two stanzas with preserved source line breaks, readable, fully inside; title Return Again, artwork present.",
+  "sourceCheck": "original-en block 0 of slichot.return-again@legacy-slichot; unchanged.",
+  "approvalBasis": "Already published at draftVersion 1 (activeRevision 1); no republish.",
+  "notes": "English-only song; no bilingual style changes apply. No changes.",
+  "at": "2026-09-23"
+}
