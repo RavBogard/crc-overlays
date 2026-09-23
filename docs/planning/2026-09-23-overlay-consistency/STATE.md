@@ -37,6 +37,10 @@ built from Michael's operating logic, bound only to final published cue IDs.
   Remember Us is accepted. English-only Un'taneh Tokef graphics stay without a Hebrew accent (no
   label is added where none existed). Source oddities (bracketed "[v'al]", repeated refrains, Vidui
   "Avinu" for עָוִינוּ, which is a correct transliteration) stay exact source text.
+- Packets 13-14 answers: aleinu bot 1-2 (Slichot) moved to left is confirmed (each was too tall
+  as a lower third; one layout per piece); no accent added. Havd 1-4 stay one left sequence
+  despite sparse single-blessing panels (>2 parts rule). Eliyahu Hanavi "(3x)" placement is
+  source text, unchanged.
 - Authorization basis for every review: Daniel's blanket approval of graphic publication and paired
   deployment (handoff 2026-09-23); never a claim that Daniel inspected each graphic.
 
