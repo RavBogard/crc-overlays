@@ -4,7 +4,7 @@ What is deployed right now. Update this file on every release — it is the one 
 "what is live", and it is short so it can be read under pressure. The history is in
 `docs/planning/2026-09-deploys/` (25 deploy records, the release chain, the phase build notes).
 
-**Last updated: 2026-09-23** (paired release `cf87ba9`: lower-third bilingual top alignment, compact catalog language diagnostics, and safe import of the supported non-liturgical baseline. Evidence below under "Release cf87ba9".)
+**Last updated: 2026-09-23** (paired release `c8d7d92`: source-preserving Latin paragraph presentation, lower-third fit budget, safe Chromium core-dump prevention, and related authoring tools. Evidence below under "Release c8d7d92".)
 
 ## Web, per workspace
 
@@ -13,13 +13,19 @@ both were released together on 2026-09-23 UTC (2026-09-22 evening Central).
 
 | Workspace | Host | Deployed commit | How it got there |
 |---|---|---|---|
-| CRC | `overlays.centralreform.org` (alt `crc-overlays.vercel.app`) | `cf87ba9` | paired staged release, 2026-09-23, `dpl_DAYrVVEp4w8ZEL5pfAZP9WFsDveL` (the Git integration also builds every push to `main`) |
-| TBI | `overlays.templebnaiisrael.com` (alt `tbi-overlays.vercel.app`) | `cf87ba9` | same paired run, 2026-09-23, `dpl_5KRUjUQ9QtVVpprH12ZpskfbBKBS` |
+| CRC | `overlays.centralreform.org` (alt `crc-overlays.vercel.app`) | `c8d7d92` | paired staged release, 2026-09-23, `dpl_AQuJHztCnTzccBYsrAB14BGXYc7N` (the Git integration also builds every push to `main`) |
+| TBI | `overlays.templebnaiisrael.com` (alt `tbi-overlays.vercel.app`) | `c8d7d92` | same paired run, 2026-09-23, `dpl_23tr7omUtWMB3qdzi64FtLVAxNR4` |
 
 This file is written after the release it describes, so the commit carrying these words is always one
 ahead of the shas in the table. That one commit is documentation: CRC's Git integration builds it by
 itself and TBI is not owed a release for it. Any commit that touches `app/`, `lib/`, `content/`,
 `components/`, `schemas/` or `workspaces/` **is** owed one.
+
+### Release c8d7d92 (2026-09-23 UTC)
+
+- Released exact SHA `c8d7d92a4bdc20e879b3bf4bb0bb357e91af7a4d`. CRC `dpl_AQuJHztCnTzccBYsrAB14BGXYc7N` and TBI `dpl_23tr7omUtWMB3qdzi64FtLVAxNR4` both reported Ready. The two custom domains and two Vercel aliases returned HTTP 200 from `/health`. Receipt: `work/deploy-staging/releases/c8d7d92a4bdc20e879b3bf4bb0bb357e91af7a4d/release.json`; gate and health logs: `work/sitting-2026-09-23/reflow-split-core-release/`.
+- Adds source-preserving Latin paragraph display, including mixed legacy text bodies with Hebrew boundaries retained; a lower-third title-and-body height budget with actionable fit errors; and Linux Chromium core-dump prevention plus safe screenshot failure diagnostics. It also includes the reviewed authoring/MCP wiring and split tooling from the integrated release chain. Source strings, source pins, Hebrew text, and draft publication state are unchanged by the presentation path.
+- Gates: `tsc --noEmit`; `npm test` exit 0 (831 TypeScript pass, 0 fail, 11 skipped; 24 MJS pass, 0 fail); `npm run lint` exit 0 (two existing unused-type warnings in `lib/authoring.ts`); and `npm run build` (42 routes).
 
 ### Release cf87ba9 (2026-09-23 UTC)
 
