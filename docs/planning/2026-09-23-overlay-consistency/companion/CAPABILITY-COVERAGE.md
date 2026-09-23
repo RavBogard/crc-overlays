@@ -68,6 +68,17 @@ Count = total entries; dis = entries already disabled in the original.
 | HHD | animateIn 196 · animateOut 194 | `toggle_cue` on HHD 1–7 / Memorial |
 | — | Stop Stream's "animate out Thank you" | `animate_out` 09f50803 |
 
+## Buttons removed from carried pages (Singular-only, no published cue)
+Accepted by the main thread 2026-09-23. Each button held only Singular overlay actions for a composition with no
+published cue. Once those actions were replaced, it would have been an empty key, so it was removed.
+- **Startup tools (53) r0c1 "Center Tool"** (orig p79). It held Special "Center" in/out.
+- **Audio presets (56) r1c5 "Chanukah 1"** and **r1c6 "Chanukah 2"** (orig p20). They held Special "Chanukah 1–2" in/out.
+- **Home "Start HHD Stream"** (orig p1 r0c3). The key stays, but its HHD "Money pls" animate-in was taken out.
+  Its vMix recording/streaming and button presses are kept.
+
+The **Cameras (30) r2c3 "Merge dinner (Seder)"** key carries `merge input=dinner` **disabled**, exactly as the
+original Seder "Dinner!" key's first step was.
+
 ## Original graphics with no published cue (not bound; the device actions around them are kept)
 These are content gaps, not device capabilities. They came from the Singular compositions.
 - **HHD honours / names (22):** Alter, Bennetts, Exec Committee, Garden, Gilbert, Goldman, Harris,

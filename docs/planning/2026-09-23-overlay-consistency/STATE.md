@@ -79,7 +79,13 @@ built from Michael's operating logic, bound only to final published cue IDs.
 6. Packets 15-17 done; receipt-coverage sweep: every inventory draft has a receipt (We Are
    Loved 2 added). Renderer gaps H/I released `01eb7a1` + `f753093`; typo fixes (Miryam,
    Hashkiveinu x5) published.
-7. Phase 4 (Companion preset): design + manifest in progress (companion/). Earlier plan was: packets 15-17, verification receipts for already-fine families, then the Companion preset.
+7. Phase 4 (Companion preset): built. `scripts/build-companion-preset.mjs` (deterministic) →
+   `CRC-FRESH-PRESET-2026-09-23.companionconfig` sha256 `319fdbb4…`, copied with module 1.7.0
+   (`63ba9093…`) to crc-coordination/releases/2026-09-23-michael/fresh-preset/. Audit
+   `scripts/audit-companion-preset.mjs` PASS (232 cue ids / 431 bindings, 20 camera gestures,
+   chains, fixed columns, Bimah Mute x28, capability coverage 82+8+2, no secrets, 5.0.3 upgrade
+   unchanged). Guide, import/rollback, manifest, rehearsal checklist in companion/. Hardware
+   rehearsal with Michael/Daniel is still the acceptance step. Earlier plan was: packets 15-17, verification receipts for already-fine families, then the Companion preset.
 
 ## Open questions
 - Source-text notes for a future shireishabbat review (no overlay change; exact wording kept):
