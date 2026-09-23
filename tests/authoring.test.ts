@@ -92,6 +92,7 @@ test('the released We Are Loved and Yotzer source records expose canonical paren
 });
 
 type DraftResult={draft:Draft};
+type CompactDraftResult={drafts:Array<{id:string;name:string;title:string;version:number;activeVersion:number|null;layout:string;templateCueId:string;presentation:Record<string,unknown>;arrangement:'together'|'blocks'|null;sourceBooks:Array<{value:string;label:string}>;sourceServices:string[];flags:{smallFont:boolean;alternatingGrouping:boolean}}> ;total:number;nextCursor:string|null};
 type ImportCueResult=DraftResult&{created:boolean};
 type DuplicateDraftResult=DraftResult&{duplicatedFrom:{kind:string;id:string}};
 type ListDraftsResult={drafts:Draft[]};
@@ -109,6 +110,28 @@ type SearchSourcesResult={sources:SourceSummary[];truncated:boolean};
 type GetSourceResult={source:AuthoringSource};
 type ReviewDraftSetResult={status:string;expected?:DraftSetSelection[];current?:DraftSetSelection[];issues:Array<{kind:string;selections:unknown[]}>};
 type GetWorkspaceResult={workspace:AuthoringWorkspace};
+
+test('compact draft listing is bounded, source-text-free, and leaves the legacy listing intact',async()=>{
+ const repo=new MemoryAuthoringRepository(),service=createAuthoringService(repo);
+ const source=sourcePack.sources.find(item=>item.book&&item.service&&item.blocks.some(block=>block.kind==='bilingual'))!;
+ const block=source.blocks.find(item=>item.kind==='bilingual')!;
+ const content:BilingualContent={mode:'bilingual',hebrewGroups:[{sourceId:source.id,blockIds:[block.id]}],transliterationGroups:[{sourceId:source.id,blockIds:[block.id]}],arrangement:'blocks'};
+ const now=Date.now(),snapshot=structuredClone(source);
+ const makeDraft=(id:string,name:string,presentation:Draft['presentation']):Draft=>({id,name,title:`${name} title`,layout:'left',templateCueId:LEFT_PANEL,content,presentation,sourceSnapshots:[snapshot],sourcePin:sourcePinFor(content,[snapshot]),version:3,activeRevision:2,activeDraftVersion:3,createdAt:now,updatedAt:now,createdBy:'tester',updatedBy:'tester'});
+ await repo.insertDraft(makeDraft('catalog-a','Alpha draft',{hebrewFontSize:30,transliterationFontSize:27,titleFontSize:26}));
+ await repo.insertDraft(makeDraft('catalog-b','Beta draft',{}));
+ const legacy=await service.operation('list_drafts',{},'tester') as ListDraftsResult;
+ assert.equal(legacy.drafts.length,2);assert.ok(legacy.drafts[0].sourceSnapshots?.[0].blocks.length,'no-argument callers retain full draft snapshots');
+ const first=await service.operation('list_drafts',{compact:true,limit:1},'tester') as CompactDraftResult;
+ assert.equal(first.drafts.length,1);assert.equal(first.total,2);assert.equal(first.drafts[0].id,'catalog-a');assert.equal(first.drafts[0].arrangement,'blocks');assert.equal(first.drafts[0].flags.alternatingGrouping,true);assert.equal(first.drafts[0].flags.smallFont,true);assert.equal(first.drafts[0].activeVersion,3);assert.doesNotMatch(JSON.stringify(first),new RegExp(block.id));assert.equal('sourceSnapshots' in first.drafts[0],false);
+ const next=await service.operation('list_drafts',{compact:true,limit:1,cursor:first.nextCursor!},'tester') as CompactDraftResult;
+ assert.deepEqual(next.drafts.map(draft=>draft.id),['catalog-b']);assert.equal(next.nextCursor,null);
+ const bySource=await service.operation('list_drafts',{service:source.service,book:source.book},'tester') as CompactDraftResult;
+ assert.deepEqual(bySource.drafts.map(draft=>draft.id),['catalog-a','catalog-b']);
+ const byQuery=await service.operation('list_drafts',{query:'beta'},'tester') as CompactDraftResult;
+ assert.deepEqual(byQuery.drafts.map(draft=>draft.id),['catalog-b']);
+ await assert.rejects(service.operation('list_drafts',{compact:false,limit:1},'tester'),(error)=>(error as AuthoringError).code==='invalid_input');
+});
 
 test('existing cue import seeds an immutable baseline and is idempotent',async()=>{
  const repo=new MemoryAuthoringRepository();const service=createAuthoringService(repo);

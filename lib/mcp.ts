@@ -29,7 +29,7 @@ export function createAuthoringMcpHandler(authoringOperation:AuthoringOperation)
   register('search_sources','Search the authorized CRC source corpus. Returns references, never a public corpus export.',z.object({query:z.string().min(1).max(100),limit:z.number().int().min(1).max(50).optional()}).strict(),{readOnlyHint:true});
   register('get_source','Get one authorized source by ID.',z.object({sourceId:id}).strict(),{readOnlyHint:true});
   register('list_templates','List baseline cue templates and whether each can be imported.',z.object({}).strict(),{readOnlyHint:true});
-  register('list_drafts','List authoring drafts.',z.object({}).strict(),{readOnlyHint:true});
+  register('list_drafts','List authoring drafts. With compact, query, service, book, layout, limit, or cursor, returns bounded summaries without source text.',z.object({compact:z.boolean().optional(),query:z.string().min(1).max(100).optional(),service:z.string().min(1).max(100).optional(),book:z.string().min(1).max(100).optional(),layout:z.enum(['left','bottom','right']).optional(),limit:z.number().int().min(1).max(50).optional(),cursor:z.string().min(1).max(200).optional()}).strict(),{readOnlyHint:true});
   register('list_archived_drafts','List recoverable archived authoring drafts.',z.object({}).strict(),{readOnlyHint:true});
   register('get_draft','Get one draft and its current version.',z.object({draftId:id}).strict(),{readOnlyHint:true});
   register('import_cue','Idempotently create or return a source-reference draft for an existing baseline cue. No plaintext prayer content is accepted.',z.object({cueId:id}).strict(),{readOnlyHint:false,idempotentHint:true});

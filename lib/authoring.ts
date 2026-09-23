@@ -1,6 +1,7 @@
 import {randomUUID} from 'node:crypto';
 import type {Cue} from './player';
 import {AuthoringError,assertSourcePin,baselineCues,buildCue,cueHash,draftSetSelections,editableFromBaseline,newDraftId,normalizeGraphicName,parseEditable,previewValidation,resolveSourceBoundaries,sameStructuredValue,sourceBlockFor,sourcePack,sourcePinFor,sourceReferences,sourceSnapshotsFor,type AuthoringCue,type Draft,type DraftContent,type DraftSetSelection,type EditableDraft,type Layout,type LocalVariantOverride,type VariantChannel,type SourceBlock,type SharedCueUpstream} from './authoring-model';
+import {compactDraftCatalog,type DraftCatalogInput} from './draft-catalog';
 import {layoutLabel} from './layout-label';
 // One source of truth for how much liturgy one panel holds, shared with the editor so a
 // selection warning and a server split can never disagree.
@@ -294,7 +295,17 @@ export function createAuthoringService(repo:AuthoringRepository,workspace:Author
    keys(data,[]);const [allDrafts,published]=await Promise.all([repo.listDrafts(),repo.published()]);const archivedIds=new Set(allDrafts.filter(draft=>draft.archivedAt).map(draft=>draft.id));const drafts=allDrafts.filter(draft=>!draft.archivedAt);const active=new Map(baselineCatalogForWorkspace().filter(cue=>!archivedIds.has(cue.id)).map(cue=>[cue.id,cue]));for(const cue of published)if(!archivedIds.has(cue.id))active.set(cue.id,cue);const byId=new Map(drafts.map(draft=>[draft.id,draft]));
    return {cues:[...active.values()].map(cue=>{const draft=byId.get(cue.id);let origin:'canonical'|'variant'|'local'|'legacy'='legacy';const authoredOrigin=(cue as AuthoringCue).authoring?.origin;if(authoredOrigin)origin=authoredOrigin;if(origin==='legacy')try{editableFromBaseline(baselineSourceCueId(cue.id));origin='canonical'}catch{}const editAction=draft?'open':origin==='canonical'?'import':'duplicate';return {id:cue.id,name:cue.name,title:cue.texts.textTitle,layout:cue.layout,hidden:Boolean(cue.hidden),origin,draftId:draft?.id??null,draftVersion:draft?.version??null,activeRevision:draft?.activeRevision??null,canEdit:true,editAction,canDuplicate:true}})};
   }
-  if(operation==='list_drafts'){keys(data,[]);return {drafts:(await repo.listDrafts()).filter(draft=>!draft.archivedAt)};}
+  if(operation==='list_drafts'){
+   keys(data,['compact','query','service','book','layout','limit','cursor']);
+   const compactFields=['query','service','book','layout','limit','cursor'].some(field=>data[field]!==undefined);
+   if(data.compact!==undefined&&typeof data.compact!=='boolean')throw new AuthoringError('invalid_input','compact must be boolean');
+   if(data.compact===false&&compactFields)throw new AuthoringError('invalid_input','filters require compact results');
+   const drafts=(await repo.listDrafts()).filter(draft=>!draft.archivedAt);
+   if(data.compact!==true&&!compactFields)return {drafts};
+   const layout=data.layout;if(layout!==undefined&&layout!=='left'&&layout!=='bottom'&&layout!=='right')throw new AuthoringError('invalid_input','layout must be left, bottom, or right');
+   const input:DraftCatalogInput={query:optionalString(data.query,'query',100),service:optionalString(data.service,'service',100),book:optionalString(data.book,'book',100),layout,limit:data.limit===undefined?undefined:integer(data.limit,'limit',1,50),cursor:optionalString(data.cursor,'cursor',200)};
+   return compactDraftCatalog(drafts,input);
+  }
   if(operation==='list_archived_drafts'){keys(data,[]);return {drafts:(await repo.listDrafts()).filter(draft=>Boolean(draft.archivedAt))};}
   if(operation==='get_draft'){keys(data,['draftId']);const draft=await requiredDraft(repo,string(data.draftId,'draftId'));return {draft};}
   if(operation==='archive_draft'||operation==='restore_draft'){keys(data,['draftId','expectedVersion']);const id=string(data.draftId,'draftId'),expected=integer(data.expectedVersion,'expectedVersion',1);const current=await requiredDraft(repo,id);if(current.version!==expected)throw conflict();if(current.draftSetId)throw new AuthoringError('set_member_archive','Archive or restore multipart graphics as a complete set',409);if(operation==='archive_draft'&&current.archivedAt)return {draft:current};if(operation==='restore_draft'&&!current.archivedAt)return {draft:current};const draft=await repo.setArchived(id,expected,operation==='archive_draft',who);if(!draft)throw conflict();return {draft};}
