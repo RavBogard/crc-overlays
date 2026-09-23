@@ -434,11 +434,11 @@ export function createAuthoringService(repo:AuthoringRepository,workspace:Author
    try{return {draft:await repo.insertImportedDraft(draft,structuredClone(baseline),who),created:true}}catch(error){const raced=await repo.getDraft(cueId);if(raced)return {draft:raced,created:false};throw error}
   }
   if(operation==='style_draft'){
-   keys(data,['draftId','expectedVersion','layout','arrangement','comfortableTypography','dryRun']);
+   keys(data,['draftId','expectedVersion','layout','arrangement','comfortableTypography','latinLineBreaks','dryRun']);
    const id=string(data.draftId,'draftId'),expected=integer(data.expectedVersion,'expectedVersion',1),current=await requiredDraft(repo,id);if(current.version!==expected)throw conflict();assertSourcePin(current);
    const layout=data.layout;if(layout!==undefined&&layout!=='left'&&layout!=='bottom'&&layout!=='right')throw new AuthoringError('invalid_input','layout must be left, bottom, or right');
    const arrangement=data.arrangement;if(arrangement!==undefined&&arrangement!=='together'&&arrangement!=='blocks')throw new AuthoringError('invalid_input','arrangement must be together or blocks');
-   const options:DraftStyleOptions={layout,arrangement,comfortableTypography:optionalBoolean(data.comfortableTypography,'comfortableTypography')};
+   const latinLineBreaks=data.latinLineBreaks;if(latinLineBreaks!==undefined&&latinLineBreaks!=='preserve'&&latinLineBreaks!=='paragraphs')throw new AuthoringError('invalid_input','latinLineBreaks must be preserve or paragraphs');const options:DraftStyleOptions={layout,arrangement,comfortableTypography:optionalBoolean(data.comfortableTypography,'comfortableTypography'),latinLineBreaks};
    const dryRun=optionalBoolean(data.dryRun,'dryRun')??true;
    const templates=baselineCatalogForWorkspace().filter(template=>!template.hidden).map(template=>({id:baselineSourceCueId(template.id),layout:template.layout as Layout}));
    const plan=planDraftStyle(current,options,templates),compact=compactStylePlan(plan);

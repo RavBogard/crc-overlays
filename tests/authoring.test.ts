@@ -208,9 +208,9 @@ test('style_draft defaults to readable planning and applies through source-prese
  await assert.rejects(service.operation('style_draft',{draftId:draft.id,expectedVersion:3},'tester'),(error)=>(error as AuthoringError).code==='version_conflict');
  const applied=await service.operation('style_draft',{draftId:draft.id,expectedVersion:4,dryRun:false},'tester') as {dryRun:boolean;applied:boolean;draft:{version:number};sourcePreserved:boolean};
  assert.equal(applied.dryRun,false);assert.equal(applied.applied,true);assert.equal(applied.draft.version,5);assert.equal(applied.sourcePreserved,true);
- const updated=(await repo.getDraft(draft.id))!;assert.deepEqual(updated.sourcePin,draft.sourcePin);assert.deepEqual(updated.sourceSnapshots,draft.sourceSnapshots);assert.equal((updated.content as BilingualContent).arrangement,'blocks');assert.deepEqual(updated.presentation,{alignment:'center'});
- const noop=await service.operation('style_draft',{draftId:draft.id,expectedVersion:5,dryRun:false,comfortableTypography:false,arrangement:'blocks'},'tester') as {applied:boolean;draft:{version:number}};
- assert.equal(noop.applied,false);assert.equal(noop.draft.version,5,'no style delta does not create a revision');
+ const updated=(await repo.getDraft(draft.id))!;assert.deepEqual(updated.sourcePin,draft.sourcePin);assert.deepEqual(updated.sourceSnapshots,draft.sourceSnapshots);assert.equal((updated.content as BilingualContent).arrangement,'blocks');assert.deepEqual(updated.presentation,{alignment:'center',latinLineBreaks:'paragraphs'});
+ const preserve=await service.operation('style_draft',{draftId:draft.id,expectedVersion:5,dryRun:false,comfortableTypography:false,arrangement:'blocks',latinLineBreaks:'preserve'},'tester') as {applied:boolean;draft:{version:number}};
+ assert.equal(preserve.applied,true);assert.equal(preserve.draft.version,6);assert.equal((await repo.getDraft(draft.id))!.presentation.latinLineBreaks,'preserve');const noop=await service.operation('style_draft',{draftId:draft.id,expectedVersion:6,dryRun:false,comfortableTypography:false,arrangement:'blocks',latinLineBreaks:'preserve'},'tester') as {applied:boolean;draft:{version:number}};assert.equal(noop.applied,false);assert.equal(noop.draft.version,6,'an explicit existing paragraph choice is a no-op');
 });
 
 test('style_draft resolves workspace templates to baseline source IDs before applying TBI layout',async()=>{
