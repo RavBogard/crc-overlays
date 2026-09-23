@@ -8,7 +8,7 @@ import {spawn} from 'node:child_process';
 import {existsSync,mkdtempSync,writeFileSync} from 'node:fs';
 import {tmpdir} from 'node:os';
 import {join} from 'node:path';
-import {defaultScratchHost,measureCueOnServer,packLaunchOptions,sharedExtraction,type ScratchHost,type StageBrowser,type StageLauncher,type StageMeasurement,type StagePage} from '../lib/server-fit.ts';
+import {defaultScratchHost,launchStage,measureCueOnServer,packLaunchOptions,sharedExtraction,stageProfile,type OwnedProcess,type ScratchHost,type StageBrowser,type StageBrowserType,type StageLauncher,type StageMeasurement,type StagePage} from '../lib/server-fit.ts';
 import type {Cue} from '../lib/player.ts';
 
 const ORIGIN='https://crc-overlays.example';
@@ -23,7 +23,9 @@ function recordingHost(events:string[],overrides:Partial<ScratchHost>={}):Scratc
   async bytes(){return 0},
   async free(){return 40*1024*1024},
   async survivors(){events.push('survivors');return []},
-  kill(pid){events.push(`kill ${pid}`)},
+  async alive(){return false},
+  async held(){return 0},
+  async kill({pid}){events.push(`kill ${pid}`)},
   ...overrides,
  };
 }
@@ -47,20 +49,34 @@ function launcher(events:string[],evaluate:()=>Promise<unknown>,seen:{scratch?:s
 
 /** Collects console output for the duration of `run`, so a test can read the log line. */
 async function capture<T>(run:()=>Promise<T>){
- const errors:unknown[][]=[],warnings:unknown[][]=[];
- const {error,warn}=console;
+ const errors:unknown[][]=[],warnings:unknown[][]=[],infos:unknown[][]=[];
+ const {error,warn,info}=console;
  console.error=(...args:unknown[])=>{errors.push(args)};
  console.warn=(...args:unknown[])=>{warnings.push(args)};
- try{return {result:await run(),errors,warnings}}finally{console.error=error;console.warn=warn}
+ console.info=(...args:unknown[])=>{infos.push(args)};
+ try{return {result:await run(),errors,warnings,infos}}finally{console.error=error;console.warn=warn;console.info=info}
+}
+
+/** A process that stays alive until it is killed - what the host sees of a Chromium that outlived close(). */
+function survivorHost(events:string[],living:Set<number>,overrides:Partial<ScratchHost>={}){
+ return recordingHost(events,{
+  async alive({pid}){return living.has(pid)},
+  async held({pid}){return living.has(pid)?28*1024*1024:0},
+  async kill({pid}){events.push(`kill ${pid}`);living.delete(pid)},
+  ...overrides,
+ });
 }
 
 test('the launcher is handed this check\'s own scratch directory, released after the browser closes',async()=>{
  const events:string[]=[],seen:{scratch?:string}={};
- const {result,warnings}=await capture(()=>measureCueOnServer(CUE,{origin:ORIGIN,host:recordingHost(events),launch:launcher(events,async()=>CLEAN,seen)}));
+ const {result,warnings,infos}=await capture(()=>measureCueOnServer(CUE,{origin:ORIGIN,host:recordingHost(events),launch:launcher(events,async()=>CLEAN,seen)}));
  assert.equal(result.verdict,'pass');
  assert.equal(seen.scratch,'/scratch/check-1');
- assert.deepEqual(events,['make','launch','close','survivors','remove /scratch/check-1']);
- assert.equal(warnings.length,0,'a clean release is not worth a log line');
+ // Its processes are recorded while the browser runs, and looked for again once it has closed.
+ assert.deepEqual(events,['make','launch','survivors','close','survivors','remove /scratch/check-1']);
+ assert.equal(warnings.length,0,'a clean release is not worth a warning');
+ assert.equal(infos[0]?.[0],'server-fit released','but every release accounts for itself');
+ assert.deepEqual(infos[0]?.[1],{owned:0,survivors:0,heldBytes:0,stillAlive:0,waitedMs:0,scratchBytes:0,tmpFreeBefore:40*1024*1024,tmpFreeAfter:40*1024*1024});
 });
 
 test('the mid-measure crash is unavailable, never a pass, and its scratch is still released',async()=>{
@@ -72,7 +88,7 @@ test('the mid-measure crash is unavailable, never a pass, and its scratch is sti
  const {result,errors}=await capture(()=>measureCueOnServer(CUE,{origin:ORIGIN,host:recordingHost(events),launch:launcher(events,crash)}));
  assert.deepEqual(result,{verdict:'unavailable',reason:'stage_unavailable'});
  assert.equal(evaluations,1,'a crash is reported, not retried');
- assert.deepEqual(events,['make','launch','close','survivors','remove /scratch/check-1']);
+ assert.deepEqual(events,['make','launch','survivors','close','survivors','remove /scratch/check-1']);
  const logged=errors[0]?.[1] as {phase?:string;tmpFreeBefore?:number|null;tmpFreeNow?:number|null};
  assert.equal(errors[0]?.[0],'server-fit unavailable');
  assert.equal(logged.phase,'measure');
@@ -80,16 +96,87 @@ test('the mid-measure crash is unavailable, never a pass, and its scratch is sti
  assert.equal(logged.tmpFreeNow,40*1024*1024);
 });
 
-test('a process that outlived close() is killed and the residue is logged',async()=>{
+test('a process that outlived close() is killed, waited for and logged',async()=>{
  // A Chromium that survives close() keeps its deleted shared-memory files - and their /tmp
  // space - alive, where removing the directory cannot reach them.
  const events:string[]=[];
- const host=recordingHost(events,{async survivors(){events.push('survivors');return [4101,4102]},async bytes(){return 1234}});
+ const pair:OwnedProcess[]=[{pid:4101,start:'900'},{pid:4102,start:'901'}];
+ const host=survivorHost(events,new Set([4101,4102]),{async survivors(){events.push('survivors');return pair},async bytes(){return 1234}});
  const {result,warnings}=await capture(()=>measureCueOnServer(CUE,{origin:ORIGIN,host,launch:launcher(events,async()=>CLEAN)}));
  assert.equal(result.verdict,'pass','cleanup never changes a verdict');
- assert.deepEqual(events,['make','launch','close','survivors','kill 4101','kill 4102','remove /scratch/check-1']);
+ assert.deepEqual(events,['make','launch','survivors','close','survivors','kill 4101','kill 4102','remove /scratch/check-1']);
  assert.equal(warnings[0]?.[0],'server-fit scratch residue');
- assert.deepEqual({...(warnings[0]?.[1] as object),tmpFreeAfter:undefined},{survivors:2,leftBytes:1234,tmpFreeAfter:undefined});
+ const logged=warnings[0]?.[1] as {owned:number;survivors:number;heldBytes:number;stillAlive:number;scratchBytes:number};
+ assert.deepEqual([logged.owned,logged.survivors,logged.heldBytes,logged.stillAlive,logged.scratchBytes],[2,2,2*28*1024*1024,0,1234]);
+});
+
+test('a survivor the environment scan can no longer see is still found by the pid recorded at launch',async()=>{
+ // Chromium crashes on shutdown, and a crashing process's /proc/<pid>/environ reads as empty:
+ // the scan after close() finds nothing (reproduced on Linux). The pid and start time recorded
+ // while the browser ran still name it.
+ const events:string[]=[];
+ let scans=0;
+ const host=survivorHost(events,new Set([4101]),{async survivors(){events.push('survivors');return scans++===0?[{pid:4101,start:'77'}]:[]}});
+ const {result,warnings}=await capture(()=>measureCueOnServer(CUE,{origin:ORIGIN,host,launch:launcher(events,async()=>CLEAN)}));
+ assert.equal(result.verdict,'pass');
+ assert.deepEqual(events,['make','launch','survivors','close','survivors','kill 4101','remove /scratch/check-1']);
+ assert.equal((warnings[0]?.[1] as {survivors:number}).survivors,1);
+});
+
+test('a pid that no longer names the process this check started is left alone',async()=>{
+ // After close() the pid can be handed to another process - another check's Chromium. The
+ // host's `alive` compares start times, so a recycled pid reads as gone and is never killed.
+ const events:string[]=[];
+ const host=recordingHost(events,{async survivors(){events.push('survivors');return events.includes('close')?[]:[{pid:4101,start:'77'}]},async alive(){return false}});
+ const {result,warnings}=await capture(()=>measureCueOnServer(CUE,{origin:ORIGIN,host,launch:launcher(events,async()=>CLEAN)}));
+ assert.equal(result.verdict,'pass');
+ assert.ok(!events.some(event=>event.startsWith('kill')),'nothing is killed');
+ assert.equal(warnings.length,0);
+});
+
+test('a survivor that will not die is reported after a bounded wait, and the verdict stands',async()=>{
+ const events:string[]=[];
+ const host=recordingHost(events,{async survivors(){events.push('survivors');return [{pid:4101,start:'77'}]},async alive(){return true}});
+ const started=Date.now();
+ const {result,warnings}=await capture(()=>measureCueOnServer(CUE,{origin:ORIGIN,host,lingerMs:80,launch:launcher(events,async()=>CLEAN)}));
+ const elapsed=Date.now()-started;
+ assert.equal(result.verdict,'pass');
+ const logged=warnings[0]?.[1] as {stillAlive:number;waitedMs:number};
+ assert.equal(logged.stillAlive,1);
+ assert.ok(logged.waitedMs>=80,`waited ${logged.waitedMs} ms`);
+ assert.ok(elapsed<1000,`the wait is bounded (took ${elapsed} ms)`);
+ assert.equal(events.at(-1),'remove /scratch/check-1','the scratch directory is still released');
+});
+
+test('a close that fails is logged, and the scratch directory is still released',async()=>{
+ const events:string[]=[];
+ const launch:StageLauncher=async()=>{events.push('launch');return {async newPage(){return stage(async()=>CLEAN)},async close(){events.push('close');throw Error('browser.close: Target closed')}}};
+ const {result,warnings}=await capture(()=>measureCueOnServer(CUE,{origin:ORIGIN,host:recordingHost(events),launch}));
+ assert.equal(result.verdict,'pass');
+ assert.equal((warnings[0]?.[1] as {closeError?:string}).closeError,'browser.close: Target closed');
+ assert.equal(events.at(-1),'remove /scratch/check-1');
+});
+
+test('the browser\'s profile is an explicit directory inside this check\'s scratch, never Playwright\'s own in /tmp',async()=>{
+ // Left to itself Playwright makes /tmp/playwright_chromiumdev_profile-* from the Node
+ // process's os.tmpdir(), outside the scratch directory (production log, 2026-09-23).
+ const calls:{dir:string;options:Record<string,unknown>}[]=[];
+ const browserType:StageBrowserType={async launchPersistentContext(dir,options){calls.push({dir,options});return {async newPage(){return stage(async()=>CLEAN)},async close(){return null}}}};
+ const saved=process.env.LD_LIBRARY_PATH;
+ try{
+  delete process.env.LD_LIBRARY_PATH;
+  await launchStage(browserType,{kind:'sparticuz',detail:'pack'},'/scratch/check-1',async()=>{process.env.LD_LIBRARY_PATH='/tmp/al2023/lib';return {args:['--single-process'],executable:'/tmp/chromium'}});
+  await launchStage(browserType,{kind:'channel',detail:'chrome'},'/scratch/check-2',async()=>{throw Error('the pack is only loaded on Linux')});
+ }finally{if(saved===undefined)delete process.env.LD_LIBRARY_PATH;else process.env.LD_LIBRARY_PATH=saved}
+ assert.equal(stageProfile('/scratch/check-1'),join('/scratch/check-1','profile'));
+ assert.deepEqual(calls.map(call=>call.dir),[stageProfile('/scratch/check-1'),stageProfile('/scratch/check-2')]);
+ const pack=calls[0].options as {executablePath:string;args:string[];env:Record<string,string>};
+ assert.equal(pack.executablePath,'/tmp/chromium');
+ assert.deepEqual(pack.args,['--single-process']);
+ assert.equal(pack.env.TMPDIR,'/scratch/check-1');
+ assert.equal(pack.env.LD_LIBRARY_PATH,'/tmp/al2023/lib','the environment is still read after the pack has loaded');
+ assert.equal(process.env.TMPDIR===undefined||process.env.TMPDIR!=='/scratch/check-1',true,'the server process environment is never changed');
+ assert.equal((calls[1].options as {channel?:string}).channel,'chrome');
 });
 
 test('a late launch releases its scratch only once it has landed and been closed',async()=>{
@@ -105,7 +192,7 @@ test('a late launch releases its scratch only once it has landed and been closed
  assert.ok(Date.now()-started<50,'the deadline still returns without waiting for the late launch');
  assert.deepEqual(events,['make'],'the directory is not removed while a browser may still be arriving');
  await wasReleased;
- assert.deepEqual(events,['make','launch','close','survivors','remove /scratch/check-1']);
+ assert.deepEqual(events,['make','launch','survivors','close','survivors','remove /scratch/check-1']);
 });
 
 test('a scratch directory that cannot be made is unavailable, and nothing launches',async()=>{
@@ -124,12 +211,13 @@ test('the real host removes everything the browser wrote into its scratch direct
   written=scratch;
   return {async newPage(){return stage(async()=>CLEAN)},async close(){return null}} satisfies StageBrowser;
  };
- const {result,warnings}=await capture(()=>measureCueOnServer(CUE,{origin:ORIGIN,launch}));
+ const {result,warnings,infos}=await capture(()=>measureCueOnServer(CUE,{origin:ORIGIN,launch}));
  assert.equal(result.verdict,'pass');
  assert.ok(written&&written.startsWith(join(tmpdir(),'server-fit-')),'scratch lives under the temp directory');
  assert.equal(existsSync(written!),false,'the scratch directory is gone');
- assert.equal(warnings[0]?.[0],'server-fit scratch residue','what was left behind is logged');
- assert.equal((warnings[0]?.[1] as {leftBytes:number}).leftBytes,64*1024);
+ assert.equal(warnings.length,0,'files in the scratch directory are expected, not a residue');
+ assert.equal(infos[0]?.[0],'server-fit released');
+ assert.equal((infos[0]?.[1] as {scratchBytes:number}).scratchBytes,64*1024,'what the check wrote is counted as it is removed');
 });
 
 test('the real host reports free space in the temp directory',async()=>{
@@ -144,9 +232,15 @@ test('the real host finds a process carrying this scratch directory, and only th
  const theirs=spawn('sleep',['30'],{env:{...process.env,TMPDIR:other}});
  try{
   await new Promise(resolve=>setTimeout(resolve,100));
-  assert.deepEqual(await defaultScratchHost.survivors(dir),[mine.pid]);
-  defaultScratchHost.kill(mine.pid!);
+  const found=await defaultScratchHost.survivors(dir);
+  assert.deepEqual(found.map(owned=>owned.pid),[mine.pid]);
+  assert.equal(await defaultScratchHost.alive(found[0]),true);
+  assert.equal(await defaultScratchHost.alive({pid:found[0].pid,start:`${found[0].start}0`}),false,'a different start time is a different process');
+  await defaultScratchHost.kill({pid:found[0].pid,start:`${found[0].start}0`});
+  assert.equal(await defaultScratchHost.alive(found[0]),true,'and is never killed');
+  await defaultScratchHost.kill(found[0]);
   await new Promise(resolve=>mine.once('exit',resolve));
+  assert.equal(await defaultScratchHost.alive(found[0]),false);
   assert.deepEqual(await defaultScratchHost.survivors(dir),[]);
  }finally{
   mine.kill('SIGKILL');theirs.kill('SIGKILL');
@@ -229,4 +323,36 @@ test('a scratch directory that cannot be removed, or a survivor scan that fails,
  const logged=warnings[0]?.[1] as {survivorsError?:string;removeError?:string};
  assert.equal(logged.survivorsError,'EACCES: /proc');
  assert.equal(logged.removeError,'EBUSY: resource busy or locked');
+});
+
+test('the real host counts the deleted files a process still holds open',{skip:process.platform!=='linux'&&'reads /proc, so Linux only'},async()=>{
+ // What a surviving Chromium's shared memory looks like: unlinked, still open, still using /tmp.
+ const dir=mkdtempSync(join(tmpdir(),'server-fit-'));
+ const script="const fs=require('fs');const p=process.argv[1];const fd=fs.openSync(p,'w');fs.writeSync(fd,Buffer.alloc(256*1024));fs.unlinkSync(p);process.stdout.write('ready');setTimeout(()=>{},30000)";
+ const holder=spawn(process.execPath,['-e',script,join(dir,'.org.chromium.Chromium.held')],{env:{...process.env,TMPDIR:dir}});
+ try{
+  await new Promise(resolve=>holder.stdout.once('data',resolve));
+  const [owned]=await defaultScratchHost.survivors(dir);
+  assert.equal(owned?.pid,holder.pid);
+  assert.equal(await defaultScratchHost.held(owned),256*1024);
+ }finally{
+  holder.kill('SIGKILL');
+  await defaultScratchHost.remove(dir);
+ }
+});
+
+test('the real host finds a browser by the profile on its command line, even one that rewrote its title over its environment',{skip:process.platform!=='linux'&&'reads /proc, so Linux only'},async()=>{
+ // Chromium overwrites the memory its environment was in with its process title, so its TMPDIR
+ // cannot be read back. Setting process.title does the same to a node process's command line.
+ const dir=mkdtempSync(join(tmpdir(),'server-fit-'));
+ const ready=(child:ReturnType<typeof spawn>)=>new Promise(resolve=>child.stdout!.once('data',resolve));
+ const titled=(profile:string)=>spawn(process.execPath,['-e',`process.title='/tmp/chromium --headless --user-data-dir=${profile} --remote-debugging-pipe';process.stdout.write('ready');setTimeout(()=>{},30000)`]);
+ const mine=titled(stageProfile(dir)),lookalike=titled(`${stageProfile(dir)}-other`);
+ try{
+  await Promise.all([ready(mine),ready(lookalike)]);
+  assert.deepEqual((await defaultScratchHost.survivors(dir)).map(owned=>owned.pid),[mine.pid]);
+ }finally{
+  mine.kill('SIGKILL');lookalike.kill('SIGKILL');
+  await defaultScratchHost.remove(dir);
+ }
 });

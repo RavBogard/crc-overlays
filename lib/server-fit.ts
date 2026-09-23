@@ -21,7 +21,7 @@
 // it, on the crash path as much as the clean one, and a check's own residue is measured and
 // logged rather than guessed at. See docs/planning/2026-09-22-sitting-prep/RETURN-FIT-STABILITY.md.
 
-import {mkdtemp,readdir,readFile,rm,stat,statfs} from 'node:fs/promises';
+import {mkdtemp,readdir,readFile,readlink,rm,stat,statfs} from 'node:fs/promises';
 import {createRequire} from 'node:module';
 import {tmpdir} from 'node:os';
 import {join} from 'node:path';
@@ -51,17 +51,25 @@ export type StageBrowser={newPage():Promise<StagePage>;close():Promise<unknown>}
 /** `scratch` is this check's own directory: the browser's TMPDIR and HOME, removed afterwards. */
 export type StageLauncher=(scratch:string)=>Promise<StageBrowser>;
 /**
+ * A process this check started: its pid and its kernel start time, so a pid the system has since
+ * handed to someone else - another check's Chromium, say - is never mistaken for it.
+ */
+export type OwnedProcess={pid:number;start:string};
+/**
  * The filesystem and process operations the scratch lifecycle needs, injectable so a test can
- * watch them. `survivors` returns the pids still carrying this scratch directory in their
- * environment; `kill` ends one.
+ * watch them. `survivors` returns the processes carrying this check's profile on their command
+ * line or its scratch directory in their environment; `alive` says whether one is still running (same pid, same start time, not a
+ * zombie); `held` counts the bytes of deleted files it still holds open; `kill` ends one.
  */
 export type ScratchHost={
  make():Promise<string>;
  remove(dir:string):Promise<void>;
  bytes(dir:string):Promise<number>;
  free():Promise<number|null>;
- survivors(dir:string):Promise<number[]>;
- kill(pid:number):void;
+ survivors(dir:string):Promise<OwnedProcess[]>;
+ alive(process:OwnedProcess):Promise<boolean>;
+ held(process:OwnedProcess):Promise<number>;
+ kill(process:OwnedProcess):Promise<void>;
 };
 
 const requireFrom=createRequire(import.meta.url);
@@ -117,23 +125,50 @@ export async function packLaunchOptions(load:()=>Promise<{args:string[];executab
  return {args,executablePath:executable,headless:true,env:browserEnv(scratch)};
 }
 
+/**
+ * Chromium's profile for this check: inside the scratch directory, so it goes when the scratch
+ * directory goes. Left to itself, Playwright makes the profile with the Node process's own
+ * os.tmpdir() - /tmp/playwright_chromiumdev_profile-*, beside the scratch directory rather than
+ * in it (production, 2026-09-23: `--user-data-dir=/tmp/playwright_chromiumdev_profile-aTkYmm`) -
+ * where no measurement of ours could see it and only Playwright's own close could remove it.
+ * Chromium sizes its disk caches there from the free space it finds. Passing the profile
+ * explicitly, through the supported `launchPersistentContext`, keeps it this check's own
+ * without touching process.env, which a concurrent request in the same process also reads.
+ */
+export function stageProfile(scratch:string){
+ return join(scratch,'profile');
+}
+
+/** The one Playwright call the launch makes, named structurally so a test can record it. */
+export type StageBrowserType={launchPersistentContext(userDataDir:string,options:Record<string,unknown>):Promise<unknown>};
+type PackLoader=()=>Promise<{args:string[];executable:string}>;
+
+/**
+ * Starts this check's browser: a persistent context whose profile is `stageProfile(scratch)`.
+ * A persistent context is a browser with one context; `newPage()` and `close()` are all the
+ * stage uses, and `close()` ends the browser process exactly as Browser.close() does.
+ */
+export async function launchStage(browserType:StageBrowserType,plan:ReturnType<typeof launchPlan>,scratch:string,loadPack:PackLoader):Promise<StageBrowser>{
+ const profile=stageProfile(scratch);
+ if(plan.kind==='sparticuz')return await browserType.launchPersistentContext(profile,await packLaunchOptions(loadPack,scratch)) as StageBrowser;
+ const env=browserEnv(scratch);
+ if(plan.kind==='executable')return await browserType.launchPersistentContext(profile,{executablePath:process.env.PLAYWRIGHT_CHROMIUM_PATH,headless:true,env}) as StageBrowser;
+ return await browserType.launchPersistentContext(profile,{channel:'chrome',headless:true,env}) as StageBrowser;
+}
+
+async function loadPack(){
+ const loaded=await import('@sparticuz/chromium');
+ const pack=((loaded as {default?:unknown}).default??loaded) as {args:string[];executablePath:()=>Promise<string>;setGraphicsMode:boolean};
+ // The overlay renderer uses no WebGL, so the GL flags are dropped. (This does not stop the
+ // pack extracting its SwiftShader libraries into /tmp: about 7 MB of the ~215 MB.)
+ pack.setGraphicsMode=false;
+ packExecutable??=sharedExtraction(()=>pack.executablePath());
+ return {args:pack.args,executable:await packExecutable()};
+}
+
 async function defaultLaunch(scratch:string):Promise<StageBrowser>{
  const {chromium}=await import('playwright-core');
- const plan=launchPlan();
- if(plan.kind==='sparticuz'){
-  return await chromium.launch(await packLaunchOptions(async()=>{
-   const loaded=await import('@sparticuz/chromium');
-   const pack=((loaded as {default?:unknown}).default??loaded) as {args:string[];executablePath:()=>Promise<string>;setGraphicsMode:boolean};
-   // The overlay renderer uses no WebGL, so the GL flags are dropped. (This does not stop the
-   // pack extracting its SwiftShader libraries into /tmp: about 7 MB of the ~215 MB.)
-   pack.setGraphicsMode=false;
-   packExecutable??=sharedExtraction(()=>pack.executablePath());
-   return {args:pack.args,executable:await packExecutable()};
-  },scratch)) as unknown as StageBrowser;
- }
- const env=browserEnv(scratch);
- if(plan.kind==='executable')return await chromium.launch({executablePath:process.env.PLAYWRIGHT_CHROMIUM_PATH,headless:true,env}) as unknown as StageBrowser;
- return await chromium.launch({channel:'chrome',headless:true,env}) as unknown as StageBrowser;
+ return await launchStage(chromium as unknown as StageBrowserType,launchPlan(),scratch,loadPack);
 }
 
 async function treeBytes(dir:string):Promise<number>{
@@ -146,10 +181,27 @@ async function treeBytes(dir:string):Promise<number>{
  return total;
 }
 
+/** Field 3 of /proc/<pid>/stat, the state, and field 22, the start time. */
+async function procStat(pid:number){
+ const text=await readFile(`/proc/${pid}/stat`,'latin1');
+ // The command name (field 2) is in parentheses and may itself contain spaces or ')'.
+ const fields=text.slice(text.lastIndexOf(')')+2).split(' ');
+ return {state:fields[0],start:fields[19]};
+}
+
 /**
- * The real host. `survivors` reads /proc, so it answers only on Linux - which is where the
- * function runs, and where a Chromium that outlived `close()` would keep its deleted
- * shared-memory files, and their space, alive. Elsewhere it reports none.
+ * The real host. The process operations read /proc, so they answer only on Linux - which is
+ * where the function runs, and where a Chromium that outlived `close()` would keep its deleted
+ * shared-memory files, and their space, alive. Elsewhere they report none.
+ *
+ * `survivors` recognises a process by its command line carrying this check's profile
+ * (`--user-data-dir=<scratch>/profile`), or by its environment carrying this check's TMPDIR. The
+ * command line is what finds Chromium: it rewrites its own process title over the memory its
+ * environment was in, so /proc/<pid>/environ of a running Chromium no longer holds the TMPDIR it
+ * was launched with (reproduced on Linux, 2026-09-23: the environment scan alone found none of a
+ * check's processes even while its browser was open). Both read as empty for a process that is
+ * crashing, so `alive` and `held` work from a pid and start time taken while the browser was
+ * still running, and from /proc/<pid>/stat, which stays readable until the process is gone.
  */
 export const defaultScratchHost:ScratchHost={
  make:()=>mkdtemp(join(tmpdir(),'server-fit-')),
@@ -158,32 +210,78 @@ export const defaultScratchHost:ScratchHost={
  free:()=>statfs(tmpdir()).then(info=>Number(info.bavail)*Number(info.bsize),()=>null),
  async survivors(dir){
   if(process.platform!=='linux')return [];
-  const marker=`TMPDIR=${dir}`,found:number[]=[];
+  const marker=`TMPDIR=${dir}`,profile=`--user-data-dir=${stageProfile(dir)}`,found:OwnedProcess[]=[];
+  // A whole entry, delimited by NUL - or, in a command line Chromium has rewritten as its title,
+  // by a space - so /scratch/a never matches /scratch/ab.
+  const carries=async(pid:number,file:string,entry:string)=>(await readFile(`/proc/${pid}/${file}`,'latin1').catch(()=>'')).split(/[\0 ]/).includes(entry);
   for(const name of await readdir('/proc').catch(()=>[] as string[])){
    const pid=Number(name);
    if(!Number.isInteger(pid)||pid===process.pid)continue;
-   const environ=await readFile(`/proc/${pid}/environ`,'latin1').catch(()=>'');
-   if(environ.split('\0').includes(marker))found.push(pid);
+   if(!await carries(pid,'cmdline',profile)&&!await carries(pid,'environ',marker))continue;
+   const start=await procStat(pid).then(info=>info.start,()=>undefined);
+   if(start)found.push({pid,start});
   }
   return found;
  },
- kill:pid=>{try{process.kill(pid,'SIGKILL')}catch{/* already gone */}},
+ async alive({pid,start}){
+  if(process.platform!=='linux')return false;
+  const info=await procStat(pid).catch(()=>undefined);
+  return !!info&&info.start===start&&info.state!=='Z'&&info.state!=='X';
+ },
+ async held({pid}){
+  if(process.platform!=='linux')return 0;
+  let total=0;
+  for(const fd of await readdir(`/proc/${pid}/fd`).catch(()=>[] as string[])){
+   const target=await readlink(`/proc/${pid}/fd/${fd}`).catch(()=>'');
+   if(target.endsWith(' (deleted)'))total+=await stat(`/proc/${pid}/fd/${fd}`).then(info=>info.size,()=>0);
+  }
+  return total;
+ },
+ async kill(owned){
+  // Checked again at the last moment: a pid is killed only while it is still the process
+  // this check started.
+  if(await defaultScratchHost.alive(owned)){try{process.kill(owned.pid,'SIGKILL')}catch{/* already gone */}}
+ },
 };
 
+/** How long a release waits for a killed survivor to be gone before reporting it. */
+export const SERVER_FIT_LINGER_MS=2_000;
+
 /**
- * After the browser is closed: end anything of this check's that is still running, then
- * remove its scratch directory. Returns what it found, for the log - including a survivor scan
- * or a removal that failed, so a directory left behind is never silent. Never throws: cleanup
- * must not turn a verdict into an error.
+ * After the browser is closed: end anything of this check's that is still running, wait (for a
+ * bounded time) until it is gone - its open files hold their /tmp space until then - and remove
+ * the scratch directory, profile included. `owned` are the processes identified while the
+ * browser was running; a fresh environment scan adds any it started later. Returns what it found,
+ * for the log - including a scan or a removal that failed, so nothing left behind is silent.
+ * Never throws: cleanup must not turn a verdict into an error.
  */
-async function releaseScratch(host:ScratchHost,dir:string){
+async function releaseScratch(host:ScratchHost,dir:string,owned:OwnedProcess[],lingerMs:number){
  const problem=(error:unknown)=>error instanceof Error?error.message:String(error);
  let survivorsError:string|undefined,removeError:string|undefined;
- const survivors=await host.survivors(dir).catch(error=>{survivorsError=problem(error);return [] as number[]});
- for(const pid of survivors)host.kill(pid);
- const leftBytes=await host.bytes(dir).catch(()=>0);
+ const scanned=await host.survivors(dir).catch(error=>{survivorsError=problem(error);return [] as OwnedProcess[]});
+ const candidates=[...owned,...scanned.filter(late=>!owned.some(known=>known.pid===late.pid&&known.start===late.start))];
+ const lingering:OwnedProcess[]=[];
+ for(const candidate of candidates)if(await host.alive(candidate).catch(()=>false))lingering.push(candidate);
+ let heldBytes=0;
+ for(const survivor of lingering){
+  heldBytes+=await host.held(survivor).catch(()=>0);
+  await host.kill(survivor).catch(()=>{});
+ }
+ const waitStarted=Date.now();
+ let stillAlive=lingering;
+ while(stillAlive.length&&Date.now()-waitStarted<lingerMs){
+  await new Promise(resolve=>setTimeout(resolve,25));
+  const next:OwnedProcess[]=[];
+  for(const survivor of stillAlive)if(await host.alive(survivor).catch(()=>false))next.push(survivor);
+  stillAlive=next;
+ }
+ const scratchBytes=await host.bytes(dir).catch(()=>0);
  await host.remove(dir).catch(error=>{removeError=problem(error)});
- return {survivors:survivors.length,leftBytes,...(survivorsError?{survivorsError}:{}),...(removeError?{removeError}:{})};
+ return {
+  owned:owned.length,survivors:lingering.length,heldBytes,stillAlive:stillAlive.length,
+  waitedMs:lingering.length?Date.now()-waitStarted:0,scratchBytes,
+  ...(survivorsError?{survivorsError}:{}),...(removeError?{removeError}:{}),
+ };
 }
 
 class DeadlineExpired extends Error{constructor(){super('deadline_exceeded')}}
@@ -225,13 +323,25 @@ function stageMeasurement(value:unknown):StageMeasurement|null{
  * does not: closing a browser that did launch and releasing its scratch directory, which run
  * after the verdict and before this returns (a launch still in flight at the deadline is closed
  * without holding the caller). Those are bounded by the route's own maxDuration, not by this
- * deadline. The free-space reading and mkdtemp are local filesystem calls and are awaited
- * without a timer of their own.
+ * deadline; the one wait inside the release, for a killed survivor to be gone, is bounded by
+ * SERVER_FIT_LINGER_MS. The free-space reading and mkdtemp are local filesystem calls and are
+ * awaited without a timer of their own.
+ *
+ * Every release logs one `server-fit released` line: the processes this check owned, any that
+ * outlived close() and what they held, the bytes its scratch directory (profile included) held
+ * when it was removed, and free /tmp before and after. So a run whose free space still falls
+ * says whether this check's own files account for it.
  */
-export async function measureCueOnServer(cue:Cue,options:{origin:string;deadlineMs?:number;launch?:StageLauncher;host?:ScratchHost}):Promise<ServerFitResult>{
+export async function measureCueOnServer(cue:Cue,options:{origin:string;deadlineMs?:number;launch?:StageLauncher;host?:ScratchHost;lingerMs?:number}):Promise<ServerFitResult>{
  const deadlineMs=options.deadlineMs??SERVER_FIT_DEADLINE_MS;
  const launch=options.launch??defaultLaunch;
  const host=options.host??defaultScratchHost;
+ const lingerMs=options.lingerMs??SERVER_FIT_LINGER_MS;
+ // This check's own processes, recorded while the browser is whole. After close() - or a crash -
+ // an environment scan can no longer be trusted to find them.
+ let owned:OwnedProcess[]=[];
+ let ownedError:string|undefined;
+ const own=async(dir:string)=>{owned=await host.survivors(dir).catch(error=>{ownedError=error instanceof Error?error.message:String(error);return []})};
  const started=Date.now();
  // Free space in the shared temp directory before this check starts. Logged with a failure, so
  // a run that is short of /tmp says so instead of leaving it to Chromium's own stderr.
@@ -257,6 +367,8 @@ export async function measureCueOnServer(cue:Cue,options:{origin:string;deadline
   const measurement=await withDeadline(remaining(),async()=>{
    launching=Promise.resolve(launch(dir));
    browser=await launching;
+   // A launch that lands after the deadline is recorded by the late-release path instead.
+   if(!deadlineHit)await own(dir);
    phase='new_page';
    const page=await browser.newPage();
    await page.setViewportSize({width:1920,height:1080});
@@ -294,15 +406,20 @@ export async function measureCueOnServer(cue:Cue,options:{origin:string;deadline
   // Only once the browser is closed is its scratch directory released: a Chromium still
   // running must not have its temp directory removed from under it. A late launch releases its
   // scratch when it lands and has been closed, without holding the caller behind it.
+  let closeError:string|undefined;
+  const close=(open:StageBrowser)=>Promise.resolve(open.close()).then(()=>{},error=>{closeError=error instanceof Error?error.message:String(error)});
   const finish=async(dir:string|undefined)=>{
    if(!dir)return;
-   const released=await releaseScratch(host,dir);
-   // Only a residue is worth a log line; a clean release is the expected case, every time.
-   if(released.survivors||released.leftBytes||'survivorsError' in released||'removeError' in released)console.warn('server-fit scratch residue',{...released,tmpFreeAfter:await host.free().catch(()=>null)});
+   const released=await releaseScratch(host,dir,owned,lingerMs);
+   const accounting={...released,...(ownedError?{ownedError}:{}),...(closeError?{closeError}:{}),tmpFreeBefore,tmpFreeAfter:await host.free().catch(()=>null)};
+   console.info('server-fit released',accounting);
+   // A warning only for what should not happen: a process that outlived close(), a close,
+   // scan or removal that failed. Scratch bytes are expected - the profile lives there.
+   if(released.survivors||released.stillAlive||ownedError||closeError||'survivorsError' in released||'removeError' in released)console.warn('server-fit scratch residue',accounting);
   };
-  if(browser){await Promise.resolve(browser.close()).catch(()=>{});await finish(scratch)}
+  if(browser){await close(browser);await finish(scratch)}
   else if(launching){
-   const dir=scratch,release=launching.then(late=>late.close()).catch(()=>{}).then(()=>finish(dir));
+   const dir=scratch,release=launching.then(async late=>{if(dir)await own(dir);await close(late)}).catch(()=>{}).then(()=>finish(dir));
    // A launch that already failed has settled, so its scratch is released before returning;
    // only one still in flight when the deadline fired is left to land on its own.
    if(deadlineHit)void release;else await release;
