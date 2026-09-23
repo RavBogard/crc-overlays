@@ -69,7 +69,10 @@ built from Michael's operating logic, bound only to final published cue IDs.
    split 1-2 of 2; Saturday Daytime Kiddush (Supplement) split the same way (packet 10). Releases
    through `5f149da` (gap log). Held: Olam Chesed (missing Hebrew, no invented provenance).
 5. Packets 10-14 done (Sim Shalom 1-4 + Shabbat Sim Shalom published at shared defaults).
-6. Next: packets 15-17, verification receipts for already-fine families, then the Companion preset.
+6. Packets 15-17 done; receipt-coverage sweep: every inventory draft has a receipt (We Are
+   Loved 2 added). Renderer gaps H/I released `01eb7a1` + `f753093`; typo fixes (Miryam,
+   Hashkiveinu x5) published.
+7. Phase 4 (Companion preset): design + manifest in progress (companion/). Earlier plan was: packets 15-17, verification receipts for already-fine families, then the Companion preset.
 
 ## Open questions
 - Source-text notes for a future shireishabbat review (no overlay change; exact wording kept):
