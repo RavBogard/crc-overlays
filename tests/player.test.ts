@@ -3,7 +3,7 @@ import assert from 'node:assert/strict';
 import {readFileSync} from 'node:fs';
 import {fileURLToPath} from 'node:url';
 import {acceptsRevision,effectFrames,incomingStillDesired,measuredBottomTextHeight,textParts,tracksFor,type AnimationTrack} from '../lib/player-motion.ts';
-import {Player,constrainedBottomTextHeight,panelRowChannels,panelRowGap,panelStackGeometry,presentationTextStyles,reflowLatinParagraphs,displayPresentationText,usesPanelRows,type ContentRow,type Cue} from '../lib/player.ts';
+import {Player,constrainedBottomTextHeight,panelRowChannels,panelRowGap,panelStackGeometry,presentationTextStyles,reflowLatinParagraphs,reflowLatinRuns,displayPresentationText,usesPanelRows,type ContentRow,type Cue} from '../lib/player.ts';
 import {OVERLAY_ASSET_TIMEOUT_MS,waitForRenderedOverlayAssets} from '../lib/overlay-assets.ts';
 import {branding} from '../lib/branding.ts';
 
@@ -378,9 +378,10 @@ test('paragraph reflow only collapses soft Latin line breaks and preserves stanz
 });
 
 
-test('legacy English textMain reflows, while a mixed Hebrew body keeps authored breaks',()=>{
+test('legacy English textMain reflows Latin runs while preserving Hebrew and blank stanza boundaries',()=>{
  const presentation={latinLineBreaks:'paragraphs'} as const;
- assert.equal(displayPresentationText('One\nTwo','textMain',presentation),'One Two');
- assert.equal(displayPresentationText('English\nעברית','textMain',presentation),'English\nעברית');
+ const psalmish='First short verse\nSecond short verse\n\nThird short verse\nFinal short verse\nעברית בסוף';
+ assert.equal(displayPresentationText(psalmish,'textMain',presentation),'First short verse Second short verse\n\nThird short verse Final short verse\nעברית בסוף');
+ assert.equal(reflowLatinRuns('Before\nעברית\nAfter\nMore'),'Before\nעברית\nAfter More');
  assert.equal(displayPresentationText('English\nText','textMainEng',presentation),'English Text');
 });

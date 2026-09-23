@@ -8,12 +8,19 @@ export type Cue={id:string;name:string;layout:string;texts:Record<string,string>
 export type PlayerOptions={resolveAssetUrl?:(cue:Cue)=>string|undefined|Promise<string|undefined>;waitForAssets?:(root:HTMLElement)=>Promise<void>};
 /** Display-only reflow for semantic English channels. Blank lines remain stanza boundaries. */
 export function reflowLatinParagraphs(text:string){return text.replace(/\r\n?/g,'\n').replace(/\n[\t ]*(?=\n)/g,'\n').split(/(\n{2,})/).map(part=>part.startsWith('\n')?part:part.replace(/[\t ]*\n[\t ]*/g,' ')).join('')}
+/** Reflow only contiguous Latin runs in a legacy mixed body. Hebrew and blank stanza lines are boundaries. */
+export function reflowLatinRuns(text:string){
+ const output:string[]=[],run:string[]=[],flush=()=>{if(!run.length)return;const value=run.join('\n');output.push(/[A-Za-z]/.test(value)?reflowLatinParagraphs(value):value);run.length=0};
+ for(const line of text.replace(/\r\n?/g,'\n').split('\n')){
+  if(!line.trim()||/[\u0590-\u05FF]/.test(line)){flush();output.push(line)}else run.push(line);
+ }
+ flush();return output.join('\n');
+}
 export function displayPresentationText(text:string,element:string,presentation:CuePresentation|undefined){
  const typedEnglish=element==='textMainEng'||element==='textTranslation';
- // Legacy textMain has no channel key. Reflow it only when it is an English-only value; a mixed
- // Hebrew/English legacy body retains every authored break instead of guessing at its reading order.
- const legacyEnglish=element==='textMain'&&/[A-Za-z]/.test(text)&&!/[\u0590-\u05FF]/.test(text);
- return presentation?.latinLineBreaks==='paragraphs'&&(typedEnglish||legacyEnglish)?reflowLatinParagraphs(text):text
+ const legacyEnglish=element==='textMain'&&/[A-Za-z]/.test(text);
+ if(presentation?.latinLineBreaks!=='paragraphs'||!(typedEnglish||legacyEnglish))return text;
+ return typedEnglish||!/[\u0590-\u05FF]/.test(text)?reflowLatinParagraphs(text):reflowLatinRuns(text);
 }
 export function presentationTextStyles(presentation:CuePresentation|undefined){return {textAlign:presentation?.alignment,lineHeight:presentation?.lineSpacing==='compact'?'1.12':presentation?.lineSpacing==='spacious'?'1.42':undefined}}
 export function usesPanelRows(cue:Pick<Cue,'layout'|'contentRows'>){return (cue.layout==='left'||cue.layout==='right')&&Boolean(cue.contentRows?.length)}
