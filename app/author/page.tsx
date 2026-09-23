@@ -4,6 +4,7 @@ import Link from "next/link";
 import { CircleAlert } from "lucide-react";
 import { useCallback, useEffect, useMemo, useRef, useState, type CSSProperties } from "react";
 import { overlayBrandingFromWorkspace } from "@/lib/branding";
+import { templateLayoutFor } from "@/lib/layout-label";
 import type { AccessRole } from "@/lib/access";
 import type { PublicWorkspace } from "@/lib/workspace";
 import WorkspaceHeader from "@/components/workspace-header";
@@ -520,7 +521,7 @@ export default function AuthorPage() {
     try {
       const next = await loadSource(key, item.id);
       const nextMode = item.kinds.includes("bilingual") ? "bilingual" : item.kinds.includes("source-en") ? "source-en" : "original-en";
-      const template = templates.find((entry) => entry.layout === form.layout && entry.importable) || templates[0];
+      const template = templates.find((entry) => entry.layout === templateLayoutFor(form.layout) && entry.importable) || templates[0];
       const groups = form.groups.length ? [...form.groups] : [{ sourceId: item.id, blockIds: [] }];
       groups[Math.min(activeGroup, groups.length - 1)] = { sourceId: item.id, blockIds: [] };
       changeForm({ mode: nextMode, groups, name: form.name || next.name, title: form.title || next.name, templateCueId: form.templateCueId || template?.id || "" });

@@ -1,4 +1,5 @@
 import type {Draft, DraftContent, Layout, Presentation, TextArrangement} from './authoring-model';
+import {templateLayoutFor} from './layout-label';
 
 /** The small template shape required to plan a look change. */
 export type DraftStyleTemplate={id:string;layout:Layout};
@@ -55,8 +56,9 @@ export function planDraftStyle(draft:Draft, options:DraftStyleOptions, templates
   let afterLayout=draft.layout,afterTemplateCueId=draft.templateCueId,afterContent=draft.content,afterPresentation=draft.presentation;
 
   if(options.layout!==undefined){
-    const existing=templates.find(template=>template.id===draft.templateCueId&&template.layout===options.layout);
-    const compatible=existing??templates.filter(template=>template.layout===options.layout).sort((a,b)=>a.id.localeCompare(b.id))[0];
+    const templateLayout=templateLayoutFor(options.layout);
+    const existing=templates.find(template=>template.id===draft.templateCueId&&template.layout===templateLayout);
+    const compatible=existing??templates.filter(template=>template.layout===templateLayout).sort((a,b)=>a.id.localeCompare(b.id))[0];
     if(!compatible)warnings.push(`No compatible ${options.layout} template is available; layout was not changed.`);
     else {
       if(options.layout!==draft.layout)patch.layout=options.layout;

@@ -4,6 +4,7 @@
 .mini-frame.left .mini-graphic-content { inset: 2px auto 2px 2px; width: 27px; }
 .mini-frame.right .mini-graphic-content { inset: 2px 2px 2px auto; width: 27px; }
 .mini-frame.bottom .mini-graphic-content { inset: auto 2px 2px; height: 14px; }
+.mini-frame.corner .mini-graphic-content { inset: auto 2px 2px auto; width: 23px; height: 8px; padding: 1px 2px; }
 .mini-frame .mini-graphic-content b,
 .mini-frame .mini-graphic-content i,
 .mini-frame .mini-graphic-content small { display: block; overflow: hidden; color: inherit; font-style: normal; text-overflow: ellipsis; white-space: nowrap; }
