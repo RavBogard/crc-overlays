@@ -4,9 +4,9 @@ What is deployed right now. Update this file on every release — it is the one 
 "what is live", and it is short so it can be read under pressure. The history is in
 `docs/planning/2026-09-deploys/` (25 deploy records, the release chain, the phase build notes).
 
-**Last updated: 2026-09-23 01:23 UTC** (paired release `608f495`: explicit authoring source
-snapshot refresh plus server-fit persistent-profile/residue accounting; web only, no relay
-change. Evidence below under "Release 608f495".)
+**Last updated: 2026-09-23 01:42 UTC** (paired release `74f2051`: single-channel left/right
+panel copy begins beneath its title; web only, no relay change. Evidence below under "Release
+74f2051".)
 
 ## Web, per workspace
 
@@ -15,13 +15,24 @@ both were released together on 2026-09-23 UTC (2026-09-22 evening Central).
 
 | Workspace | Host | Deployed commit | How it got there |
 |---|---|---|---|
-| CRC | `overlays.centralreform.org` (alt `crc-overlays.vercel.app`) | `608f495` | `scripts/deploy-workspaces.mjs`, 2026-09-23 01:23 UTC, `dpl_CesmizJVd5uiAf7tD3WHgcDtaaWf` (the Git integration also builds every push to `main`) |
-| TBI | `overlays.templebnaiisrael.com` (alt `tbi-overlays.vercel.app`) | `608f495` | `scripts/deploy-workspaces.mjs`, same run, `dpl_2FXyoZuKPR1KaLJdJNo7wxqqiVqv` |
+| CRC | `overlays.centralreform.org` (alt `crc-overlays.vercel.app`) | `74f2051` | `scripts/deploy-workspaces.mjs`, 2026-09-23 01:42 UTC, `dpl_7y3jnWdf98JA3G1mJfLL3HVqgoSE` (the Git integration also builds every push to `main`) |
+| TBI | `overlays.templebnaiisrael.com` (alt `tbi-overlays.vercel.app`) | `74f2051` | `scripts/deploy-workspaces.mjs`, same run, `dpl_3TxGsHmHGBpSQpJDzhmdp5vLGuNB` |
 
 This file is written after the release it describes, so the commit carrying these words is always one
 ahead of the shas in the table. That one commit is documentation: CRC's Git integration builds it by
 itself and TBI is not owed a release for it. Any commit that touches `app/`, `lib/`, `content/`,
 `components/`, `schemas/` or `workspaces/` **is** owed one.
+
+### Release 74f2051 (2026-09-23 UTC)
+
+- Released from clean exact-SHA guard `74f20513063a5f7b562e3ab6462b9a8c39f5757c`.
+  CRC `dpl_7y3jnWdf98JA3G1mJfLL3HVqgoSE` and TBI `dpl_3TxGsHmHGBpSQpJDzhmdp5vLGuNB`
+  both reported Ready; custom and alternate aliases returned HTTP 200.
+- Left/right single-channel copy now starts at its panel body's top edge beneath the title.
+  Bilingual stacks, structured rows, and lower-thirds remain unchanged. No source, hosted
+  authoring, fit, relay, publication, or human-review action ran in this release.
+- Gates: `tsc --noEmit`; `npm test` (784 pass, 9 skipped; 24 MJS pass); `npm run lint`; and
+  `npm run build` (42 routes). Logs: `work/sitting-2026-09-22/single-channel-top-align-release/`.
 
 ### Release 608f495 (2026-09-23 UTC)
 
