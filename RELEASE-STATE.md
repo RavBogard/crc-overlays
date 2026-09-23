@@ -21,6 +21,13 @@ ahead of the shas in the table. That one commit is documentation: CRC's Git inte
 itself and TBI is not owed a release for it. Any commit that touches `app/`, `lib/`, `content/`,
 `components/`, `schemas/` or `workspaces/` **is** owed one.
 
+### Release 01eb7a1 (2026-09-23 UTC)
+
+- Released exact SHA `01eb7a14c3a16d39a1d2f5b8ba5ebeb1d498a59b`. CRC `dpl_9eGwTEQn9UnScLwSwUjA9PcQhk82` and TBI `dpl_G12tYZ6XV1pLnSoYnQhDxUwUkQqn` Ready; all four hosts returned HTTP 200 from `/health`. Logs: `work/sitting-2026-09-23/right-panel-arabic-release/`.
+- Custom right-panel text now sits inside the panel (gap H; the stale `.right .prayer` rule put it 16px outside); the fit check reports side-panel copy outside `.base`. Noto Sans Arabic (OFL) backs the overlay text stacks (gap I). Live proof on CRC: Thank you, Passing the Torah and Silent Prayer render inside the panel; Od Yavo Shalom shows سلام.
+- Defect found after release: TBI's staged build copies an allowlist of `public/assets` files that did not include the Arabic face, so TBI served 404 for it (both TBI hosts). Fixed in the next release.
+- Gates: `tsc --noEmit`; `npm test` exit 0 (847 TypeScript pass, 0 fail, 11 skipped; 24 MJS pass); `npm run lint` (two existing warnings); `npm run build`.
+
 ### Release 5f149da (2026-09-23 UTC)
 
 - Released exact SHA `5f149dab1c8e91048729613ee060f2f5cf611026`. CRC `dpl_A7mB3xfnRCGWnsxQAF7XdLH9aay6` and TBI `dpl_GLNFjByjTgQydFA66kctkjQC6wje` Ready; both custom domains serve those ids; all four hosts returned HTTP 200 from `/health`. Logs: `work/sitting-2026-09-23/stale-pin-rebase-release/`.

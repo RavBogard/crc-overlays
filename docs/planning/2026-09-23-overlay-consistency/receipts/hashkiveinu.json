@@ -1,44 +1,86 @@
 {
   "family": "Hashkiveinu",
-  "status": "verified-current",
+  "status": "published",
   "kind": "original",
   "layout": "bottom",
-  "approvalBasis": "Already published and current; server fit-check re-verified pass for each, no republish needed (protocol step 6).",
-  "notes": "Packet 1. Per this packet's notes, Hashkiveinu (Daniel)/(Jim)/(plain) are three ALTERNATE settings, not sequential parts of one piece (WORKER-PROTOCOL.md 'Catalog packets' section) -- judged each on its own rather than forcing a left-panel conversion under the >2-parts rule. All three are already bottom lower thirds, arrangement blocks, and each reads as a single readable lower third at current size; left as bottom, no style change made. Other Hashkiveinu drafts in the library (Take This Soul/U2, HHD 1, HHD 2, Randy) are not in this packet and were not touched.",
+  "approvalBasis": "Daniel's blanket authorization for graphic publication (handoff 2026-09-23); not a per-graphic inspection by Daniel.",
+  "notes": "Packet 1. Per this packet's notes, Hashkiveinu (Daniel)/(Jim)/(plain) are three ALTERNATE settings, not sequential parts of one piece (WORKER-PROTOCOL.md 'Catalog packets' section) -- judged each on its own rather than forcing a left-panel conversion under the >2-parts rule. All three are already bottom lower thirds, arrangement blocks, and each reads as a single readable lower third at current size; left as bottom, no style change made. Other Hashkiveinu drafts in the library (Take This Soul/U2, HHD 1, HHD 2, Randy) are not in this packet and were not touched. Typo fix 2026-09-23: accent doubled patach corrected on all three and republished (revision 3 each); fit unchanged.",
   "at": "2026-09-23",
   "graphics": [
     {
       "draftId": "f9231a22-88f9-4aca-8356-da01f572ad3d",
       "name": "Hashkiveinu (Daniel)",
-      "draftVersion": 2,
-      "previewId": "4c598153-12e2-492b-95cb-9944b3d2f88d",
-      "cueHash": "ba2be050eca23bcd0ec4958357dc91635960891c5a77fe6137d7e8b203bbc7e0",
-      "fit": { "verdict": "pass", "fill": 0.5667 },
-      "imageInspected": "Title 'Hashkiveinu' / accent 'הַַשְׁכִּיבֵנוּ' correct; Hebrew then transliteration, fully inside the bottom panel, no dangling separators or duplication.",
+      "draftVersion": 3,
+      "previewId": "6ef429d2-5a4e-45f6-a326-d16e0eee140f",
+      "cueHash": "7af6e16e7871f46ff2731039abb03c2d662bdf733dbfe710ffacc8b2f0fa8771",
+      "fit": {
+        "verdict": "pass",
+        "fill": 0.5667
+      },
+      "imageInspected": "Title 'Hashkiveinu' / accent 'הַשְׁכִּיבֵנוּ' (single patach) correct; Hebrew then transliteration, fully inside the bottom panel, no dangling separators or duplication.",
       "sourceCheck": "No selection or wording change (blocks 3-5).",
-      "revision": 2
+      "revision": 3,
+      "status": "published",
+      "typoFix": {
+        "field": "accentTitle",
+        "from": "U+05D4 U+05B7 U+05B7 U+05E9 U+05B0 U+05C1 U+05DB U+05B4 U+05BC U+05D9 U+05D1 U+05B5 U+05E0 U+05D5 U+05BC",
+        "to": "U+05D4 U+05B7 U+05E9 U+05B0 U+05C1 U+05DB U+05B4 U+05BC U+05D9 U+05D1 U+05B5 U+05E0 U+05D5 U+05BC",
+        "fromVersion": 2,
+        "toVersion": 3,
+        "revision": 3,
+        "basis": "Main-thread decision 2026-09-23 (typo fix, Miryam accent precedent)",
+        "note": "Removed exactly one U+05B7 from the doubled patach; the rest of the string is unchanged, including the existing order hiriq-then-dagesh on kaf (U+05DB U+05B4 U+05BC, NFC). The packet's codepoint list gives dagesh-then-hiriq (U+05DB U+05BC U+05B4), which is canonically equivalent (NFC-equal) but not byte-identical; the existing order was kept per 'change nothing else'."
+      }
     },
     {
       "draftId": "fa7f52e3-90b1-4253-8d43-1ccf94e65d9f",
       "name": "Hashkiveinu (Jim)",
-      "draftVersion": 2,
-      "previewId": "da36206f-9423-4ed2-96f3-8458836b5094",
-      "cueHash": "09032f40502330757c9e0f028eec860b00663521c5ad082cc61d1ee266b80cf9",
-      "fit": { "verdict": "pass", "fill": 0.6889 },
-      "imageInspected": "Title 'Hashkiveinu' / accent 'הַַשְׁכִּיבֵנוּ' correct; Hebrew then transliteration, fully inside the bottom panel, no dangling separators or duplication.",
+      "draftVersion": 3,
+      "previewId": "6693a50b-954c-45af-850c-c1d8871f0df2",
+      "cueHash": "4af1fb2d5514fb0cb9c4c7b4706046fc11212f90f76e6c9cf421ad3fc83649b6",
+      "fit": {
+        "verdict": "pass",
+        "fill": 0.6889
+      },
+      "imageInspected": "Title 'Hashkiveinu' / accent 'הַשְׁכִּיבֵנוּ' (single patach) correct; Hebrew then transliteration, fully inside the bottom panel, no dangling separators or duplication.",
       "sourceCheck": "No selection or wording change (blocks 5-7).",
-      "revision": 2
+      "revision": 3,
+      "status": "published",
+      "typoFix": {
+        "field": "accentTitle",
+        "from": "U+05D4 U+05B7 U+05B7 U+05E9 U+05B0 U+05C1 U+05DB U+05B4 U+05BC U+05D9 U+05D1 U+05B5 U+05E0 U+05D5 U+05BC",
+        "to": "U+05D4 U+05B7 U+05E9 U+05B0 U+05C1 U+05DB U+05B4 U+05BC U+05D9 U+05D1 U+05B5 U+05E0 U+05D5 U+05BC",
+        "fromVersion": 2,
+        "toVersion": 3,
+        "revision": 3,
+        "basis": "Main-thread decision 2026-09-23 (typo fix, Miryam accent precedent)",
+        "note": "Removed exactly one U+05B7 from the doubled patach; the rest of the string is unchanged, including the existing order hiriq-then-dagesh on kaf (U+05DB U+05B4 U+05BC, NFC). The packet's codepoint list gives dagesh-then-hiriq (U+05DB U+05BC U+05B4), which is canonically equivalent (NFC-equal) but not byte-identical; the existing order was kept per 'change nothing else'."
+      }
     },
     {
       "draftId": "1f1df522-f4c4-4fd3-9c20-14c6b52c54d9",
       "name": "Hashkiveinu (plain)",
-      "draftVersion": 2,
-      "previewId": "a69e4c51-7ee4-4b7a-9609-28470b04a621",
-      "cueHash": "ea38f5a8eb5d6716f583ec85c873f4dd4b96bf9561b468f3d18d6dac6cc57326",
-      "fit": { "verdict": "pass", "fill": 0.8083 },
-      "imageInspected": "Title 'Hashkiveinu' / accent 'הַַשְׁכִּיבֵנוּ' correct; Hebrew then transliteration (full 5-block text), fully inside the bottom panel, no dangling separators or duplication.",
+      "draftVersion": 3,
+      "previewId": "b0a92c6b-22dc-4658-9562-aacb791daab3",
+      "cueHash": "f89d5b002951a1c44ee3a9ab3fbfb553aeab1f37cbdd1afd7f9f0488f324df5b",
+      "fit": {
+        "verdict": "pass",
+        "fill": 0.8083
+      },
+      "imageInspected": "Title 'Hashkiveinu' / accent 'הַשְׁכִּיבֵנוּ' (single patach) correct; Hebrew then transliteration (full 5-block text), fully inside the bottom panel, no dangling separators or duplication.",
       "sourceCheck": "No selection or wording change (blocks 3-7).",
-      "revision": 2
+      "revision": 3,
+      "status": "published",
+      "typoFix": {
+        "field": "accentTitle",
+        "from": "U+05D4 U+05B7 U+05B7 U+05E9 U+05B0 U+05C1 U+05DB U+05B4 U+05BC U+05D9 U+05D1 U+05B5 U+05E0 U+05D5 U+05BC",
+        "to": "U+05D4 U+05B7 U+05E9 U+05B0 U+05C1 U+05DB U+05B4 U+05BC U+05D9 U+05D1 U+05B5 U+05E0 U+05D5 U+05BC",
+        "fromVersion": 2,
+        "toVersion": 3,
+        "revision": 3,
+        "basis": "Main-thread decision 2026-09-23 (typo fix, Miryam accent precedent)",
+        "note": "Removed exactly one U+05B7 from the doubled patach; the rest of the string is unchanged, including the existing order hiriq-then-dagesh on kaf (U+05DB U+05B4 U+05BC, NFC). The packet's codepoint list gives dagesh-then-hiriq (U+05DB U+05BC U+05B4), which is canonically equivalent (NFC-equal) but not byte-identical; the existing order was kept per 'change nothing else'."
+      }
     }
   ]
 }

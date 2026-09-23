@@ -1,0 +1,19 @@
+{
+  "draftId": "a2d94d09-e5fe-4466-bb62-9a3569e607a7",
+  "name": "We Are Loved 2",
+  "status": "verified-current",
+  "kind": "original",
+  "layout": "bottom",
+  "draftVersion": 4,
+  "previewId": "b310a5bb-aa85-428b-a405-589c87a645de",
+  "cueHash": "91bb9676bc0bbdeea192b386d1009ed4bdbdc37730a07c40aa2577221ec12fc0",
+  "fit": {
+    "verdict": "pass",
+    "fill": 0.9278
+  },
+  "imageInspected": "Lower third, six English lines fully inside the panel, title and accent אהבת עולם present; the slice's leading space shows as a slight indent on line 1 (gap J).",
+  "sourceCheck": "original-en, shma.unending-love@legacy-shabbat-morning block-0/slice-1 + block-1, pin unchanged; published version equals current.",
+  "approvalBasis": "n/a (not republished)",
+  "notes": "Part 2 of 2 (We Are Loved 1 published earlier today); 2 lower thirds, stays bottom. Accent shared with Ahavat Olam is correct (interpretation of that prayer). Found by the receipt-coverage sweep.",
+  "at": "2026-09-23"
+}

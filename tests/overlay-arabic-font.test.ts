@@ -22,3 +22,14 @@ test('overlay text stacks fall back to a bundled Arabic face',()=>{
   for(const stack of stacks)assert.match(stack!,/Noto Sans Arabic/,`${selector} falls back to the Arabic face`);
  }
 });
+
+// TBI is built from a staged copy that carries an explicit allowlist of public/assets files. The
+// first Arabic release left the new face out of it, so TBI served a 404 for the font. Every face
+// the stylesheets load must be staged.
+test('every font face the stylesheets load is staged for the TBI build',()=>{
+ const staging=readFileSync(root('scripts/stage-workspace-source.mjs'),'utf8');
+ const sheets=['app/overlay.css','app/overlay-faces.css','app/globals.css'].map(path=>readFileSync(root(path),'utf8')).join('\n');
+ const files=[...new Set([...sheets.matchAll(/@font-face\s*\{[^}]*?url\('\/assets\/([^']+)'\)/g)].map(match=>match[1]))];
+ assert.ok(files.includes('NotoSansArabic-Regular.ttf'));
+ for(const file of files)assert.ok(staging.includes(`'public/assets/${file}'`),`${file} is staged for TBI`);
+});

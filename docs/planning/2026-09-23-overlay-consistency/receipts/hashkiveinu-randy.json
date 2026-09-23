@@ -1,20 +1,30 @@
 {
- "draftId": "567367c0-bf57-46e6-9220-049641f75c14",
- "name": "Hashkiveinu (Randy)",
- "status": "verified-current",
- "kind": "original",
- "layout": "bottom",
- "draftVersion": 5,
- "previewId": "24d09321-b974-4e92-9609-9d9574fc54d0",
- "cueHash": "40873b6dad731e147e593b92944830977fafce416149d752e5242e33498aabf5",
- "fit": {
-  "verdict": "pass",
-  "fill": 0.8083
- },
- "imageInspected": "5 lines inside panel, readable; phrases joined by middots (latinLineBreaks phrases); title Hashkiveinu, accent renders as הַשְׁכִּיבֵנוּ",
- "sourceCheck": "custom text (no source blocks); wording unchanged",
- "revision": null,
- "notes": "published at current version; no change. Stored accent string has a doubled patah (U+05B7 twice, \"הַַ\"); renders correctly; same string used by the Take This Soul family (packet 16). Not changed.",
- "approvalBasis": "Daniel blanket authorization for graphic publication (handoff 2026-09-23); no review/publish performed in this packet; not a per-graphic inspection by Daniel",
- "at": "2026-09-23"
+  "draftId": "567367c0-bf57-46e6-9220-049641f75c14",
+  "name": "Hashkiveinu (Randy)",
+  "status": "published",
+  "kind": "original",
+  "layout": "bottom",
+  "draftVersion": 6,
+  "previewId": "47fcf043-34a5-4b3c-bafa-a6974b31976e",
+  "cueHash": "096c39d780a002ebedbd4d27b8bdc2b9b786ffe185f3de8d6471bbe246605b6e",
+  "fit": {
+    "verdict": "pass",
+    "fill": 0.8083
+  },
+  "imageInspected": "5 lines inside the bottom panel, readable; phrases joined by middots (latinLineBreaks phrases); title Hashkiveinu, accent הַשְׁכִּיבֵנוּ (single patach).",
+  "sourceCheck": "custom text (no source blocks); wording unchanged",
+  "revision": 3,
+  "notes": "Doubled patach in the accent corrected per main-thread decision and republished (v5 -> v6, revision 3). No other change.",
+  "approvalBasis": "Daniel's blanket authorization for graphic publication (handoff 2026-09-23); not a per-graphic inspection by Daniel.",
+  "at": "2026-09-23",
+  "typoFix": {
+    "field": "accentTitle",
+    "from": "U+05D4 U+05B7 U+05B7 U+05E9 ...",
+    "to": "U+05D4 U+05B7 U+05E9 U+05B0 U+05C1 U+05DB U+05B4 U+05BC U+05D9 U+05D1 U+05B5 U+05E0 U+05D5 U+05BC",
+    "fromVersion": 5,
+    "toVersion": 6,
+    "revision": 3,
+    "basis": "Main-thread decision 2026-09-23 (typo fix, Miryam accent precedent)",
+    "note": "Removed exactly one U+05B7 from the doubled patach; the rest of the string is unchanged, including the existing order hiriq-then-dagesh on kaf (U+05DB U+05B4 U+05BC, NFC). The packet's codepoint list gives dagesh-then-hiriq (U+05DB U+05BC U+05B4), which is canonically equivalent (NFC-equal) but not byte-identical; the existing order was kept per 'change nothing else'."
+  }
 }

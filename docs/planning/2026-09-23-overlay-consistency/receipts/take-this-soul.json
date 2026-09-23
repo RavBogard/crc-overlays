@@ -1,20 +1,31 @@
 {
   "draftId": "02fe9320-56dd-4271-85b8-d046f683074d",
   "name": "Take This Soul",
-  "status": "verified-current",
+  "status": "published",
   "kind": "original",
   "layout": "bottom",
-  "draftVersion": 1,
-  "activeRevision": 1,
-  "previewId": "c5b13fd6-300b-499a-827e-a67277422f65",
-  "cueHash": "a2b55300c9a4972ceab7a481e81c570091baef4325febcdf51cf6b6479af8f83",
+  "draftVersion": 2,
+  "activeRevision": 2,
+  "previewId": "f10b1721-8977-43d2-9c50-e392a1ea24c9",
+  "cueHash": "de49f470f3aef247f38ed037c10b2e0f8666dc804b97a49c8b4226c0cc0faf22",
   "fit": {
     "verdict": "pass",
     "fill": 0.6889
   },
-  "imageInspected": "Four-line English lower third fully inside the panel at readable size; title reads Hashkiveinu + Hebrew / U2.",
-  "sourceCheck": "Custom-text draft (no source blocks); published revision matches current draft version; no change made.",
-  "approvalBasis": "No publish needed (already published at current version).",
-  "notes": "Title Hebrew is spelled with a doubled patach (U+05B7 twice on the first he); renders acceptably, left unchanged, flagged for main thread.",
-  "at": "2026-09-23"
+  "imageInspected": "Four-line English lower third fully inside the panel at readable size; title reads 'Hashkiveinu הַשְׁכִּיבֵנוּ / U2' with a single patach.",
+  "sourceCheck": "Custom-text draft (no source blocks); body text unchanged; only the title's Hebrew changed.",
+  "approvalBasis": "Daniel's blanket authorization for graphic publication (handoff 2026-09-23); not a per-graphic inspection by Daniel.",
+  "notes": "Title doubled patach corrected per main-thread decision and republished (v1 -> v2, revision 2).",
+  "at": "2026-09-23",
+  "revision": 2,
+  "typoFix": {
+    "field": "title",
+    "from": "Hashkiveinu + U+05D4 U+05B7 U+05B7 U+05E9 ... + ' / U2'",
+    "to": "Hashkiveinu U+05D4 U+05B7 U+05E9 U+05B0 U+05C1 U+05DB U+05B4 U+05BC U+05D9 U+05D1 U+05B5 U+05E0 U+05D5 U+05BC / U2",
+    "fromVersion": 1,
+    "toVersion": 2,
+    "revision": 2,
+    "basis": "Main-thread decision 2026-09-23 (typo fix, Miryam accent precedent)",
+    "note": "Removed exactly one U+05B7 from the doubled patach; the rest of the string is unchanged, including the existing order hiriq-then-dagesh on kaf (U+05DB U+05B4 U+05BC, NFC). The packet's codepoint list gives dagesh-then-hiriq (U+05DB U+05BC U+05B4), which is canonically equivalent (NFC-equal) but not byte-identical; the existing order was kept per 'change nothing else'."
+  }
 }

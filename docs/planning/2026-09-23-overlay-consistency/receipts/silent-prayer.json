@@ -1,0 +1,23 @@
+{
+  "draftId": "bf4eb2c9-fe1f-44bd-87ab-cc64186cd4f9",
+  "name": "Silent Prayer",
+  "status": "verified-current",
+  "kind": "original",
+  "layout": "right",
+  "draftVersion": 1,
+  "activeRevision": 1,
+  "previewId": "e9141461-baa5-48c1-bcaf-613863ca1d1a",
+  "cueHash": "dd40c67c55120016636fd46c10add604bc8fe590ee0a0bfcf9da31d9bed36dd5",
+  "fit": {
+    "verdict": "pass",
+    "fill": 0.0524,
+    "warnings": [
+      "Sparse — consider Lower third"
+    ]
+  },
+  "imageInspected": "Right panel: 'Silent Prayer' sits fully inside the panel with a normal inset; title 'T'filah תְּפִלָּה' renders correctly in the header.",
+  "sourceCheck": "Custom-text draft (no source blocks); published revision matches current draft version; no change made.",
+  "approvalBasis": "No publish needed (already published at current version); renderer fix applies to published cues.",
+  "notes": "Re-verified after release 01eb7a1, gap H. Sparse warning only.",
+  "at": "2026-09-23"
+}
