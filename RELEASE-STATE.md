@@ -4,10 +4,9 @@ What is deployed right now. Update this file on every release — it is the one 
 "what is live", and it is short so it can be read under pressure. The history is in
 `docs/planning/2026-09-deploys/` (25 deploy records, the release chain, the phase build notes).
 
-**Last updated: 2026-09-23 00:08 UTC** (final release `9ab8f7b`: source-boundary slices, private
-G'vurot plus two recovered songs, corrected cue provenance, renderer geometry, the server-fit
-lifecycle fixes and the English overflow check; web only, no relay change. Evidence below under
-"Release 9ab8f7b". The A2 release before it is in `docs/planning/2026-09-22-sitting-prep/RETURN-A2.md` §8.)
+**Last updated: 2026-09-23 01:23 UTC** (paired release `608f495`: explicit authoring source
+snapshot refresh plus server-fit persistent-profile/residue accounting; web only, no relay
+change. Evidence below under "Release 608f495".)
 
 ## Web, per workspace
 
@@ -16,13 +15,31 @@ both were released together on 2026-09-23 UTC (2026-09-22 evening Central).
 
 | Workspace | Host | Deployed commit | How it got there |
 |---|---|---|---|
-| CRC | `overlays.centralreform.org` (alt `crc-overlays.vercel.app`) | `9ab8f7b` | `scripts/deploy-workspaces.mjs`, 2026-09-23 00:06 UTC, `dpl_EoncroMj91HYUYUSY2HRq9vEwEno` (the Git integration also builds every push to `main`) |
-| TBI | `overlays.templebnaiisrael.com` (alt `tbi-overlays.vercel.app`) | `9ab8f7b` | `scripts/deploy-workspaces.mjs`, same run, 00:07 UTC, `dpl_D78qFtYcXW3ifWYPVksxL8cu5tnf` |
+| CRC | `overlays.centralreform.org` (alt `crc-overlays.vercel.app`) | `608f495` | `scripts/deploy-workspaces.mjs`, 2026-09-23 01:23 UTC, `dpl_CesmizJVd5uiAf7tD3WHgcDtaaWf` (the Git integration also builds every push to `main`) |
+| TBI | `overlays.templebnaiisrael.com` (alt `tbi-overlays.vercel.app`) | `608f495` | `scripts/deploy-workspaces.mjs`, same run, `dpl_2FXyoZuKPR1KaLJdJNo7wxqqiVqv` |
 
 This file is written after the release it describes, so the commit carrying these words is always one
 ahead of the shas in the table. That one commit is documentation: CRC's Git integration builds it by
 itself and TBI is not owed a release for it. Any commit that touches `app/`, `lib/`, `content/`,
 `components/`, `schemas/` or `workspaces/` **is** owed one.
+
+### Release 608f495 (2026-09-23 UTC)
+
+- Released from a clean exact-SHA guard: `608f495682300f9fb0c8aee02bdda7d48192c3fc`. The paired
+  CLI release record completed at `2026-09-23T01:23:37.259Z`; both custom-domain aliases are
+  Ready on the deployment ids above. Required local gates were green before release. No relay
+  change, push, publication, or hosted authoring refresh was performed by this release.
+- `update_draft.refreshSourceIds` is now deployed. It permits an explicitly selected source
+  snapshot refresh with optimistic version matching; it does not silently re-pin cosmetic edits.
+- Root ran the exact 16 sequential checks on unchanged published Mah Tovu v1 / its existing
+  preview: **16/16 pass**, fill `0.8040008907363421`, `server-chromium/1.63.0`. This is server
+  fit evidence only; it is not human review or publication approval.
+- The persistent profile/residue accounting did **not** establish that `/tmp` loss is fixed.
+  Every release line reported `owned: 1`, `survivors: 0`, `heldBytes: 0`, `stillAlive: 0`, and
+  scratch about 5.17 MB, yet free space fell across instances: `538333184→317767680`,
+  `538333184→195379200`, then `195379200→73695232→41811968→37511168`; the final seven checks
+  remained at `37511168`. No further fits were run. Evidence:
+  `work/sitting-2026-09-22/fit-residue-integration/{hosted-fit-results.json,production-logs.jsonl}`.
 
 ### Release 9ab8f7b (2026-09-23 UTC)
 
