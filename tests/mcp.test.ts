@@ -74,7 +74,7 @@ test('MCP HTTP guard rejects foreign browser origins and bounds chunked bodies',
 
 test('MCP accepts the canonical presentation fields and still rejects values outside them',async()=>{
  const calls:{operation:string;input:unknown}[]=[];const handler=createAuthoringMcpHandler(async(operation,input)=>{calls.push({operation,input});return {draft:{id:'draft-1'}}});
- const presentation={hebrewFontSize:40,transliterationFontSize:32,titleFontSize:30,alignment:'center',lineSpacing:'spacious',latinLineBreaks:'paragraphs',imageAssetId:`asset_${'a'.repeat(64)}`};
+ const presentation={hebrewFontSize:40,transliterationFontSize:32,titleFontSize:30,alignment:'center',lineSpacing:'spacious',latinLineBreaks:'phrases',imageAssetId:`asset_${'a'.repeat(64)}`};
  const draft={name:'Prayer',title:'Prayer',layout:'bottom',templateCueId:'template-bottom',content:{mode:'bilingual',hebrewGroups:[{sourceId:'source',blockIds:['block']}],transliterationGroups:[{sourceId:'source',blockIds:['block']}]},presentation};
  const created=await payload(await handler.fetch(request({jsonrpc:'2.0',id:20,method:'tools/call',params:{name:'create_draft',arguments:draft}}),{authInfo})) as {result:{content:{text:string}[]}};
  assert.match(created.result.content[0].text,/draft-1/);
@@ -96,8 +96,8 @@ test('MCP exposes compact draft inspection and authenticated style planning with
  assert.equal(drafts?.annotations?.readOnlyHint,true);assert.deepEqual(Object.keys(drafts!.inputSchema.properties).sort(),['book','compact','cursor','layout','limit','query','service']);
  assert.equal(style?.annotations?.readOnlyHint,false);assert.deepEqual(Object.keys(style!.inputSchema.properties).sort(),['arrangement','comfortableTypography','draftId','dryRun','expectedVersion','latinLineBreaks','layout']);
  await payload(await handler.fetch(request({jsonrpc:'2.0',id:24,method:'tools/call',params:{name:'list_drafts',arguments:{query:'Shabbat',limit:10}}}),{authInfo}));
- await payload(await handler.fetch(request({jsonrpc:'2.0',id:25,method:'tools/call',params:{name:'style_draft',arguments:{draftId:'draft-1',expectedVersion:2,latinLineBreaks:'preserve'}}}),{authInfo}));
- assert.deepEqual(calls,[{operation:'list_drafts',input:{query:'Shabbat',limit:10},actor:'mcp:test-actor'},{operation:'style_draft',input:{draftId:'draft-1',expectedVersion:2,latinLineBreaks:'preserve'},actor:'mcp:test-actor'}]);
+ await payload(await handler.fetch(request({jsonrpc:'2.0',id:25,method:'tools/call',params:{name:'style_draft',arguments:{draftId:'draft-1',expectedVersion:2,latinLineBreaks:'phrases'}}}),{authInfo}));
+ assert.deepEqual(calls,[{operation:'list_drafts',input:{query:'Shabbat',limit:10},actor:'mcp:test-actor'},{operation:'style_draft',input:{draftId:'draft-1',expectedVersion:2,latinLineBreaks:'phrases'},actor:'mcp:test-actor'}]);
 });
 
 test('MCP exposes fit_check_draft as a writing tool and passes its exact input through',async()=>{
