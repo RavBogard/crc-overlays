@@ -56,7 +56,7 @@ test('one lit layer renders that layer alone, and is no longer a fit error',()=>
  assert.equal(cue.texts.textMainEng,undefined,'transliteration is not');
 });
 
-test('Together gives each passage a row; In blocks gives each slide one row per layer',()=>{
+test('Together gives each passage a row; In blocks gives each language one contiguous row',()=>{
  const editable=editableFromBaseline(TRANSLATED);
  const content=bilingual(editable);
  assert.ok(editable.layout==='left'||editable.layout==='right','the translated baseline is a panel');
@@ -65,9 +65,8 @@ test('Together gives each passage a row; In blocks gives each slide one row per 
  assert.ok(together.contentRows!.every(row=>row.he&&row.tr&&row.en),'every row carries every lit layer');
 
  const blocks=buildCue(draftOf({...editable,content:{...content,arrangement:'blocks'}},TRANSLATED));
- const slides=content.hebrewGroups.length;
- assert.equal(blocks.contentRows!.length,slides*3,'three blocks per slide, and a block never spans slides');
- assert.deepEqual(blocks.contentRows!.slice(0,3).map(row=>row.he?'he':row.tr?'tr':'en'),['he','tr','en'],'in fixed order');
+ assert.equal(blocks.contentRows!.length,3,'one ordered contiguous row for each selected language');
+ assert.deepEqual(blocks.contentRows!.map(row=>row.he?'he':row.tr?'tr':'en'),['he','tr','en'],'in fixed order');
  assert.ok(blocks.contentRows!.every(row=>[row.he,row.tr,row.en].filter(Boolean).length===1),'each block is one layer');
 });
 
@@ -114,6 +113,6 @@ test('an authorized pair split across two slides still renders its English once'
  const cue=buildCue(draft);
  const english=cue.contentRows!.filter(row=>row.en).map(row=>row.en);
  const runs=buildCue(draftOf(editable,TRANSLATED)).contentRows!.map(row=>row.en);
- assert.equal(english.length,2,'one English block per slide that has one');
- assert.equal(english.join(' '),runs.join(' '),'and every run still appears, once, in printed order');
+ assert.equal(english.length,1,'one contiguous English paragraph follows Hebrew and transliteration');
+ assert.equal(english.join(' ').replace(/\s+/g,' ').trim(),runs.join(' '),'and every run still appears once, in printed order');
 });
