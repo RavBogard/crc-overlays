@@ -555,10 +555,13 @@ export async function measureCueOnServer(cue:Cue,options:{origin:string;deadline
    const released=await releaseScratch(host,dir,owned,lingerMs);
    const tmpFreeAfter=await host.free().catch(()=>null),censusAfter=await census();
    const accounting={...released,...(ownedError?{ownedError}:{}),...(closeError?{closeError}:{}),tmpFreeBefore,tmpFreeAfter,...(censusBefore||censusAfter?{census:{before:censusBefore,after:censusAfter}}:{})};
-   console.info('server-fit released',accounting);
+   // As JSON: the platform's console formats an object only two levels deep, which would log the
+   // census's instance, categories and held files as [Object].
+   const line=JSON.stringify(accounting);
+   console.info('server-fit released',line);
    // A warning only for what should not happen: a process that outlived close(), a close,
    // scan or removal that failed. Scratch bytes are expected - the profile lives there.
-   if(released.survivors||released.stillAlive||ownedError||closeError||'survivorsError' in released||'removeError' in released)console.warn('server-fit scratch residue',accounting);
+   if(released.survivors||released.stillAlive||ownedError||closeError||'survivorsError' in released||'removeError' in released)console.warn('server-fit scratch residue',line);
   };
   if(browser){await close(browser);await finish(scratch)}
   else if(launching){

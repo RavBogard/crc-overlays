@@ -8,6 +8,7 @@ import {spawn} from 'node:child_process';
 import {closeSync,existsSync,mkdirSync,mkdtempSync,openSync,rmSync,unlinkSync,writeFileSync,writeSync} from 'node:fs';
 import {tmpdir} from 'node:os';
 import {join} from 'node:path';
+import {format} from 'node:util';
 import {defaultScratchHost,launchStage,measureCueOnServer,packLaunchOptions,sharedExtraction,stageProfile,tmpCensus,type OwnedProcess,type ScratchHost,type TmpCensus,type StageBrowser,type StageBrowserType,type StageLauncher,type StageMeasurement,type StagePage} from '../lib/server-fit.ts';
 import type {Cue} from '../lib/player.ts';
 
@@ -51,9 +52,11 @@ function launcher(events:string[],evaluate:()=>Promise<unknown>,seen:{scratch?:s
 async function capture<T>(run:()=>Promise<T>){
  const errors:unknown[][]=[],warnings:unknown[][]=[],infos:unknown[][]=[];
  const {error,warn,info}=console;
+ // The release line is logged as JSON; parsed back here so tests read its fields.
+ const parsed=(args:unknown[])=>args.map(arg=>typeof arg==='string'&&arg.startsWith('{')?JSON.parse(arg):arg);
  console.error=(...args:unknown[])=>{errors.push(args)};
- console.warn=(...args:unknown[])=>{warnings.push(args)};
- console.info=(...args:unknown[])=>{infos.push(args)};
+ console.warn=(...args:unknown[])=>{warnings.push(parsed(args))};
+ console.info=(...args:unknown[])=>{infos.push(parsed(args))};
  try{return {result:await run(),errors,warnings,infos}}finally{console.error=error;console.warn=warn;console.info=info}
 }
 
@@ -377,6 +380,22 @@ test('every release carries a census of /tmp from before the check and after its
  assert.equal(line.census.before.free,317_767_680);
  assert.equal(line.census.after.free,195_379_200);
  assert.equal(line.census.after.instance.check,2,'and says which instance, and which of its checks, looked');
+});
+
+test('the release line survives the platform console whole: the census is not cut to [Object]',async()=>{
+ // Vercel records what console.info prints, and util.format prints an object only two levels deep.
+ const events:string[]=[];
+ let taken=0;
+ const host=recordingHost(events,{async census(){taken++;return fakeCensus(195_379_200,taken)}});
+ const printed:string[]=[];
+ const {info}=console;
+ console.info=(...args:unknown[])=>{printed.push(format(...args))};
+ try{await measureCueOnServer(CUE,{origin:ORIGIN,host,launch:launcher(events,async()=>CLEAN)})}finally{console.info=info}
+ assert.equal(printed.length,1);
+ assert.doesNotMatch(printed[0]!,/\[Object\]|\[Array\]/);
+ const line=JSON.parse(printed[0]!.slice('server-fit released '.length)) as {census:{after:TmpCensus}};
+ assert.equal(line.census.after.files.pack.bytes,220_565_504,'categories, as printed');
+ assert.equal(line.census.after.instance.id,'a1b2c3d4','and the instance, as printed');
 });
 
 test('a census that fails is logged as such and never changes the verdict',async()=>{
