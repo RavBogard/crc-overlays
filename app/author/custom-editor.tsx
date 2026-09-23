@@ -3,6 +3,7 @@
 import { CircleAlert, Sparkles } from "lucide-react";
 import { useState } from "react";
 import { CUSTOM_TEMPLATES, type CustomTemplate } from "@/lib/custom-templates";
+import { templateLayoutFor } from "@/lib/layout-label";
 import { EditorCard } from "./editor-card";
 import type { DraftForm, DuplicateNameWarning, TemplateSummary } from "./types";
 
@@ -30,7 +31,7 @@ export function CustomTextEditor({ form, changeForm, templates }: { form: DraftF
     // already typed stay until the first guided keystroke, so choosing a starter never erases them.
     const untouched = !form.customText.trim() && !form.title.trim();
     if (!untouched) return;
-    const baseline = templates.find((item) => item.layout === template.layout);
+    const baseline = templates.find((item) => item.layout === templateLayoutFor(template.layout));
     composeInto(template, {}, { layout: template.layout, templateCueId: baseline?.id || form.templateCueId });
   };
 

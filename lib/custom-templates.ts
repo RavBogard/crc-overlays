@@ -11,12 +11,12 @@
  * Client-safe and pure: no server imports, no catalog ids.
  */
 
-export type CustomTemplateLayout = "bottom" | "left" | "right";
+export type CustomTemplateLayout = "bottom" | "left" | "right" | "corner";
 
 export type CustomTemplateField = { key: string; label: string; placeholder: string; maxLength: number; dir?: "rtl" };
 
 export type CustomTemplate = {
-  id: "speaker" | "announcement" | "citation" | "service-begins";
+  id: "speaker" | "announcement" | "citation" | "service-begins" | "corner";
   label: string;
   description: string;
   layout: CustomTemplateLayout;
@@ -95,6 +95,29 @@ export const CUSTOM_TEMPLATES: readonly CustomTemplate[] = [
     compose(values) {
       const time = read(values, "time");
       return { name: libraryName(this.label, time), title: "Service begins at", text: time };
+    },
+  },
+  {
+    // The small bottom-right card (the old Singular pop-up): a response such as "Vaimru Amen"
+    // with its Hebrew, a name said for healing, a one-line thank-you. The Hebrew line comes
+    // first; the renderer sets each line in its own direction, Hebrew right-aligned.
+    id: "corner",
+    label: "Corner card",
+    description: "A line or two in the bottom-right corner: a response, a short prayer, a thank-you.",
+    layout: "corner",
+    fields: [
+      { key: "heading", label: "Heading", placeholder: "Response", maxLength: 60 },
+      { key: "hebrew", label: "Hebrew", placeholder: "וְאִמְרוּ אָמֵן", maxLength: 80, dir: "rtl" },
+      { key: "line", label: "Line", placeholder: "Vaimru Amen", maxLength: 80 },
+    ],
+    compose(values) {
+      const hebrew = read(values, "hebrew");
+      const line = read(values, "line");
+      return {
+        name: libraryName(this.label, line || hebrew),
+        title: read(values, "heading") || "Response",
+        text: [hebrew, line].filter(Boolean).join("\n"),
+      };
     },
   },
 ];

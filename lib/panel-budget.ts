@@ -15,7 +15,7 @@ export const PANEL_CHAR_BUDGET = 600;
 export const PANEL_ENGLISH_CHAR_BUDGET = 400;
 
 export type PanelMode = "bilingual" | "original-en" | "source-en";
-export type PanelLayout = "bottom" | "left" | "right";
+export type PanelLayout = "bottom" | "left" | "right" | "corner";
 /** Only the text channels matter here, so any source block shape is accepted. */
 export type PanelBlock = { he?: string; tr?: string; en?: string };
 
@@ -31,12 +31,12 @@ export function panelCharacterBudget(mode: PanelMode) {
 
 /**
  * True when this selection would need more than one panel, under the same rule the server uses
- * when it splits a prayer. A bottom row carries exactly one block. A single canonical block is
+ * when it splits a prayer. A bottom row, like a corner card, carries exactly one block. A single canonical block is
  * never split, so one block always fits, however long it is.
  */
 export function exceedsOnePanel(blocks: readonly PanelBlock[], mode: PanelMode, layout: PanelLayout): boolean {
   if (blocks.length <= 1) return false;
-  if (layout === "bottom") return true;
+  if (layout === "bottom" || layout === "corner") return true;
   if (blocks.length > PANEL_BLOCK_LIMIT) return true;
   return blocks.reduce((sum, block) => sum + blockCharacters(block, mode), 0) > panelCharacterBudget(mode);
 }
