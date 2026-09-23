@@ -127,6 +127,15 @@ test('combined and lone language cues receive full-width single-channel treatmen
  assert.equal(textParts({textMainEng:'Transliteration',textMainheb:'Hebrew'}).some(part=>part.classes.includes('single-channel')),false);
 });
 
+test('a lone reading channel starts at the top of a side-panel body without moving other layouts',()=>{
+ const css=overlayCss();
+ // textMain uses both combined and single-channel classes; the later, narrower selector must
+ // override its resting centring only when it is the sole lit layer in a left/right panel.
+ assert.match(css,/\.left \.single-channel,\.right \.single-channel\{align-items:flex-start\}/);
+ assert.match(css,/\.left \.combined,\.left \.single-channel,\.right \.combined,\.right \.single-channel\{display:flex;align-items:center\}/);
+ assert.doesNotMatch(css,/\.bottom \.single-channel\{align-items:flex-start\}/);
+});
+
 test('bottom height follows unscaled measured content with a crest-safe minimum',()=>{
  assert.equal(measuredBottomTextHeight([128,167.2]),168);
  assert.equal(measuredBottomTextHeight([0,44]),84);

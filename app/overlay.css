@@ -206,6 +206,10 @@
 .left.panel-translation-stack .translation:not(.single-channel){left:48px;right:auto}
 .right.panel-translation-stack .translation:not(.single-channel){left:auto;right:48px}
 .left .combined,.left .single-channel,.right .combined,.right .single-channel{display:flex;align-items:center}
+/* A lone reading channel needs a dependable entry point beneath the panel title. The combined
+   class is also used for a lone textMain, so narrow this override by .single-channel rather
+   than .combined; bilingual stacks and lower thirds keep their centred geometry. */
+.left .single-channel,.right .single-channel{align-items:flex-start}
 .panel-rows{--panel-row-gap:16px;gap:var(--panel-row-gap);justify-content:center}
 .panel-rows[data-fit="overflow"]{justify-content:flex-start;overflow:visible}
 .content-row{padding:9px 14px 10px}
