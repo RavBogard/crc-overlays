@@ -242,7 +242,9 @@ only its translation is a single channel and takes the full block, as any single
 /* A lower third can carry both a spoken title and its Hebrew accent. Reserve two title lanes
    when it does: the accent remains a right-aligned RTL label, while the title ends before it.
    If no accent exists, the title keeps the full clear span. This must stay independent of the
-   body columns so their established English-left / Hebrew-right geometry does not move. */
+   body columns so their established English-left / Hebrew-right geometry does not move.
+   The accent is a flex row under direction:rtl, so flex-start (not the base rule's flex-end) is
+   its right edge: the Hebrew title sits flush right over the Hebrew column. */
 .bottom .title:not(.title-accent){left:calc(240px + var(--bottom-title-clearance));right:auto;width:1050px}
-.bottom .title-accent{left:auto;right:50px;width:480px;direction:rtl;text-align:right}
+.bottom .title-accent{left:auto;right:50px;width:480px;direction:rtl;text-align:right;justify-content:flex-start}
 .bottom:not(:has(.title-accent)) .title:not(.title-accent){width:calc(1850px - 240px - var(--bottom-title-clearance))}

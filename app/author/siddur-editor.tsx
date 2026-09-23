@@ -16,6 +16,7 @@ import type {
   TextLayer,
 } from "./types";
 import { EditorCard } from "./editor-card";
+import { slideHolding } from "./passage-selection";
 import "./siddur-editor.css";
 
 const SHOW_NOTES_LABEL = "Show instructions and notes";
@@ -100,7 +101,7 @@ export function SiddurEditor(props: SiddurEditorProps) {
       {props.showPanels !== false && <div className="panel-tabs">{props.form.groups.map((group, index) => <button key={`${group.sourceId}-${index}`} className={props.activeGroup === index ? "active" : ""} onClick={() => props.setActiveGroup(index)}>Slide {index + 1}<small>{group.blockIds.length} passages</small></button>)}<button onClick={props.addPanel}>+ Add slide</button></div>}
       {noteLikeBlocks > 0 && <label className="shelf-toggle"><input type="checkbox" checked={showNotes} onChange={(event) => setShowNotes(event.target.checked)} /> {SHOW_NOTES_LABEL}</label>}
       {props.form.mode === "bilingual" && <TextLayerControls form={props.form} source={props.source} changeForm={props.changeForm} fitErrors={props.fitErrors} />}
-      <div className="passage-list">{visibleBlocks.map((block) => <label key={block.id} className={props.selectedIds.has(block.id) ? "selected" : ""}><input type="checkbox" checked={props.selectedIds.has(block.id)} onChange={(event) => props.toggleBlock(block.id, event.target.checked)} /><span className="passage-number">{block.index + 1}</span><span>{props.form.mode === "bilingual" ? <><b lang="he" dir="rtl">{block.he}</b><small>{block.tr}</small></> : <><b>{block.en}</b>{props.form.mode === "source-en" && <small className="passage-meta">{englishRoleLabel[block.englishRole || "unclassified"]}{block.automatic === false ? " · manual selection" : ""}</small>}</>}</span></label>)}</div>
+      <div className="passage-list">{visibleBlocks.map((block) => <label key={block.id} className={props.selectedIds.has(block.id) ? "selected" : ""}><input type="checkbox" checked={props.selectedIds.has(block.id)} onChange={(event) => props.toggleBlock(block.id, event.target.checked)} /><span className="passage-number">{block.index + 1}</span><span>{props.form.mode === "bilingual" ? <><b lang="he" dir="rtl">{block.he}</b><small>{block.tr}</small></> : <><b>{block.en}</b>{props.form.mode === "source-en" && <small className="passage-meta">{englishRoleLabel[block.englishRole || "unclassified"]}{block.automatic === false ? " · manual selection" : ""}</small>}</>}</span>{props.showPanels !== false && (() => { const holder = slideHolding(props.form.groups, props.activeGroup, props.source!.id, block.id); return holder >= 0 ? <small className="passage-elsewhere" title="Checking it here moves it to this slide">On slide {holder + 1}</small> : null; })()}</label>)}</div>
       {props.showPanels !== false && props.form.groups.length > 1 && <button className="remove-panel" onClick={props.removePanel}>Remove slide {props.activeGroup + 1}</button>}
     </div>}
   </EditorCard>;

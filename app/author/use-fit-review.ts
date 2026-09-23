@@ -17,6 +17,10 @@ export function useFitReview(workspace: PublicWorkspace | null, workingPreview: 
   const [fitWarnings, setFitWarnings] = useState<string[]>([]);
   const [previewWarnings, setPreviewWarnings] = useState<string[]>([]);
   const [assetsReady, setAssetsReady] = useState(false);
+  // Why the stage cannot show the current edit: the server refused the selection, or the fonts or
+  // artwork never loaded. Without it the stage said "Preparing preview" forever over the last
+  // good render (Birchot HaShachar, 2026-09-23).
+  const [previewError, setPreviewError] = useState("");
 
   const viewportRef = useRef<HTMLDivElement>(null);
   const outputRef = useRef<HTMLDivElement>(null);
@@ -30,6 +34,7 @@ export function useFitReview(workspace: PublicWorkspace | null, workingPreview: 
     setFitWarnings([]);
     setPreviewWarnings([]);
     setAssetsReady(false);
+    setPreviewError("");
   }, []);
 
   const showCue = useCallback(async (cue: Cue, animate = false) => {
@@ -40,12 +45,18 @@ export function useFitReview(workspace: PublicWorkspace | null, workingPreview: 
     const player = new Player(root, [cue], overlayBrandingFromWorkspace(workspace), { resolveAssetUrl: (next) => overlayAssetUrl(next, "preview") });
     playerRef.current = player;
     setAssetsReady(false);
+    setPreviewError("");
     setFitErrors([]);
     setFitWarnings([]);
     if (animate) player.set({ cue: cue.id, revision: ++animationRevision.current, mode: "animate" });
     else player.render(cue, overlayAssetUrl(cue, "preview"));
     // T3 - the book-face stage waits on the book faces, so the fit measured here is the one that ships.
-    await waitForRenderedOverlayAssets(root, undefined, workspace.bookFaces ? "book" : "default");
+    try {
+      await waitForRenderedOverlayAssets(root, undefined, workspace.bookFaces ? "book" : "default");
+    } catch (value) {
+      if (current === previewSequence.current) setPreviewError(value instanceof Error ? value.message : "The preview's fonts or artwork did not load.");
+      return;
+    }
     if (current !== previewSequence.current) return;
     if (!animate) {
       const box = root.firstElementChild;
@@ -89,6 +100,7 @@ export function useFitReview(workspace: PublicWorkspace | null, workingPreview: 
 
   return {
     exactPreview, setExactPreview, fitErrors, fitWarnings, previewWarnings, setPreviewWarnings, assetsReady,
+    previewError, setPreviewError,
     viewportRef, outputRef, previewSequence, resetReview, showCue, clearStage, playOut,
   };
 }

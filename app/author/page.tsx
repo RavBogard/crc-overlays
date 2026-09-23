@@ -52,6 +52,7 @@ import { sourceGroups, useSourceSearch } from "./use-source-search";
 import { useSharedLibrary } from "./use-shared-library";
 import { useWorkspaceAssets } from "./use-workspace-assets";
 import { useFitReview } from "./use-fit-review";
+import { togglePassage } from "./passage-selection";
 import { useToasts } from "./use-toasts";
 
 export default function AuthorPage() {
@@ -95,6 +96,7 @@ export default function AuthorPage() {
   const { message, setMessage, error, setError, fail } = useToasts();
   const {
     exactPreview, setExactPreview, fitErrors, fitWarnings, previewWarnings, setPreviewWarnings, assetsReady,
+    previewError, setPreviewError,
     viewportRef, outputRef, previewSequence, resetReview, showCue, clearStage, playOut,
   } = useFitReview(workspace, workingPreview, editorKind);
   const {
@@ -265,11 +267,11 @@ export default function AuthorPage() {
         })
         .catch((value) => {
           if (requestNumber === previewSequence.current)
-            setPreviewWarnings([value instanceof Error ? value.message : "Preview unavailable"]);
+            setPreviewError(value instanceof Error ? value.message : "The server could not build this preview.");
         });
     }, 450);
     return () => clearTimeout(timer);
-  }, [editorKind, form, key, previewSequence, setPreviewWarnings, showCue]);
+  }, [editorKind, form, key, previewSequence, setPreviewError, setPreviewWarnings, showCue]);
 
   const publishedItems = useMemo<LibraryItem[]>(() => catalog
     .filter((cue) => cue.activeRevision !== null || cue.origin !== "local")
@@ -556,14 +558,15 @@ export default function AuthorPage() {
 
   function toggleBlock(blockId: string, checked: boolean) {
     if (!source) return;
-    const groups = structuredClone(form.groups);
-    const index = Math.min(activeGroup, Math.max(0, groups.length - 1));
-    const group = groups[index] || { sourceId: source.id, blockIds: [] };
-    if (group.sourceId !== source.id) return setError("Open the source assigned to this slide first.");
-    const order = new Map(source.blocks.map((block, position) => [block.id, position]));
-    group.blockIds = (checked ? [...new Set([...group.blockIds, blockId])] : group.blockIds.filter((id) => id !== blockId))
-      .sort((a, b) => (order.get(a) ?? 0) - (order.get(b) ?? 0));
-    groups[index] = group; changeForm({ groups });
+    const index = Math.min(activeGroup, Math.max(0, form.groups.length - 1));
+    const group = form.groups[index];
+    if (group && group.sourceId !== source.id) return setError("Open the source assigned to this slide first.");
+    // A translated blessing is checked whole, and a passage another slide holds moves here
+    // (app/author/passage-selection.ts): both selections would otherwise be refused by the preview.
+    const result = togglePassage({ groups: form.groups, activeGroup: index, sourceId: source.id, blocks: source.blocks, blockId, checked, withTranslation: form.mode === "bilingual" && form.layers.includes("en") });
+    changeForm({ groups: result.groups });
+    if (result.activeGroup !== index) setActiveGroup(result.activeGroup);
+    if (result.movedFrom.length) setMessage(`Moved to slide ${result.activeGroup + 1} from slide ${result.movedFrom.map((slide) => slide + 1).join(", ")}.`);
   }
 
   function addPanel() {
@@ -650,8 +653,11 @@ export default function AuthorPage() {
       const response = await authoringCall<PreviewResult>(key, "preview_draft", { draftId: target.id, expectedVersion: target.version });
       setExactPreview(response); setPreviewWarnings(response.validation?.warnings || []);
       await showCue(response.cue);
-    } catch { previewedVersion.current = ""; }
-  }, [key, setExactPreview, setPreviewWarnings, showCue]);
+    } catch (value) {
+      previewedVersion.current = "";
+      setPreviewError(value instanceof Error ? value.message : "The saved version could not be previewed.");
+    }
+  }, [key, setExactPreview, setPreviewError, setPreviewWarnings, showCue]);
   useEffect(() => { if (key && draft && !dirty) void loadExactPreview(draft); }, [key, draft, dirty, loadExactPreview]);
 
   async function publishReviewedVersion(confirmDuplicateName = false) {
@@ -830,7 +836,7 @@ export default function AuthorPage() {
 
               <PreviewColumn
                 setViewport={(node) => { viewportRef.current = node; }} setOutput={(node) => { outputRef.current = node; }} previewCue={previewCue} exact={!!exactPreview}
-                fitErrors={fitErrors} warnings={[...previewWarnings, ...fitWarnings]} assetsReady={assetsReady} bookFaces={Boolean(workspace?.bookFaces)}
+                fitErrors={fitErrors} warnings={[...previewWarnings, ...fitWarnings]} assetsReady={assetsReady} previewError={previewError} bookFaces={Boolean(workspace?.bookFaces)}
                 play={() => { if (previewCue) void showCue(previewCue, true); }}
                 out={playOut}
                 fullscreen={() => void viewportRef.current?.requestFullscreen().catch(fail)}
