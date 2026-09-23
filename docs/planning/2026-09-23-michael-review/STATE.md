@@ -30,8 +30,35 @@ rebuilt to include the new corner graphics.
 - D (after C): inline wording edits + Wording changes list.
 - Then: merge, gates, paired release, publish the three corner graphics, rebuild + audit preset.
 
+## Findings and gates
+- Birchot root cause (reproduced in rehearsal): each blessing is two passages under one authorized
+  English translation. Checking one passage (or a passage already on another "slide" of the same
+  graphic) made `preview_content` refuse (partial_translation / repeated_source_block); the stage
+  then kept "Preparing preview" over the last render, so In blocks / Together looked dead (they
+  work whenever the preview succeeds). Fix `4af0d07`.
+- GATE: translated blessings check whole; a passage held by another slide moves to the active one
+  — proceeded because the server already refuses both other outcomes.
+- GATE: Corner drafts borrow a lower-third catalog template for motion/duration (templateLayoutFor)
+  instead of adding a catalog corner cue — proceeded because adding one would change both
+  workspace catalogs, the TBI mapping and the presets.
+- GATE: Corner starter wording "Corner card" / fields Heading, Hebrew, Line; blank heading becomes
+  "Response" — proceeded because it follows the existing starter-template pattern; listed for Daniel.
+- GATE: edited siddur drafts save as local-variant content labelled "Local wording" — proceeded
+  because that model already keeps source text beside local text and publishes the edit.
+- The editor calls the groups inside one graphic "Slide 1..N" although they render in one panel.
+  Label left unchanged (wording decision for Daniel).
+
 ## Evidence
-(filled as packets land)
+- Commits: 4af0d07 (title + preview), 673cf7c (row order), 674ce33 (corner), eba7538 (wording
+  edits); merges 898bf9e, f125c72, d6d4aa8.
+- Rehearsal browser checks: accent title right edge x1870 over Hebrew x1860 (was ~x1590);
+  half-blessing click selects the pair; move between slides; forced 409 shows "Preview
+  unavailable" and recovers; row order Transliteration-Hebrew-Translation renders in that order;
+  corner card 640x200 at x1232-1872 / y832-1032, fits; wording edit → preview, save, listed at
+  /author/wording-changes, reopens with the edit.
+- Gates at d6d4aa8: tsc 0; npm test 886 + 32 pass, 0 fail; lint 0 errors (2 known warnings);
+  build OK; audit-companion-packages OK; audit-companion-preset PASS.
 
 ## Open questions
-- None yet.
+- "Slide" label for groups inside one graphic (see above).
+- Corner starter wording, and the default "Response" heading.
