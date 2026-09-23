@@ -31,8 +31,22 @@ dumps, source sets) were closed before 2026-09-23; see the handoff START-HERE.md
   Hatzi Kaddish, Kedusha, Haftarah After, Birchot) instead of one-block panels. No splitter change
   shipped; `split_draft_into_set` still makes one panel per block, so do not use it for long prayers.
 
-## D. Five source-pin errors (wave 3)
-- Status: open. Diagnose selected content vs metadata drift; do not weaken identity checks.
+## D. Five source-pin errors (wave 3) / stale pins block the explicit rebase
+- Reproduction: Birchot Hashachar 3 `ceb24b8c…` / 4 `2b3da7a3…`: every update_draft, including
+  `refreshSourceIds` with a repointed selection, returned "Pinned source authority has changed;
+  explicit source rebase and review are required". Same class as Mourners Kaddish 3, Mi Chamocha
+  Sat 2, Psukei 2 (the five wave-3 source-pin errors).
+- Cause: the pinned library record's authority metadata moved on (feed `ad194a55` -> `d00e67e6`)
+  while the selected he/tr text stayed byte-identical (worker verified sourceBlockSha256).
+  `update_draft` called `assertSourcePin(current)` unconditionally before reading the patch, so the
+  explicit rebase the error asks for could never run.
+- Shared fix: `staleSourceIds(draft)` names the sources whose stored pin disagrees with the draft's
+  own selection. Without `refreshSourceIds` a stale draft is still refused exactly as before. With a
+  refresh, the update proceeds only if every stale source it keeps selected is in
+  `refreshSourceIds` (or it is dropped); the new snapshots and pin are rebuilt from current sources.
+  Identity checks are not weakened: wording must still be verified before a refresh.
+  Tests: `tests/stale-pin-refresh.test.ts` (refusals unchanged; rebase; repoint).
+- Live proof: pending release, then B3/B4 repoint to the canonical source.
 
 ## E. Published cue retirement / supersession
 - Finding (read-only trace): archiving hides a draft and its cue from the operator library
@@ -53,7 +67,9 @@ dumps, source sets) were closed before 2026-09-23; see the handoff START-HERE.md
 - Shared fix: compact `list_drafts` rows now carry `accentTitle` and
   `flags.accentTitleSharedWith` (other titles in the catalog using the same accent, ignoring niqqud
   and punctuation). A review prompt, not a rule. Test: `tests/draft-catalog-accent.test.ts`.
-- Live proof: pending release, then a catalog sweep of flagged rows.
+- Live proof: released `e0e80ea`; compact rows show `accentTitle` and `accentTitleSharedWith`.
+- Related finding: the draft named "Zochreinu" `ba8fa5be…` carries the on-screen title
+  "Mi Chamocha מִי כָמכָה" (an inherited title, not only an accent). Queued for the catalog sweep.
 
 ## G. Verbose tool results
 - Reproduction: one publish_draft result for Psukei 1 was ~25 KB (cue twice, each with source
@@ -65,7 +81,7 @@ dumps, source sets) were closed before 2026-09-23; see the handoff START-HERE.md
   get_service_history) are unchanged. Test: `MCP mutation results omit source snapshots,
   animations and per-block hashes; get_draft stays complete`.
 - Live proof: pending release.
-- Round 2 (gated, pending release): publish results name the repeated `cue` once
+- Round 2 (released `e0e80ea`): publish results name the repeated `cue` once
   (`"same as revision.cue"`); set mutation results summarize each member's `draftSetManifest` as
   `{version, selectionCount}` (an archive of a 5-member set repeated the 5-selection manifest 5 times).
 - Remaining: get_draft itself is still large; use list_drafts compact for inspection.

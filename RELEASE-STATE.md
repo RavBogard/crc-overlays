@@ -4,7 +4,7 @@ What is deployed right now. Update this file on every release — it is the one 
 "what is live", and it is short so it can be read under pressure. The history is in
 `docs/planning/2026-09-deploys/` (25 deploy records, the release chain, the phase build notes).
 
-**Last updated: 2026-09-23** (paired release `4673402`: compact MCP mutation results. Evidence below under "Release 4673402".)
+**Last updated: 2026-09-23** (paired release `e0e80ea`: shared accent-title flag in compact drafts; publish/set results deduplicated. Evidence below under "Release e0e80ea".)
 
 ## Web, per workspace
 
@@ -13,13 +13,19 @@ both were released together on 2026-09-23 UTC (2026-09-22 evening Central).
 
 | Workspace | Host | Deployed commit | How it got there |
 |---|---|---|---|
-| CRC | `overlays.centralreform.org` (alt `crc-overlays.vercel.app`) | `4673402` | paired staged release, 2026-09-23, `dpl_C7b2jJYbmTsbTKcbPAEBfRexzj5x` (the Git integration also builds every push to `main`) |
-| TBI | `overlays.templebnaiisrael.com` (alt `tbi-overlays.vercel.app`) | `4673402` | same paired run, 2026-09-23, `dpl_Bjy6HXQgGas5eTLPWcP1C9HAxouL` |
+| CRC | `overlays.centralreform.org` (alt `crc-overlays.vercel.app`) | `e0e80ea` | paired staged release, 2026-09-23, `dpl_8RdUMaNdi9srxKNV5ZQAvd3uMMyb` (the Git integration also builds every push to `main`) |
+| TBI | `overlays.templebnaiisrael.com` (alt `tbi-overlays.vercel.app`) | `e0e80ea` | same paired run, 2026-09-23, `dpl_9y7p7DXz1kJotK7u7omL7MhSMNPK` |
 
 This file is written after the release it describes, so the commit carrying these words is always one
 ahead of the shas in the table. That one commit is documentation: CRC's Git integration builds it by
 itself and TBI is not owed a release for it. Any commit that touches `app/`, `lib/`, `content/`,
 `components/`, `schemas/` or `workspaces/` **is** owed one.
+
+### Release e0e80ea (2026-09-23 UTC)
+
+- Released exact SHA `e0e80eab11bc95ff4240a1d00e734efbdc6bcc5b` (code in `933557d`; `e0e80ea` adds receipts/docs). CRC `dpl_8RdUMaNdi9srxKNV5ZQAvd3uMMyb` and TBI `dpl_9y7p7DXz1kJotK7u7omL7MhSMNPK` Ready; both custom domains serve those ids; all four hosts returned HTTP 200 from `/health`. Logs: `work/sitting-2026-09-23/accent-flag-compact2-release/`.
+- Compact `list_drafts` rows carry `accentTitle` and `flags.accentTitleSharedWith` (gap F review prompt). MCP publish results name the repeated cue once; set results summarize member manifests (gap G round 2). Live proof: compact Mi Chamocha rows show accentTitle and the flag.
+- Gates: `tsc --noEmit`; `npm test` exit 0 (840 TypeScript pass, 0 fail, 11 skipped; 24 MJS pass); `npm run lint` (two existing warnings); `npm run build`.
 
 ### Release 4673402 (2026-09-23 UTC)
 

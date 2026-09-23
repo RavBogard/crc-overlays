@@ -440,6 +440,20 @@ export function assertSourcePin(draft:Draft){
  if(!sameStructuredValue(current,draft.sourcePin))throw new AuthoringError('source_pin_mismatch','Pinned source authority has changed; explicit source rebase and review are required',409);
 }
 
+/**
+ * Sources whose stored pin no longer matches what the draft's own selection produces. Used to allow
+ * the explicit rebase a stale pin asks for: every other edit of a stale draft is still refused.
+ */
+export function staleSourceIds(draft:Draft):string[]{
+ const stored=draft.sourcePin,ids=Object.keys(stored.unitSha256??{});
+ let current:SourcePin;
+ try{current=sourcePinFor(draft.content,draft.sourceSnapshots,draft.sourceSnapshots?.length?stored.feedSha256:undefined)}catch{return ids}
+ if(current.feedSha256!==stored.feedSha256)return [...new Set([...ids,...Object.keys(current.unitSha256)])];
+ const blocksOf=(pin:SourcePin,id:string)=>Object.entries(pin.blockSha256).filter(([key])=>JSON.parse(key)[0]===id).sort(([a],[b])=>a.localeCompare(b));
+ const authorityOf=(pin:SourcePin,id:string)=>pin.sourceAuthority?.[id];
+ return [...new Set([...ids,...Object.keys(current.unitSha256)])].filter(id=>current.unitSha256[id]!==stored.unitSha256[id]||!sameStructuredValue(authorityOf(current,id),authorityOf(stored,id))||!sameStructuredValue(blocksOf(current,id),blocksOf(stored,id)));
+}
+
 export function cueHash(cue:AuthoringCue){return createHash('sha256').update(JSON.stringify(cue)).digest('hex')}
 export function previewValidation(cue:AuthoringCue,allowEmptyText=false){
  const errors:string[]=[];
