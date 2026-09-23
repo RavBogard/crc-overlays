@@ -87,6 +87,9 @@ export function findFitErrors(root: HTMLElement) {
     if (element.scrollWidth > element.clientWidth + tolerance || element.scrollHeight > element.clientHeight + tolerance)
       errors.push(`${name} does not fit its box.`);
   }
+  const bottomHeight = bottomPanelHeight(root);
+  if (bottomHeight !== null && bottomHeight > BOTTOM_PANEL_MAX_HEIGHT + BOTTOM_PANEL_TOLERANCE)
+    errors.push(`Lower third panel is ${Math.ceil(bottomHeight)}px tall; limit is ${BOTTOM_PANEL_MAX_HEIGHT}px. Reflow English paragraphs or split this graphic.`);
   const occupied = occupiedRects(root);
   const overlap = FONT_METRIC_TOLERANCE * scale;
   errors.push(...overlapErrors(occupied, overlap));
@@ -98,6 +101,9 @@ export function findFitErrors(root: HTMLElement) {
 // stage's render scale) but measuring how much of a panel a cue actually
 // fills rather than whether it overflows it.
 export const SPARSE_FILL = 0.35;
+/** The visible lower-third panel (title plus body, never the decorative logo) must fit this native height. */
+export const BOTTOM_PANEL_MAX_HEIGHT = 360;
+export const BOTTOM_PANEL_TOLERANCE = 2;
 
 function textRangeHeight(elements: HTMLElement[]): number {
   let top = Infinity;
@@ -114,9 +120,24 @@ function textRangeHeight(elements: HTMLElement[]): number {
   return top <= bottom ? bottom - top : 0;
 }
 
+function bottomPanelHeight(root: HTMLElement): number | null {
+  const overlay = root.querySelector<HTMLElement>(".overlay");
+  if (!overlay?.classList?.contains("bottom")) return null;
+  const base = root.querySelector<HTMLElement>(".overlay .base");
+  const title = root.querySelector<HTMLElement>(".overlay .titlebar");
+  if (!base || !title) return null;
+  const rootBox = root.getBoundingClientRect();
+  const scale = rootBox.width / WIDTH || 1;
+  const body = base.getBoundingClientRect(), titleBox = title.getBoundingClientRect();
+  return (Math.max(body.bottom, titleBox.bottom) - Math.min(body.top, titleBox.top)) / scale;
+}
+
 export function panelFillRatio(root: HTMLElement): number | null {
   const overlay = root.querySelector<HTMLElement>(".overlay");
-  if (!overlay || !(overlay.classList.contains("left") || overlay.classList.contains("right"))) return null;
+  if (!overlay) return null;
+  const bottomHeight = bottomPanelHeight(root);
+  if (bottomHeight !== null) return bottomHeight / BOTTOM_PANEL_MAX_HEIGHT;
+  if (!(overlay.classList.contains("left") || overlay.classList.contains("right"))) return null;
   const rootBox = root.getBoundingClientRect();
   const scale = rootBox.width / WIDTH || 1;
   const rows = root.querySelectorAll<HTMLElement>(".overlay .panel-rows .content-row");

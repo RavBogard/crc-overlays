@@ -1,6 +1,6 @@
 import assert from "node:assert/strict";
 import test from "node:test";
-import { BUG_RESERVED_NAME, FONT_METRIC_TOLERANCE, SPARSE_FILL, findBugCollisions, findFitErrors, findFitWarnings, overlapErrors, panelFillRatio } from "./preview.ts";
+import { BOTTOM_PANEL_MAX_HEIGHT, BOTTOM_PANEL_TOLERANCE, BUG_RESERVED_NAME, FONT_METRIC_TOLERANCE, SPARSE_FILL, findBugCollisions, findFitErrors, findFitWarnings, overlapErrors, panelFillRatio } from "./preview.ts";
 import { BUG_RESERVED_RECT } from "../../lib/bug-layer.ts";
 
 test("same-owner overlapping rects produce no error", () => {
@@ -150,10 +150,34 @@ test("paired content rows summing to 400px are above the sparse threshold and do
   assert.deepEqual(findFitWarnings(root), []);
 });
 
-test("a bottom layout root has no panel to measure and never warns", () => {
-  const root = fakeRoot({ layout: "bottom", rowHeights: [200] });
-  assert.equal(panelFillRatio(root), null);
+function bottomRoot(panelHeight: number): HTMLElement {
+  const base = { getBoundingClientRect: () => ({ left: 0, top: 720, right: 1920, bottom: 720 + panelHeight, width: 1920, height: panelHeight }) };
+  const title = { getBoundingClientRect: () => ({ left: 0, top: 680, right: 1920, bottom: 720, width: 1920, height: 40 }) };
+  const overlay = { classList: { contains: (name: string) => name === "bottom" } };
+  return {
+    ownerDocument: { createRange: () => ({ selectNodeContents() {}, getClientRects: () => [] }) },
+    getBoundingClientRect: () => ({ left: 0, top: 0, right: 1920, bottom: 1080, width: 1920, height: 1080 }),
+    querySelector: (selector: string) => selector === ".overlay" ? overlay : selector === ".overlay .base" ? base : selector === ".overlay .titlebar" ? title : null,
+    querySelectorAll: () => [],
+  } as unknown as HTMLElement;
+}
+
+test("a 350px lower-third panel passes and reports its native fill", () => {
+  const root = bottomRoot(310); // title 40 + body 310 = 350
+  assert.equal(panelFillRatio(root), 350 / BOTTOM_PANEL_MAX_HEIGHT);
+  assert.deepEqual(findFitErrors(root), []);
   assert.deepEqual(findFitWarnings(root), []);
+});
+
+test("a lower third over its 360px budget fails with a reflow or split action", () => {
+  const root = bottomRoot(342); // title 40 + body 342 = 382
+  assert.ok((panelFillRatio(root) as number) > 1);
+  assert.deepEqual(findFitErrors(root), [`Lower third panel is 382px tall; limit is ${BOTTOM_PANEL_MAX_HEIGHT}px. Reflow English paragraphs or split this graphic.`]);
+});
+
+test("the two-pixel lower-third tolerance keeps a 362px panel valid", () => {
+  const root = bottomRoot(BOTTOM_PANEL_MAX_HEIGHT + BOTTOM_PANEL_TOLERANCE - 40);
+  assert.deepEqual(findFitErrors(root), []);
 });
 
 /* ---------------------------------------------------------------------------

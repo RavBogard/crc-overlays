@@ -153,3 +153,13 @@ test('expanded siddur selections retain their own feed and unit authority pins',
  const base=editableFromBaseline(BARECHU);const now=Date.now();const draft:Draft={...base,content,id:'expanded-test',version:1,sourcePin:pin,activeRevision:null,activeDraftVersion:null,createdAt:now,updatedAt:now,createdBy:'test',updatedBy:'test'};
  const cue=buildCue(draft);assert.deepEqual(cue.authoring.sourceAuthority,pin.sourceAuthority);assert.ok(cue.texts.textMainheb);assert.ok(cue.texts.textMainEng);
 });
+
+
+test('presentation stores only the explicit Latin line-break policy',()=>{
+ const base={name:'Latin display',title:'Latin display',layout:'bottom',templateCueId:BARECHU,content:{mode:'custom',text:'A\nB'}};
+ const legacy=parseEditable({...base,presentation:{}}) as EditableDraft;
+ const paragraphs=parseEditable({...base,presentation:{latinLineBreaks:'paragraphs'}}) as EditableDraft;
+ assert.equal(legacy.presentation.latinLineBreaks,undefined);
+ assert.equal(paragraphs.presentation.latinLineBreaks,'paragraphs');
+ assert.throws(()=>parseEditable({...base,presentation:{latinLineBreaks:'collapse'}}),/latinLineBreaks must be preserve or paragraphs/);
+});

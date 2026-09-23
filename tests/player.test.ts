@@ -3,7 +3,7 @@ import assert from 'node:assert/strict';
 import {readFileSync} from 'node:fs';
 import {fileURLToPath} from 'node:url';
 import {acceptsRevision,effectFrames,incomingStillDesired,measuredBottomTextHeight,textParts,tracksFor,type AnimationTrack} from '../lib/player-motion.ts';
-import {Player,constrainedBottomTextHeight,panelRowChannels,panelRowGap,panelStackGeometry,presentationTextStyles,usesPanelRows,type ContentRow,type Cue} from '../lib/player.ts';
+import {Player,constrainedBottomTextHeight,panelRowChannels,panelRowGap,panelStackGeometry,presentationTextStyles,reflowLatinParagraphs,displayPresentationText,usesPanelRows,type ContentRow,type Cue} from '../lib/player.ts';
 import {OVERLAY_ASSET_TIMEOUT_MS,waitForRenderedOverlayAssets} from '../lib/overlay-assets.ts';
 import {branding} from '../lib/branding.ts';
 
@@ -370,4 +370,17 @@ test('bilingual lower-third columns align their text tops without changing a lon
  const css=overlayCss();
  assert.match(css,/\.bottom \.english:not\(\.single-channel\),\.bottom \.hebrew:not\(\.single-channel\)\{[^}]*align-items:flex-start\}/);
  assert.doesNotMatch(css,/\.bottom \.single-channel\{align-items:flex-start\}/);
+});
+
+
+test('paragraph reflow only collapses soft Latin line breaks and preserves stanza boundaries',()=>{
+ assert.equal(reflowLatinParagraphs('One\nTwo\n  \nThree\r\nFour.'),'One Two\n\nThree Four.');
+});
+
+
+test('legacy English textMain reflows, while a mixed Hebrew body keeps authored breaks',()=>{
+ const presentation={latinLineBreaks:'paragraphs'} as const;
+ assert.equal(displayPresentationText('One\nTwo','textMain',presentation),'One Two');
+ assert.equal(displayPresentationText('English\nעברית','textMain',presentation),'English\nעברית');
+ assert.equal(displayPresentationText('English\nText','textMainEng',presentation),'English Text');
 });

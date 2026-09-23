@@ -1,6 +1,9 @@
 import test from 'node:test';
+import {mkdtemp,readFile,rm} from 'node:fs/promises';
+import {tmpdir} from 'node:os';
+import {join} from 'node:path';
 import assert from 'node:assert/strict';
-import {measureCueOnServer,serverRendererVersion,SERVER_FIT_PREVIEW_IMAGE_MAX_BYTES,SERVER_RENDERER_PREFIX,STAGE_DISPOSE_TIMEOUT_MS,STAGE_PATH,type StageBrowser,type StageLauncher,type StageMeasurement} from '../lib/server-fit.ts';
+import {coreSafeExecutable,packLaunchOptions,measureCueOnServer,serverRendererVersion,SERVER_FIT_PREVIEW_IMAGE_MAX_BYTES,SERVER_RENDERER_PREFIX,STAGE_DISPOSE_TIMEOUT_MS,STAGE_PATH,type StageBrowser,type StageLauncher,type StageMeasurement} from '../lib/server-fit.ts';
 import {SERVER_RENDERER_PREFIX as CONTRACT_PREFIX} from '../lib/server-fit-contract.ts';
 import type {Cue} from '../lib/player.ts';
 
@@ -168,4 +171,26 @@ test('a launch that outruns the deadline is closed when it finally lands',async(
 
 test('the renderer version names the playwright build that measured',async()=>{
  assert.match(serverRendererVersion(),/^server-chromium\/\d+\.\d+\.\d+$/);
+});
+
+
+test('a Linux launch wrapper disables core dumps and forwards Chromium as argv',async()=>{
+ const scratch=await mkdtemp(join(tmpdir(),'server-fit-wrapper-'));
+ try{
+  const wrapper=await coreSafeExecutable(scratch,"/tmp/Chromium's Test/chromium",'linux');
+  assert.equal(wrapper,join(scratch,'chromium-no-core'));
+  assert.equal(await readFile(wrapper,'utf8'),"#!/bin/sh\nulimit -c 0 || exit 125\nexec '/tmp/Chromium'\\''s Test/chromium' \"$@\"\n");
+  assert.equal(await coreSafeExecutable(scratch,'C:/Chrome/chrome.exe','win32'),'C:/Chrome/chrome.exe');
+  const launch=await packLaunchOptions(async()=>({executable:"/tmp/Chromium's Test/chromium",args:['--disable-crash-reporter','--user-data-dir=/tmp/a b']}),scratch,'linux');
+  assert.deepEqual(launch.args,['--disable-crash-reporter','--user-data-dir=/tmp/a b'],'Playwright may prepend defaults; wrapper must receive its normal args only');
+  assert.equal(launch.executablePath,wrapper);
+ }finally{await rm(scratch,{recursive:true,force:true})}
+});
+
+test('a stalled screenshot is classified as its own bounded unavailable image result',async()=>{
+ const visited=fresh();
+ const result=await measureCueOnServer(CUE,{origin:ORIGIN,deadlineMs:30,includePreviewImage:true,launch:fakeLauncher(()=>({fitErrors:[],warnings:[],fill:0.5,artwork:'none'}),visited,async()=>new Promise<Uint8Array>(()=>{}))});
+ assert.equal(result.verdict,'pass');
+ assert.equal(result.previewImageUnavailable,'screenshot_deadline');
+ assert.equal(visited.closed,1);
 });

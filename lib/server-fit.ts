@@ -22,7 +22,7 @@
 // logged rather than guessed at. See docs/planning/2026-09-22-sitting-prep/RETURN-FIT-STABILITY.md.
 
 import {createHash,randomBytes} from 'node:crypto';
-import {lstat,mkdtemp,readdir,readFile,readlink,rm,stat,statfs} from 'node:fs/promises';
+import {chmod,lstat,mkdtemp,readdir,readFile,readlink,rm,stat,statfs,writeFile} from 'node:fs/promises';
 import {createRequire} from 'node:module';
 import {tmpdir} from 'node:os';
 import {join} from 'node:path';
@@ -36,6 +36,8 @@ export const SERVER_FIT_DEADLINE_MS=25_000;
 export const STAGE_PATH='/author/fit-stage';
 /** JPEG bytes before base64 expansion, keeping the returned base64 payload at about 1 MB. */
 export const SERVER_FIT_PREVIEW_IMAGE_MAX_BYTES=750_000;
+/** Capture is bounded separately so an unavailable screenshot cannot consume the whole fit deadline. */
+export const SERVER_FIT_SCREENSHOT_BUDGET_MS=4_000;
 /** A stalled stage cleanup must never hold Chromium close or scratch release hostage. */
 export const STAGE_DISPOSE_TIMEOUT_MS=250;
 
@@ -163,9 +165,22 @@ function browserEnv(scratch:string){
  * instance's first check launches without its libraries (`libnspr4.so: cannot open shared object
  * file`, reproduced on Linux) while every later check works.
  */
-export async function packLaunchOptions(load:()=>Promise<{args:string[];executable:string}>,scratch:string){
+/** Linux Chromium otherwise inherits Node's unlimited core-dump allowance. The wrapper is in
+ * this check's scratch directory and quotes the resolved executable itself, forwarding every
+ * Playwright argument unchanged. */
+function shellQuote(value:string){return `'${value.replaceAll("'",`'\\''`)}'`}
+export async function coreSafeExecutable(scratch:string,executable:string,platform=process.platform){
+ if(platform!=='linux')return executable;
+ const wrapper=join(scratch,'chromium-no-core');
+ await writeFile(wrapper,`#!/bin/sh\nulimit -c 0 || exit 125\nexec ${shellQuote(executable)} "$@"\n`,{mode:0o700});
+ await chmod(wrapper,0o700);
+ return wrapper;
+}
+
+export async function packLaunchOptions(load:()=>Promise<{args:string[];executable:string}>,scratch:string,platform=process.platform){
  const {args,executable}=await load();
- return {args,executablePath:executable,headless:true,env:browserEnv(scratch)};
+ const executablePath=await coreSafeExecutable(scratch,executable,platform);
+ return {args,executablePath,headless:true,env:browserEnv(scratch)};
 }
 
 /**
@@ -535,11 +550,20 @@ export async function measureCueOnServer(cue:Cue,options:{origin:string;deadline
    phase='screenshot';
    try{
     if(!page.screenshot)throw Error('stage_screenshot_unavailable');
-    const bytes=await page.screenshot({type:'jpeg',quality:65});
+    const screenshot=page.screenshot.bind(page);
+    const screenshotBudget=Math.min(Math.max(0,remaining()-25),SERVER_FIT_SCREENSHOT_BUDGET_MS);
+    if(screenshotBudget<=0)throw new DeadlineExpired();
+    const bytes=await withDeadline(screenshotBudget,()=>screenshot({type:'jpeg',quality:65}));
     if(!bytes.byteLength)throw Error('stage_screenshot_empty');
     if(bytes.byteLength>SERVER_FIT_PREVIEW_IMAGE_MAX_BYTES)return {measurement,previewImage:null as ServerFitPreviewImage|null,previewImageUnavailable:'image_too_large' as ServerFitPreviewImageUnavailable};
     return {measurement,previewImage:{mimeType:'image/jpeg' as const,dataBase64:Buffer.from(bytes).toString('base64'),width:1920,height:1080}};
-   }catch{return {measurement,previewImage:null as ServerFitPreviewImage|null,previewImageUnavailable:'screenshot_failed' as ServerFitPreviewImageUnavailable};}
+   }catch(error){
+    const reason=error instanceof DeadlineExpired?'screenshot_deadline':'screenshot_failed';
+    const message=error instanceof Error?error.message:'';
+    const category=error instanceof DeadlineExpired?'timeout':/target page|context|browser.*closed/i.test(message)?'target_closed':/protocol/i.test(message)?'protocol':/empty/i.test(message)?'empty':/unavailable/i.test(message)?'unavailable':'other';
+    console.warn('server-fit preview screenshot unavailable',{reason,category,elapsedMs:Date.now()-started,tmpFreeNow:await host.free().catch(()=>null)});
+    return {measurement,previewImage:null as ServerFitPreviewImage|null,previewImageUnavailable:reason as ServerFitPreviewImageUnavailable};
+   }
   });
   const measured=stageMeasurement(stageRun.measurement);
   if(!measured)return {verdict:'unavailable',reason:'measurement_invalid'};

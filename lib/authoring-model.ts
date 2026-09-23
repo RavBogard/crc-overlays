@@ -8,7 +8,7 @@ const sourceMapJson=require('../content/legacy-crc-shabbat-morning.sources.json'
 const baselineCueJson=require('./cues.json');
 
 export type Layout='bottom'|'left'|'right';
-export type Presentation={hebrewFontSize?:number;transliterationFontSize?:number;titleFontSize?:number;alignment?:'start'|'center';lineSpacing?:'compact'|'spacious';imageAssetId?:string};
+export type Presentation={hebrewFontSize?:number;transliterationFontSize?:number;titleFontSize?:number;alignment?:'start'|'center';lineSpacing?:'compact'|'spacious';imageAssetId?:string;latinLineBreaks?:'preserve'|'paragraphs'};
 export type SourceGroup={sourceId:string;blockIds:string[]};
 /**
  * C6: which text layers a graphic shows, and how they are arranged. `layers` and `arrangement`
@@ -256,7 +256,7 @@ export function parseEditable(value:unknown,partial=false,snapshots:AuthoringSou
  if(!partial||input.content!==undefined)result.content=parseContent(input.content,snapshots);
  if(!partial||input.presentation!==undefined){
   const p=record(input.presentation??{},'presentation');
-  onlyKeys(p,['hebrewFontSize','transliterationFontSize','titleFontSize','alignment','lineSpacing','imageAssetId'],'presentation');
+  onlyKeys(p,['hebrewFontSize','transliterationFontSize','titleFontSize','alignment','lineSpacing','imageAssetId','latinLineBreaks'],'presentation');
   const presentation:Presentation={};
   if(p.hebrewFontSize!==undefined)presentation.hebrewFontSize=integer(p.hebrewFontSize,'hebrewFontSize',24,52);
   if(p.transliterationFontSize!==undefined)presentation.transliterationFontSize=integer(p.transliterationFontSize,'transliterationFontSize',20,48);
@@ -264,6 +264,7 @@ export function parseEditable(value:unknown,partial=false,snapshots:AuthoringSou
   if(p.alignment!==undefined){if(p.alignment!=='start'&&p.alignment!=='center')throw new AuthoringError('invalid_input','alignment must be start or center');presentation.alignment=p.alignment}
   if(p.lineSpacing!==undefined){if(p.lineSpacing!=='compact'&&p.lineSpacing!=='spacious')throw new AuthoringError('invalid_input','lineSpacing must be compact or spacious');presentation.lineSpacing=p.lineSpacing}
   if(p.imageAssetId!==undefined){if(typeof p.imageAssetId!=='string'||!/^asset_[a-f0-9]{64}$/.test(p.imageAssetId))throw new AuthoringError('invalid_input','imageAssetId must identify a workspace asset');presentation.imageAssetId=p.imageAssetId}
+  if(p.latinLineBreaks!==undefined){if(p.latinLineBreaks!=='preserve'&&p.latinLineBreaks!=='paragraphs')throw new AuthoringError('invalid_input','latinLineBreaks must be preserve or paragraphs');presentation.latinLineBreaks=p.latinLineBreaks}
   result.presentation=presentation;
  }
  if(!partial){

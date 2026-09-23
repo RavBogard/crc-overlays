@@ -10,6 +10,8 @@ export type DraftStyleOptions={
   arrangement?:TextArrangement;
   /** Clear explicit density overrides while retaining artwork and alignment choices. */
   comfortableTypography?:boolean;
+  /** Preserve authored Latin line breaks, or display soft breaks as paragraphs. */
+  latinLineBreaks?:'preserve'|'paragraphs';
 };
 
 export type DraftStylePatch={layout?:Layout;templateCueId?:string;content?:DraftContent;presentation?:Presentation};
@@ -70,10 +72,12 @@ export function planDraftStyle(draft:Draft, options:DraftStyleOptions, templates
     else if(next&&arrangementOf(draft.content)!==requestedArrangement){patch.content=next;afterContent=next;}
   }
 
-  if(options.comfortableTypography!==false){
-    const next=comfortable(draft.presentation);
-    if(!same(next,draft.presentation)){patch.presentation=next;afterPresentation=next;}
-  }
+  const readablePresentation=options.comfortableTypography!==false?comfortable(draft.presentation):{...draft.presentation};
+  // The style operation deliberately opts into paragraph display. Legacy drafts that never
+  // pass through this operation retain their absent (preserve) setting.
+  const latinLineBreaks=options.latinLineBreaks??'paragraphs';
+  const nextPresentation={...readablePresentation,latinLineBreaks};
+  if(!same(nextPresentation,draft.presentation)){patch.presentation=nextPresentation;afterPresentation=nextPresentation;}
 
   return {patch,warnings,before:summary(draft),after:{layout:afterLayout,templateCueId:afterTemplateCueId,arrangement:arrangementOf(afterContent),presentation:{...afterPresentation}}};
 }

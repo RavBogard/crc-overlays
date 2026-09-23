@@ -35,7 +35,7 @@ export type StageMeasurement={fitErrors:string[];warnings:string[];fill:number|n
 export type StageMeasureOptions={retainRenderedCue?:boolean};
 /** An ephemeral, server-rendered preview. It is never written to a draft, preview, or revision. */
 export type ServerFitPreviewImage={mimeType:'image/jpeg'|'image/png';dataBase64:string;width:number;height:number};
-export type ServerFitPreviewImageUnavailable='screenshot_failed'|'image_too_large';
+export type ServerFitPreviewImageUnavailable='screenshot_failed'|'screenshot_deadline'|'image_too_large';
 export type ServerFitMeasured={verdict:'pass'|'fail';fitErrors:string[];warnings:string[];fill:number|null;artwork:ServerFitArtwork;measuredAt:number;rendererVersion:string;previewImage?:ServerFitPreviewImage|null;previewImageUnavailable?:ServerFitPreviewImageUnavailable};
 export type ServerFitUnavailable={verdict:'unavailable';reason:string};
 export type ServerFitResult=ServerFitMeasured|ServerFitUnavailable;
