@@ -4,7 +4,7 @@ What is deployed right now. Update this file on every release — it is the one 
 "what is live", and it is short so it can be read under pressure. The history is in
 `docs/planning/2026-09-deploys/` (25 deploy records, the release chain, the phase build notes).
 
-**Last updated: 2026-09-23** (paired release `e13c9dc`: authoring MCP compact catalog, safe style defaults, and optional ephemeral fit images. Evidence below under "Release e13c9dc".)
+**Last updated: 2026-09-23** (paired release `ef77ea9`: restores the lower-third main-title start to 250px while retaining the separate accent lane. Evidence below under "Release ef77ea9".)
 
 ## Web, per workspace
 
@@ -13,14 +13,19 @@ both were released together on 2026-09-23 UTC (2026-09-22 evening Central).
 
 | Workspace | Host | Deployed commit | How it got there |
 |---|---|---|---|
-| CRC | `overlays.centralreform.org` (alt `crc-overlays.vercel.app`) | `e13c9dc` | `scripts/deploy-workspaces.mjs`, 2026-09-23, `dpl_89tmVoKYcZ414iEZ6Xy1MYWeG65C` (the Git integration also builds every push to `main`) |
-| TBI | `overlays.templebnaiisrael.com` (alt `tbi-overlays.vercel.app`) | `e13c9dc` | `scripts/deploy-workspaces.mjs`, same run, `dpl_EKT9aAGwwtWCcoGXAZ7DKhv4Qjou` |
+| CRC | `overlays.centralreform.org` (alt `crc-overlays.vercel.app`) | `ef77ea9` | staged paired release, 2026-09-23, `dpl_5AATtKGtKMWopKBTzEefsfGrSAmb` (the Git integration also builds every push to `main`) |
+| TBI | `overlays.templebnaiisrael.com` (alt `tbi-overlays.vercel.app`) | `ef77ea9` | resumed from the validated staged paired release, 2026-09-23, `dpl_7o1BKv1q9UAVDorEtPE6u1xaUXWj` |
 
 This file is written after the release it describes, so the commit carrying these words is always one
 ahead of the shas in the table. That one commit is documentation: CRC's Git integration builds it by
 itself and TBI is not owed a release for it. Any commit that touches `app/`, `lib/`, `content/`,
 `components/`, `schemas/` or `workspaces/` **is** owed one.
 
+### Release ef77ea9 (2026-09-23 UTC)
+
+- Released exact SHA `ef77ea9188ae556e94273f9abf9dc614564ef0c2`. CRC `dpl_5AATtKGtKMWopKBTzEefsfGrSAmb` is Ready and aliases `overlays.centralreform.org` and `crc-overlays.vercel.app`. The original paired-release orchestrator stopped after CRC while its remote build completed; TBI was resumed from that run's already validated staged workspace, and `dpl_7o1BKv1q9UAVDorEtPE6u1xaUXWj` is Ready with alias `tbi-overlays.vercel.app`. All four custom/alias `/health` endpoints returned HTTP 200 after completion. TBI receipt: `work/sitting-2026-09-23/title-clearance-release-ef77ea9/tbi-resume.log`.
+- Restores the lower-third main title to x=250px with 10px clearance after the title medallion. The separate accent lane and body/artwork geometry remain unchanged. A live CRC image check of Light These Lights confirmed the restored title position and fit pass.
+- Gates: `tsc --noEmit`; `npm test` exit 0 (814 TypeScript pass, 0 fail; 24 MJS pass, 0 fail); `npm run lint`; and `npm run build` (42 routes). Logs: `work/sitting-2026-09-23/title-clearance-release-ef77ea9/`.
 ### Release e13c9dc (2026-09-23 UTC)
 
 - Released from clean exact-SHA guard `e13c9dc6eb9e16f34717318481323b6a7d4a518e` at `2026-09-23T14:56:53.400Z`. CRC `dpl_89tmVoKYcZ414iEZ6Xy1MYWeG65C` and TBI `dpl_EKT9aAGwwtWCcoGXAZ7DKhv4Qjou` both reported Ready. CRC, TBI alias, and TBI custom `/health` each returned HTTP 200 after release. Receipt: `work/deploy-staging/releases/e13c9dc6eb9e16f34717318481323b6a7d4a518e/release.json`.
