@@ -1,0 +1,112 @@
+{
+  "family": "Saturday Daytime Kiddush (Supplement) split",
+  "status": "published",
+  "kind": "split",
+  "layout": "left",
+  "source": "library:shabbat-shacharit:hallel.kiddusha-rabbah@shabbat-shacharit",
+  "decision": "Main-thread decision (2026-09-23): 3-panel LEFT sequence {0,1} | {2} | {3,4}, same style (blocks, comfortable typography, latinLineBreaks paragraphs), same title/accent/artwork, no wording change, no refreshSourceIds. Resolves the held 2-way split attempt below.",
+  "approvalBasis": "Daniel's blanket authorization for graphic publication (handoff 2026-09-23); 3-way split authorized by main-thread decision. Daniel did not inspect these.",
+  "notes": "Naming follows the Friday Kiddush precedent: the part marker is only in the draft name ('— N of 3'); the on-screen title stays 'Saturday Kiddush' with accent קִדּוּשׁ on all three. Title, accent, templateCueId c2d2c129-7d7d-4bbc-a296-46cc1fb9f48e (header medallion artwork) and presentation {latinLineBreaks: paragraphs} are the same as the original. style_draft dry runs on all three showed no changes needed (already blocks and comfortable, no font overrides), sourcePreserved true. Part 3 is a new draft created with create_draft, mirroring cf1f78e3. Parts 1-3 together cover blocks 0-4 exactly once, in order (source blocks 5-7 are English and were never selected). Unit sha 664056326ba2... is the same across all three. Feed pin differs: part 1 is ed92804d..., parts 2-3 are a1087255.... The pinned block hashes are unchanged, so this does not affect wording.",
+  "at": "2026-09-23",
+  "graphics": [
+    {
+      "draftId": "a0bbdb60-18e7-4acb-b0ec-696402f7e40a",
+      "name": "Saturday Daytime Kiddush (Supplement) — 1 of 3",
+      "status": "published",
+      "kind": "replacement",
+      "layout": "left",
+      "blocks": [0, 1],
+      "draftVersion": 6,
+      "previewId": "2c77db9e-8b1b-4856-96d1-6b6997f87a96",
+      "cueHash": "f7f70febefe1b0c71df3edc853fe5e003d9d63f61a83ffaf74b94a96815b37f7",
+      "fit": { "verdict": "pass", "fill": 0.8917 },
+      "imageInspected": "Left panel, V'shamru + Beini uvein Hebrew (7 lines) then one matching transliteration paragraph, title 'Saturday Kiddush' / accent קִדּוּשׁ, medallion artwork, comfortable size, no overflow or stray separators.",
+      "sourceCheck": "Blocks 0,1 of the original source. Wording is unchanged and refreshSourceIds was not used.",
+      "revision": 2,
+      "approvalBasis": "Daniel's blanket authorization for graphic publication (handoff 2026-09-23)",
+      "notes": "Replaces the previously live revision 1 (old smallFont style, draftVersion 2)."
+    },
+    {
+      "draftId": "cf1f78e3-bec8-49fe-84c5-e713a1ef6d53",
+      "name": "Saturday Daytime Kiddush (Supplement) — 2 of 3",
+      "status": "published",
+      "kind": "replacement",
+      "layout": "left",
+      "blocks": [2],
+      "draftVersion": 3,
+      "previewId": "ecd46030-642f-41ba-97ec-9dd5996f9aec",
+      "cueHash": "8dfa218a9c35a5e91a3b3523e1231ab5cece3c158ebc06c5bd22013fc0ac9507",
+      "fit": { "verdict": "pass", "fill": 0.839 },
+      "imageInspected": "Left panel, Zachor Hebrew (6 lines) then matching transliteration paragraph, same title/accent/artwork, comfortable size, no overflow.",
+      "sourceCheck": "Block 2 of the original source. Wording is unchanged and refreshSourceIds was not used.",
+      "revision": 1,
+      "approvalBasis": "Daniel's blanket authorization for graphic publication (handoff 2026-09-23)",
+      "notes": "Was the '2 of 2' draft from the held attempt. Its name and blocks were updated."
+    },
+    {
+      "draftId": "d0005eef-c1ea-43f6-9e72-caa5588a630b",
+      "name": "Saturday Daytime Kiddush (Supplement) — 3 of 3",
+      "status": "published",
+      "kind": "replacement",
+      "layout": "left",
+      "blocks": [3, 4],
+      "draftVersion": 1,
+      "previewId": "44b529e3-5320-49e9-87da-236f6ac67357",
+      "cueHash": "27c6ca951e077c001b9438b87ce92987054e554c15d76fb7c6b14f6d2dd08a3f",
+      "fit": { "verdict": "pass", "fill": 0.8979 },
+      "imageInspected": "Left panel, Ki sheshet yamim + borei p'ri hagafen Hebrew (7 lines) then matching transliteration paragraph, same title/accent/artwork, comfortable size, no overflow.",
+      "sourceCheck": "Blocks 3,4 of the original source. Wording is unchanged and refreshSourceIds was not used.",
+      "revision": 1,
+      "approvalBasis": "Daniel's blanket authorization for graphic publication (handoff 2026-09-23)",
+      "notes": "New draft created with create_draft. Title, accent, templateCueId, layout, arrangement and presentation are the same as cf1f78e3."
+    }
+  ],
+  "attempts": [
+    {
+      "split": "A (2-way, held)",
+      "part1": {
+        "draftId": "a0bbdb60-18e7-4acb-b0ec-696402f7e40a",
+        "name": "Saturday Daytime Kiddush (Supplement) — 1 of 2",
+        "blocks": [0, 1],
+        "draftVersion": 4,
+        "previewId": "63c4b34b-61e4-48fc-be9b-bce861c6df5d",
+        "fit": { "verdict": "pass", "fill": 0.8917 }
+      },
+      "part2": {
+        "draftId": "cf1f78e3-bec8-49fe-84c5-e713a1ef6d53",
+        "name": "Saturday Daytime Kiddush (Supplement) — 2 of 2",
+        "blocks": [2, 3, 4],
+        "draftVersion": 1,
+        "previewId": "578e9849-2f75-4fc8-b713-bf6400cae559",
+        "fit": { "verdict": "fail", "fill": 1.0848, "fitErrors": ["Graphic does not fit its box.", "Graphic extends beyond the frame.", "textMainEng extends beyond the frame."] }
+      }
+    },
+    {
+      "split": "B (2-way, held)",
+      "part1": {
+        "draftId": "a0bbdb60-18e7-4acb-b0ec-696402f7e40a",
+        "name": "Saturday Daytime Kiddush (Supplement) — 1 of 2",
+        "blocks": [0, 1, 2],
+        "draftVersion": 5,
+        "previewId": "be00a03a-6b04-4090-9244-a614a187936b",
+        "fit": { "verdict": "fail", "fill": 1.0449, "fitErrors": ["Graphic does not fit its box."] }
+      },
+      "part2": {
+        "draftId": "cf1f78e3-bec8-49fe-84c5-e713a1ef6d53",
+        "name": "Saturday Daytime Kiddush (Supplement) — 2 of 2",
+        "blocks": [3, 4],
+        "draftVersion": 2,
+        "previewId": "83d411f1-5ba2-4ca0-a19f-a092bb8c92d9",
+        "fit": { "verdict": "pass", "fill": 0.8979 }
+      }
+    },
+    {
+      "split": "C (3-way, published)",
+      "parts": [
+        { "draftId": "a0bbdb60-18e7-4acb-b0ec-696402f7e40a", "blocks": [0, 1], "draftVersion": 6, "fit": { "verdict": "pass", "fill": 0.8917 } },
+        { "draftId": "cf1f78e3-bec8-49fe-84c5-e713a1ef6d53", "blocks": [2], "draftVersion": 3, "fit": { "verdict": "pass", "fill": 0.839 } },
+        { "draftId": "d0005eef-c1ea-43f6-9e72-caa5588a630b", "blocks": [3, 4], "draftVersion": 1, "fit": { "verdict": "pass", "fill": 0.8979 } }
+      ]
+    }
+  ]
+}

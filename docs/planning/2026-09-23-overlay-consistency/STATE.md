@@ -24,6 +24,10 @@ built from Michael's operating logic, bound only to final published cue IDs.
 - Vahavta trans (byte-identical to Vahavta 1) archived.
 - Birchot Hashachar: one 4-panel left sequence B1-B4, two blessing pairs per panel, English kept;
   B3/B4 pins refreshed only if selected he/tr/en hashes are identical (in progress).
+- GATE: Saturday Daytime Kiddush (Supplement) a0bbdb60 becomes a 3-panel left sequence
+  {0,1} | {2 Zachor} | {3,4} ("— 1/2/3 of 3") — proceeded because both 2-way splits overflow at
+  comfortable typography (receipt saturday-daytime-kiddush-supplement-split.json), the layout rule
+  already calls for readable left panels, and each of {0,1} and {3,4} alone passes.
 - Authorization basis for every review: Daniel's blanket approval of graphic publication and paired
   deployment (handoff 2026-09-23); never a claim that Daniel inspected each graphic.
 

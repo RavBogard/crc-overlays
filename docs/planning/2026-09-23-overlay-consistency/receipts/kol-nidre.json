@@ -1,0 +1,57 @@
+{
+  "family": "Kol Nidre",
+  "packet": "Packet 11",
+  "graphics": [
+    {
+      "draftId": "ea678128-2f4a-4909-b0b5-edb83f8b1e17",
+      "name": "Kol Nidre",
+      "status": "published",
+      "kind": "original",
+      "layout": "left",
+      "draftVersion": 3,
+      "previewId": "fd5c3e9a-6aa9-4f74-bf9b-7749865baea7",
+      "cueHash": "176f26439834c41b7ed99bb8e712646a28ff902db8bbdde00f80c3310a4b4f16",
+      "fit": { "verdict": "pass", "fill": 0.863 },
+      "imageInspected": "Hebrew paragraph then transliteration paragraph fully inside the left panel at comfortable size; title Kol Nidre, accent כָּל נִדְרֵי, artwork medallion present; no stray separators.",
+      "sourceCheck": "style_draft reported sourcePreserved true; same 8 blocks (2-9) of erev-yk.kol-nidre@crc-kol-nidre, pinned hashes unchanged, no refresh.",
+      "revision": 2,
+      "approvalBasis": "Daniel's blanket authorization for graphic publication (handoff 2026-09-23); worker-inspected, not Daniel-inspected.",
+      "notes": "Style-only: together -> blocks, dropped compact/smallFont overrides (26/22) for comfortable typography, latinLineBreaks paragraphs.",
+      "at": "2026-09-23"
+    },
+    {
+      "draftId": "c3a08c80-c0e2-4dd5-b906-81dd4a94eba4",
+      "name": "Kol Nidre 2",
+      "status": "published",
+      "kind": "original",
+      "layout": "left",
+      "draftVersion": 2,
+      "previewId": "60ccb42a-6781-4869-9e29-6b5eeaae3465",
+      "cueHash": "a246d01d0389477240f05c1fdd6da171812072796c8b0f01ff6cdc72615eb94b",
+      "fit": { "verdict": "pass", "fill": 0.830 },
+      "imageInspected": "Hebrew then transliteration paragraphs fully inside the panel, readable; title and accent match siblings; nothing duplicated.",
+      "sourceCheck": "sourcePreserved true; same 7 blocks (10-13, 15-17) as before, block 14 was already excluded in the existing selection.",
+      "revision": 2,
+      "approvalBasis": "Daniel's blanket authorization for graphic publication (handoff 2026-09-23); worker-inspected, not Daniel-inspected.",
+      "notes": "Style-only: together -> blocks, comfortable typography, latinLineBreaks paragraphs.",
+      "at": "2026-09-23"
+    },
+    {
+      "draftId": "f5b532cc-e09f-400b-a939-8bb623d0ce90",
+      "name": "Kol Nidre 3",
+      "status": "published",
+      "kind": "original",
+      "layout": "left",
+      "draftVersion": 2,
+      "previewId": "70be5cba-bbd9-4c2b-a418-f1fbba7fa491",
+      "cueHash": "83009fa3cdda027c42857b91068aa5ad316ce9c00d6dbd6499ad11ed240cc580",
+      "fit": { "verdict": "pass", "fill": 0.604 },
+      "imageInspected": "S'lach na Hebrew then transliteration inside the panel, readable, with room to spare; title and accent consistent with siblings.",
+      "sourceCheck": "sourcePreserved true; same 5 blocks (19-22, 24) as before, block 23 already excluded in the existing selection.",
+      "revision": 2,
+      "approvalBasis": "Daniel's blanket authorization for graphic publication (handoff 2026-09-23); worker-inspected, not Daniel-inspected.",
+      "notes": "Style-only: together -> blocks, comfortable typography, latinLineBreaks paragraphs.",
+      "at": "2026-09-23"
+    }
+  ]
+}

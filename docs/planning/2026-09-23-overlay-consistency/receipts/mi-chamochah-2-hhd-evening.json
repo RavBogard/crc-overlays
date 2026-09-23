@@ -1,0 +1,17 @@
+{
+  "draftId": "d14ac228-5570-4b80-b9c5-dc8cc3d5831c",
+  "name": "Mi Chamochah 2 HHD evening",
+  "status": "published",
+  "kind": "original",
+  "layout": "left",
+  "draftVersion": 3,
+  "previewId": "a685bdbf-7317-4124-af30-ac56b1eaf38a",
+  "cueHash": "0220154db2c5098ce9a00629557f6ac5e37956d062b64e11c80bebb0a4317923",
+  "fit": { "verdict": "pass", "fill": 0.491 },
+  "imageInspected": "Left panel: Hebrew Malchut'cha paragraph then transliteration paragraph, readable, inside the panel; title Mi Chamocha, accent now מִי כָמֹכָה.",
+  "sourceCheck": "sourcePreserved true; blocks 5-8 of shma.mi-chamocha@crc-erev-rh unchanged, pinned hashes unchanged.",
+  "revision": 2,
+  "approvalBasis": "Daniel's blanket authorization for graphic publication (handoff 2026-09-23); accent change per main-thread decision in WORKER-PROTOCOL.md; worker-inspected, not Daniel-inspected.",
+  "notes": "Accent שְׁמַע -> מִי כָמֹכָה (v1->v2, main-thread decision); style together -> blocks, latinLineBreaks paragraphs (v2->v3).",
+  "at": "2026-09-23"
+}

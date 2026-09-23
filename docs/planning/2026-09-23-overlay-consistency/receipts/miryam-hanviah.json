@@ -1,0 +1,17 @@
+{
+  "draftId": "9595c648-5b57-4979-aa77-8f3c91a3013b",
+  "name": "Miryam Han'viah",
+  "status": "published",
+  "kind": "original",
+  "layout": "left",
+  "draftVersion": 2,
+  "previewId": "ed89c885-9982-41cc-bda5-8eee8dec462d",
+  "cueHash": "4c2656c58e62c9062db97c1ecf847a16921a960fcaf84eec1a1a073d7f76c941",
+  "fit": { "verdict": "pass", "fill": 0.728 },
+  "imageInspected": "Left panel: Hebrew paragraph then transliteration paragraph, readable, fully inside; title and accent present, artwork present.",
+  "sourceCheck": "sourcePreserved true; blocks 0-6 of havdalah.miryam-hanviah@crc-neilah unchanged.",
+  "revision": 2,
+  "approvalBasis": "Daniel's blanket authorization for graphic publication (handoff 2026-09-23); worker-inspected, not Daniel-inspected.",
+  "notes": "Style-only: together -> blocks, latinLineBreaks paragraphs. FLAG: accent title 'מִרְיָם הַנְּביִאָה' has yod/hiriq order different from the body 'הַנְּבִיאָה' (pre-existing, already published); not changed, needs main-thread decision.",
+  "at": "2026-09-23"
+}
