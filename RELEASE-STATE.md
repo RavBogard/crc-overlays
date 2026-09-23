@@ -4,7 +4,7 @@ What is deployed right now. Update this file on every release — it is the one 
 "what is live", and it is short so it can be read under pressure. The history is in
 `docs/planning/2026-09-deploys/` (25 deploy records, the release chain, the phase build notes).
 
-**Last updated: 2026-09-23** (paired release `43b9c8b`: server-fit census accounting is logged as JSON so Vercel retains nested attribution fields. Evidence below under "Release 43b9c8b".)
+**Last updated: 2026-09-23** (paired release `e13c9dc`: authoring MCP compact catalog, safe style defaults, and optional ephemeral fit images. Evidence below under "Release e13c9dc".)
 
 ## Web, per workspace
 
@@ -13,13 +13,19 @@ both were released together on 2026-09-23 UTC (2026-09-22 evening Central).
 
 | Workspace | Host | Deployed commit | How it got there |
 |---|---|---|---|
-| CRC | `overlays.centralreform.org` (alt `crc-overlays.vercel.app`) | `43b9c8b` | `scripts/deploy-workspaces.mjs`, 2026-09-23, `dpl_4pguDygcJi1w7oLxdmmWWtUhzmeS` (the Git integration also builds every push to `main`) |
-| TBI | `overlays.templebnaiisrael.com` (alt `tbi-overlays.vercel.app`) | `43b9c8b` | `scripts/deploy-workspaces.mjs`, same run, `dpl_5oTbzWg7hMjqMLA8Tvjdq7RsTng9` |
+| CRC | `overlays.centralreform.org` (alt `crc-overlays.vercel.app`) | `e13c9dc` | `scripts/deploy-workspaces.mjs`, 2026-09-23, `dpl_89tmVoKYcZ414iEZ6Xy1MYWeG65C` (the Git integration also builds every push to `main`) |
+| TBI | `overlays.templebnaiisrael.com` (alt `tbi-overlays.vercel.app`) | `e13c9dc` | `scripts/deploy-workspaces.mjs`, same run, `dpl_EKT9aAGwwtWCcoGXAZ7DKhv4Qjou` |
 
 This file is written after the release it describes, so the commit carrying these words is always one
 ahead of the shas in the table. That one commit is documentation: CRC's Git integration builds it by
 itself and TBI is not owed a release for it. Any commit that touches `app/`, `lib/`, `content/`,
 `components/`, `schemas/` or `workspaces/` **is** owed one.
+
+### Release e13c9dc (2026-09-23 UTC)
+
+- Released from clean exact-SHA guard `e13c9dc6eb9e16f34717318481323b6a7d4a518e` at `2026-09-23T14:56:53.400Z`. CRC `dpl_89tmVoKYcZ414iEZ6Xy1MYWeG65C` and TBI `dpl_EKT9aAGwwtWCcoGXAZ7DKhv4Qjou` both reported Ready. CRC, TBI alias, and TBI custom `/health` each returned HTTP 200 after release. Receipt: `work/deploy-staging/releases/e13c9dc6eb9e16f34717318481323b6a7d4a518e/release.json`.
+- Adds bounded compact `list_drafts` inspection, dry-run-first `style_draft`, creation-only bilingual block defaults (including source-set panels), and opt-in ephemeral MCP fit images. Existing draft reads, imports, duplicates, and updates retain their historical arrangement behavior; image bytes are not persisted.
+- Gates: `tsc --noEmit`; `npm test` exit 0 (814 TypeScript pass, 0 fail; 24 MJS pass, 0 fail); `npm run lint`; and `npm run build` (42 routes). Logs: `work/sitting-2026-09-23/mcp-catalog-release-d66687d/`.
 
 ### Release 43b9c8b (2026-09-23 UTC)
 
