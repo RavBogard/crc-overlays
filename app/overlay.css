@@ -232,7 +232,7 @@ only its translation is a single channel and takes the full block, as any single
    and the title's width follows it, so the bar, the medallion and the praised English-left /
    Hebrew-right columns beneath all keep their places; only the title moves. The title's right
    edge stays at 1850px, 50px inside the bar. */
-.bottom{--bottom-title-clearance:40px}
+.bottom{--bottom-title-clearance:10px}
 .bottom .title{left:calc(240px + var(--bottom-title-clearance));width:calc(1850px - 240px - var(--bottom-title-clearance))}
 
 /* A lower third can carry both a spoken title and its Hebrew accent. Reserve two title lanes

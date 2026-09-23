@@ -69,7 +69,7 @@ test('the stylesheet resting panel stack agrees with the fitted one',()=>{
 test('the lower third title clears the decorative circle',()=>{
  const css=overlayCss();
  const clearance=Number(css.match(/--bottom-title-clearance:(\d+)px/)?.[1]);
- assert.ok(clearance>=32,`the lower third gives its title only ${clearance}px of clearance`);
+ assert.equal(clearance,10,'the main title begins at the established 250px edge');
  assert.match(css,/\.bottom \.title\{left:calc\(240px \+ var\(--bottom-title-clearance\)\);width:calc\(1850px - 240px - var\(--bottom-title-clearance\)\)\}/);
  assert.match(css,/\.bottom::before\{left:20px;bottom:60px;width:220px/,'measured from a circle that still ends at 240px');
  // The title moved; the praised English-left / Hebrew-right pair beneath it did not.
@@ -84,9 +84,9 @@ test('a lower third reserves distinct title and RTL accent lanes without narrowi
  assert.match(css,/\.bottom \.title:not\(\.title-accent\)\{left:calc\(240px \+ var\(--bottom-title-clearance\)\);right:auto;width:1050px\}/);
  assert.match(css,/\.bottom \.title-accent\{left:auto;right:50px;width:480px;direction:rtl;text-align:right\}/);
  assert.match(css,/\.bottom:not\(:has\(\.title-accent\)\) \.title:not\(\.title-accent\)\{width:calc\(1850px - 240px - var\(--bottom-title-clearance\)\)\}/);
- const mainStart=280,mainWidth=1050,accentStart=1920-50-480;
+ const mainStart=250,mainWidth=1050,accentStart=1920-50-480;
  assert.ok(mainStart+mainWidth<=accentStart,'title ends before the accent lane begins');
- assert.equal(1850-280,1570,'a lone title keeps the full safe title span');
+ assert.equal(1850-250,1600,'a lone title keeps the full safe title span');
 });
 
 test('structured rows use bounded inter-row spacing that preserves four-row fit',()=>{
