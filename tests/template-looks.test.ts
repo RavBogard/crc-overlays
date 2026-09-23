@@ -47,9 +47,9 @@ test('a layout with no baseline gets no tile; a non-importable baseline still gi
   assert.deepEqual(none.map(look => look.layout), ['bottom', 'left', 'right']);
 });
 
-test('with real importability the right panel still gets a tile (its only baseline is a custom graphic)', () => {
+test('the supported custom right-panel baseline remains importable', () => {
   const real = templates.map(item => { let importable = true; try { editableFromBaseline(item.id); } catch { importable = false; } return {...item, importable}; });
-  assert.ok(real.some(item => item.layout === 'right' && !item.importable), 'fixture: the right baseline is not importable');
+  assert.ok(real.some(item => item.layout === 'right' && item.importable), 'fixture: the right baseline is importable as custom text');
   const looks = templateLooks(real, 'bilingual');
   assert.deepEqual(looks.map(look => look.layout), ['bottom', 'left', 'right']);
   assert.equal(looks.find(look => look.layout === 'right')?.label, 'Right panel · Hebrew + transliteration');

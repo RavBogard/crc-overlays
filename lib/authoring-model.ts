@@ -438,7 +438,21 @@ export function editableFromBaseline(cueId:string):EditableDraft{
  const cue=baselineCues.find(item=>item.id===cueId);
  const mapping=(sourceMapJson.cues as Array<Record<string,unknown>>).find(item=>item.id===cueId) as Record<string,unknown>|undefined;
  if(!cue||!mapping)throw new AuthoringError('unknown_cue','Unknown baseline cue',404);
- if(mapping.nonLiturgical)throw new AuthoringError('unmanaged_content','Non-liturgical archive copy cannot be imported into source authoring',409);
+ if(mapping.nonLiturgical){
+  // Archive-only announcements have no prayer-source blocks to pin. They can still use the
+  // authoring custom-text path when every visible channel is representable there; reject any
+  // other channel before import so an archive graphic is never silently reduced.
+  const supported=new Set(['textTitle','accentTextTitle','textMain']);
+  const unsupported=Object.keys(cue.texts).filter(key=>!supported.has(key));
+  if(unsupported.length)throw new AuthoringError('unmanaged_content','Non-liturgical baseline has unsupported text channels: '+unsupported.join(', '),409);
+  const exact=(value:unknown,label:string,optional=false)=>{
+   if(optional&&value===undefined)return undefined;
+   if(typeof value!=='string'||!value||value!==value.trim())throw new AuthoringError('unmanaged_content','Non-liturgical baseline '+label+' cannot be imported without changing its archive text',409);
+   return value;
+  };
+  const content={mode:'custom' as const,text:exact(cue.texts.textMain,'textMain')!};
+  return parseEditable({name:cue.name,title:exact(cue.texts.textTitle,'textTitle')!,accentTitle:exact(cue.texts.accentTextTitle,'accentTextTitle',true),layout:cue.layout,templateCueId:cue.id,content,presentation:(cue as AuthoringCue).presentation??{}}) as EditableDraft;
+ }
  const fields=mapping.fields as Record<string,SourceSpec[]>;
  const specs=Object.values(fields).flat();
  let content:DraftContent;

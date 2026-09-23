@@ -26,6 +26,16 @@ test('imported source draft renders from an exact authority pin',()=>{
  draft.sourcePin.feedSha256='changed';assert.throws(()=>buildCue(draft),/explicit source rebase/);
 });
 
+test('a supported non-liturgical baseline imports exact custom English without source provenance',()=>{
+ const id='09f50803-3288-4b78-bcc7-560025668e1a';const baseline=baselineCues.find(cue=>cue.id===id)!;
+ const editable=editableFromBaseline(id);const now=Date.now();
+ assert.deepEqual(editable.content,{mode:'custom',text:baseline.texts.textMain});
+ assert.equal(editable.title,baseline.texts.textTitle);assert.equal(editable.layout,baseline.layout);assert.equal(editable.templateCueId,id);
+ const cue=buildCue({...editable,id,version:1,sourcePin:sourcePinFor(editable.content),activeRevision:null,activeDraftVersion:null,createdAt:now,updatedAt:now,createdBy:'test',updatedBy:'test'});
+ assert.equal(cue.texts.textMain,baseline.texts.textMain);assert.equal(cue.texts.textTitle,baseline.texts.textTitle);
+ assert.deepEqual(cue.authoring.sourceIds,[]);assert.equal(cue.authoring.feedSha256,'local');
+ const originalTexts=baseline.texts;try{baseline.texts={...originalTexts,textMainEng:'unsupported'};assert.throws(()=>editableFromBaseline(id),(error:unknown)=>(error as AuthoringError).code==='unmanaged_content')}finally{baseline.texts=originalTexts}
+});
 test('combined legacy templates animate both split source channels after editing',()=>{
  const id='e1bd7775-ddf1-468b-b3f7-ac98f11df958';const editable=editableFromBaseline(id);const now=Date.now();const draft:Draft={...editable,id,version:2,sourcePin:sourcePinFor(editable.content),activeRevision:1,activeDraftVersion:1,createdAt:now,updatedAt:now,createdBy:'test',updatedBy:'test'};
  const cue=buildCue(draft);assert.ok(cue.texts.textMainheb);assert.ok(cue.texts.textMainEng);assert.ok(cue.animations.some(track=>track.element==='textMainheb'));assert.ok(cue.animations.some(track=>track.element==='textMainEng'));
