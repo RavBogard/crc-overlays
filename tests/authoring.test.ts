@@ -113,23 +113,26 @@ type GetWorkspaceResult={workspace:AuthoringWorkspace};
 
 test('compact draft listing is bounded, source-text-free, and leaves the legacy listing intact',async()=>{
  const repo=new MemoryAuthoringRepository(),service=createAuthoringService(repo);
- const source=sourcePack.sources.find(item=>item.book&&item.service&&item.blocks.some(block=>block.kind==='bilingual'))!;
- const block=source.blocks.find(item=>item.kind==='bilingual')!;
+ const source=sourcePack.sources.find(item=>item.book&&item.service&&item.blocks.filter(block=>block.kind==='bilingual').length>=2)!;
+ const blocks=source.blocks.filter(block=>block.kind==='bilingual'),block=blocks[0]!;
  const content:BilingualContent={mode:'bilingual',hebrewGroups:[{sourceId:source.id,blockIds:[block.id]}],transliterationGroups:[{sourceId:source.id,blockIds:[block.id]}],arrangement:'blocks'};
  const now=Date.now(),snapshot=structuredClone(source);
- const makeDraft=(id:string,name:string,presentation:Draft['presentation'],draftContent:DraftContent=content):Draft=>({id,name,title:`${name} title`,layout:'left',templateCueId:LEFT_PANEL,content:draftContent,presentation,sourceSnapshots:[snapshot],sourcePin:sourcePinFor(draftContent,[snapshot]),version:3,activeRevision:2,activeDraftVersion:3,createdAt:now,updatedAt:now,createdBy:'tester',updatedBy:'tester'});
+ const makeDraft=(id:string,name:string,presentation:Draft['presentation'],draftContent:DraftContent=content,layout:Draft['layout']='left'):Draft=>({id,name,title:`${name} title`,layout,templateCueId:LEFT_PANEL,content:draftContent,presentation,sourceSnapshots:[snapshot],sourcePin:sourcePinFor(draftContent,[snapshot]),version:3,activeRevision:2,activeDraftVersion:3,createdAt:now,updatedAt:now,createdBy:'tester',updatedBy:'tester'});
  await repo.insertDraft(makeDraft('catalog-a','Alpha draft',{hebrewFontSize:30,transliterationFontSize:27,titleFontSize:26}));
- await repo.insertDraft(makeDraft('catalog-b','Beta draft',{}, {...content,arrangement:'together'}));
+ const together:BilingualContent={...content,hebrewGroups:[{sourceId:source.id,blockIds:[block.id,blocks[1]!.id]}],transliterationGroups:[{sourceId:source.id,blockIds:[block.id,blocks[1]!.id]}],arrangement:'together'};
+ await repo.insertDraft(makeDraft('catalog-b','Beta draft',{},together));
+ await repo.insertDraft(makeDraft('catalog-c','Gamma draft',{},together,'bottom'));
  const legacy=await service.operation('list_drafts',{},'tester') as ListDraftsResult;
  assert.equal(legacy.drafts.length,2);assert.ok(legacy.drafts[0].sourceSnapshots?.[0].blocks.length,'no-argument callers retain full draft snapshots');
  const first=await service.operation('list_drafts',{compact:true,limit:1},'tester') as CompactDraftResult;
- assert.equal(first.drafts.length,1);assert.equal(first.total,2);assert.equal(first.drafts[0].id,'catalog-a');assert.equal(first.drafts[0].arrangement,'blocks');assert.equal(first.drafts[0].flags.alternatingGrouping,false);assert.equal(first.drafts[0].flags.smallFont,true);assert.equal(first.drafts[0].activeVersion,3);assert.doesNotMatch(JSON.stringify(first),new RegExp(block.id));assert.equal('sourceSnapshots' in first.drafts[0],false);
+ assert.equal(first.drafts.length,1);assert.equal(first.total,3);assert.equal(first.drafts[0].id,'catalog-a');assert.equal(first.drafts[0].arrangement,'blocks');assert.equal(first.drafts[0].flags.alternatingGrouping,false);assert.equal(first.drafts[0].flags.smallFont,true);assert.equal(first.drafts[0].activeVersion,3);assert.doesNotMatch(JSON.stringify(first),new RegExp(block.id));assert.equal('sourceSnapshots' in first.drafts[0],false);
  const next=await service.operation('list_drafts',{compact:true,limit:1,cursor:first.nextCursor!},'tester') as CompactDraftResult;
  assert.deepEqual(next.drafts.map(draft=>draft.id),['catalog-b']);assert.equal(next.nextCursor,null);
  const bySource=await service.operation('list_drafts',{service:source.service,book:source.book},'tester') as CompactDraftResult;
- assert.deepEqual(bySource.drafts.map(draft=>draft.id),['catalog-a','catalog-b']);
+ assert.deepEqual(bySource.drafts.map(draft=>draft.id),['catalog-a','catalog-b','catalog-c']);
  const byQuery=await service.operation('list_drafts',{query:'beta'},'tester') as CompactDraftResult;
- assert.deepEqual(byQuery.drafts.map(draft=>draft.id),['catalog-b']);assert.equal(byQuery.drafts[0].flags.alternatingGrouping,true,'together rows are the alternating grouping to inspect');
+ assert.deepEqual(byQuery.drafts.map(draft=>draft.id),['catalog-b']);assert.equal(byQuery.drafts[0].flags.alternatingGrouping,true,'only multi-block side panels use alternating rows');
+ const bottom=await service.operation('list_drafts',{query:'gamma'},'tester') as CompactDraftResult;assert.equal(bottom.drafts[0].flags.alternatingGrouping,false,'bottom together panels are columns, not alternating rows');
  await assert.rejects(service.operation('list_drafts',{compact:false,limit:1},'tester'),(error)=>(error as AuthoringError).code==='invalid_input');
 });
 

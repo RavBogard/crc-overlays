@@ -50,11 +50,13 @@ function summary(draft:Draft):DraftCatalogSummary{
  const sourceServices=[...new Set(sources.map(source=>source.service??'').filter(Boolean))].sort((a,b)=>a.localeCompare(b));
  const content=draft.content.mode==='local-variant'?draft.content.base:draft.content;
  const arrangement=content.mode==='bilingual'&&content.arrangement==='blocks'?'blocks':content.mode==='bilingual'?'together':null;
+ const selectedBlocks=content.mode==='bilingual'?content.hebrewGroups.reduce((count,group)=>count+group.blockIds.length,0):0;
+ const visibleLanguages=content.mode==='bilingual'?(content.layers?.length??(content.includeTranslation?3:2)):0;
  const presentation={...draft.presentation};
  // These are the editor's established Compact sizes. This is an authoring cue to inspect,
  // not a measurement or a visual-pass claim.
  const smallFont=(presentation.hebrewFontSize!==undefined&&presentation.hebrewFontSize<34)||(presentation.transliterationFontSize!==undefined&&presentation.transliterationFontSize<28)||(presentation.titleFontSize!==undefined&&presentation.titleFontSize<28);
- return {id:draft.id,name:draft.name,title:draft.title,version:draft.version,activeVersion:draft.activeDraftVersion,activeRevision:draft.activeRevision,layout:draft.layout,templateCueId:draft.templateCueId,presentation,arrangement,sourceBooks,sourceServices,flags:{smallFont,alternatingGrouping:arrangement==='together'}};
+ return {id:draft.id,name:draft.name,title:draft.title,version:draft.version,activeVersion:draft.activeDraftVersion,activeRevision:draft.activeRevision,layout:draft.layout,templateCueId:draft.templateCueId,presentation,arrangement,sourceBooks,sourceServices,flags:{smallFont,alternatingGrouping:arrangement==='together'&&draft.layout!=='bottom'&&selectedBlocks>1&&visibleLanguages>1}};
 }
 
 export function compactDraftCatalog(drafts:Draft[],input:DraftCatalogInput){
