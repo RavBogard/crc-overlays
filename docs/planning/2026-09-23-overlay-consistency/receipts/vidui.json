@@ -1,0 +1,17 @@
+{
+  "draftId": "3cf82e7d-9016-4b62-af56-262900c17d51",
+  "name": "Vidui",
+  "status": "published",
+  "kind": "original",
+  "layout": "left",
+  "draftVersion": 3,
+  "previewId": "b41e02ca-9cc1-417a-8628-b22a56ab4e57",
+  "cueHash": "bf3f9b129e1aeb37b96380bef650218409727f21c35e86015a7175679d76cc3b",
+  "fit": { "verdict": "pass", "fill": 0.8525 },
+  "imageInspected": "Title 'Vidui' with its Hebrew accent; Hebrew paragraph then transliteration paragraph, fully inside the left panel, readable, nothing duplicated or missing.",
+  "sourceCheck": "No selection or wording change (blocks 2-10 of amidah.vidui, sourcePreserved true).",
+  "revision": 2,
+  "approvalBasis": "Daniel's blanket authorization for graphic publication (handoff 2026-09-23).",
+  "notes": "Packet 12. Applied queue ACTION: together/alternatingGrouping -> blocks, dropped smallFont (compact, he 30/tr 26) for comfortable typography, latinLineBreaks paragraphs. Source observation only: the transliteration renders the Hebrew 'aviNU' (we have sinned) as 'Avinu' (source wording, not changed).",
+  "at": "2026-09-23"
+}

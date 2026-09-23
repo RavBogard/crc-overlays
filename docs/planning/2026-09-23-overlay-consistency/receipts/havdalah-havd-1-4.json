@@ -1,0 +1,16 @@
+{
+  "name": "Havd 1-4 (Beit Mitzvah Havdalah, 4-part left sequence)",
+  "status": "published",
+  "kind": "original",
+  "layout": "left",
+  "approvalBasis": "Daniel's blanket authorization for graphic publication (handoff 2026-09-23).",
+  "sourceCheck": "No wording or selection change on any part: same legacy-beit-mitzvah havdalah sources and pinned blocks, he+tr only; style_draft dry runs all reported sourcePreserved=true.",
+  "notes": "4 bottom lower-third parts exceed the >2 rule, so all four moved to left / blocks / comfortable / paragraphs in one layout. Parts 1-3 carry a server 'Sparse, consider Lower third' warning (fill 0.33); kept left for sequence consistency per the multi-part rule. No accent titles on any part (none existed); titles unchanged. The separate custom 'Havdalah Songs' draft (Packet 16) was not touched.",
+  "at": "2026-09-23",
+  "graphics": [
+    {"draftId": "2e7853d1-f0bd-4227-a7f7-974f76f28489", "name": "Havd 1", "draftVersion": 2, "previewId": "c6ce7875-0cda-45c6-934c-416703b44f56", "cueHash": "23d361446e0f4f301905e7067f573b138fe2070aa127dd6e59087c581cccbeda", "fit": {"verdict": "pass", "fill": 0.32704869358669836}, "imageInspected": "Title 'Havdalah - Wine Blessing', Siona medallion, Hebrew then transliteration blocks inside the left panel at comfortable size; nothing missing or duplicated.", "revision": 2},
+    {"draftId": "0c37292f-2b7f-4b02-af66-7ce448c744e6", "name": "Havd 2", "draftVersion": 2, "previewId": "87741564-51a1-4bc6-a75a-bcf4858eb9ba", "cueHash": "cb0b647b62a441271afacff2d57d69f39637581100cccb19ce1b7179094c910c", "fit": {"verdict": "pass", "fill": 0.32704869358669836}, "imageInspected": "Title 'Havdalah - Spice Blessing', Siona medallion, Hebrew then transliteration blocks inside the left panel at comfortable size; nothing missing or duplicated.", "revision": 2},
+    {"draftId": "16bec1c7-6134-418b-9c09-ba0b7fb2b3b7", "name": "Havd 3", "draftVersion": 2, "previewId": "f3185561-7989-4cf0-bec9-a3d2a023a7e7", "cueHash": "462e2e505a015306b26f8c36ecd4b971b3be146ca6fe78bff406dddf1f5e6c83", "fit": {"verdict": "pass", "fill": 0.32704869358669836}, "imageInspected": "Title 'Havdalah - Fire Blessing', Siona medallion, Hebrew then transliteration blocks inside the left panel at comfortable size; nothing missing or duplicated.", "revision": 2},
+    {"draftId": "af98a247-7c87-481f-866a-07af9ab90691", "name": "Havd 4", "draftVersion": 2, "previewId": "859454bc-a509-4799-8053-7ecf620fd231", "cueHash": "5756aa7aef75002e1601c17947972b0f13bf3a814c547d7c59550ee327fb36f5", "fit": {"verdict": "pass", "fill": 0.7788004750593824}, "imageInspected": "Title 'Havdalah - Separation', Siona medallion, full Hebrew then full transliteration blocks inside the left panel at comfortable size; nothing missing or duplicated.", "revision": 2}
+  ]
+}

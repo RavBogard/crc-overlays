@@ -1,0 +1,17 @@
+{
+  "draftId": "c911529b-9758-4d0b-9416-22833d3c3aa7",
+  "name": "Eliyahu Hanavi",
+  "status": "published",
+  "kind": "original",
+  "layout": "left",
+  "draftVersion": 2,
+  "previewId": "a9599876-24fa-4f46-8e19-df99dc9e384d",
+  "cueHash": "120f25964c8a7ecc5e1826b0336b9f831a9f1f56f12eab2c419d5d4e1ca51cb5",
+  "fit": {"verdict": "pass", "fill": 0.49127820665083133},
+  "imageInspected": "Title Eliyahu Hanavi with accent אֵלִיָּהוּ הַנָּבִיא, Siona medallion, Hebrew block then transliteration block inside the left panel at comfortable size; no dangling separators or duplication.",
+  "sourceCheck": "No wording or selection change (same 4 blocks, he+tr); style-only change together/alternating -> blocks + latinLineBreaks paragraphs, sourcePreserved=true.",
+  "revision": 2,
+  "approvalBasis": "Daniel's blanket authorization for graphic publication (handoff 2026-09-23).",
+  "notes": "Source transliteration places '(3x)' after the third 'Eiliyahu' and uses 'Eiliyahu'/'bein David' spellings; left verbatim (source wording).",
+  "at": "2026-09-23"
+}

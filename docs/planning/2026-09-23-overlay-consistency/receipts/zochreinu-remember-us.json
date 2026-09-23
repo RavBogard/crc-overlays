@@ -1,0 +1,17 @@
+{
+  "draftId": "308fd787-843c-45d9-9b46-4857a693832f",
+  "name": "Remember Us",
+  "status": "published",
+  "kind": "original",
+  "layout": "left",
+  "draftVersion": 2,
+  "previewId": "3d339017-75e1-47f1-a639-27f07996d631",
+  "cueHash": "f326dcc05f426b6275adca28ac991211ac217950cb77770a555df3fd5f3cd968",
+  "fit": { "verdict": "pass", "fill": 0.3887 },
+  "imageInspected": "Title 'Zochreinu', accent 'tefilah'; Hebrew then transliteration, fully inside the left panel, readable.",
+  "sourceCheck": "No selection or wording change (blocks 0, 3, 5 of emamidah.zochreinu@crc-erev-rh, sourcePreserved true).",
+  "revision": 2,
+  "approvalBasis": "Daniel's blanket authorization for graphic publication (handoff 2026-09-23).",
+  "notes": "Packet 12. Applied queue ACTION: together/alternatingGrouping -> blocks, latinLineBreaks paragraphs (no smallFont present). Accent 'tefilah' is the generic Amidah label shared with the RH Sim Shalom 1-4 panels; kept per rule (it is not a different prayer's name).",
+  "at": "2026-09-23"
+}

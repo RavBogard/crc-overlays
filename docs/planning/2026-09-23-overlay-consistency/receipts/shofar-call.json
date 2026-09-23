@@ -1,0 +1,31 @@
+{
+  "family": "Shofar Call",
+  "status": "verified-current",
+  "kind": "original",
+  "layout": "bottom",
+  "approvalBasis": "No republish; published version is the current version.",
+  "notes": "Packet 12. Review only, no rule matched. Both at version 1 == activeVersion 1. Shofar Call 3's line wrap leaves a trailing bullet separator at the end of line 1 in both Hebrew and transliteration (source text 'TEKIAH • TERUAH • TEKIAH TEKIAH • TERUAH • TEKIAH GEDOLAH' wrapping naturally); not changed since it is source text and fit passes. Blocks 2 and 4 are also joined with a plain space ('TEKIAH TEKIAH') with no separator between the two call sequences.",
+  "at": "2026-09-23",
+  "graphics": [
+    {
+      "draftId": "dada44a8-ec83-4bae-a731-2b6af91f62a5",
+      "name": "Shofar Call 2",
+      "draftVersion": 1,
+      "previewId": "0bd1edaf-6fc0-42e8-a0a3-61e49f2995aa",
+      "cueHash": "8d54c59a2075bdc2c5bb1e432ec7a38adb540a8e0470f97bf19c7d139bf5189d",
+      "fit": { "verdict": "pass", "fill": 0.4389 },
+      "imageInspected": "Title 'Zichronot', one line Hebrew and one line transliteration, fully inside the lower third, readable.",
+      "sourceCheck": "No change (block 2 of shofar.zichronot)."
+    },
+    {
+      "draftId": "7661ad60-adbd-492d-9602-d7d297a3de1e",
+      "name": "Shofar Call 3",
+      "draftVersion": 1,
+      "previewId": "fbc0b8f8-1780-4194-a3eb-2903b90ac228",
+      "cueHash": "58652b7aed60ecc3782462dd4119b9f92a362b69da32e24446e34f52e6ad91e4",
+      "fit": { "verdict": "pass", "fill": 0.5083 },
+      "imageInspected": "Title 'Shofarot', two lines each of Hebrew/transliteration inside the lower third; line 1 ends with a dangling bullet separator at the wrap point.",
+      "sourceCheck": "No change (blocks 2, 4 of shofar.shofarot)."
+    }
+  ]
+}

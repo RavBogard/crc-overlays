@@ -1,0 +1,16 @@
+{
+  "draftId": "37e2c89b-c658-460b-8b64-ef20c22903cf",
+  "name": "Ahavah Raba (short)",
+  "status": "verified-current",
+  "kind": "original",
+  "layout": "bottom",
+  "draftVersion": 1,
+  "previewId": "0a9b9168-1e69-4b81-a0d5-7449cb81d67a",
+  "cueHash": "dd4eac70088fd81eddaf61b48444c9fb8dde63a81eb323ebe9659154b47c2796",
+  "fit": {"verdict": "pass", "fill": 0.4388888888888889},
+  "imageInspected": "Single-line bilingual lower third, title 'Ahavah Rabah אַהֲבָה רַבָּה', Hebrew and transliteration fully inside the panel at readable size.",
+  "sourceCheck": "Published revision 1 is the current draft version 1; no change made.",
+  "approvalBasis": "No publish needed (already published at current version).",
+  "notes": "Single block; 1 lower third stays bottom. Transliteration ends with a trailing comma from the source (opening phrase only); left verbatim.",
+  "at": "2026-09-23"
+}

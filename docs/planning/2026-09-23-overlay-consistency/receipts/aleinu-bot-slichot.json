@@ -1,0 +1,32 @@
+{
+  "name": "aleinu bot (Slichot, 2-part)",
+  "status": "published",
+  "kind": "original",
+  "layout": "left",
+  "approvalBasis": "Daniel's blanket authorization for graphic publication (handoff 2026-09-23).",
+  "sourceCheck": "No wording or selection change: same legacy-slichot source (slichot.aleinu), same blocks 0-10 / 11-21, same he+tr channels; style_draft dry run reported sourcePreserved=true.",
+  "notes": "Both parts were published-current as bottom lower thirds but failed server fit (panel 508px / 465px vs 360px limit), i.e. too tall as lower thirds. Per catalog rule (left if any part is too tall as a lower third) moved both to left / blocks / comfortable / paragraphs. Neither part has an accent title (accentTitle null); left as-is. The Shabbat Aleinu 1-4 family uses unpointed accent עלינו; this is a separate Slichot family, so no alignment applied (flagged for main thread).",
+  "at": "2026-09-23",
+  "graphics": [
+    {
+      "draftId": "a0062802-ff01-4a0a-95f8-5d8006260a10",
+      "name": "aleinu bot 1",
+      "draftVersion": 3,
+      "previewId": "e6473382-d399-465b-8900-33ca4cf013af",
+      "cueHash": "7bc55ace331fe0c4dfc334c7771790bfc7d444eb7a6096959a44a21b3a79242d",
+      "fit": { "verdict": "pass", "fill": 0.9711067399049881 },
+      "imageInspected": "Title Aleinu 1, Siona medallion, Hebrew block then transliteration block fully inside the left panel at comfortable size; no dangling separators, nothing duplicated or missing.",
+      "revision": 2
+    },
+    {
+      "draftId": "af1cb97f-b8ba-49d3-b338-85896cd56778",
+      "name": "aleinu bot 2",
+      "draftVersion": 3,
+      "previewId": "32bbabc7-fb30-4bb1-8855-cd5784dbe9ed",
+      "cueHash": "d7c74082cf5acefa321e689bf1287b02d095227f770833f25f69e2c8393bf202",
+      "fit": { "verdict": "pass", "fill": 0.9033551068883611 },
+      "imageInspected": "Title Aleinu 2, Siona medallion, Hebrew block then transliteration block fully inside the left panel at comfortable size; no dangling separators, nothing duplicated or missing.",
+      "revision": 2
+    }
+  ]
+}

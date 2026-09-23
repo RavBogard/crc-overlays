@@ -1,0 +1,31 @@
+{
+  "family": "Un'taneh Tokef (English)",
+  "status": "verified-current",
+  "kind": "original",
+  "layout": "left",
+  "approvalBasis": "No republish; published version is the current version.",
+  "notes": "Packet 12. Review only. English-only left panels, version 1 == activeVersion 1. Eng 2 gets a 'Sparse - consider Lower third' advisory (fill 0.342) but verdict pass; kept left to match Eng 1 (one layout per multi-part piece). Neither has an accent title while the Hebrew/transliteration Un'taneh Tokef drafts do; left as-is since the queue lists them as a separate family with no concerns. Flag if the main thread wants them aligned.",
+  "at": "2026-09-23",
+  "graphics": [
+    {
+      "draftId": "e65f11e3-0b36-4b77-9e45-32e3e42dc360",
+      "name": "Unetane (Eng) 1",
+      "draftVersion": 1,
+      "previewId": "dd100fda-20d0-4ff0-a8a3-ca243e10a7eb",
+      "cueHash": "7b711735507cc62c40242159b013cad2da3f161cbaf39454e3a8de8653650e8f",
+      "fit": { "verdict": "pass", "fill": 0.6313 },
+      "imageInspected": "Title 'Un'taneh Tokef', English paragraph fully inside the left panel, readable.",
+      "sourceCheck": "No change (block 12, English)."
+    },
+    {
+      "draftId": "70e1c226-3fb4-4213-8d31-e55e6587f663",
+      "name": "Unetane (Eng) 2",
+      "draftVersion": 1,
+      "previewId": "997de608-bfdc-444c-8d6f-d087ca053b58",
+      "cueHash": "9e443f88486c554c1c6be7e8275de74b5982a6ba5ef981e7240e2a1ac9451600",
+      "fit": { "verdict": "pass", "fill": 0.3418, "warnings": ["Sparse - consider Lower third"] },
+      "imageInspected": "Title 'Un'taneh Tokef', short English paragraph inside the left panel, readable; panel mostly empty.",
+      "sourceCheck": "No change (block 13, English)."
+    }
+  ]
+}

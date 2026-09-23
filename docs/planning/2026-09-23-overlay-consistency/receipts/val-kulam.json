@@ -1,0 +1,16 @@
+{
+  "draftId": "1620ebcc-b77d-40d6-b7f3-7005493576c9",
+  "name": "Ve'Al Kulam",
+  "status": "verified-current",
+  "kind": "original",
+  "layout": "bottom",
+  "draftVersion": 2,
+  "previewId": "bfd05da3-fce2-4113-bb6b-13398a42eea1",
+  "cueHash": "8bf1a92444df6debc266519f8bc0e3f49d8ff2dd2799aa52ae8592cac2510164",
+  "fit": { "verdict": "pass", "fill": 0.5083 },
+  "imageInspected": "Title 'V'al Kulam', Hebrew and transliteration inside the lower third and readable; the Hebrew wraps at the maqaf, so 'kaper-' ends line 1 and 'lanu' sits alone on line 2.",
+  "sourceCheck": "No change (blocks 19, 20 of amidah.al-cheit).",
+  "approvalBasis": "No republish; version 2 == activeVersion 2.",
+  "notes": "Packet 12. Review only. Maqaf wrap is cosmetic and comes from the source text.",
+  "at": "2026-09-23"
+}

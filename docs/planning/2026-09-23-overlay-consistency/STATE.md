@@ -31,6 +31,12 @@ built from Michael's operating logic, bound only to final published cue IDs.
 - Packet 11 answers: Miryam Han'viah accent title corrected to the source's own spelling
   (revision 3); Sacred Assembly mid-line capitals accepted (exact source text, shared paragraphs
   default kept); Kol Nidre 2/3 skip blocks 14/23 intentionally (English-only translation blocks).
+- Packet 12 answers: Sim Shalom 5b76564f (Shabbat Morning) is its own graphic, not part of the
+  RH Sim Shalom 1-4 series; 1-4 take the shared left-panel defaults only if all four fit at
+  comfortable size (else keep their arrangement). The generic accent "תְּפִלָּה" on Sim Shalom 1-4 and
+  Remember Us is accepted. English-only Un'taneh Tokef graphics stay without a Hebrew accent (no
+  label is added where none existed). Source oddities (bracketed "[v'al]", repeated refrains, Vidui
+  "Avinu" for עָוִינוּ, which is a correct transliteration) stay exact source text.
 - Authorization basis for every review: Daniel's blanket approval of graphic publication and paired
   deployment (handoff 2026-09-23); never a claim that Daniel inspected each graphic.
 
