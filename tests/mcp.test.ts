@@ -14,7 +14,7 @@ test('MCP initializes over Streamable HTTP and exposes authoring tools without w
  assert.equal(initialized.status,200);const initBody=await payload(initialized) as {result?:{serverInfo?:{name?:string}}};assert.equal(initBody.result?.serverInfo?.name,'CRC Overlay Authoring');
  const listed=await handler.fetch(request({jsonrpc:'2.0',id:2,method:'tools/list',params:{}}),{authInfo});
  assert.equal(listed.status,200);const listBody=await payload(listed) as {result?:{tools?:{name:string}[]}};const names=listBody.result?.tools?.map(tool=>tool.name)??[];
- assert.ok(names.includes('list_templates'));assert.ok(names.includes('import_cue'));assert.ok(names.includes('publish_draft'));assert.ok(names.includes('review_draft'));assert.ok(!names.some(name=>name.includes('control')));
+ assert.ok(names.includes('list_templates'));assert.ok(names.includes('import_cue'));assert.ok(names.includes('split_draft_into_set'));assert.ok(names.includes('publish_draft'));assert.ok(names.includes('review_draft'));assert.ok(!names.some(name=>name.includes('control')));
  assert.deepEqual(calls,[]);
 });
 

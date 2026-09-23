@@ -1,6 +1,6 @@
 import {randomUUID} from 'node:crypto';
 import type {Cue} from './player';
-import {AuthoringError,assertSourcePin,baselineCues,buildCue,cueHash,draftSetSelections,editableFromBaseline,newDraftId,normalizeGraphicName,parseEditable,previewValidation,resolveSourceBoundaries,sameStructuredValue,sourceBlockFor,sourcePack,sourcePinFor,sourceReferences,sourceSnapshotsFor,type AuthoringCue,type Draft,type DraftContent,type DraftSetSelection,type EditableDraft,type Layout,type LocalVariantOverride,type VariantChannel,type SourceBlock,type SharedCueUpstream} from './authoring-model';
+import {AuthoringError,assertSourcePin,baselineCues,buildCue,cueHash,draftSetSelections,editableFromBaseline,newDraftId,normalizeGraphicName,parseEditable,previewValidation,resolveSourceBoundaries,sameStructuredValue,sourceBlockFor,sourcePack,sourcePinFor,sourceReferences,sourceSnapshotsFor,type AuthoringCue,type BilingualContent,type CanonicalContent,type Draft,type DraftContent,type DraftSetSelection,type EditableDraft,type Layout,type LocalVariantContent,type LocalVariantOverride,type VariantChannel,type SourceBlock,type SharedCueUpstream} from './authoring-model';
 import {compactDraftCatalog,type DraftCatalogInput} from './draft-catalog';
 import {planDraftStyle,type DraftStyleOptions,type DraftStylePlan} from './authoring-style';
 import {withCreateDefaultBilingualBlocks} from './authoring-defaults';
@@ -106,6 +106,9 @@ function sourceSetSegments(source:SearchSource,mode:'bilingual'|'original-en'|'s
 }
 function sourceSetPages(source:SearchSource,mode:'bilingual'|'original-en'|'source-en',includeTranslation:boolean,layout:Layout){
  const segments=sourceSetSegments(source,mode,includeTranslation);
+ return sourceSetPagesFromSegments(source,segments,mode,includeTranslation,layout);
+}
+function sourceSetPagesFromSegments(source:SearchSource,segments:SourceBlock[][],mode:'bilingual'|'original-en'|'source-en',includeTranslation:boolean,layout:Layout){
  // A translated slide keeps its whole authorized pair; only an untranslated lower third splits to one block a slide.
  if(layout==='bottom')return includeTranslation?segments:segments.flatMap(segment=>segment.map(block=>[block]));
  const characterBudget=panelCharacterBudget(mode);
@@ -118,6 +121,38 @@ function sourceSetPages(source:SearchSource,mode:'bilingual'|'original-en'|'sour
  }
  if(page.length)pages.push(page);
  return pages;
+}
+
+function splitDraftSetSegments(content:CanonicalContent,snapshots:Draft['sourceSnapshots']){
+ const references=sourceReferences(content,snapshots),sourceIds=[...new Set(references.map(reference=>reference.sourceId))];
+ if(sourceIds.length!==1)throw new AuthoringError('mixed_source_selection','A multipart split can only preserve one selected source at a time',409);
+ const sourceId=sourceIds[0];if(!sourceId)throw new AuthoringError('split_source_required','This draft has no selected source blocks to split',409);
+ const snapshot=snapshots?.find(source=>source.id===sourceId);if(!snapshot)throw new AuthoringError('split_snapshot_missing','This draft has no retained source snapshot for its selection',409);
+ const source=resolveSourceBoundaries(snapshot) as SearchSource;
+ if(content.mode!=='bilingual'){
+  const blocks=content.englishGroups.flatMap(group=>group.blockIds.map(blockId=>sourceBlockFor(sourceId,blockId,[source])));
+  if(!blocks.length)throw new AuthoringError('split_source_required','This draft has no selected source blocks to split',409);
+  return {sourceId,source,segments:blocks.map(block=>[block]),mode:content.mode,includeTranslation:false};
+ }
+ const selected=content.hebrewGroups.flatMap(group=>group.blockIds.map(blockId=>sourceBlockFor(sourceId,blockId,[source])));
+ if(!selected.length)throw new AuthoringError('split_source_required','This draft has no selected source blocks to split',409);
+ if(!content.includeTranslation)return {sourceId,source,segments:selected.map(block=>[block]),mode:content.mode,includeTranslation:false};
+ const translations=source.blocks.filter(block=>block.kind==='translation-en');const segments:SourceBlock[][]=[];
+ for(let offset=0;offset<selected.length;){
+  const match=translations.find(block=>block.pairedBlockIds?.[0]===selected[offset].id),ids=match?.pairedBlockIds;
+  if(!ids?.length||ids.length>PANEL_BLOCK_LIMIT||selected.slice(offset,offset+ids.length).length!==ids.length||ids.some((id,index)=>selected[offset+index]?.id!==id))throw new AuthoringError('partial_translation','The selected draft does not contain complete ordered translation pairs',409);
+  segments.push(selected.slice(offset,offset+ids.length));offset+=ids.length;
+ }
+ return {sourceId,source,segments,mode:content.mode,includeTranslation:true};
+}
+
+function splitDraftContent(content:DraftContent,sourceId:string,blocks:SourceBlock[]):DraftContent{
+ const variant=content.mode==='local-variant'?content:null,base=(variant?.base??content) as CanonicalContent;
+ const blockIds=blocks.map(block=>block.id),groups=base.mode==='bilingual'?[{sourceId,blockIds}]:blockIds.map(blockId=>({sourceId,blockIds:[blockId]}));
+ const pageBase:CanonicalContent=base.mode==='bilingual'?{mode:'bilingual',hebrewGroups:groups,transliterationGroups:structuredClone(groups),...(base.includeTranslation?{includeTranslation:true}:{}),...(base.layers?{layers:structuredClone(base.layers)}:{}),...(base.arrangement?{arrangement:base.arrangement}:{})}:{mode:base.mode,englishGroups:groups};
+ if(!variant)return pageBase;
+ const selected=new Set(blockIds),overrides=variant.overrides.filter(override=>override.sourceId===sourceId&&selected.has(override.blockId));
+ return overrides.length?{mode:'local-variant',label:variant.label,...(variant.reason?{reason:variant.reason}:{}),base:pageBase,overrides:structuredClone(overrides)}:pageBase;
 }
 
 // R6 - a library name identifies one graphic. Two graphics that read the same are a
@@ -332,10 +367,24 @@ export function createAuthoringService(repo:AuthoringRepository,workspace:Author
     const editable=parseEditable({name:`${source.name} — ${String(index+1).padStart(width,'0')} of ${String(count).padStart(width,'0')}`,title:source.name,layout,templateCueId,content:withCreateDefaultBilingualBlocks(content),presentation:{}}) as EditableDraft;
     const sourceSnapshots=[structuredClone(canonicalSource)];return {...editable,id:newDraftId(),version:1,sourcePin:sourcePinFor(editable.content,sourceSnapshots),sourceSnapshots,activeRevision:null,activeDraftVersion:null,createdAt:now,updatedAt:now,createdBy:who,updatedBy:who,draftSetId:setId,setIndex:index+1,setCount:count} satisfies Draft;
    });
-   const draftSetManifest={version:1 as const,selections:drafts.flatMap(draft=>draftSetSelections(draft.content,draft.sourceSnapshots))};drafts=drafts.map(draft=>({...draft,draftSetManifest:structuredClone(draftSetManifest)}));
-   const inserted=await repo.insertDraftSet(drafts);return {drafts:inserted,set:{id:setId,name:source.name,count,draftIds:inserted.map(draft=>draft.id)}};
-  }
-  if(operation==='create_draft'){
+  const draftSetManifest={version:1 as const,selections:drafts.flatMap(draft=>draftSetSelections(draft.content,draft.sourceSnapshots))};drafts=drafts.map(draft=>({...draft,draftSetManifest:structuredClone(draftSetManifest)}));
+  const inserted=await repo.insertDraftSet(drafts);return {drafts:inserted,set:{id:setId,name:source.name,count,draftIds:inserted.map(draft=>draft.id)}};
+ }
+ if(operation==='split_draft_into_set'){
+  keys(data,['draftId','expectedVersion']);const draftId=string(data.draftId,'draftId'),expectedVersion=integer(data.expectedVersion,'expectedVersion',1);const original=await requiredDraft(repo,draftId);
+  if(original.version!==expectedVersion)throw conflict();if(original.archivedAt)throw new AuthoringError('draft_archived','Restore this draft before splitting it',409);if(original.draftSetId)throw new AuthoringError('already_multipart','This draft is already a multipart set member',409);
+  const origin={draftId,draftVersion:expectedVersion};const existing=(await repo.listDrafts()).filter(draft=>draft.splitFrom?.draftId===draftId&&draft.splitFrom.draftVersion===expectedVersion&&!draft.archivedAt).sort((a,b)=>(a.setIndex??0)-(b.setIndex??0));
+  if(existing.length){const setId=existing[0].draftSetId;if(setId&&existing.every(draft=>draft.draftSetId===setId)&&existing.length===existing[0].setCount&&existing.every((draft,index)=>draft.setIndex===index+1))return {drafts:existing,set:{id:setId,name:original.name,count:existing.length,draftIds:existing.map(draft=>draft.id)},splitFrom:origin,reused:true};throw new AuthoringError('split_retry_incomplete','A prior split attempt is incomplete; inspect the multipart drafts before retrying',409)}
+  if(original.content.mode==='custom')throw new AuthoringError('split_source_required','Only source-backed drafts can be split into a source-preserving set',409);
+  const base=original.content.mode==='local-variant'?original.content.base:original.content;const {sourceId,source,segments,mode,includeTranslation}=splitDraftSetSegments(base,original.sourceSnapshots);assertSourcePin(original);const pages=sourceSetPagesFromSegments(source,segments,mode,includeTranslation,original.layout);
+  if(pages.length<2)throw new AuthoringError('split_not_needed','The selected draft already fits in one source-preserving page',409);
+  const setId=randomUUID(),count=pages.length,width=Math.max(2,String(count).length),now=Date.now();let drafts=pages.map((page,index)=>{
+   const content=splitDraftContent(original.content,sourceId,page),editable=parseEditable({name:`${original.name} — ${String(index+1).padStart(width,'0')} of ${String(count).padStart(width,'0')}`,title:original.title,...(original.accentTitle?{accentTitle:original.accentTitle}:{}),layout:original.layout,templateCueId:original.templateCueId,content,presentation:structuredClone(original.presentation)},false,original.sourceSnapshots) as EditableDraft;
+   const sourceSnapshots=structuredClone(original.sourceSnapshots);return {...editable,id:newDraftId(),version:1,sourcePin:sourcePinFor(editable.content,sourceSnapshots,original.sourcePin.feedSha256),sourceSnapshots,activeRevision:null,activeDraftVersion:null,createdAt:now,updatedAt:now,createdBy:who,updatedBy:who,draftSetId:setId,setIndex:index+1,setCount:count,splitFrom:origin} satisfies Draft;
+  });
+  const draftSetManifest={version:1 as const,selections:drafts.flatMap(draft=>draftSetSelections(draft.content,draft.sourceSnapshots))};drafts=drafts.map(draft=>({...draft,draftSetManifest:structuredClone(draftSetManifest)}));const inserted=await repo.insertDraftSet(drafts);return {drafts:inserted,set:{id:setId,name:original.name,count,draftIds:inserted.map(draft=>draft.id)},splitFrom:origin,reused:false};
+ }
+ if(operation==='create_draft'){
    const rawContent=object(data.content,'content'),rawBase=rawContent.mode==='local-variant'?object(rawContent.base,'content.base'):rawContent,explicitArrangement=Object.hasOwn(rawBase,'arrangement');const parsed=parseEditable(data) as EditableDraft;const editable=explicitArrangement?parsed:{...parsed,content:withCreateDefaultBilingualBlocks(parsed.content)};const sourceSnapshots=sourceSnapshotsFor(editable.content);const now=Date.now(); const draft:Draft={...editable,id:newDraftId(),version:1,sourcePin:sourcePinFor(editable.content,sourceSnapshots),...(sourceSnapshots.length?{sourceSnapshots}:{}),activeRevision:null,activeDraftVersion:null,createdAt:now,updatedAt:now,createdBy:who,updatedBy:who};
    const warnings=await duplicateNameWarnings(draft);
    return {draft:await repo.insertDraft(draft),warnings};

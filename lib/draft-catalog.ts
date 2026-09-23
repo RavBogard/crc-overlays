@@ -1,4 +1,4 @@
-import {sourcePack,textLayers,type Draft,type DraftContent,type Layout,type Presentation,type TextLayer} from './authoring-model';
+import {resolveSourceBoundaries,sourcePack,textLayers,type Draft,type DraftContent,type Layout,type Presentation,type TextLayer} from './authoring-model';
 
 export type DraftCatalogInput={
  query?:string;
@@ -44,7 +44,7 @@ function sourceIds(draft:Draft){
 
 function sourceMetadata(draft:Draft){
  const snapshots=draft.sourceSnapshots??[];
- return [...new Set(sourceIds(draft))].map(id=>snapshots.find(source=>source.id===id)??canonicalSources.get(id)).filter((source):source is NonNullable<typeof source>=>Boolean(source));
+ return [...new Set(sourceIds(draft))].map(id=>snapshots.find(source=>source.id===id)??canonicalSources.get(id)).filter((source):source is NonNullable<typeof source>=>Boolean(source)).map(source=>resolveSourceBoundaries(source));
 }
 
 const channelOrder:TextLayer[]=['he','tr','en'];

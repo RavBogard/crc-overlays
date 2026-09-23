@@ -60,7 +60,8 @@ export type SharedCueUpstream={layout:Layout;texts:Record<string,string>;content
 export type SharedCueOrigin={workspaceId:'crc';cueId:string;cueHash:string;importedAt?:number;upstream?:SharedCueUpstream};
 export type DraftSetSelection={sourceId:string;blockId:string;channels:VariantChannel[]};
 export type DraftSetManifest={version:1;selections:DraftSetSelection[]};
-export type Draft=EditableDraft&{id:string;version:number;sourcePin:SourcePin;activeRevision:number|null;activeDraftVersion:number|null;createdAt:number;updatedAt:number;createdBy:string;updatedBy:string;draftSetId?:string;setIndex?:number;setCount?:number;draftSetManifest?:DraftSetManifest;sourceSnapshots?:AuthoringSource[];sharedFrom?:SharedCueOrigin;archivedAt?:number;archivedBy?:string};
+export type DraftSplitOrigin={draftId:string;draftVersion:number};
+export type Draft=EditableDraft&{id:string;version:number;sourcePin:SourcePin;activeRevision:number|null;activeDraftVersion:number|null;createdAt:number;updatedAt:number;createdBy:string;updatedBy:string;draftSetId?:string;setIndex?:number;setCount?:number;draftSetManifest?:DraftSetManifest;splitFrom?:DraftSplitOrigin;sourceSnapshots?:AuthoringSource[];sharedFrom?:SharedCueOrigin;archivedAt?:number;archivedBy?:string};
 export type AuthoringCue=Cue&{presentation?:Presentation;authoring:{draftId:string;draftVersion:number;origin:'canonical'|'variant'|'local';sourceIds:string[];feedSha256:string;unitSha256:Record<string,string>;sourceAuthority?:Record<string,SourceAuthorityPin>;copySpec?:SharedCueCopySpec}};
 export type SourcePack={schemaVersion:number;authority:{repository:string;repositoryCommit:string;feed:string;feedSha256:string;license:unknown;printing:unknown};sources:AuthoringSource[];authorities?:unknown[];library?:unknown};
 
