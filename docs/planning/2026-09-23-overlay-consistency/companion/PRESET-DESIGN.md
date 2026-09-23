@@ -6,7 +6,8 @@ and the decisions that belong to Daniel or Michael are in [OPEN-QUESTIONS.md](OP
 Evidence: the original export `ProductionDSKTP-2026-09-16-source.companionconfig` (Companion 5.0.3, 99 pages,
 two Stream Deck XL surfaces, 8×4 grid; read through a script that drops every connection `config`) and the
 live catalog (MCP `list_drafts`: 236 non-archived drafts, every one with a published revision; plus
-`list_archived_drafts`, 43 drafts).
+`list_archived_drafts`, 43 drafts). Three corner cards published later the same day were added by hand
+(239 non-archived; see `addedAfterSnapshot` in the catalog snapshot).
 
 ## Goals
 1. Follow the service in order. Each page is one stretch of a service. Columns read left to right in
@@ -53,6 +54,12 @@ and c7 but have no camera column.
     only, with no Center preset, exactly as the original did.
   - These buttons keep the `bank_current_step` feedback so the operator can see which step is next.
   - There are 20 such bindings, listed with their presets in CUE-MANIFEST `cameraGesture`.
+- **Corner cards** (added 2026-09-23): three short graphics published in the small bottom-right `corner`
+  layout (640×200): El Na R'fa Na, V'imru Amen and Thank You. Each is a standard one-step `toggle_cue`
+  button in its role colour, labelled with the piece and ◢, placed in a free cell beside the full-size key:
+  El Na R'fa Na ◢ on 8 and 15 (r3c2) and 23 (r1c5); V'imru Amen ◢ on 8 and 15 (r3c4, under Kaddish 2/2);
+  Thank You ◢ on 1 (r3c4), 9 (r1c5) and 16 (r1c4). No HHD page has a free cell directly under its Kaddish
+  buttons, and Anytime (3) has no free cell outside the fixed columns, so neither carries them yet.
 
 ## Colour legend (role, never piece)
 | Tag | Role | Background |
@@ -62,6 +69,7 @@ and c7 but have no camera column.
 | N | Announcement, names, readers, furniture (Starting Soon, Thank You, BRB) | navy #000066 |
 | ·alt | Alternative version of the same slot. It keeps its role colour (no invented alternate colour); the label names the version | as its role |
 | ·cam | Camera gesture attached (see above) | as its role |
+| ·corner | Corner card: the same piece as a small bottom-right card (640×200); the label ends in ◢ | as its role |
 | C / M | Camera merge (with vMix `inputLive` tally feedback) / Merge PVW→PGM | blue #003399 / orange #cc6500 |
 | O / X / L | Animate out / Clear now / Logo | black #000000 / dark red #780000 / charcoal #242424 |
 | K / J | Navigation / jump to another page | black #000000, white text |
@@ -101,7 +109,7 @@ Service chooser, stream start/stop, quick people graphics.
 | r0 | Friday ▸ [J→4] | Holy Days ▸ [J→19] | Cameras ▸ [J→30] | No-prod Start Stream [D] | Security Cam [D] | Guest Speaker [N] | Animate out [O] | · |
 | r1 | Shabbat AM ▸ [J→10] | Kol Nidre · Neilah ▸ [J→24] | Devices ▸ [J→29] | No-prod End Stream [D] | Booth Mic Mute [D] | Starting Soon [N] | Clear now [X] | Home · page name [K] |
 | r2 | B'nai Mitzvah ▸ [J→17] | Memorial ▸ [J→26] | AV / Stream ▸ [J→52] | Start HHD Stream [D] | Refresh catalog [D] | Announcements [N] | Logo on/off [L] | · |
-| r3 | Havdalah ▸ [J→18] | Anytime ▸ [J→3] | Output & Audio ▸ [J→2] | Music Rec [D] | · | Thank You [N] | Be Right Back [N] | Bimah Mute [P] |
+| r3 | Havdalah ▸ [J→18] | Anytime ▸ [J→3] | Output & Audio ▸ [J→2] | Music Rec [D] | Thank You ◢ [N·corner] | Thank You [N] | Be Right Back [N] | Bimah Mute [P] |
 
 #### 2 · Output & Audio
 Every output recovery and audio control in one place.
@@ -171,7 +179,7 @@ Healing, Aleinu, Mourner’s Kaddish, Adon Olam. Prev → 7, Next → 9.
 | r0 | Center cam 1 [C] | Healing Names [N] | R'fa Tziri 1/2 [T] | Aleinu 1/4 [T] | Kaddish Names [N] | Adon Olam 1/3 [T] | Animate out [O] | ◂ Prev [K] |
 | r1 | Left cam 2 [C] | Mi Sheberach [B·cam] | R'fa Tziri 2/2 [T] | Aleinu 2/4 [T] | Kaddish 1/2 [T] | Adon Olam 2/3 [T] | Clear now [X] | Home · page name [K] |
 | r2 | Right cam 3 [C] | Mi Sheb · Jim [B·alt] | Olam Chesed Yibaneh [B] | Aleinu 3/4 [T] | Kaddish 2/2 [T] | Adon Olam 3/3 [T] | Logo on/off [L] | Next ▸ [K] |
-| r3 | Merge PVW→PGM [M] | El Na R'fa Na [B] | · | Aleinu 4/4 [T] | · | Priestly Blessing [B] | Be Right Back [N] | Bimah Mute [P] |
+| r3 | Merge PVW→PGM [M] | El Na R'fa Na [B] | El Na R'fa Na ◢ [B·corner] | Aleinu 4/4 [T] | V'imru Amen ◢ [B·corner] | Priestly Blessing [B] | Be Right Back [N] | Bimah Mute [P] |
 
 #### 9 · Fri 6
 Kiddush, Motzi, announcements, thank you. Prev → 8, Next → Home.
@@ -179,7 +187,7 @@ Kiddush, Motzi, announcements, thank you. Prev → 8, Next → Home.
 | | c0 | c1 | c2 | c3 | c4 | c5 | c6 | c7 |
 |---|---|---|---|---|---|---|---|---|
 | r0 | Center cam 1 [C] | Kiddush 1/2 [T] | Kiddush Shirei 1/2 [T·alt] | Motzi [B] | Announcements [N] | · | Animate out [O] | ◂ Prev [K] |
-| r1 | Left cam 2 [C] | Kiddush 2/2 [T] | Kiddush Shirei 2/2 [T·alt] | Shehechiyanu [B] | Thank You [N] | · | Clear now [X] | Home · page name [K] |
+| r1 | Left cam 2 [C] | Kiddush 2/2 [T] | Kiddush Shirei 2/2 [T·alt] | Shehechiyanu [B] | Thank You [N] | Thank You ◢ [N·corner] | Clear now [X] | Home · page name [K] |
 | r2 | Right cam 3 [C] | Kiddush (short) [B·short] | · | Mazel Tov [N] | · | · | Logo on/off [L] | Next ▸ [K] |
 | r3 | Merge PVW→PGM [M] | Wine blessing [B·short] | · | · | · | · | Be Right Back [N] | Bimah Mute [P] |
 
@@ -241,7 +249,7 @@ Healing, Aleinu, Mourner’s Kaddish, Adon Olam. Prev → 14, Next → 16.
 | r0 | Center cam 1 [C] | Healing Names [N] | R'fa Tziri 1/2 [T] | Aleinu 1/4 [T] | Kaddish Names [N] | Adon Olam 1/3 [T] | Animate out [O] | ◂ Prev [K] |
 | r1 | Left cam 2 [C] | Mi Sheberach [B] | R'fa Tziri 2/2 [T] | Aleinu 2/4 [T] | Kaddish 1/2 [T] | Adon Olam 2/3 [T] | Clear now [X] | Home · page name [K] |
 | r2 | Right cam 3 [C] | Mi Sheb · Jim [B·alt] | · | Aleinu 3/4 [T] | Kaddish 2/2 [T] | Adon Olam 3/3 [T] | Logo on/off [L] | Next ▸ [K] |
-| r3 | Merge PVW→PGM [M] | El Na R'fa Na [B] | · | Aleinu 4/4 [T] | · | Priestly Blessing [B] | Be Right Back [N] | Bimah Mute [P] |
+| r3 | Merge PVW→PGM [M] | El Na R'fa Na [B] | El Na R'fa Na ◢ [B·corner] | Aleinu 4/4 [T] | V'imru Amen ◢ [B·corner] | Priestly Blessing [B] | Be Right Back [N] | Bimah Mute [P] |
 
 #### 16 · Sat 7
 Kiddush, Motzi, celebration, closing. Prev → 15, Next → Home.
@@ -249,7 +257,7 @@ Kiddush, Motzi, celebration, closing. Prev → 15, Next → Home.
 | | c0 | c1 | c2 | c3 | c4 | c5 | c6 | c7 |
 |---|---|---|---|---|---|---|---|---|
 | r0 | Center cam 1 [C] | Kiddush (short) [B·short] | Motzi [B] | Announcements [N] | · | · | Animate out [O] | ◂ Prev [K] |
-| r1 | Left cam 2 [C] | Sat Kiddush 1/3 [T·alt] | Shehechiyanu [B] | Thank You [N] | · | · | Clear now [X] | Home · page name [K] |
+| r1 | Left cam 2 [C] | Sat Kiddush 1/3 [T·alt] | Shehechiyanu [B] | Thank You [N] | Thank You ◢ [N·corner] | · | Clear now [X] | Home · page name [K] |
 | r2 | Right cam 3 [C] | Sat Kiddush 2/3 [T·alt] | Mazel Tov [N] | Guest name [N] | · | · | Logo on/off [L] | Next ▸ [K] |
 | r3 | Merge PVW→PGM [M] | Sat Kiddush 3/3 [T·alt] | · | · | · | · | Be Right Back [N] | Bimah Mute [P] |
 
@@ -319,7 +327,7 @@ Torah, Haftarah, Shofar, healing. Prev → 22, Next → 24.
 | | c0 | c1 | c2 | c3 | c4 | c5 | c6 | c7 |
 |---|---|---|---|---|---|---|---|---|
 | r0 | Center cam 1 [C] | Taking out · Sh’ma [B] | Before Haftarah [B] | Shofar Blessing [B] | Healing Names [N] | · | Animate out [O] | ◂ Prev [K] |
-| r1 | Left cam 2 [C] | Before Torah [B] | After Haftarah 1/3 [T] | Zichronot [B] | El Na R'fa Na [B] | · | Clear now [X] | Home · page name [K] |
+| r1 | Left cam 2 [C] | Before Torah [B] | After Haftarah 1/3 [T] | Zichronot [B] | El Na R'fa Na [B] | El Na R'fa Na ◢ [B·corner] | Clear now [X] | Home · page name [K] |
 | r2 | Right cam 3 [C] | After Torah [B] | After Haftarah 2/3 [T] | Shofarot [B] | Concluding T'filah [B] | · | Logo on/off [L] | Next ▸ [K] |
 | r3 | Merge PVW→PGM [M] | Mi Sheberach [B] | After Haftarah 3/3 [T] | Eitz Chayim [B] | Guest name [N] | · | Be Right Back [N] | Bimah Mute [P] |
 

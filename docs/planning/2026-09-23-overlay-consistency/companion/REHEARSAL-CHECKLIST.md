@@ -43,7 +43,8 @@ touches the stream or the audio.
 | C7 | Output & Audio → Logo ON / Logo OFF | Same as C6 |
 | C8 | Be Right Back (column 6, bottom), pressed twice | In, then out |
 | C9 | Spot-check one key on each service page 3–26 against MANIFEST.md | The graphic on screen matches the label |
-| C10 | Stop the vMix browser input for 30 s | Graphics keys turn dark red. They recover when it returns |
+| C10 | Corner cards, with the logo on: Fri 5 → El Na R'fa Na ◢ and V'imru Amen ◢, Home → Thank You ◢; press each twice | Each is a small card in the bottom-right corner, not a lower third. The corner logo hides while it is up and returns after it goes out. The ◢ on the key renders (not a box) |
+| C11 | Stop the vMix browser input for 30 s | Graphics keys turn dark red. They recover when it returns |
 
 ## D. Cameras and vMix (Michael, Daniel watches program)
 | # | Step | Expected result |

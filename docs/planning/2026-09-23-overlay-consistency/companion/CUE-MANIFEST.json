@@ -1,6 +1,6 @@
 {
  "generatedAt": "2026-09-23",
- "source": "CRC Overlays MCP list_drafts (compact, all 5 pages, 236 non-archived drafts) + list_archived_drafts (43), read 2026-09-23",
+ "source": "CRC Overlays MCP list_drafts (compact, all 5 pages, 236 non-archived drafts) + list_archived_drafts (43), read 2026-09-23; plus 3 corner-layout drafts published later on 2026-09-23 (see catalog-snapshot addedAfterSnapshot)",
  "catalogEndpoint": "GET https://overlays.centralreform.org/api/catalog?include=slots returns 401 without the device token; not read.",
  "moduleActions": {
   "cueButtons": "toggle_cue (single-step) or show_cue + animate_out (two-step camera gesture)",
@@ -11,9 +11,9 @@
   ]
  },
  "counts": {
-  "publishedNonArchivedDrafts": 236,
-  "bindings": 431,
-  "uniqueCuesBound": 232,
+  "publishedNonArchivedDrafts": 239,
+  "bindings": 439,
+  "uniqueCuesBound": 235,
   "publishedButUnbound": 4,
   "cameraGestureBindings": 20
  },
@@ -29,6 +29,19 @@
    "cell": "r3c6",
    "label": "Be Right Back",
    "role": "utility"
+  },
+  {
+   "cueId": "d39673be-de53-4e3d-b450-4fa6ecb9a1cf",
+   "draftName": "Thank you (corner)",
+   "title": "Central Reform Congregation",
+   "layout": "corner",
+   "activeRevision": 1,
+   "page": 1,
+   "pageName": "Home",
+   "cell": "r3c4",
+   "label": "Thank You ◢",
+   "role": "announcement",
+   "note": "Corner card (small bottom-right, 640x200); published 2026-09-23, added after the catalog snapshot."
   },
   {
    "cueId": "bb52a63a-e892-4518-b7c2-a59e8ce730b9",
@@ -1816,6 +1829,19 @@
    "note": "Published revision 1 is English-only; the maintained Hebrew is missing and draft v2 is held (OLAM-CHESSED-SOURCE-DIAGNOSIS). Bound as published; see OPEN-QUESTIONS."
   },
   {
+   "cueId": "44ae41a4-8280-44ac-b016-b0cc81e0584f",
+   "draftName": "El Na R'fa Na (corner)",
+   "title": "El Na R'fa Na",
+   "layout": "corner",
+   "activeRevision": 1,
+   "page": 8,
+   "pageName": "Fri 5",
+   "cell": "r3c2",
+   "label": "El Na R'fa Na ◢",
+   "role": "single",
+   "note": "Corner card (small bottom-right, 640x200); published 2026-09-23, added after the catalog snapshot."
+  },
+  {
    "cueId": "67693694-1802-4262-9121-3ebc42a53bde",
    "draftName": "Aleinu 1",
    "title": "Aleinu",
@@ -1929,6 +1955,19 @@
     "index": 2,
     "count": 2
    }
+  },
+  {
+   "cueId": "b06f734d-99e4-46a9-84cd-29f17083f8dc",
+   "draftName": "V'imru Amen (corner)",
+   "title": "V’imru Amen",
+   "layout": "corner",
+   "activeRevision": 1,
+   "page": 8,
+   "pageName": "Fri 5",
+   "cell": "r3c4",
+   "label": "V'imru Amen ◢",
+   "role": "single",
+   "note": "Corner card (small bottom-right, 640x200); published 2026-09-23, added after the catalog snapshot."
   },
   {
    "cueId": "a4c86b16-6677-46b8-ad39-871a2fb81224",
@@ -2157,6 +2196,19 @@
    "cell": "r1c4",
    "label": "Thank You",
    "role": "announcement"
+  },
+  {
+   "cueId": "d39673be-de53-4e3d-b450-4fa6ecb9a1cf",
+   "draftName": "Thank you (corner)",
+   "title": "Central Reform Congregation",
+   "layout": "corner",
+   "activeRevision": 1,
+   "page": 9,
+   "pageName": "Fri 6",
+   "cell": "r1c5",
+   "label": "Thank You ◢",
+   "role": "announcement",
+   "note": "Corner card (small bottom-right, 640x200); published 2026-09-23, added after the catalog snapshot."
   },
   {
    "cueId": "8e486f11-e9f5-4c2e-bd5f-071707788c14",
@@ -3516,6 +3568,19 @@
    }
   },
   {
+   "cueId": "44ae41a4-8280-44ac-b016-b0cc81e0584f",
+   "draftName": "El Na R'fa Na (corner)",
+   "title": "El Na R'fa Na",
+   "layout": "corner",
+   "activeRevision": 1,
+   "page": 15,
+   "pageName": "Sat 6",
+   "cell": "r3c2",
+   "label": "El Na R'fa Na ◢",
+   "role": "single",
+   "note": "Corner card (small bottom-right, 640x200); published 2026-09-23, added after the catalog snapshot."
+  },
+  {
    "cueId": "67693694-1802-4262-9121-3ebc42a53bde",
    "draftName": "Aleinu 1",
    "title": "Aleinu",
@@ -3629,6 +3694,19 @@
     "index": 2,
     "count": 2
    }
+  },
+  {
+   "cueId": "b06f734d-99e4-46a9-84cd-29f17083f8dc",
+   "draftName": "V'imru Amen (corner)",
+   "title": "V’imru Amen",
+   "layout": "corner",
+   "activeRevision": 1,
+   "page": 15,
+   "pageName": "Sat 6",
+   "cell": "r3c4",
+   "label": "V'imru Amen ◢",
+   "role": "single",
+   "note": "Corner card (small bottom-right, 640x200); published 2026-09-23, added after the catalog snapshot."
   },
   {
    "cueId": "a4c86b16-6677-46b8-ad39-871a2fb81224",
@@ -3839,6 +3917,19 @@
    "cell": "r2c3",
    "label": "Guest name",
    "role": "announcement"
+  },
+  {
+   "cueId": "d39673be-de53-4e3d-b450-4fa6ecb9a1cf",
+   "draftName": "Thank you (corner)",
+   "title": "Central Reform Congregation",
+   "layout": "corner",
+   "activeRevision": 1,
+   "page": 16,
+   "pageName": "Sat 7",
+   "cell": "r1c4",
+   "label": "Thank You ◢",
+   "role": "announcement",
+   "note": "Corner card (small bottom-right, 640x200); published 2026-09-23, added after the catalog snapshot."
   },
   {
    "cueId": "8e486f11-e9f5-4c2e-bd5f-071707788c14",
@@ -5562,6 +5653,19 @@
    "cell": "r3c4",
    "label": "Guest name",
    "role": "announcement"
+  },
+  {
+   "cueId": "44ae41a4-8280-44ac-b016-b0cc81e0584f",
+   "draftName": "El Na R'fa Na (corner)",
+   "title": "El Na R'fa Na",
+   "layout": "corner",
+   "activeRevision": 1,
+   "page": 23,
+   "pageName": "HHD 5",
+   "cell": "r1c5",
+   "label": "El Na R'fa Na ◢",
+   "role": "single",
+   "note": "Corner card (small bottom-right, 640x200); published 2026-09-23, added after the catalog snapshot."
   },
   {
    "cueId": "8e486f11-e9f5-4c2e-bd5f-071707788c14",

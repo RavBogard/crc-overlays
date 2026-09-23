@@ -72,7 +72,25 @@ test('generator output passes the preset audit and is byte-deterministic', async
   for (const inst of Object.values(preset.instances)) assert.ok(!('config' in inst) && !('secrets' in inst))
   const { failures, summary } = await audit({ preset: a })
   assert.deepEqual(failures, [])
-  assert.equal(summary.cueIdsBound, 232)
+  assert.equal(summary.cueIdsBound, 235)
+  assert.equal(summary.cueIdsBound, manifest.counts.uniqueCuesBound)
+  assert.equal(summary.bindings, `${manifest.counts.bindings} (419 one-step, 20 camera gestures)`)
+  assert.equal(manifest.counts.bindings, 439)
+
+  // The three corner cards are one-step toggle_cue keys at their manifest cells, and the audit refuses a
+  // bound cue that the snapshot does not list as published.
+  const CORNER = ['44ae41a4-8280-44ac-b016-b0cc81e0584f', 'b06f734d-99e4-46a9-84cd-29f17083f8dc', 'd39673be-de53-4e3d-b450-4fa6ecb9a1cf']
+  const cornerCells = manifest.bindings.filter((x) => CORNER.includes(x.cueId)).map((x) => `${x.page}/${x.cell}`)
+  assert.deepEqual(cornerCells.sort(), ['1/r3c4', '15/r3c2', '15/r3c4', '16/r1c4', '23/r1c5', '8/r3c2', '8/r3c4', '9/r1c5'])
+  for (const x of manifest.bindings.filter((y) => CORNER.includes(y.cueId))) {
+    const [r, col] = parseCell(x.cell)
+    const acts = preset.pages[String(x.page)].controls[r][col].steps['0'].action_sets.down
+    assert.deepEqual(acts.map((act) => [act.definitionId, act.options.cue.value]), [['toggle_cue', x.cueId]])
+  }
+  const snapshot = JSON.parse(fs.readFileSync(path.join(path.dirname(DEFAULTS.manifest), 'catalog-snapshot-2026-09-23.json'), 'utf8'))
+  const noCorner = path.join(dir, 'snapshot-no-corner.json')
+  fs.writeFileSync(noCorner, JSON.stringify({ ...snapshot, drafts: snapshot.drafts.filter((d) => d.id !== CORNER[0]) }))
+  assert.match((await audit({ preset: a, snapshot: noCorner })).failures.join('\n'), new RegExp(`cue ${CORNER[0]} is not in the catalog snapshot`))
 
   // The audit catches broken navigation, credentials and a changed Bimah Mute.
   const broken = structuredClone(preset)

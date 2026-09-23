@@ -9,7 +9,7 @@ For Michael and Daniel. Written 2026-09-23. It covers these files:
 ## What the preset is
 The preset is a Companion 5.0.3 full-config file of the same format and version as the 16 September export: a
 gzip JSON file, version 12. It holds:
-- 56 pages (1–30 and 31–56; 27–28 are empty), with 1,452 keys
+- 56 pages (1–30 and 31–56; 27–28 are empty), with 1,460 keys
 - the 6 camera-loop triggers
 - the 6 custom variables they use
 

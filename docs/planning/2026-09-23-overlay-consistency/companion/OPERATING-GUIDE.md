@@ -63,6 +63,13 @@ The stream keys on Home are red, as they always were.
 - **Short selections** are deliberate extra keys, for example "Shiru (opening only)", "Mi Chamocha (short)" and
   "Kiddush (short)". They are not the start of a sequence.
 
+## Corner cards
+A key whose label ends in **◢** shows a small card in the bottom-right corner of the picture (640×200) instead of
+a full lower third. Use it for a short response that should not cover the room: **El Na R'fa Na ◢** (Fri 5, Sat 6
+and HHD 5), **V'imru Amen ◢** (Fri 5 and Sat 6, under Kaddish 2/2) and **Thank You ◢** (Home, Fri 6 and Sat 7).
+Each sits next to the full-size key for the same piece. It behaves like any other graphics key: one press in,
+one press out. The resting corner logo hides while a corner card is up and comes back when the card goes out.
+
 ## Camera gestures (Friday pages only)
 These keys are the Friday pieces you had on your old pages 76–78: Candle Blessing, Hareini, Mah Tovu,
 Shalom Aleichem, L'cha Dodi, Bar'chu, Sh'ma, V'ahavta, Mi Chamocha, Siyahamba, Hashkiveinu, V'shamru,

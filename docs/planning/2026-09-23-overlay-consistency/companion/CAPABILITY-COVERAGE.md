@@ -10,6 +10,10 @@ The export holds 101 distinct (connection, action) rows. In the new design:
 - **8 are replaced.** These are the Singular overlay actions; CRC Overlays module actions do the same job.
 - **2 are intentionally dropped.**
 
+The audit counts the same inventory as 92 distinct (connection, definition) pairs (actions and feedbacks):
+82 present, 8 Singular replaced, 2 dropped. On the cue side the preset binds 235 published cues in 439 cue
+keys on pages 1–26 (CUE-MANIFEST), including the three corner cards added on 2026-09-23 (below).
+
 Page numbers in "New location" are the new page numbers from PRESET-DESIGN. "Carried" means the whole
 device page is kept with its grid (31–56).
 
@@ -67,6 +71,7 @@ Count = total entries; dis = entries already disabled in the original.
 | Special | animateIn 64/1 · animateOut 63/1 | `toggle_cue`: Starting Soon 0cd20c42 ("Start soon right"), Guest name bb52a63a, Student name / Student names (two lines), Torah and Haftarah reading 1–7 / 1–3, Remember Them 1–3, Shalom Alechem small, Mizmor L'David 1–2 |
 | HHD | animateIn 196 · animateOut 194 | `toggle_cue` on HHD 1–7 / Memorial |
 | — | Stop Stream's "animate out Thank you" | `animate_out` 09f50803 |
+| — (new, no Singular original) | Corner cards, added 2026-09-23 | `toggle_cue` on El Na R'fa Na (corner) 44ae41a4, V'imru Amen (corner) b06f734d and Thank you (corner) d39673be: 8 keys on pages 1, 8, 9, 15, 16 and 23. They add cue keys only; no device capability changes |
 
 ## Buttons removed from carried pages (Singular-only, no published cue)
 Accepted by the main thread 2026-09-23. Each button held only Singular overlay actions for a composition with no

@@ -1,8 +1,17 @@
 {
  "takenAt": "2026-09-23",
  "source": "CRC Overlays MCP list_drafts (compact:true, limit 50, 5 pages via cursor, total 236) + list_archived_drafts (43). Fields reduced to id/name/title/layout/activeRevision/archived.",
+ "addedAfterSnapshot": {
+  "date": "2026-09-23",
+  "note": "Three corner-layout drafts (640x200 bottom-right card) were published on 2026-09-23 after this snapshot was read and were added here by hand from the publish receipts: all activeRevision 1, not archived.",
+  "ids": [
+   "44ae41a4-8280-44ac-b016-b0cc81e0584f",
+   "b06f734d-99e4-46a9-84cd-29f17083f8dc",
+   "d39673be-de53-4e3d-b450-4fa6ecb9a1cf"
+  ]
+ },
  "counts": {
-  "nonArchived": 236,
+  "nonArchived": 239,
   "archived": 43
  },
  "drafts": [
@@ -540,6 +549,14 @@
    "title": "V'ahavta",
    "layout": "left",
    "activeRevision": 2,
+   "archived": false
+  },
+  {
+   "id": "44ae41a4-8280-44ac-b016-b0cc81e0584f",
+   "name": "El Na R'fa Na (corner)",
+   "title": "El Na R'fa Na",
+   "layout": "corner",
+   "activeRevision": 1,
    "archived": false
   },
   {
@@ -1207,6 +1224,14 @@
    "archived": false
   },
   {
+   "id": "b06f734d-99e4-46a9-84cd-29f17083f8dc",
+   "name": "V'imru Amen (corner)",
+   "title": "V’imru Amen",
+   "layout": "corner",
+   "activeRevision": 1,
+   "archived": false
+  },
+  {
    "id": "b0989586-28eb-4fef-a48b-94b7fd728e24",
    "name": "Avodah",
    "title": "Avodah",
@@ -1491,6 +1516,14 @@
    "name": "Haftarah reading 1",
    "title": "Haftarah Reading",
    "layout": "bottom",
+   "activeRevision": 1,
+   "archived": false
+  },
+  {
+   "id": "d39673be-de53-4e3d-b450-4fa6ecb9a1cf",
+   "name": "Thank you (corner)",
+   "title": "Central Reform Congregation",
+   "layout": "corner",
    "activeRevision": 1,
    "archived": false
   },

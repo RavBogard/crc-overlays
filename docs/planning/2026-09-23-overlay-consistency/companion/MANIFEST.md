@@ -3,10 +3,14 @@
 A short human reading of [CUE-MANIFEST.json](CUE-MANIFEST.json), the only source of cue bindings for the fresh
 preset. The JSON is authoritative; this page is a convenience copy of it, written 2026-09-23.
 
-- 431 bindings across pages 1–26, 232 distinct published cues, 20 of them with the Friday camera gesture (marked **cam**).
+- 439 bindings across pages 1–26, 235 distinct published cues, 20 of them with the Friday camera gesture (marked **cam**).
+- Three corner cards (small bottom-right, 640×200), published 2026-09-23 after the catalog read and added to the snapshot by hand: El Na R'fa Na (corner) `44ae41a4`, V'imru Amen (corner) `b06f734d`, Thank you (corner) `d39673be`, all rev 1. Their keys end in ◢.
 - Every bound cue was checked against a fresh catalog read on 2026-09-23 ([catalog-snapshot-2026-09-23.json](catalog-snapshot-2026-09-23.json)): published, not archived, and at the revision listed here.
 - Published but deliberately unbound: Take This Soul (`02fe9320`), Mourners Kaddish 3 T (`2a4775f3`), Mourners Kaddish 1 TT (`4765962c`), Mourners Kaddish 2 T (`57db75c5`). The reasons are in the JSON.
 - Be Right Back (`8e486f11`, rev 1) sits at r3c6 on every page 1–26 and is listed once here, not per page.
+
+Built file: `CRC-FRESH-PRESET-2026-09-23.companionconfig`, sha256 `bfc718e1b74fc5224da3e32e2db459f7b43ea5fca8bd5e2ef2320942713a1113`
+(56 pages, 1,460 keys; rebuilt 2026-09-23 with the corner cards).
 
 Cue ids are shortened to their first 8 characters. Rev is the published revision the preset expects.
 
@@ -14,6 +18,7 @@ Cue ids are shortened to their first 8 characters. Rev is the published revision
 
 | Cell | Label | Cue | Draft name | Rev | Notes |
 |---|---|---|---|---|---|
+| r3c4 | Thank You ◢ | `d39673be` | Thank you (corner) | 1 | corner card (bottom-right 640×200); added after the snapshot |
 | r0c5 | Guest Speaker | `bb52a63a` | Guest name | 1 |  |
 | r1c5 | Starting Soon | `0cd20c42` | Starting Soon | 1 |  |
 | r2c5 | Announcements | `3d18426f` | Announcements | 1 |  |
@@ -157,6 +162,7 @@ Cue ids are shortened to their first 8 characters. Rev is the published revision
 | r0c2 | R'fa Tziri 1/2 | `c17839d9` | Refa Tziri 1 | 1 | R'fa Tziri 1/2 |
 | r1c2 | R'fa Tziri 2/2 | `eff3e584` | Refa Tziri 2 | 1 | R'fa Tziri 2/2 |
 | r2c2 | Olam Chesed Yibaneh | `add0f175` | Olam Chesed Yibaneh | 1 | Published revision 1 is English-only; the maintained Hebrew is missing and draft v2 is held (OLAM-CHESSED-SOURCE-DIAGNOSIS). Bound as published; see OPEN-QUESTIONS. |
+| r3c2 | El Na R'fa Na ◢ | `44ae41a4` | El Na R'fa Na (corner) | 1 | corner card (bottom-right 640×200); added after the snapshot |
 | r0c3 | Aleinu 1/4 | `67693694` | Aleinu 1 | 2 | Aleinu 1/4 |
 | r1c3 | Aleinu 2/4 | `403eced5` | Aleinu 2 | 2 | Aleinu 2/4 |
 | r2c3 | Aleinu 3/4 | `d126a475` | Aleinu 3 | 2 | Aleinu 3/4 |
@@ -164,6 +170,7 @@ Cue ids are shortened to their first 8 characters. Rev is the published revision
 | r0c4 | Kaddish Names | `d0a1be50` | Send Kaddish Names | 2 |  |
 | r1c4 | Kaddish 1/2 | `c2d2c129` | Mourners Kaddish 1 | 2 | Mourner's Kaddish 1/2; Plain 2-panel default (MK3 archived; T/TT family unbound). |
 | r2c4 | Kaddish 2/2 | `f15c1944` | Mourners Kaddish 2 | 2 | Mourner's Kaddish 2/2 |
+| r3c4 | V'imru Amen ◢ | `b06f734d` | V'imru Amen (corner) | 1 | corner card (bottom-right 640×200); added after the snapshot |
 | r0c5 | Adon Olam 1/3 | `a4c86b16` | Adon Olam 1 | 3 | Adon Olam 1/3 |
 | r1c5 | Adon Olam 2/3 | `7d337be4` | Adon Olam 2 | 3 | Adon Olam 2/3 |
 | r2c5 | Adon Olam 3/3 | `9bb328cb` | Adon Olam 3 | 3 | Adon Olam 3/3 |
@@ -184,6 +191,7 @@ Cue ids are shortened to their first 8 characters. Rev is the published revision
 | r2c3 | Mazel Tov | `016b6fc4` | Mazel Tov | 1 |  |
 | r0c4 | Announcements | `3d18426f` | Announcements | 1 |  |
 | r1c4 | Thank You | `09f50803` | Thank you | 1 |  |
+| r1c5 | Thank You ◢ | `d39673be` | Thank you (corner) | 1 | corner card (bottom-right 640×200); added after the snapshot |
 
 ## 10 · Sat 1
 
@@ -306,6 +314,7 @@ Cue ids are shortened to their first 8 characters. Rev is the published revision
 | r3c1 | El Na R'fa Na | `d541f3d2` | El Na R'fa Na | 2 |  |
 | r0c2 | R'fa Tziri 1/2 | `c17839d9` | Refa Tziri 1 | 1 | R'fa Tziri 1/2 |
 | r1c2 | R'fa Tziri 2/2 | `eff3e584` | Refa Tziri 2 | 1 | R'fa Tziri 2/2 |
+| r3c2 | El Na R'fa Na ◢ | `44ae41a4` | El Na R'fa Na (corner) | 1 | corner card (bottom-right 640×200); added after the snapshot |
 | r0c3 | Aleinu 1/4 | `67693694` | Aleinu 1 | 2 | Aleinu 1/4 |
 | r1c3 | Aleinu 2/4 | `403eced5` | Aleinu 2 | 2 | Aleinu 2/4 |
 | r2c3 | Aleinu 3/4 | `d126a475` | Aleinu 3 | 2 | Aleinu 3/4 |
@@ -313,6 +322,7 @@ Cue ids are shortened to their first 8 characters. Rev is the published revision
 | r0c4 | Kaddish Names | `d0a1be50` | Send Kaddish Names | 2 |  |
 | r1c4 | Kaddish 1/2 | `c2d2c129` | Mourners Kaddish 1 | 2 | Mourner's Kaddish 1/2; Plain 2-panel default (MK3 archived; T/TT family unbound). |
 | r2c4 | Kaddish 2/2 | `f15c1944` | Mourners Kaddish 2 | 2 | Mourner's Kaddish 2/2 |
+| r3c4 | V'imru Amen ◢ | `b06f734d` | V'imru Amen (corner) | 1 | corner card (bottom-right 640×200); added after the snapshot |
 | r0c5 | Adon Olam 1/3 | `a4c86b16` | Adon Olam 1 | 3 | Adon Olam 1/3 |
 | r1c5 | Adon Olam 2/3 | `7d337be4` | Adon Olam 2 | 3 | Adon Olam 2/3 |
 | r2c5 | Adon Olam 3/3 | `9bb328cb` | Adon Olam 3 | 3 | Adon Olam 3/3 |
@@ -332,6 +342,7 @@ Cue ids are shortened to their first 8 characters. Rev is the published revision
 | r0c3 | Announcements | `3d18426f` | Announcements | 1 |  |
 | r1c3 | Thank You | `09f50803` | Thank you | 1 |  |
 | r2c3 | Guest name | `bb52a63a` | Guest name | 1 |  |
+| r1c4 | Thank You ◢ | `d39673be` | Thank you (corner) | 1 | corner card (bottom-right 640×200); added after the snapshot |
 
 ## 17 · B'nai Mitzvah
 
@@ -482,6 +493,7 @@ Cue ids are shortened to their first 8 characters. Rev is the published revision
 | r1c4 | El Na R'fa Na | `d541f3d2` | El Na R'fa Na | 2 |  |
 | r2c4 | Concluding T'filah | `1dc6361e` | Barcheinu | 2 |  |
 | r3c4 | Guest name | `bb52a63a` | Guest name | 1 |  |
+| r1c5 | El Na R'fa Na ◢ | `44ae41a4` | El Na R'fa Na (corner) | 1 | corner card (bottom-right 640×200); added after the snapshot |
 
 ## 24 · HHD 6
 
