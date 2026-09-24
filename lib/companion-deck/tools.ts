@@ -276,7 +276,8 @@ export function moduleDefinitionsFor(deck: CompanionDeck): ModuleDefinitions {
 function validation(r: Resolved, deck: CompanionDeck, cat: Cat): ValidationResult {
   return validateDeck(deck, {
     module: r.module ?? moduleDefinitionsFor(deck),
-    cues: {isPublished: (id) => cat.get(id)?.published === true, isRetired: (id) => cat.get(id)?.retired === true, name: (id) => cat.get(id)?.name},
+    // set: the catalog's draft set, so the style check (style.ts) counts a set's panels as the catalog has them now.
+    cues: {isPublished: (id) => cat.get(id)?.published === true, isRetired: (id) => cat.get(id)?.retired === true, name: (id) => cat.get(id)?.name, set: (id) => cat.get(id)?.set},
   })
 }
 /** Error findings the change adds: per code, any beyond the count before (a moved finding is not new). */

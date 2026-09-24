@@ -1,0 +1,55 @@
+{
+  "workspace": "crc",
+  "operator": "Michael (CRC booth)",
+  "about": "CRC's deck style as released on 2026-09-23 and reviewed with Michael. Every rule here is true of the seeded deck (CUE-MANIFEST.json + crc-seed-data.json); tests/companion-deck-style.test.ts checks it against that deck.",
+  "sources": [
+    "docs/planning/2026-09-23-overlay-consistency/companion/PRESET-DESIGN.md (goals 1-5, fixed columns, cue buttons, colour legend, page map)",
+    "docs/planning/2026-09-23-overlay-consistency/companion/CUE-MANIFEST.json (every sequence: page, cell, label, index, count)"
+  ],
+  "pages": [
+    { "from": 1, "to": 1, "role": "home", "template": "utility", "purpose": "Service chooser, device hubs, stream start/stop, quick people graphics" },
+    { "from": 2, "to": 2, "role": "output-audio", "template": "utility", "purpose": "Logo on/off, catalog refresh, bimah and booth audio" },
+    { "from": 3, "to": 3, "role": "anytime", "template": "service", "purpose": "Graphics that can come up in any service" },
+    { "from": 4, "to": 9, "role": "service", "template": "service", "purpose": "Friday evening, Fri 1-6 (chain 4-9)" },
+    { "from": 10, "to": 16, "role": "service", "template": "service", "purpose": "Shabbat morning, Sat 1-7 (chain 10-16)" },
+    { "from": 17, "to": 18, "role": "service", "template": "service", "purpose": "B'nai Mitzvah and Havdalah (chain 17-18)" },
+    { "from": 19, "to": 25, "role": "service", "template": "service", "purpose": "High Holy Days, HHD 1-7 (chain 19-25)" },
+    { "from": 26, "to": 26, "role": "service", "template": "service", "purpose": "Memorial: Yizkor, funerals, Tisha B'Av" },
+    { "from": 27, "to": 28, "role": "spare", "template": "spare", "purpose": "Left empty for growth" },
+    { "from": 29, "to": 29, "role": "devices", "template": "utility", "purpose": "Index of every carried device page" },
+    { "from": 30, "to": 30, "role": "cameras", "template": "utility", "purpose": "Camera hub" },
+    { "from": 31, "to": 56, "role": "carried", "template": "carried", "purpose": "Carried camera, AV and audio pages" }
+  ],
+  "columns": {
+    "order": "Each service page is one stretch of a service; its graphics columns read left to right in liturgical order.",
+    "graphics": [1, 2, 3, 4, 5],
+    "fixed": [
+      { "col": 0, "keys": "switcher: Center cam 1, Left cam 2, Right cam 3, Merge (service pages)" },
+      { "col": 6, "keys": "output recovery: Animate out, Clear now, Logo (and Be Right Back in r3)" },
+      { "col": 7, "keys": "navigation: Prev, Home, Next, Bimah Mute" }
+    ]
+  },
+  "growth": {
+    "direction": "down",
+    "continue": "next-column-top",
+    "rule": "One ordered key per panel, down the column; a set that fills its column continues at the top of the next column (L'cha Dodi on Fri 2: c3 -> c4 -> c5)."
+  },
+  "labels": {
+    "rule": "The label names the piece and carries the panel number: \"<piece> i/n\", or the verse number with its incipit (\"2 Likrat\").",
+    "panel": ["(^|\\s){i}/{n}(\\s|$)", "(^|\\s){i}(\\s|$)"],
+    "suggest": { "strip": "\\s*{i}/{n}\\s*$", "template": "{base} {i}/{n}" },
+    "examples": ["Aleinu 1/4", "Kaddish 2/2", "Havdalah 3/4 Fire", "L'cha Dodi 1 Shamor", "5 Hitoreri"]
+  },
+  "colours": {
+    "rule": "role",
+    "meaning": "Colour shows a key's role, never the piece: every panel of a set (and an alternate that belongs to a set) is teal.",
+    "roles": { "utility": "navy", "announcement": "navy", "single": "burgundy", "sequence-part": "teal", "alternate": "burgundy", "short-selection": "burgundy" },
+    "set": "teal"
+  },
+  "keyTypes": [
+    "Graphics: one-step Toggle cue keys in c1-c5 of service pages, with Requested and Rendered lights; on Friday pages some carry the two-step camera gesture.",
+    "Switcher: camera merge keys with vMix tally in c0, Merge in c0 r3.",
+    "Recovery in c6, navigation and Bimah Mute in c7, on every service page.",
+    "Device keys (stream, audio, Reaper, VLC) on Home, Output & Audio, Cameras and the carried pages."
+  ]
+}
