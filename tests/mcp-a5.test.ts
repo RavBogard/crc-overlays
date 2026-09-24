@@ -118,12 +118,12 @@ test('acceptance: find_catalog_issues finds the known cases, read only',async()=
  assert.deepEqual(Object.keys(narrowed.counts),['inherited_title']);assert.equal(narrowed.issues.length,1);
 });
 
-test('find_catalog_issues says so when there is no stored deck, and it runs through the real dispatch',async()=>{
+test('find_catalog_issues reads the deck C3 stores through the real dispatch (CRC\'s deck is seeded on first read)',async()=>{
  const repo=new MemoryAuthoringRepository(),service=createAuthoringService(repo);
  await service.operation('duplicate_draft',{cueId:THANK_YOU},'editor');await service.operation('duplicate_draft',{cueId:THANK_YOU},'editor');
  const found=await service.operation('find_catalog_issues',{kinds:['duplicate_name','near_duplicate_name','retired_on_deck']},'editor') as Output;
  assert.equal(found.issues.filter((issue:Output)=>issue.graphics.some((graphic:{id:string})=>graphic.id===THANK_YOU)).length,1);
- assert.match(found.checked.deck.message,/No Companion deck is stored/);
+ assert.deepEqual([found.checked.deck.checked,found.checked.deck.version],[true,1]);
 });
 
 test('acceptance: batch_update dry run, then apply with a failure mid-list that does not stop the rest',async()=>{

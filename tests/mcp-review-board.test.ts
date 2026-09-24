@@ -147,8 +147,13 @@ test('an unpublished draft is shown without a picture and the agent is warned',a
 test('grouping by deck page: refused until a deck is stored, groupLabels meanwhile, the stored deck once C3 provides it',async()=>{
  const {call,repo,ship}=wired();
  const ids=[await ship('Barchu','Barchu'),await ship('Shema','Shema'),await ship('Kaddish','Kaddish')];
- const refused=await call('create_review_board',{title:'Deck',draftIds:ids,grouping:'deck-page'});
- assert.equal(refused.isError,true);assert.match(refused.text,/No Companion deck is stored.*groupLabels/);
+ // Through the service the lookup is C3's stored deck: CRC's is seeded on first read, and these new graphics are on no page yet.
+ const onCrcDeck=await call('create_review_board',{title:'Deck',draftIds:ids,grouping:'deck-page'});
+ assert.equal(onCrcDeck.isError,false,onCrcDeck.text);
+ const crcRead=await call('get_review_board',{boardId:onCrcDeck.output.boardId},null);
+ assert.deepEqual(crcRead.output.items.map((item:Output)=>item.group),[NOT_ON_DECK,NOT_ON_DECK,NOT_ON_DECK]);
+ // No deck stored for the congregation (TBI before its seed): refused, and groupLabels meanwhile.
+ await assert.rejects(reviewBoardOperation('create_review_board',{title:'Deck',draftIds:ids,grouping:'deck-page'},AGENT,{authoring:repo,boards:new MemoryReviewBoardRepository(),deck:async()=>null}),/No Companion deck is stored.*groupLabels/);
 
  const labelled=await call('create_review_board',{title:'Deck',draftIds:ids,grouping:'deck-page',groupLabels:{[ids[2]]:'Page 3: Shabbat morning',[ids[0]]:'Page 1: Friday evening'}});
  assert.equal(labelled.isError,false,labelled.text);

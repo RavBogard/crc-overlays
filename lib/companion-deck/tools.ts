@@ -167,6 +167,27 @@ const storeUnavailable = (error: unknown) => {
   return error
 }
 
+/**
+ * This deployment's deck for the other areas that read it (T4's deck-page grouping, A5's deck checks):
+ * the same deck get_deck reads, seeded on first read the same way. null when this deployment has no
+ * deck, TBI's is not seeded yet, or the deck store is not set up (db/companion-decks.sql not applied).
+ */
+export async function deckSourceForDeployment(ctx: DeckToolContext = {}): Promise<{workspace: DeckWorkspace; repository: CompanionDeckRepository} | null> {
+  const r = await resolve(ctx)
+  if (!r.workspace) return null
+  const workspace = r.workspace, inner = r.repository
+  const absent = (error: unknown) => error instanceof DeckToolError && (error.code === 'deck_not_seeded' || error.code === 'deck_store_missing')
+  const repository: CompanionDeckRepository = {
+    get: async (w) => {
+      if (w !== workspace) return inner.get(w)
+      try { return await loadStored(r) } catch (error) { if (absent(error)) return null; throw error }
+    },
+    create: (w, deck, actor, now) => inner.create(w, deck, actor, now),
+    replace: (w, deck, expectedVersion, actor, now) => inner.replace(w, deck, expectedVersion, actor, now),
+  }
+  return {workspace, repository}
+}
+
 /** The workspace's stored deck, seeded from its seed on the first read. */
 export async function loadDeck(ctx: DeckToolContext = {}): Promise<StoredDeck> { return loadStored(await resolve(ctx)) }
 async function loadStored(r: Resolved): Promise<StoredDeck> {

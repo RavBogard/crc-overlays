@@ -319,6 +319,13 @@ const defaultServerFitRunner:ServerFitRunner=async(cue,options)=>{
 };
 export type AssetStores={assets?:AssetRepository;uploads?:AssetUploadStore};
 export function createAuthoringService(repo:AuthoringRepository,workspace:AuthoringWorkspace={rehearsal:false,storage:'postgres',label:null},shared:SharedLibraryReader=sharedLibraryClient,sharedAssetImporter:SharedAssetImporter=(id,actor)=>importSharedAsset(id,actor),runServerFit:ServerFitRunner=defaultServerFitRunner,localSources:LocalSourceRepository=new MemoryLocalSourceRepository(),defaultsRepo:AuthoringDefaultsRepository=repo instanceof MemoryAuthoringRepository?new MemoryAuthoringDefaultsRepository():new PgAuthoringDefaultsRepository(),assetStores:AssetStores={}){
+ // The Companion deck store follows the authoring store: a service over the in-memory repository
+ // (tests, local runs) keeps its deck in memory too; rehearsal and Postgres use the deck tools' default.
+ let memoryDeck:import('./companion-deck/repository').CompanionDeckRepository|undefined;
+ const deckContext=async():Promise<{repository?:import('./companion-deck/repository').CompanionDeckRepository}>=>{
+  if(!(repo instanceof MemoryAuthoringRepository)||process.env.CRC_AUTHORING_REHEARSAL==='1')return {};
+  const {MemoryCompanionDeckRepository}=await import('./companion-deck/repository');return {repository:memoryDeck??=new MemoryCompanionDeckRepository()};
+ };
  // T2 - this workspace's own sources, in the corpus shape, ordered as a book prints them. Read only
  // where a call can reach one: a search, a book outline, or content that names a local: id.
  const localUnits=async()=>(await localSources.list()).sort((a,b)=>a.book.localeCompare(b.book)||a.page-b.page||a.name.localeCompare(b.name)).map(localSourceUnit);
@@ -401,9 +408,10 @@ export function createAuthoringService(repo:AuthoringRepository,workspace:Author
   // is not archived, the same catalog libraryNames measures.
   if(isAssetTool(operation)){try{return await assetToolOperation(operation,data,who,{assets:assetStores.assets??defaultAssetRepository(),uploads:assetStores.uploads??defaultAssetUploadStore(),drafts:()=>repo.listDrafts(),published:async()=>{const [drafts,published]=await Promise.all([repo.listDrafts(),repo.published()]);const archived=new Set(drafts.filter(draft=>draft.archivedAt).map(draft=>draft.id));return published.filter(cue=>!archived.has(cue.id))}})}catch(error){if(error instanceof AssetError)throw new AuthoringError(error.code,error.message,error.status);throw error}}
   // T4 - review boards (lib/review-board.ts) read this service's drafts and kept fit frames.
-  if(REVIEW_BOARD_OPERATIONS.has(operation)){const {reviewBoardOperation}=await import('./review-board');return reviewBoardOperation(operation,data,who,{authoring:repo})}
+  // Grouping by deck page reads the deck C3 stores (deckSourceForDeployment); none stored means groupLabels.
+  if(REVIEW_BOARD_OPERATIONS.has(operation)){const [{reviewBoardOperation,deckPlacements},{deckSourceForDeployment}]=await Promise.all([import('./review-board'),import('./companion-deck/tools')]);return reviewBoardOperation(operation,data,who,{authoring:repo,deck:async()=>{const source=await deckSourceForDeployment(await deckContext());const stored=source?await source.repository.get(source.workspace):null;return stored?deckPlacements(stored.deck):null}})}
   // A5 - catalog hygiene (lib/catalog-hygiene.ts): every change it makes is one of the operations below, run through execute.
-  if(isHygieneTool(operation)){const {hygieneOperation}=await import('./catalog-hygiene');return hygieneOperation(operation,data,who,{repo,run:execute})}
+  if(isHygieneTool(operation)){const [{hygieneOperation},{deckSourceForDeployment}]=await Promise.all([import('./catalog-hygiene'),import('./companion-deck/tools')]);return hygieneOperation(operation,data,who,{repo,run:execute,deck:await deckSourceForDeployment(await deckContext())})}
   // The cue log, read-only, for an assistant asked what a service actually did. Same bound and
   // same shape as `GET /api/history`: graphics, liturgical positions and times - no names, no
   // titles, no text, nobody's identity. An unavailable relay is a sentence, not a stack trace.

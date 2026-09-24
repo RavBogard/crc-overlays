@@ -21,7 +21,7 @@ export type HygieneContext={
  /** The authoring service's own operation runner (update_draft, ship_draft, retire_cue ...). */
  run:(operation:string,input:unknown,actor:string)=>Promise<unknown>;
  services?:{repository?:ServicesRepository;loaders?:ServicesLoaders};
- /** The stored Companion deck. None is stored anywhere until the deck tools (C3) land, so the default is none. */
+ /** The stored Companion deck (C3's store, via deckSourceForDeployment); null or absent when this congregation has none. */
  deck?:DeckSource|null;
  now?:()=>number;
 };
