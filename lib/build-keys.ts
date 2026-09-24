@@ -1,5 +1,5 @@
 import {AuthoringError} from './authoring-model';
-import {currentWorkspaceId} from './local-sources';
+import {liveRelayConfigured} from './rehearsal';
 
 /**
  * TBI redo foundation - build keys. A bulk build names each thing it makes by a stable key of its
@@ -40,7 +40,6 @@ export class MemoryBuildKeyRepository implements BuildKeyRepository{
 }
 
 /** This workspace's build keys in its database. G4 added it for its wiring; G3 needs the same one (merge note: keep one). */
-export function defaultBuildKeyRepository(workspaceId=currentWorkspaceId()):BuildKeyRepository{return new PgBuildKeyRepository(workspaceId)}
 
 const missingTable=(error:unknown)=>(error as {code?:unknown}|null)?.code==='42P01';
 const UNMIGRATED='Build keys are not set up in this workspace\'s database yet (db/build-keys.sql). Nothing was saved; ask whoever runs the database to apply it.';
@@ -55,3 +54,8 @@ export class PgBuildKeyRepository implements BuildKeyRepository{
  async list(kind?:BuildKeyKind){return ((await this.query(kind?'SELECT * FROM build_keys WHERE workspace_id=$1 AND kind=$2 ORDER BY key':'SELECT * FROM build_keys WHERE workspace_id=$1 ORDER BY kind,key',kind?[this.workspaceId,kind]:[this.workspaceId],false)).rows as Row[]).map(fromRow)}
  async put(record:BuildKeyRecord){const row=(await this.query('INSERT INTO build_keys(workspace_id,kind,key,target_id,created_by,created_at,updated_at) VALUES($1,$2,$3,$4,$5,$6,$6) ON CONFLICT (workspace_id,kind,key) DO UPDATE SET target_id=EXCLUDED.target_id,updated_at=EXCLUDED.updated_at RETURNING *',[this.workspaceId,record.kind,record.key,record.targetId,record.createdBy,record.updatedAt],true)).rows[0] as Row;return fromRow(row)}
 }
+
+// Local rehearsal keeps its keys in this process, the same gate lib/assets.ts applies to its store.
+const rehearsalBuildKeys=new MemoryBuildKeyRepository();
+/** The build keys of this workspace: Postgres, or memory in local rehearsal (never beside a real relay). */
+export function defaultBuildKeyRepository(workspaceId=process.env.WORKSPACE_ID?.trim().toLowerCase()||'crc'):BuildKeyRepository{if(process.env.CRC_AUTHORING_REHEARSAL==='1'){if(process.env.NODE_ENV!=='development'||liveRelayConfigured())throw new Error('Build key rehearsal storage is allowed only in local development without a relay.');return rehearsalBuildKeys}return new PgBuildKeyRepository(workspaceId)}

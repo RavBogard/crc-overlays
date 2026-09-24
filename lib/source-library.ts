@@ -148,6 +148,7 @@ export type SourceDisplay={bookTitle:string;folio:string|null;sectionTitle:strin
 
 /** Sources a person can see are never named by their slug, so a source whose title is missing falls back to this. */
 const UNTITLED_BOOK='Unlabeled book';
+const LOCAL_KIND_LABELS:Record<string,string>={'prayer-book reading':'Prayer-book reading','song setting':'Song setting','tbi text':'TBI text'};
 const SLUG=/^[a-z0-9]+(?:-[a-z0-9]+)+$/;
 const printingLabel=(printing:unknown)=>{
  if(!printing||typeof printing!=='object')return null;
@@ -167,7 +168,9 @@ export function sourceDisplay(source:{id?:string;book?:string;service?:string;se
  const title=typeof metadata.bookTitle==='string'?metadata.bookTitle.trim():'';
  const book=typeof source?.book==='string'?source.book.trim():'';
  const bookSlug=typeof metadata.bookSlug==='string'?metadata.bookSlug.trim():'';
- const bookTitle=title||((book&&book!==bookSlug&&!SLUG.test(book))?book:'')||UNTITLED_BOOK;
+ // G3 - a workspace's own source with no book (a song setting, its own text) is named by its kind, not as an unlabeled book.
+ const localKind=metadata.local===true&&typeof metadata.localKind==='string'?LOCAL_KIND_LABELS[metadata.localKind]??'':'';
+ const bookTitle=title||((book&&book!==bookSlug&&!SLUG.test(book))?book:'')||localKind||UNTITLED_BOOK;
  const folios=Array.isArray(metadata.folios)?metadata.folios.filter((value):value is number=>typeof value==='number'&&Number.isFinite(value)):[];
  const ordered=[...new Set(folios)].sort((a,b)=>a-b);
  const contiguous=ordered.length>1&&ordered.every((value,index)=>index===0||value===ordered[index-1]+1);

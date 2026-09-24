@@ -28,7 +28,9 @@ import {liveRelayConfigured} from './rehearsal';
 // of the function trace of every entrypoint that touches the authoring service.
 import {SERVER_RENDERER_PREFIX,type ServerFitArtwork,type ServerFitResult} from './server-fit-contract';
 import {isServiceTool} from './service-tool-schemas';
-import {MemoryLocalSourceRepository,PgLocalSourceRepository,currentWorkspaceId,isLocalSourceId,isLocalSourceTool,localProvenance,localSourceOperation,localSourceUnit,type LocalSourceRepository} from './local-sources';
+import {MemoryLocalSourceRepository,NOT_CREDITED,PgLocalSourceRepository,compareLocalSources,currentWorkspaceId,isLocalSourceId,isLocalSourceTool,localProvenance,localSourceOperation,localSourceUnit,type LocalSourceRepository} from './local-sources';
+import {MemoryImportRepository,defaultImportRepository,type ImportRepository} from './imports';
+import {MemoryBuildKeyRepository,defaultBuildKeyRepository,type BuildKeyRepository} from './build-keys';
 // T4 - kept here rather than imported, so lib/review-board.ts loads only when a board is used.
 const REVIEW_BOARD_OPERATIONS=new Set(['create_review_board','get_review_board','update_review_board']);
 import {isHygieneTool} from './catalog-hygiene-schemas';
@@ -38,8 +40,6 @@ import {LayoutDefinitionError,ensurePublishedLayoutsRegistered,layoutDefinitions
 import {isLayoutTool,layoutToolOperation} from './layout-tools';
 import type {ResolvedLayouts} from './layout-registry';
 import {parseDraftReference} from './companion-deck/singular-references';
-import {defaultImportRepository,type ImportRepository} from './imports';
-import {MemoryBuildKeyRepository,defaultBuildKeyRepository,type BuildKeyRepository} from './build-keys';
 import {batchCreateDrafts} from './batch-drafts';
 
 export type BrowserMeasurement={viewportWidth:number;viewportHeight:number;fontsReady:true;overflow:false;rendererVersion:string;measuredAt:number};
@@ -142,7 +142,7 @@ type BookUnit={id:string;name:string;folio:string|null;kinds:string[];blockCount
 const unitNoteLikeOnly=(source:SearchSource)=>source.blocks.every(block=>block.kind==='source-en'&&block.noteLike===true);
 /** The printed section a unit belongs to: library metadata first, then a legacy section label. */
 const sourceSection=(source:SearchSource)=>{const index=typeof source.metadata?.sectionIndex==='number'?source.metadata.sectionIndex:null;const metadataTitle=typeof source.metadata?.sectionTitle==='string'?source.metadata.sectionTitle.trim():'';const legacyTitle=typeof source.section==='string'?source.section.trim():'';return {index,title:metadataTitle||legacyTitle||null}};
-const searchRank=(source:SearchSource,query:string)=>{if(!query)return 0;const name=normalized(source.name),opening=normalized((source.openingWords??[]).join(' ')),body=normalized(source.blocks.flatMap(block=>[block.he,block.tr,block.en]).join(' ')),metadata=normalized([source.id,source.section,...(source.aliases??[]),sourceBook(source).value,sourceBook(source).label,source.service].join(' '));if(name===query)return 0;if(name.startsWith(query))return 1;if(name.includes(query))return 2;if(opening.includes(query))return 3;if(body.includes(query))return 4;if(metadata.includes(query))return 5;return null};
+const searchRank=(source:SearchSource,query:string)=>{if(!query)return 0;const name=normalized(source.name),opening=normalized((source.openingWords??[]).join(' ')),body=normalized(source.blocks.flatMap(block=>[block.he,block.tr,block.en]).join(' ')),metadata=normalized([source.id,source.section,...(source.aliases??[]),sourceBook(source).value,sourceBook(source).label,source.service,source.metadata?.localKind].join(' '));if(name===query)return 0;if(name.startsWith(query))return 1;if(name.includes(query))return 2;if(opening.includes(query))return 3;if(body.includes(query))return 4;if(metadata.includes(query))return 5;return null};
 /** T2 - the printed pages a unit sits on (library `metadata.folios`; a local source's one page). */
 const sourceFolios=(source:SearchSource)=>Array.isArray(source.metadata?.folios)?(source.metadata!.folios as unknown[]):[];
 /** Browsable sources matching a normalized query, book, service and printed page, best rank first, then corpus order. */
@@ -162,7 +162,7 @@ function compactSourceSearch(query:string,book:string,service:string,limit:numbe
   const source=includeBlocks?resolveSourceBoundaries(raw) as SearchSource:raw,blocks=source.blocks;
   const sourceEnglish=(block:SourceBlock)=>block.kind==='source-en'||(block.kind==='bilingual'&&Boolean(block.en));
   const candidate={id:source.id,name:source.name,section:source.section??null,bookValue:sourceBook(source).value,bookLabel:sourceBook(source).label,service:source.service??null,folio:sourceDisplay(source).folio,blockCount:blocks.length,kinds:[...new Set(blocks.map(block=>block.kind))],coverage:{bilingual:blocks.filter(block=>block.kind==='bilingual').length,originalEnglish:blocks.filter(block=>block.kind==='original-en').length,sourceEnglish:blocks.filter(sourceEnglish).length,translation:blocks.filter(block=>block.kind==='translation-en').length},
-   ...(isLocalSourceId(source.id)?{local:true,version:source.metadata?.localVersion??null,attribution:source.metadata?.attribution??null}:{}),
+   ...(isLocalSourceId(source.id)?{local:true,version:source.metadata?.localVersion??null,kind:source.metadata?.localKind??'prayer-book reading',attribution:source.metadata?.attribution??null,...(typeof source.metadata?.attribution==='string'?{}:{credit:NOT_CREDITED})}:{}),
    ...(includeBlocks?{blocks:blocks.map(block=>({id:block.id,kind:block.kind,text:searchExcerpt(block.tr||block.en||block.he),...(block.pairedBlockIds?{translates:block.pairedBlockIds}:{}),...(block.automatic===false?{automatic:false}:{}),...(block.noteLike?{noteLike:true}:{})}))}:{})};
   if(jsonBytes({sources:[...sources,candidate]})>MAX_SOURCE_RESPONSE_BYTES)break;
   sources.push(candidate);
@@ -331,7 +331,9 @@ const defaultServerFitRunner:ServerFitRunner=async(cue,options)=>{
  return measureCueOnServer(cue as unknown as Cue,{origin:canonicalOrigin(),includePreviewImage:options?.includePreviewImage,...(options?.artworkUrl?{artworkUrl:options.artworkUrl}:{}),...(options?.layouts?{layouts:options.layouts}:{})});
 };
 export type AssetStores={assets?:AssetRepository;uploads?:AssetUploadStore;imports?:ImportRepository;fetch?:typeof fetch;siteHosts?:()=>string[]};
-export function createAuthoringService(repo:AuthoringRepository,workspace:AuthoringWorkspace={rehearsal:false,storage:'postgres',label:null},shared:SharedLibraryReader=sharedLibraryClient,sharedAssetImporter:SharedAssetImporter=(id,actor)=>importSharedAsset(id,actor),runServerFit:ServerFitRunner=defaultServerFitRunner,localSources:LocalSourceRepository=new MemoryLocalSourceRepository(),defaultsRepo:AuthoringDefaultsRepository=repo instanceof MemoryAuthoringRepository?new MemoryAuthoringDefaultsRepository():new PgAuthoringDefaultsRepository(),assetStores:AssetStores={},layoutRepo:LayoutDefinitionsRepository=layoutDefinitionsRepository(),buildKeys?:BuildKeyRepository){
+/** G3 - where import_local_sources reads a dropped file and remembers each build key. */
+export type IntakeStores={imports?:ImportRepository;buildKeys?:BuildKeyRepository};
+export function createAuthoringService(repo:AuthoringRepository,workspace:AuthoringWorkspace={rehearsal:false,storage:'postgres',label:null},shared:SharedLibraryReader=sharedLibraryClient,sharedAssetImporter:SharedAssetImporter=(id,actor)=>importSharedAsset(id,actor),runServerFit:ServerFitRunner=defaultServerFitRunner,localSources:LocalSourceRepository=new MemoryLocalSourceRepository(),defaultsRepo:AuthoringDefaultsRepository=repo instanceof MemoryAuthoringRepository?new MemoryAuthoringDefaultsRepository():new PgAuthoringDefaultsRepository(),assetStores:AssetStores={},layoutRepo:LayoutDefinitionsRepository=layoutDefinitionsRepository(),intake:IntakeStores={}){
  // The Companion deck store follows the authoring store: a service over the in-memory repository
  // (tests, local runs) keeps its deck in memory too; rehearsal and Postgres use the deck tools' default.
  let memoryDeck:import('./companion-deck/repository').CompanionDeckRepository|undefined;
@@ -341,7 +343,11 @@ export function createAuthoringService(repo:AuthoringRepository,workspace:Author
  };
  // T2 - this workspace's own sources, in the corpus shape, ordered as a book prints them. Read only
  // where a call can reach one: a search, a book outline, or content that names a local: id.
- const localUnits=async()=>(await localSources.list()).sort((a,b)=>a.book.localeCompare(b.book)||a.page-b.page||a.name.localeCompare(b.name)).map(localSourceUnit);
+ const localUnits=async()=>(await localSources.list()).sort(compareLocalSources).map(localSourceUnit);
+ // G3 - the import store and build keys follow the authoring store the way the deck does: memory
+ // beside the in-memory repository (tests, local runs), the defaults otherwise. Resolved per call.
+ let memoryIntake:Required<IntakeStores>|undefined;
+ const intakeStores=():Required<IntakeStores>=>{const memory=repo instanceof MemoryAuthoringRepository&&process.env.CRC_AUTHORING_REHEARSAL!=='1'?memoryIntake??={imports:new MemoryImportRepository(),buildKeys:new MemoryBuildKeyRepository()}:null;return {imports:intake.imports??memory?.imports??defaultImportRepository(),buildKeys:intake.buildKeys??memory?.buildKeys??defaultBuildKeyRepository(currentWorkspaceId())}};
  const localsFor=async(value:unknown)=>JSON.stringify(value??null).includes('"local:')?localUnits():[];
  // Every server fit is handed a signed link to the cue's artwork, when it has any.
  // A cue in a data layout also takes the definition it pins (L3); a caller may hand its own (preview_layout).
@@ -399,14 +405,14 @@ export function createAuthoringService(repo:AuthoringRepository,workspace:Author
   return taken.has(normalizeGraphicName(draft.name))?[{code:'duplicate-name',suggestedName:suggestGraphicName(draft.name,draft.layout,taken)}]:[];
  };
  // G4 - batch_create_drafts records what each of its keys became (lib/build-keys.ts).
- let keyStore:BuildKeyRepository|undefined;const buildKeyStore=()=>keyStore??=buildKeys??(repo instanceof MemoryAuthoringRepository?new MemoryBuildKeyRepository():defaultBuildKeyRepository());
+ const buildKeyStore=()=>intakeStores().buildKeys;
  // `internal.dryRun` is batch_create_drafts' dry run: create_draft builds and validates the draft but stores nothing. No tool schema carries it.
  const execute=async(operation:string,input:unknown,actor:string,internal:{dryRun?:boolean}={}):Promise<unknown>=>{
   const who=string(actor,'actor',80); const data=object(input);
   if(operation==='get_workspace'){keys(data,[]);return {workspace};}
   // G4 - many drafts from a build plan, each through create_draft or customize_shared_batch below (lib/batch-drafts.ts).
   if(operation==='batch_create_drafts')return batchCreateDrafts(data,who,{run:execute,drafts:()=>repo.listDrafts(),insertDraftSet:drafts=>repo.insertDraftSet(drafts),buildKeys:buildKeyStore(),workspaceId:currentWorkspaceId(),source:async id=>{const raw=isLocalSourceId(id)?(await localUnits()).find(unit=>unit.id===id):sourcePack.sources.find(item=>item.id===id);return raw?resolveSourceBoundaries(raw):undefined}});
-  if(isLocalSourceTool(operation))return localSourceOperation(operation,data,who,{sources:localSources,drafts:()=>repo.listDrafts(),workspaceId:currentWorkspaceId()});
+  if(isLocalSourceTool(operation))return localSourceOperation(operation,data,who,{sources:localSources,drafts:()=>repo.listDrafts(),workspaceId:currentWorkspaceId(),...(operation==='import_local_sources'?intakeStores():{})});
   // D20 — G5 is one tool and nothing else: it delegates to D19's importer on the services
   // side and returns the prepared service it created. The import is dynamic because
   // `lib/service-collections` imports the authoring catalog, and a static import here would

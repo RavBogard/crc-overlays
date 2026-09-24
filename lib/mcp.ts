@@ -50,7 +50,9 @@ function actor(authInfo:AuthInfo|undefined){const stored=authInfo?.extra?.actor;
 // Reads return the full record. Every other result drops what an agent never acts on - embedded
 // source snapshots, animation tracks and per-block pin hashes - which made one publish ~25 KB.
 // Ids, versions, cue hashes, texts, content rows, validation and review receipts stay.
-const FULL_RECORD_OPERATIONS=new Set(['get_draft','get_source','search_sources','list_drafts','list_archived_drafts','list_templates','list_revisions','get_service_history','list_wording_changes']);
+const FULL_RECORD_OPERATIONS=new Set(['get_draft','get_source','search_sources','list_drafts','list_archived_drafts','list_templates','list_revisions','get_service_history','list_wording_changes',
+ // G3 - each item's blockSha256 list is the receipt the caller checks, not a pin map to fold away.
+ 'import_local_sources']);
 const OMITTED_RESULT_KEYS=new Set(['sourceSnapshots','animations','openingWords']);
 function compactResult(value:unknown):unknown{
  if(Array.isArray(value))return value.map(compactResult);

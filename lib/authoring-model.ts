@@ -300,12 +300,20 @@ export function parseEditable(value:unknown,partial=false,snapshots:AuthoringSou
  return result;
 }
 
+/**
+ * G3 - a sung line a congregation prints in transliteration only (lib/local-sources.ts): a
+ * bilingual block with its transliteration and no Hebrew. It adds nothing to the Hebrew channel,
+ * so a graphic draws it as a transliteration row and never as an empty Hebrew one.
+ */
+export const transliterationOnly=(block:SourceBlock|undefined)=>block?.kind==='bilingual'&&block.he===undefined&&typeof block.tr==='string'&&block.tr.length>0;
 function renderGroup(group:SourceGroup,channel:'he'|'tr'|'en',snapshots:AuthoringSource[]=[],overrides:LocalVariantOverride[]=[]){
  const selected=source(group.sourceId,snapshots);
- return group.blockIds.map(id=>{
-  const value=overrides.find(item=>item.sourceId===group.sourceId&&item.blockId===id&&item.channel===channel)?.localText??selected.blocks.find(block=>block.id===id)?.[channel];
+ return group.blockIds.flatMap(id=>{
+  const block=selected.blocks.find(candidate=>candidate.id===id);
+  const value=overrides.find(item=>item.sourceId===group.sourceId&&item.blockId===id&&item.channel===channel)?.localText??block?.[channel];
+  if(channel==='he'&&value===undefined&&transliterationOnly(block))return [];
   if(typeof value!=='string'||!value)throw new AuthoringError('missing_source_channel',`Source block ${id} lacks ${channel}`);
-  return value;
+  return [value];
  }).join(' ');
 }
 
@@ -316,13 +324,18 @@ function renderGroup(group:SourceGroup,channel:'he'|'tr'|'en',snapshots:Authorin
  * a selection that skips a block carrying this channel.
  */
 function joinGroupParagraphs(groups:SourceGroup[],channel:'he'|'tr',snapshots:AuthoringSource[]=[],overrides:LocalVariantOverride[]=[]){
- return groups.map((group,index)=>{
+ // A group with nothing in this channel (transliteration-only lines, in Hebrew) is skipped, and
+ // the boundary is judged between the blocks that do carry it.
+ let previous:SourceGroup|null=null;
+ return groups.map(group=>{
   const text=renderGroup(group,channel,snapshots,overrides);
-  if(index===0)return text;
-  const previous=groups[index-1];
-  if(previous.sourceId!==group.sourceId)return `\n\n${text}`;
+  if(!text)return '';
+  const before=previous;previous=group;
+  if(!before)return text;
+  if(before.sourceId!==group.sourceId)return `\n\n${text}`;
   const order=source(group.sourceId,snapshots).blocks.filter(block=>typeof block[channel]==='string'&&block[channel]).map(block=>block.id);
-  const last=order.indexOf(previous.blockIds[previous.blockIds.length-1]),next=order.indexOf(group.blockIds[0]);
+  const carried=(ids:string[])=>ids.filter(id=>order.includes(id));
+  const last=order.indexOf(carried(before.blockIds).at(-1)??''),next=order.indexOf(carried(group.blockIds)[0]??'');
   return `${last>=0&&next===last+1?'\n':'\n\n'}${text}`;
  }).join('');
 }
@@ -364,7 +377,7 @@ function composeContentRows(draft:Draft,content:BilingualContent,overrides:Local
    tr:()=>({he:'',tr:joinGroupParagraphs(content.transliterationGroups,'tr',snapshots,overrides),en:''}),
    en:()=>({he:'',tr:'',en:englishRunTexts(content,snapshots,overrides).map(run=>run.text).join('\n\n')}),
   };
-  for(const layer of textRowOrder(content))if(layers.includes(layer))rows.push(block[layer]());
+  for(const layer of textRowOrder(content))if(layers.includes(layer)){const row=block[layer]();if(row.he||row.tr||row.en)rows.push(row)}
   return rows;
  }
  if(layers.includes('en'))return translationSelections(content,snapshots).map(({sourceId,block,pairIds})=>({he:text(sourceId,pairIds,'he'),tr:text(sourceId,pairIds,'tr'),en:english(sourceId,block)}));
@@ -385,7 +398,7 @@ export function buildCue(draft:Draft):AuthoringCue{
  const groups=content.mode==='bilingual'?[...content.hebrewGroups,...content.transliterationGroups]:content.mode==='original-en'||content.mode==='source-en'?content.englishGroups:[];
  const layers=content.mode==='bilingual'?textLayers(content):[];
  if(content.mode==='bilingual'){
-  if(layers.includes('he'))texts.textMainheb=content.hebrewGroups.map(group=>renderGroup(group,'he',draft.sourceSnapshots,overrides)).join('\n');
+  if(layers.includes('he')){const hebrew=content.hebrewGroups.map(group=>renderGroup(group,'he',draft.sourceSnapshots,overrides)).filter(Boolean).join('\n');if(hebrew)texts.textMainheb=hebrew}
   if(layers.includes('tr'))texts.textMainEng=content.transliterationGroups.map(group=>renderGroup(group,'tr',draft.sourceSnapshots,overrides)).join('\n');
   // A lower third is two columns and cannot be arranged, so its translation is a third
   // line beneath them rather than a row in a list. Ruled available, not default (Daniel,

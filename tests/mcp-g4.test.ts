@@ -26,7 +26,7 @@ const crcPublished=(overrides:Partial<Draft>={}):Draft=>{const editable=editable
 function wired(payload:SharedLibraryPayload=buildSharedLibraryPayload({cues:baselineCues,version:'crc-catalog'})){
  const repo=new MemoryAuthoringRepository(),locals=new MemoryLocalSourceRepository(),keys=new MemoryBuildKeyRepository();
  const snapshot:SharedLibrarySnapshot={available:true,configured:true,stale:false,refreshedAt:Date.now(),payload};
- const service=createAuthoringService(repo,undefined,{get:async()=>snapshot},async()=>undefined,fit,locals,undefined,undefined,undefined,keys);
+ const service=createAuthoringService(repo,undefined,{get:async()=>snapshot},async()=>undefined,fit,locals,undefined,undefined,undefined,{buildKeys:keys});
  const handler=createAuthoringMcpHandler((operation,input,actor)=>service.operation(operation,input,actor),()=>workspaceIdentity({WORKSPACE_ID:TBI}));
  let id=0;
  const call=async(name:string,args:Record<string,unknown>={},workspace:string|null=TBI):Promise<Called>=>{
