@@ -110,7 +110,7 @@ describe('snapshot tolerance and published variables', () => {
     // A presence frame carrying the new controllers array must not break the client.
     h.sockets[0]!.message({ type: 'presence', renderers: snapshotFrame().snapshot.renderers, controllers: [{ id: 'c1', client: 'companion', version: '1.4.0', seen: 9_400 }], serverTime: 10_100 })
 
-    const keys = ['current_name', 'current_panel', 'panel_count', 'connection', 'requested_name', 'requested_cue', 'requested_cue_id', 'revision', 'renderer_status', 'bug', 'bug_page', 'logo', 'logo_state']
+    const keys = ['current_name', 'current_panel', 'panel_count', 'connection', 'requested_name', 'requested_cue', 'requested_cue_id', 'revision', 'renderer_status', 'bug', 'bug_page', 'logo', 'logo_state', 'last_source']
     expect(h.variables.length).toBeGreaterThan(1)
     for (const published of h.variables) expect(Object.keys(published).sort()).toEqual([...keys].sort())
     expect(h.variables.at(-1)).toMatchObject({ current_name: 'Barechu', requested_name: 'Barechu', requested_cue: 'Barechu', connection: 'Connected', renderer_status: 'Rendered', revision: 4, current_panel: '', panel_count: '', bug: 'Off', bug_page: '' })
@@ -133,6 +133,7 @@ describe('snapshot tolerance and published variables', () => {
       bug_page: { name: 'Scan card page' },
       logo: { name: 'Resting logo' },
       logo_state: { name: 'Resting logo state' },
+      last_source: { name: 'Last command came from' },
     })
   })
 
@@ -205,7 +206,73 @@ describe('the action and feedback surface', () => {
       { id: 'logo_enabled', name: 'Resting logo enabled', type: 'boolean' },
       { id: 'logo_held', name: 'Resting logo held back', type: 'boolean' },
       { id: 'slot_empty', name: 'Slot is empty', type: 'boolean' },
+      { id: 'last_source_agent', name: 'Last command came from an agent', type: 'boolean' },
       { id: 'disconnected', name: 'Realtime or renderer disconnected', type: 'boolean' },
     ])
+  })
+})
+
+// V3: the deck shows when an agent pressed. The realtime snapshot never says who changed it, so
+// the module reads `lastPress` from its own command answers and, after a change it did not make,
+// from GET /api/state.
+describe('agent activity on the deck', () => {
+  const stateWith = (lastPress: unknown, overrides: Record<string, unknown> = {}) => () => new Response(JSON.stringify({ ...snapshotFrame(overrides).snapshot, lastPress }), { status: 200, headers: { 'Content-Type': 'application/json' } })
+  const lastSourceValue = (h: ReturnType<typeof harness>) => h.variables.at(-1)?.last_source
+
+  it('a change made by an agent shows Agent and lights the feedback', async () => {
+    const h = start(harness({ state: stateWith({ control: 1_000, companion: 2_000, mcp: 3_000 }) }))
+    await h.instance.init(config(), true, secrets({ deviceToken: PAIRED_TOKEN }))
+    await vi.waitFor(() => expect(h.sockets).toHaveLength(1))
+    h.sockets[0]!.emit('open')
+    h.sockets[0]!.message(snapshotFrame())
+    await vi.waitFor(() => expect(lastSourceValue(h)).toBe('Agent'))
+    expect(h.requests.find(request => request.url.endsWith('/api/state'))?.authorization).toBe(`Bearer ${PAIRED_TOKEN}`)
+    expect(h.feedbacks.last_source_agent!.callback({ options: {} })).toBe(true)
+  })
+
+  it('the deck\'s own press answers Companion from the command answer, with no extra read', async () => {
+    const h = start(harness({
+      state: stateWith({ control: null, companion: null, mcp: 3_000 }),
+      command: body => new Response(JSON.stringify({ commandId: String(body.commandId ?? ''), ...snapshotFrame({ revision: 9 }).snapshot, lastPress: { control: null, companion: 4_000, mcp: 3_000 } }), { status: 200, headers: { 'Content-Type': 'application/json' } }),
+    }))
+    await h.instance.init(config(), true, secrets({ deviceToken: PAIRED_TOKEN }))
+    await vi.waitFor(() => expect(h.sockets).toHaveLength(1))
+    h.sockets[0]!.emit('open')
+    h.sockets[0]!.message(snapshotFrame())
+    await vi.waitFor(() => expect(lastSourceValue(h)).toBe('Agent'))
+    const reads = h.requests.filter(request => request.url.endsWith('/api/state')).length
+    await h.actions.clear_now!.callback({ options: {} })
+    expect(lastSourceValue(h)).toBe('Companion')
+    expect(h.feedbacks.last_source_agent!.callback({ options: {} })).toBe(false)
+    // The realtime echo of the deck's own press is not a new revision, so it asks nothing.
+    h.sockets[0]!.message(snapshotFrame({ revision: 9 }))
+    expect(h.requests.filter(request => request.url.endsWith('/api/state')).length).toBe(reads)
+  })
+
+  it('a web that predates the report leaves the variable blank and the feedback off', async () => {
+    const h = start(harness())
+    await h.instance.init(config(), true, secrets({ deviceToken: PAIRED_TOKEN }))
+    await vi.waitFor(() => expect(h.sockets).toHaveLength(1))
+    h.sockets[0]!.emit('open')
+    h.sockets[0]!.message(snapshotFrame())
+    await vi.waitFor(() => expect(h.requests.some(request => request.url.endsWith('/api/state'))).toBe(true))
+    expect(lastSourceValue(h)).toBe('')
+    expect(h.feedbacks.last_source_agent!.callback({ options: {} })).toBe(false)
+  })
+
+  it('a failed state read keeps what the deck last knew and changes no status', async () => {
+    let fail = false
+    const h = start(harness({ state: () => fail ? new Response('nope', { status: 503 }) : stateWith({ control: null, companion: null, mcp: 3_000 })() }))
+    await h.instance.init(config(), true, secrets({ deviceToken: PAIRED_TOKEN }))
+    await vi.waitFor(() => expect(h.sockets).toHaveLength(1))
+    h.sockets[0]!.emit('open')
+    h.sockets[0]!.message(snapshotFrame())
+    await vi.waitFor(() => expect(lastSourceValue(h)).toBe('Agent'))
+    fail = true
+    const statuses = h.statuses.length
+    h.sockets[0]!.message(snapshotFrame({ revision: 5 }))
+    await vi.waitFor(() => expect(h.requests.filter(request => request.url.endsWith('/api/state')).length).toBe(2))
+    expect(lastSourceValue(h)).toBe('Agent')
+    expect(h.statuses.slice(statuses).every(entry => entry.status === InstanceStatus.Ok)).toBe(true)
   })
 })

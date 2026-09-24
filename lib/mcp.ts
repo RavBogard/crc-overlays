@@ -8,16 +8,20 @@ import {registerBrandingTools} from './mcp/branding';
 import {registerCatalogTools} from './mcp/catalog';
 import {registerDeckTools} from './mcp/deck';
 import {registerLayoutsTools} from './mcp/layouts';
-import {registerLiveTools} from './mcp/live';
+import {registerLiveTools,type LiveOperation} from './mcp/live';
 import {registerServicesTools} from './mcp/services';
 import type {McpIdentity,RegisterArea,RegisterTool} from './mcp/shared';
 
 export type AuthoringOperation=(operation:string,input:unknown,actor:string)=>Promise<unknown>;
 export type {McpIdentity} from './mcp/shared';
+export type {LiveOperation} from './mcp/live';
 
-/** A tool group and the scope every tool in it needs: an area declares its scope once, here. */
-export type ScopedArea={register:RegisterArea;scope:ResourceScope};
-const AREAS:ScopedArea[]=[{register:registerCatalogTools,scope:AUTHORING_SCOPE},{register:registerAuthoringTools,scope:AUTHORING_SCOPE},{register:registerServicesTools,scope:AUTHORING_SCOPE},{register:registerLiveTools,scope:LIVE_SCOPE},{register:registerLayoutsTools,scope:AUTHORING_SCOPE},{register:registerAssetsTools,scope:AUTHORING_SCOPE},{register:registerBrandingTools,scope:AUTHORING_SCOPE},{register:registerDeckTools,scope:AUTHORING_SCOPE}];
+/**
+ * A tool group and the scope every tool in it needs: an area declares its scope once, here.
+ * `operation:'live'` sends its calls to the live operation (V3) instead of the authoring one.
+ */
+export type ScopedArea={register:RegisterArea;scope:ResourceScope;operation?:'live'};
+const AREAS:ScopedArea[]=[{register:registerCatalogTools,scope:AUTHORING_SCOPE},{register:registerAuthoringTools,scope:AUTHORING_SCOPE},{register:registerServicesTools,scope:AUTHORING_SCOPE},{register:registerLiveTools,scope:LIVE_SCOPE,operation:'live'},{register:registerLayoutsTools,scope:AUTHORING_SCOPE},{register:registerAssetsTools,scope:AUTHORING_SCOPE},{register:registerBrandingTools,scope:AUTHORING_SCOPE},{register:registerDeckTools,scope:AUTHORING_SCOPE}];
 // Saying which congregation this is needs no grant beyond reaching the server at all.
 const ANY_SCOPE_TOOLS=new Set(['get_workspace']);
 const SCOPE_NAMES:Record<ResourceScope,string>={[AUTHORING_SCOPE]:'authoring',[LIVE_SCOPE]:'live control'};
@@ -31,7 +35,7 @@ function instructions(identity:McpIdentity){return [
  'Make a graphic: search_sources with includeBlocks:true, then create_draft with those block ids (or content mode custom for free text such as an announcement; compose_custom_draft fills a named form). templateCueId is optional: each layout defaults to its look. Then preview_draft, fit_check_draft (includePreviewImage:true shows you the frame), review_draft and publish_draft with the same draftId, expectedVersion and previewId.',
  'Layouts: bottom is a lower third, left and right are panels, and corner is a small bottom-right card for a line or two that takes a bottom template. Text that would need more than two lower thirds becomes a left panel sequence instead.',
  'To show a long prayer in parts, use create_source_draft_set from its source; do not use split_draft_into_set for that.',
- 'Nothing on this connection puts anything on screen.',
+ `Only the live tools (get_live_state, show_graphic, take_out, animate_out, clear_now, next_panel, previous_panel, set_scan_card, set_resting_logo) touch the output, and only with live control granted. They take target:'live'. While a Companion deck has pressed a button recently they are refused: the person at the deck has the output; ask them, or pass override:true with a reason. Nothing else on this connection puts anything on screen.`,
 ].join('\n')}
 // Every change names its congregation, so a call meant for the other connector is refused here
 // rather than landing in the wrong database; a read may name it too, and is checked when it does. The web needs no equivalent: a browser is on one host.
@@ -64,21 +68,27 @@ function compactResult(value:unknown):unknown{
 function result(operation:string,value:unknown,identity:McpIdentity){let output=value,previewImage:undefined|{mimeType:'image/jpeg'|'image/png';dataBase64:string;width:number;height:number};if(operation==='preview_draft'&&value&&typeof value==='object'&&typeof (value as {previewPath?:unknown}).previewPath==='string')output={...(value as Record<string,unknown>),previewUrl:new URL((value as {previewPath:string}).previewPath,canonicalOrigin()).toString()};if((operation==='fit_check_draft'||operation==='preview_content')&&output&&typeof output==='object'){const record=output as Record<string,unknown>,candidate=record.previewImage;if(candidate&&typeof candidate==='object'&&typeof (candidate as {dataBase64?:unknown}).dataBase64==='string'&&((candidate as {mimeType?:unknown}).mimeType==='image/jpeg'||(candidate as {mimeType?:unknown}).mimeType==='image/png')){const image=candidate as {mimeType:'image/jpeg'|'image/png';dataBase64:string;width:number;height:number};previewImage=image;output={...record,previewImage:{mimeType:image.mimeType,width:image.width,height:image.height}}}}if(!FULL_RECORD_OPERATIONS.has(operation)&&output&&typeof output==='object'&&!Array.isArray(output)){const compact=compactResult(output) as Record<string,unknown>;if(JSON.stringify(compact).length<JSON.stringify(output).length)output={...compact,compacted:{omitted:[...OMITTED_RESULT_KEYS,'blockSha256'],fullRecord:'get_draft'}}}if(operation==='get_workspace'){const workspace=(value as {workspace?:{rehearsal?:unknown;label?:unknown}}|undefined)?.workspace;output={organizationName:identity.organizationName,rehearsal:workspace?.rehearsal===true,rehearsalLabel:typeof workspace?.label==='string'?workspace.label:null}}const echo={workspaceId:identity.workspaceId,shortName:identity.shortName,host:identity.host};output=output&&typeof output==='object'&&!Array.isArray(output)?{...echo,...output}:{...echo,result:output};return {content:[{type:'text' as const,text:JSON.stringify(output)},...(previewImage?[{type:'image' as const,data:previewImage.dataBase64,mimeType:previewImage.mimeType}]:[])]}}
 function ensureCoverage(input:Record<string,unknown>){const patch=input.patch as Record<string,unknown>|undefined;const candidate=(patch?.content??input.content) as {mode?:string;hebrewGroups?:{sourceId:string;blockIds:string[]}[];transliterationGroups?:{sourceId:string;blockIds:string[]}[]}|undefined;if(candidate?.mode!=='bilingual')return;const sequence=(groups:typeof candidate.hebrewGroups)=>groups?.flatMap(group=>group.blockIds.map(blockId=>`${group.sourceId}\0${blockId}`));if(JSON.stringify(sequence(candidate.hebrewGroups))!==JSON.stringify(sequence(candidate.transliterationGroups)))throw Error('Hebrew and transliteration must use the same ordered source blocks')}
 
+// A server built without a live operation (tests that only list tools) answers live calls in words.
+const NO_LIVE_OPERATION:LiveOperation=async()=>({ok:false,refused:'Live control is not available on this server. Nothing was sent.'});
 /** `extraAreas` exists for tests: a fixture area proves the gate before a real live tool is registered. */
-export function createAuthoringMcpHandler(authoringOperation:AuthoringOperation,identify:()=>McpIdentity=workspaceIdentity,extraAreas:ScopedArea[]=[]){
+export function createAuthoringMcpHandler(authoringOperation:AuthoringOperation,identify:()=>McpIdentity=workspaceIdentity,extraAreas:ScopedArea[]=[],liveOperation:LiveOperation=NO_LIVE_OPERATION){
  return createMcpHandler(({authInfo})=>{
   const identity=identify(),granted=new Set(authInfo?.scopes??[]);
   const server=new McpServer({name:`${identity.shortName} Overlay Authoring`,version:'1.0.0'},{instructions:instructions(identity)});
-  const registerFor=(scope:ResourceScope):RegisterTool=>(name:string,description:string,inputSchema:z.ZodObject,annotations)=>{
+  const registerFor=({scope,operation}:ScopedArea):RegisterTool=>(name:string,description:string,inputSchema:z.ZodObject,annotations)=>{
    const writes=annotations.readOnlyHint===false,schema=inputSchema.extend({workspace:writes?workspaceField(identity):workspaceField(identity).optional()});
    server.registerTool(name,{description,inputSchema:schema.shape,annotations},async (input:Record<string,unknown>)=>{
     if(!ANY_SCOPE_TOOLS.has(name)&&!granted.has(scope))return scopeRefusal(name,scope,identity);
     if((writes||input.workspace!==undefined)&&!namesWorkspace(input.workspace,identity))return workspaceRefusal(input.workspace,identity);
     const {workspace:named,...parsed}=schema.parse(input) as Record<string,unknown>;void named;ensureCoverage(parsed);
-    return result(name,await authoringOperation(name,parsed,actor(authInfo)),identity);
+    if(operation!=='live')return result(name,await authoringOperation(name,parsed,actor(authInfo)),identity);
+    // A live refusal is an ordinary answer ({ok:false, refused}) marked as an error, so the agent reads the sentence.
+    const value=await liveOperation(name,parsed,{actor:actor(authInfo),extra:authInfo?.extra,identity});
+    const shaped=result(name,value,identity);
+    return (value as {ok?:unknown}|null)?.ok===false?{...shaped,isError:true}:shaped;
    });
   };
-  for(const area of [...AREAS,...extraAreas])area.register(registerFor(area.scope),identity);
+  for(const area of [...AREAS,...extraAreas])area.register(registerFor(area),identity);
   return server;
  },{responseMode:'json'});
 }

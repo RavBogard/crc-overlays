@@ -105,6 +105,21 @@ app/api/catalog/route.ts and lib/sync-live-catalog.ts; L2 and C5 add envelope-on
 - GATE (V2): the crc.live checkbox shows before sign-in (Approve re-checks the role); an Operator may
   approve a live-only connection; scopes are declared per tool group in lib/mcp.ts; a refresh narrows the
   stored scope to what the role allows; unknown `source` values ignored as before.
+- V3 (worker branch, awaiting merge): nine live tools in lib/mcp/live.ts dispatched to a separate live
+  operation (route wires runMcpCommand/snapshot/catalog); deck guard on lastPress.companion; server-side
+  panel stepping (lib/panel-navigation.ts); Companion `last_source` variable + `last_source_agent` feedback
+  (src only, no package rebuild). docs/MCP.md "Live control".
+- GATE (V3): guard window is `WORKSPACE_DECK_GUARD_MINUTES`, default 5, range 1-240, no off value — proceeded
+  because 5 is the proposal on record and Daniel has not set it; he can change it by configuration.
+- GATE (V3): a live service that doesn't report lastPress (pre-V1 relay, legacy path) counts as guard active
+  (override needed) — proceeded because decision 4 says agents yield, and relay-first release makes it moot.
+- GATE (V3): override reasons go in the tool result and one `mcp_live_override` server log line, not the cue
+  log — proceeded because the relay has no note field and relay/ is outside this packet.
+- GATE (V3): the module reads GET /api/state after a revision it didn't make, to learn who pressed (the
+  socket snapshot carries no source) — proceeded because it is an existing endpoint the device credential
+  already reads; an older web answers no lastPress and the variable stays blank.
+- GATE (V3): server instructions line "Nothing on this connection puts anything on screen" replaced by a
+  sentence naming the live tools, target:'live' and the deck guard — agent-facing text, not product copy.
 
 ## Evidence
 Four read-only audits (MCP surface, layouts/renderer, Companion, live/services/access) plus a

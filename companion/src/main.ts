@@ -1,10 +1,10 @@
 import { combineRgb, InstanceBase, InstanceStatus, type CompanionActionDefinitions, type CompanionFeedbackDefinitions, type CompanionPresetDefinitions, type CompanionPresetSection, type InstanceTypes, type SomeCompanionConfigField } from '@companion-module/base'
 import { CatalogStore, categoryColour, cuePresetId, hasCatalogCue, slotCatalogCues, slotPresetId, slotVariableValue, visibleCatalogCues, type CatalogCue } from './catalog.js'
-import { CatalogRefreshCoordinator, deriveFeedback, isNewerSnapshot, logoStatusLabel, OverlayClient, toggleAction, validBugPage, type BugState, type FeedbackState, type LogoState, type OverlaySnapshot, type RealtimeSubscription, type RendererState, type WebSocketFactory } from './client.js'
+import { CatalogRefreshCoordinator, deriveFeedback, isNewerSnapshot, lastSource, logoStatusLabel, OverlayClient, parseLastPress, toggleAction, validBugPage, type BugState, type LastPress, type FeedbackState, type LogoState, type OverlaySnapshot, type RealtimeSubscription, type RendererState, type WebSocketFactory } from './client.js'
 import { DEFAULT_BASE_URL, PRESET_SECTION_CONTROLS } from './brand.js'
 import { redeemPairingCode } from './pairing.js'
 import { panelSets, panelTarget } from './panel.js'
-import { connectionLabel, overlayVariables } from './variables.js'
+import { connectionLabel, lastSourceLabel, overlayVariables } from './variables.js'
 import { moduleVersion } from './version.js'
 
 // The red disconnected indicator waits this long before painting, so a socket that
@@ -58,12 +58,14 @@ interface Manifest extends InstanceTypes {
     logo_enabled: { type: 'boolean'; options: Record<string, never> }
     logo_held: { type: 'boolean'; options: Record<string, never> }
     slot_empty: { type: 'boolean'; options: { cue: string } }
+    last_source_agent: { type: 'boolean'; options: Record<string, never> }
   }
   variables: {
     requested_cue: string; requested_cue_id: string; revision: number; renderer_status: string
     current_name: string; current_panel: string; panel_count: string; connection: string; requested_name: string
     bug: string; bug_page: string
     logo: string; logo_state: string
+    last_source: string
     // One `slot_<key>` per slot in the catalog, declared dynamically by #defineVariables.
     [key: string]: string | number
   }
@@ -89,6 +91,11 @@ export default class CrcOverlaysInstance extends InstanceBase<Manifest> {
   #unhealthySince: number | null = null
   #graceTimer: NodeJS.Timeout | null = null
   #catalog = new CatalogStore(FALLBACK_CUES)
+  // Who pressed last (V3): read from command answers and, after a change this deck did not make,
+  // from GET /api/state. One read at a time; a change during a read asks for one more.
+  #lastPress: LastPress | null = null
+  #lastPressReading = false
+  #lastPressAgain = false
 
   constructor(internal: unknown, dependencies: OverlayDependencies = {}) {
     super(internal)
@@ -146,7 +153,7 @@ export default class CrcOverlaysInstance extends InstanceBase<Manifest> {
     this.#deviceToken = String(secrets?.deviceToken || '')
     // The shared key wins when it is set, so a 1.3.0 configuration upgrades in place.
     this.#credential = this.#controlKey || this.#deviceToken
-    this.#snapshot = null; this.#transportConnected = false; this.#presenceReceivedAt = null; this.#catalogVersion = ''; this.#catalogRefresh = null
+    this.#snapshot = null; this.#transportConnected = false; this.#presenceReceivedAt = null; this.#catalogVersion = ''; this.#catalogRefresh = null; this.#lastPress = null
     if (!this.#credential) {
       this.#client = null; this.updateStatus(InstanceStatus.BadConfig, notice ?? 'Enter a pairing code or a control key'); this.#publishFeedback(); return
     }
@@ -170,7 +177,10 @@ export default class CrcOverlaysInstance extends InstanceBase<Manifest> {
       onSnapshot: snapshot => {
         if (generation !== this.#generation || this.#destroyed) return
         this.#transportConnected = true
+        const previousRevision = this.#snapshot?.revision ?? null
         this.#acceptSnapshot(snapshot, true)
+        // A revision this deck's own answer did not already bring: someone else pressed, so ask who.
+        if (this.#snapshot?.revision !== previousRevision) void this.#readLastPress(generation)
         if (snapshot.catalogVersion !== this.#catalogVersion) void this.#refreshCatalog(generation, false, snapshot.catalogVersion)
         this.updateStatus(InstanceStatus.Ok)
         this.#publishFeedback()
@@ -226,6 +236,7 @@ export default class CrcOverlaysInstance extends InstanceBase<Manifest> {
       const snapshot = await client.activate(action, cue, bug, logo)
       if (generation !== this.#generation || this.#destroyed) return
       this.#acceptSnapshot(snapshot)
+      this.#acceptLastPress(parseLastPress(snapshot))
       if (offline) this.updateStatus(InstanceStatus.UnknownWarning, 'Sent without the live connection. Confirmation will follow when it reconnects.')
       else this.updateStatus(InstanceStatus.Ok)
     } catch (error) {
@@ -238,6 +249,25 @@ export default class CrcOverlaysInstance extends InstanceBase<Manifest> {
     if (!isNewerSnapshot(this.#snapshot, snapshot)) return
     this.#snapshot = snapshot
     if (fromRealtime) this.#markPresence()
+  }
+  #acceptLastPress(press: LastPress | null): void {
+    if (press) this.#lastPress = press
+  }
+  async #readLastPress(generation: number): Promise<void> {
+    const client = this.#client
+    if (!client) return
+    if (this.#lastPressReading) { this.#lastPressAgain = true; return }
+    this.#lastPressReading = true
+    try {
+      do {
+        this.#lastPressAgain = false
+        let press: LastPress | null = null
+        // A failed read changes nothing: the variable keeps what it last knew rather than flicker.
+        try { press = await client.lastPress() } catch { press = null }
+        if (generation !== this.#generation || this.#destroyed) return
+        if (press) { this.#acceptLastPress(press); this.#publishFeedback() }
+      } while (this.#lastPressAgain)
+    } finally { this.#lastPressReading = false }
   }
   #acceptPresence(renderers: RendererState[], serverTime: number): void {
     if (!this.#snapshot) return
@@ -300,6 +330,7 @@ export default class CrcOverlaysInstance extends InstanceBase<Manifest> {
       bug_page: { name: 'Scan card page' },
       logo: { name: 'Resting logo' },
       logo_state: { name: 'Resting logo state' },
+      last_source: { name: 'Last command came from' },
     } as Record<string, { name: string }>
     for (const cue of slotCatalogCues(this.#catalog.cues)) definitions[`slot_${cue.slot!.key}`] = { name: `Slot: ${cue.name}` }
     this.setVariableDefinitions(definitions as Parameters<typeof this.setVariableDefinitions>[0])
@@ -338,7 +369,7 @@ export default class CrcOverlaysInstance extends InstanceBase<Manifest> {
       bugPage: this.#bugPage(),
       logoOn: this.#snapshot?.logo?.on === true,
       logoState: logoStatusLabel(this.#snapshot),
-    }) })
+    }), last_source: lastSourceLabel(lastSource(this.#lastPress)) })
     this.checkAllFeedbacks()
   }
 
@@ -428,6 +459,7 @@ export default class CrcOverlaysInstance extends InstanceBase<Manifest> {
       logo_enabled: { type: 'boolean', name: 'Resting logo enabled', description: 'The operator has asked for the corner logo. It is a setting, not proof of a picture.', defaultStyle: { bgcolor: combineRgb(90, 70, 0), color: combineRgb(255, 255, 255) }, options: [], callback: () => this.#snapshot?.logo?.on === true },
       logo_held: { type: 'boolean', name: 'Resting logo held back', description: 'The corner logo is enabled but a graphic or the scan card is requested, so the site is keeping it off screen.', defaultStyle: { bgcolor: combineRgb(60, 60, 60), color: combineRgb(200, 200, 200) }, options: [], callback: () => logoStatusLabel(this.#snapshot) === 'On (held)' },
       slot_empty: { type: 'boolean', name: 'Slot is empty', description: 'The text of this slot has not been filled in for this service.', defaultStyle: { bgcolor: SLOT_EMPTY_BG, color: SLOT_EMPTY_TEXT }, options: [{ type: 'dropdown', id: 'cue', label: 'Cue', choices: slotTargets, default: slotTargets[0]?.id ?? '' }], callback: event => this.#slotIsEmpty(String(event.options.cue || '')) },
+      last_source_agent: { type: 'boolean', name: 'Last command came from an agent', description: 'The newest press the live service recorded came from an AI agent (the MCP live tools), not a deck or the console.', defaultStyle: { bgcolor: combineRgb(90, 40, 140), color: combineRgb(255, 255, 255) }, options: [], callback: () => lastSource(this.#lastPress) === 'mcp' },
       disconnected: { type: 'boolean', name: 'Realtime or renderer disconnected', description: 'The realtime subscription is closed or no graphics browser presence has arrived for 30 seconds.', defaultStyle: { bgcolor: combineRgb(175, 0, 0), color: combineRgb(255, 255, 255) }, options: [], callback: () => this.#feedbackState().disconnected },
     }
     this.setFeedbackDefinitions(feedbacks)
