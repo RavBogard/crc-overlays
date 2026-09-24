@@ -6,6 +6,7 @@
 // A deck never holds a connection's `config` or `secrets`. Connections are import-mapping stubs, and
 // every device fragment refers to its connection by label, never by the booth's instance settings.
 import crypto from 'node:crypto'
+import { PALETTE, roleColourName, type CueRole, type Palette } from './palette.ts'
 
 /* ---------------------------------------------------------------- values --- */
 
@@ -158,7 +159,7 @@ export const INSTANCE_CONTROL = 'instance_control'
 /** Where a button's entity ids come from: stableId(`${ctx}#${base + n}`) for its n-th entity. */
 export type IdSeed = { ctx: string; base: number }
 
-export type CueRole = 'utility' | 'announcement' | 'single' | 'sequence-part' | 'alternate' | 'short-selection'
+export type { CueRole }
 export type CameraMove = { conn: string | null; preset: number | null; input: string }
 /** The camera gesture: step 1 shows the cue, recalls a PTZ preset, waits, merges; step 2 reverses. */
 export type CameraGesture = { in: CameraMove | null; out: CameraMove | null }
@@ -214,12 +215,8 @@ export type DeviceFragment =
 
 /* ------------------------------------------------------------------ deck --- */
 
-export const PALETTE = {
-  white: 0xffffff, black: 0x000000, teal: 0x006699, burgundy: 0x990033, navy: 0x000066, blue: 0x003399,
-  orange: 0xcc6500, darkRed: 0x780000, charcoal: 0x242424, purple: 0x660066,
-  requested: 0xb46e00, rendered: 0xff0000, disconnected: 0xaa0000, logoEnabled: 0x5a4600, stepText: 0xffff00,
-} as const
-export type Palette = Record<keyof typeof PALETTE, number>
+/** The shared palette (palette.ts), also copied into the Companion module for its presets. */
+export { PALETTE, type Palette }
 
 export type CompanionDeck = {
   schema: 1
@@ -245,10 +242,7 @@ export type CompanionDeck = {
 
 /** Background colour of a cue key by role. */
 export function roleColour(palette: Palette, spec: { role: CueRole; sequence?: unknown }): number {
-  if (spec.role === 'announcement' || spec.role === 'utility') return palette.navy
-  if (spec.role === 'sequence-part') return palette.teal
-  if (spec.role === 'alternate') return spec.sequence ? palette.teal : palette.burgundy
-  return palette.burgundy // single, short-selection
+  return palette[roleColourName(spec.role, Boolean(spec.sequence))]
 }
 
 export function chainNeighbours(chains: number[][], page: number): { prev: number; next: number } | null {

@@ -23,7 +23,7 @@ export interface LastPress { control: number | null; companion: number | null; m
 export type LastSource = 'control' | 'companion' | 'mcp'
 export interface FeedbackState { requestedCue: string | null; renderedCue: string | null; rendered: boolean; disconnected: boolean }
 export interface RealtimeBootstrap { url: string; ticket: string; heartbeatMs: number; staleMs: number; protocol: 1 }
-export interface VersionedCatalog<T = unknown> { cues: T; version: string; slots?: unknown }
+export interface VersionedCatalog<T = unknown> { cues: T; version: string; slots?: unknown; roles?: unknown }
 export type RealtimeConnectionState = 'connecting' | 'connected' | 'disconnected'
 export interface RealtimeHandlers {
   onSnapshot(snapshot: OverlaySnapshot): void
@@ -316,12 +316,12 @@ export class RealtimeSubscription {
 
 /**
  * Either shape the catalog endpoint may answer with: the bare `Cue[]` every deployment has
- * always returned, or the `{version, cues, slots}` envelope `?include=slots` adds. Anything
- * else is left for the catalog validator to refuse.
+ * always returned, or the `{version, cues, slots}` envelope `?include=slots` adds (with `roles`
+ * from a web that carries R-C5). Anything else is left for the catalog validator to refuse.
  */
-export function parseCatalogBody(body: unknown): { cues: unknown; slots?: unknown } {
+export function parseCatalogBody(body: unknown): { cues: unknown; slots?: unknown; roles?: unknown } {
   if (Array.isArray(body)) return { cues: body }
-  if (isRecord(body) && Array.isArray(body.cues)) return { cues: body.cues, slots: body.slots }
+  if (isRecord(body) && Array.isArray(body.cues)) return { cues: body.cues, slots: body.slots, ...(body.roles !== undefined ? { roles: body.roles } : {}) }
   return { cues: body }
 }
 

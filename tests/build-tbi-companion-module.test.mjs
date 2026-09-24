@@ -27,9 +27,9 @@ function crcArchiveWith(relative, edit) {
   return packModuleArchive(entries)
 }
 
-// The committed preset structure is one section; this adds a second, the way a new preset
+// The compiled bundle spells each preset section as an object literal; this adds more beside the controls, the way a new preset
 // section (R-C5's "Sets", "This week's service") would appear in the compiled bundle.
-const CONTROLS_SECTION = '{id:"crc_overlay_controls",name:"CRC Overlay Controls",'
+const CONTROLS_SECTION = '{id:"crc_overlay_controls",name:"CRC Overlay Controls"'
 const withSection = (extra) => (text) => {
   assert.ok(text.includes(CONTROLS_SECTION), 'the compiled bundle still spells the controls section as expected')
   return text.replace(CONTROLS_SECTION, `${extra},${CONTROLS_SECTION}`)
@@ -55,8 +55,11 @@ test('an extra preset section carrying the brand strings derives without touchin
   const main = fileOf(deriveTbiPackage(archive), 'main.js')
   assert.ok(main.includes('{id:"tbi_overlay_sets",name:"TBI Overlay Sets",definitions:[]}'))
   assert.ok(main.includes('{id:"tbi_overlay_service",name:"TBI Overlay Controls: This week",definitions:[]}'))
-  assert.ok(main.includes('{id:"tbi_overlay_controls",name:"TBI Overlay Controls",'))
-  assert.equal(main.split('https://overlays.templebnaiisrael.com').length - 1, 4)
+  assert.ok(main.includes('{id:"tbi_overlay_controls",name:"TBI Overlay Controls"'))
+  // Every spelling of the CRC host maps, however many the bundle carries (the placeholder adds one).
+  const crcHosts = fileOf(archive, 'main.js').split('https://overlays.centralreform.org').length - 1
+  assert.ok(crcHosts >= 2)
+  assert.equal(main.split('https://overlays.templebnaiisrael.com').length - 1, crcHosts)
   assert.doesNotMatch(main, /crc_overlay|CRC Overlay|centralreform/)
   // Protocol identifiers survive.
   assert.ok(main.includes('X-CRC-Catalog-Version'))
@@ -85,7 +88,7 @@ test('HELP.md with a missed brand string fails too', () => {
 
 test('losing the controls section, the base URL or a protocol identifier fails the derivation', () => {
   assert.throws(
-    () => deriveTbiPackage(crcArchiveWith('main.js', text => text.replace(CONTROLS_SECTION, '{id:"controls",name:"Controls",'))),
+    () => deriveTbiPackage(crcArchiveWith('main.js', text => text.replace(CONTROLS_SECTION, '{id:"controls",name:"Controls"'))),
     /main\.js is missing "tbi_overlay_controls"/,
   )
   assert.throws(

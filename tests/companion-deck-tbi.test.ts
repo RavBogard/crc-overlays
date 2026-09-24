@@ -20,7 +20,8 @@ const root = path.resolve(import.meta.dirname, '..')
 const seedFile = path.join(root, 'lib/companion-deck/tbi-seed-data.json')
 const seedText = fs.readFileSync(seedFile, 'utf8')
 const seedData = JSON.parse(seedText) as ExportSeedData
-const definitions = JSON.parse(fs.readFileSync(path.join(root, 'companion/definitions.json'), 'utf8')) as ModuleDefinitions
+// Checked against the module version the TBI deck asks for (companion/definitions/<version>.json), not the newest package.
+const definitions = JSON.parse(fs.readFileSync(path.join(root, 'companion/definitions', `${TBI_OVERLAYS_CONNECTION.moduleVersionId}.json`), 'utf8')) as ModuleDefinitions
 const snapshot = JSON.parse(fs.readFileSync(path.join(root, 'tests/fixtures/tbi-catalog-2026-09-15.json'), 'utf8')) as { cues: { id: string; name: string; layout: string | null; archived?: boolean }[] }
 const cue = (id: string, name: string): Cue => ({ id, name, layout: 'bottom', texts: {}, animations: [], duration: {} })
 const catalog = snapshot.cues.filter((c) => !c.archived).map((c) => cue(c.id, c.name))

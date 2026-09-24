@@ -1,5 +1,5 @@
 // Derives the Temple B'nai Israel Companion module archive from the reviewed CRC
-// archive. The CRC archive at public/downloads/crc-overlays-1.7.0.tgz is the only
+// archive. The CRC archive at public/downloads/crc-overlays-1.8.0.tgz is the only
 // reviewed input and is never rebuilt or modified here.
 //
 // Companion keys installed modules by manifest `id`, so the derived package uses
@@ -292,8 +292,8 @@ export function readManifest(tgzBuffer) {
 }
 
 const repoRoot = resolve(import.meta.dirname, '..');
-export const CRC_MODULE_PATH = resolve(repoRoot, 'public', 'downloads', 'crc-overlays-1.7.0.tgz');
-export const TBI_MODULE_PATH = resolve(repoRoot, 'public', 'workspaces', 'temple-bnai-israel', 'downloads', 'tbi-overlays-1.7.0.tgz');
+export const CRC_MODULE_PATH = resolve(repoRoot, 'public', 'downloads', 'crc-overlays-1.8.0.tgz');
+export const TBI_MODULE_PATH = resolve(repoRoot, 'public', 'workspaces', 'temple-bnai-israel', 'downloads', 'tbi-overlays-1.8.0.tgz');
 // Superseded artifacts removed on every derivation run. The 1.3.0 and 1.4.0 pairs
 // are deliberately absent: TBI must keep serving tbi-overlays-1.3.0.tgz and
 // tbi-overlays-1.4.0.tgz so operators who have not upgraded can still download the

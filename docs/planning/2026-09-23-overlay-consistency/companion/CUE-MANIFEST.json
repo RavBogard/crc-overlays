@@ -10,6 +10,7 @@
    "disconnected"
   ]
  },
+ "catalogEnvelope": "Role and sequence per cue now reach the Companion module through the catalog: GET /api/catalog?include=slots carries them under roles, from content/cue-roles.json, which scripts/build-cue-roles.mjs derives from the deck model built from this manifest (lib/companion-deck/cue-roles.ts). Regenerate it after editing bindings here; tests/cue-roles.test.ts fails while it is stale.",
  "counts": {
   "publishedNonArchivedDrafts": 239,
   "bindings": 439,

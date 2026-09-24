@@ -2,6 +2,7 @@ import {authorizeRequest} from '@/lib/access';
 import {catalog,json} from '@/lib/server';
 import {liturgyIndex} from '@/lib/liturgy-index';
 import {cuesWithSlotMarkers,slotIndex} from '@/lib/slot-catalog';
+import {cueRoleIndex} from '@/lib/cue-roles';
 
 /**
  * D14 — the liturgy index is additive and opt-in. `/output`, the console and Companion all
@@ -12,6 +13,8 @@ import {cuesWithSlotMarkers,slotIndex} from '@/lib/slot-catalog';
  * `?include=layouts` (MCP plan L2) is the output page's: the cues plus `layouts`, the pinned
  * data-layout definitions they render with ({} when no cue pins one). An output page from before
  * L2 keeps asking for the bare array and keeps receiving exactly that.
+ * The slot envelope also carries `roles` (lib/cue-roles.ts, R-C5): role and set per cue, a key
+ * of its own that a module older than 1.8.0 never reads.
  */
 export async function GET(r:Request){
  if(!await authorizeRequest(r,'read'))return json({error:'Access key required'},401);
@@ -19,7 +22,7 @@ export async function GET(r:Request){
   const current=await catalog();
   const include=new URL(r.url).searchParams.get('include');
   const body=include==='liturgy'?{version:current.version,cues:current.cues,liturgy:liturgyIndex(current.cues)}
-   :include==='slots'?{version:current.version,cues:cuesWithSlotMarkers(current.cues),slots:slotIndex(current.cues)}
+   :include==='slots'?{version:current.version,cues:cuesWithSlotMarkers(current.cues),slots:slotIndex(current.cues),roles:cueRoleIndex(current.cues)}
    :include==='layouts'?{version:current.version,cues:current.cues,layouts:current.layouts??{}}
    :current.cues;
   return new Response(JSON.stringify(body),{headers:{'Content-Type':'application/json','Cache-Control':'no-store','Referrer-Policy':'no-referrer','X-Content-Type-Options':'nosniff','X-CRC-Catalog-Version':current.version}});

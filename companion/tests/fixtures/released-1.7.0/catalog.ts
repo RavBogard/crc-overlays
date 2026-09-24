@@ -1,5 +1,3 @@
-import { isCueRole, PALETTE, roleColourName, type CueRole } from './palette.js'
-
 export interface CatalogCue {
   id: string
   name: string
@@ -17,11 +15,6 @@ export interface CatalogCue {
 
 /** One slot's current text, as `GET /api/catalog?include=slots` reports it. */
 export interface CatalogSlot { cueId: string; key: string; text: string }
-
-/** A cue's set in the deck: a multipart set whose parts are shown as consecutive presets. */
-export interface CatalogCueSet { id: string; name: string; index: number; count: number }
-/** One cue's role in the deck, as the envelope's `roles` reports it (a web that carries R-C5). */
-export interface CatalogCueRole { cueId: string; role: CueRole; set?: CatalogCueSet }
 
 const UUID = /^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i
 // A names list for a service is materialized into the live catalog only, under the id
@@ -86,42 +79,9 @@ export function validateSlots(value: unknown): CatalogSlot[] {
   return slots
 }
 
-const SAFE_SET_ID = /^[a-z0-9][a-z0-9-]{0,79}$/
-const isPanelNumber = (value: unknown): value is number => typeof value === 'number' && Number.isInteger(value) && value >= 1 && value <= 99
-
-/**
- * The role index from the envelope's `roles`. Unlike slots, roles only group and colour presets,
- * so they never cost the catalog: a server without them, or a `roles` value that is not a list,
- * is an empty index (presets as before roles existed), and an entry that is malformed, has an
- * unknown role or repeats a cue is dropped on its own. A set name becomes a preset group label,
- * so it is held to the cue-name rule.
- */
-export function validateRoles(value: unknown): CatalogCueRole[] {
-  if (!Array.isArray(value)) return []
-  const seen = new Set<string>()
-  const roles: CatalogCueRole[] = []
-  for (const entry of value) {
-    if (!entry || typeof entry !== 'object') continue
-    const candidate = entry as Record<string, unknown>
-    if (typeof candidate.cueId !== 'string' || !validCueId(candidate.cueId) || seen.has(candidate.cueId) || !isCueRole(candidate.role)) continue
-    let set: CatalogCueSet | undefined
-    if (candidate.set !== undefined) {
-      const raw = candidate.set as Record<string, unknown> | null
-      if (!raw || typeof raw !== 'object' || typeof raw.id !== 'string' || !SAFE_SET_ID.test(raw.id)) continue
-      if (typeof raw.name !== 'string' || raw.name.length === 0 || raw.name.length > 80 || UNSAFE_NAME.test(raw.name)) continue
-      if (!isPanelNumber(raw.index) || !isPanelNumber(raw.count) || raw.index > raw.count) continue
-      set = { id: raw.id, name: raw.name, index: raw.index, count: raw.count }
-    }
-    seen.add(candidate.cueId)
-    roles.push({ cueId: candidate.cueId, role: candidate.role, ...(set ? { set } : {}) })
-  }
-  return roles
-}
-
 export class CatalogStore {
   #cues: CatalogCue[]
   #slots: CatalogSlot[] = []
-  #roles = new Map<string, CatalogCueRole>()
 
   constructor(initial: CatalogCue[]) { this.#cues = validateCatalog(initial) }
   get cues(): readonly CatalogCue[] { return this.#cues }
@@ -129,15 +89,10 @@ export class CatalogStore {
 
   /** `key -> text` for every slot the server reported. Nothing reported is an empty map. */
   slotText(): Map<string, string> { return new Map(this.#slots.map(slot => [slot.key, slot.text])) }
-  /** The deck role of a cue, when the server reported one. */
-  roleOf(cueId: string): CatalogCueRole | undefined { return this.#roles.get(cueId) }
-  /** True when the server reported a role for at least one cue in the catalog. */
-  get hasRoles(): boolean { return this.#roles.size > 0 }
 
   // Cues and slots are replaced together or not at all: a slot index that names a cue the
   // catalog does not carry would light a preset for a button that cannot fire.
-  // Roles are replaced with them; a role for a cue the catalog does not carry is dropped.
-  replace(value: unknown, slots?: unknown, roles?: unknown): boolean {
+  replace(value: unknown, slots?: unknown): boolean {
     try {
       const cues = validateCatalog(value)
       const index = validateSlots(slots)
@@ -145,7 +100,6 @@ export class CatalogStore {
       for (const slot of index) if (!ids.has(slot.cueId)) throw new Error('Catalog slot names a cue that is not in the catalog')
       this.#cues = cues
       this.#slots = index
-      this.#roles = new Map(validateRoles(roles).filter(role => ids.has(role.cueId)).map(role => [role.cueId, role]))
       return true
     } catch {
       return false
@@ -197,13 +151,4 @@ export const CATEGORY_COLOURS: Record<string, PresetColour> = {
 export const DEFAULT_CATEGORY = 'core_liturgy'
 export function categoryColour(category: string | undefined): PresetColour {
   return CATEGORY_COLOURS[category ?? DEFAULT_CATEGORY] ?? CATEGORY_COLOURS[DEFAULT_CATEGORY]!
-}
-
-/**
- * The colour of a cue preset when the deck reports the cue's role: the deck's own role rule and
- * palette (src/palette.ts, copied from the deck renderer's), so the preset matches the key the
- * deck would draw for it. Text is white on every role colour.
- */
-export function roleColour(role: CatalogCueRole): PresetColour {
-  return { bgcolor: PALETTE[roleColourName(role.role, role.set !== undefined)], color: PALETTE.white }
 }

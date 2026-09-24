@@ -15,6 +15,8 @@
 // exported file, imported by a person.
 import {randomUUID} from 'node:crypto'
 import definitions from '../../companion/definitions.json'
+import definitions170 from '../../companion/definitions/1.7.0.json'
+import definitions180 from '../../companion/definitions/1.8.0.json'
 import {
   chainNeighbours, companionLabel, wrapLabel,
   type ButtonSpec, type CameraGesture, type CameraMove, type CompanionDeck, type CueRole, type DeckButton, type DeckPage, type DeckWorkspace,
@@ -144,7 +146,7 @@ export function serviceView(service: {id: string; name: string; service: string;
   return {id: service.id, name: service.name, service: service.service, needed}
 }
 
-type Resolved = Required<Omit<DeckToolContext, 'workspace' | 'signingKey' | 'origin'>> & {workspace: DeckWorkspace | null; signingKey: Buffer | null; origin: string | null}
+type Resolved = Required<Omit<DeckToolContext, 'workspace' | 'signingKey' | 'origin' | 'module'>> & {workspace: DeckWorkspace | null; signingKey: Buffer | null; origin: string | null; module: ModuleDefinitions | null}
 async function resolve(ctx: DeckToolContext): Promise<Resolved> {
   let workspace = ctx.workspace
   if (workspace === undefined) { const {getPublicWorkspace} = await import('../workspace'); workspace = deckWorkspaceFor(getPublicWorkspace().id) }
@@ -153,7 +155,7 @@ async function resolve(ctx: DeckToolContext): Promise<Resolved> {
   return {
     workspace, origin,
     repository: ctx.repository ?? defaultDeckRepository(), catalog: ctx.catalog ?? defaultCatalog, service: ctx.service ?? defaultService,
-    seeds: {...DEFAULT_SEEDS, ...ctx.seeds}, module: ctx.module ?? (definitions as unknown as ModuleDefinitions),
+    seeds: {...DEFAULT_SEEDS, ...ctx.seeds}, module: ctx.module ?? null,
     now: ctx.now ?? Date.now, id: ctx.id ?? randomUUID, signingKey: ctx.signingKey === undefined ? exportSigningKey() : ctx.signingKey,
   }
 }
@@ -234,9 +236,18 @@ const sameName = (a: string, b: string) => {
 
 /* ---------------------------------------------------------------- validation --- */
 
+/** Each packaged module version's definitions (companion/definitions/<version>.json; C5). */
+const MODULE_DEFINITIONS: Record<string, ModuleDefinitions> = Object.fromEntries(
+  [definitions170, definitions180, definitions].map((d) => [(d as {version: string}).version, d as unknown as ModuleDefinitions]))
+/** A deck is checked against the module version its Overlays connection asks for, not the newest package. */
+export function moduleDefinitionsFor(deck: CompanionDeck): ModuleDefinitions {
+  const asked = deck.connections.find((c) => c.role === 'overlays')?.moduleVersionId
+  return (asked && MODULE_DEFINITIONS[asked]) || (definitions as unknown as ModuleDefinitions)
+}
+
 function validation(r: Resolved, deck: CompanionDeck, cat: Cat): ValidationResult {
   return validateDeck(deck, {
-    module: r.module,
+    module: r.module ?? moduleDefinitionsFor(deck),
     cues: {isPublished: (id) => cat.get(id)?.published === true, isRetired: (id) => cat.get(id)?.retired === true, name: (id) => cat.get(id)?.name},
   })
 }

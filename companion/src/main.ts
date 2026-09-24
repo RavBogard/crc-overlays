@@ -1,9 +1,10 @@
 import { combineRgb, InstanceBase, InstanceStatus, type CompanionActionDefinitions, type CompanionFeedbackDefinitions, type CompanionPresetDefinitions, type CompanionPresetSection, type InstanceTypes, type SomeCompanionConfigField } from '@companion-module/base'
-import { CatalogStore, categoryColour, cuePresetId, hasCatalogCue, slotCatalogCues, slotPresetId, slotVariableValue, visibleCatalogCues, type CatalogCue } from './catalog.js'
+import { CatalogStore, categoryColour, cuePresetId, roleColour, hasCatalogCue, slotCatalogCues, slotPresetId, slotVariableValue, visibleCatalogCues, type CatalogCue } from './catalog.js'
 import { CatalogRefreshCoordinator, deriveFeedback, isNewerSnapshot, lastSource, logoStatusLabel, OverlayClient, parseLastPress, toggleAction, validBugPage, type BugState, type LastPress, type FeedbackState, type LogoState, type OverlaySnapshot, type RealtimeSubscription, type RendererState, type WebSocketFactory } from './client.js'
-import { DEFAULT_BASE_URL, PRESET_SECTION_CONTROLS } from './brand.js'
+import { DEFAULT_BASE_URL } from './brand.js'
 import { redeemPairingCode } from './pairing.js'
 import { panelSets, panelTarget } from './panel.js'
+import { presetSections } from './preset-layout.js'
 import { connectionLabel, lastSourceLabel, overlayVariables } from './variables.js'
 import { moduleVersion } from './version.js'
 
@@ -163,7 +164,7 @@ export default class CrcOverlaysInstance extends InstanceBase<Manifest> {
       () => client.catalogWithVersion(),
       catalog => {
         if (generation !== this.#generation || this.#destroyed) return
-        if (!this.#catalog.replace(catalog.cues, catalog.slots)) throw new Error('Catalog validation failed')
+        if (!this.#catalog.replace(catalog.cues, catalog.slots, catalog.roles)) throw new Error('Catalog validation failed')
         this.#catalogVersion = catalog.version
         // Slot variables are catalog-derived, so their definitions are redeclared here
         // beside the actions, feedbacks and presets rather than only once in init().
@@ -467,8 +468,11 @@ export default class CrcOverlaysInstance extends InstanceBase<Manifest> {
   #definePresets(): void {
     const presets: CompanionPresetDefinitions<Manifest> = {}
     const disconnected = { feedbackId: 'disconnected' as const, options: {}, style: { bgcolor: combineRgb(175, 0, 0) } }
+    // A cue the deck reports a role for takes the deck's role colour (the shared palette), so the
+    // preset matches the key the deck draws; anything else keeps its category colour, as before.
     for (const cue of visibleCatalogCues(this.#catalog.cues)) {
-      const colour = categoryColour(cue.category)
+      const role = this.#catalog.roleOf(cue.id)
+      const colour = role ? roleColour(role) : categoryColour(cue.category)
       presets[cuePresetId(cue.id)] = {
         type: 'simple', name: `Toggle ${cue.name}`, style: { text: cue.name, size: '14', color: colour.color, bgcolor: colour.bgcolor },
         steps: [{ down: [{ actionId: 'toggle_cue', options: { cue: cue.id } }], up: [] }],
@@ -512,7 +516,16 @@ export default class CrcOverlaysInstance extends InstanceBase<Manifest> {
     presets.refresh_catalog = { type: 'simple', name: 'Refresh catalog', style: { text: 'Refresh\ncatalog', size: '14', color: combineRgb(255, 255, 255), bgcolor: CHARCOAL }, steps: [{ down: [{ actionId: 'refresh_catalog', options: {} }], up: [] }], feedbacks: [disconnected] }
     presets.connection_status = { type: 'simple', name: 'Connection and current graphic', style: { text: `$(${label}:connection)\n$(${label}:current_name)`, size: '14', color: combineRgb(255, 255, 255), bgcolor: CHARCOAL }, steps: [{ down: [], up: [] }], feedbacks: [disconnected] }
     presets.current_panel = { type: 'simple', name: 'Current panel', style: { text: `$(${label}:current_panel) of $(${label}:panel_count)`, size: '14', color: combineRgb(255, 255, 255), bgcolor: CHARCOAL }, steps: [{ down: [], up: [] }], feedbacks: [disconnected] }
-    const structure: CompanionPresetSection<Manifest>[] = [{ ...PRESET_SECTION_CONTROLS, definitions: Object.keys(presets) }]
+    // Who pressed last: the V3 variable, purple while the newest press came from an AI agent.
+    presets.last_source = { type: 'simple', name: 'Last command came from', style: { text: `Last press\n$(${label}:last_source)`, size: '14', color: combineRgb(255, 255, 255), bgcolor: CHARCOAL }, steps: [{ down: [], up: [] }], feedbacks: [{ feedbackId: 'last_source_agent', options: {}, style: { bgcolor: combineRgb(90, 40, 140) } }, disconnected] }
+    const visible = visibleCatalogCues(this.#catalog.cues)
+    const cueIds = new Set(visible.map(cue => cuePresetId(cue.id)))
+    const slotIds = slotCatalogCues(this.#catalog.cues).map(cue => slotPresetId(cue.id))
+    const slotIdSet = new Set(slotIds)
+    const structure = presetSections({
+      cues: visible, roleOf: cueId => this.#catalog.roleOf(cueId), cuePresetId, slotPresetIds: slotIds,
+      controlPresetIds: Object.keys(presets).filter(id => !cueIds.has(id) && !slotIdSet.has(id)),
+    }) as CompanionPresetSection<Manifest>[]
     this.setPresetDefinitions(structure, presets)
   }
 }
