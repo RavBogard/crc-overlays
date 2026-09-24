@@ -66,6 +66,8 @@ export type FixedRole =
   | 'animate-out' | 'clear-now' | 'logo-toggle'
   | 'prev' | 'home' | 'next' | 'bimah-mute'
   | 'ring-prev' | 'ring-home' | 'ring-next'
+  /** Companion's own page-up / page-number / page-down buttons (TBI's nav column). */
+  | 'page-up' | 'page-number' | 'page-down'
 
 export type PageTemplate = {
   id: string
@@ -90,6 +92,11 @@ const SWITCHER = [
   { row: 2, col: 0, role: 'camera-right' }, { row: 3, col: 0, role: 'merge' },
 ] as const
 
+/** TBI's nav column: Companion's built-in buttons, as Simone's export has them on every page. */
+const TBI_NAV = [
+  { row: 0, col: 0, role: 'page-up' }, { row: 1, col: 0, role: 'page-number' }, { row: 2, col: 0, role: 'page-down' },
+] as const
+
 /** Named page templates per workspace. C2's validator reads fixed cells and nav rules from these. */
 export const PAGE_TEMPLATES: Record<DeckWorkspace, Record<string, PageTemplate>> = {
   crc: {
@@ -109,9 +116,17 @@ export const PAGE_TEMPLATES: Record<DeckWorkspace, Record<string, PageTemplate>>
     spare: { id: 'spare', description: 'Empty page kept for later use.', fixed: [], chainNav: false, builtInNav: false },
   },
   tbi: {
-    // Provisional until C4 seeds Simone's deck: her pages use Companion's built-in nav in column 0 and
-    // have no switcher, Bimah Mute or camera gesture.
-    service: { id: 'service', description: "Simone's page: Companion's built-in nav in c0; no switcher or Bimah Mute.", fixed: [], chainNav: false, builtInNav: true },
+    // Simone's layout (TBIComputer export of 2026-09-14): every one of her 99 pages keeps Companion's
+    // built-in page up / page number / page down in column 0, rows 0-2, so stepping through the page
+    // numbers never strands her. No switcher column, no Bimah Mute, no Prev/Next chains, no camera gesture.
+    service: {
+      id: 'service', description: "Simone's graphics page: Companion's built-in page up / number / down in c0 r0–r2; graphics and her BirdDog and OBS buttons everywhere else; no switcher or Bimah Mute.",
+      fixed: [...TBI_NAV], chainNav: false, builtInNav: true,
+    },
+    blank: {
+      id: 'blank', description: "One of Simone's unused pages: only Companion's built-in page up / number / down in c0 r0–r2, kept so page up and down step through every page.",
+      fixed: [...TBI_NAV], chainNav: false, builtInNav: true,
+    },
   },
 }
 
@@ -149,8 +164,11 @@ export type CameraMove = { conn: string | null; preset: number | null; input: st
 export type CameraGesture = { in: CameraMove | null; out: CameraMove | null }
 
 export type ButtonSpec =
-  /** A cue key: one-step toggle, or a two-step camera gesture. Colour follows the role. */
-  | { kind: 'cue'; cueId: string; label: string; role: CueRole; sequence?: { name: string; index: number; count: number }; gesture?: CameraGesture }
+  /**
+   * A cue key: one-step toggle, or a two-step camera gesture. Colour follows the role unless the deck
+   * keeps the operator's own colours (`bg` background, `color` text; TBI keeps Simone's per-prayer colours).
+   */
+  | { kind: 'cue'; cueId: string; label: string; role: CueRole; sequence?: { name: string; index: number; count: number }; gesture?: CameraGesture; bg?: number; color?: number }
   /** Jump to a page. */
   | { kind: 'jump'; text: string; page: number }
   /** One Overlays module action, with the disconnected light (and the logo light when asked). */
@@ -169,7 +187,13 @@ export type ButtonSpec =
 export const BUILT_IN_CONTROLS = ['pageup', 'pagenum', 'pagedown'] as const
 export type BuiltInControl = (typeof BUILT_IN_CONTROLS)[number]
 
-export type DeckButton = { row: number; col: number; spec: ButtonSpec; ids?: IdSeed }
+/** A Singular.live composition a converted deck's button used to fire (app is the Singular connection's label). */
+export type SingularRef = { app: string; comp: string }
+/** What a button fired on Singular before conversion: its first press (in) and second press (out). */
+export type SingularOrigin = { in: SingularRef | null; out: SingularRef | null }
+
+/** `singular` records what the button fired before a deck was converted from Singular.live (C4). */
+export type DeckButton = { row: number; col: number; spec: ButtonSpec; ids?: IdSeed; singular?: SingularOrigin }
 
 export type DeckPage = { number: number; id: string; name: string; template: string; buttons: DeckButton[] }
 

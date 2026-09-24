@@ -2,7 +2,17 @@
 // Convert Singular.live actions in a Bitfocus Companion export to the
 // congregation's own "crc-overlays" Companion module.
 //
-// One-off migration tool. Node 22, plain ESM, node built-ins only.
+// The in-place rewrite below is the original one-off migration of Michael's CRC export. The matching
+// it shares with deck conversion (option unwrapping, button label and colours, the alias table, the
+// exact-name catalog index) now lives in lib/companion-deck/convert.ts, and the two deck modes are a
+// thin CLI over lib/companion-deck (R-C9):
+//
+//   node scripts/convert-companion-singular.mjs --tbi-seed <export.companionconfig> [--out lib/companion-deck/tbi-seed-data.json]
+//       derive TBI's committed seed from Simone's raw export (connection config and secrets are never read out)
+//   node scripts/convert-companion-singular.mjs --tbi-report --catalog <catalog.json> [--seed <tbi-seed-data.json>] [--out <report.md>]
+//       convert the seeded deck against a TBI catalog snapshot and write the plain-language report
+//
+// Node 24, plain ESM (it imports lib/companion-deck's TypeScript directly, as build-companion-preset.mjs does).
 //
 // Handles BOTH export shapes:
 //   * Companion 4.2.6 ("v4"): controls are `type: "button"` with a flat `style`,
@@ -29,7 +39,18 @@ import zlib from 'node:zlib'
 import crypto from 'node:crypto'
 import { pathToFileURL } from 'node:url'
 
-export const SINGULAR_MODULE = 'singularlive-studio'
+import {
+  NAME_ALIASES, SIDE_PANEL_COMPS, SLOT_COMPS, buildCatalogIndex, buttonBgColor, buttonText, buttonTextColor,
+  isSingularInstance, lookupCue, normName, val,
+} from '../lib/companion-deck/convert.ts'
+import { SINGULAR_MODULE, deriveExportSeedData, formatExportSeedData, readCompanionExport, seedTbiDeck } from '../lib/companion-deck/tbi-seed.ts'
+import { applyConversion, convertSingularDeck, conversionReportMarkdown } from '../lib/companion-deck/convert.ts'
+import { catalogCueLookups, validateDeck } from '../lib/companion-deck/validate.ts'
+
+export {
+  NAME_ALIASES, SIDE_PANEL_COMPS, SINGULAR_MODULE, SLOT_COMPS, buildCatalogIndex, buttonBgColor, buttonText, buttonTextColor,
+  isSingularInstance, lookupCue, val,
+}
 export const NEW_MODULE = 'crc-overlays'
 // Pin to the module version that is installed on the operator's Companion.
 // 1.7.0 shipped 2026-09-22 with the resting logo; override with --module-version if a
@@ -71,12 +92,6 @@ export function writeConfig(file, data, gzipped) {
 
 /* ------------------------------------------------------- shape helpers --- */
 
-/** Unwrap a Companion 5 `{value, isExpression}` option; pass a plain value straight through. */
-export function val(x) {
-  if (x && typeof x === 'object' && !Array.isArray(x) && 'isExpression' in x && 'value' in x) return x.value
-  return x
-}
-
 /** Does this file wrap option values in `{value, isExpression}`? (Companion 4.3 / export v11+.) */
 export function wrapsOptions(config) {
   const v = Number(config?.version)
@@ -107,119 +122,9 @@ export function reshapeOptions(options, wrap) {
   return out
 }
 
-const layerOfType = (ctrl, type) =>
-  (ctrl?.style?.layers ?? []).find((l) => l && typeof l === 'object' && l.type === type) ?? null
-
-/** Button label: v4 `style.text`, v5 the text layer's `text`. */
-export function buttonText(ctrl) {
-  if (ctrl?.style && typeof ctrl.style.text !== 'undefined') return String(ctrl.style.text ?? '')
-  const t = layerOfType(ctrl, 'text')
-  if (t) return String(val(t.text) ?? '')
-  return ''
-}
-
-/** Background colour: v4 `style.bgcolor`, v5 the box layer's `color`. */
-export function buttonBgColor(ctrl) {
-  if (ctrl?.style && typeof ctrl.style.bgcolor === 'number') return ctrl.style.bgcolor
-  const b = layerOfType(ctrl, 'box')
-  if (b) {
-    const c = val(b.color)
-    if (typeof c === 'number') return c
-  }
-  return null
-}
-
-/** Text colour: v4 `style.color`, v5 the text layer's `color`. */
-export function buttonTextColor(ctrl) {
-  if (ctrl?.style && typeof ctrl.style.color === 'number') return ctrl.style.color
-  const t = layerOfType(ctrl, 'text')
-  if (t) {
-    const c = val(t.color)
-    if (typeof c === 'number') return c
-  }
-  return null
-}
-
-export function isSingularInstance(inst) {
-  return !!inst && (inst.moduleId === SINGULAR_MODULE || inst.instance_type === SINGULAR_MODULE)
-}
-
 /* ------------------------------------------------------------- catalog --- */
 
-const normName = (s) => String(s ?? '').trim().toLowerCase()
-
-// Compositions whose names in Companion differ from the catalog entry.
-// Keys and values are lower-cased; `lookupCue` normalises before matching.
-export const NAME_ALIASES = new Map([
-  ['ahava rabbah ahavtanu (ncomplete)', 'ahava rabbah ahavtanu (partial)'],
-  ['veehavta 1', 'vahavta 1'],
-  ['veehavta 2', 'vahavta 2'],
-  ['veshamru', 'vshamru'],
-  // Spelling differences confirmed by hand on 22 September 2026.
-  ["psukei d'zimrah", 'psukei dzimrah 1'],
-  ['elohai neshama', 'elohai nshama'],
-  ['ahavah rabbah ahavtanu', 'ahava rabbah ahavtanu (partial)'],
-  ['mi chamocha (friday)', 'mi chamocha (friday) 1'],
-  ['keddusha 1', 'kedusha 1'],
-  ['keddusha 2', 'kedusha 2'],
-  ['keddusha 3', 'kedusha 3'],
-])
-
-// A composition that is only ever a side panel beside a real lower third.
-// Single-output ruling: drop it wherever a mapped composition is present.
-export const SIDE_PANEL_COMPS = new Set(['start soon right'])
-
-// Compositions that are destined to become per-service "slots" (name cards,
-// reading slates). Until a --slots file names their cue ids they stay on Singular.
-export const SLOT_COMPS = [
-  'Student Name',
-  'Student Name 2',
-  'Two Line Student Names',
-  'Torah Reading 1', 'Torah Reading 2', 'Torah Reading 3', 'Torah Reading 4',
-  'Torah Reading 5', 'Torah Reading 6', 'Torah Reading 7',
-  'Haftarah Reading 1', 'Haftarah Reading 2', 'Haftarah Reading 3',
-  'Guest Name',
-  'Remember Them 1', 'Remember Them 2', 'Remember Them 3',
-]
 const SLOT_COMP_SET = new Set(SLOT_COMPS.map(normName))
-
-export function buildCatalogIndex(catalog) {
-  const index = new Map()
-  for (const [name, entry] of Object.entries(catalog)) {
-    const cueId = typeof entry === 'string' ? entry : entry?.cueId
-    if (!cueId) continue
-    const rec = { cueId, name, status: 'published' }
-    if (entry && typeof entry === 'object') {
-      if (entry.aliasOf) rec.aliasOf = entry.aliasOf
-      if (entry.newButton) rec.newButton = true
-      if (entry.status) rec.status = entry.status
-      if (entry.source) rec.source = entry.source
-    }
-    index.set(normName(name), rec)
-  }
-  return index
-}
-
-/**
- * Look a composition name up in the catalog. Returns `{rec, viaAlias}`; `rec`
- * is null when nothing matches. A record whose status is anything other than
- * "published" is returned with `usable: false` so the caller leaves the button
- * on Singular.
- */
-export function lookupCue(index, comp) {
-  const key = normName(comp)
-  let rec = index.get(key)
-  let viaAlias = null
-  if (!rec) {
-    const alias = NAME_ALIASES.get(key)
-    if (alias && index.has(alias)) {
-      rec = index.get(alias)
-      viaAlias = alias
-    }
-  }
-  if (!rec) return { rec: null, viaAlias: null, usable: false }
-  return { rec, viaAlias, usable: rec.status === 'published' }
-}
 
 export function loadSlots(file) {
   if (!file) return new Map()
@@ -1306,7 +1211,104 @@ export const NAME_SEARCHES = [
   { name: 'CRC Logo', finding: 'No graphic, because the logo is not a graphic in the new system — it is the resting corner mark, turned on and off with its own commands (logo on / logo off), and never the Daven Along scan card. A button whose only job is the logo keeps its press. Where the old deck paired a logo hide or restore with a prayer button, the pairing is dropped: the renderer now hides the mark under any graphic and brings it back when the graphic has gone, so the macro would only fight it.' },
 ]
 
+/* ------------------------------------------------------- deck modes (C4) --- */
+
+const repoRoot = path.resolve(import.meta.dirname, '..')
+export const TBI_DEFAULTS = {
+  seed: path.join(repoRoot, 'lib/companion-deck/tbi-seed-data.json'),
+  catalog: path.join(repoRoot, 'tests/fixtures/tbi-catalog-2026-09-15.json'),
+  report: path.join(repoRoot, 'docs/planning/2026-09-23-mcp-gap-analysis/TBI-CONVERSION-REPORT.md'),
+  definitions: path.join(repoRoot, 'companion/definitions.json'),
+}
+
+/** A catalog snapshot `{cues:[{id,name,layout,archived?}]}` as published cues for matching (archived ones left out). */
+export function catalogCues(snapshot) {
+  return (snapshot.cues ?? []).filter((c) => !c.archived).map((c) => ({ id: c.id, name: c.name, layout: c.layout ?? 'bottom', texts: {}, animations: [], duration: {} }))
+}
+
+/** Derive TBI's seed data from Simone's raw export. The raw file is read in memory and never copied. */
+export function tbiSeedFromExport(file) {
+  const bytes = fs.readFileSync(file)
+  const exported = readCompanionExport(bytes)
+  const source = { file: path.basename(file), sha256: crypto.createHash('sha256').update(bytes).digest('hex') }
+  return deriveExportSeedData(exported, { workspace: 'tbi', source })
+}
+
+/** Convert the seeded deck against a catalog snapshot; bind every Covered row; validate both decks. */
+export function tbiConversion(seedData, snapshot, definitions) {
+  const cues = catalogCues(snapshot)
+  const deck = seedTbiDeck(seedData)
+  const result = convertSingularDeck(deck, { cues })
+  const bindable = result.rows.filter((r) => r.status === 'covered' && !r.bound).map((r) => r.id)
+  const converted = applyConversion(deck, result, bindable).deck
+  const lookups = catalogCueLookups((snapshot.cues ?? []).map((c) => ({ id: c.id, name: c.name, archived: !!c.archived, activeRevision: 1 })))
+  const check = (d) => validateDeck(d, { module: definitions, cues: lookups })
+  return { deck, result, converted, seedCheck: check(deck), convertedCheck: check(converted) }
+}
+
+function deckMain(argv) {
+  const mode = argv[0]
+  const opt = {}
+  for (let i = 1; i < argv.length; i++) {
+    const a = argv[i]
+    if (a === '--out' || a === '--catalog' || a === '--seed') opt[a.slice(2)] = argv[++i]
+    else if (mode === '--tbi-seed' && !opt.in && !a.startsWith('--')) opt.in = a
+    else throw new Error(`Unknown argument: ${a}`)
+  }
+  if (mode === '--tbi-seed') {
+    if (!opt.in) throw new Error('Usage: --tbi-seed <export.companionconfig> [--out <tbi-seed-data.json>]')
+    const { data, summary } = tbiSeedFromExport(opt.in)
+    const out = opt.out ?? TBI_DEFAULTS.seed
+    fs.writeFileSync(out, formatExportSeedData(data))
+    console.log(`Wrote ${out}: ${summary.pages} pages (${summary.pagesWithButtons} with buttons), ${summary.graphics} graphic buttons, ${summary.devices} device buttons, ${summary.builtInNav} built-in nav buttons`)
+    console.log(`Connections kept: ${summary.keptConnections.join(', ')}; dropped: ${summary.droppedConnections.join(', ')}; ${summary.connectionSettingsDiscarded} connections' settings discarded unread`)
+    for (const w of summary.warnings) console.log(`warning: ${w}`)
+    return
+  }
+  const seedData = JSON.parse(fs.readFileSync(opt.seed ?? TBI_DEFAULTS.seed, 'utf8'))
+  const snapshot = JSON.parse(fs.readFileSync(opt.catalog ?? TBI_DEFAULTS.catalog, 'utf8'))
+  const definitions = JSON.parse(fs.readFileSync(TBI_DEFAULTS.definitions, 'utf8'))
+  const { result, seedCheck, convertedCheck, converted } = tbiConversion(seedData, snapshot, definitions)
+  const errors = (v) => v.findings.filter((f) => f.severity === 'error')
+  const describe = (name, v) => `- ${name}: ${v.ok ? 'passes' : `fails (${errors(v).length} errors: ${errors(v).slice(0, 3).map((f) => f.message).join(' ')})`}. ${v.summary.pages} pages with buttons, ${v.summary.buttons} buttons, ${v.summary.cueIdsBound} graphics bound; connections in the export: ${v.exported ? Object.values(v.exported.instances).map((i) => i.label).join(', ') || 'none' : 'n/a'}; ${v.findings.filter((f) => f.severity === 'warning').length} warnings.`
+  const rendered = converted.pages.flatMap((p) => p.buttons).filter((b) => b.spec.kind === 'cue').length
+  const md = conversionReportMarkdown(result, {
+    title: "TBI deck conversion report: Simone's Stream Deck, Singular.live to TBI Overlays",
+    intro: [
+      `For Daniel and Simone. Generated ${new Date().toISOString().slice(0, 10)} by \`node scripts/convert-companion-singular.mjs --tbi-report\`, the same conversion the \`convert_singular_deck\` tool runs. Nothing was published, nothing was bound on a stored deck, and nothing was sent anywhere.`,
+      '',
+      `**The deck.** Simone's Companion export of 14 September 2026 (${seedData.source.file}, Companion ${seedData.companion.build}). It has ${seedData.pages.length} pages; ${seedData.pages.filter((p) => p.template === 'service').length} of them carry buttons (1–6 and 8 for Shabbat and occasions, 95–99 for the High Holy Days). Every page keeps Companion's own page up / page number / page down buttons in the left column. Her BirdDog camera buttons and her two OBS scene buttons are carried unchanged. Every graphic button keeps its page, position, label and colour. The Singular.live connections (${seedData.dropped.map((d) => d.label).join(', ')}) are dropped and a TBI_Overlays connection is added. No connection settings or passwords from the export were kept.`,
+      '',
+      '**What the three words mean.** *Covered*: exactly one published TBI graphic clearly matches what the button shows today, so it can be bound. *Needs review*: a graphic may exist, but a person has to choose between candidates or settle a defect first. *Needs a graphic*: nothing published matches yet. Only Covered buttons are ever bound, and only when someone confirms them. A bound button gets the Requested and Rendered lights, so the deck shows what is on screen.',
+    ],
+    catalogNote: `The repo holds no snapshot of today's published TBI catalog, so this ran against the best one available: TBI's published catalog as fetched on 15 September 2026 during the first conversion pass (${(snapshot.cues ?? []).filter((c) => !c.archived).length} published graphics; ${(snapshot.cues ?? []).filter((c) => c.archived).length} archived ones left out), committed as tests/fixtures/tbi-catalog-2026-09-15.json (names and ids only). The TBI redo replaces those 15 September graphics, so read Covered here as "a graphic of this name exists", not as the final binding. Run \`convert_singular_deck\` again against the live catalog once the redo has published its graphics.`,
+    validation: [
+      "C2's deck validator, with the module definitions shipped with the Overlays module (TBI's page templates allow Companion's built-in navigation):",
+      '',
+      describe('The seeded deck, every graphic button still waiting for its graphic', seedCheck),
+      describe(`The deck with every Covered button bound (${rendered} buttons, each with the Requested and Rendered lights)`, convertedCheck),
+      '',
+      "Companion 5.0.5's own import upgrade was not run: no 5.0.5 upgrade bundle is available here. Hardware acceptance (Simone importing the deck and pressing buttons) cannot be claimed from this report.",
+    ],
+    extra: [
+      '## Notes for Simone',
+      '',
+      '- The first conversion pass found two buttons on page 5, "Ani v\'Atah 1" (row 2, column 8, 5/1/7) and "Ani v\'Atah 2" (row 1, column 8, 5/0/7), that point at Singular compositions which no longer exist, so they already do nothing. This conversion cannot see inside the Singular apps; that check returns once the Singular extract is imported (a later step).',
+      '- Buttons labelled with a working note ("NEED …") are held for review, whatever they match.',
+      '- Labels like "148 pt 1" or "Pg 149 Top" name Mishkan T\'filah pages. They rarely match a graphic by name, so most of them are Needs review or Needs a graphic here; the TBI redo builds them as TBI readings with book and page.',
+    ],
+  })
+  const out = opt.out ?? TBI_DEFAULTS.report
+  fs.writeFileSync(out, md)
+  const s = result.summary
+  console.log(`Wrote ${out}: ${s.buttons} graphic buttons, covered ${s.byStatus.covered}, needs review ${s.byStatus['needs-review']}, needs a graphic ${s.byStatus['needs-a-graphic']}`)
+  console.log(`Seeded deck ${seedCheck.ok ? 'passes' : 'FAILS'} the validator; converted deck ${convertedCheck.ok ? 'passes' : 'FAILS'}`)
+  for (const f of [...errors(seedCheck), ...errors(convertedCheck)].slice(0, 10)) console.log(`error: ${f.message}`)
+}
+
+
 function main(argv) {
+  if (argv[0] === '--tbi-seed' || argv[0] === '--tbi-report') return deckMain(argv)
   const args = parseArgs(argv)
   if (args.moduleVersion) setModuleVersion(args.moduleVersion)
   const { data, gzipped: inputGzipped } = readConfig(args.in)
