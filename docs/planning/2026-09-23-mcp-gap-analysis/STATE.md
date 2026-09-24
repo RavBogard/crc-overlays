@@ -227,6 +227,15 @@ app/api/catalog/route.ts and lib/sync-live-catalog.ts; L2 and C5 add envelope-on
   unpublished changes compare what is on screen, not versions (retire/restore bump versions); supersede leaves
   labels unchanged (no silent rewording) and reports them. Deck checks say "No Companion deck is stored" until
   C3's repository is wired. Noted: after restore, list_drafts/get_draft report `dirty` (A3 version bump).
+- L2 merged (27746ea, cfe902e; merge 0599913): layout_definitions table (not applied), versioned data layouts,
+  `layoutRef` pinned in cueHash for data layouts only (built-ins unchanged: 34 baseline + custom cue hashes and
+  the catalog version match tests/fixtures/cue-hashes.json), `layouts` envelope via /api/catalog?include=layouts
+  (default response still the bare Cue[]) and relay `approved_layouts`; motion presets in the definition.
+  Integration: Turbopack build ok; golden stills 16/16 identical on a Turbopack dev server; tsc clean, npm test
+  1081+35, renderer 31, relay 86, lint 0 errors. Release order: relay before web (an old relay drops layouts).
+- L2 notes for L3: register published layouts at startup when Postgres is wired; console/editor previews and the
+  fit stage don't pass `layouts` to the Player yet; output pages older than the release draw a data-layout cue
+  without its card.
 - Owed: a real-browser check of the library's Retired label and Return button (A3 did a server render only).
 - V3 merged (ae37165): nine live tools in lib/mcp/live.ts dispatched to a separate live
   operation (route wires runMcpCommand/snapshot/catalog); deck guard on lastPress.companion; server-side
