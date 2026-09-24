@@ -81,6 +81,10 @@ async function capture(options) {
     await page.waitForFunction('typeof window.__measureCue === "function"', undefined, { timeout: 120_000 });
     // The dev server's own indicator is not part of the frame; its badge changes with compile state.
     await page.addStyleTag({ content: "nextjs-portal{display:none!important}" });
+    // Warm-up: the first time a fresh page paints the logo it resamples it differently (168 logo
+    // pixels differ from every later paint of the same image), so one throwaway render goes first.
+    await page.evaluate(async (cue) => { await window.__measureCue(cue, { retainRenderedCue: true }); await new Promise((resolve) => setTimeout(resolve, 250)); await new Promise((resolve) => requestAnimationFrame(() => requestAnimationFrame(resolve))); window.__disposeMeasuredCue?.(); }, cueFor(CASES[0]));
+    await page.screenshot({ type: "png", clip: { x: 0, y: 0, width: 1920, height: 1080 } });
     const results = [];
     for (const spec of CASES) {
       const measurement = await page.evaluate((cue) => window.__measureCue(cue, { retainRenderedCue: true }), cueFor(spec));
