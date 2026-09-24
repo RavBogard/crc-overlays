@@ -20,6 +20,11 @@ import type { Cue } from '../player.ts'
 import { type CompanionDeck, type CueRole, type DeckButton, type DeckPage, type DeckWorkspace, type SingularRef, unwrap } from './model.ts'
 import { DeckConflictError, type CompanionDeckRepository, type StoredDeck } from './repository.ts'
 import { ExportSeedError, SINGULAR_MODULE, seedDeckFromExportBytes, seedTbiDeck, type ExportSeedData, type SeedSummary } from './tbi-seed.ts'
+import { prepare, rankCues, type Prepared } from './singular-match.ts'
+import {
+  REFERENCE_STORE_MISSING, SINGULAR_EXTRACT, SingularReferenceConflictError, findCredential, isMissingTable, referenceFor, referenceIndex, referenceKey,
+  referenceRecords, type DraftReference, type SingularReference, type SingularReferenceApp, type SingularReferenceRepository,
+} from './singular-references.ts'
 
 type Obj = Record<string, unknown>
 
@@ -144,6 +149,35 @@ export const titleMatcher: CompositionMatcher = (ref, cues) => {
   }
 }
 
+/** Cue text split the way the first pass compared it: Hebrew from every text, Latin from all but the titles. */
+function preparedCue(cue: Cue): Prepared {
+  const texts = cue.texts ?? {}
+  const all = Object.values(texts).filter((v) => typeof v === 'string').join('\n')
+  const body = Object.entries(texts).filter(([k, v]) => typeof v === 'string' && k !== 'textTitle' && k !== 'accentTextTitle').map(([, v]) => v).join('\n')
+  return prepare(friendlyCueName(cue.name), all, body)
+}
+const STRONG = new Set(['EXACT', 'TEXT-MATCH'])
+
+/**
+ * T3: match by what the composition showed, not only its name (lib/companion-deck/singular-match.ts).
+ * Clear when the best cue is EXACT or TEXT-MATCH and no other cue is nearly as strong; SAME-PRAYER and
+ * PARTIAL cues are candidates for review. A composition with no stored reference is left to the title search.
+ */
+export function contentMatcher(references: readonly SingularReference[]): CompositionMatcher {
+  const index = referenceIndex({ apps: [{ label: '', name: null, importedAt: 0, importedBy: '', compositions: [...references] }] })
+  let cached: { cues: readonly Cue[]; prepared: Prepared[] } | null = null
+  return (ref, cues) => {
+    const record = index.get(referenceKey(ref.app, ref.comp))
+    if (!record || !cues.length) return { method: 'content', clear: null, plausible: [] }
+    if (cached?.cues !== cues) cached = { cues, prepared: cues.map(preparedCue) }
+    const ranked = rankCues(prepare(record.name, record.text, record.text), cached.prepared)
+    const as = (r: (typeof ranked)[number]): Candidate => ({ cueId: cues[r.index].id, name: friendlyCueName(cues[r.index].name), score: Math.round(r.scores.combined * 100) })
+    const [best, next] = ranked
+    const clear = best && STRONG.has(best.category) && !(next && STRONG.has(next.category) && next.scores.combined > best.scores.combined - 0.05) ? as(best) : null
+    return { method: 'content', clear, plausible: ranked.filter((r) => r.category !== 'NO-MATCH').slice(0, MAX_CANDIDATES).map(as) }
+  }
+}
+
 /* ------------------------------------------------------------ label checks --- */
 
 /** Prayer names as they are spelled on decks, for "the label names a different prayer" (normalised words). */
@@ -228,7 +262,8 @@ export type ConversionRow = {
   /** Already a cue key on the deck. */
   bound: boolean
   reason: string
-  // Track T3 adds: reference?: { origin: string; app: string; comp: string; text: string; imageAssetId?: string }
+  /** T3: what the button showed on Singular (its first press), to read beside the proposed graphic. `text` is empty until the extract is imported. */
+  reference: DraftReference | null
 }
 
 export type ConversionSummary = {
@@ -248,8 +283,10 @@ export type ConvertOptions = {
   cues: readonly Cue[]
   /** Matchers tried in order; the first with a clear match wins, and candidates are pooled. Default: title. */
   matchers?: CompositionMatcher[]
-  /** The compositions that exist in the Singular apps, when known (T3's extract): a missing one is a dead button. */
+  /** The compositions that exist in the Singular apps, when known (T3's extract): a missing one is a dead button. Only the apps listed are judged. */
   compositions?: readonly SingularRef[]
+  /** T3: the imported Singular reference material. Rows carry its text, matching compares content first, and it supplies `compositions` when those are not given. */
+  references?: readonly SingularReference[]
 }
 
 /** The label and colours of a seeded (placeholder) button, read from its fragment. */
@@ -271,11 +308,16 @@ export function buttonLook(deck: CompanionDeck, button: DeckButton): { label: st
 }
 
 const fires = (r: SingularRef | null) => (r ? `"${r.comp}" (${r.app})` : 'nothing')
+const matchedBy = (r: ConversionRow) => (r.match.method.startsWith('content') ? 'by what it shows' : 'by name')
 
 /** Build the conversion rows for every button that records what it fired on Singular. Pure. */
 export function convertSingularDeck(deck: CompanionDeck, options: ConvertOptions): ConversionResult {
-  const matchers = options.matchers?.length ? options.matchers : [titleMatcher]
-  const known = options.compositions ? new Set(options.compositions.map((c) => `${c.app}\u0000${normName(c.comp)}`)) : null
+  const refs = options.references ?? []
+  const matchers = options.matchers?.length ? options.matchers : refs.length ? [contentMatcher(refs), titleMatcher] : [titleMatcher]
+  const compositions = options.compositions ?? (refs.length ? refs.map((r) => ({ app: r.app, comp: r.name })) : null)
+  const known = compositions ? new Set(compositions.map((c) => `${c.app}\u0000${normName(c.comp)}`)) : null
+  const judgedApps = new Set(compositions?.map((c) => c.app) ?? [])
+  const refIndex = referenceIndex({ apps: [{ label: '', name: null, importedAt: 0, importedBy: '', compositions: [...refs] }] })
   const published = new Map(options.cues.map((c) => [c.id, c]))
   const rows: ConversionRow[] = []
   const pages = [...deck.pages].sort((a, b) => a.number - b.number)
@@ -302,8 +344,8 @@ export function convertSingularDeck(deck: CompanionDeck, options: ConvertOptions
       if (s.in && s.out && !sameComp(s.in, s.out)) {
         defects.push({ code: 'in-out-mismatch', message: `The first press shows ${fires(s.in)} but the second press takes out ${fires(s.out)}, so the second press does not clear what the first showed.` })
       }
-      for (const ref of [s.in, s.out]) {
-        if (ref && known && !known.has(`${ref.app}\u0000${normName(ref.comp)}`)) {
+      for (const ref of sameComp(s.in, s.out) ? [s.in] : [s.in, s.out]) {
+        if (ref && known && judgedApps.has(ref.app) && !known.has(`${ref.app}\u0000${normName(ref.comp)}`)) {
           defects.push({ code: 'composition-missing', message: `It fires ${fires(ref)}, which no longer exists in that Singular app, so the button already does nothing.` })
         }
       }
@@ -329,6 +371,7 @@ export function convertSingularDeck(deck: CompanionDeck, options: ConvertOptions
         label: look.label, bg: look.bg, color: look.color, singular: { in: s.in, out: s.out },
         matchStatus, status: matchStatus, cue: m.clear ? { id: m.clear.cueId, name: m.clear.name } : null,
         candidates: m.clear ? [] : m.plausible, match: { method: m.method, query: ref?.comp ?? '' }, defects, bound, reason: '',
+        reference: ref ? referenceFor(ref.app, ref.comp, refIndex.get(referenceKey(ref.app, ref.comp))) : null,
       })
       if (bound && button.spec.kind === 'cue') {
         const cue = published.get(button.spec.cueId)
@@ -382,10 +425,10 @@ export function convertSingularDeck(deck: CompanionDeck, options: ConvertOptions
     if (r.matchStatus === 'covered' && blocking.length) {
       r.status = 'needs-review'
       r.candidates = r.cue ? [{ cueId: r.cue.id, name: r.cue.name, score: CLEAR_MATCH_SCORE }] : r.candidates
-      r.reason = `Matched "${r.cue?.name}" by name, but ${blocking.length === 1 ? 'a defect needs' : 'defects need'} a decision first: ${blocking.map((d) => d.message).join(' ')}`
+      r.reason = `Matched "${r.cue?.name}" ${matchedBy(r)}, but ${blocking.length === 1 ? 'a defect needs' : 'defects need'} a decision first: ${blocking.map((d) => d.message).join(' ')}`
       r.cue = null
     } else if (r.matchStatus === 'covered') {
-      r.reason = `Matched the published graphic "${r.cue?.name}" by name.`
+      r.reason = `Matched the published graphic "${r.cue?.name}" ${matchedBy(r)}.`
     } else if (r.matchStatus === 'needs-review') {
       r.reason = r.candidates.length > 1
         ? `Several published graphics could be this one: ${r.candidates.map((c) => `"${c.name}"`).join(', ')}. Choose one.`
@@ -525,7 +568,7 @@ export function conversionReportMarkdown(result: ConversionResult, meta: { title
 
 /* ------------------------------------------------------------ MCP surface --- */
 
-export const DECK_CONVERSION_TOOLS = ['seed_deck_from_export', 'convert_singular_deck'] as const
+export const DECK_CONVERSION_TOOLS = ['seed_deck_from_export', 'convert_singular_deck', 'import_singular_extract'] as const
 export const isDeckConversionTool = (name: string) => (DECK_CONVERSION_TOOLS as readonly string[]).includes(name)
 
 export type DeckConversionDeps = {
@@ -537,6 +580,8 @@ export type DeckConversionDeps = {
   /** Simone's committed seed (tbi-seed-data.json). */
   committedSeed(): Promise<ExportSeedData>
   now(): number
+  /** T3: where imported Singular reference material is kept. Left out, conversion runs without it (name matching only). */
+  references?: SingularReferenceRepository | null
 }
 
 let configuredRepository: CompanionDeckRepository | null = null
@@ -544,8 +589,9 @@ let configuredRepository: CompanionDeckRepository | null = null
 export function setDeckConversionRepository(repository: CompanionDeckRepository | null) { configuredRepository = repository }
 
 async function defaultDeps(): Promise<DeckConversionDeps> {
-  const [{ getPublicWorkspace }, { authoringCatalog }, { isNamesCueId }, { defaultDeckRepository }] = await Promise.all([import('../workspace'), import('../server'), import('../names-list'), import('./tools.ts')])
+  const [{ getPublicWorkspace }, { authoringCatalog }, { isNamesCueId }, { defaultDeckRepository }, { defaultSingularReferenceRepository }] = await Promise.all([import('../workspace'), import('../server'), import('../names-list'), import('./tools.ts'), import('./singular-references.ts')])
   return {
+    references: defaultSingularReferenceRepository(),
     workspace: getPublicWorkspace().id === 'temple-bnai-israel-kalamazoo' ? 'tbi' : 'crc',
     // One store for the deck: a deck seeded or converted here is the one get_deck reads and edits.
     repository: configuredRepository ?? defaultDeckRepository(),
@@ -574,8 +620,20 @@ function compactRow(r: ConversionRow) {
     ...(r.candidates.length && r.status !== 'covered' ? { candidates: r.candidates.map((c) => ({ cueId: c.cueId, name: c.name })) } : {}),
     ...(r.defects.length ? { defects: r.defects.map((d) => d.code) } : {}),
     ...(r.bound ? { bound: true } : {}),
+    // T3: the old text beside the proposed graphic (shortened here; view:'full' has the whole reference).
+    ...(r.reference ? { oldText: r.reference.text ? excerpt(r.reference.text) : null } : {}),
     next: r.reason,
   }
+}
+const excerpt = (text: string) => {
+  const flat = text.replace(/\s+/g, ' ').trim()
+  return flat.length > 160 ? `${flat.slice(0, 159).replace(/\s+\S*$/, '')}…` : flat
+}
+
+/** The stored reference material for this workspace, or none; a store that is not set up counts as none. */
+async function storedReferences(deps: DeckConversionDeps) {
+  if (!deps.references) return null
+  try { return await deps.references.get(deps.workspace) } catch (e) { if (isMissingTable(e)) return null; throw e }
 }
 
 function committedSummary(seed: ExportSeedData): SeedSummary {
@@ -659,7 +717,12 @@ async function convertOperation(data: Obj, actor: string, deps: DeckConversionDe
     deck = stored.deck
     version = stored.version
   }
-  const result = convertSingularDeck(deck, { cues: await deps.cues() })
+  const refStore = await storedReferences(deps)
+  const references = refStore?.document.apps.flatMap((a) => a.compositions) ?? []
+  const result = convertSingularDeck(deck, { cues: await deps.cues(), references })
+  const referenceNote = refStore
+    ? { version: refStore.version, apps: refStore.document.apps.map((a) => a.label), withText: result.rows.filter((r) => r.reference?.text).length }
+    : null
   const filter = typeof data.status === 'string' ? data.status : null
   const shown = result.rows.filter((r) => !filter || r.status === filter || STATUS_LABEL[r.status] === filter)
   const rows = data.view === 'full' ? shown : shown.map(compactRow)
@@ -671,7 +734,9 @@ async function convertOperation(data: Obj, actor: string, deps: DeckConversionDe
   const bindable = result.rows.filter((r) => r.status === 'covered' && !r.bound).map((r) => r.id)
   if (dryRun) {
     return {
-      dryRun: true, deck: source, version, counts, bindable, rows,
+      dryRun: true, deck: source, version, counts, bindable,
+      references: referenceNote ?? { version: null, apps: [], withText: 0, note: 'No Singular extract is imported, so each row names the composition it fires but not what it showed, and matching is by name only. Import it with import_singular_extract.' },
+      rows,
       next: bindable.length
         ? `Nothing was bound. Review the rows, then call again with dryRun:false, expectedVersion:${version ?? '<stored version>'} and bind listing the Covered rows to bind (bindable lists all ${bindable.length}). Needs review and Needs a graphic rows are never bound.`
         : 'Nothing was bound, and no row is ready to bind. Settle the Needs review rows and make the missing graphics, then convert again.',
@@ -693,11 +758,75 @@ async function convertOperation(data: Obj, actor: string, deps: DeckConversionDe
   }
 }
 
-/** The MCP operations seed_deck_from_export and convert_singular_deck (lib/mcp/deck.ts registers them). */
+/* ------------------------------------------------ T3: the Singular extract --- */
+
+async function importExtractOperation(data: Obj, actor: string, deps: DeckConversionDeps) {
+  // Credentials first, before anything else is read, and never echoed: the extract was pulled through
+  // Singular control links that carry a token.
+  const hit = findCredential(data, 'input')
+  if (hit) refuse('credential_in_extract', `Nothing was imported: the extract carries something that looks like a credential (at ${hit}). Remove every Singular control link, token, key and password from it, then import it again.`)
+  allowedKeys(data, ['extract', 'dryRun', 'expectedVersion'])
+  const parsed = SINGULAR_EXTRACT.safeParse(data.extract)
+  if (!parsed.success) {
+    const issue = parsed.error.issues[0]
+    refuse('invalid_extract', `Nothing was imported: the extract is not in the expected shape ({apps:[{label, subcompositions:[{id, name, layer, fields}]}]}); the first problem is at ${['extract', ...issue.path.map(String)].join('.')}: ${issue.message}.`)
+  }
+  const extract = parsed.data!
+  const labels = extract.apps.map((a) => a.label)
+  const repeated = labels.filter((l, i) => labels.indexOf(l) !== i)
+  if (repeated.length) refuse('invalid_extract', `Nothing was imported: the app ${repeated[0]} appears twice in the extract. Send each app once.`)
+  const dryRun = data.dryRun !== false
+  const now = deps.now()
+  const incoming: SingularReferenceApp[] = extract.apps.map((a) => ({ label: a.label, name: a.name ?? null, importedAt: now, importedBy: actor, compositions: referenceRecords(a) }))
+  let existing
+  try { existing = deps.references ? await deps.references.get(deps.workspace) : null } catch (e) {
+    if (isMissingTable(e)) refuse('reference_store_missing', REFERENCE_STORE_MISSING, 503)
+    throw e
+  }
+  const summary = incoming.map((a) => {
+    const layers: Record<string, number> = {}
+    for (const c of a.compositions) layers[c.layer ?? 'none'] = (layers[c.layer ?? 'none'] ?? 0) + 1
+    const names = a.compositions.map((c) => c.name.toLowerCase())
+    return {
+      app: a.label, ...(a.name ? { name: a.name } : {}), compositions: a.compositions.length,
+      withText: a.compositions.filter((c) => c.text).length, withHebrew: a.compositions.filter((c) => /[֐-׿יִ-ﭏ]/.test(c.text)).length,
+      withPicture: a.compositions.filter((c) => c.imageAssetId).length, layers,
+      repeatedNames: [...new Set(names.filter((n, i) => names.indexOf(n) !== i))].length,
+      replaces: !!existing?.document.apps.some((x) => x.label === a.label),
+    }
+  })
+  const kept = (existing?.document.apps ?? []).filter((a) => !labels.includes(a.label)).map((a) => a.label)
+  const who = workspaceName(deps.workspace)
+  if (dryRun) {
+    return {
+      dryRun: true, apps: summary, keptApps: kept, stored: existing ? { version: existing.version, apps: existing.document.apps.map((a) => a.label) } : null,
+      next: existing
+        ? `Nothing was stored. To store these apps (replacing any of the same label; other apps are kept), call again with dryRun:false and expectedVersion:${existing.version}. Then run convert_singular_deck.`
+        : `Nothing was stored. To store this as the ${who} Singular reference material, call again with dryRun:false. Then run convert_singular_deck.`,
+    }
+  }
+  const repo = deps.references ?? refuse('reference_store_missing', REFERENCE_STORE_MISSING, 503)
+  if (existing && typeof data.expectedVersion !== 'number') refuse('version_required', `${who} Singular reference material is already stored (version ${existing.version}). Pass expectedVersion:${existing.version} to add or replace apps.`, 409)
+  if (existing && data.expectedVersion !== existing.version) refuse('version_conflict', `The ${who} Singular reference material changed in another session (it is now version ${existing.version}). Run the dry run again and retry with the new version.`, 409)
+  const document = { apps: [...(existing?.document.apps ?? []).filter((a) => !labels.includes(a.label)), ...incoming].sort((a, b) => a.label.localeCompare(b.label)) }
+  let stored
+  try { stored = await repo.put(deps.workspace, document, existing ? existing.version : null, actor, now) } catch (e) {
+    if (isMissingTable(e)) refuse('reference_store_missing', REFERENCE_STORE_MISSING, 503)
+    if (e instanceof SingularReferenceConflictError) refuse(e.code, e.message, e.status)
+    throw e
+  }
+  return {
+    dryRun: false, apps: summary, keptApps: kept, stored: { version: stored.version, apps: stored.document.apps.map((a) => a.label) },
+    next: 'Run convert_singular_deck: each row now shows what its button showed on Singular, and matching compares that text as well as the name.',
+  }
+}
+
+/** The MCP operations seed_deck_from_export, convert_singular_deck and import_singular_extract (lib/mcp/deck.ts registers them). */
 export async function deckConversionOperation(operation: string, input: unknown, actor: string, deps?: DeckConversionDeps): Promise<unknown> {
   const data = (input && typeof input === 'object' && !Array.isArray(input) ? input : {}) as Obj
   const d = deps ?? await defaultDeps()
   if (operation === 'seed_deck_from_export') return seedOperation(data, actor, d)
   if (operation === 'convert_singular_deck') return convertOperation(data, actor, d)
+  if (operation === 'import_singular_extract') return importExtractOperation(data, actor, d)
   return refuse('unknown_operation', `Unknown deck operation: ${operation}`, 404)
 }

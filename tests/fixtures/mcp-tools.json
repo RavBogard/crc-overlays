@@ -1225,7 +1225,7 @@
  },
  {
   "name": "convert_singular_deck",
-  "description": "Match every Singular.live button on the stored CRC deck to a published graphic, by the same forgiving title search prepare_service_from_setlist uses. Each button comes back Covered (one clear match), Needs review (several candidates, or a defect to settle) or Needs a graphic, with defects named: two presses firing different graphics, a label naming a different prayer than it fires, two buttons with one label on a page, working notes in a label. Dry run by default. With dryRun:false, expectedVersion and bind (row ids from the dry run), only Covered rows are bound, each becoming a one-press key with the Requested and Rendered lights; anything else named is refused and nothing changes. deck:'committed-seed' previews Simone's committed deck without storing it.",
+  "description": "Match every Singular.live button on the stored CRC deck to a published graphic, by the same forgiving title search prepare_service_from_setlist uses. Each button comes back Covered (one clear match), Needs review (several candidates, or a defect to settle) or Needs a graphic, with defects named: two presses firing different graphics, a label naming a different prayer than it fires, two buttons with one label on a page, working notes in a label. Dry run by default. With dryRun:false, expectedVersion and bind (row ids from the dry run), only Covered rows are bound, each becoming a one-press key with the Requested and Rendered lights; anything else named is refused and nothing changes. deck:'committed-seed' previews Simone's committed deck without storing it. Every row carries reference{origin, app, comp, text, imageAssetId?}: what the button showed on Singular, to read beside the proposed graphic and to pass to create_draft. Its text is empty, and matching is by name only, until import_singular_extract has stored the old compositions; then matching compares what each one showed first.",
   "inputSchema": {
    "type": "object",
    "$schema": "https://json-schema.org/draft/2020-12/schema",
@@ -1888,6 +1888,42 @@
     "applyDefaults": {
      "type": "boolean",
      "description": "false skips this workspace's house defaults (get_authoring_defaults) for this call. Left out, they apply; a value the call names itself always wins."
+    },
+    "reference": {
+     "description": "T3: what the old deck showed, as a convert_singular_deck row carries it. Kept with the draft for review (a review board shows it beside the graphic); never shown on screen.",
+     "type": "object",
+     "properties": {
+      "origin": {
+       "type": "string",
+       "minLength": 1,
+       "maxLength": 80,
+       "description": "Where the old material came from, e.g. 'singular'."
+      },
+      "app": {
+       "type": "string",
+       "minLength": 1,
+       "maxLength": 160
+      },
+      "comp": {
+       "type": "string",
+       "minLength": 1,
+       "maxLength": 200
+      },
+      "text": {
+       "type": "string",
+       "maxLength": 4000,
+       "description": "The old text, as it was shown."
+      },
+      "imageAssetId": {
+       "type": "string",
+       "pattern": "^asset_[a-f0-9]{64}$"
+      }
+     },
+     "required": [
+      "origin",
+      "text"
+     ],
+     "additionalProperties": false
     },
     "workspace": {
      "type": "string",
@@ -3168,6 +3204,162 @@
   "annotations": {
    "readOnlyHint": false,
    "idempotentHint": true
+  }
+ },
+ {
+  "name": "import_singular_extract",
+  "description": "Store a Singular.live extract as CRC reference material: for each composition only its app, name, layer and text (title, accent title and text), and optionally a picture of the old slide (imageAssetId from upload_asset). convert_singular_deck then shows each button's old text beside the proposed graphic, matches by what the composition showed as well as its name, and flags buttons whose composition no longer exists in an imported app. The extract is the first pass's shape: {apps:[{label (the Companion connection label, e.g. kab), name, id, subcompositions:[{id, name, layer, template, fields:{<fieldId>:{title, type, value}}, notes}]}]}. Anything that looks like a credential (a Singular control link, token, key or password) is refused and nothing is stored. Apps named replace the stored apps of the same label; others are kept. Dry run by default; a stored extract needs its expectedVersion.",
+  "inputSchema": {
+   "type": "object",
+   "$schema": "https://json-schema.org/draft/2020-12/schema",
+   "properties": {
+    "extract": {
+     "type": "object",
+     "properties": {
+      "apps": {
+       "minItems": 1,
+       "maxItems": 12,
+       "type": "array",
+       "items": {
+        "type": "object",
+        "properties": {
+         "label": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 80,
+          "description": "The Companion connection label that fires this app, e.g. 'kab'."
+         },
+         "name": {
+          "type": "string",
+          "maxLength": 200
+         },
+         "id": {
+          "type": "string",
+          "maxLength": 120
+         },
+         "subcompositions": {
+          "minItems": 1,
+          "maxItems": 600,
+          "type": "array",
+          "items": {
+           "type": "object",
+           "properties": {
+            "id": {
+             "type": "string",
+             "minLength": 1,
+             "maxLength": 120
+            },
+            "name": {
+             "type": "string",
+             "minLength": 1,
+             "maxLength": 200
+            },
+            "parentApp": {
+             "type": "string",
+             "maxLength": 200
+            },
+            "template": {
+             "anyOf": [
+              {
+               "type": "string",
+               "maxLength": 120
+              },
+              {
+               "type": "null"
+              }
+             ]
+            },
+            "layer": {
+             "anyOf": [
+              {
+               "type": "string",
+               "maxLength": 80
+              },
+              {
+               "type": "null"
+              }
+             ]
+            },
+            "fields": {
+             "default": {},
+             "type": "object",
+             "propertyNames": {
+              "type": "string",
+              "pattern": "^[A-Za-z0-9_-]{1,60}$"
+             },
+             "additionalProperties": {
+              "type": "object",
+              "properties": {
+               "title": {
+                "type": "string",
+                "maxLength": 200
+               },
+               "type": {
+                "type": "string",
+                "maxLength": 60
+               },
+               "value": {}
+              },
+              "additionalProperties": false
+             }
+            },
+            "notes": {},
+            "imageAssetId": {
+             "description": "Optional: a picture of the old slide, uploaded with upload_asset, shown beside the proposed graphic.",
+             "type": "string",
+             "pattern": "^asset_[a-f0-9]{64}$"
+            }
+           },
+           "required": [
+            "id",
+            "name",
+            "layer"
+           ],
+           "additionalProperties": false
+          }
+         }
+        },
+        "required": [
+         "label",
+         "subcompositions"
+        ],
+        "additionalProperties": false
+       }
+      },
+      "extractedAt": {
+       "type": "string",
+       "maxLength": 40
+      }
+     },
+     "required": [
+      "apps"
+     ],
+     "additionalProperties": false
+    },
+    "dryRun": {
+     "default": true,
+     "type": "boolean"
+    },
+    "expectedVersion": {
+     "description": "The stored version a dry run reported, required once reference material is stored.",
+     "type": "integer",
+     "minimum": 1,
+     "maximum": 9007199254740991
+    },
+    "workspace": {
+     "type": "string",
+     "minLength": 1,
+     "maxLength": 80,
+     "description": "Which congregation this call is for. This connection serves 'crc' (CRC) only."
+    }
+   },
+   "required": [
+    "extract",
+    "workspace"
+   ]
+  },
+  "annotations": {
+   "readOnlyHint": false
   }
  },
  {
