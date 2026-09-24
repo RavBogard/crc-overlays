@@ -244,11 +244,30 @@ app/api/catalog/route.ts and lib/sync-live-catalog.ts; L2 and C5 add envelope-on
   npm test 1105+35, lint 0 errors.
 - GATE (C3): export signing key COMPANION_EXPORT_KEY or a purpose-labelled derivation of RELAY_SECRET/CONTROL_KEY;
   a write is refused only if an error finding's count rises; sync default scope anchored to the deck's last sync.
-- NEXT (resume here): merge C4 (branch worktree-agent-a20fdbd8aa9a2af26, 5d76e6f; TBI seed + convert_singular_deck
-  + TBI-CONVERSION-REPORT.md; must reconcile registerDeckTools/dispatch with C3 and call setDeckConversionRepository
-  with C3's repository). Then wire C3's deck repository into T4 deck-page grouping and A5's deck checks. C5 is
-  still running. Then L3, L4, T3; then the consolidated browser pass (Retired label, /author/publications,
-  /author/review, /setup) and the headline acceptance receipt.
+- C4 merged (5d76e6f; merge 3a61a14): seed_deck_from_export and convert_singular_deck (MCP now 113), TBI seed from
+  Simone's 14 September export (connection config/secrets stripped before storage), TBI-CONVERSION-REPORT.md
+  (192 Covered / 46 Needs review / 16 Needs a graphic against the 15 September catalog). Integration: both
+  dispatches kept; the conversion tools default to C3's own store (defaultDeckRepository), so a seeded/converted
+  deck is the one get_deck reads (cross-packet test added); C3's template code handles TBI's built-in nav roles
+  (page-up/number/down); the cue key keeps C3's catalog stamp and C4's bg/color. Snapshot 3-way verified.
+- C5 merged (c023130; merge f7d261b): module presets grouped by deck role and set, palette shared with the
+  renderer (lib/companion-deck/palette.ts, copied into companion/src at build), `roles` on the slot envelope
+  (catalog route keeps L2's include=layouts too), module 1.8.0 packaged for CRC and TBI (served downloads still
+  1.7.0 — a release step), companion/definitions/<version>.json archive. Integration fix: the deck tools
+  validated against the newest definitions (now 1.8.0) while the CRC deck and TBI seed ask for 1.7.0; they now
+  pick the definitions for the version the deck's Overlays connection asks for (moduleDefinitionsFor). Gate:
+  tsc clean, npm test 1126+35, lint 0 errors, companion 153, both audits pass.
+- GATE (C5): one role per cue (first non-alternate binding in page order; nine cues differ, e.g. set
+  "V'ahavta" parts go to "V'ahavta (Fri)"); roles from committed content/cue-roles.json built from the seed
+  deck, not the (unapplied) deck table; preset section names are the deck's role names (visible to Michael in
+  Companion — open question); moving the deck itself to 1.8.0 is a separate step (changes preset bytes).
+- Deck wiring (c73879f): deckSourceForDeployment gives T4's deck-page grouping and A5's retired_on_deck /
+  supersede_cue the same deck get_deck reads (CRC seeded on first read; null where none is stored). A service
+  over the in-memory authoring repository keeps its deck in memory. Gate: npm test 1126+35, lint 0 errors.
+- L3, L4, T3 launched as workers from f7d261b.
+- NEXT (resume here): merge L3, L4, T3 as they finish (snapshot regenerate + 3-way check each time; golden
+  stills after L3 and L4 on a Turbopack dev server). Then the consolidated browser pass (Retired label,
+  /author/publications, /author/review, /setup) and the headline acceptance receipt.
 - Owed: a real-browser check of the library's Retired label and Return button (A3 did a server render only).
 - V3 merged (ae37165): nine live tools in lib/mcp/live.ts dispatched to a separate live
   operation (route wires runMcpCommand/snapshot/catalog); deck guard on lastPress.companion; server-side
@@ -290,6 +309,8 @@ Four read-only audits (MCP surface, layouts/renderer, Companion, live/services/a
 structural read of Simone's export; synthesis and file/line references in GAP-ANALYSIS.md.
 
 ## Open questions
+- C5: Companion preset section names (Controls, Sets, Prayers, Alternates, Short selections, Announcements,
+  Utility graphics, Slots, Other graphics) are what Michael sees in Companion; confirm them before 1.8.0 ships.
 - V3 integration: C2's companion/definitions.json went stale against V3's new feedback, and the package
   audit rightly refused it (the released 1.7.0 package lacks it). GATE: definitions.json now describes the
   packaged module (written by `npm run package`, not `npm run build`); the module test holds source to a
