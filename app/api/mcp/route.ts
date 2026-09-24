@@ -1,9 +1,13 @@
 import {bearerAuthChallengeResponse,verifyBearerToken} from '@modelcontextprotocol/server';
 import {authoringOperation} from '@/lib/authoring';
+import {runMcpCommand} from '@/lib/live-command';
 import {createAuthoringMcpHandler} from '@/lib/mcp';
+import {createLiveOperation} from '@/lib/mcp/live';
 import {boundedMcpRequest,hasTrustedOrigin,MAX_MCP_BODY} from '@/lib/mcp-http';
 import {AUTHORING_SCOPE,canonicalOrigin,mcpResource} from '@/lib/oauth-core';
 import {tokenVerifier} from '@/lib/oauth-store';
+import {catalog,snapshot} from '@/lib/server';
+import {deckGuardMinutes} from '@/lib/workspace';
 
 export const dynamic='force-dynamic';
 // R7 - fit_check_draft launches headless Chromium, and an MCP client reaches it through this
@@ -12,7 +16,10 @@ export const dynamic='force-dynamic';
 // the platform default cut the invocation off mid-launch and the agent saw a dead call.
 export const runtime='nodejs';
 export const maxDuration=60;
-const handler=createAuthoringMcpHandler(authoringOperation);
+// V3: the live tools go through the same command core as POST /api/command and read the same
+// snapshot as GET /api/state; the deck guard window is workspace configuration.
+const liveOperation=createLiveOperation({command:runMcpCommand,state:snapshot,catalog,guardMinutes:()=>deckGuardMinutes()});
+const handler=createAuthoringMcpHandler(authoringOperation,undefined,[],liveOperation);
 
 // Any resource scope reaches the endpoint (the verifier refuses a token with none left), and each tool
 // checks its own scope in lib/mcp.ts, so a live-only token connects. The challenge still names

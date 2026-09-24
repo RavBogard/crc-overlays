@@ -6,10 +6,10 @@
   "type": "module",
   "main": "dist/main.js",
   "scripts": {
-    "build": "tsc -p tsconfig.build.json && node scripts/write-definitions.mjs",
+    "build": "tsc -p tsconfig.build.json",
     "lint": "tsc -p tsconfig.json --noEmit",
     "test": "vitest run",
-    "package": "npm run build && companion-module-build"
+    "package": "npm run build && node scripts/write-definitions.mjs && companion-module-build"
   },
   "engines": {
     "node": ">=22.20"

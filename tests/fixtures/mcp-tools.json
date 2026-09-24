@@ -131,6 +131,63 @@
   }
  },
  {
+  "name": "animate_out",
+  "description": "Animate whatever graphic is on the live CRC output off, as the Animate out button does. The scan card and the resting-logo preference are untouched.",
+  "inputSchema": {
+   "type": "object",
+   "$schema": "https://json-schema.org/draft/2020-12/schema",
+   "properties": {
+    "target": {
+     "type": "string",
+     "enum": [
+      "live",
+      "rehearsal"
+     ],
+     "description": "Which output. Only 'live' exists today: 'rehearsal' is refused, because a separate rehearsal output is a later plan."
+    },
+    "commandId": {
+     "description": "Your own id for this press (8-80 letters, digits, - or _). Retrying with the same id replays the first answer instead of pressing twice. Recorded in the cue log.",
+     "type": "string",
+     "pattern": "^[a-zA-Z0-9_-]{8,80}$"
+    },
+    "serviceId": {
+     "description": "The prepared service this press belongs to, when you know it.",
+     "type": "string",
+     "pattern": "^[0-9a-f]{8}-[0-9a-f]{4}-[1-8][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$"
+    },
+    "ifRevision": {
+     "description": "Only act if the live state is still at this revision (get_live_state reports it); otherwise nothing changes and you are told.",
+     "type": "integer",
+     "minimum": 0,
+     "maximum": 9007199254740991
+    },
+    "override": {
+     "description": "Act even though a CRC Companion deck pressed a button within the deck guard window. Needs a reason.",
+     "type": "boolean"
+    },
+    "reason": {
+     "description": "Why you are overriding the deck guard. Returned in the result and written to the server log.",
+     "type": "string",
+     "minLength": 1,
+     "maxLength": 300
+    },
+    "workspace": {
+     "type": "string",
+     "minLength": 1,
+     "maxLength": 80,
+     "description": "Which congregation this call is for. This connection serves 'crc' (CRC) only."
+    }
+   },
+   "required": [
+    "target",
+    "workspace"
+   ]
+  },
+  "annotations": {
+   "readOnlyHint": false
+  }
+ },
+ {
   "name": "archive_draft",
   "description": "Archive a standalone draft without changing its published output.",
   "inputSchema": {
@@ -271,6 +328,69 @@
    "required": [
     "serviceId",
     "expectedVersion",
+    "workspace"
+   ]
+  },
+  "annotations": {
+   "readOnlyHint": false,
+   "destructiveHint": true
+  }
+ },
+ {
+  "name": "clear_now",
+  "description": "Clear the live CRC output at once with no animation, as the CLEAR NOW button does. It also removes the scan card and turns the resting-logo preference off, which stays off until someone turns it on again. Pass immediate:true to confirm; animate_out is the gentle alternative.",
+  "inputSchema": {
+   "type": "object",
+   "$schema": "https://json-schema.org/draft/2020-12/schema",
+   "properties": {
+    "immediate": {
+     "type": "boolean",
+     "const": true
+    },
+    "target": {
+     "type": "string",
+     "enum": [
+      "live",
+      "rehearsal"
+     ],
+     "description": "Which output. Only 'live' exists today: 'rehearsal' is refused, because a separate rehearsal output is a later plan."
+    },
+    "commandId": {
+     "description": "Your own id for this press (8-80 letters, digits, - or _). Retrying with the same id replays the first answer instead of pressing twice. Recorded in the cue log.",
+     "type": "string",
+     "pattern": "^[a-zA-Z0-9_-]{8,80}$"
+    },
+    "serviceId": {
+     "description": "The prepared service this press belongs to, when you know it.",
+     "type": "string",
+     "pattern": "^[0-9a-f]{8}-[0-9a-f]{4}-[1-8][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$"
+    },
+    "ifRevision": {
+     "description": "Only act if the live state is still at this revision (get_live_state reports it); otherwise nothing changes and you are told.",
+     "type": "integer",
+     "minimum": 0,
+     "maximum": 9007199254740991
+    },
+    "override": {
+     "description": "Act even though a CRC Companion deck pressed a button within the deck guard window. Needs a reason.",
+     "type": "boolean"
+    },
+    "reason": {
+     "description": "Why you are overriding the deck guard. Returned in the result and written to the server log.",
+     "type": "string",
+     "minLength": 1,
+     "maxLength": 300
+    },
+    "workspace": {
+     "type": "string",
+     "minLength": 1,
+     "maxLength": 80,
+     "description": "Which congregation this call is for. This connection serves 'crc' (CRC) only."
+    }
+   },
+   "required": [
+    "immediate",
+    "target",
     "workspace"
    ]
   },
@@ -1566,6 +1686,36 @@
   }
  },
  {
+  "name": "get_live_state",
+  "description": "Read the live CRC output: the requested graphic and revision, whether a graphics browser has confirmed rendering it, the scan card, the resting-logo preference, when each kind of controller last pressed (Companion deck, console, agent) and whether the deck guard is holding agents back. Changes nothing.",
+  "inputSchema": {
+   "type": "object",
+   "$schema": "https://json-schema.org/draft/2020-12/schema",
+   "properties": {
+    "target": {
+     "type": "string",
+     "enum": [
+      "live",
+      "rehearsal"
+     ],
+     "description": "Which output. Only 'live' exists today: 'rehearsal' is refused, because a separate rehearsal output is a later plan."
+    },
+    "workspace": {
+     "type": "string",
+     "minLength": 1,
+     "maxLength": 80,
+     "description": "Which congregation this call is for. This connection serves 'crc' (CRC) only."
+    }
+   },
+   "required": [
+    "target"
+   ]
+  },
+  "annotations": {
+   "readOnlyHint": true
+  }
+ },
+ {
   "name": "get_service",
   "description": "Read one prepared service: one compact line per row in service order (its graphics, coverage decision, candidates and what to do next). view:'full' returns the whole stored record.",
   "inputSchema": {
@@ -2149,6 +2299,63 @@
   },
   "annotations": {
    "readOnlyHint": true
+  }
+ },
+ {
+  "name": "next_panel",
+  "description": "Show the next panel of the multipart set on the live CRC output (from \"— 02 of 03\" to 03, wrapping from the last to 01), worked out on the server from the live graphic and the catalog, as the deck's Next panel button does. Refused, with nothing sent, when the live graphic is not part of a set.",
+  "inputSchema": {
+   "type": "object",
+   "$schema": "https://json-schema.org/draft/2020-12/schema",
+   "properties": {
+    "target": {
+     "type": "string",
+     "enum": [
+      "live",
+      "rehearsal"
+     ],
+     "description": "Which output. Only 'live' exists today: 'rehearsal' is refused, because a separate rehearsal output is a later plan."
+    },
+    "commandId": {
+     "description": "Your own id for this press (8-80 letters, digits, - or _). Retrying with the same id replays the first answer instead of pressing twice. Recorded in the cue log.",
+     "type": "string",
+     "pattern": "^[a-zA-Z0-9_-]{8,80}$"
+    },
+    "serviceId": {
+     "description": "The prepared service this press belongs to, when you know it.",
+     "type": "string",
+     "pattern": "^[0-9a-f]{8}-[0-9a-f]{4}-[1-8][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$"
+    },
+    "ifRevision": {
+     "description": "Only act if the live state is still at this revision (get_live_state reports it); otherwise nothing changes and you are told.",
+     "type": "integer",
+     "minimum": 0,
+     "maximum": 9007199254740991
+    },
+    "override": {
+     "description": "Act even though a CRC Companion deck pressed a button within the deck guard window. Needs a reason.",
+     "type": "boolean"
+    },
+    "reason": {
+     "description": "Why you are overriding the deck guard. Returned in the result and written to the server log.",
+     "type": "string",
+     "minLength": 1,
+     "maxLength": 300
+    },
+    "workspace": {
+     "type": "string",
+     "minLength": 1,
+     "maxLength": 80,
+     "description": "Which congregation this call is for. This connection serves 'crc' (CRC) only."
+    }
+   },
+   "required": [
+    "target",
+    "workspace"
+   ]
+  },
+  "annotations": {
+   "readOnlyHint": false
   }
  },
  {
@@ -2870,6 +3077,63 @@
   "annotations": {
    "readOnlyHint": false,
    "idempotentHint": true
+  }
+ },
+ {
+  "name": "previous_panel",
+  "description": "Show the previous panel of the multipart set on the live CRC output (wrapping from 01 to the last), as the deck's Previous panel button does. Refused, with nothing sent, when the live graphic is not part of a set.",
+  "inputSchema": {
+   "type": "object",
+   "$schema": "https://json-schema.org/draft/2020-12/schema",
+   "properties": {
+    "target": {
+     "type": "string",
+     "enum": [
+      "live",
+      "rehearsal"
+     ],
+     "description": "Which output. Only 'live' exists today: 'rehearsal' is refused, because a separate rehearsal output is a later plan."
+    },
+    "commandId": {
+     "description": "Your own id for this press (8-80 letters, digits, - or _). Retrying with the same id replays the first answer instead of pressing twice. Recorded in the cue log.",
+     "type": "string",
+     "pattern": "^[a-zA-Z0-9_-]{8,80}$"
+    },
+    "serviceId": {
+     "description": "The prepared service this press belongs to, when you know it.",
+     "type": "string",
+     "pattern": "^[0-9a-f]{8}-[0-9a-f]{4}-[1-8][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$"
+    },
+    "ifRevision": {
+     "description": "Only act if the live state is still at this revision (get_live_state reports it); otherwise nothing changes and you are told.",
+     "type": "integer",
+     "minimum": 0,
+     "maximum": 9007199254740991
+    },
+    "override": {
+     "description": "Act even though a CRC Companion deck pressed a button within the deck guard window. Needs a reason.",
+     "type": "boolean"
+    },
+    "reason": {
+     "description": "Why you are overriding the deck guard. Returned in the result and written to the server log.",
+     "type": "string",
+     "minLength": 1,
+     "maxLength": 300
+    },
+    "workspace": {
+     "type": "string",
+     "minLength": 1,
+     "maxLength": 80,
+     "description": "Which congregation this call is for. This connection serves 'crc' (CRC) only."
+    }
+   },
+   "required": [
+    "target",
+    "workspace"
+   ]
+  },
+  "annotations": {
+   "readOnlyHint": false
   }
  },
  {
@@ -3928,6 +4192,139 @@
   }
  },
  {
+  "name": "set_resting_logo",
+  "description": "Turn the resting-logo preference on or off for the live CRC output. This is a preference only: the output hides the mark under any graphic or the scan card, and nothing reports whether it is actually on screen.",
+  "inputSchema": {
+   "type": "object",
+   "$schema": "https://json-schema.org/draft/2020-12/schema",
+   "properties": {
+    "on": {
+     "type": "boolean"
+    },
+    "target": {
+     "type": "string",
+     "enum": [
+      "live",
+      "rehearsal"
+     ],
+     "description": "Which output. Only 'live' exists today: 'rehearsal' is refused, because a separate rehearsal output is a later plan."
+    },
+    "commandId": {
+     "description": "Your own id for this press (8-80 letters, digits, - or _). Retrying with the same id replays the first answer instead of pressing twice. Recorded in the cue log.",
+     "type": "string",
+     "pattern": "^[a-zA-Z0-9_-]{8,80}$"
+    },
+    "serviceId": {
+     "description": "The prepared service this press belongs to, when you know it.",
+     "type": "string",
+     "pattern": "^[0-9a-f]{8}-[0-9a-f]{4}-[1-8][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$"
+    },
+    "ifRevision": {
+     "description": "Only act if the live state is still at this revision (get_live_state reports it); otherwise nothing changes and you are told.",
+     "type": "integer",
+     "minimum": 0,
+     "maximum": 9007199254740991
+    },
+    "override": {
+     "description": "Act even though a CRC Companion deck pressed a button within the deck guard window. Needs a reason.",
+     "type": "boolean"
+    },
+    "reason": {
+     "description": "Why you are overriding the deck guard. Returned in the result and written to the server log.",
+     "type": "string",
+     "minLength": 1,
+     "maxLength": 300
+    },
+    "workspace": {
+     "type": "string",
+     "minLength": 1,
+     "maxLength": 80,
+     "description": "Which congregation this call is for. This connection serves 'crc' (CRC) only."
+    }
+   },
+   "required": [
+    "on",
+    "target",
+    "workspace"
+   ]
+  },
+  "annotations": {
+   "readOnlyHint": false
+  }
+ },
+ {
+  "name": "set_scan_card",
+  "description": "Turn the scan card on or off on the live CRC output, optionally with a page label (12 characters or fewer; null clears it). Turning it on without a page keeps the page it has.",
+  "inputSchema": {
+   "type": "object",
+   "$schema": "https://json-schema.org/draft/2020-12/schema",
+   "properties": {
+    "on": {
+     "type": "boolean"
+    },
+    "page": {
+     "anyOf": [
+      {
+       "type": "string",
+       "maxLength": 12
+      },
+      {
+       "type": "null"
+      }
+     ]
+    },
+    "target": {
+     "type": "string",
+     "enum": [
+      "live",
+      "rehearsal"
+     ],
+     "description": "Which output. Only 'live' exists today: 'rehearsal' is refused, because a separate rehearsal output is a later plan."
+    },
+    "commandId": {
+     "description": "Your own id for this press (8-80 letters, digits, - or _). Retrying with the same id replays the first answer instead of pressing twice. Recorded in the cue log.",
+     "type": "string",
+     "pattern": "^[a-zA-Z0-9_-]{8,80}$"
+    },
+    "serviceId": {
+     "description": "The prepared service this press belongs to, when you know it.",
+     "type": "string",
+     "pattern": "^[0-9a-f]{8}-[0-9a-f]{4}-[1-8][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$"
+    },
+    "ifRevision": {
+     "description": "Only act if the live state is still at this revision (get_live_state reports it); otherwise nothing changes and you are told.",
+     "type": "integer",
+     "minimum": 0,
+     "maximum": 9007199254740991
+    },
+    "override": {
+     "description": "Act even though a CRC Companion deck pressed a button within the deck guard window. Needs a reason.",
+     "type": "boolean"
+    },
+    "reason": {
+     "description": "Why you are overriding the deck guard. Returned in the result and written to the server log.",
+     "type": "string",
+     "minLength": 1,
+     "maxLength": 300
+    },
+    "workspace": {
+     "type": "string",
+     "minLength": 1,
+     "maxLength": 80,
+     "description": "Which congregation this call is for. This connection serves 'crc' (CRC) only."
+    }
+   },
+   "required": [
+    "on",
+    "target",
+    "workspace"
+   ]
+  },
+  "annotations": {
+   "readOnlyHint": false
+  }
+ },
+ {
   "name": "ship_draft",
   "description": "Publish a draft in one call: preview, server fit check with the frame returned as an image, approval on that check, and publish. Returns shipped:true with the image, verdict, revision and final name. Otherwise shipped:false and stoppedAt says why, with nothing published: duplicate_name (pass allowRename:true to publish under suggestedName), validation, fit_failed (the renderer's own sentences and the image) or fit_unavailable (open the fit-check link). Publishes to the catalog; puts nothing on screen.",
   "inputSchema": {
@@ -3957,6 +4354,70 @@
    "required": [
     "draftId",
     "expectedVersion",
+    "workspace"
+   ]
+  },
+  "annotations": {
+   "readOnlyHint": false
+  }
+ },
+ {
+  "name": "show_graphic",
+  "description": "Put one published graphic on the live CRC output with its In animation, as a Show cue button does. Refused while a Companion deck pressed within the deck guard window unless override:true with a reason. Waits up to 3 seconds for a graphics browser to confirm and says whether one did.",
+  "inputSchema": {
+   "type": "object",
+   "$schema": "https://json-schema.org/draft/2020-12/schema",
+   "properties": {
+    "cueId": {
+     "type": "string",
+     "minLength": 1,
+     "maxLength": 160,
+     "description": "A published graphic id, as list_catalog or get_live_state names it."
+    },
+    "target": {
+     "type": "string",
+     "enum": [
+      "live",
+      "rehearsal"
+     ],
+     "description": "Which output. Only 'live' exists today: 'rehearsal' is refused, because a separate rehearsal output is a later plan."
+    },
+    "commandId": {
+     "description": "Your own id for this press (8-80 letters, digits, - or _). Retrying with the same id replays the first answer instead of pressing twice. Recorded in the cue log.",
+     "type": "string",
+     "pattern": "^[a-zA-Z0-9_-]{8,80}$"
+    },
+    "serviceId": {
+     "description": "The prepared service this press belongs to, when you know it.",
+     "type": "string",
+     "pattern": "^[0-9a-f]{8}-[0-9a-f]{4}-[1-8][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$"
+    },
+    "ifRevision": {
+     "description": "Only act if the live state is still at this revision (get_live_state reports it); otherwise nothing changes and you are told.",
+     "type": "integer",
+     "minimum": 0,
+     "maximum": 9007199254740991
+    },
+    "override": {
+     "description": "Act even though a CRC Companion deck pressed a button within the deck guard window. Needs a reason.",
+     "type": "boolean"
+    },
+    "reason": {
+     "description": "Why you are overriding the deck guard. Returned in the result and written to the server log.",
+     "type": "string",
+     "minLength": 1,
+     "maxLength": 300
+    },
+    "workspace": {
+     "type": "string",
+     "minLength": 1,
+     "maxLength": 80,
+     "description": "Which congregation this call is for. This connection serves 'crc' (CRC) only."
+    }
+   },
+   "required": [
+    "cueId",
+    "target",
     "workspace"
    ]
   },
@@ -4133,6 +4594,70 @@
   "annotations": {
    "readOnlyHint": false,
    "idempotentHint": true
+  }
+ },
+ {
+  "name": "take_out",
+  "description": "Animate one graphic off the live CRC output, only if it is the graphic on screen now; anything else is left alone and nothing is sent. The scan card and the resting logo are untouched.",
+  "inputSchema": {
+   "type": "object",
+   "$schema": "https://json-schema.org/draft/2020-12/schema",
+   "properties": {
+    "cueId": {
+     "type": "string",
+     "minLength": 1,
+     "maxLength": 160,
+     "description": "A published graphic id, as list_catalog or get_live_state names it."
+    },
+    "target": {
+     "type": "string",
+     "enum": [
+      "live",
+      "rehearsal"
+     ],
+     "description": "Which output. Only 'live' exists today: 'rehearsal' is refused, because a separate rehearsal output is a later plan."
+    },
+    "commandId": {
+     "description": "Your own id for this press (8-80 letters, digits, - or _). Retrying with the same id replays the first answer instead of pressing twice. Recorded in the cue log.",
+     "type": "string",
+     "pattern": "^[a-zA-Z0-9_-]{8,80}$"
+    },
+    "serviceId": {
+     "description": "The prepared service this press belongs to, when you know it.",
+     "type": "string",
+     "pattern": "^[0-9a-f]{8}-[0-9a-f]{4}-[1-8][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$"
+    },
+    "ifRevision": {
+     "description": "Only act if the live state is still at this revision (get_live_state reports it); otherwise nothing changes and you are told.",
+     "type": "integer",
+     "minimum": 0,
+     "maximum": 9007199254740991
+    },
+    "override": {
+     "description": "Act even though a CRC Companion deck pressed a button within the deck guard window. Needs a reason.",
+     "type": "boolean"
+    },
+    "reason": {
+     "description": "Why you are overriding the deck guard. Returned in the result and written to the server log.",
+     "type": "string",
+     "minLength": 1,
+     "maxLength": 300
+    },
+    "workspace": {
+     "type": "string",
+     "minLength": 1,
+     "maxLength": 80,
+     "description": "Which congregation this call is for. This connection serves 'crc' (CRC) only."
+    }
+   },
+   "required": [
+    "cueId",
+    "target",
+    "workspace"
+   ]
+  },
+  "annotations": {
+   "readOnlyHint": false
   }
  },
  {

@@ -69,6 +69,8 @@ export interface HarnessOptions {
   redeem?: () => Response
   catalog?: () => Response
   command?: (body: Record<string, unknown>) => Response
+  /** GET /api/state. Left out, it answers a snapshot without `lastPress`, as a pre-V1 service does. */
+  state?: () => Response
 }
 
 export function harness(options: HarnessOptions = {}): Harness {
@@ -89,6 +91,7 @@ export function harness(options: HarnessOptions = {}): Harness {
     requests.push({ url: target, authorization: new Headers(init?.headers).get('Authorization'), body })
     if (target.endsWith('/api/pairing/redeem')) return options.redeem?.() ?? new Response(JSON.stringify({ token: PAIRED_TOKEN, name: 'Sanctuary PC', kind: 'companion' }), { status: 200, headers: { 'Content-Type': 'application/json' } })
     if (target.includes('/api/realtime')) return new Response(JSON.stringify(bootstrap), { status: 200, headers: { 'Content-Type': 'application/json' } })
+    if (target.endsWith('/api/state')) return options.state?.() ?? new Response(JSON.stringify(snapshotFrame().snapshot), { status: 200, headers: { 'Content-Type': 'application/json' } })
     if (target.endsWith('/api/command')) return options.command?.(body ?? {}) ?? new Response(JSON.stringify({ commandId: String(body?.commandId ?? ''), ...snapshotFrame().snapshot }), { status: 200, headers: { 'Content-Type': 'application/json' } })
     return options.catalog?.() ?? new Response(JSON.stringify([]), { status: 200, headers: { 'Content-Type': 'application/json', 'X-CRC-Catalog-Version': 'catalog-1' } })
   }) as unknown as typeof globalThis.fetch

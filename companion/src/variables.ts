@@ -72,3 +72,12 @@ export function overlayVariables(input: VariableInput): OverlayVariables {
     renderer_status: input.connection === 'Disconnected' ? 'Disconnected' : input.currentName ? 'Rendered' : 'Requested',
   }
 }
+
+/**
+ * `last_source`: who made the newest press the live service recorded — `Agent` (an AI agent
+ * through the MCP live tools), `Companion` (a paired deck, this one or another) or `Console`.
+ * Blank until the service reports it; a server that predates the report keeps it blank.
+ */
+export function lastSourceLabel(source: 'control' | 'companion' | 'mcp' | null): string {
+  return source === 'mcp' ? 'Agent' : source === 'companion' ? 'Companion' : source === 'control' ? 'Console' : ''
+}

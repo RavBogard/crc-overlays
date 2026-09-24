@@ -236,3 +236,20 @@ export function getPublicWorkspace(env: WorkspaceEnvironment = process.env): Pub
   };
 }
 import templeBnaiIsraelProfile from '../workspaces/temple-bnai-israel/workspace.json';
+
+/**
+ * The deck guard window (MCP plan V3, decision 4): while any Companion pressed a button within
+ * this many minutes, an agent's live command is refused unless it passes `override:true` with a
+ * reason. Congregation configuration, like the scan card: `WORKSPACE_DECK_GUARD_MINUTES`, a whole
+ * number from 1 to 240, default 5. There is deliberately no "off" value: decision 4 is that agents
+ * yield to the deck, so a congregation can shorten the window but not remove it. Kept out of
+ * PublicWorkspace, which is the public identity served to browsers.
+ */
+export const DEFAULT_DECK_GUARD_MINUTES = 5;
+export function deckGuardMinutes(env: WorkspaceEnvironment = process.env): number {
+  const id = (env.WORKSPACE_ID?.trim() || 'crc').toLowerCase();
+  const raw = (env.WORKSPACE_DECK_GUARD_MINUTES ?? BUILT_IN_PROFILES.get(id)?.WORKSPACE_DECK_GUARD_MINUTES)?.trim();
+  if (!raw) return DEFAULT_DECK_GUARD_MINUTES;
+  if (!/^\d{1,3}$/.test(raw) || Number(raw) < 1 || Number(raw) > 240) throw new Error('Workspace deck guard minutes must be a whole number from 1 to 240');
+  return Number(raw);
+}

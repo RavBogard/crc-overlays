@@ -14,6 +14,13 @@ export interface LogoState { on: boolean }
 export interface RendererState { id: string; revision: number; cue: string | null; phase: 'settled' | 'transition' | 'error'; seen: number }
 export interface OverlaySnapshot { revision: number; cue: string | null; mode: string; updated: number; cuePayload?: unknown; catalogVersion: string; renderers: RendererState[]; serverTime: number; bug?: BugState; logo?: LogoState }
 export interface CommandReceipt extends OverlaySnapshot { commandId: string }
+/**
+ * When each controller class last pressed, as the live service records it (MCP plan V1): 'control'
+ * is the console, 'companion' a paired deck, 'mcp' an AI agent. Served on the HTTP command answer
+ * and GET /api/state only, never in a realtime frame; a service that predates it sends none.
+ */
+export interface LastPress { control: number | null; companion: number | null; mcp: number | null }
+export type LastSource = 'control' | 'companion' | 'mcp'
 export interface FeedbackState { requestedCue: string | null; renderedCue: string | null; rendered: boolean; disconnected: boolean }
 export interface RealtimeBootstrap { url: string; ticket: string; heartbeatMs: number; staleMs: number; protocol: 1 }
 export interface VersionedCatalog<T = unknown> { cues: T; version: string; slots?: unknown }
@@ -102,6 +109,11 @@ export class OverlayClient {
       if (!version || version.length > 200) throw new ApiError('Overlay catalog version header is invalid', false)
       return { ...parseCatalogBody(await response.json() as unknown), version }
     })
+  }
+  // Read only for `lastPress`: the realtime snapshot says what changed, never who changed it, so the
+  // module asks the same state endpoint the output uses. A server without the field answers null.
+  lastPress(): Promise<LastPress | null> {
+    return this.#request<LastPress | null>('/api/state', { method: 'GET' }, false, async response => parseLastPress(await response.json() as unknown))
   }
   realtimeBootstrap(): Promise<RealtimeBootstrap> { return this.#request<RealtimeBootstrap>('/api/realtime?role=control', { method: 'GET' }, false) }
   subscribe(handlers: RealtimeHandlers): RealtimeSubscription {
@@ -418,3 +430,22 @@ function validRealtimeUrl(value: string): boolean {
 function isFiniteNumber(value: unknown): value is number { return typeof value === 'number' && Number.isFinite(value) }
 function isPositiveInteger(value: unknown): value is number { return Number.isInteger(value) && Number(value) > 0 }
 function isNonnegativeInteger(value: unknown): value is number { return Number.isInteger(value) && Number(value) >= 0 }
+
+/** `lastPress` from any answer body, read defensively: anything malformed is no report at all. */
+export function parseLastPress(value: unknown): LastPress | null {
+  const body = isRecord(value) && isRecord(value.lastPress) ? value.lastPress : null
+  if (!body) return null
+  const time = (item: unknown) => isNonnegativeInteger(item) && Number.isSafeInteger(item) ? item : null
+  return { control: time(body.control), companion: time(body.companion), mcp: time(body.mcp) }
+}
+
+/** The class that pressed most recently, or null when nothing has been recorded. */
+export function lastSource(press: LastPress | null): LastSource | null {
+  if (!press) return null
+  let newest: LastSource | null = null
+  for (const source of ['control', 'companion', 'mcp'] as const) {
+    const at = press[source]
+    if (at !== null && (newest === null || at > (press[newest] as number))) newest = source
+  }
+  return newest
+}

@@ -1,9 +1,11 @@
 #!/usr/bin/env node
 // Writes companion/definitions.json: the action and feedback definitions this module version
 // registers, as a JSON manifest the deck validator (lib/companion-deck/validate.ts) reads instead of
-// parsing main.ts. Run by `npm run build` after tsc; it constructs the compiled module with a stub
-// Companion context and no credential, so nothing leaves the machine. tests/definitions.test.ts holds
-// the committed file equal to what the source registers.
+// parsing main.ts. Run by `npm run package` after tsc, so the file describes the packaged, reviewed
+// module - what a deck is imported against - and not unreleased source; it constructs the compiled
+// module with a stub Companion context and no credential, so nothing leaves the machine.
+// tests/definitions.test.ts holds the source to everything the file lists; source may add more
+// until the next package.
 //
 // The file sits beside package.json, not in companion/: the packaged archive carries only the
 // manifest and HELP.md there, and the TBI derivation refuses any other file.

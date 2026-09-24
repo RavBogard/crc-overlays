@@ -5,10 +5,14 @@ import CrcOverlaysInstance from '../src/main.js'
 import { buildDefinitions, DEFINITIONS_PATH, formatDefinitions } from '../scripts/write-definitions.mjs'
 
 describe('definitions.json', () => {
-  it('is what this module source registers (run npm run build to regenerate)', async () => {
-    // Line endings may be converted on checkout; the content is what matters.
-    const committed = readFileSync(DEFINITIONS_PATH as string, 'utf8').replace(/\r\n/g, '\n')
-    expect(committed).toBe((formatDefinitions as (d: unknown) => string)(await (buildDefinitions as (c: unknown) => Promise<unknown>)(CrcOverlaysInstance)))
+  it('describes the packaged module, and the source still registers all of it (run npm run package to regenerate)', async () => {
+    // The file is the released contract a deck is validated against; source may add definitions
+    // before the next package (they reach decks only once packaged), but never drop or change one.
+    type Defs = { moduleId: string; actions: Record<string, unknown>; feedbacks: Record<string, unknown> }
+    const committed = JSON.parse(readFileSync(DEFINITIONS_PATH as string, 'utf8')) as Defs
+    const source = JSON.parse((formatDefinitions as (d: unknown) => string)(await (buildDefinitions as (c: unknown) => Promise<unknown>)(CrcOverlaysInstance))) as Defs
+    expect(source.moduleId).toBe(committed.moduleId)
+    for (const kind of ['actions', 'feedbacks'] as const) for (const [id, def] of Object.entries(committed[kind])) expect(source[kind][id], `${kind} ${id}`).toEqual(def)
   })
 
   it('names the cue option on every cue action and feedback', () => {

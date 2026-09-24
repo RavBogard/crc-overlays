@@ -18,6 +18,9 @@ export type LiveCommandAnswer={status:number;body:unknown;outcome:CommandOutcome
 
 const TOKEN=/^[a-zA-Z0-9_-]{8,80}$/;
 const SERVICE_REF=/^[0-9a-f]{8}-[0-9a-f]{4}-[1-8][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i;
+// The same two shapes, for the MCP live tools' schemas (lib/mcp/live.ts), so a value the schema
+// accepts is one this core accepts too.
+export const COMMAND_ID_PATTERN=TOKEN,SERVICE_REF_PATTERN=SERVICE_REF;
 const NOT_CONFIRMED='Command could not be confirmed. Check state before retrying with the same command ID.';
 const pressTime=(value:unknown)=>Number.isSafeInteger(value)&&(value as number)>=0?value as number:null;
 /** V1's answer fields, read defensively: a relay released before V1 sends none and every field is null. */

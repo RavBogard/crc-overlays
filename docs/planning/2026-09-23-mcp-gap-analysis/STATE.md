@@ -180,12 +180,33 @@ app/api/catalog/route.ts and lib/sync-live-catalog.ts; L2 and C5 add envelope-on
   (on-air `out` accepted for a cue no longer in the catalog) ships with the next relay release, before
   the web. Gate after merge: tsc clean, npm test 1016+35, lint 0 errors, relay 83, Turbopack build ok.
 - Owed: a real-browser check of the library's Retired label and Return button (A3 did a server render only).
+- V3 merged (ae37165): nine live tools in lib/mcp/live.ts dispatched to a separate live
+  operation (route wires runMcpCommand/snapshot/catalog); deck guard on lastPress.companion; server-side
+  panel stepping (lib/panel-navigation.ts); Companion `last_source` variable + `last_source_agent` feedback
+  (src only, no package rebuild). docs/MCP.md "Live control".
+- GATE (V3): guard window is `WORKSPACE_DECK_GUARD_MINUTES`, default 5, range 1-240, no off value — proceeded
+  because 5 is the proposal on record and Daniel has not set it; he can change it by configuration.
+- GATE (V3): a live service that doesn't report lastPress (pre-V1 relay, legacy path) counts as guard active
+  (override needed) — proceeded because decision 4 says agents yield, and relay-first release makes it moot.
+- GATE (V3): override reasons go in the tool result and one `mcp_live_override` server log line, not the cue
+  log — proceeded because the relay has no note field and relay/ is outside this packet.
+- GATE (V3): the module reads GET /api/state after a revision it didn't make, to learn who pressed (the
+  socket snapshot carries no source) — proceeded because it is an existing endpoint the device credential
+  already reads; an older web answers no lastPress and the variable stays blank.
+- GATE (V3): server instructions line "Nothing on this connection puts anything on screen" replaced by a
+  sentence naming the live tools, target:'live' and the deck guard — agent-facing text, not product copy.
 
 ## Evidence
 Four read-only audits (MCP surface, layouts/renderer, Companion, live/services/access) plus a
 structural read of Simone's export; synthesis and file/line references in GAP-ANALYSIS.md.
 
 ## Open questions
+- V3 integration: C2's companion/definitions.json went stale against V3's new feedback, and the package
+  audit rightly refused it (the released 1.7.0 package lacks it). GATE: definitions.json now describes the
+  packaged module (written by `npm run package`, not `npm run build`); the module test holds source to a
+  superset of it — proceeded because decks are imported against the installed package, and the next module
+  version regenerates it. Gate after merge: tsc clean, npm test 1027+35, lint 0 errors, companion 142,
+  audit-companion-packages ok.
 - Recent publications page copy (A2) needs Daniel's review: "Published by an assistant connected by …",
   "Go back to the previous version", "In use now".
 - Should agents record service feedback (/services/log)? S2 left it out of the MCP; needed only for strict parity.
