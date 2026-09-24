@@ -135,6 +135,18 @@ app/api/catalog/route.ts and lib/sync-live-catalog.ts; L2 and C5 add envelope-on
   four states (covered, needs-review, needs-a-graphic, not-needed incl. intentional fallback); coverage
   removal is set_coverage_row{clear:true}; refresh_from_setlist never overwrites a human decision and keeps
   dropped rows unless removeMissing:true; no-op writes don't bump the version.
+- C2 merged (92d88d6, ed343ae): lib/companion-deck/validate.ts with structured findings; companion/
+  definitions.json generated at module build and checked by audit-companion-packages; the preset audit is
+  a thin CLI over the validator and no longer needs Michael's raw export. CRC seed passes (439 cue keys,
+  235 cues bound); 5.0.3 upgrade leaves 1460/1460 buttons unchanged. Gate after merge: tsc clean, npm test
+  992+35 (3 old-audit helper tests removed), lint 0 errors, both audits pass.
+- GATE (C2): definitions.json sits beside companion/package.json (TBI derivation refuses unexpected archive
+  files); cue-action-outside-cue-key is a warning (six released booth-page buttons fire cues without lights);
+  the X32 Bimah literal and raw-export comparisons dropped (covered by template fixed cells and C1's byte
+  test); upgrade check skipped for TBI until a 5.0.5 bundle exists; until A3 lands the CLI treats the
+  snapshot-era superseded cue names as retired.
+- C2 notes for C3: seedCrcDeck shares the manifest's gesture objects by reference (clone in the seed);
+  booth connection labels (Q4) are still the only unguarded wrong-camera path.
 
 ## Evidence
 Four read-only audits (MCP surface, layouts/renderer, Companion, live/services/access) plus a
