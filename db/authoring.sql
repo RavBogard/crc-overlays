@@ -46,3 +46,21 @@ ALTER TABLE authoring_revisions ADD COLUMN IF NOT EXISTS source_commits text[];
 
 CREATE INDEX IF NOT EXISTS authoring_drafts_updated_idx ON authoring_drafts(updated_at DESC);
 CREATE INDEX IF NOT EXISTS authoring_previews_draft_idx ON authoring_previews(draft_id, draft_version);
+
+-- Packet A2 (R-A2). The frame the server fit check captured, kept with the preview it measured so
+-- the publications page (/author/publications) shows a person what an agent saw before it
+-- published. Its own table rather than a column on authoring_previews so reading a preview never
+-- carries the picture; one row per preview, removed with it. A frame is at most 750 KB (the
+-- screenshot cap in lib/server-fit.ts, re-checked by the service before it stores one). Until this
+-- runs, the service answers "no picture kept" and every check and publish works as before.
+CREATE TABLE IF NOT EXISTS authoring_preview_images (
+  preview_id text PRIMARY KEY REFERENCES authoring_previews(id) ON DELETE CASCADE,
+  mime_type text NOT NULL CHECK (mime_type IN ('image/jpeg','image/png')),
+  width integer NOT NULL CHECK (width > 0),
+  height integer NOT NULL CHECK (height > 0),
+  byte_size integer NOT NULL CHECK (byte_size > 0 AND byte_size <= 750000),
+  data bytea NOT NULL,
+  created_at bigint NOT NULL
+);
+
+CREATE INDEX IF NOT EXISTS authoring_revisions_created_idx ON authoring_revisions(created_at DESC);

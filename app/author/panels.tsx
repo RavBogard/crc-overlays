@@ -82,6 +82,7 @@ export function LibrarySidebar(props: {
     {(props.role === "owner" || props.role === "editor") && <nav className="library-elsewhere" aria-label="More library work">
       <Link href="/services">Prepared services</Link>
       <Link href="/author/wording-changes">Wording changes</Link>
+      <Link href="/author/publications">Recent publications</Link>
     </nav>}
   </aside>;
 }
