@@ -124,3 +124,62 @@ export async function importSharedAsset(id:string,actor:string,repository:AssetR
  const existing=await repository.get(id);if(existing)return existing;
  const response=await fetcher(url,{headers:{Authorization:`Bearer ${key}`},cache:'no-store',redirect:'error',signal:AbortSignal.timeout(7000)});if(!response.ok)throw new AssetError('asset_import_unavailable','Shared artwork is temporarily unavailable',503);const declared=Number(response.headers.get('content-length')??0);if(declared>ASSET_MAX_BYTES)throw new AssetError('asset_import_invalid','Shared artwork exceeds the size limit',502);const reader=response.body?.getReader();if(!reader)throw new AssetError('asset_import_invalid','Shared artwork has no content',502);const chunks:Uint8Array[]=[];let size=0;for(;;){const {done,value}=await reader.read();if(done)break;size+=value.byteLength;if(size>ASSET_MAX_BYTES){await reader.cancel();throw new AssetError('asset_import_invalid','Shared artwork exceeds the size limit',502)}chunks.push(value)}const data=new Uint8Array(size);let offset=0;for(const chunk of chunks){data.set(chunk,offset);offset+=chunk.length}if(`asset_${createHash('sha256').update(data).digest('hex')}`!==id)throw new AssetError('asset_import_invalid','Shared artwork failed integrity verification',502);const headers=new Headers({'x-asset-name':encodeURIComponent(importedLabel(response.headers.get('x-asset-name'),id,'Name',160)),'x-asset-alt':encodeURIComponent(importedLabel(response.headers.get('x-asset-alt'),'Congregation artwork','Alternative text',240))});return createAsset(data,headers,actor,repository)
 }
+// TBI redo G2 - an image over the artwork limits (512 KB, 4096 px per side, 16 megapixels) is
+// fitted on the server instead of refused: resized to fit (aspect kept, never enlarged), its
+// metadata stripped, and re-encoded - JPEG stays JPEG with the quality stepped down from 85 to 60,
+// PNG is recompressed, then tried with a palette, then becomes WebP (transparency kept), WebP stays
+// WebP - shrinking further only when the lowest quality still does not fit. An image already within
+// the limits is returned byte for byte, without loading sharp at all. Animated images stay refused.
+// createAsset remains the final check on whatever this returns.
+export const ASSET_FIT_MAX_INPUT_PIXELS=100_000_000;
+const FIT_QUALITIES=[85,80,75,70,65,60],FIT_SHRINK=0.8,FIT_ROUNDS=8;
+export type AssetImageSize={type:AssetMime;bytes:number;width:number;height:number};
+export type FittedAssetImage={data:Uint8Array;downscaled:false;stored:AssetImageSize}|{data:Uint8Array;downscaled:true;original:AssetImageSize;stored:AssetImageSize;summary:string};
+const TYPE_NAMES:Record<AssetMime,string>={'image/png':'PNG','image/jpeg':'JPEG','image/webp':'WebP'};
+const sizeText=(bytes:number)=>bytes>=1024*1024?`${(bytes/1024/1024).toFixed(2)} MB`:`${Math.max(1,Math.round(bytes/1024))} KB`;
+const withinAssetLimits=(bytes:number,width:number,height:number)=>bytes<=ASSET_MAX_BYTES&&width<=ASSET_MAX_DIMENSION&&height<=ASSET_MAX_DIMENSION&&width*height<=ASSET_MAX_PIXELS;
+const notAnImage=()=>new AssetError('unsupported_image','Choose a non-animated PNG, JPEG, or WebP image.');
+// skipAbove: not worth trying when the previous attempt came out larger than this (a palette rarely
+// saves more than about three quarters of a recompressed PNG, and quantizing a big image is slow).
+type FitEncoder={type:AssetMime;label:string;skipAbove?:number;encode:(image:import('sharp').Sharp)=>Promise<Buffer>};
+function fitEncoders(type:AssetMime,alpha:boolean):FitEncoder[]{
+ const jpeg=FIT_QUALITIES.map(quality=>({type:'image/jpeg' as const,label:`JPEG at quality ${quality}`,encode:(image:import('sharp').Sharp)=>image.jpeg({quality,mozjpeg:true}).toBuffer()}));
+ const webp=FIT_QUALITIES.map(quality=>({type:'image/webp' as const,label:`WebP at quality ${quality}${alpha?' with its transparency kept':''}`,encode:(image:import('sharp').Sharp)=>image.webp({quality,alphaQuality:100,effort:5}).toBuffer()}));
+ if(type==='image/jpeg')return jpeg;
+ if(type==='image/webp')return webp;
+ return [{type:'image/png',label:'PNG, recompressed',encode:image=>image.png({compressionLevel:9,adaptiveFiltering:true}).toBuffer()},{type:'image/png',label:'PNG with a 256-colour palette',skipAbove:4*ASSET_MAX_BYTES,encode:image=>image.png({palette:true,quality:90,compressionLevel:9,effort:3}).toBuffer()},...webp];
+}
+/** The image as it will be stored: unchanged when it is within the limits, otherwise fitted. */
+export async function fitAssetImage(data:Uint8Array):Promise<FittedAssetImage>{
+ const image=data.length?pngSize(data)??jpegSize(data)??webpSize(data):null;
+ if(!image)throw notAnImage();
+ if(withinAssetLimits(data.byteLength,image.width,image.height)){inspectAssetImage(data);return {data,downscaled:false,stored:{type:image.mimeType,bytes:data.byteLength,width:image.width,height:image.height}}}
+ if(!image.width||!image.height)throw notAnImage();
+ if(image.width*image.height>ASSET_FIT_MAX_INPUT_PIXELS)throw new AssetError('image_dimensions',`This image is ${image.width}×${image.height} px, more than the ${ASSET_FIT_MAX_INPUT_PIXELS/1_000_000} megapixels the server will fit. Nothing was changed. Resize it to at most ${ASSET_MAX_DIMENSION} px per side and upload it again.`);
+ const {default:sharp}=await import('sharp');
+ const options={limitInputPixels:ASSET_FIT_MAX_INPUT_PIXELS};
+ let meta:import('sharp').Metadata;try{meta=await sharp(data,{...options,animated:true}).metadata()}catch{throw notAnImage()}
+ if((meta.pages??1)>1)throw notAnImage();
+ // EXIF orientations 5-8 swap the sides; the stored image is turned upright because its metadata is dropped.
+ const turned=(meta.orientation??1)>=5,width=turned?image.height:image.width,height=turned?image.width:image.height;
+ const original:AssetImageSize={type:image.mimeType,bytes:data.byteLength,width,height},over=[data.byteLength>ASSET_MAX_BYTES?`over ${ASSET_MAX_BYTES/1024} KB`:'',Math.max(width,height)>ASSET_MAX_DIMENSION?`over ${ASSET_MAX_DIMENSION} px on a side`:'',width*height>ASSET_MAX_PIXELS?`over ${ASSET_MAX_PIXELS/1_000_000} megapixels`:''].filter(Boolean);
+ const encoders=fitEncoders(image.mimeType,Boolean(meta.hasAlpha));
+ let scale=Math.min(1,ASSET_MAX_DIMENSION/width,ASSET_MAX_DIMENSION/height,Math.sqrt(ASSET_MAX_PIXELS/(width*height)));
+ for(let round=0;round<FIT_ROUNDS;round++,scale*=FIT_SHRINK){
+  // Only the long side is named, so rounding the short side cannot shrink the long one; decode and
+  // resize once per size, then try each encoding on the same pixels.
+  const box=width>=height?{width:Math.max(1,Math.floor(width*scale))}:{height:Math.max(1,Math.floor(height*scale))};
+  const {data:pixels,info}=await sharp(data,options).rotate().resize({...box,withoutEnlargement:true}).toColourspace('srgb').raw({depth:'uchar'}).toBuffer({resolveWithObject:true});
+  if(info.width*info.height>ASSET_MAX_PIXELS)continue;
+  let last=0;
+  for(const encoder of encoders){
+   if(encoder.skipAbove&&last>encoder.skipAbove)continue;
+   const output=new Uint8Array(await encoder.encode(sharp(pixels,{raw:{width:info.width,height:info.height,channels:info.channels}})));
+   last=output.byteLength;if(output.byteLength>ASSET_MAX_BYTES)continue;
+   const stored:AssetImageSize={type:encoder.type,bytes:output.byteLength,width:info.width,height:info.height},resized=info.width!==width||info.height!==height;
+   const summary=`The image was ${over.length>1?`${over.slice(0,-1).join(', ')} and ${over[over.length-1]}`:over[0]}, so the server ${resized?`resized it from ${width}×${height} to ${info.width}×${info.height} and `:''}re-encoded it as ${encoder.label}, dropping its metadata; ${TYPE_NAMES[original.type]} ${sizeText(original.bytes)} became ${TYPE_NAMES[stored.type]} ${sizeText(stored.bytes)}.`;
+   return {data:output,downscaled:true,original,stored,summary};
+  }
+ }
+ throw new AssetError('image_too_large',`The server could not bring this ${width}×${height} ${TYPE_NAMES[image.mimeType]} under ${ASSET_MAX_BYTES/1024} KB even at a fifth of its size. Nothing was changed. Export a smaller or simpler version and upload that.`,413);
+}

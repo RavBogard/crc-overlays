@@ -1,7 +1,12 @@
 // R-B1 - the artwork library over the MCP: upload_asset (begin/append/commit), list_assets and
 // archive_asset. The rules are the web library's own (lib/assets.ts createAsset, setArchived); this
 // file only adds the chunk staging, the compact rows and the published-use guard on archiving.
-import {ASSET_MAX_BYTES,ASSET_UPLOAD_CHUNK_MAX_BYTES,ASSET_UPLOAD_MAX_OPEN,ASSET_UPLOAD_TTL_MS,AssetError,createAsset,newAssetUploadId,type AssetMetadata,type AssetRepository,type AssetUploadStore} from './assets';
+// TBI redo G2 adds the one-call forms (an 'asset' import by importId, or an allowlisted https url)
+// and the server fit (lib/assets.ts fitAssetImage) in front of createAsset on every form.
+import {createHash} from 'node:crypto';
+import {ASSET_MAX_BYTES,ASSET_UPLOAD_CHUNK_MAX_BYTES,ASSET_UPLOAD_MAX_OPEN,ASSET_UPLOAD_TTL_MS,AssetError,createAsset,fitAssetImage,newAssetUploadId,type AssetMetadata,type AssetRepository,type AssetUploadStore} from './assets';
+import {readImportBytes,type ImportRepository} from './imports';
+import {canonicalOrigin,publicOrigins} from './oauth-core';
 
 export const ASSET_TOOL_OPERATIONS:ReadonlySet<string>=new Set(['upload_asset','list_assets','archive_asset']);
 export const isAssetTool=(operation:string)=>ASSET_TOOL_OPERATIONS.has(operation);
@@ -17,8 +22,60 @@ export type AssetToolContext={
  published:()=>Promise<UsingCue[]>;
  /** L4 - artwork the workspace branding names (logo, resting logo, scan card); the output page loads it. */
  branding?:()=>Promise<{role:string;assetId:string}[]>;
+ /** G2 - the workspace's import store, read for upload_asset importId. */
+ imports?:()=>ImportRepository;
+ /** G2 - the fetch used for upload_asset url (tests inject one). */
+ fetch?:typeof fetch;
+ /** G2 - the workspace's own site hosts on the url allowlist; defaults to workspaceSiteHosts(). */
+ siteHosts?:()=>string[];
  now?:()=>number;
 };
+
+// G2 - upload_asset url fetches an https image from Singular's image hosts or this workspace's own
+// site, and nothing else: no credentials in the link, every redirect hop re-checked against the same
+// list, 10 seconds, 10 MB. Refusals name the host, never the rest of the link (a query may carry a key).
+export const ASSET_URL_HOSTS=['image.singular.live','assets.singular.live'] as const;
+export const ASSET_URL_MAX_BYTES=10*1024*1024,ASSET_URL_TIMEOUT_MS=10_000,ASSET_URL_MAX_REDIRECTS=3;
+/** The hosts of canonicalOrigin(), PUBLIC_BASE_URL and PUBLIC_ALTERNATE_ORIGINS; a misconfigured origin adds none. */
+export function workspaceSiteHosts(){try{return [...new Set([canonicalOrigin(),...publicOrigins()].map(origin=>new URL(origin).hostname.toLowerCase()))]}catch{return []}}
+const INSTEAD='Nothing was changed. Drop the file on an import dropzone instead (open_import_dropzone kind \'asset\', then upload_asset importId).';
+const urlRefused=(message:string)=>new AssetError('asset_url_refused',`${message} ${INSTEAD}`);
+function allowedUrl(value:string,hosts:string[],what='That link'){
+ let url:URL;try{url=new URL(value)}catch{throw urlRefused(`${what} is not a valid absolute link.`)}
+ if(url.protocol!=='https:')throw urlRefused(`Only https links are fetched; ${what.toLowerCase()} is ${url.protocol.replace(/:$/,'')}.`);
+ if(url.username||url.password)throw urlRefused(`${what} carries a user name or password. Pass a link without credentials.`);
+ if(url.port&&url.port!=='443')throw urlRefused(`${what} names port ${url.port}; only the standard https port is fetched.`);
+ if(!hosts.includes(url.hostname.toLowerCase()))throw urlRefused(`${what} is on ${url.hostname}, which is not on the list images are fetched from (${hosts.join(', ')}).`);
+ url.hash='';return url;
+}
+async function fetchImage(value:string,hosts:string[],fetcher:typeof fetch){
+ let url=allowedUrl(value,hosts);const signal=AbortSignal.timeout(ASSET_URL_TIMEOUT_MS);
+ try{
+  for(let hop=0;;hop++){
+   const response=await fetcher(url,{redirect:'manual',credentials:'omit',cache:'no-store',signal,headers:{accept:'image/png,image/jpeg,image/webp,image/*;q=0.8'}});
+   if(response.status>=300&&response.status<400){
+    const location=response.headers.get('location');await response.body?.cancel().catch(()=>undefined);
+    if(!location)throw new AssetError('asset_url_unavailable',`${url.hostname} answered with a redirect that names no destination. ${INSTEAD}`,502);
+    if(hop>=ASSET_URL_MAX_REDIRECTS)throw urlRefused(`That link redirects more than ${ASSET_URL_MAX_REDIRECTS} times.`);
+    url=allowedUrl(new URL(location,url).href,hosts,'That link redirects to a link that');continue;
+   }
+   if(!response.ok){await response.body?.cancel().catch(()=>undefined);throw new AssetError('asset_url_unavailable',`${url.hostname} answered ${response.status} for that link. Check the link and try again. Nothing was changed.`,502)}
+   const type=(response.headers.get('content-type')??'').split(';')[0].trim().toLowerCase();
+   if(!type.startsWith('image/')){await response.body?.cancel().catch(()=>undefined);throw urlRefused(`That link is not an image: ${url.hostname} sent ${type?`'${type}'`:'no content type'}.`)}
+   const tooBig=()=>new AssetError('image_too_large',`That image is over the ${ASSET_URL_MAX_BYTES/1024/1024} MB the server fetches. ${INSTEAD}`,413);
+   if(Number(response.headers.get('content-length')??0)>ASSET_URL_MAX_BYTES){await response.body?.cancel().catch(()=>undefined);throw tooBig()}
+   const reader=response.body?.getReader();if(!reader)throw new AssetError('asset_url_unavailable',`${url.hostname} sent no image. Check the link and try again. Nothing was changed.`,502);
+   const chunks:Uint8Array[]=[];let size=0;
+   for(;;){const {done,value:chunk}=await reader.read();if(done)break;size+=chunk.byteLength;if(size>ASSET_URL_MAX_BYTES){await reader.cancel().catch(()=>undefined);throw tooBig()}chunks.push(chunk)}
+   const data=new Uint8Array(size);let offset=0;for(const chunk of chunks){data.set(chunk,offset);offset+=chunk.byteLength}
+   return data;
+  }
+ }catch(error){
+  if(error instanceof AssetError)throw error;
+  if(error instanceof Error&&(error.name==='TimeoutError'||error.name==='AbortError'))throw new AssetError('asset_url_unavailable',`That image did not arrive within ${ASSET_URL_TIMEOUT_MS/1000} seconds. ${INSTEAD}`,504);
+  throw new AssetError('asset_url_unavailable',`${url.hostname} could not be reached. Check the link and try again. Nothing was changed.`,502);
+ }
+}
 
 const invalid=(message:string)=>new AssetError('invalid_input',message);
 function record(value:unknown){if(!value||typeof value!=='object'||Array.isArray(value))throw invalid('Arguments must be an object.');return value as Record<string,unknown>}
@@ -39,10 +96,38 @@ function compact(asset:AssetMetadata,drafts:UsingDraft[],published:Set<string>){
  return {id:asset.id,name:asset.name,altText:asset.altText,type:asset.mimeType,bytes:asset.bytes,width:asset.width,height:asset.height,version:asset.version,archived:asset.archived,published:asset.published,usedBy:using.map(draft=>({draftId:draft.id,name:draft.name,published:published.has(draft.id),...(draft.archivedAt?{archived:true}:{})}))};
 }
 
+// Every upload form ends here: fit the image (unchanged when it is within the limits), then
+// createAsset, which is the web upload's own check: non-animated PNG, JPEG or WebP, 512 KB, 4096 px
+// per side, 16 megapixels, the workspace item limit, and the content-addressed asset_<sha256> id.
+async function storeImage(bytes:Uint8Array,name:string,altText:string,actor:string,context:AssetToolContext){
+ const fitted=await fitAssetImage(bytes),id=`asset_${createHash('sha256').update(fitted.data).digest('hex')}`,existed=Boolean(await context.assets.get(id));
+ const asset=await createAsset(fitted.data,new Headers({'x-asset-name':encodeURIComponent(name),'x-asset-alt':encodeURIComponent(altText)}),actor,context.assets);
+ const [drafts,published]=await Promise.all([context.drafts(),context.published()]);
+ const row=compact(asset,drafts,new Set(published.map(cue=>cue.id)));
+ const fit=fitted.downscaled?{downscaled:true,original:fitted.original,stored:fitted.stored,downscale:fitted.summary}:{downscaled:false};
+ const said=`${fitted.downscaled?`${fitted.summary} `:''}${existed?`This image was already in the library as "${asset.name}".`:`Added "${asset.name}" to the artwork library.`}`;
+ return {asset:row,...fit,...(existed?{alreadyInLibrary:true}:{}),message:asset.archived?`${fitted.downscaled?`${fitted.summary} `:''}This image is already in the library as "${asset.name}", archived. Restore it in the editor's artwork library before a graphic can publish with it.`:`${said} Attach it with update_draft patch.presentation.imageAssetId:'${asset.id}'.`};
+}
+
 export async function assetToolOperation(operation:string,input:unknown,actor:string,context:AssetToolContext){
  const data=record(input),now=(context.now??Date.now)();
  if(operation==='upload_asset'){
   const step=data.step;
+  if(step===undefined&&(data.importId!==undefined||data.url!==undefined)){
+   if(data.importId!==undefined&&data.url!==undefined)throw invalid('Pass importId or url, not both.');
+   if(data.importId!==undefined){
+    only(data,['importId','name','altText'],'upload_asset by importId');
+    const name=text(data.name,'name',160),altText=text(data.altText,'altText',240);
+    const imports=context.imports?.();if(!imports)throw new AssetError('import_unavailable','Reading dropzone imports is not set up on this server yet. Upload the image with step \'begin\' instead. Nothing was changed.',503);
+    const imported=await readImportBytes(imports,data.importId,'asset',now);
+    return storeImage(imported.data,name,altText,actor,context);
+   }
+   only(data,['url','name','altText'],'upload_asset by url');
+   if(typeof data.url!=='string'||!data.url.trim()||data.url.length>2048)throw invalid('url must be an https link of 1-2048 characters.');
+   const name=text(data.name,'name',160),altText=text(data.altText,'altText',240);
+   const hosts=[...new Set([...ASSET_URL_HOSTS,...(context.siteHosts??workspaceSiteHosts)()])];
+   return storeImage(await fetchImage(data.url.trim(),hosts,context.fetch??fetch),name,altText,actor,context);
+  }
   if(step==='begin'){
    only(data,['step','name','altText','totalBytes'],'upload_asset step \'begin\'');
    const name=text(data.name,'name',160),altText=text(data.altText,'altText',240),totalBytes=whole(data.totalBytes,'totalBytes',1,ASSET_MAX_BYTES);
@@ -69,17 +154,12 @@ export async function assetToolOperation(operation:string,input:unknown,actor:st
    const id=uploadId(data.uploadId),upload=await context.uploads.get(id,actor,now);
    if(!upload)throw new AssetError('unknown_upload','That upload does not exist, has expired or was begun by another connection. Begin a new upload.',404);
    if(upload.receivedBytes!==upload.totalBytes)throw invalid(`The upload holds ${upload.receivedBytes} of the ${upload.totalBytes} bytes declared at begin. Append chunkIndex ${upload.nextChunk} before committing.`);
-   // createAsset is the web upload's own check: non-animated PNG, JPEG or WebP, 512 KB, 4096 px
-   // per side, 16 megapixels, the workspace item limit, and the content-addressed asset_<sha256> id.
    // A failed check keeps the staged bytes until expiry, so nothing is left half-made either way.
-   const asset=await createAsset(upload.data,new Headers({'x-asset-name':encodeURIComponent(upload.name),'x-asset-alt':encodeURIComponent(upload.altText)}),actor,context.assets);
+   const stored=await storeImage(upload.data,upload.name,upload.altText,actor,context);
    await context.uploads.remove(id);
-   const [drafts,published]=await Promise.all([context.drafts(),context.published()]);
-   const row=compact(asset,drafts,new Set(published.map(cue=>cue.id)));
-   const existed=asset.createdBy!==actor||asset.createdAt<upload.createdAt;
-   return {asset:row,...(existed?{alreadyInLibrary:true}:{}),message:asset.archived?`This image is already in the library as "${asset.name}", archived. Restore it in the editor's artwork library before a graphic can publish with it.`:`${existed?`This image was already in the library as "${asset.name}".`:`Added "${asset.name}" to the artwork library.`} Attach it with update_draft patch.presentation.imageAssetId:'${asset.id}'.`};
+   return stored;
   }
-  throw invalid('upload_asset needs step: \'begin\' (name, altText, totalBytes), \'append\' (uploadId, chunkIndex, dataBase64) or \'commit\' (uploadId).');
+  throw invalid('upload_asset takes {importId, name, altText} (an asset dropped on open_import_dropzone), {url, name, altText} (an https image on the allowlist), or step: \'begin\' (name, altText, totalBytes), \'append\' (uploadId, chunkIndex, dataBase64) and \'commit\' (uploadId).');
  }
  if(operation==='list_assets'){
   only(data,['includeArchived','query'],'list_assets');
