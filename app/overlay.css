@@ -16,11 +16,11 @@
 .overlay::before{border:3px solid color-mix(in srgb,var(--crc-gold) 76%,transparent)}
 .overlay::after{border:2px solid color-mix(in srgb,var(--crc-turquoise) 70%,transparent)}
 .part{position:absolute;transform-origin:left center}
-.base{background:rgba(248,245,236,.97);box-shadow:0 16px 40px rgba(2,17,31,.24)}
+.base{background:var(--crc-base,rgba(248,245,236,.97));box-shadow:0 16px 40px rgba(2,17,31,.24)}
 .titlebar{background:var(--crc-blue-deep)}
 .titlegrad{background:linear-gradient(90deg,var(--crc-blue-deep),var(--crc-blue) 58%,#086b78)!important;opacity:.92}
-.title{font-size:40px;font-weight:500;color:#fff;letter-spacing:.01em;display:flex;align-items:center;white-space:pre-wrap}
-.title-accent{color:#8fe7e2;justify-content:flex-end;text-align:right;direction:rtl}
+.title{font-size:40px;font-weight:500;color:var(--crc-title-ink,#fff);letter-spacing:.01em;display:flex;align-items:center;white-space:pre-wrap}
+.title-accent{color:var(--crc-accent-title,#8fe7e2);justify-content:flex-end;text-align:right;direction:rtl}
 .prayer{color:var(--crc-ink);white-space:pre-wrap;font-family:Work,Arial,'Times New Roman',serif;font-weight:400;line-height:1.28;unicode-bidi:plaintext}
 .logo{object-fit:contain;filter:drop-shadow(0 4px 8px rgba(3,26,45,.18))}
 .accent{background:linear-gradient(90deg,var(--crc-turquoise),var(--crc-gold))}
@@ -73,12 +73,12 @@
 /* Arabic fallback (Od Yavo Shalom's سلام): the overlay faces carry no Arabic letters, so a renderer without a
    system Arabic font drew empty boxes. unicode-range keeps it off the wire for every other cue. */
 @font-face{font-family:Noto Sans Arabic;src:url('/assets/NotoSansArabic-Regular.ttf') format('truetype');font-style:normal;font-weight:400 500;font-display:block;unicode-range:U+0600-06FF,U+0750-077F,U+08A0-08FF,U+FB50-FDFF,U+FE70-FEFF}
-.overlay{font-family:WorkRefresh,Noto Sans Arabic,Arial,sans-serif}
-.overlay .prayer{font-family:WorkRefresh,Noto Sans Arabic,Arial,sans-serif}
-.overlay .hebrew,.overlay .row-hebrew,.overlay .title-accent{font-family:Noto Sans Hebrew,Noto Sans Arabic,Arial,sans-serif}
+.overlay{font-family:var(--crc-font-latin,WorkRefresh),Noto Sans Arabic,Arial,sans-serif}
+.overlay .prayer{font-family:var(--crc-font-latin,WorkRefresh),Noto Sans Arabic,Arial,sans-serif}
+.overlay .hebrew,.overlay .row-hebrew,.overlay .title-accent{font-family:var(--crc-font-hebrew,Noto Sans Hebrew),Noto Sans Arabic,Arial,sans-serif}
 
 /* Refresh pass 1: the medallion logo, and a first re-cut of the lower third and left panel. */
-.logo{object-fit:cover;object-position:center;border-radius:50%;background:var(--crc-paper);border:3px solid rgba(217,166,46,.9);padding:5px;box-shadow:0 6px 18px rgba(3,26,45,.22)}
+.logo{object-fit:cover;object-position:center;border-radius:50%;background:var(--crc-paper);border:3px solid var(--crc-ring,rgba(217,166,46,.9));padding:5px;box-shadow:0 6px 18px rgba(3,26,45,.22)}
 .bottom::before{width:216px;height:216px;left:60px;bottom:67px}
 .bottom::after{width:190px;height:190px;left:73px;bottom:80px}
 .bottom .base{height:260px}
@@ -180,7 +180,7 @@
 .content-row:first-child{border-top-color:transparent}
 .row-hebrew{font-family:WorkRefresh,Arial,sans-serif;font-size:38px;line-height:1.18;direction:rtl;text-align:right;unicode-bidi:plaintext}
 .row-transliteration{margin-top:5px;font-family:WorkRefresh,Noto Sans Arabic,Arial,sans-serif;font-size:30px;line-height:1.2;font-weight:500;unicode-bidi:plaintext}
-.row-translation{margin-top:4px;font-family:WorkRefresh,Noto Sans Arabic,Arial,sans-serif;font-size:24px;line-height:1.22;color:#385365;unicode-bidi:plaintext}
+.row-translation{margin-top:4px;font-family:WorkRefresh,Noto Sans Arabic,Arial,sans-serif;font-size:24px;line-height:1.22;color:var(--crc-translation-ink,#385365);unicode-bidi:plaintext}
 .content-row>.prayer:first-child{margin-top:0}
 .panel-rows-dense{gap:10px;justify-content:flex-start}
 .panel-rows-dense .content-row{padding-block:8px 9px}
@@ -272,4 +272,4 @@ only its translation is a single channel and takes the full block, as any single
 .overlay[data-card] .hebrew{top:var(--card-hebrew-top,auto);bottom:var(--card-hebrew-bottom,auto);height:var(--card-hebrew-height);font-size:var(--card-hebrew-font-size);line-height:var(--card-hebrew-line-height);direction:var(--card-hebrew-direction);text-align:var(--card-hebrew-align)}
 .overlay[data-card] .english,.overlay[data-card] .translation{top:var(--card-latin-top,auto);bottom:var(--card-latin-bottom,auto);height:var(--card-latin-height);font-size:var(--card-latin-font-size);line-height:var(--card-latin-line-height);direction:var(--card-latin-direction);text-align:var(--card-latin-align)}
 .overlay[data-card] .single-channel{top:var(--card-single-top,auto);bottom:var(--card-single-bottom,auto);height:var(--card-single-height);display:grid;align-content:center;font-size:var(--card-single-font-size);line-height:var(--card-single-line-height);text-align:var(--card-single-align)}
-.overlay[data-card] .prayer.single-channel{font-family:WorkRefresh,Noto Sans Hebrew,Noto Sans Arabic,Arial,sans-serif}
+.overlay[data-card] .prayer.single-channel{font-family:var(--crc-font-latin,WorkRefresh),Noto Sans Hebrew,Noto Sans Arabic,Arial,sans-serif}

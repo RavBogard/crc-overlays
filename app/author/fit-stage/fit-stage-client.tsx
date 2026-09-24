@@ -40,7 +40,8 @@ export default function FitStageClient({ workspace }: { workspace: PublicWorkspa
       if (!root) return { fitErrors: ["The graphic did not render."], warnings: [], fill: null, artwork: cue.presentation?.imageAssetId ? "not-loaded" : "none" };
       // The only credential this page ever sees: a signed, minutes-long read link for this cue's
       // one asset (R-B1), handed in with the cue and dropped with it.
-      const prepared = await prepareCueMeasurement(root, cue, branding, { artworkUrl: options.artworkUrl });
+      // L4 - preview_branding hands in a candidate branding; every other measurement uses the stage's own.
+      const prepared = await prepareCueMeasurement(root, cue, options.branding ?? branding, { artworkUrl: options.artworkUrl });
       if (options.retainRenderedCue) dispose = prepared.dispose;
       else prepared.dispose();
       return prepared.measurement;

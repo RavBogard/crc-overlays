@@ -89,7 +89,7 @@ test('the setup default compositor is congregation configuration, not a hardcode
 });
 
 test('public workspace endpoint returns only the public contract', async () => {
-  const response = GET();
+  const response = await GET();
   assert.equal(response.status, 200);
   assert.equal(response.headers.get('cache-control'), 'no-store');
   const body = await response.json();

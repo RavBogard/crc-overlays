@@ -34,7 +34,9 @@ export type StageMeasurement={fitErrors:string[];warnings:string[];fill:number|n
 /** Retaining the stage DOM is opt-in and only lasts until the caller captures its frame.
  * `artworkUrl` is the signed `/api/assets/<id>/signed?...` link for the cue's own asset; the
  * stage ignores one that names any other asset. */
-export type StageMeasureOptions={retainRenderedCue?:boolean;artworkUrl?:string};
+export type StageMeasureOptions={retainRenderedCue?:boolean;artworkUrl?:string;branding?:StageBranding};
+/** L4 - preview_branding draws with a candidate branding instead of the stage's own (lib/branding.ts OverlayBranding). */
+export type StageBranding=import('./branding').OverlayBranding;
 /** An ephemeral, server-rendered preview. It is never written to a draft, preview, or revision. */
 export type ServerFitPreviewImage={mimeType:'image/jpeg'|'image/png';dataBase64:string;width:number;height:number};
 export type ServerFitPreviewImageUnavailable='screenshot_failed'|'screenshot_deadline'|'image_too_large';

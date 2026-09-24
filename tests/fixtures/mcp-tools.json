@@ -2851,6 +2851,25 @@
   }
  },
  {
+  "name": "get_branding",
+  "description": "Read the CRC branding every graphic is drawn with: each colour (its value, the built-in value, whether it is set, and what it paints), the latin and hebrew font roles with the faces this workspace can use, and the logo, resting logo and scan card artwork. version is what update_branding takes as expectedVersion (0 when nothing is stored).",
+  "inputSchema": {
+   "type": "object",
+   "$schema": "https://json-schema.org/draft/2020-12/schema",
+   "properties": {
+    "workspace": {
+     "type": "string",
+     "minLength": 1,
+     "maxLength": 80,
+     "description": "Which congregation this call is for. This connection serves 'crc' (CRC) only."
+    }
+   }
+  },
+  "annotations": {
+   "readOnlyHint": true
+  }
+ },
+ {
   "name": "get_deck",
   "description": "Read the CRC Companion deck in brief: its version, pages (number, name, template, how many keys and free cells), service chains, templates and connection labels. get_deck_page reads one page cell by cell.",
   "inputSchema": {
@@ -4214,6 +4233,235 @@
   },
   "annotations": {
    "readOnlyHint": false
+  }
+ },
+ {
+  "name": "preview_branding",
+  "description": "Show a CRC branding change before saving it: the server browser draws one graphic per layout (bottom, left, right, corner), or up to four named with cueIds, with the change applied and returns the frames. Nothing is saved. With no changes it shows the saved branding.",
+  "inputSchema": {
+   "type": "object",
+   "$schema": "https://json-schema.org/draft/2020-12/schema",
+   "properties": {
+    "colors": {
+     "type": "object",
+     "properties": {
+      "primary": {
+       "description": "Paints the title bar gradient's light end, the inner circle and the accent line's start.",
+       "anyOf": [
+        {
+         "type": "string",
+         "pattern": "^#[0-9a-fA-F]{6}$"
+        },
+        {
+         "type": "null"
+        }
+       ]
+      },
+      "deep": {
+       "description": "Paints the title bar and the gradient's dark end.",
+       "anyOf": [
+        {
+         "type": "string",
+         "pattern": "^#[0-9a-fA-F]{6}$"
+        },
+        {
+         "type": "null"
+        }
+       ]
+      },
+      "accent": {
+       "description": "Paints the outer circle and the accent line's end.",
+       "anyOf": [
+        {
+         "type": "string",
+         "pattern": "^#[0-9a-fA-F]{6}$"
+        },
+        {
+         "type": "null"
+        }
+       ]
+      },
+      "ring": {
+       "description": "Paints the medallion (logo) ring; defaults to the accent colour.",
+       "anyOf": [
+        {
+         "type": "string",
+         "pattern": "^#[0-9a-fA-F]{6}$"
+        },
+        {
+         "type": "null"
+        }
+       ]
+      },
+      "paper": {
+       "description": "Paints the lower third and panel background, the panel rows and the medallion backing.",
+       "anyOf": [
+        {
+         "type": "string",
+         "pattern": "^#[0-9a-fA-F]{6}$"
+        },
+        {
+         "type": "null"
+        }
+       ]
+      },
+      "ink": {
+       "description": "Paints the Hebrew, transliteration and body text.",
+       "anyOf": [
+        {
+         "type": "string",
+         "pattern": "^#[0-9a-fA-F]{6}$"
+        },
+        {
+         "type": "null"
+        }
+       ]
+      },
+      "titleText": {
+       "description": "Paints the English title.",
+       "anyOf": [
+        {
+         "type": "string",
+         "pattern": "^#[0-9a-fA-F]{6}$"
+        },
+        {
+         "type": "null"
+        }
+       ]
+      },
+      "accentTitle": {
+       "description": "Paints the Hebrew accent title.",
+       "anyOf": [
+        {
+         "type": "string",
+         "pattern": "^#[0-9a-fA-F]{6}$"
+        },
+        {
+         "type": "null"
+        }
+       ]
+      },
+      "translationInk": {
+       "description": "Paints the translation line in panel rows.",
+       "anyOf": [
+        {
+         "type": "string",
+         "pattern": "^#[0-9a-fA-F]{6}$"
+        },
+        {
+         "type": "null"
+        }
+       ]
+      }
+     },
+     "additionalProperties": false,
+     "description": "Only the colours to change; null puts one back to the built-in value."
+    },
+    "fonts": {
+     "type": "object",
+     "properties": {
+      "latin": {
+       "description": "The face for titles, transliteration, translation and English text.",
+       "anyOf": [
+        {
+         "type": "string",
+         "enum": [
+          "Noto Sans Hebrew",
+          "WorkRefresh",
+          "David Libre",
+          "Frank Ruhl Libre"
+         ]
+        },
+        {
+         "type": "null"
+        }
+       ]
+      },
+      "hebrew": {
+       "description": "The face for Hebrew text and the Hebrew accent title.",
+       "anyOf": [
+        {
+         "type": "string",
+         "enum": [
+          "Noto Sans Hebrew",
+          "WorkRefresh",
+          "David Libre",
+          "Frank Ruhl Libre"
+         ]
+        },
+        {
+         "type": "null"
+        }
+       ]
+      }
+     },
+     "additionalProperties": false,
+     "description": "Font roles, chosen from the installed overlay fonts (get_branding lists the ones this workspace can use); null goes back to the built-in face. A new font is a code change."
+    },
+    "artwork": {
+     "type": "object",
+     "properties": {
+      "logo": {
+       "description": "The medallion on every graphic that has no artwork of its own.",
+       "anyOf": [
+        {
+         "type": "string",
+         "pattern": "^asset_[a-f0-9]{64}$"
+        },
+        {
+         "type": "null"
+        }
+       ]
+      },
+      "restingLogo": {
+       "description": "The standing corner mark, for a workspace that has one.",
+       "anyOf": [
+        {
+         "type": "string",
+         "pattern": "^asset_[a-f0-9]{64}$"
+        },
+        {
+         "type": "null"
+        }
+       ]
+      },
+      "scanCard": {
+       "description": "Artwork kept for the scan card (not drawn yet).",
+       "anyOf": [
+        {
+         "type": "string",
+         "pattern": "^asset_[a-f0-9]{64}$"
+        },
+        {
+         "type": "null"
+        }
+       ]
+      }
+     },
+     "additionalProperties": false,
+     "description": "Artwork by asset id from list_assets (upload_asset adds one); null goes back to the built-in artwork."
+    },
+    "cueIds": {
+     "description": "Up to four graphic ids from list_catalog to draw instead of one per layout.",
+     "minItems": 1,
+     "maxItems": 4,
+     "type": "array",
+     "items": {
+      "type": "string",
+      "minLength": 1,
+      "maxLength": 200
+     }
+    },
+    "workspace": {
+     "type": "string",
+     "minLength": 1,
+     "maxLength": 80,
+     "description": "Which congregation this call is for. This connection serves 'crc' (CRC) only."
+    }
+   }
+  },
+  "annotations": {
+   "readOnlyHint": true
   }
  },
  {
@@ -6953,6 +7201,233 @@
   "annotations": {
    "readOnlyHint": false,
    "idempotentHint": true
+  }
+ },
+ {
+  "name": "update_branding",
+  "description": "Change the CRC branding: name only the colours, font roles or artwork that change (null puts one back). expectedVersion is the version get_branding returned. Artwork used here becomes public, like a published graphic's. New previews, the editor and the server fit use it at once; an output page already open keeps the old look until it is reloaded. Try it with preview_branding first.",
+  "inputSchema": {
+   "type": "object",
+   "$schema": "https://json-schema.org/draft/2020-12/schema",
+   "properties": {
+    "expectedVersion": {
+     "type": "integer",
+     "minimum": 0,
+     "maximum": 9007199254740991
+    },
+    "colors": {
+     "type": "object",
+     "properties": {
+      "primary": {
+       "description": "Paints the title bar gradient's light end, the inner circle and the accent line's start.",
+       "anyOf": [
+        {
+         "type": "string",
+         "pattern": "^#[0-9a-fA-F]{6}$"
+        },
+        {
+         "type": "null"
+        }
+       ]
+      },
+      "deep": {
+       "description": "Paints the title bar and the gradient's dark end.",
+       "anyOf": [
+        {
+         "type": "string",
+         "pattern": "^#[0-9a-fA-F]{6}$"
+        },
+        {
+         "type": "null"
+        }
+       ]
+      },
+      "accent": {
+       "description": "Paints the outer circle and the accent line's end.",
+       "anyOf": [
+        {
+         "type": "string",
+         "pattern": "^#[0-9a-fA-F]{6}$"
+        },
+        {
+         "type": "null"
+        }
+       ]
+      },
+      "ring": {
+       "description": "Paints the medallion (logo) ring; defaults to the accent colour.",
+       "anyOf": [
+        {
+         "type": "string",
+         "pattern": "^#[0-9a-fA-F]{6}$"
+        },
+        {
+         "type": "null"
+        }
+       ]
+      },
+      "paper": {
+       "description": "Paints the lower third and panel background, the panel rows and the medallion backing.",
+       "anyOf": [
+        {
+         "type": "string",
+         "pattern": "^#[0-9a-fA-F]{6}$"
+        },
+        {
+         "type": "null"
+        }
+       ]
+      },
+      "ink": {
+       "description": "Paints the Hebrew, transliteration and body text.",
+       "anyOf": [
+        {
+         "type": "string",
+         "pattern": "^#[0-9a-fA-F]{6}$"
+        },
+        {
+         "type": "null"
+        }
+       ]
+      },
+      "titleText": {
+       "description": "Paints the English title.",
+       "anyOf": [
+        {
+         "type": "string",
+         "pattern": "^#[0-9a-fA-F]{6}$"
+        },
+        {
+         "type": "null"
+        }
+       ]
+      },
+      "accentTitle": {
+       "description": "Paints the Hebrew accent title.",
+       "anyOf": [
+        {
+         "type": "string",
+         "pattern": "^#[0-9a-fA-F]{6}$"
+        },
+        {
+         "type": "null"
+        }
+       ]
+      },
+      "translationInk": {
+       "description": "Paints the translation line in panel rows.",
+       "anyOf": [
+        {
+         "type": "string",
+         "pattern": "^#[0-9a-fA-F]{6}$"
+        },
+        {
+         "type": "null"
+        }
+       ]
+      }
+     },
+     "additionalProperties": false,
+     "description": "Only the colours to change; null puts one back to the built-in value."
+    },
+    "fonts": {
+     "type": "object",
+     "properties": {
+      "latin": {
+       "description": "The face for titles, transliteration, translation and English text.",
+       "anyOf": [
+        {
+         "type": "string",
+         "enum": [
+          "Noto Sans Hebrew",
+          "WorkRefresh",
+          "David Libre",
+          "Frank Ruhl Libre"
+         ]
+        },
+        {
+         "type": "null"
+        }
+       ]
+      },
+      "hebrew": {
+       "description": "The face for Hebrew text and the Hebrew accent title.",
+       "anyOf": [
+        {
+         "type": "string",
+         "enum": [
+          "Noto Sans Hebrew",
+          "WorkRefresh",
+          "David Libre",
+          "Frank Ruhl Libre"
+         ]
+        },
+        {
+         "type": "null"
+        }
+       ]
+      }
+     },
+     "additionalProperties": false,
+     "description": "Font roles, chosen from the installed overlay fonts (get_branding lists the ones this workspace can use); null goes back to the built-in face. A new font is a code change."
+    },
+    "artwork": {
+     "type": "object",
+     "properties": {
+      "logo": {
+       "description": "The medallion on every graphic that has no artwork of its own.",
+       "anyOf": [
+        {
+         "type": "string",
+         "pattern": "^asset_[a-f0-9]{64}$"
+        },
+        {
+         "type": "null"
+        }
+       ]
+      },
+      "restingLogo": {
+       "description": "The standing corner mark, for a workspace that has one.",
+       "anyOf": [
+        {
+         "type": "string",
+         "pattern": "^asset_[a-f0-9]{64}$"
+        },
+        {
+         "type": "null"
+        }
+       ]
+      },
+      "scanCard": {
+       "description": "Artwork kept for the scan card (not drawn yet).",
+       "anyOf": [
+        {
+         "type": "string",
+         "pattern": "^asset_[a-f0-9]{64}$"
+        },
+        {
+         "type": "null"
+        }
+       ]
+      }
+     },
+     "additionalProperties": false,
+     "description": "Artwork by asset id from list_assets (upload_asset adds one); null goes back to the built-in artwork."
+    },
+    "workspace": {
+     "type": "string",
+     "minLength": 1,
+     "maxLength": 80,
+     "description": "Which congregation this call is for. This connection serves 'crc' (CRC) only."
+    }
+   },
+   "required": [
+    "expectedVersion",
+    "workspace"
+   ]
+  },
+  "annotations": {
+   "readOnlyHint": false
   }
  },
  {
