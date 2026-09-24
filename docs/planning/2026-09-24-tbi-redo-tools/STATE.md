@@ -38,8 +38,8 @@ changes, paired web release, push to main.
 | G4 | batch_create_drafts (source, set, slide, customize_shared) + batchShip input | merged (G4 merge); 93 of 115 items built in 3 calls; 21 mixed panels + Omer refused (-> G9) |
 | G5 | answer: A4 not done, G3 covers it | answered |
 | G6 | apply_deck_plan | merged; real 282-row plan: dry run + apply, validate 0 errors / 0 warnings |
-| G7 | Raleway in the font registry (addendum) | worker running |
-| G8 | bulk retire (addendum) | worker running |
+| G7 | Raleway in the font registry (addendum) | merged; get_branding lists Raleway, preview_branding draws lower third + left panel in it (real Chrome), CRC golden stills 16/16 identical |
+| G8 | batch_retire (≤200, dry run default) + find_catalog_issues batchRetire input | merged; in memory 193 retired in 1 dry run + 1 apply, then batch_ship of 44 copies: 0 duplicate_name |
 | G9 | panels mixing English-only and Hebrew/transliteration blocks (G4 finding) | worker running |
 
 ## Evidence
@@ -63,3 +63,6 @@ changes, paired web release, push to main.
 - G1: dropzone page copy ("Drop a file for {congregation}", "Received. You can close this page.",
   "This link has expired or is not valid. Ask for a new link.").
 - G2: sharp loading on Vercel is unproven until the first large upload after release.
+- G7: panel transliteration/translation rows now follow the branding's Latin font (they were fixed to WorkRefresh); CRC unchanged. Raleway's OFL reserves the name and the files are subsets (same practice as Google Fonts). The scan-card caption and page pill stay WorkRefresh.
+- G8: 27 TBI starter cues ('notFirstPass' in retire.json) are not in the retire plan and may still clash by name; run batch_ship as a dry run on TBI before shipping.
+- G8: batch_retire's per-item version conflict uses batch_update's sentence; an already-retired item answers already-retired whatever version was sent.
