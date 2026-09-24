@@ -107,6 +107,32 @@ Where two published graphics share the same liturgy page, the tool never picks o
 
 Requires an authoring member. On a congregation without the centralreform.live credential it returns a plain refusal — `{"ok": false, "reason": "unconfigured", "message": "Importing from centralreform.live is not set up for this congregation."}` — not an error. The credential and its two variables are described in `docs/WORKSPACE-DEPLOYMENT.md`; the same import is offered on `/services` as **Import from centralreform.live**.
 
+## Editing prepared services (S2)
+
+A prepared service is an ordered list of **rows**. A row may hold graphics (an *entry*: one graphic, alternates, or a multipart sequence) and a coverage decision (*Covered*, *Needs review*, *Needs a graphic*, *Intentional fallback*, *Not needed*), plus an optional button label, camera hint and note. Tools address rows by `rowId` (from `get_service`); `/services` keeps showing entries and coverage, reordered to follow the rows.
+
+| Tool | Does | Web equivalent on `/services` |
+|---|---|---|
+| `list_services` | Services, newest first, with row counts by readiness | the collection list |
+| `get_service` | One compact line per row; `view:'full'` returns the stored record | opening a collection |
+| `service_readiness` | Per row: covered / needs review / needs a graphic / not needed, with the next step | the coverage map summary |
+| `list_live_setlists` | Recent centralreform.live setlists to import | Import from centralreform.live |
+| `create_service` | Empty, `from:'library'`, or from `rows` in order | Start empty / Start from library |
+| `rename_service` | New name or service label | editing the collection title |
+| `add_entry` | Graphics as a new row at `position`, or onto a row that has none | Add graphic / as alternates / as multipart |
+| `remove_entry` | Removes a row's graphics; a row with a coverage decision keeps its place | Remove on an entry |
+| `reorder_entries` | Full `orderedRowIds`, or `rowId` + `toIndex` | the ↑ ↓ buttons |
+| `swap_graphic` | Replaces one graphic on a row (and the matching coverage graphic) | remove + add |
+| `resolve_coverage_row` | Settles a row with one graphic; rewrites its entry to that graphic | editing a Needs review item |
+| `set_coverage_row` | Adds or edits a coverage decision and row details; `clear:true` removes the decision | Add / Edit / Remove coverage item |
+| `set_names` / `clear_names` | The service's names list; clearing is refused while a names panel is on air | Names for this service |
+| `archive_service` / `restore_service` | Archive (removes the names list; refused while on air) and restore | Archive / Restore |
+| `refresh_from_setlist` | Re-imports from the stored origin; **dry run by default** | none (new) |
+
+`refresh_from_setlist` matches rows by setlist track id. A row a person decided (covered, not needed, intentional fallback, or graphics on a row without coverage) is never changed; a row still waiting on a decision takes the new match; new setlist rows are inserted in setlist order; rows added by hand keep their place after the row they followed; rows no longer on the setlist are kept and reported unless `removeMissing:true`.
+
+Every change takes `expectedVersion` (the version `get_service` returned) and returns the new `version`; a stale version is refused with a sentence and writes nothing. Unresolved coverage rows default their owner to "Unassigned", as the importer does. `get_service` reports `serviceRef`, the id a deck button generated from the service sends with its commands so the cue log attributes them (R-S3; the deck side is Track C). The web's `search_coverage_sources` is covered by `search_sources`, and feedback (`record_feedback`, `update_feedback`, the CSV) lives on `/services/log` and is not an MCP tool. None of these tools publishes a graphic or puts anything on screen.
+
 ## Client status
 
 The routes implement the standards used by remote MCP clients, including protected-resource discovery, authorization-server discovery, dynamic public-client registration, PKCE, bearer challenges, refresh, and revocation. The automated smoke test exercises Streamable HTTP initialization, tool discovery, tool invocation, input boundaries, audience/scope constraints, redirects, PKCE, and chunked body limits. A real ChatGPT or Claude connection still requires deployment and provider-side testing; this repository does not claim that either client has been connected.

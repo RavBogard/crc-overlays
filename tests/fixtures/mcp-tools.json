@@ -1,5 +1,136 @@
 [
  {
+  "name": "add_entry",
+  "description": "Add published graphics to a prepared service: one graphic, alternates or a multipart sequence, as a new row at a position or attached to an existing row that has none.",
+  "inputSchema": {
+   "type": "object",
+   "$schema": "https://json-schema.org/draft/2020-12/schema",
+   "properties": {
+    "serviceId": {
+     "type": "string",
+     "minLength": 1,
+     "maxLength": 80,
+     "description": "The prepared service, as list_services returns it."
+    },
+    "expectedVersion": {
+     "type": "integer",
+     "minimum": 1,
+     "maximum": 9007199254740991,
+     "description": "The service version you last read (get_service). A change made elsewhere since then is refused, not overwritten."
+    },
+    "cueIds": {
+     "minItems": 1,
+     "maxItems": 30,
+     "type": "array",
+     "items": {
+      "type": "string",
+      "minLength": 1,
+      "maxLength": 160
+     },
+     "description": "One graphic, or 2-30 for alternates or a multipart sequence."
+    },
+    "type": {
+     "description": "cue (default for one graphic) or alternates (default for several) or multipart.",
+     "type": "string",
+     "enum": [
+      "cue",
+      "alternates",
+      "multipart"
+     ]
+    },
+    "label": {
+     "type": "string",
+     "minLength": 1,
+     "maxLength": 160
+    },
+    "rowId": {
+     "description": "Attach the graphics to this existing row, which must have none yet. Omit to add a new row.",
+     "type": "string",
+     "minLength": 1,
+     "maxLength": 120
+    },
+    "position": {
+     "type": "object",
+     "properties": {
+      "beforeRowId": {
+       "type": "string",
+       "minLength": 1,
+       "maxLength": 120,
+       "description": "A row of the service, as get_service returns it."
+      },
+      "afterRowId": {
+       "type": "string",
+       "minLength": 1,
+       "maxLength": 120,
+       "description": "A row of the service, as get_service returns it."
+      },
+      "index": {
+       "type": "integer",
+       "minimum": 0,
+       "maximum": 500
+      }
+     },
+     "additionalProperties": false,
+     "description": "Where the new row goes: before or after a row, or at a 0-based index. Give one; the default is the end."
+    },
+    "buttonLabel": {
+     "description": "Short label for a deck button; null clears it.",
+     "anyOf": [
+      {
+       "type": "string",
+       "minLength": 1,
+       "maxLength": 60
+      },
+      {
+       "type": "null"
+      }
+     ]
+    },
+    "camera": {
+     "description": "Optional camera hint; null clears it.",
+     "anyOf": [
+      {
+       "type": "string",
+       "minLength": 1,
+       "maxLength": 60
+      },
+      {
+       "type": "null"
+      }
+     ]
+    },
+    "note": {
+     "description": "Optional note for the team; null clears it.",
+     "anyOf": [
+      {
+       "type": "string",
+       "minLength": 1,
+       "maxLength": 500
+      },
+      {
+       "type": "null"
+      }
+     ]
+    },
+    "workspace": {
+     "type": "string",
+     "minLength": 1,
+     "maxLength": 80,
+     "description": "Which congregation this call is for. This connection serves 'crc' (CRC) only."
+    }
+   },
+   "required": [
+    "serviceId",
+    "expectedVersion",
+    "cueIds",
+    "workspace"
+   ]
+  },
+  "annotations": {
+   "readOnlyHint": false
+  }
+ },
+ {
   "name": "archive_draft",
   "description": "Archive a standalone draft without changing its published output.",
   "inputSchema": {
@@ -72,6 +203,80 @@
   "annotations": {
    "readOnlyHint": false,
    "idempotentHint": true
+  }
+ },
+ {
+  "name": "archive_service",
+  "description": "Archive a prepared service (restore_service brings it back). Its names list is removed with it, so this is refused while one of its names panels is on air.",
+  "inputSchema": {
+   "type": "object",
+   "$schema": "https://json-schema.org/draft/2020-12/schema",
+   "properties": {
+    "serviceId": {
+     "type": "string",
+     "minLength": 1,
+     "maxLength": 80,
+     "description": "The prepared service, as list_services returns it."
+    },
+    "expectedVersion": {
+     "type": "integer",
+     "minimum": 1,
+     "maximum": 9007199254740991,
+     "description": "The service version you last read (get_service). A change made elsewhere since then is refused, not overwritten."
+    },
+    "workspace": {
+     "type": "string",
+     "minLength": 1,
+     "maxLength": 80,
+     "description": "Which congregation this call is for. This connection serves 'crc' (CRC) only."
+    }
+   },
+   "required": [
+    "serviceId",
+    "expectedVersion",
+    "workspace"
+   ]
+  },
+  "annotations": {
+   "readOnlyHint": false,
+   "idempotentHint": true
+  }
+ },
+ {
+  "name": "clear_names",
+  "description": "Remove a prepared service's names list. Refused while one of its panels is on air: clear the output on Live control first.",
+  "inputSchema": {
+   "type": "object",
+   "$schema": "https://json-schema.org/draft/2020-12/schema",
+   "properties": {
+    "serviceId": {
+     "type": "string",
+     "minLength": 1,
+     "maxLength": 80,
+     "description": "The prepared service, as list_services returns it."
+    },
+    "expectedVersion": {
+     "type": "integer",
+     "minimum": 1,
+     "maximum": 9007199254740991,
+     "description": "The service version you last read (get_service). A change made elsewhere since then is refused, not overwritten."
+    },
+    "workspace": {
+     "type": "string",
+     "minLength": 1,
+     "maxLength": 80,
+     "description": "Which congregation this call is for. This connection serves 'crc' (CRC) only."
+    }
+   },
+   "required": [
+    "serviceId",
+    "expectedVersion",
+    "workspace"
+   ]
+  },
+  "annotations": {
+   "readOnlyHint": false,
+   "destructiveHint": true
   }
  },
  {
@@ -881,6 +1086,139 @@
   }
  },
  {
+  "name": "create_service",
+  "description": "Create a prepared service: empty, from the published library, or from rows you give in service order. It never publishes anything.",
+  "inputSchema": {
+   "type": "object",
+   "$schema": "https://json-schema.org/draft/2020-12/schema",
+   "properties": {
+    "name": {
+     "type": "string",
+     "minLength": 1,
+     "maxLength": 120
+    },
+    "service": {
+     "type": "string",
+     "minLength": 1,
+     "maxLength": 120,
+     "description": "Which service this is, e.g. \"Friday, September 25\" or \"Shabbat Evening\"."
+    },
+    "from": {
+     "description": "empty (default), or library: one row per published graphic, as \"Start from library\" does on /services.",
+     "type": "string",
+     "enum": [
+      "empty",
+      "library"
+     ]
+    },
+    "rows": {
+     "description": "Optional rows in service order. A row with cueIds adds graphics; a row with status records a coverage decision; a row may have both.",
+     "minItems": 1,
+     "maxItems": 200,
+     "type": "array",
+     "items": {
+      "type": "object",
+      "properties": {
+       "label": {
+        "type": "string",
+        "minLength": 1,
+        "maxLength": 160
+       },
+       "type": {
+        "type": "string",
+        "enum": [
+         "cue",
+         "alternates",
+         "multipart"
+        ]
+       },
+       "cueIds": {
+        "minItems": 1,
+        "maxItems": 30,
+        "type": "array",
+        "items": {
+         "type": "string",
+         "minLength": 1,
+         "maxLength": 160
+        }
+       },
+       "status": {
+        "type": "string",
+        "enum": [
+         "covered",
+         "needs-cue",
+         "needs-review",
+         "intentional-fallback",
+         "not-needed"
+        ]
+       },
+       "cueId": {
+        "type": "string",
+        "minLength": 1,
+        "maxLength": 160
+       },
+       "sourceId": {
+        "type": "string",
+        "minLength": 1,
+        "maxLength": 220
+       },
+       "owner": {
+        "type": "string",
+        "minLength": 1,
+        "maxLength": 120
+       },
+       "reason": {
+        "type": "string",
+        "minLength": 1,
+        "maxLength": 500
+       },
+       "candidateCueIds": {
+        "minItems": 1,
+        "maxItems": 30,
+        "type": "array",
+        "items": {
+         "type": "string",
+         "minLength": 1,
+         "maxLength": 160
+        }
+       },
+       "buttonLabel": {
+        "type": "string",
+        "minLength": 1,
+        "maxLength": 60
+       },
+       "camera": {
+        "type": "string",
+        "minLength": 1,
+        "maxLength": 60
+       },
+       "note": {
+        "type": "string",
+        "minLength": 1,
+        "maxLength": 500
+       }
+      },
+      "additionalProperties": false
+     }
+    },
+    "workspace": {
+     "type": "string",
+     "minLength": 1,
+     "maxLength": 80,
+     "description": "Which congregation this call is for. This connection serves 'crc' (CRC) only."
+    }
+   },
+   "required": [
+    "name",
+    "service",
+    "workspace"
+   ]
+  },
+  "annotations": {
+   "readOnlyHint": false
+  }
+ },
+ {
   "name": "create_source_draft_set",
   "description": "Create an unpublished ordered set from every automatic block in one maintained source. templateCueId is optional: left out, the layout's default look is used.",
   "inputSchema": {
@@ -1228,6 +1566,42 @@
   }
  },
  {
+  "name": "get_service",
+  "description": "Read one prepared service: one compact line per row in service order (its graphics, coverage decision, candidates and what to do next). view:'full' returns the whole stored record.",
+  "inputSchema": {
+   "type": "object",
+   "$schema": "https://json-schema.org/draft/2020-12/schema",
+   "properties": {
+    "serviceId": {
+     "type": "string",
+     "minLength": 1,
+     "maxLength": 80,
+     "description": "The prepared service, as list_services returns it."
+    },
+    "view": {
+     "description": "compact (default): one line per row. full: the whole stored record with entries, coverage, rows and names.",
+     "type": "string",
+     "enum": [
+      "compact",
+      "full"
+     ]
+    },
+    "workspace": {
+     "type": "string",
+     "minLength": 1,
+     "maxLength": 80,
+     "description": "Which congregation this call is for. This connection serves 'crc' (CRC) only."
+    }
+   },
+   "required": [
+    "serviceId"
+   ]
+  },
+  "annotations": {
+   "readOnlyHint": true
+  }
+ },
+ {
   "name": "get_service_history",
   "description": "Read what this congregation's output actually did: one row per accepted command, with the graphic id and its liturgical position (unit, moment, book, folio) and the time. Bounded to the last 2,000 commands or 14 days, whichever is smaller. It carries no graphic names, no text and nobody's identity, and it never puts anything on screen.",
   "inputSchema": {
@@ -1522,6 +1896,25 @@
   }
  },
  {
+  "name": "list_live_setlists",
+  "description": "List recent planned services on centralreform.live that prepare_service_from_setlist can import, with the one nearest today when known. Reads only.",
+  "inputSchema": {
+   "type": "object",
+   "$schema": "https://json-schema.org/draft/2020-12/schema",
+   "properties": {
+    "workspace": {
+     "type": "string",
+     "minLength": 1,
+     "maxLength": 80,
+     "description": "Which congregation this call is for. This connection serves 'crc' (CRC) only."
+    }
+   }
+  },
+  "annotations": {
+   "readOnlyHint": true
+  }
+ },
+ {
   "name": "list_revisions",
   "description": "List immutable revisions for a draft.",
   "inputSchema": {
@@ -1543,6 +1936,38 @@
    "required": [
     "draftId"
    ]
+  },
+  "annotations": {
+   "readOnlyHint": true
+  }
+ },
+ {
+  "name": "list_services",
+  "description": "List prepared services, newest first: id, name, version, where it was imported from, and how many rows are covered, need review or need a graphic.",
+  "inputSchema": {
+   "type": "object",
+   "$schema": "https://json-schema.org/draft/2020-12/schema",
+   "properties": {
+    "includeArchived": {
+     "type": "boolean"
+    },
+    "query": {
+     "type": "string",
+     "minLength": 1,
+     "maxLength": 120
+    },
+    "limit": {
+     "type": "integer",
+     "minimum": 1,
+     "maximum": 100
+    },
+    "workspace": {
+     "type": "string",
+     "minLength": 1,
+     "maxLength": 80,
+     "description": "Which congregation this call is for. This connection serves 'crc' (CRC) only."
+    }
+   }
   },
   "annotations": {
    "readOnlyHint": true
@@ -2452,6 +2877,145 @@
   }
  },
  {
+  "name": "refresh_from_setlist",
+  "description": "Re-import a prepared service from the centralreform.live setlist it came from. Decisions a person made are kept; rows still waiting on a decision take the new match; new setlist rows are added in order. Dry run by default.",
+  "inputSchema": {
+   "type": "object",
+   "$schema": "https://json-schema.org/draft/2020-12/schema",
+   "properties": {
+    "serviceId": {
+     "type": "string",
+     "minLength": 1,
+     "maxLength": 80,
+     "description": "The prepared service, as list_services returns it."
+    },
+    "expectedVersion": {
+     "type": "integer",
+     "minimum": 1,
+     "maximum": 9007199254740991,
+     "description": "The service version you last read (get_service). A change made elsewhere since then is refused, not overwritten."
+    },
+    "dryRun": {
+     "description": "Default true: report what would change and write nothing.",
+     "type": "boolean"
+    },
+    "removeMissing": {
+     "description": "Also remove rows whose setlist row is gone. Default false: they are kept and reported.",
+     "type": "boolean"
+    },
+    "workspace": {
+     "type": "string",
+     "minLength": 1,
+     "maxLength": 80,
+     "description": "Which congregation this call is for. This connection serves 'crc' (CRC) only."
+    }
+   },
+   "required": [
+    "serviceId",
+    "expectedVersion",
+    "workspace"
+   ]
+  },
+  "annotations": {
+   "readOnlyHint": false
+  }
+ },
+ {
+  "name": "remove_entry",
+  "description": "Remove a row's graphics from a prepared service. A row that also records a coverage decision keeps its place and that decision.",
+  "inputSchema": {
+   "type": "object",
+   "$schema": "https://json-schema.org/draft/2020-12/schema",
+   "properties": {
+    "serviceId": {
+     "type": "string",
+     "minLength": 1,
+     "maxLength": 80,
+     "description": "The prepared service, as list_services returns it."
+    },
+    "expectedVersion": {
+     "type": "integer",
+     "minimum": 1,
+     "maximum": 9007199254740991,
+     "description": "The service version you last read (get_service). A change made elsewhere since then is refused, not overwritten."
+    },
+    "rowId": {
+     "type": "string",
+     "minLength": 1,
+     "maxLength": 120,
+     "description": "A row of the service, as get_service returns it."
+    },
+    "entryId": {
+     "type": "string",
+     "minLength": 1,
+     "maxLength": 80
+    },
+    "workspace": {
+     "type": "string",
+     "minLength": 1,
+     "maxLength": 80,
+     "description": "Which congregation this call is for. This connection serves 'crc' (CRC) only."
+    }
+   },
+   "required": [
+    "serviceId",
+    "expectedVersion",
+    "workspace"
+   ]
+  },
+  "annotations": {
+   "readOnlyHint": false,
+   "destructiveHint": true
+  }
+ },
+ {
+  "name": "rename_service",
+  "description": "Change a prepared service's name or service label.",
+  "inputSchema": {
+   "type": "object",
+   "$schema": "https://json-schema.org/draft/2020-12/schema",
+   "properties": {
+    "serviceId": {
+     "type": "string",
+     "minLength": 1,
+     "maxLength": 80,
+     "description": "The prepared service, as list_services returns it."
+    },
+    "expectedVersion": {
+     "type": "integer",
+     "minimum": 1,
+     "maximum": 9007199254740991,
+     "description": "The service version you last read (get_service). A change made elsewhere since then is refused, not overwritten."
+    },
+    "name": {
+     "type": "string",
+     "minLength": 1,
+     "maxLength": 120
+    },
+    "service": {
+     "type": "string",
+     "minLength": 1,
+     "maxLength": 120
+    },
+    "workspace": {
+     "type": "string",
+     "minLength": 1,
+     "maxLength": 80,
+     "description": "Which congregation this call is for. This connection serves 'crc' (CRC) only."
+    }
+   },
+   "required": [
+    "serviceId",
+    "expectedVersion",
+    "workspace"
+   ]
+  },
+  "annotations": {
+   "readOnlyHint": false,
+   "idempotentHint": true
+  }
+ },
+ {
   "name": "reorder_draft_set",
   "description": "Atomically reorder every slide in a multipart draft set.",
   "inputSchema": {
@@ -2494,6 +3058,123 @@
     "setId",
     "expectedDraftIds",
     "orderedDraftIds",
+    "workspace"
+   ]
+  },
+  "annotations": {
+   "readOnlyHint": false,
+   "idempotentHint": true
+  }
+ },
+ {
+  "name": "reorder_entries",
+  "description": "Reorder a prepared service's rows (and with them its graphics), by the full new order or by moving one row.",
+  "inputSchema": {
+   "type": "object",
+   "$schema": "https://json-schema.org/draft/2020-12/schema",
+   "properties": {
+    "serviceId": {
+     "type": "string",
+     "minLength": 1,
+     "maxLength": 80,
+     "description": "The prepared service, as list_services returns it."
+    },
+    "expectedVersion": {
+     "type": "integer",
+     "minimum": 1,
+     "maximum": 9007199254740991,
+     "description": "The service version you last read (get_service). A change made elsewhere since then is refused, not overwritten."
+    },
+    "orderedRowIds": {
+     "description": "Every row id of the service, in the new order.",
+     "minItems": 1,
+     "maxItems": 500,
+     "type": "array",
+     "items": {
+      "type": "string",
+      "minLength": 1,
+      "maxLength": 120,
+      "description": "A row of the service, as get_service returns it."
+     }
+    },
+    "rowId": {
+     "description": "Move one row instead...",
+     "type": "string",
+     "minLength": 1,
+     "maxLength": 120
+    },
+    "toIndex": {
+     "description": "...to this 0-based index.",
+     "type": "integer",
+     "minimum": 0,
+     "maximum": 500
+    },
+    "workspace": {
+     "type": "string",
+     "minLength": 1,
+     "maxLength": 80,
+     "description": "Which congregation this call is for. This connection serves 'crc' (CRC) only."
+    }
+   },
+   "required": [
+    "serviceId",
+    "expectedVersion",
+    "workspace"
+   ]
+  },
+  "annotations": {
+   "readOnlyHint": false,
+   "idempotentHint": true
+  }
+ },
+ {
+  "name": "resolve_coverage_row",
+  "description": "Settle a row with one published graphic, usually one of its candidates: the row becomes covered and its graphics become that one graphic.",
+  "inputSchema": {
+   "type": "object",
+   "$schema": "https://json-schema.org/draft/2020-12/schema",
+   "properties": {
+    "serviceId": {
+     "type": "string",
+     "minLength": 1,
+     "maxLength": 80,
+     "description": "The prepared service, as list_services returns it."
+    },
+    "expectedVersion": {
+     "type": "integer",
+     "minimum": 1,
+     "maximum": 9007199254740991,
+     "description": "The service version you last read (get_service). A change made elsewhere since then is refused, not overwritten."
+    },
+    "rowId": {
+     "type": "string",
+     "minLength": 1,
+     "maxLength": 120,
+     "description": "A row of the service, as get_service returns it."
+    },
+    "cueId": {
+     "type": "string",
+     "minLength": 1,
+     "maxLength": 160,
+     "description": "The published graphic this row should use, usually one of its candidates."
+    },
+    "reason": {
+     "type": "string",
+     "minLength": 1,
+     "maxLength": 500
+    },
+    "workspace": {
+     "type": "string",
+     "minLength": 1,
+     "maxLength": 80,
+     "description": "Which congregation this call is for. This connection serves 'crc' (CRC) only."
+    }
+   },
+   "required": [
+    "serviceId",
+    "expectedVersion",
+    "rowId",
+    "cueId",
     "workspace"
    ]
   },
@@ -2569,6 +3250,43 @@
    "required": [
     "setId",
     "expectedDraftIds",
+    "workspace"
+   ]
+  },
+  "annotations": {
+   "readOnlyHint": false,
+   "idempotentHint": true
+  }
+ },
+ {
+  "name": "restore_service",
+  "description": "Restore an archived prepared service.",
+  "inputSchema": {
+   "type": "object",
+   "$schema": "https://json-schema.org/draft/2020-12/schema",
+   "properties": {
+    "serviceId": {
+     "type": "string",
+     "minLength": 1,
+     "maxLength": 80,
+     "description": "The prepared service, as list_services returns it."
+    },
+    "expectedVersion": {
+     "type": "integer",
+     "minimum": 1,
+     "maximum": 9007199254740991,
+     "description": "The service version you last read (get_service). A change made elsewhere since then is refused, not overwritten."
+    },
+    "workspace": {
+     "type": "string",
+     "minLength": 1,
+     "maxLength": 80,
+     "description": "Which congregation this call is for. This connection serves 'crc' (CRC) only."
+    }
+   },
+   "required": [
+    "serviceId",
+    "expectedVersion",
     "workspace"
    ]
   },
@@ -2816,6 +3534,292 @@
   }
  },
  {
+  "name": "service_readiness",
+  "description": "Say whether a prepared service is ready: per row covered, needs review, needs a graphic or not needed, with the next step for every row that is not ready.",
+  "inputSchema": {
+   "type": "object",
+   "$schema": "https://json-schema.org/draft/2020-12/schema",
+   "properties": {
+    "serviceId": {
+     "type": "string",
+     "minLength": 1,
+     "maxLength": 80,
+     "description": "The prepared service, as list_services returns it."
+    },
+    "workspace": {
+     "type": "string",
+     "minLength": 1,
+     "maxLength": 80,
+     "description": "Which congregation this call is for. This connection serves 'crc' (CRC) only."
+    }
+   },
+   "required": [
+    "serviceId"
+   ]
+  },
+  "annotations": {
+   "readOnlyHint": true
+  }
+ },
+ {
+  "name": "set_coverage_row",
+  "description": "Record or change a row's coverage decision (status, graphic, source, owner, reason) and its button label, camera or note; add a new coverage row; or clear a decision.",
+  "inputSchema": {
+   "type": "object",
+   "$schema": "https://json-schema.org/draft/2020-12/schema",
+   "properties": {
+    "serviceId": {
+     "type": "string",
+     "minLength": 1,
+     "maxLength": 80,
+     "description": "The prepared service, as list_services returns it."
+    },
+    "expectedVersion": {
+     "type": "integer",
+     "minimum": 1,
+     "maximum": 9007199254740991,
+     "description": "The service version you last read (get_service). A change made elsewhere since then is refused, not overwritten."
+    },
+    "rowId": {
+     "description": "The row to change. Omit to add a new coverage row.",
+     "type": "string",
+     "minLength": 1,
+     "maxLength": 120
+    },
+    "position": {
+     "type": "object",
+     "properties": {
+      "beforeRowId": {
+       "type": "string",
+       "minLength": 1,
+       "maxLength": 120,
+       "description": "A row of the service, as get_service returns it."
+      },
+      "afterRowId": {
+       "type": "string",
+       "minLength": 1,
+       "maxLength": 120,
+       "description": "A row of the service, as get_service returns it."
+      },
+      "index": {
+       "type": "integer",
+       "minimum": 0,
+       "maximum": 500
+      }
+     },
+     "additionalProperties": false,
+     "description": "Where the new row goes: before or after a row, or at a 0-based index. Give one; the default is the end."
+    },
+    "label": {
+     "type": "string",
+     "minLength": 1,
+     "maxLength": 160
+    },
+    "status": {
+     "type": "string",
+     "enum": [
+      "covered",
+      "needs-cue",
+      "needs-review",
+      "intentional-fallback",
+      "not-needed"
+     ]
+    },
+    "cueId": {
+     "anyOf": [
+      {
+       "type": "string",
+       "minLength": 1,
+       "maxLength": 160
+      },
+      {
+       "type": "null"
+      }
+     ]
+    },
+    "sourceId": {
+     "anyOf": [
+      {
+       "type": "string",
+       "minLength": 1,
+       "maxLength": 220
+      },
+      {
+       "type": "null"
+      }
+     ]
+    },
+    "owner": {
+     "anyOf": [
+      {
+       "type": "string",
+       "minLength": 1,
+       "maxLength": 120
+      },
+      {
+       "type": "null"
+      }
+     ]
+    },
+    "reason": {
+     "anyOf": [
+      {
+       "type": "string",
+       "minLength": 1,
+       "maxLength": 500
+      },
+      {
+       "type": "null"
+      }
+     ]
+    },
+    "clear": {
+     "description": "Remove the coverage decision from rowId. A row with no graphic then leaves the service.",
+     "type": "boolean",
+     "const": true
+    },
+    "buttonLabel": {
+     "description": "Short label for a deck button; null clears it.",
+     "anyOf": [
+      {
+       "type": "string",
+       "minLength": 1,
+       "maxLength": 60
+      },
+      {
+       "type": "null"
+      }
+     ]
+    },
+    "camera": {
+     "description": "Optional camera hint; null clears it.",
+     "anyOf": [
+      {
+       "type": "string",
+       "minLength": 1,
+       "maxLength": 60
+      },
+      {
+       "type": "null"
+      }
+     ]
+    },
+    "note": {
+     "description": "Optional note for the team; null clears it.",
+     "anyOf": [
+      {
+       "type": "string",
+       "minLength": 1,
+       "maxLength": 500
+      },
+      {
+       "type": "null"
+      }
+     ]
+    },
+    "workspace": {
+     "type": "string",
+     "minLength": 1,
+     "maxLength": 80,
+     "description": "Which congregation this call is for. This connection serves 'crc' (CRC) only."
+    }
+   },
+   "required": [
+    "serviceId",
+    "expectedVersion",
+    "workspace"
+   ]
+  },
+  "annotations": {
+   "readOnlyHint": false
+  }
+ },
+ {
+  "name": "set_names",
+  "description": "Set a prepared service's names list (for example a yahrzeit or mi sheberach list). Its panels join the live library as names graphics; nothing goes on screen.",
+  "inputSchema": {
+   "type": "object",
+   "$schema": "https://json-schema.org/draft/2020-12/schema",
+   "properties": {
+    "serviceId": {
+     "type": "string",
+     "minLength": 1,
+     "maxLength": 80,
+     "description": "The prepared service, as list_services returns it."
+    },
+    "expectedVersion": {
+     "type": "integer",
+     "minimum": 1,
+     "maximum": 9007199254740991,
+     "description": "The service version you last read (get_service). A change made elsewhere since then is refused, not overwritten."
+    },
+    "names": {
+     "type": "object",
+     "properties": {
+      "title": {
+       "type": "string",
+       "minLength": 1,
+       "maxLength": 60
+      },
+      "layout": {
+       "type": "string",
+       "enum": [
+        "left",
+        "right"
+       ]
+      },
+      "perPanel": {
+       "type": "integer",
+       "minimum": 4,
+       "maximum": 12
+      },
+      "rows": {
+       "minItems": 1,
+       "maxItems": 120,
+       "type": "array",
+       "items": {
+        "type": "object",
+        "properties": {
+         "he": {
+          "type": "string",
+          "maxLength": 60
+         },
+         "en": {
+          "type": "string",
+          "maxLength": 60
+         }
+        },
+        "additionalProperties": false
+       }
+      }
+     },
+     "required": [
+      "title",
+      "layout",
+      "rows"
+     ],
+     "additionalProperties": false
+    },
+    "workspace": {
+     "type": "string",
+     "minLength": 1,
+     "maxLength": 80,
+     "description": "Which congregation this call is for. This connection serves 'crc' (CRC) only."
+    }
+   },
+   "required": [
+    "serviceId",
+    "expectedVersion",
+    "names",
+    "workspace"
+   ]
+  },
+  "annotations": {
+   "readOnlyHint": false,
+   "idempotentHint": true
+  }
+ },
+ {
   "name": "split_draft_into_set",
   "description": "Split one existing source-backed draft at its current selected pinned blocks, preserving its presentation and source variants in an ordered unpublished set.",
   "inputSchema": {
@@ -2921,6 +3925,63 @@
    "required": [
     "draftId",
     "expectedVersion",
+    "workspace"
+   ]
+  },
+  "annotations": {
+   "readOnlyHint": false,
+   "idempotentHint": true
+  }
+ },
+ {
+  "name": "swap_graphic",
+  "description": "Replace one published graphic on a row with another, keeping the row, its place and its coverage decision.",
+  "inputSchema": {
+   "type": "object",
+   "$schema": "https://json-schema.org/draft/2020-12/schema",
+   "properties": {
+    "serviceId": {
+     "type": "string",
+     "minLength": 1,
+     "maxLength": 80,
+     "description": "The prepared service, as list_services returns it."
+    },
+    "expectedVersion": {
+     "type": "integer",
+     "minimum": 1,
+     "maximum": 9007199254740991,
+     "description": "The service version you last read (get_service). A change made elsewhere since then is refused, not overwritten."
+    },
+    "rowId": {
+     "type": "string",
+     "minLength": 1,
+     "maxLength": 120,
+     "description": "A row of the service, as get_service returns it."
+    },
+    "cueId": {
+     "type": "string",
+     "minLength": 1,
+     "maxLength": 160,
+     "description": "The published graphic to use instead."
+    },
+    "replaceCueId": {
+     "description": "Which graphic of alternates or a multipart sequence to replace. Not needed for a single graphic.",
+     "type": "string",
+     "minLength": 1,
+     "maxLength": 160
+    },
+    "workspace": {
+     "type": "string",
+     "minLength": 1,
+     "maxLength": 80,
+     "description": "Which congregation this call is for. This connection serves 'crc' (CRC) only."
+    }
+   },
+   "required": [
+    "serviceId",
+    "expectedVersion",
+    "rowId",
+    "cueId",
     "workspace"
    ]
   },

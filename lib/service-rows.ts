@@ -1,4 +1,5 @@
 import type {CollectionEntry,CoverageItem,CoverageStatus} from './service-collections';
+import {ServicesError} from './names-list';
 
 /**
  * R-S1 (S1) - the ordered spine of a prepared service. `entries[]` (what can be played) and
@@ -127,4 +128,68 @@ export function storedOrigin(raw:unknown):ServiceOrigin|null{
  const item=raw as Record<string,unknown>,setlistId=str(item.setlistId);
  if(!setlistId||typeof item.importedAt!=='number')return null;
  return {setlistId,trackIds:Array.isArray(item.trackIds)?item.trackIds.filter((id):id is string=>typeof id==='string'&&Boolean(id)):[],eventDate:str(item.eventDate)??null,importedAt:item.importedAt};
+}
+
+/* ---------- S2: rows as input ---------- */
+
+export const ROW_ID_MAX=120;
+export const ROW_BUTTON_LABEL_MAX=60;
+export const ROW_CAMERA_MAX=60;
+export const ROW_NOTE_MAX=500;
+const ROW_INPUT_KEYS=['id','label','status','entryId','coverageId','candidateCueIds','setlistPosition','trackId','buttonLabel','camera','note'];
+
+/**
+ * S2 - the strict parser for `rows[]` the MCP services tools send (never read from a web
+ * request body; see `createCollection` / `updateCollection`). Unlike `storedRow`, which tolerates anything on a read,
+ * this refuses with a sentence. `label` and `status` are accepted and ignored: they mirror the
+ * linked coverage item and entry, and `reconcileRows` writes them. A candidate cue must be
+ * published unless this same row already carried it (the rule entries and coverage follow, so
+ * a graphic that went unavailable never blocks an unrelated edit).
+ */
+export function parseRows(value:unknown,entries:CollectionEntry[],coverage:CoverageItem[],{published,previous=[]}:{published:Set<string>;previous?:ServiceRow[]}):ServiceRow[]{
+ if(!Array.isArray(value)||value.length>MAX_SERVICE_ROWS)throw new ServicesError('invalid_input',`rows must be an array with at most ${MAX_SERVICE_ROWS} items`);
+ const entryIds=new Set(entries.map(entry=>entry.id)),coverageIds=new Set(coverage.map(item=>item.id)),priorCandidates=new Map(previous.map(row=>[row.id,new Set(row.candidateCueIds)]));
+ const ids=new Set<string>(),linkedEntries=new Set<string>(),linkedCoverage=new Set<string>();
+ const bounded=(raw:unknown,label:string,max:number):string|undefined=>{if(raw===undefined)return undefined;if(typeof raw!=='string'||!raw.trim()||raw.length>max)throw new ServicesError('invalid_input',`${label} must be 1-${max} characters`);return raw.trim()};
+ return value.map((raw,index)=>{
+  const at=`rows[${index}]`;
+  if(!raw||typeof raw!=='object'||Array.isArray(raw))throw new ServicesError('invalid_input',`${at} must be an object`);
+  const item=raw as Record<string,unknown>,extra=Object.keys(item).filter(key=>!ROW_INPUT_KEYS.includes(key));
+  if(extra.length)throw new ServicesError('invalid_input',`${at} contains unsupported fields: ${extra.join(', ')}`);
+  const id=bounded(item.id,`${at}.id`,ROW_ID_MAX);
+  if(!id)throw new ServicesError('invalid_input',`${at}.id is required`);
+  if(ids.has(id))throw new ServicesError('duplicate_row',`Row ID appears more than once: ${id}`);ids.add(id);
+  const entryId=bounded(item.entryId,`${at}.entryId`,80),coverageId=bounded(item.coverageId,`${at}.coverageId`,80);
+  if(entryId){if(!entryIds.has(entryId))throw new ServicesError('unknown_entry',`${at} links an entry this service does not have: ${entryId}`,404);if(linkedEntries.has(entryId))throw new ServicesError('duplicate_row',`Two rows link the same entry: ${entryId}`);linkedEntries.add(entryId)}
+  if(coverageId){if(!coverageIds.has(coverageId))throw new ServicesError('unknown_coverage',`${at} links a coverage item this service does not have: ${coverageId}`,404);if(linkedCoverage.has(coverageId))throw new ServicesError('duplicate_row',`Two rows link the same coverage item: ${coverageId}`);linkedCoverage.add(coverageId)}
+  let candidateCueIds:string[]=[];
+  if(item.candidateCueIds!==undefined){
+   if(!Array.isArray(item.candidateCueIds)||item.candidateCueIds.length>MAX_ROW_CANDIDATES)throw new ServicesError('invalid_input',`${at}.candidateCueIds must be an array with at most ${MAX_ROW_CANDIDATES} items`);
+   candidateCueIds=item.candidateCueIds.map((cue,j)=>bounded(cue,`${at}.candidateCueIds[${j}]`,160)!);
+   if(new Set(candidateCueIds).size!==candidateCueIds.length)throw new ServicesError('duplicate_cue',`${at} names a candidate more than once`);
+   for(const cue of candidateCueIds)if(!published.has(cue)&&!priorCandidates.get(id)?.has(cue))throw new ServicesError('unknown_cue',`Published cue is unavailable: ${cue}`,404);
+  }
+  const row:ServiceRow={id,label:'',candidateCueIds};
+  if(entryId)row.entryId=entryId;
+  if(coverageId)row.coverageId=coverageId;
+  if(item.setlistPosition!==undefined){if(!Number.isInteger(item.setlistPosition)||(item.setlistPosition as number)<1||(item.setlistPosition as number)>10000)throw new ServicesError('invalid_input',`${at}.setlistPosition must be a whole number from 1 to 10000`);row.setlistPosition=item.setlistPosition as number}
+  const trackId=bounded(item.trackId,`${at}.trackId`,160),buttonLabel=bounded(item.buttonLabel,`${at}.buttonLabel`,ROW_BUTTON_LABEL_MAX),camera=bounded(item.camera,`${at}.camera`,ROW_CAMERA_MAX),note=bounded(item.note,`${at}.note`,ROW_NOTE_MAX);
+  if(trackId)row.trackId=trackId;
+  if(buttonLabel)row.buttonLabel=buttonLabel;
+  if(camera)row.camera=camera;
+  if(note)row.note=note;
+  return row;
+ });
+}
+
+/**
+ * S2 - entries and coverage reordered to follow the rows that link them, so a positioned insert
+ * or a row reorder shows in the same order on /services (which lists entries and coverage, not
+ * rows). Anything no row links keeps its own order, after the linked items.
+ */
+export function alignToRows(rows:ServiceRow[],entries:CollectionEntry[],coverage:CoverageItem[]):{entries:CollectionEntry[];coverage:CoverageItem[]}{
+ const entryAt=new Map<string,number>(),coverageAt=new Map<string,number>();
+ rows.forEach((row,index)=>{if(row.entryId&&!entryAt.has(row.entryId))entryAt.set(row.entryId,index);if(row.coverageId&&!coverageAt.has(row.coverageId))coverageAt.set(row.coverageId,index)});
+ const order=<T extends {id:string}>(items:T[],at:Map<string,number>)=>items.map((item,index)=>({item,index,key:at.get(item.id)??Number.MAX_SAFE_INTEGER})).sort((a,b)=>a.key-b.key||a.index-b.index).map(({item})=>item);
+ return {entries:order(entries,entryAt),coverage:order(coverage,coverageAt)};
 }
