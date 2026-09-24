@@ -147,10 +147,12 @@ export type CueRole = 'utility' | 'announcement' | 'single' | 'sequence-part' | 
 export type CameraMove = { conn: string | null; preset: number | null; input: string }
 /** The camera gesture: step 1 shows the cue, recalls a PTZ preset, waits, merges; step 2 reverses. */
 export type CameraGesture = { in: CameraMove | null; out: CameraMove | null }
+/** The catalog name and published revision a cue key was last bound or synced against (never rendered). */
+export type CatalogStamp = { name: string; revision: number | null }
 
 export type ButtonSpec =
   /** A cue key: one-step toggle, or a two-step camera gesture. Colour follows the role. */
-  | { kind: 'cue'; cueId: string; label: string; role: CueRole; sequence?: { name: string; index: number; count: number }; gesture?: CameraGesture }
+  | { kind: 'cue'; cueId: string; label: string; role: CueRole; sequence?: { name: string; index: number; count: number }; gesture?: CameraGesture; catalog?: CatalogStamp }
   /** Jump to a page. */
   | { kind: 'jump'; text: string; page: number }
   /** One Overlays module action, with the disconnected light (and the logo light when asked). */
@@ -213,6 +215,8 @@ export type CompanionDeck = {
   /** Carried verbatim, connection references by label. */
   triggers: JsonObject
   customVariables: JsonObject
+  /** When the deck was last brought in step with the catalog (sync_deck_with_catalog); never rendered. */
+  synced?: { at: number }
 }
 
 /** Background colour of a cue key by role. */

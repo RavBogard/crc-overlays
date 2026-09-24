@@ -12,10 +12,10 @@ import {
 /* ------------------------------------------------------------ manifest --- */
 
 export type ManifestBinding = {
-  cueId: string; draftName: string; page: number; pageName: string; cell: string; label: string; role: CueRole
+  cueId: string; draftName: string; activeRevision?: number; page: number; pageName: string; cell: string; label: string; role: CueRole
   sequence?: { name: string; index: number; count: number }; cameraGesture?: CameraGesture
 }
-export type CueManifest = { bindings: ManifestBinding[] }
+export type CueManifest = { generatedAt?: string; bindings: ManifestBinding[] }
 
 /* --------------------------------------------------------- seed data --- */
 
@@ -175,7 +175,9 @@ export function buildCrcDeck(manifest: CueManifest, data: CrcSeedData): { deck: 
       const [r, c] = parseCell(b.cell)
       const spec: ButtonSpec = {
         kind: 'cue', cueId: b.cueId, label: b.label, role: b.role,
-        ...(b.sequence ? { sequence: b.sequence } : {}), ...(b.cameraGesture ? { gesture: b.cameraGesture } : {}),
+        // Cloned: the deck is edited in place by the deck tools, and must never share objects with the manifest.
+        ...(b.sequence ? { sequence: structuredClone(b.sequence) } : {}), ...(b.cameraGesture ? { gesture: structuredClone(b.cameraGesture) } : {}),
+        catalog: { name: b.draftName, revision: b.activeRevision ?? null },
       }
       place(n, r, c, spec, `${n}/${b.cell}`)
     }

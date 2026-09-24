@@ -290,6 +290,53 @@
   }
  },
  {
+  "name": "apply_template",
+  "description": "(Re)apply a page template: put back any missing fixed key (switcher, recovery, Prev/Home/Next, Bimah Mute) and make Prev/Next follow the chain. A key sitting on a reserved cell is refused unless replace:true.",
+  "inputSchema": {
+   "type": "object",
+   "$schema": "https://json-schema.org/draft/2020-12/schema",
+   "properties": {
+    "expectedVersion": {
+     "type": "integer",
+     "minimum": 1,
+     "maximum": 9007199254740991,
+     "description": "The deck version you last read (get_deck). A change made elsewhere since is refused, not overwritten."
+    },
+    "page": {
+     "type": "integer",
+     "minimum": 1,
+     "maximum": 99,
+     "description": "A deck page number (1-99), as get_deck lists them."
+    },
+    "template": {
+     "description": "Switch the page to this template first.",
+     "type": "string",
+     "minLength": 1,
+     "maxLength": 40
+    },
+    "replace": {
+     "description": "Overwrite a key sitting on a cell the template reserves. Default false: refused, nothing changed.",
+     "type": "boolean"
+    },
+    "workspace": {
+     "type": "string",
+     "minLength": 1,
+     "maxLength": 80,
+     "description": "Which congregation this call is for. This connection serves 'crc' (CRC) only."
+    }
+   },
+   "required": [
+    "expectedVersion",
+    "page",
+    "workspace"
+   ]
+  },
+  "annotations": {
+   "readOnlyHint": false,
+   "idempotentHint": true
+  }
+ },
+ {
   "name": "archive_asset",
   "description": "Archive one image so it is no longer offered for new graphics. Refused, changing nothing, while a published graphic uses it; the refusal names those graphics. Unpublished drafts that use it are named in the result and will not publish until it is restored in the editor or replaced. expectedVersion is the version list_assets returned.",
   "inputSchema": {
@@ -426,6 +473,201 @@
    "required": [
     "serviceId",
     "expectedVersion",
+    "workspace"
+   ]
+  },
+  "annotations": {
+   "readOnlyHint": false,
+   "idempotentHint": true
+  }
+ },
+ {
+  "name": "attach_camera_gesture",
+  "description": "Give a cue key the camera gesture (show the cue, recall a PTZ preset, wait, merge; the second press takes it out and returns the camera), copy one from another key, or remove it with gesture:null. Only on pages whose template allows gestures.",
+  "inputSchema": {
+   "type": "object",
+   "$schema": "https://json-schema.org/draft/2020-12/schema",
+   "properties": {
+    "expectedVersion": {
+     "type": "integer",
+     "minimum": 1,
+     "maximum": 9007199254740991,
+     "description": "The deck version you last read (get_deck). A change made elsewhere since is refused, not overwritten."
+    },
+    "page": {
+     "type": "integer",
+     "minimum": 1,
+     "maximum": 99,
+     "description": "A deck page number (1-99), as get_deck lists them."
+    },
+    "row": {
+     "type": "integer",
+     "minimum": 0,
+     "maximum": 7,
+     "description": "Zero-based row (0 is the top row)."
+    },
+    "column": {
+     "type": "integer",
+     "minimum": 0,
+     "maximum": 15,
+     "description": "Zero-based column (0 is the left column)."
+    },
+    "gesture": {
+     "description": "The camera move. null removes the gesture (the key becomes a one-step toggle).",
+     "anyOf": [
+      {
+       "type": "object",
+       "properties": {
+        "in": {
+         "type": "object",
+         "properties": {
+          "camera": {
+           "anyOf": [
+            {
+             "type": "string",
+             "minLength": 1,
+             "maxLength": 80
+            },
+            {
+             "type": "null"
+            }
+           ],
+           "description": "The PTZ camera connection label, or null for a merge with no preset recall."
+          },
+          "preset": {
+           "anyOf": [
+            {
+             "type": "integer",
+             "minimum": 0,
+             "maximum": 255
+            },
+            {
+             "type": "null"
+            }
+           ]
+          },
+          "input": {
+           "type": "string",
+           "minLength": 1,
+           "maxLength": 60,
+           "description": "The vMix input to merge."
+          }
+         },
+         "required": [
+          "camera",
+          "preset",
+          "input"
+         ],
+         "additionalProperties": false
+        },
+        "out": {
+         "description": "return (default): recall the page's return preset and merge back to its return input; merge-only: merge back without a preset; none: a middle panel, no camera move out.",
+         "anyOf": [
+          {
+           "type": "object",
+           "properties": {
+            "camera": {
+             "anyOf": [
+              {
+               "type": "string",
+               "minLength": 1,
+               "maxLength": 80
+              },
+              {
+               "type": "null"
+              }
+             ],
+             "description": "The PTZ camera connection label, or null for a merge with no preset recall."
+            },
+            "preset": {
+             "anyOf": [
+              {
+               "type": "integer",
+               "minimum": 0,
+               "maximum": 255
+              },
+              {
+               "type": "null"
+              }
+             ]
+            },
+            "input": {
+             "type": "string",
+             "minLength": 1,
+             "maxLength": 60,
+             "description": "The vMix input to merge."
+            }
+           },
+           "required": [
+            "camera",
+            "preset",
+            "input"
+           ],
+           "additionalProperties": false
+          },
+          {
+           "type": "string",
+           "enum": [
+            "return",
+            "merge-only",
+            "none"
+           ]
+          }
+         ]
+        }
+       },
+       "required": [
+        "in"
+       ],
+       "additionalProperties": false
+      },
+      {
+       "type": "null"
+      }
+     ]
+    },
+    "from": {
+     "description": "Copy the gesture of this key instead.",
+     "type": "object",
+     "properties": {
+      "page": {
+       "type": "integer",
+       "minimum": 1,
+       "maximum": 99,
+       "description": "A deck page number (1-99), as get_deck lists them."
+      },
+      "row": {
+       "type": "integer",
+       "minimum": 0,
+       "maximum": 7,
+       "description": "Zero-based row (0 is the top row)."
+      },
+      "column": {
+       "type": "integer",
+       "minimum": 0,
+       "maximum": 15,
+       "description": "Zero-based column (0 is the left column)."
+      }
+     },
+     "required": [
+      "page",
+      "row",
+      "column"
+     ],
+     "additionalProperties": false
+    },
+    "workspace": {
+     "type": "string",
+     "minLength": 1,
+     "maxLength": 80,
+     "description": "Which congregation this call is for. This connection serves 'crc' (CRC) only."
+    }
+   },
+   "required": [
+    "expectedVersion",
+    "page",
+    "row",
+    "column",
     "workspace"
    ]
   },
@@ -668,6 +910,109 @@
   },
   "annotations": {
    "readOnlyHint": false
+  }
+ },
+ {
+  "name": "bind_cue",
+  "description": "Point a cue key at a cue (or make a new cue key on an empty cell). The key keeps its camera gesture and ids; the label follows the new cue unless you give one.",
+  "inputSchema": {
+   "type": "object",
+   "$schema": "https://json-schema.org/draft/2020-12/schema",
+   "properties": {
+    "expectedVersion": {
+     "type": "integer",
+     "minimum": 1,
+     "maximum": 9007199254740991,
+     "description": "The deck version you last read (get_deck). A change made elsewhere since is refused, not overwritten."
+    },
+    "page": {
+     "type": "integer",
+     "minimum": 1,
+     "maximum": 99,
+     "description": "A deck page number (1-99), as get_deck lists them."
+    },
+    "row": {
+     "type": "integer",
+     "minimum": 0,
+     "maximum": 7,
+     "description": "Zero-based row (0 is the top row)."
+    },
+    "column": {
+     "type": "integer",
+     "minimum": 0,
+     "maximum": 15,
+     "description": "Zero-based column (0 is the left column)."
+    },
+    "cueId": {
+     "type": "string",
+     "minLength": 1,
+     "maxLength": 160
+    },
+    "label": {
+     "description": "Defaults to the key's label, or the cue's catalog name when the key fired another cue.",
+     "type": "string",
+     "minLength": 1,
+     "maxLength": 40
+    },
+    "role": {
+     "type": "string",
+     "enum": [
+      "utility",
+      "announcement",
+      "single",
+      "sequence-part",
+      "alternate",
+      "short-selection"
+     ],
+     "description": "The cue's role, which sets the key colour: sequence parts teal, singles/alternates/short selections burgundy, announcements and utilities navy."
+    },
+    "workspace": {
+     "type": "string",
+     "minLength": 1,
+     "maxLength": 80,
+     "description": "Which congregation this call is for. This connection serves 'crc' (CRC) only."
+    }
+   },
+   "required": [
+    "expectedVersion",
+    "page",
+    "row",
+    "column",
+    "cueId",
+    "workspace"
+   ]
+  },
+  "annotations": {
+   "readOnlyHint": false,
+   "idempotentHint": true
+  }
+ },
+ {
+  "name": "check_service_on_deck",
+  "description": "Say whether every graphic a prepared service needs is on the deck: where each placed one is, and for each missing one where the grammar would put it (or why it cannot). Reads only.",
+  "inputSchema": {
+   "type": "object",
+   "$schema": "https://json-schema.org/draft/2020-12/schema",
+   "properties": {
+    "serviceId": {
+     "type": "string",
+     "minLength": 1,
+     "maxLength": 80,
+     "description": "The prepared service, as list_services returns it."
+    },
+    "workspace": {
+     "type": "string",
+     "minLength": 1,
+     "maxLength": 80,
+     "description": "Which congregation this call is for. This connection serves 'crc' (CRC) only."
+    }
+   },
+   "required": [
+    "serviceId"
+   ]
+  },
+  "annotations": {
+   "readOnlyHint": true
   }
  },
  {
@@ -1581,6 +1926,96 @@
   }
  },
  {
+  "name": "create_page",
+  "description": "Create a deck page on one of the deck's templates, with the template's fixed keys. chainAfter puts it into a service's Prev/Next chain; jumpFrom adds a key that jumps to it (a page nothing reaches is refused).",
+  "inputSchema": {
+   "type": "object",
+   "$schema": "https://json-schema.org/draft/2020-12/schema",
+   "properties": {
+    "expectedVersion": {
+     "type": "integer",
+     "minimum": 1,
+     "maximum": 9007199254740991,
+     "description": "The deck version you last read (get_deck). A change made elsewhere since is refused, not overwritten."
+    },
+    "page": {
+     "type": "integer",
+     "minimum": 1,
+     "maximum": 99,
+     "description": "A deck page number (1-99), as get_deck lists them."
+    },
+    "name": {
+     "type": "string",
+     "minLength": 1,
+     "maxLength": 40
+    },
+    "template": {
+     "type": "string",
+     "minLength": 1,
+     "maxLength": 40,
+     "description": "A page template the deck defines (get_deck lists them)."
+    },
+    "chainAfter": {
+     "description": "Put the new page into a service chain right after this page, so Prev/Next walk through it.",
+     "type": "integer",
+     "minimum": 1,
+     "maximum": 99
+    },
+    "jumpFrom": {
+     "description": "Add a key at this cell that jumps to the new page, so it can be reached from Home.",
+     "type": "object",
+     "properties": {
+      "page": {
+       "type": "integer",
+       "minimum": 1,
+       "maximum": 99,
+       "description": "A deck page number (1-99), as get_deck lists them."
+      },
+      "row": {
+       "type": "integer",
+       "minimum": 0,
+       "maximum": 7,
+       "description": "Zero-based row (0 is the top row)."
+      },
+      "column": {
+       "type": "integer",
+       "minimum": 0,
+       "maximum": 15,
+       "description": "Zero-based column (0 is the left column)."
+      },
+      "text": {
+       "type": "string",
+       "minLength": 1,
+       "maxLength": 40
+      }
+     },
+     "required": [
+      "page",
+      "row",
+      "column"
+     ],
+     "additionalProperties": false
+    },
+    "workspace": {
+     "type": "string",
+     "minLength": 1,
+     "maxLength": 80,
+     "description": "Which congregation this call is for. This connection serves 'crc' (CRC) only."
+    }
+   },
+   "required": [
+    "expectedVersion",
+    "page",
+    "name",
+    "template",
+    "workspace"
+   ]
+  },
+  "annotations": {
+   "readOnlyHint": false
+  }
+ },
+ {
   "name": "create_review_board",
   "description": "Put published graphics in front of a person on one web page (a review board) and return its link. For each graphic the page shows the picture the server fit check kept for the version in use, the old slide's text when there is a reference, and Approve / Needs change with a note, saved as the reviewer clicks. The reviewer must be signed in as a member. grouping: deck-page (the stored Companion deck's pages; refused until a deck is stored unless you pass groupLabels), service (the prepared service each graphic is in) or none. Unpublished drafts are shown without a picture. Publishes nothing; puts nothing on screen.",
   "inputSchema": {
@@ -2086,6 +2521,43 @@
   }
  },
  {
+  "name": "delete_page",
+  "description": "Delete a deck page. Refused while any key other than Prev/Next still jumps to it, and for Home.",
+  "inputSchema": {
+   "type": "object",
+   "$schema": "https://json-schema.org/draft/2020-12/schema",
+   "properties": {
+    "expectedVersion": {
+     "type": "integer",
+     "minimum": 1,
+     "maximum": 9007199254740991,
+     "description": "The deck version you last read (get_deck). A change made elsewhere since is refused, not overwritten."
+    },
+    "page": {
+     "type": "integer",
+     "minimum": 1,
+     "maximum": 99,
+     "description": "A deck page number (1-99), as get_deck lists them."
+    },
+    "workspace": {
+     "type": "string",
+     "minLength": 1,
+     "maxLength": 80,
+     "description": "Which congregation this call is for. This connection serves 'crc' (CRC) only."
+    }
+   },
+   "required": [
+    "expectedVersion",
+    "page",
+    "workspace"
+   ]
+  },
+  "annotations": {
+   "readOnlyHint": false,
+   "destructiveHint": true
+  }
+ },
+ {
   "name": "duplicate_draft",
   "description": "Copy one draft (draftId) or catalog graphic (cueId) into a new unpublished standalone draft, named \"Copy of ...\" unless name is given. expectedVersion, with draftId, refuses the copy if the draft changed since you read it.",
   "inputSchema": {
@@ -2170,6 +2642,37 @@
   },
   "annotations": {
    "readOnlyHint": false
+  }
+ },
+ {
+  "name": "export_deck_config",
+  "description": "Make the full Companion export of the deck for the next big import: validates first (refused with the errors if it fails), then returns a signed download link that works for 15 minutes, the file's sha256 and every connection label the booth must match exactly. The same download is on the Setup page for a signed-in member.",
+  "inputSchema": {
+   "type": "object",
+   "$schema": "https://json-schema.org/draft/2020-12/schema",
+   "properties": {
+    "scope": {
+     "description": "full (default): the whole deck, for a full import.",
+     "type": "string",
+     "const": "full"
+    },
+    "expectedVersion": {
+     "description": "Refuse unless the deck is still at this version.",
+     "type": "integer",
+     "minimum": 1,
+     "maximum": 9007199254740991
+    },
+    "workspace": {
+     "type": "string",
+     "minLength": 1,
+     "maxLength": 80,
+     "description": "Which congregation this call is for. This connection serves 'crc' (CRC) only."
+    }
+   }
+  },
+  "annotations": {
+   "readOnlyHint": true,
+   "idempotentHint": true
   }
  },
  {
@@ -2275,6 +2778,53 @@
      "description": "Which congregation this call is for. This connection serves 'crc' (CRC) only."
     }
    }
+  },
+  "annotations": {
+   "readOnlyHint": true
+  }
+ },
+ {
+  "name": "get_deck",
+  "description": "Read the CRC Companion deck in brief: its version, pages (number, name, template, how many keys and free cells), service chains, templates and connection labels. get_deck_page reads one page cell by cell.",
+  "inputSchema": {
+   "type": "object",
+   "$schema": "https://json-schema.org/draft/2020-12/schema",
+   "properties": {
+    "workspace": {
+     "type": "string",
+     "minLength": 1,
+     "maxLength": 80,
+     "description": "Which congregation this call is for. This connection serves 'crc' (CRC) only."
+    }
+   }
+  },
+  "annotations": {
+   "readOnlyHint": true
+  }
+ },
+ {
+  "name": "get_deck_page",
+  "description": "Read one deck page cell by cell (rows and columns count from 0): each key's kind and label, the cue it fires with its role, sequence and camera gesture, the template's fixed keys, and the free cells.",
+  "inputSchema": {
+   "type": "object",
+   "$schema": "https://json-schema.org/draft/2020-12/schema",
+   "properties": {
+    "page": {
+     "type": "integer",
+     "minimum": 1,
+     "maximum": 99,
+     "description": "A deck page number (1-99), as get_deck lists them."
+    },
+    "workspace": {
+     "type": "string",
+     "minLength": 1,
+     "maxLength": 80,
+     "description": "Which congregation this call is for. This connection serves 'crc' (CRC) only."
+    }
+   },
+   "required": [
+    "page"
+   ]
   },
   "annotations": {
    "readOnlyHint": true
@@ -2545,6 +3095,61 @@
    },
    "required": [
     "cueId",
+    "workspace"
+   ]
+  },
+  "annotations": {
+   "readOnlyHint": false,
+   "idempotentHint": true
+  }
+ },
+ {
+  "name": "layout_column",
+  "description": "Lay out one column's cue keys by the deck grammar: the lead at the top, a sequence's parts down in order, then alternates and short selections; or in the order you give. Colour follows each key's role.",
+  "inputSchema": {
+   "type": "object",
+   "$schema": "https://json-schema.org/draft/2020-12/schema",
+   "properties": {
+    "expectedVersion": {
+     "type": "integer",
+     "minimum": 1,
+     "maximum": 9007199254740991,
+     "description": "The deck version you last read (get_deck). A change made elsewhere since is refused, not overwritten."
+    },
+    "page": {
+     "type": "integer",
+     "minimum": 1,
+     "maximum": 99,
+     "description": "A deck page number (1-99), as get_deck lists them."
+    },
+    "column": {
+     "type": "integer",
+     "minimum": 0,
+     "maximum": 15,
+     "description": "Zero-based column (0 is the left column)."
+    },
+    "order": {
+     "description": "The column's cue ids top to bottom. Default: the deck grammar (lead at top, continuations down, alternates then short selections below).",
+     "minItems": 1,
+     "maxItems": 8,
+     "type": "array",
+     "items": {
+      "type": "string",
+      "minLength": 1,
+      "maxLength": 160
+     }
+    },
+    "workspace": {
+     "type": "string",
+     "minLength": 1,
+     "maxLength": 80,
+     "description": "Which congregation this call is for. This connection serves 'crc' (CRC) only."
+    }
+   },
+   "required": [
+    "expectedVersion",
+    "page",
+    "column",
     "workspace"
    ]
   },
@@ -3034,6 +3639,129 @@
   }
  },
  {
+  "name": "move_button",
+  "description": "Move a key to an empty cell, on the same page or another. It keeps its ids, cue, gesture and label.",
+  "inputSchema": {
+   "type": "object",
+   "$schema": "https://json-schema.org/draft/2020-12/schema",
+   "properties": {
+    "expectedVersion": {
+     "type": "integer",
+     "minimum": 1,
+     "maximum": 9007199254740991,
+     "description": "The deck version you last read (get_deck). A change made elsewhere since is refused, not overwritten."
+    },
+    "page": {
+     "type": "integer",
+     "minimum": 1,
+     "maximum": 99,
+     "description": "A deck page number (1-99), as get_deck lists them."
+    },
+    "row": {
+     "type": "integer",
+     "minimum": 0,
+     "maximum": 7,
+     "description": "Zero-based row (0 is the top row)."
+    },
+    "column": {
+     "type": "integer",
+     "minimum": 0,
+     "maximum": 15,
+     "description": "Zero-based column (0 is the left column)."
+    },
+    "to": {
+     "type": "object",
+     "properties": {
+      "page": {
+       "type": "integer",
+       "minimum": 1,
+       "maximum": 99,
+       "description": "A deck page number (1-99), as get_deck lists them."
+      },
+      "row": {
+       "type": "integer",
+       "minimum": 0,
+       "maximum": 7,
+       "description": "Zero-based row (0 is the top row)."
+      },
+      "column": {
+       "type": "integer",
+       "minimum": 0,
+       "maximum": 15,
+       "description": "Zero-based column (0 is the left column)."
+      }
+     },
+     "required": [
+      "page",
+      "row",
+      "column"
+     ],
+     "additionalProperties": false
+    },
+    "workspace": {
+     "type": "string",
+     "minLength": 1,
+     "maxLength": 80,
+     "description": "Which congregation this call is for. This connection serves 'crc' (CRC) only."
+    }
+   },
+   "required": [
+    "expectedVersion",
+    "page",
+    "row",
+    "column",
+    "to",
+    "workspace"
+   ]
+  },
+  "annotations": {
+   "readOnlyHint": false
+  }
+ },
+ {
+  "name": "move_page",
+  "description": "Move a deck page to an unused page number; every key that jumps to it follows.",
+  "inputSchema": {
+   "type": "object",
+   "$schema": "https://json-schema.org/draft/2020-12/schema",
+   "properties": {
+    "expectedVersion": {
+     "type": "integer",
+     "minimum": 1,
+     "maximum": 9007199254740991,
+     "description": "The deck version you last read (get_deck). A change made elsewhere since is refused, not overwritten."
+    },
+    "page": {
+     "type": "integer",
+     "minimum": 1,
+     "maximum": 99,
+     "description": "A deck page number (1-99), as get_deck lists them."
+    },
+    "to": {
+     "type": "integer",
+     "minimum": 1,
+     "maximum": 99,
+     "description": "The empty page number to move it to."
+    },
+    "workspace": {
+     "type": "string",
+     "minLength": 1,
+     "maxLength": 80,
+     "description": "Which congregation this call is for. This connection serves 'crc' (CRC) only."
+    }
+   },
+   "required": [
+    "expectedVersion",
+    "page",
+    "to",
+    "workspace"
+   ]
+  },
+  "annotations": {
+   "readOnlyHint": false
+  }
+ },
+ {
   "name": "next_panel",
   "description": "Show the next panel of the multipart set on the live CRC output (from \"— 02 of 03\" to 03, wrapping from the last to 01), worked out on the server from the live graphic and the catalog, as the deck's Next panel button does. Refused, with nothing sent, when the live graphic is not part of a set.",
   "inputSchema": {
@@ -3083,6 +3811,299 @@
    },
    "required": [
     "target",
+    "workspace"
+   ]
+  },
+  "annotations": {
+   "readOnlyHint": false
+  }
+ },
+ {
+  "name": "place_button",
+  "description": "Place a key on an empty cell: a cue key (label and colour role default from the catalog), a page jump, an Overlays module action, a device key the deck carries, a camera merge, or a copy of another key. A device key placed twice gets new ids.",
+  "inputSchema": {
+   "type": "object",
+   "$schema": "https://json-schema.org/draft/2020-12/schema",
+   "properties": {
+    "expectedVersion": {
+     "type": "integer",
+     "minimum": 1,
+     "maximum": 9007199254740991,
+     "description": "The deck version you last read (get_deck). A change made elsewhere since is refused, not overwritten."
+    },
+    "page": {
+     "type": "integer",
+     "minimum": 1,
+     "maximum": 99,
+     "description": "A deck page number (1-99), as get_deck lists them."
+    },
+    "row": {
+     "type": "integer",
+     "minimum": 0,
+     "maximum": 7,
+     "description": "Zero-based row (0 is the top row)."
+    },
+    "column": {
+     "type": "integer",
+     "minimum": 0,
+     "maximum": 15,
+     "description": "Zero-based column (0 is the left column)."
+    },
+    "button": {
+     "oneOf": [
+      {
+       "type": "object",
+       "properties": {
+        "kind": {
+         "type": "string",
+         "const": "cue"
+        },
+        "cueId": {
+         "type": "string",
+         "minLength": 1,
+         "maxLength": 160
+        },
+        "label": {
+         "description": "Defaults to the cue's catalog name.",
+         "type": "string",
+         "minLength": 1,
+         "maxLength": 40
+        },
+        "role": {
+         "description": "Default single.",
+         "type": "string",
+         "enum": [
+          "utility",
+          "announcement",
+          "single",
+          "sequence-part",
+          "alternate",
+          "short-selection"
+         ]
+        }
+       },
+       "required": [
+        "kind",
+        "cueId"
+       ],
+       "additionalProperties": false
+      },
+      {
+       "type": "object",
+       "properties": {
+        "kind": {
+         "type": "string",
+         "const": "jump"
+        },
+        "text": {
+         "type": "string",
+         "minLength": 1,
+         "maxLength": 40
+        },
+        "page": {
+         "type": "integer",
+         "minimum": 1,
+         "maximum": 99,
+         "description": "A deck page number (1-99), as get_deck lists them."
+        }
+       },
+       "required": [
+        "kind",
+        "text",
+        "page"
+       ],
+       "additionalProperties": false
+      },
+      {
+       "type": "object",
+       "properties": {
+        "kind": {
+         "type": "string",
+         "const": "module"
+        },
+        "text": {
+         "type": "string",
+         "minLength": 1,
+         "maxLength": 40
+        },
+        "action": {
+         "type": "string",
+         "enum": [
+          "animate_clear",
+          "clear_now",
+          "logo_toggle",
+          "logo_on",
+          "logo_off",
+          "refresh_catalog",
+          "bug_on",
+          "bug_off"
+         ]
+        },
+        "bg": {
+         "type": "integer",
+         "minimum": 0,
+         "maximum": 16777215,
+         "description": "Background colour as a 24-bit number (0x990033 is 10027059)."
+        }
+       },
+       "required": [
+        "kind",
+        "text",
+        "action"
+       ],
+       "additionalProperties": false
+      },
+      {
+       "type": "object",
+       "properties": {
+        "kind": {
+         "type": "string",
+         "const": "fragment"
+        },
+        "fragment": {
+         "type": "string",
+         "minLength": 1,
+         "maxLength": 120,
+         "description": "A device fragment the deck carries (a device key from the booth export)."
+        },
+        "text": {
+         "type": "string",
+         "minLength": 1,
+         "maxLength": 40
+        }
+       },
+       "required": [
+        "kind",
+        "fragment"
+       ],
+       "additionalProperties": false
+      },
+      {
+       "type": "object",
+       "properties": {
+        "kind": {
+         "type": "string",
+         "const": "camera"
+        },
+        "text": {
+         "type": "string",
+         "minLength": 1,
+         "maxLength": 40
+        },
+        "input": {
+         "type": "string",
+         "minLength": 1,
+         "maxLength": 60,
+         "description": "The vMix input to merge, e.g. \"left cam 2\"."
+        },
+        "tally": {
+         "type": "integer",
+         "minimum": 1,
+         "maximum": 99
+        }
+       },
+       "required": [
+        "kind",
+        "text",
+        "input",
+        "tally"
+       ],
+       "additionalProperties": false
+      },
+      {
+       "type": "object",
+       "properties": {
+        "kind": {
+         "type": "string",
+         "const": "merge"
+        }
+       },
+       "required": [
+        "kind"
+       ],
+       "additionalProperties": false
+      },
+      {
+       "type": "object",
+       "properties": {
+        "kind": {
+         "type": "string",
+         "const": "builtin"
+        },
+        "control": {
+         "type": "string",
+         "enum": [
+          "pageup",
+          "pagenum",
+          "pagedown"
+         ]
+        }
+       },
+       "required": [
+        "kind",
+        "control"
+       ],
+       "additionalProperties": false
+      },
+      {
+       "type": "object",
+       "properties": {
+        "kind": {
+         "type": "string",
+         "const": "copy"
+        },
+        "from": {
+         "type": "object",
+         "properties": {
+          "page": {
+           "type": "integer",
+           "minimum": 1,
+           "maximum": 99,
+           "description": "A deck page number (1-99), as get_deck lists them."
+          },
+          "row": {
+           "type": "integer",
+           "minimum": 0,
+           "maximum": 7,
+           "description": "Zero-based row (0 is the top row)."
+          },
+          "column": {
+           "type": "integer",
+           "minimum": 0,
+           "maximum": 15,
+           "description": "Zero-based column (0 is the left column)."
+          }
+         },
+         "required": [
+          "page",
+          "row",
+          "column"
+         ],
+         "additionalProperties": false,
+         "description": "Copy the button at this cell, with new ids (a device key placed twice never shares ids)."
+        }
+       },
+       "required": [
+        "kind",
+        "from"
+       ],
+       "additionalProperties": false
+      }
+     ]
+    },
+    "workspace": {
+     "type": "string",
+     "minLength": 1,
+     "maxLength": 80,
+     "description": "Which congregation this call is for. This connection serves 'crc' (CRC) only."
+    }
+   },
+   "required": [
+    "expectedVersion",
+    "page",
+    "row",
+    "column",
+    "button",
     "workspace"
    ]
   },
@@ -3956,6 +4977,57 @@
   }
  },
  {
+  "name": "remove_button",
+  "description": "Remove a key from the deck.",
+  "inputSchema": {
+   "type": "object",
+   "$schema": "https://json-schema.org/draft/2020-12/schema",
+   "properties": {
+    "expectedVersion": {
+     "type": "integer",
+     "minimum": 1,
+     "maximum": 9007199254740991,
+     "description": "The deck version you last read (get_deck). A change made elsewhere since is refused, not overwritten."
+    },
+    "page": {
+     "type": "integer",
+     "minimum": 1,
+     "maximum": 99,
+     "description": "A deck page number (1-99), as get_deck lists them."
+    },
+    "row": {
+     "type": "integer",
+     "minimum": 0,
+     "maximum": 7,
+     "description": "Zero-based row (0 is the top row)."
+    },
+    "column": {
+     "type": "integer",
+     "minimum": 0,
+     "maximum": 15,
+     "description": "Zero-based column (0 is the left column)."
+    },
+    "workspace": {
+     "type": "string",
+     "minLength": 1,
+     "maxLength": 80,
+     "description": "Which congregation this call is for. This connection serves 'crc' (CRC) only."
+    }
+   },
+   "required": [
+    "expectedVersion",
+    "page",
+    "row",
+    "column",
+    "workspace"
+   ]
+  },
+  "annotations": {
+   "readOnlyHint": false,
+   "destructiveHint": true
+  }
+ },
+ {
   "name": "remove_entry",
   "description": "Remove a row's graphics from a prepared service. A row that also records a coverage decision keeps its place and that decision.",
   "inputSchema": {
@@ -4001,6 +5073,49 @@
   "annotations": {
    "readOnlyHint": false,
    "destructiveHint": true
+  }
+ },
+ {
+  "name": "rename_page",
+  "description": "Rename a deck page, with the Prev/Next and hub keys that name it.",
+  "inputSchema": {
+   "type": "object",
+   "$schema": "https://json-schema.org/draft/2020-12/schema",
+   "properties": {
+    "expectedVersion": {
+     "type": "integer",
+     "minimum": 1,
+     "maximum": 9007199254740991,
+     "description": "The deck version you last read (get_deck). A change made elsewhere since is refused, not overwritten."
+    },
+    "page": {
+     "type": "integer",
+     "minimum": 1,
+     "maximum": 99,
+     "description": "A deck page number (1-99), as get_deck lists them."
+    },
+    "name": {
+     "type": "string",
+     "minLength": 1,
+     "maxLength": 40
+    },
+    "workspace": {
+     "type": "string",
+     "minLength": 1,
+     "maxLength": 80,
+     "description": "Which congregation this call is for. This connection serves 'crc' (CRC) only."
+    }
+   },
+   "required": [
+    "expectedVersion",
+    "page",
+    "name",
+    "workspace"
+   ]
+  },
+  "annotations": {
+   "readOnlyHint": false,
+   "idempotentHint": true
   }
  },
  {
@@ -5382,6 +6497,106 @@
   }
  },
  {
+  "name": "sync_deck_with_catalog",
+  "description": "Keep the CRC deck in step with the catalog after publishing, revising or retiring graphics: places each new cue on its standing page by the deck grammar (a sequence continues down its column, an alternate joins its slot's column), relabels renamed cues, and removes or flags keys bound to retired cues. Cues the grammar cannot place are listed with the reason; pass placements to say where. Dry run by default.",
+  "inputSchema": {
+   "type": "object",
+   "$schema": "https://json-schema.org/draft/2020-12/schema",
+   "properties": {
+    "expectedVersion": {
+     "description": "Required when dryRun is false.",
+     "type": "integer",
+     "minimum": 1,
+     "maximum": 9007199254740991
+    },
+    "dryRun": {
+     "description": "Default true: report what would change and save nothing.",
+     "type": "boolean"
+    },
+    "cueIds": {
+     "description": "Place only these cues. Default: every cue published or changed since the deck was last synced that is not on the deck.",
+     "minItems": 1,
+     "maxItems": 100,
+     "type": "array",
+     "items": {
+      "type": "string",
+      "minLength": 1,
+      "maxLength": 160
+     }
+    },
+    "placements": {
+     "description": "Say where a cue goes when the grammar cannot tell (or to override it).",
+     "minItems": 1,
+     "maxItems": 50,
+     "type": "array",
+     "items": {
+      "type": "object",
+      "properties": {
+       "cueId": {
+        "type": "string",
+        "minLength": 1,
+        "maxLength": 160
+       },
+       "page": {
+        "type": "integer",
+        "minimum": 1,
+        "maximum": 99,
+        "description": "A deck page number (1-99), as get_deck lists them."
+       },
+       "row": {
+        "type": "integer",
+        "minimum": 0,
+        "maximum": 7,
+        "description": "Zero-based row (0 is the top row)."
+       },
+       "column": {
+        "type": "integer",
+        "minimum": 0,
+        "maximum": 15,
+        "description": "Zero-based column (0 is the left column)."
+       },
+       "label": {
+        "type": "string",
+        "minLength": 1,
+        "maxLength": 40,
+        "description": "The key's text. A line break (\\n) splits it; longer labels wrap onto two lines."
+       }
+      },
+      "required": [
+       "cueId",
+       "page"
+      ],
+      "additionalProperties": false
+     }
+    },
+    "retired": {
+     "description": "What to do with keys bound to a retired cue. Default remove.",
+     "type": "string",
+     "enum": [
+      "remove",
+      "flag"
+     ]
+    },
+    "relabelHandWritten": {
+     "description": "Also relabel keys whose label was written by hand when their cue is renamed. Default false: they are flagged.",
+     "type": "boolean"
+    },
+    "workspace": {
+     "type": "string",
+     "minLength": 1,
+     "maxLength": 80,
+     "description": "Which congregation this call is for. This connection serves 'crc' (CRC) only."
+    }
+   },
+   "required": [
+    "workspace"
+   ]
+  },
+  "annotations": {
+   "readOnlyHint": false
+  }
+ },
+ {
   "name": "take_out",
   "description": "Animate one graphic off the live CRC output, only if it is the graphic on screen now; anything else is left alone and nothing is sent. The scan card and the resting logo are untouched.",
   "inputSchema": {
@@ -6573,6 +7788,25 @@
   },
   "annotations": {
    "readOnlyHint": false
+  }
+ },
+ {
+  "name": "validate_deck",
+  "description": "Check the whole CRC deck: page templates and chains, cue bindings against the published catalog (retired or unpublished cues fail), connection labels exactly as the booth must have them, the module's actions and feedbacks, and reachability. Findings name the page, row and column.",
+  "inputSchema": {
+   "type": "object",
+   "$schema": "https://json-schema.org/draft/2020-12/schema",
+   "properties": {
+    "workspace": {
+     "type": "string",
+     "minLength": 1,
+     "maxLength": 80,
+     "description": "Which congregation this call is for. This connection serves 'crc' (CRC) only."
+    }
+   }
+  },
+  "annotations": {
+   "readOnlyHint": true
   }
  }
 ]

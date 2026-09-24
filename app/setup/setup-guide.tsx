@@ -288,6 +288,14 @@ export default function SetupGuide({workspace, embedded}: {workspace: PublicWork
             </div>
           </details>}
 
+          <details className={styles.recreate}>
+            <summary>Download {workspace.shortName}’s whole Stream Deck</summary>
+            <p>The full Companion export of the stored deck, for a big import from Companion’s <strong>Import / Export</strong> page. It is checked when you click, and only a signed-in member who runs the booth can download it. During import, map each connection to the booth connection with exactly the same label.</p>
+            <div className={styles.downloads}>
+              <a href="/api/companion/deck?download=full">Full deck export<small>One .companionconfig file with every page.</small></a>
+            </div>
+          </details>
+
           {companionMode === 'manual'
             ? <label className={styles.confirm}>
                 <input type="checkbox" checked={steps[COMPANION_STEP] === true} onChange={event => setManualStep(COMPANION_STEP, event.target.checked)}/>

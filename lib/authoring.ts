@@ -31,6 +31,7 @@ import {MemoryLocalSourceRepository,PgLocalSourceRepository,currentWorkspaceId,i
 // T4 - kept here rather than imported, so lib/review-board.ts loads only when a board is used.
 const REVIEW_BOARD_OPERATIONS=new Set(['create_review_board','get_review_board','update_review_board']);
 import {isHygieneTool} from './catalog-hygiene-schemas';
+import {isDeckTool} from './companion-deck/tool-schemas';
 
 export type BrowserMeasurement={viewportWidth:number;viewportHeight:number;fontsReady:true;overflow:false;rendererVersion:string;measuredAt:number};
 /**
@@ -1126,6 +1127,8 @@ export const SOURCE_REVIEW_OPERATIONS:Readonly<Record<string,'scan'|'list'|'get'
 export async function authoringOperation(operation:string,input:unknown,actor:string){
  const review=Object.hasOwn(SOURCE_REVIEW_OPERATIONS,operation)?SOURCE_REVIEW_OPERATIONS[operation]:undefined;
  if(review){const {sourceReviewOperation}=await import('./source-review');return sourceReviewOperation(review,input,actor)}
+ // C3 - the Companion deck tools (lib/companion-deck/tools.ts): their own store, reached by dynamic import like source review.
+ if(isDeckTool(operation)){const {deckToolOperation,DeckToolError}=await import('./companion-deck/tools');try{return await deckToolOperation(operation,input,actor)}catch(error){if(error instanceof DeckToolError)throw new AuthoringError(error.code,error.message,error.status);throw error}}
  const result=await defaults().operation(operation,input,actor);
  if(['publish_draft','save_slots','rollback_draft','import_cue','retire_cue','restore_cue'].includes(operation)||(operation==='ship_draft'&&(result as {shipped?:unknown}).shipped===true)||((operation==='batch_ship'||operation==='supersede_cue')&&(result as {liveCatalogChanged?:unknown}).liveCatalogChanged===true)){
   const {relayConfigured}=await import('./relay');
