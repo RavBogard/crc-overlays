@@ -4,12 +4,15 @@ import fs from 'node:fs'
 import os from 'node:os'
 import path from 'node:path'
 import {
-  DEFAULTS, buildPreset, chainNeighbours, companionLabel, loadExportSafe, parseCell, remapLocation, stableId, wrapLabel, writePreset,
+  DEFAULTS, SOURCE_EXPORT, buildPreset, chainNeighbours, companionLabel, parseCell, remapLocation, stableId, wrapLabel, writePreset,
 } from '../scripts/build-companion-preset.mjs'
 import { audit, droppedInCoverage, moduleDefinitions, normalise } from '../scripts/audit-companion-preset.mjs'
 
 const root = path.resolve(import.meta.dirname, '..')
-const haveExport = fs.existsSync(DEFAULTS.export)
+// The audit compares the preset with Michael's raw export (gitignored; read through loadExportSafe, which
+// drops every connection config and secret). COMPANION_SOURCE_EXPORT points at it from another checkout.
+const sourceExport = process.env.COMPANION_SOURCE_EXPORT || SOURCE_EXPORT
+const haveExport = fs.existsSync(sourceExport)
 
 test('stableId is deterministic, 21 characters, Companion alphabet', () => {
   assert.equal(stableId('a'), stableId('a'))
@@ -65,12 +68,12 @@ test('generator output passes the preset audit and is byte-deterministic', async
   const dir = fs.mkdtempSync(path.join(os.tmpdir(), 'companion-preset-'))
   const manifest = JSON.parse(fs.readFileSync(DEFAULTS.manifest, 'utf8'))
   const a = path.join(dir, 'a.companionconfig'), b = path.join(dir, 'b.companionconfig')
-  const { preset } = buildPreset(loadExportSafe(DEFAULTS.export), manifest)
+  const { preset } = buildPreset(manifest)
   writePreset(a, preset)
-  writePreset(b, buildPreset(loadExportSafe(DEFAULTS.export), manifest).preset)
+  writePreset(b, buildPreset(manifest).preset)
   assert.ok(fs.readFileSync(a).equals(fs.readFileSync(b)), 'two runs differ')
   for (const inst of Object.values(preset.instances)) assert.ok(!('config' in inst) && !('secrets' in inst))
-  const { failures, summary } = await audit({ preset: a })
+  const { failures, summary } = await audit({ preset: a, export: sourceExport })
   assert.deepEqual(failures, [])
   assert.equal(summary.cueIdsBound, 235)
   assert.equal(summary.cueIdsBound, manifest.counts.uniqueCuesBound)
@@ -90,7 +93,7 @@ test('generator output passes the preset audit and is byte-deterministic', async
   const snapshot = JSON.parse(fs.readFileSync(path.join(path.dirname(DEFAULTS.manifest), 'catalog-snapshot-2026-09-23.json'), 'utf8'))
   const noCorner = path.join(dir, 'snapshot-no-corner.json')
   fs.writeFileSync(noCorner, JSON.stringify({ ...snapshot, drafts: snapshot.drafts.filter((d) => d.id !== CORNER[0]) }))
-  assert.match((await audit({ preset: a, snapshot: noCorner })).failures.join('\n'), new RegExp(`cue ${CORNER[0]} is not in the catalog snapshot`))
+  assert.match((await audit({ preset: a, snapshot: noCorner, export: sourceExport })).failures.join('\n'), new RegExp(`cue ${CORNER[0]} is not in the catalog snapshot`))
 
   // The audit catches broken navigation, credentials and a changed Bimah Mute.
   const broken = structuredClone(preset)
@@ -101,7 +104,7 @@ test('generator output passes the preset audit and is byte-deterministic', async
   mute.options.target = { value: '12/on', isExpression: false }
   const c = path.join(dir, 'c.companionconfig')
   writePreset(c, broken)
-  const result = await audit({ preset: c })
+  const result = await audit({ preset: c, export: sourceExport })
   const all = result.failures.join('\n')
   assert.match(all, /page 5 Next/)
   assert.match(all, /password\/passwd\/secret\/token/)
