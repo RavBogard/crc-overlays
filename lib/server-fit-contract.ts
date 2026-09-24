@@ -34,7 +34,13 @@ export type StageMeasurement={fitErrors:string[];warnings:string[];fill:number|n
 /** Retaining the stage DOM is opt-in and only lasts until the caller captures its frame.
  * `artworkUrl` is the signed `/api/assets/<id>/signed?...` link for the cue's own asset; the
  * stage ignores one that names any other asset. */
-export type StageMeasureOptions={retainRenderedCue?:boolean;artworkUrl?:string};
+export type StageMeasureOptions={retainRenderedCue?:boolean;artworkUrl?:string;layouts?:StageLayouts};
+/**
+ * L3 - the data-layout definitions a cue pins (lib/layout-registry.ts ResolvedLayouts, spelled out
+ * here so this module still imports nothing). The stage holds no registry of the workspace's own
+ * layouts, so a card in one is drawn and measured from exactly the definition handed in.
+ */
+export type StageLayouts=Record<string,{id:string;version:number;sha256:string;document:{label:string;capabilities:{sets:boolean;translation:boolean;oneBlockPerSlide:boolean};card:unknown;motion:unknown}}>;
 /** An ephemeral, server-rendered preview. It is never written to a draft, preview, or revision. */
 export type ServerFitPreviewImage={mimeType:'image/jpeg'|'image/png';dataBase64:string;width:number;height:number};
 export type ServerFitPreviewImageUnavailable='screenshot_failed'|'screenshot_deadline'|'image_too_large';

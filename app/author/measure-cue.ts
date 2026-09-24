@@ -1,6 +1,7 @@
 import { Player, type Cue } from "@/lib/player";
 import { stageArtworkUrl } from "@/lib/overlay-assets";
 import type { OverlayBranding } from "@/lib/branding";
+import type { ResolvedLayouts } from "@/lib/layout-registry";
 import type { ServerFitArtwork, StageMeasurement } from "@/lib/server-fit-contract";
 import { findFitErrors, findFitWarnings, panelFillRatio, waitForPreviewAssets } from "./preview";
 
@@ -23,13 +24,14 @@ export function artworkState(root: HTMLElement, cue: Cue, expectedUrl = stageArt
 }
 
 export type PreparedCueMeasurement={measurement:StageMeasurement;dispose:()=>void};
-export type CueMeasureOptions={artworkUrl?:string};
+// `layouts` (L3): the data-layout definitions the cue pins; the stage draws and measures its card from them.
+export type CueMeasureOptions={artworkUrl?:string;layouts?:ResolvedLayouts};
 
 /** Render and fit a cue once. The caller owns disposal, which lets the inert fit stage retain
  * this exact DOM only long enough for the same Chromium page to take an opt-in screenshot. */
 export async function prepareCueMeasurement(root: HTMLElement, cue: Cue, branding: OverlayBranding, options: CueMeasureOptions = {}): Promise<PreparedCueMeasurement> {
   const artworkUrl = stageArtworkUrl(cue, options.artworkUrl);
-  const player = new Player(root, [cue], branding, { resolveAssetUrl: (next) => stageArtworkUrl(next, next.id === cue.id ? options.artworkUrl : undefined) });
+  const player = new Player(root, [cue], branding, { resolveAssetUrl: (next) => stageArtworkUrl(next, next.id === cue.id ? options.artworkUrl : undefined), ...(options.layouts ? { layouts: options.layouts } : {}) });
   let disposed=false;
   const dispose=()=>{if(!disposed){disposed=true;player.dispose();}};
   try {
@@ -37,7 +39,7 @@ export async function prepareCueMeasurement(root: HTMLElement, cue: Cue, brandin
     await waitForPreviewAssets(root);
     const box = root.firstElementChild;
     if (box instanceof HTMLElement) player.applyFit(box, cue);
-    return {measurement:{ fitErrors: findFitErrors(root), warnings: findFitWarnings(root), fill: panelFillRatio(root), artwork: artworkState(root, cue, artworkUrl) },dispose};
+    return {measurement:{ fitErrors: findFitErrors(root, options.layouts), warnings: findFitWarnings(root, options.layouts), fill: panelFillRatio(root, options.layouts), artwork: artworkState(root, cue, artworkUrl) },dispose};
   } catch {
     return {measurement:{ fitErrors: ["Fonts or artwork did not load in time."], warnings: [], fill: null, artwork: artworkState(root, cue, artworkUrl) },dispose};
   }

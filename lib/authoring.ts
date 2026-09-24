@@ -32,6 +32,10 @@ import {MemoryLocalSourceRepository,PgLocalSourceRepository,currentWorkspaceId,i
 const REVIEW_BOARD_OPERATIONS=new Set(['create_review_board','get_review_board','update_review_board']);
 import {isHygieneTool} from './catalog-hygiene-schemas';
 import {isDeckTool} from './companion-deck/tool-schemas';
+// L3 - layouts as data: the layout tools, and the pinned definitions every server fit is handed.
+import {LayoutDefinitionError,ensurePublishedLayoutsRegistered,layoutDefinitionsRepository,resolvedLayoutsFor,type LayoutDefinitionsRepository} from './layout-definitions';
+import {isLayoutTool,layoutToolOperation} from './layout-tools';
+import type {ResolvedLayouts} from './layout-registry';
 
 export type BrowserMeasurement={viewportWidth:number;viewportHeight:number;fontsReady:true;overflow:false;rendererVersion:string;measuredAt:number};
 /**
@@ -310,21 +314,23 @@ export type SharedAssetImporter=(id:string,actor:string)=>Promise<unknown>;
  */
 // `artworkUrl` (R-B1) is a signed, minutes-long read link for the cue's one asset, so the stage's
 // browser can load artwork it holds no session for (lib/assets.ts signedAssetReadPath).
-export type ServerFitRunner=(cue:AuthoringCue,options?:{includePreviewImage?:boolean;artworkUrl?:string})=>Promise<ServerFitResult>;
+// `layouts` (L3) are the data-layout definitions the cue pins, so the stage draws its card.
+export type ServerFitRunner=(cue:AuthoringCue,options?:{includePreviewImage?:boolean;artworkUrl?:string;layouts?:ResolvedLayouts})=>Promise<ServerFitResult>;
 const defaultServerFitRunner:ServerFitRunner=async(cue,options)=>{
  const [{measureCueOnServer},{canonicalOrigin}]=await Promise.all([import('./server-fit'),import('./oauth-core')]);
  // The origin is the configured public base URL, never the request host: the stage must be
  // the page this deployment serves, and a request host is attacker-controllable.
- return measureCueOnServer(cue as unknown as Cue,{origin:canonicalOrigin(),includePreviewImage:options?.includePreviewImage,...(options?.artworkUrl?{artworkUrl:options.artworkUrl}:{})});
+ return measureCueOnServer(cue as unknown as Cue,{origin:canonicalOrigin(),includePreviewImage:options?.includePreviewImage,...(options?.artworkUrl?{artworkUrl:options.artworkUrl}:{}),...(options?.layouts?{layouts:options.layouts}:{})});
 };
 export type AssetStores={assets?:AssetRepository;uploads?:AssetUploadStore};
-export function createAuthoringService(repo:AuthoringRepository,workspace:AuthoringWorkspace={rehearsal:false,storage:'postgres',label:null},shared:SharedLibraryReader=sharedLibraryClient,sharedAssetImporter:SharedAssetImporter=(id,actor)=>importSharedAsset(id,actor),runServerFit:ServerFitRunner=defaultServerFitRunner,localSources:LocalSourceRepository=new MemoryLocalSourceRepository(),defaultsRepo:AuthoringDefaultsRepository=repo instanceof MemoryAuthoringRepository?new MemoryAuthoringDefaultsRepository():new PgAuthoringDefaultsRepository(),assetStores:AssetStores={}){
+export function createAuthoringService(repo:AuthoringRepository,workspace:AuthoringWorkspace={rehearsal:false,storage:'postgres',label:null},shared:SharedLibraryReader=sharedLibraryClient,sharedAssetImporter:SharedAssetImporter=(id,actor)=>importSharedAsset(id,actor),runServerFit:ServerFitRunner=defaultServerFitRunner,localSources:LocalSourceRepository=new MemoryLocalSourceRepository(),defaultsRepo:AuthoringDefaultsRepository=repo instanceof MemoryAuthoringRepository?new MemoryAuthoringDefaultsRepository():new PgAuthoringDefaultsRepository(),assetStores:AssetStores={},layoutRepo:LayoutDefinitionsRepository=layoutDefinitionsRepository()){
  // T2 - this workspace's own sources, in the corpus shape, ordered as a book prints them. Read only
  // where a call can reach one: a search, a book outline, or content that names a local: id.
  const localUnits=async()=>(await localSources.list()).sort((a,b)=>a.book.localeCompare(b.book)||a.page-b.page||a.name.localeCompare(b.name)).map(localSourceUnit);
  const localsFor=async(value:unknown)=>JSON.stringify(value??null).includes('"local:')?localUnits():[];
  // Every server fit is handed a signed link to the cue's artwork, when it has any.
- const serverFit:ServerFitRunner=(cue,options)=>{const artworkUrl=signedCueArtworkPath(cue);return runServerFit(cue,artworkUrl?{...options,artworkUrl}:options)};
+ // A cue in a data layout also takes the definition it pins (L3); a caller may hand its own (preview_layout).
+ const serverFit:ServerFitRunner=async(cue,options)=>{const artworkUrl=signedCueArtworkPath(cue);const layouts=options?.layouts??(cue.layoutRef?await resolvedLayoutsFor([cue],layoutRepo):undefined);return runServerFit(cue,{...options,...(artworkUrl?{artworkUrl}:{}),...(layouts?{layouts}:{})})};
  // Every name a person can currently see in the library: the baseline catalog this
  // workspace ships with, live drafts, and published graphics. The catalog a viewer
  // actually sees is baseline + published (lib/server.ts authoringCatalog), so uniqueness
@@ -403,6 +409,8 @@ export function createAuthoringService(repo:AuthoringRepository,workspace:Author
   // T4 - review boards (lib/review-board.ts) read this service's drafts and kept fit frames.
   if(REVIEW_BOARD_OPERATIONS.has(operation)){const {reviewBoardOperation}=await import('./review-board');return reviewBoardOperation(operation,data,who,{authoring:repo})}
   // A5 - catalog hygiene (lib/catalog-hygiene.ts): every change it makes is one of the operations below, run through execute.
+  // L3 - the layout tools (lib/layout-tools.ts); rebase_to_layout republishes through ship_draft here.
+  if(isLayoutTool(operation)){try{return await layoutToolOperation(operation,data,who,{repository:layoutRepo,serverFit:(cue,options)=>serverFit(cue,options),run:execute,drafts:()=>repo.listDrafts(),published:()=>repo.published()})}catch(error){if(error instanceof LayoutDefinitionError)throw new AuthoringError(error.code,error.message,error.status);throw error}}
   if(isHygieneTool(operation)){const {hygieneOperation}=await import('./catalog-hygiene');return hygieneOperation(operation,data,who,{repo,run:execute})}
   // The cue log, read-only, for an assistant asked what a service actually did. Same bound and
   // same shape as `GET /api/history`: graphics, liturgical positions and times - no names, no
@@ -1126,12 +1134,14 @@ const defaults=()=>{if(defaultService)return defaultService;const workspace=auth
 export const SOURCE_REVIEW_OPERATIONS:Readonly<Record<string,'scan'|'list'|'get'|'decide'>>={scan_source_changes:'scan',list_source_changes:'list',get_source_change:'get',decide_source_change:'decide'};
 export async function authoringOperation(operation:string,input:unknown,actor:string){
  const review=Object.hasOwn(SOURCE_REVIEW_OPERATIONS,operation)?SOURCE_REVIEW_OPERATIONS[operation]:undefined;
+// L3 - this process knows the workspace's published data layouts before it validates a draft.
+ await ensurePublishedLayoutsRegistered();
  if(review){const {sourceReviewOperation}=await import('./source-review');return sourceReviewOperation(review,input,actor)}
  if(operation==='seed_deck_from_export'||operation==='convert_singular_deck'){const {deckConversionOperation,DeckConversionError}=await import('./companion-deck/convert');try{return await deckConversionOperation(operation,input,actor)}catch(error){if(error instanceof DeckConversionError)throw new AuthoringError(error.code,error.message,error.status);throw error}}
  // C3 - the Companion deck tools (lib/companion-deck/tools.ts): their own store, reached by dynamic import like source review.
  if(isDeckTool(operation)){const {deckToolOperation,DeckToolError}=await import('./companion-deck/tools');try{return await deckToolOperation(operation,input,actor)}catch(error){if(error instanceof DeckToolError)throw new AuthoringError(error.code,error.message,error.status);throw error}}
  const result=await defaults().operation(operation,input,actor);
- if(['publish_draft','save_slots','rollback_draft','import_cue','retire_cue','restore_cue'].includes(operation)||(operation==='ship_draft'&&(result as {shipped?:unknown}).shipped===true)||((operation==='batch_ship'||operation==='supersede_cue')&&(result as {liveCatalogChanged?:unknown}).liveCatalogChanged===true)){
+ if(['publish_draft','save_slots','rollback_draft','import_cue','retire_cue','restore_cue'].includes(operation)||(operation==='ship_draft'&&(result as {shipped?:unknown}).shipped===true)||((operation==='batch_ship'||operation==='supersede_cue'||operation==='rebase_to_layout')&&(result as {liveCatalogChanged?:unknown}).liveCatalogChanged===true)){
   const {relayConfigured}=await import('./relay');
   if(relayConfigured()){
    try{const {syncLiveCatalog}=await import('./sync-live-catalog');await syncLiveCatalog()}

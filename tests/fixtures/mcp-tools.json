@@ -1909,6 +1909,558 @@
   }
  },
  {
+  "name": "create_layout",
+  "description": "Make a new CRC card layout by copying an existing one (from: corner, or a layout of your own at its published version unless fromVersion says otherwise), with any changes given. It is saved as draft version 1: nothing uses it until publish_layout. The lower third and the panels are built-in CSS and cannot be copied. Example: a top-right Response card is from:'corner' with card.frame.anchor:'top-right'.",
+  "inputSchema": {
+   "type": "object",
+   "$schema": "https://json-schema.org/draft/2020-12/schema",
+   "properties": {
+    "layoutId": {
+     "type": "string",
+     "pattern": "^[a-z][a-z0-9_-]{0,39}$",
+     "description": "The new layout's id: a-z, 0-9, _ and -, starting with a letter, up to 40 characters. Companion carries it in variable names."
+    },
+    "from": {
+     "type": "string",
+     "pattern": "^[a-z][a-z0-9_-]{0,39}$",
+     "description": "The layout to copy: corner, or one of this congregation's own."
+    },
+    "fromVersion": {
+     "type": "integer",
+     "minimum": 1,
+     "maximum": 9007199254740991
+    },
+    "label": {
+     "type": "string",
+     "minLength": 1,
+     "maxLength": 60,
+     "description": "The operator's name for the layout, for example \"Response card\"."
+    },
+    "capabilities": {
+     "type": "object",
+     "properties": {
+      "sets": {
+       "type": "boolean"
+      },
+      "oneBlockPerSlide": {
+       "type": "boolean"
+      },
+      "translation": {
+       "type": "boolean",
+       "const": false
+      }
+     },
+     "additionalProperties": false,
+     "description": "sets: a long reading may become a set in this layout; oneBlockPerSlide: each slide takes one source block. A card never shows a translated third line."
+    },
+    "card": {
+     "type": "object",
+     "properties": {
+      "frame": {
+       "type": "object",
+       "properties": {
+        "anchor": {
+         "type": "string",
+         "enum": [
+          "top-left",
+          "top-right",
+          "bottom-left",
+          "bottom-right"
+         ]
+        },
+        "insetX": {
+         "type": "integer",
+         "minimum": 0,
+         "maximum": 1920
+        },
+        "insetY": {
+         "type": "integer",
+         "minimum": 0,
+         "maximum": 1080
+        },
+        "width": {
+         "type": "integer",
+         "minimum": 40,
+         "maximum": 1920
+        },
+        "height": {
+         "type": "integer",
+         "minimum": 40,
+         "maximum": 1080
+        }
+       },
+       "additionalProperties": false
+      },
+      "surface": {
+       "type": "object",
+       "properties": {
+        "radius": {
+         "type": "integer",
+         "minimum": 0,
+         "maximum": 200
+        },
+        "stripHeight": {
+         "type": "integer",
+         "minimum": 0,
+         "maximum": 1080
+        },
+        "ruleHeight": {
+         "type": "integer",
+         "minimum": 0,
+         "maximum": 1080
+        }
+       },
+       "additionalProperties": false
+      },
+      "logo": {
+       "type": "object",
+       "properties": {
+        "x": {
+         "type": "integer",
+         "minimum": 0,
+         "maximum": 1920
+        },
+        "y": {
+         "type": "integer",
+         "minimum": 0,
+         "maximum": 1080
+        },
+        "size": {
+         "type": "integer",
+         "minimum": 0,
+         "maximum": 1080
+        }
+       },
+       "additionalProperties": false
+      },
+      "title": {
+       "type": "object",
+       "properties": {
+        "x": {
+         "type": "integer",
+         "minimum": 0,
+         "maximum": 1920
+        },
+        "y": {
+         "type": "integer",
+         "minimum": 0,
+         "maximum": 1080
+        },
+        "width": {
+         "type": "integer",
+         "minimum": 1,
+         "maximum": 1920
+        },
+        "height": {
+         "type": "integer",
+         "minimum": 1,
+         "maximum": 1080
+        },
+        "fontSize": {
+         "type": "integer",
+         "minimum": 20,
+         "maximum": 120
+        },
+        "lineHeight": {
+         "type": "number",
+         "minimum": 0.8,
+         "maximum": 2.5
+        },
+        "accentWidth": {
+         "type": "integer",
+         "minimum": 0,
+         "maximum": 1920
+        },
+        "accentGap": {
+         "type": "integer",
+         "minimum": 0,
+         "maximum": 1920
+        }
+       },
+       "additionalProperties": false
+      },
+      "body": {
+       "type": "object",
+       "properties": {
+        "x": {
+         "type": "integer",
+         "minimum": 0,
+         "maximum": 1920
+        },
+        "width": {
+         "type": "integer",
+         "minimum": 1,
+         "maximum": 1920
+        },
+        "hebrew": {
+         "type": "object",
+         "properties": {
+          "y": {
+           "type": "integer",
+           "minimum": 0,
+           "maximum": 1080
+          },
+          "height": {
+           "type": "integer",
+           "minimum": 1,
+           "maximum": 1080
+          },
+          "fontSize": {
+           "type": "integer",
+           "minimum": 20,
+           "maximum": 120
+          },
+          "lineHeight": {
+           "type": "number",
+           "minimum": 0.8,
+           "maximum": 2.5
+          },
+          "align": {
+           "type": "string",
+           "enum": [
+            "start",
+            "end",
+            "natural"
+           ],
+           "description": "start/end follow the channel's own direction; natural aligns each line to its own script's start."
+          },
+          "direction": {
+           "type": "string",
+           "enum": [
+            "ltr",
+            "rtl"
+           ]
+          }
+         },
+         "additionalProperties": false
+        },
+        "latin": {
+         "type": "object",
+         "properties": {
+          "y": {
+           "type": "integer",
+           "minimum": 0,
+           "maximum": 1080
+          },
+          "height": {
+           "type": "integer",
+           "minimum": 1,
+           "maximum": 1080
+          },
+          "fontSize": {
+           "type": "integer",
+           "minimum": 20,
+           "maximum": 120
+          },
+          "lineHeight": {
+           "type": "number",
+           "minimum": 0.8,
+           "maximum": 2.5
+          },
+          "align": {
+           "type": "string",
+           "enum": [
+            "start",
+            "end",
+            "natural"
+           ],
+           "description": "start/end follow the channel's own direction; natural aligns each line to its own script's start."
+          },
+          "direction": {
+           "type": "string",
+           "enum": [
+            "ltr",
+            "rtl"
+           ]
+          }
+         },
+         "additionalProperties": false
+        },
+        "single": {
+         "type": "object",
+         "properties": {
+          "y": {
+           "type": "integer",
+           "minimum": 0,
+           "maximum": 1080
+          },
+          "height": {
+           "type": "integer",
+           "minimum": 1,
+           "maximum": 1080
+          },
+          "fontSize": {
+           "type": "integer",
+           "minimum": 20,
+           "maximum": 120
+          },
+          "lineHeight": {
+           "type": "number",
+           "minimum": 0.8,
+           "maximum": 2.5
+          },
+          "align": {
+           "type": "string",
+           "enum": [
+            "start",
+            "end",
+            "natural"
+           ],
+           "description": "start/end follow the channel's own direction; natural aligns each line to its own script's start."
+          }
+         },
+         "additionalProperties": false
+        }
+       },
+       "additionalProperties": false
+      },
+      "fit": {
+       "type": "object",
+       "properties": {
+        "strategy": {
+         "type": "string",
+         "const": "shrink-to-floor"
+        },
+        "floor": {
+         "type": "integer",
+         "minimum": 20,
+         "maximum": 120
+        },
+        "maxSteps": {
+         "type": "integer",
+         "minimum": 0,
+         "maximum": 120
+        },
+        "glyphTolerance": {
+         "type": "integer",
+         "minimum": 0,
+         "maximum": 40
+        },
+        "fill": {
+         "anyOf": [
+          {
+           "type": "object",
+           "properties": {
+            "denominator": {
+             "type": "integer",
+             "minimum": 1,
+             "maximum": 1080
+            },
+            "sparseBelow": {
+             "type": "number",
+             "minimum": 0,
+             "maximum": 1
+            }
+           },
+           "required": [
+            "denominator",
+            "sparseBelow"
+           ],
+           "additionalProperties": false
+          },
+          {
+           "type": "null"
+          }
+         ]
+        },
+        "heightCeiling": {
+         "anyOf": [
+          {
+           "type": "integer",
+           "minimum": 1,
+           "maximum": 1080
+          },
+          {
+           "type": "null"
+          }
+         ]
+        }
+       },
+       "additionalProperties": false
+      }
+     },
+     "additionalProperties": false,
+     "description": "Card geometry in card-local px (x from the card's left edge, y from its top); frame.anchor pins the card to a corner of the 1920x1080 frame, insetX/insetY from those edges. Only the fields you give change."
+    },
+    "motion": {
+     "anyOf": [
+      {
+       "type": "object",
+       "properties": {
+        "preset": {
+         "type": "string",
+         "enum": [
+          "card-scale",
+          "fade"
+         ]
+        }
+       },
+       "required": [
+        "preset"
+       ],
+       "additionalProperties": false
+      },
+      {
+       "type": "object",
+       "properties": {
+        "tracks": {
+         "minItems": 1,
+         "maxItems": 64,
+         "type": "array",
+         "items": {
+          "type": "object",
+          "properties": {
+           "element": {
+            "type": "string",
+            "enum": [
+             "baseMain",
+             "baseTitle",
+             "baseTitleGrad",
+             "accentLineBottom",
+             "textTitle",
+             "accentTextTitle",
+             "textMain",
+             "textMainheb",
+             "textMainEng",
+             "Image",
+             "logoGroup",
+             "titleGroup",
+             "HebText",
+             "EngText"
+            ]
+           },
+           "direction": {
+            "type": "string",
+            "enum": [
+             "In",
+             "Out"
+            ]
+           },
+           "effect": {
+            "type": "object",
+            "properties": {
+             "effect": {
+              "type": "string",
+              "enum": [
+               "fade",
+               "scale",
+               "translate",
+               "none"
+              ]
+             },
+             "property": {
+              "type": "string",
+              "enum": [
+               "none",
+               "x",
+               "y",
+               "xAndY",
+               "up",
+               "down",
+               "left",
+               "right"
+              ]
+             },
+             "easing": {
+              "type": "object",
+              "properties": {
+               "easing": {
+                "type": "string",
+                "enum": [
+                 "power1",
+                 "power2",
+                 "power3",
+                 "power4"
+                ]
+               },
+               "inOut": {
+                "type": "string",
+                "enum": [
+                 "in",
+                 "out",
+                 "inOut"
+                ]
+               }
+              },
+              "additionalProperties": false
+             }
+            },
+            "additionalProperties": false
+           },
+           "keyframes": {
+            "type": "array",
+            "prefixItems": [
+             {
+              "type": "number",
+              "minimum": 0,
+              "maximum": 5
+             },
+             {
+              "type": "number",
+              "minimum": 0,
+              "maximum": 5
+             }
+            ],
+            "items": false,
+            "minItems": 2,
+            "maxItems": 2
+           }
+          },
+          "required": [
+           "element",
+           "direction"
+          ],
+          "additionalProperties": false
+         }
+        },
+        "duration": {
+         "type": "object",
+         "properties": {
+          "In": {
+           "type": "number",
+           "minimum": 0.05,
+           "maximum": 5
+          },
+          "Out": {
+           "type": "number",
+           "minimum": 0.05,
+           "maximum": 5
+          }
+         },
+         "required": [
+          "In",
+          "Out"
+         ],
+         "additionalProperties": false
+        }
+       },
+       "required": [
+        "tracks",
+        "duration"
+       ],
+       "additionalProperties": false
+      }
+     ],
+     "description": "card-scale: the bars scale in from the anchored edge and the text fades (the corner card's); fade: every part fades. Or explicit tracks. Replaces the motion as a whole."
+    },
+    "workspace": {
+     "type": "string",
+     "minLength": 1,
+     "maxLength": 80,
+     "description": "Which congregation this call is for. This connection serves 'crc' (CRC) only."
+    }
+   },
+   "required": [
+    "layoutId",
+    "from",
+    "workspace"
+   ]
+  },
+  "annotations": {
+   "readOnlyHint": false
+  }
+ },
+ {
   "name": "create_local_variant",
   "description": "Create an unpublished local liturgical variant while retaining exact source text and pins.",
   "inputSchema": {
@@ -2932,6 +3484,38 @@
   }
  },
  {
+  "name": "get_layout",
+  "description": "Read one layout in full: a data layout's card definition (geometry, fit, motion) at its newest version or the version named, every version with its status, how many published graphics pin each version (pinnedGraphics), and the static check. A built-in layout is shown read only, with its card when it has one (corner). Read only.",
+  "inputSchema": {
+   "type": "object",
+   "$schema": "https://json-schema.org/draft/2020-12/schema",
+   "properties": {
+    "layoutId": {
+     "type": "string",
+     "pattern": "^[a-z][a-z0-9_-]{0,39}$",
+     "description": "A layout id from list_layouts (built-in: bottom, left, right, corner)."
+    },
+    "version": {
+     "type": "integer",
+     "minimum": 1,
+     "maximum": 9007199254740991
+    },
+    "workspace": {
+     "type": "string",
+     "minLength": 1,
+     "maxLength": 80,
+     "description": "Which congregation this call is for. This connection serves 'crc' (CRC) only."
+    }
+   },
+   "required": [
+    "layoutId"
+   ]
+  },
+  "annotations": {
+   "readOnlyHint": true
+  }
+ },
+ {
   "name": "get_live_state",
   "description": "Read the live CRC output: the requested graphic and revision, whether a graphics browser has confirmed rendering it, the scan card, the resting-logo preference, when each kind of controller last pressed (Companion deck, console, agent) and whether the deck guard is holding agents back. Changes nothing.",
   "inputSchema": {
@@ -3398,6 +3982,25 @@
     "includeArchived": {
      "type": "boolean"
     },
+    "workspace": {
+     "type": "string",
+     "minLength": 1,
+     "maxLength": 80,
+     "description": "Which congregation this call is for. This connection serves 'crc' (CRC) only."
+    }
+   }
+  },
+  "annotations": {
+   "readOnlyHint": true
+  }
+ },
+ {
+  "name": "list_layouts",
+  "description": "Every layout CRC can use: the four built in (bottom lower third, left and right panels, corner card) and this congregation's own card layouts, with each one's newest version, whether it is a draft or published, and publishedVersion. Only a layout with a published version is accepted by create_draft. Read only; get_layout has the full definition.",
+  "inputSchema": {
+   "type": "object",
+   "$schema": "https://json-schema.org/draft/2020-12/schema",
+   "properties": {
     "workspace": {
      "type": "string",
      "minLength": 1,
@@ -4868,6 +5471,97 @@
   }
  },
  {
+  "name": "preview_layout",
+  "description": "See a layout, draft or published, with text in it: sample texts and/or up to six drafts by id (drawn in this layout, whatever layout they are in), each fitted in a browser on the server and returned as a frame, in order, with its verdict. With neither, the three standard samples publish_layout checks. Saves nothing and publishes nothing; nothing reaches the output.",
+  "inputSchema": {
+   "type": "object",
+   "$schema": "https://json-schema.org/draft/2020-12/schema",
+   "properties": {
+    "layoutId": {
+     "type": "string",
+     "pattern": "^[a-z][a-z0-9_-]{0,39}$",
+     "description": "A layout id from list_layouts (built-in: bottom, left, right, corner)."
+    },
+    "version": {
+     "type": "integer",
+     "minimum": 1,
+     "maximum": 9007199254740991
+    },
+    "samples": {
+     "minItems": 1,
+     "maxItems": 6,
+     "type": "array",
+     "items": {
+      "type": "object",
+      "properties": {
+       "label": {
+        "type": "string",
+        "minLength": 1,
+        "maxLength": 80
+       },
+       "title": {
+        "type": "string",
+        "minLength": 1,
+        "maxLength": 100
+       },
+       "accentTitle": {
+        "type": "string",
+        "minLength": 1,
+        "maxLength": 60
+       },
+       "hebrew": {
+        "type": "string",
+        "minLength": 1,
+        "maxLength": 400
+       },
+       "transliteration": {
+        "type": "string",
+        "minLength": 1,
+        "maxLength": 400
+       },
+       "english": {
+        "type": "string",
+        "minLength": 1,
+        "maxLength": 400
+       }
+      },
+      "required": [
+       "title"
+      ],
+      "additionalProperties": false,
+      "description": "Sample text: a title, and Hebrew with or without transliteration, or one English line."
+     }
+    },
+    "draftIds": {
+     "minItems": 1,
+     "maxItems": 6,
+     "type": "array",
+     "items": {
+      "type": "string",
+      "minLength": 1,
+      "maxLength": 200
+     }
+    },
+    "includePreviewImages": {
+     "description": "false skips the frames and returns only the verdicts.",
+     "type": "boolean"
+    },
+    "workspace": {
+     "type": "string",
+     "minLength": 1,
+     "maxLength": 80,
+     "description": "Which congregation this call is for. This connection serves 'crc' (CRC) only."
+    }
+   },
+   "required": [
+    "layoutId"
+   ]
+  },
+  "annotations": {
+   "readOnlyHint": true
+  }
+ },
+ {
   "name": "preview_shared_cue",
   "description": "Show one shared-library graphic exactly as its congregation publishes it, with the cueHash customize_shared_cue needs. Copies its artwork into this workspace's asset library if it has any; creates no draft.",
   "inputSchema": {
@@ -4992,6 +5686,132 @@
     "draftId",
     "expectedVersion",
     "previewId",
+    "workspace"
+   ]
+  },
+  "annotations": {
+   "readOnlyHint": false
+  }
+ },
+ {
+  "name": "publish_layout",
+  "description": "Publish a data layout's draft version (expectedVersion) so CRC graphics can use it: create_draft with layout set to its id, then ship_draft. It first runs the static check and fits the standard samples (plus up to three of your own) on the server, and publishes only if every one passes; otherwise it stops with the reasons and publishes nothing. A published version never changes. Graphics already published in an older version keep it until rebase_to_layout.",
+  "inputSchema": {
+   "type": "object",
+   "$schema": "https://json-schema.org/draft/2020-12/schema",
+   "properties": {
+    "layoutId": {
+     "type": "string",
+     "pattern": "^[a-z][a-z0-9_-]{0,39}$",
+     "description": "A layout id from list_layouts (built-in: bottom, left, right, corner)."
+    },
+    "expectedVersion": {
+     "type": "integer",
+     "minimum": 1,
+     "maximum": 9007199254740991
+    },
+    "samples": {
+     "minItems": 1,
+     "maxItems": 3,
+     "type": "array",
+     "items": {
+      "type": "object",
+      "properties": {
+       "label": {
+        "type": "string",
+        "minLength": 1,
+        "maxLength": 80
+       },
+       "title": {
+        "type": "string",
+        "minLength": 1,
+        "maxLength": 100
+       },
+       "accentTitle": {
+        "type": "string",
+        "minLength": 1,
+        "maxLength": 60
+       },
+       "hebrew": {
+        "type": "string",
+        "minLength": 1,
+        "maxLength": 400
+       },
+       "transliteration": {
+        "type": "string",
+        "minLength": 1,
+        "maxLength": 400
+       },
+       "english": {
+        "type": "string",
+        "minLength": 1,
+        "maxLength": 400
+       }
+      },
+      "required": [
+       "title"
+      ],
+      "additionalProperties": false,
+      "description": "Sample text: a title, and Hebrew with or without transliteration, or one English line."
+     }
+    },
+    "workspace": {
+     "type": "string",
+     "minLength": 1,
+     "maxLength": 80,
+     "description": "Which congregation this call is for. This connection serves 'crc' (CRC) only."
+    }
+   },
+   "required": [
+    "layoutId",
+    "expectedVersion",
+    "workspace"
+   ]
+  },
+  "annotations": {
+   "readOnlyHint": false
+  }
+ },
+ {
+  "name": "rebase_to_layout",
+  "description": "Move published graphics that pin an older version of a data layout to its newest published version (expectedVersion), each by ship_draft: server fit, then publish, so each one is checked in the new geometry. A dry run unless dryRun:false; the dry run lists what would move. Graphics with unpublished changes are skipped with the reason, so a rebase changes nothing but the layout. draftIds narrows it. A long run stops starting new graphics near the time limit; call again to continue.",
+  "inputSchema": {
+   "type": "object",
+   "$schema": "https://json-schema.org/draft/2020-12/schema",
+   "properties": {
+    "layoutId": {
+     "type": "string",
+     "pattern": "^[a-z][a-z0-9_-]{0,39}$",
+     "description": "A layout id from list_layouts (built-in: bottom, left, right, corner)."
+    },
+    "expectedVersion": {
+     "type": "integer",
+     "minimum": 1,
+     "maximum": 9007199254740991
+    },
+    "dryRun": {
+     "type": "boolean"
+    },
+    "draftIds": {
+     "minItems": 1,
+     "maxItems": 200,
+     "type": "array",
+     "items": {
+      "type": "string",
+      "minLength": 1,
+      "maxLength": 200
+     }
+    },
+    "workspace": {
+     "type": "string",
+     "minLength": 1,
+     "maxLength": 80,
+     "description": "Which congregation this call is for. This connection serves 'crc' (CRC) only."
+    }
+   },
+   "required": [
+    "layoutId",
+    "expectedVersion",
     "workspace"
    ]
   },
@@ -7596,6 +8416,553 @@
   }
  },
  {
+  "name": "update_layout",
+  "description": "Change a data layout, with the newest version get_layout returned as expectedVersion. Only a draft is ever written: a draft is changed in place, and changing a published version saves your change as a new draft version above it, leaving the published one and every graphic that pins it exactly as they are. card is merged field by field; motion is replaced whole.",
+  "inputSchema": {
+   "type": "object",
+   "$schema": "https://json-schema.org/draft/2020-12/schema",
+   "properties": {
+    "layoutId": {
+     "type": "string",
+     "pattern": "^[a-z][a-z0-9_-]{0,39}$",
+     "description": "A layout id from list_layouts (built-in: bottom, left, right, corner)."
+    },
+    "expectedVersion": {
+     "type": "integer",
+     "minimum": 1,
+     "maximum": 9007199254740991
+    },
+    "label": {
+     "type": "string",
+     "minLength": 1,
+     "maxLength": 60,
+     "description": "The operator's name for the layout, for example \"Response card\"."
+    },
+    "capabilities": {
+     "type": "object",
+     "properties": {
+      "sets": {
+       "type": "boolean"
+      },
+      "oneBlockPerSlide": {
+       "type": "boolean"
+      },
+      "translation": {
+       "type": "boolean",
+       "const": false
+      }
+     },
+     "additionalProperties": false,
+     "description": "sets: a long reading may become a set in this layout; oneBlockPerSlide: each slide takes one source block. A card never shows a translated third line."
+    },
+    "card": {
+     "type": "object",
+     "properties": {
+      "frame": {
+       "type": "object",
+       "properties": {
+        "anchor": {
+         "type": "string",
+         "enum": [
+          "top-left",
+          "top-right",
+          "bottom-left",
+          "bottom-right"
+         ]
+        },
+        "insetX": {
+         "type": "integer",
+         "minimum": 0,
+         "maximum": 1920
+        },
+        "insetY": {
+         "type": "integer",
+         "minimum": 0,
+         "maximum": 1080
+        },
+        "width": {
+         "type": "integer",
+         "minimum": 40,
+         "maximum": 1920
+        },
+        "height": {
+         "type": "integer",
+         "minimum": 40,
+         "maximum": 1080
+        }
+       },
+       "additionalProperties": false
+      },
+      "surface": {
+       "type": "object",
+       "properties": {
+        "radius": {
+         "type": "integer",
+         "minimum": 0,
+         "maximum": 200
+        },
+        "stripHeight": {
+         "type": "integer",
+         "minimum": 0,
+         "maximum": 1080
+        },
+        "ruleHeight": {
+         "type": "integer",
+         "minimum": 0,
+         "maximum": 1080
+        }
+       },
+       "additionalProperties": false
+      },
+      "logo": {
+       "type": "object",
+       "properties": {
+        "x": {
+         "type": "integer",
+         "minimum": 0,
+         "maximum": 1920
+        },
+        "y": {
+         "type": "integer",
+         "minimum": 0,
+         "maximum": 1080
+        },
+        "size": {
+         "type": "integer",
+         "minimum": 0,
+         "maximum": 1080
+        }
+       },
+       "additionalProperties": false
+      },
+      "title": {
+       "type": "object",
+       "properties": {
+        "x": {
+         "type": "integer",
+         "minimum": 0,
+         "maximum": 1920
+        },
+        "y": {
+         "type": "integer",
+         "minimum": 0,
+         "maximum": 1080
+        },
+        "width": {
+         "type": "integer",
+         "minimum": 1,
+         "maximum": 1920
+        },
+        "height": {
+         "type": "integer",
+         "minimum": 1,
+         "maximum": 1080
+        },
+        "fontSize": {
+         "type": "integer",
+         "minimum": 20,
+         "maximum": 120
+        },
+        "lineHeight": {
+         "type": "number",
+         "minimum": 0.8,
+         "maximum": 2.5
+        },
+        "accentWidth": {
+         "type": "integer",
+         "minimum": 0,
+         "maximum": 1920
+        },
+        "accentGap": {
+         "type": "integer",
+         "minimum": 0,
+         "maximum": 1920
+        }
+       },
+       "additionalProperties": false
+      },
+      "body": {
+       "type": "object",
+       "properties": {
+        "x": {
+         "type": "integer",
+         "minimum": 0,
+         "maximum": 1920
+        },
+        "width": {
+         "type": "integer",
+         "minimum": 1,
+         "maximum": 1920
+        },
+        "hebrew": {
+         "type": "object",
+         "properties": {
+          "y": {
+           "type": "integer",
+           "minimum": 0,
+           "maximum": 1080
+          },
+          "height": {
+           "type": "integer",
+           "minimum": 1,
+           "maximum": 1080
+          },
+          "fontSize": {
+           "type": "integer",
+           "minimum": 20,
+           "maximum": 120
+          },
+          "lineHeight": {
+           "type": "number",
+           "minimum": 0.8,
+           "maximum": 2.5
+          },
+          "align": {
+           "type": "string",
+           "enum": [
+            "start",
+            "end",
+            "natural"
+           ],
+           "description": "start/end follow the channel's own direction; natural aligns each line to its own script's start."
+          },
+          "direction": {
+           "type": "string",
+           "enum": [
+            "ltr",
+            "rtl"
+           ]
+          }
+         },
+         "additionalProperties": false
+        },
+        "latin": {
+         "type": "object",
+         "properties": {
+          "y": {
+           "type": "integer",
+           "minimum": 0,
+           "maximum": 1080
+          },
+          "height": {
+           "type": "integer",
+           "minimum": 1,
+           "maximum": 1080
+          },
+          "fontSize": {
+           "type": "integer",
+           "minimum": 20,
+           "maximum": 120
+          },
+          "lineHeight": {
+           "type": "number",
+           "minimum": 0.8,
+           "maximum": 2.5
+          },
+          "align": {
+           "type": "string",
+           "enum": [
+            "start",
+            "end",
+            "natural"
+           ],
+           "description": "start/end follow the channel's own direction; natural aligns each line to its own script's start."
+          },
+          "direction": {
+           "type": "string",
+           "enum": [
+            "ltr",
+            "rtl"
+           ]
+          }
+         },
+         "additionalProperties": false
+        },
+        "single": {
+         "type": "object",
+         "properties": {
+          "y": {
+           "type": "integer",
+           "minimum": 0,
+           "maximum": 1080
+          },
+          "height": {
+           "type": "integer",
+           "minimum": 1,
+           "maximum": 1080
+          },
+          "fontSize": {
+           "type": "integer",
+           "minimum": 20,
+           "maximum": 120
+          },
+          "lineHeight": {
+           "type": "number",
+           "minimum": 0.8,
+           "maximum": 2.5
+          },
+          "align": {
+           "type": "string",
+           "enum": [
+            "start",
+            "end",
+            "natural"
+           ],
+           "description": "start/end follow the channel's own direction; natural aligns each line to its own script's start."
+          }
+         },
+         "additionalProperties": false
+        }
+       },
+       "additionalProperties": false
+      },
+      "fit": {
+       "type": "object",
+       "properties": {
+        "strategy": {
+         "type": "string",
+         "const": "shrink-to-floor"
+        },
+        "floor": {
+         "type": "integer",
+         "minimum": 20,
+         "maximum": 120
+        },
+        "maxSteps": {
+         "type": "integer",
+         "minimum": 0,
+         "maximum": 120
+        },
+        "glyphTolerance": {
+         "type": "integer",
+         "minimum": 0,
+         "maximum": 40
+        },
+        "fill": {
+         "anyOf": [
+          {
+           "type": "object",
+           "properties": {
+            "denominator": {
+             "type": "integer",
+             "minimum": 1,
+             "maximum": 1080
+            },
+            "sparseBelow": {
+             "type": "number",
+             "minimum": 0,
+             "maximum": 1
+            }
+           },
+           "required": [
+            "denominator",
+            "sparseBelow"
+           ],
+           "additionalProperties": false
+          },
+          {
+           "type": "null"
+          }
+         ]
+        },
+        "heightCeiling": {
+         "anyOf": [
+          {
+           "type": "integer",
+           "minimum": 1,
+           "maximum": 1080
+          },
+          {
+           "type": "null"
+          }
+         ]
+        }
+       },
+       "additionalProperties": false
+      }
+     },
+     "additionalProperties": false,
+     "description": "Card geometry in card-local px (x from the card's left edge, y from its top); frame.anchor pins the card to a corner of the 1920x1080 frame, insetX/insetY from those edges. Only the fields you give change."
+    },
+    "motion": {
+     "anyOf": [
+      {
+       "type": "object",
+       "properties": {
+        "preset": {
+         "type": "string",
+         "enum": [
+          "card-scale",
+          "fade"
+         ]
+        }
+       },
+       "required": [
+        "preset"
+       ],
+       "additionalProperties": false
+      },
+      {
+       "type": "object",
+       "properties": {
+        "tracks": {
+         "minItems": 1,
+         "maxItems": 64,
+         "type": "array",
+         "items": {
+          "type": "object",
+          "properties": {
+           "element": {
+            "type": "string",
+            "enum": [
+             "baseMain",
+             "baseTitle",
+             "baseTitleGrad",
+             "accentLineBottom",
+             "textTitle",
+             "accentTextTitle",
+             "textMain",
+             "textMainheb",
+             "textMainEng",
+             "Image",
+             "logoGroup",
+             "titleGroup",
+             "HebText",
+             "EngText"
+            ]
+           },
+           "direction": {
+            "type": "string",
+            "enum": [
+             "In",
+             "Out"
+            ]
+           },
+           "effect": {
+            "type": "object",
+            "properties": {
+             "effect": {
+              "type": "string",
+              "enum": [
+               "fade",
+               "scale",
+               "translate",
+               "none"
+              ]
+             },
+             "property": {
+              "type": "string",
+              "enum": [
+               "none",
+               "x",
+               "y",
+               "xAndY",
+               "up",
+               "down",
+               "left",
+               "right"
+              ]
+             },
+             "easing": {
+              "type": "object",
+              "properties": {
+               "easing": {
+                "type": "string",
+                "enum": [
+                 "power1",
+                 "power2",
+                 "power3",
+                 "power4"
+                ]
+               },
+               "inOut": {
+                "type": "string",
+                "enum": [
+                 "in",
+                 "out",
+                 "inOut"
+                ]
+               }
+              },
+              "additionalProperties": false
+             }
+            },
+            "additionalProperties": false
+           },
+           "keyframes": {
+            "type": "array",
+            "prefixItems": [
+             {
+              "type": "number",
+              "minimum": 0,
+              "maximum": 5
+             },
+             {
+              "type": "number",
+              "minimum": 0,
+              "maximum": 5
+             }
+            ],
+            "items": false,
+            "minItems": 2,
+            "maxItems": 2
+           }
+          },
+          "required": [
+           "element",
+           "direction"
+          ],
+          "additionalProperties": false
+         }
+        },
+        "duration": {
+         "type": "object",
+         "properties": {
+          "In": {
+           "type": "number",
+           "minimum": 0.05,
+           "maximum": 5
+          },
+          "Out": {
+           "type": "number",
+           "minimum": 0.05,
+           "maximum": 5
+          }
+         },
+         "required": [
+          "In",
+          "Out"
+         ],
+         "additionalProperties": false
+        }
+       },
+       "required": [
+        "tracks",
+        "duration"
+       ],
+       "additionalProperties": false
+      }
+     ],
+     "description": "card-scale: the bars scale in from the anchored edge and the text fades (the corner card's); fade: every part fades. Or explicit tracks. Replaces the motion as a whole."
+    },
+    "workspace": {
+     "type": "string",
+     "minLength": 1,
+     "maxLength": 80,
+     "description": "Which congregation this call is for. This connection serves 'crc' (CRC) only."
+    }
+   },
+   "required": [
+    "layoutId",
+    "expectedVersion",
+    "workspace"
+   ]
+  },
+  "annotations": {
+   "readOnlyHint": false
+  }
+ },
+ {
   "name": "update_local_source",
   "description": "Change a local source. expectedVersion is the version list_local_sources returned; fields left out stay as they are, blocks replaces every block, and null clears section, service or licence. A wording change moves the version, and drafts pinned to the earlier wording show as stale until refreshed (scan_source_changes, or update_draft refreshSourceIds).",
   "inputSchema": {
@@ -7919,6 +9286,38 @@
      "description": "Which congregation this call is for. This connection serves 'crc' (CRC) only."
     }
    }
+  },
+  "annotations": {
+   "readOnlyHint": true
+  }
+ },
+ {
+  "name": "validate_layout",
+  "description": "Check a data layout without a browser: the definition parses, the card lies inside the 1920x1080 frame and every part inside the card, no text channel or the logo overlaps another, the shrink floor is at least 20 px and below every font size, the id fits Companion's grammar, and every face the card draws with is a registered overlay font. Returns each check and plain sentences for what fails. Read only.",
+  "inputSchema": {
+   "type": "object",
+   "$schema": "https://json-schema.org/draft/2020-12/schema",
+   "properties": {
+    "layoutId": {
+     "type": "string",
+     "pattern": "^[a-z][a-z0-9_-]{0,39}$",
+     "description": "A layout id from list_layouts (built-in: bottom, left, right, corner)."
+    },
+    "version": {
+     "type": "integer",
+     "minimum": 1,
+     "maximum": 9007199254740991
+    },
+    "workspace": {
+     "type": "string",
+     "minLength": 1,
+     "maxLength": 80,
+     "description": "Which congregation this call is for. This connection serves 'crc' (CRC) only."
+    }
+   },
+   "required": [
+    "layoutId"
+   ]
   },
   "annotations": {
    "readOnlyHint": true
