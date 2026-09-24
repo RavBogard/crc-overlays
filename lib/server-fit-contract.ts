@@ -19,20 +19,22 @@ export const SERVER_RENDERER_PREFIX='server-chromium/';
 
 /**
  * D-R2/A4 - what the server could say about the cue's artwork, which is a label and never a
- * gate. The stage loads artwork through /api/assets/<id>/preview, and that route requires
- * author authorization, which a headless browser on the server does not have. So a server
- * `pass` says nothing about the artwork, and the result says so out loud rather than
- * pretending: `none` (the cue has no `presentation.imageAssetId` and there is nothing to
- * load), `loaded` (the artwork really rendered) or `not-loaded` (it did not, and a human
- * should confirm it in the editor). `findFitErrors` never evaluates artwork, so the verdict
- * is unaffected either way.
+ * gate. A headless browser on the server holds no author session, so since R-B1 the stage is
+ * handed a signed read link for the cue's one asset (`StageMeasureOptions.artworkUrl`, minutes
+ * long, lib/assets.ts signedAssetReadPath) and loads the artwork through it. The result says
+ * what actually happened: `none` (the cue has no `presentation.imageAssetId` and there is
+ * nothing to load), `loaded` (the artwork really rendered) or `not-loaded` (it did not - no
+ * signing secret configured, or the image failed - and a human should confirm it in the
+ * editor). `findFitErrors` never evaluates artwork, so the verdict is unaffected either way.
  */
 export type ServerFitArtwork='none'|'loaded'|'not-loaded';
 
 /** What the stage hands back; the shape of `window.__measureCue`'s resolution. */
 export type StageMeasurement={fitErrors:string[];warnings:string[];fill:number|null;artwork:ServerFitArtwork};
-/** Retaining the stage DOM is opt-in and only lasts until the caller captures its frame. */
-export type StageMeasureOptions={retainRenderedCue?:boolean};
+/** Retaining the stage DOM is opt-in and only lasts until the caller captures its frame.
+ * `artworkUrl` is the signed `/api/assets/<id>/signed?...` link for the cue's own asset; the
+ * stage ignores one that names any other asset. */
+export type StageMeasureOptions={retainRenderedCue?:boolean;artworkUrl?:string};
 /** An ephemeral, server-rendered preview. It is never written to a draft, preview, or revision. */
 export type ServerFitPreviewImage={mimeType:'image/jpeg'|'image/png';dataBase64:string;width:number;height:number};
 export type ServerFitPreviewImageUnavailable='screenshot_failed'|'screenshot_deadline'|'image_too_large';

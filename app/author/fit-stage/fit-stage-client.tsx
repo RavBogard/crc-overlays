@@ -14,7 +14,8 @@ import styles from "./fit-stage.module.css";
 // arrive with the root layout, so a headless browser that opens this page gets exactly the
 // stylesheet, font faces and renderer the editor dock and /author/fit-check use. The page
 // itself holds no cue, fetches no catalog, reads no credential and offers no navigation:
-// the cue is handed in through `window.__measureCue`, measured, and thrown away.
+// the cue is handed in through `window.__measureCue`, measured, and thrown away. With it may
+// come a signed read link for the cue's own artwork, which is the stage's only way to load it.
 
 export type { ServerFitArtwork, StageMeasurement, StageMeasureOptions };
 
@@ -37,7 +38,9 @@ export default function FitStageClient({ workspace }: { workspace: PublicWorkspa
       dispose?.();dispose=undefined;
       const root = outputRef.current;
       if (!root) return { fitErrors: ["The graphic did not render."], warnings: [], fill: null, artwork: cue.presentation?.imageAssetId ? "not-loaded" : "none" };
-      const prepared = await prepareCueMeasurement(root, cue, branding);
+      // The only credential this page ever sees: a signed, minutes-long read link for this cue's
+      // one asset (R-B1), handed in with the cue and dropped with it.
+      const prepared = await prepareCueMeasurement(root, cue, branding, { artworkUrl: options.artworkUrl });
       if (options.retainRenderedCue) dispose = prepared.dispose;
       else prepared.dispose();
       return prepared.measurement;

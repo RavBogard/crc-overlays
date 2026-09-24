@@ -489,7 +489,7 @@ function stageMeasurement(value:unknown):StageMeasurement|null{
  * of /tmp before and after (TmpCensus): which instance looked, and where the space is - the pack,
  * a directory, a deleted file still held open, or nowhere this process can see.
  */
-export async function measureCueOnServer(cue:Cue,options:{origin:string;deadlineMs?:number;launch?:StageLauncher;host?:ScratchHost;lingerMs?:number;includePreviewImage?:boolean}):Promise<ServerFitResult>{
+export async function measureCueOnServer(cue:Cue,options:{origin:string;deadlineMs?:number;launch?:StageLauncher;host?:ScratchHost;lingerMs?:number;includePreviewImage?:boolean;artworkUrl?:string}):Promise<ServerFitResult>{
  const deadlineMs=options.deadlineMs??SERVER_FIT_DEADLINE_MS;
  const launch=options.launch??defaultLaunch;
  const host=options.host??defaultScratchHost;
@@ -545,7 +545,10 @@ export async function measureCueOnServer(cue:Cue,options:{origin:string;deadline
    phase='stage_ready';
    await page.waitForFunction('typeof window.__measureCue === "function"',undefined,{timeout:remaining()});
    phase='measure';
-   const measurement=await page.evaluate<unknown,{cue:Cue;options:StageMeasureOptions}>(value=>(window as unknown as {__measureCue:(input:Cue,options?:StageMeasureOptions)=>Promise<StageMeasurement>}).__measureCue(value.cue,value.options),{cue,options:wantsPreviewImage?{retainRenderedCue:true}:{}});
+   // The signed artwork link (R-B1) travels in the evaluate argument, never in the stage URL, and
+   // is never logged: the failure log below names the origin and phase only.
+   const stageOptions:StageMeasureOptions={...(wantsPreviewImage?{retainRenderedCue:true}:{}),...(options.artworkUrl?{artworkUrl:options.artworkUrl}:{})};
+   const measurement=await page.evaluate<unknown,{cue:Cue;options:StageMeasureOptions}>(value=>(window as unknown as {__measureCue:(input:Cue,options?:StageMeasureOptions)=>Promise<StageMeasurement>}).__measureCue(value.cue,value.options),{cue,options:stageOptions});
    if(!wantsPreviewImage)return {measurement};
    phase='screenshot';
    try{

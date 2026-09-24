@@ -1,4 +1,4 @@
-import {createHash} from 'node:crypto';
+import {createHash,createHmac,randomBytes,timingSafeEqual} from 'node:crypto';
 import {db} from './database';
 import {liveRelayConfigured,rehearsalMode,type RehearsalEnv} from './rehearsal';
 
@@ -52,6 +52,67 @@ export async function markAssetPublished(connection:AssetQueryable,id:string,now
 export function cueAssetId(cue:{presentation?:{imageAssetId?:string}}){const id=cue.presentation?.imageAssetId;if(id!==undefined&&!/^asset_[a-f0-9]{64}$/.test(id))throw new AssetError('invalid_asset','Cue references an invalid asset');return id}
 export async function markCueAssetPublished(connection:AssetQueryable,cue:{presentation?:{imageAssetId?:string}},now=Date.now()){const id=cueAssetId(cue);if(id&&!await markAssetPublished(connection,id,now))throw new AssetError('asset_unavailable','Selected artwork is unavailable or archived',409)}
 export async function cueAssetUrl(cue:{presentation?:{imageAssetId?:string}},audience:'preview'|'published',repository:AssetRepository=defaultAssetRepository()){const id=cueAssetId(cue);if(!id)return undefined;const asset=await repository.get(id);if(!asset||(audience==='published'&&!asset.published))throw new AssetError('asset_unavailable','Selected artwork is unavailable',409);return audience==='preview'?asset.privatePreviewUrl:(asset.publicUrl??`/api/assets/${encodeURIComponent(id)}/content`)}
+
+// R-B1 - a short-lived read link for one asset, so the server fit's headless browser (which holds
+// no session) can load a draft's unpublished artwork. The key is derived from RELAY_SECRET, the
+// secret that already signs this deployment's short-lived relay tickets, under a label of its own:
+// an asset signature can never be replayed as a relay ticket or the other way round. The signed
+// text binds the workspace, the one asset id and the expiry; nothing here logs a link or a key.
+// Without RELAY_SECRET nothing is signed and the fit reports artwork 'not-loaded' as before.
+export const ASSET_READ_TTL_SECONDS=300;
+type AssetReadEnv=Partial<Pick<NodeJS.ProcessEnv,'RELAY_SECRET'|'WORKSPACE_ID'>>;
+const ASSET_ID=/^asset_[a-f0-9]{64}$/;
+function assetReadSignature(id:string,exp:number,env:AssetReadEnv){const secret=env.RELAY_SECRET;if(!secret)return null;const key=createHmac('sha256',secret).update('crc-overlays asset-read v1').digest();return createHmac('sha256',key).update(`${(env.WORKSPACE_ID||'crc').trim().toLowerCase()}\n${id}\n${exp}`).digest('base64url')}
+/** `/api/assets/<id>/signed?exp=<unix seconds>&sig=<base64url>`, or undefined when signing is not configured. */
+export function signedAssetReadPath(id:string,now=Date.now(),env:AssetReadEnv=process.env as AssetReadEnv){if(!ASSET_ID.test(id))return undefined;const exp=Math.floor(now/1000)+ASSET_READ_TTL_SECONDS,sig=assetReadSignature(id,exp,env);return sig?`/api/assets/${id}/signed?exp=${exp}&sig=${sig}`:undefined}
+/** True only for this asset id, before its expiry, with a signature this deployment made. */
+export function verifyAssetRead(id:string,exp:string|null,sig:string|null,now=Date.now(),env:AssetReadEnv=process.env as AssetReadEnv){
+ if(!ASSET_ID.test(id)||!exp||!/^\d{1,12}$/.test(exp)||!sig||!/^[A-Za-z0-9_-]{43}$/.test(sig))return false;
+ const expires=Number(exp),nowSeconds=Math.floor(now/1000);
+ // Expired, or further ahead than any link this deployment issues (a key reused elsewhere cannot mint a long-lived one).
+ if(expires<=nowSeconds||expires-nowSeconds>ASSET_READ_TTL_SECONDS+30)return false;
+ const expected=assetReadSignature(id,expires,env);if(!expected)return false;
+ const a=Buffer.from(sig),b=Buffer.from(expected);return a.length===b.length&&timingSafeEqual(a,b);
+}
+export function signedCueArtworkPath(cue:{presentation?:{imageAssetId?:string}},now=Date.now(),env:AssetReadEnv=process.env as AssetReadEnv){const id=cueAssetId(cue);return id?signedAssetReadPath(id,now,env):undefined}
+
+// R-B1 - chunked uploads for the MCP (upload_asset begin/append/commit). A client cannot send a
+// 512 KB image as one tool argument comfortably, and a Vercel function instance is not sticky
+// between calls, so the chunks are staged in Postgres (db/assets.sql workspace_asset_uploads) and
+// assembled at commit by createAsset - the same PNG/JPEG/WebP, size, dimension and item rules as
+// the web upload route. Only the actor that began an upload can add to it or commit it.
+export const ASSET_UPLOAD_CHUNK_MAX_BYTES=192*1024,ASSET_UPLOAD_TTL_MS=15*60_000,ASSET_UPLOAD_MAX_OPEN=20;
+export type AssetUpload={id:string;name:string;altText:string;totalBytes:number;receivedBytes:number;nextChunk:number;createdBy:string;createdAt:number;expiresAt:number};
+export interface AssetUploadStore{
+ begin(upload:AssetUpload,now:number):Promise<boolean>;
+ append(id:string,chunk:number,data:Uint8Array,actor:string,now:number):Promise<AssetUpload|null>;
+ get(id:string,actor:string,now:number):Promise<(AssetUpload&{data:Uint8Array})|null>;
+ remove(id:string):Promise<void>;
+}
+export class MemoryAssetUploadStore implements AssetUploadStore{
+ uploads=new Map<string,AssetUpload&{data:Uint8Array}>();
+ private sweep(now:number){for(const [id,upload] of this.uploads)if(upload.expiresAt<=now)this.uploads.delete(id)}
+ async begin(upload:AssetUpload,now:number){this.sweep(now);if(this.uploads.size>=ASSET_UPLOAD_MAX_OPEN)return false;this.uploads.set(upload.id,{...upload,data:new Uint8Array(0)});return true}
+ async append(id:string,chunk:number,data:Uint8Array,actor:string,now:number){const upload=this.uploads.get(id);if(!upload||upload.createdBy!==actor||upload.expiresAt<=now||upload.nextChunk!==chunk||upload.receivedBytes+data.byteLength>upload.totalBytes)return null;const joined=new Uint8Array(upload.receivedBytes+data.byteLength);joined.set(upload.data);joined.set(data,upload.receivedBytes);const next={...upload,data:joined,receivedBytes:joined.byteLength,nextChunk:chunk+1};this.uploads.set(id,next);const {data:_bytes,...meta}=next;void _bytes;return meta}
+ async get(id:string,actor:string,now:number){const upload=this.uploads.get(id);return upload&&upload.createdBy===actor&&upload.expiresAt>now?{...upload,data:upload.data.slice()}:null}
+ async remove(id:string){this.uploads.delete(id)}
+}
+const uploadColumns=`id,name,alt_text AS "altText",total_bytes AS "totalBytes",received_bytes AS "receivedBytes",next_chunk AS "nextChunk",created_by AS "createdBy",created_at AS "createdAt",expires_at AS "expiresAt"`;
+type UploadRow=AssetUpload&{data?:Buffer};
+const uploadRow=(row:UploadRow):AssetUpload=>({id:row.id,name:row.name,altText:row.altText,totalBytes:Number(row.totalBytes),receivedBytes:Number(row.receivedBytes),nextChunk:Number(row.nextChunk),createdBy:row.createdBy,createdAt:Number(row.createdAt),expiresAt:Number(row.expiresAt)});
+// Until db/assets.sql's upload table exists every step answers with a sentence, never a stack.
+const missingUploadTable=(error:unknown)=>Boolean(error&&typeof error==='object'&&(error as {code?:unknown}).code==='42P01');
+async function uploadQuery<T>(run:()=>Promise<T>){try{return await run()}catch(error){if(missingUploadTable(error))throw new AssetError('asset_upload_unavailable','Uploading artwork over this connection is not set up on this server yet. Upload it in the editor\'s artwork library instead.',503);throw error}}
+export class PgAssetUploadStore implements AssetUploadStore{
+ constructor(private connection:AssetQueryable=db){}
+ async begin(upload:AssetUpload,now:number){return uploadQuery(async()=>{await this.connection.query('DELETE FROM workspace_asset_uploads WHERE expires_at<=$1',[now]);const result=await this.connection.query(`INSERT INTO workspace_asset_uploads(id,name,alt_text,total_bytes,received_bytes,next_chunk,data,created_by,created_at,expires_at) SELECT $1::text,$2::text,$3::text,$4::int,0,0,''::bytea,$5::text,$6::bigint,$7::bigint WHERE (SELECT count(*) FROM workspace_asset_uploads)<${ASSET_UPLOAD_MAX_OPEN}`,[upload.id,upload.name,upload.altText,upload.totalBytes,upload.createdBy,upload.createdAt,upload.expiresAt]);return Boolean(result.rowCount)})}
+ async append(id:string,chunk:number,data:Uint8Array,actor:string,now:number){return uploadQuery(async()=>{const result=await this.connection.query(`UPDATE workspace_asset_uploads SET data=data||$3,received_bytes=received_bytes+$4,next_chunk=next_chunk+1 WHERE id=$1 AND next_chunk=$2 AND created_by=$5 AND expires_at>$6 AND received_bytes+$4<=total_bytes RETURNING ${uploadColumns}`,[id,chunk,Buffer.from(data),data.byteLength,actor,now]);const row=result.rows[0] as UploadRow|undefined;return row?uploadRow(row):null})}
+ async get(id:string,actor:string,now:number){return uploadQuery(async()=>{const result=await this.connection.query(`SELECT ${uploadColumns},data FROM workspace_asset_uploads WHERE id=$1 AND created_by=$2 AND expires_at>$3`,[id,actor,now]);const row=result.rows[0] as UploadRow|undefined;return row?{...uploadRow(row),data:new Uint8Array(row.data??Buffer.alloc(0))}:null})}
+ async remove(id:string){await uploadQuery(()=>this.connection.query('DELETE FROM workspace_asset_uploads WHERE id=$1',[id]))}
+}
+const rehearsalUploads=new MemoryAssetUploadStore();
+export function defaultAssetUploadStore():AssetUploadStore{if(process.env.CRC_AUTHORING_REHEARSAL==='1'){if(process.env.NODE_ENV!=='development'||liveRelayConfigured())throw new Error('Asset rehearsal storage is allowed only in local development without a relay.');return rehearsalUploads}return new PgAssetUploadStore()}
+export const newAssetUploadId=()=>`upload_${randomBytes(16).toString('hex')}`;
 
 type AssetImportEnvironment=Partial<Pick<NodeJS.ProcessEnv,'WORKSPACE_ID'|'CRC_SHARED_LIBRARY_URL'|'SHARED_LIBRARY_IMPORT_KEY'|'CONTROL_KEY'|'OUTPUT_KEY'|'ACCESS_BOOTSTRAP_KEY'>>&RehearsalEnv;
 // Production is https-only. A local rehearsal process may reach a loopback CRC on another
