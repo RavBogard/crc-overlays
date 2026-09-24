@@ -35,6 +35,8 @@ export interface ReviewBoardRepository{
  answers(boardId:string):Promise<ReviewAnswer[]>;
  saveAnswer(boardId:string,answer:ReviewAnswer):Promise<void>;
  deleteAnswers(boardId:string,itemKeys:string[]):Promise<void>;
+ /** The most recently changed board: the Setup page links to it. */
+ latestBoard():Promise<{id:string;title:string}|null>;
 }
 
 const clone=<T>(value:T):T=>structuredClone(value);
@@ -46,6 +48,7 @@ export class MemoryReviewBoardRepository implements ReviewBoardRepository{
  async answers(boardId:string){return [...(this.answerRows.get(boardId)?.values()??[])].map(clone)}
  async saveAnswer(boardId:string,answer:ReviewAnswer){const rows=this.answerRows.get(boardId)??new Map<string,ReviewAnswer>();rows.set(answer.itemKey,clone(answer));this.answerRows.set(boardId,rows)}
  async deleteAnswers(boardId:string,itemKeys:string[]){const rows=this.answerRows.get(boardId);for(const key of itemKeys)rows?.delete(key)}
+ async latestBoard(){const board=[...this.boards.values()].sort((a,b)=>b.updatedAt-a.updatedAt)[0];return board?{id:board.id,title:board.title}:null}
 }
 
 type Queryable={query:(text:string,values?:unknown[])=>Promise<{rows:unknown[];rowCount:number|null}>};
@@ -61,6 +64,7 @@ export class PgReviewBoardRepository implements ReviewBoardRepository{
  async answers(boardId:string){return guarded(async()=>(await (await this.db()).query('SELECT document FROM review_board_answers WHERE board_id=$1',[boardId])).rows.map(row=>(row as {document:ReviewAnswer}).document))}
  async saveAnswer(boardId:string,answer:ReviewAnswer){await guarded(async()=>(await this.db()).query('INSERT INTO review_board_answers(board_id,item_key,document,decided_at,decided_by) VALUES($1,$2,$3,$4,$5) ON CONFLICT(board_id,item_key) DO UPDATE SET document=EXCLUDED.document,decided_at=EXCLUDED.decided_at,decided_by=EXCLUDED.decided_by',[boardId,answer.itemKey,answer,answer.decidedAt,answer.decidedBy]))}
  async deleteAnswers(boardId:string,itemKeys:string[]){if(!itemKeys.length)return;await guarded(async()=>(await this.db()).query('DELETE FROM review_board_answers WHERE board_id=$1 AND item_key=ANY($2::text[])',[boardId,itemKeys]))}
+ async latestBoard(){return guarded(async()=>{const row=(await (await this.db()).query("SELECT id,document->>'title' AS title FROM review_boards ORDER BY updated_at DESC LIMIT 1")).rows[0] as {id:string;title:string|null}|undefined;return row?{id:String(row.id),title:String(row.title??'')}:null})}
 }
 
 // Local rehearsal keeps boards in memory, as authoring does; the instance lives on globalThis so

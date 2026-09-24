@@ -1042,6 +1042,13 @@ async function applyDeckPlan(r: Resolved, input: Input<'apply_deck_plan'>, actor
 
 /* ---------------------------------------------------------------------- export --- */
 
+/** The stored deck, its validation and the catalog it was checked against: the Setup page's summary and personal download (never an MCP tool). */
+export async function validatedDeck(ctx: DeckToolContext = {}) {
+  const r = await resolve(ctx)
+  const [stored, cat] = await Promise.all([loadStored(r), catalogMap(r)])
+  return {stored, validation: validation(r, stored.deck, cat), catalog: cat}
+}
+
 /** Validate the stored deck and, when it passes, a signed short-lived link to exactly these bytes. */
 export async function prepareExport(ctx: DeckToolContext = {}, expectedVersion?: number) { return exportLink(await resolve(ctx), expectedVersion) }
 async function exportLink(r: Resolved, expectedVersion?: number) {

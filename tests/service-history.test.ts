@@ -212,7 +212,7 @@ const cookie=`crc_access=${sessionToken}`;
 
 async function withStores<T>(member:AccessSessionMember|null,run:(store:MemoryDeviceStore)=>Promise<T>){
  const store=new MemoryDeviceStore();
- const savedDevices:DeviceStore={createPairingCode:deviceStore.createPairingCode,redeemPairingCode:deviceStore.redeemPairingCode,issue:deviceStore.issue,verify:deviceStore.verify,list:deviceStore.list,revoke:deviceStore.revoke};
+ const savedDevices:DeviceStore={createPairingCode:deviceStore.createPairingCode,redeemPairingCode:deviceStore.redeemPairingCode,issue:deviceStore.issue,verify:deviceStore.verify,list:deviceStore.list,revoke:deviceStore.revoke,sealedOutputs:deviceStore.sealedOutputs};
  const savedAccess=accessStore.memberForSession;
  Object.assign(deviceStore,{verify:(token:string,now:number)=>store.verify(token,now),issue:(input:Parameters<DeviceStore['issue']>[0])=>store.issue(input)} as Partial<DeviceStore>);
  Object.assign(accessStore,{memberForSession:async()=>member} as Partial<AccessStore>);

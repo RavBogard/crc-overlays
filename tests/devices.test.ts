@@ -42,10 +42,11 @@ const delegate=(store:DeviceStore):DeviceStore=>({
  verify:(token,now)=>store.verify(token,now),
  list:()=>store.list(),
  revoke:(id,now)=>store.revoke(id,now),
+ sealedOutputs:()=>store.sealedOutputs(),
 });
 
 async function withDeviceStore<T>(overrides:Partial<DeviceStore>,run:()=>Promise<T>){
- const saved:DeviceStore={createPairingCode:deviceStore.createPairingCode,redeemPairingCode:deviceStore.redeemPairingCode,issue:deviceStore.issue,verify:deviceStore.verify,list:deviceStore.list,revoke:deviceStore.revoke};
+ const saved:DeviceStore={createPairingCode:deviceStore.createPairingCode,redeemPairingCode:deviceStore.redeemPairingCode,issue:deviceStore.issue,verify:deviceStore.verify,list:deviceStore.list,revoke:deviceStore.revoke,sealedOutputs:deviceStore.sealedOutputs};
  Object.assign(deviceStore,overrides);
  clearVerifiedDeviceCache();
  try{return await run()}finally{Object.assign(deviceStore,saved);clearVerifiedDeviceCache()}

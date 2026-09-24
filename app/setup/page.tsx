@@ -7,7 +7,7 @@ export function generateMetadata(): Metadata {
   const workspace = getPublicWorkspace();
   return {
     title: `${workspace.productName} · Setup`,
-    description: 'Guided setup for Companion, Stream Deck, vMix, and OBS.',
+    description: 'The operator’s install: Companion, Stream Deck and the graphics browser input, top to bottom.',
   };
 }
 

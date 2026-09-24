@@ -19,6 +19,7 @@ import PeoplePanels from '../access/people-panels';
 import HealthClient from '../health/health-client';
 import SetupGuide from '../setup/setup-guide';
 import ServiceLogList from './service-log-list';
+import SiddurLibraryCard from './siddur-library-card';
 import styles from './system.module.css';
 
 const TABS = [['status', 'Status'], ['people', 'People'], ['setup', 'Setup'], ['log', 'Log']] as const;
@@ -60,7 +61,7 @@ export default function SystemClient({workspace}: {workspace: PublicWorkspace}) 
           {TABS.map(([id, label]) => <button key={id} type="button" role="tab" aria-selected={tab === id} className={tab === id ? styles.active : ''} onClick={() => choose(id)}>{label}</button>)}
         </div>
         <div className={styles.panel} role="tabpanel">
-          {tab === 'status' && <HealthClient workspaceName={workspace.shortName}/>}
+          {tab === 'status' && <><HealthClient workspaceName={workspace.shortName}/>{workspace.id === 'crc' && <SiddurLibraryCard/>}</>}
           {tab === 'people' && <PeoplePanels/>}
           {tab === 'setup' && <SetupGuide workspace={workspace} embedded/>}
           {tab === 'log' && <ServiceLogList/>}

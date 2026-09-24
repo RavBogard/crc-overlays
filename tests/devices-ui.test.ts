@@ -19,16 +19,17 @@ import {
   resolveOutputCredential,
 } from '../app/output/output-credential.ts';
 import {
-  COMPANION_STEP,
-  OUTPUT_STEP,
-  autoVerifiedSteps,
-  companionStepMode,
   firstUnverifiedStep,
   freshControllerCount,
+  freshControllerVersion,
   freshRendererCount,
-  outputStepMode,
+  pairingRedeemed,
+  personalCheckedIn,
+  stepMode,
   stepsToPersist,
+  verifiedSteps,
 } from '../app/setup/setup-steps.ts';
+import {SETUP_FLOWS} from '../lib/setup-flow.ts';
 
 const now = 1_800_000_000_000;
 const device = (overrides: Partial<PairedDevice> = {}): PairedDevice => ({id: 'cd_one', name: 'Sanctuary PC', kind: 'output', lastSeenAt: now - 60_000, revokedAt: null, ...overrides});
@@ -185,56 +186,67 @@ test('nothing supplied resolves to no credential rather than to a guess', () => 
 
 const state = (overrides: Record<string, unknown> = {}) => ({serverTime: now, renderers: [{seen: now - 1_000}], controllers: [{id: 'c1', client: 'companion', version: '1.4.0', seen: now - 4_000}], ...overrides});
 
-test('a fresh controller and a fresh renderer with a named output tick their own steps', () => {
-  const verified = autoVerifiedSteps({state: state(), now, hasOutputCredential: true});
-  assert.deepEqual(verified, {[COMPANION_STEP]: true, [OUTPUT_STEP]: true});
+const tbi = SETUP_FLOWS.tbi, crc = SETUP_FLOWS.crc;
+const signals = (overrides: Partial<Parameters<typeof verifiedSteps>[1]> = {}) => ({state: state(), now, personalCheckedIn: false, graphicsUrl: true, pressRendered: false, ...overrides});
+
+test('a fresh controller, a fresh renderer with the page’s graphics URL, a check-in and a rendered press each tick their own step', () => {
+  assert.deepEqual(verifiedSteps(crc, signals()), {pair: true, graphics: true});
+  assert.deepEqual(verifiedSteps(tbi, signals()), {graphics: true}, 'TBI step 4 waits for the downloaded file itself, not any Companion');
+  assert.deepEqual(verifiedSteps(tbi, signals({personalCheckedIn: true, pressRendered: true})), {import: true, graphics: true, test: true});
 });
 
-test('a named output alone is not a connected output, and a renderer alone is not a named output', () => {
-  assert.equal(autoVerifiedSteps({state: state({renderers: []}), now, hasOutputCredential: true})[OUTPUT_STEP], undefined);
-  assert.equal(autoVerifiedSteps({state: state(), now, hasOutputCredential: false})[OUTPUT_STEP], undefined);
+test('a renderer alone is not the graphics step, and no presence verifies nothing', () => {
+  assert.equal(verifiedSteps(crc, signals({graphicsUrl: false})).graphics, undefined);
+  assert.equal(verifiedSteps(crc, signals({state: state({renderers: []})})).graphics, undefined);
+  assert.deepEqual(verifiedSteps(crc, signals({state: null})), {});
 });
 
-test('a stale or future controller is not present, and an older relay without controllers verifies nothing', () => {
+test('a stale or future controller is not present, a browser is not a Companion, and an older relay without controllers verifies nothing', () => {
   assert.equal(freshControllerCount(state({controllers: [{client: 'companion', seen: now - 31_000}]}), now), 0);
   assert.equal(freshControllerCount(state({controllers: [{client: 'companion', seen: now + 5_000}]}), now), 0);
   assert.equal(freshControllerCount(state({controllers: [{client: 'companion', seen: now - 30_000}]}), now), 1);
+  assert.equal(freshControllerCount(state({controllers: [{client: 'browser', seen: now - 1_000}]}), now), 0);
+  assert.equal(freshControllerVersion(state(), now), '1.4.0');
   const older = {serverTime: now, renderers: [{seen: now - 1_000}]};
   assert.equal(freshControllerCount(older, now), 0);
-  assert.deepEqual(autoVerifiedSteps({state: older, now, hasOutputCredential: true}), {[OUTPUT_STEP]: true});
+  assert.deepEqual(verifiedSteps(crc, signals({state: older})), {graphics: true});
 });
 
 test('an unreachable relay verifies nothing and never un-ticks a recorded step', () => {
-  assert.deepEqual(autoVerifiedSteps({state: null, now, hasOutputCredential: true}), {});
   assert.equal(freshRendererCount(null, now), 0);
-  assert.deepEqual(stepsToPersist({[COMPANION_STEP]: true}, {}), {});
+  assert.deepEqual(stepsToPersist({pair: true}, {}), {});
 });
 
 test('only newly verified steps are written back to the progress store', () => {
-  const verified = autoVerifiedSteps({state: state(), now, hasOutputCredential: true});
-  assert.deepEqual(stepsToPersist({}, verified), {[COMPANION_STEP]: true, [OUTPUT_STEP]: true});
-  assert.deepEqual(stepsToPersist({[COMPANION_STEP]: true}, verified), {[OUTPUT_STEP]: true});
-  assert.deepEqual(stepsToPersist({[COMPANION_STEP]: true, [OUTPUT_STEP]: true}, verified), {});
+  const verified = verifiedSteps(crc, signals());
+  assert.deepEqual(stepsToPersist({}, verified), {pair: true, graphics: true});
+  assert.deepEqual(stepsToPersist({pair: true}, verified), {graphics: true});
+  assert.deepEqual(stepsToPersist({pair: true, graphics: true}, verified), {});
 });
 
-test('a deployment that cannot report controllers offers step 2 manually instead of stranding the installer', () => {
-  assert.equal(companionStepMode(state(), now), 'verified');
-  assert.equal(companionStepMode(state({controllers: []}), now), 'pending');
-  assert.equal(companionStepMode(state({controllers: [{client: 'companion', seen: now - 31_000}]}), now), 'pending');
-  assert.equal(companionStepMode({serverTime: now, renderers: [{seen: now - 1_000}]}, now), 'manual');
-  assert.equal(companionStepMode(null, now), 'pending', 'a probe that never answered is not an excuse to go manual');
+test('a deployment that cannot report presence offers the step manually instead of stranding the installer', () => {
+  const pair = crc.steps.find(step => step.key === 'pair')!, graphics = crc.steps.find(step => step.key === 'graphics')!;
+  assert.equal(stepMode(pair, {pair: true}, state()), 'verified');
+  assert.equal(stepMode(pair, {}, state({controllers: []})), 'pending');
+  assert.equal(stepMode(pair, {}, {serverTime: now, renderers: [{seen: now - 1_000}]}), 'manual');
+  assert.equal(stepMode(pair, {}, null), 'pending', 'a probe that never answered is not an excuse to go manual');
+  assert.equal(stepMode(graphics, {}, {serverTime: now, controllers: []}), 'manual');
+  assert.equal(stepMode(crc.steps[0], {}, state()), 'manual', 'a back-up is the operator’s own word');
 });
 
-test('step 3 reads presence the same way, and a named output is still required', () => {
-  assert.equal(outputStepMode(state(), now, true), 'verified');
-  assert.equal(outputStepMode(state(), now, false), 'pending');
-  assert.equal(outputStepMode(state({renderers: []}), now, true), 'pending');
-  assert.equal(outputStepMode({serverTime: now, controllers: []}, now, true), 'manual');
+test('the operator’s own token counts once it has checked in; a pairing code clears when its credential appears', () => {
+  const list = (rows: unknown[]) => ({devices: rows});
+  assert.equal(personalCheckedIn(list([{kind: 'companion', name: 'Simone’s Companion (downloaded 2026-09-24)', lastSeenAt: now, revokedAt: null}]), 'Simone'), true);
+  assert.equal(personalCheckedIn(list([{kind: 'companion', name: 'Simone’s Companion (downloaded 2026-09-24)', lastSeenAt: null, revokedAt: null}]), 'Simone'), false);
+  assert.equal(personalCheckedIn(list([{kind: 'companion', name: 'Simone’s Companion (downloaded 2026-09-24)', lastSeenAt: now, revokedAt: now}]), 'Simone'), false);
+  assert.equal(personalCheckedIn(list([{kind: 'companion', name: 'Booth PC', lastSeenAt: now, revokedAt: null}]), 'Simone'), false);
+  assert.equal(pairingRedeemed(list([{kind: 'companion', name: 'Simone’s Companion (paired 2026-09-24 14:05 UTC)'}]), 'Simone’s Companion (paired 2026-09-24 14:05 UTC)'), true);
+  assert.equal(pairingRedeemed(list([]), 'x'), false);
 });
 
-test('a returning installer lands on the first step that is still unverified', () => {
-  assert.equal(firstUnverifiedStep({}), COMPANION_STEP);
-  assert.equal(firstUnverifiedStep({[COMPANION_STEP]: true}), OUTPUT_STEP);
-  assert.equal(firstUnverifiedStep({[COMPANION_STEP]: true, [OUTPUT_STEP]: true}), null);
-  assert.equal(firstUnverifiedStep({[COMPANION_STEP]: false, [OUTPUT_STEP]: true}), COMPANION_STEP);
+test('a returning installer lands on the first step that is still to do', () => {
+  assert.equal(firstUnverifiedStep(tbi, {}), 'backup');
+  assert.equal(firstUnverifiedStep(tbi, {backup: true, module: true}), 'deck-download');
+  assert.equal(firstUnverifiedStep(tbi, Object.fromEntries(tbi.steps.map(step => [step.key, true]))), null);
+  assert.equal(firstUnverifiedStep(tbi, {...Object.fromEntries(tbi.steps.map(step => [step.key, true])), backup: false}), 'backup');
 });

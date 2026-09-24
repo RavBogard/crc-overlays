@@ -66,7 +66,10 @@ const memberReference=(memberId:string)=>memberId&&!memberId.startsWith('legacy-
 export interface DeviceStore{
  createPairingCode(input:{codeHash:string;kind:DeviceKind;name:string;memberId:string;now:number;expiresAt:number}):Promise<void>;
  redeemPairingCode(codeHash:string,now:number):Promise<{token:string;credential:DeviceCredential}|null>;
- issue(input:{name:string;kind:DeviceKind;memberId:string;now:number}):Promise<{token:string;credential:DeviceCredential}>;
+ /** `seal` keeps the new token sealed for the Setup page to show again (lib/setup-output.ts); only a graphics output carries one. */
+ issue(input:{name:string;kind:DeviceKind;memberId:string;now:number;seal?:(token:string)=>string}):Promise<{token:string;credential:DeviceCredential}>;
+ /** Unrevoked output credentials that carry a sealed token, newest first (db/setup-output.sql). */
+ sealedOutputs():Promise<{credential:DeviceCredential;sealed:string}[]>;
  verify(token:string,now:number):Promise<DeviceCredential|null>;
  list():Promise<DeviceCredential[]>;
  revoke(id:string,now:number):Promise<void>;
@@ -108,10 +111,18 @@ export class PgDeviceStore implements DeviceStore{
    return {token:deviceToken(id,secret),credential:credentialView(row)};
   }catch(error){await c.query('ROLLBACK');throw error}finally{c.release()}
  }
- async issue(input:{name:string;kind:DeviceKind;memberId:string;now:number}){
-  const id=newDeviceId(),secret=newDeviceSecret();
-  const row=(await (await this.db()).query(`INSERT INTO device_credentials(id,name,kind,secret_hash,created_by,created_at,last_seen_at,revoked_at) VALUES($1,$2,$3,$4,$5,$6,NULL,NULL) RETURNING ${CREDENTIAL_COLUMNS}`,[id,input.name,input.kind,secretDigest(secret),memberReference(input.memberId),input.now])).rows[0] as CredentialRow;
+ async issue(input:{name:string;kind:DeviceKind;memberId:string;now:number;seal?:(token:string)=>string}){
+  const id=newDeviceId(),secret=newDeviceSecret(),sealed=input.seal?.(deviceToken(id,secret));
+  // The sealed column exists only once db/setup-output.sql is applied, so it is named only when used.
+  const values=[id,input.name,input.kind,secretDigest(secret),memberReference(input.memberId),input.now];
+  const row=(await (await this.db()).query(sealed===undefined
+   ?`INSERT INTO device_credentials(id,name,kind,secret_hash,created_by,created_at,last_seen_at,revoked_at) VALUES($1,$2,$3,$4,$5,$6,NULL,NULL) RETURNING ${CREDENTIAL_COLUMNS}`
+   :`INSERT INTO device_credentials(id,name,kind,secret_hash,created_by,created_at,last_seen_at,revoked_at,sealed_token) VALUES($1,$2,$3,$4,$5,$6,NULL,NULL,$7) RETURNING ${CREDENTIAL_COLUMNS}`,sealed===undefined?values:[...values,sealed])).rows[0] as CredentialRow;
   return {token:deviceToken(id,secret),credential:credentialView(row)};
+ }
+ async sealedOutputs(){
+  try{return ((await (await this.db()).query(`SELECT ${CREDENTIAL_COLUMNS},sealed_token FROM device_credentials WHERE kind='output' AND revoked_at IS NULL AND sealed_token IS NOT NULL ORDER BY created_at DESC LIMIT 5`)).rows as (CredentialRow&{sealed_token:string})[]).map(row=>({credential:credentialView(row),sealed:String(row.sealed_token)}))}
+  catch(error){if((error as {code?:string})?.code==='42703')return [];throw error}
  }
  async verify(token:string,now:number){
   const parsed=parseDeviceToken(token);
@@ -131,7 +142,7 @@ export class PgDeviceStore implements DeviceStore{
 }
 
 type MemoryCode={codeHash:string;kind:DeviceKind;name:string;createdBy:string|null;createdAt:number;expiresAt:number;attempts:number;redeemedAt:number|null;credentialId:string|null};
-type MemoryCredential=DeviceCredential&{secretHash:string};
+type MemoryCredential=DeviceCredential&{secretHash:string;sealed?:string};
 
 /**
  * The rehearsal device store. Every rule PgDeviceStore enforces is mirrored here -
@@ -165,12 +176,13 @@ export class MemoryDeviceStore implements DeviceStore{
   this.credentials.set(id,credential);
   return {token:deviceToken(id,secret),credential:this.view(credential)};
  }
- async issue(input:{name:string;kind:DeviceKind;memberId:string;now:number}){
-  const id=newDeviceId(),secret=newDeviceSecret();
-  const credential:MemoryCredential={id,name:input.name,kind:input.kind,createdBy:memberReference(input.memberId)??'',createdAt:input.now,lastSeenAt:null,revokedAt:null,secretHash:secretDigest(secret)};
+ async issue(input:{name:string;kind:DeviceKind;memberId:string;now:number;seal?:(token:string)=>string}){
+  const id=newDeviceId(),secret=newDeviceSecret(),sealed=input.seal?.(deviceToken(id,secret));
+  const credential:MemoryCredential={id,name:input.name,kind:input.kind,createdBy:memberReference(input.memberId)??'',createdAt:input.now,lastSeenAt:null,revokedAt:null,secretHash:secretDigest(secret),...(sealed===undefined?{}:{sealed})};
   this.credentials.set(id,credential);
   return {token:deviceToken(id,secret),credential:this.view(credential)};
  }
+ async sealedOutputs(){return [...this.credentials.values()].filter(c=>c.kind==='output'&&c.revokedAt===null&&c.sealed!==undefined).sort((a,b)=>b.createdAt-a.createdAt).slice(0,5).map(c=>({credential:this.view(c),sealed:c.sealed as string}))}
  async verify(token:string,now:number){
   const parsed=parseDeviceToken(token);
   if(!parsed)return null;
