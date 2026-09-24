@@ -44,6 +44,8 @@ changes, paired web release, push to main.
 
 ## Evidence
 
+- Released 2026-09-24: G1-G6 live on both workspaces as web 0c2e895 (RELEASE-STATE.md), tables 38 -> 40.
+
 - Integration tip e7d77e1: 131 MCP tools (snapshot regenerated); packet tests 44/44 after merge.
 
 ## Open questions (for Daniel or Cowork)

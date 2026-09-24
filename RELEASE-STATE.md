@@ -4,7 +4,7 @@ What is deployed right now. Update this file on every release — it is the one 
 "what is live", and it is short so it can be read under pressure. The history is in
 `docs/planning/2026-09-deploys/` (25 deploy records, the release chain, the phase build notes).
 
-**Last updated: 2026-09-24** (MCP completeness plan released: relays `e512d86`, web `6b76cbd`, ten new tables on both databases, `main` fast-forwarded to production. Before it, paired release `ebd4be4`: group tabs renamed; before it `3636857`, Michael's review — Corner layout, per-graphic row order, inline siddur wording edits with a Wording changes list, right-justified lower-third Hebrew title, honest siddur-picker preview. Evidence below under "Release 3636857".)
+**Last updated: 2026-09-24** (TBI redo tools G1-G6 released as web `0c2e895`, two more tables; before it the MCP completeness plan: relays `e512d86`, web `6b76cbd`, ten new tables on both databases, `main` fast-forwarded to production. Before it, paired release `ebd4be4`: group tabs renamed; before it `3636857`, Michael's review — Corner layout, per-graphic row order, inline siddur wording edits with a Wording changes list, right-justified lower-third Hebrew title, honest siddur-picker preview. Evidence below under "Release 3636857".)
 
 ## Web, per workspace
 
@@ -13,13 +13,22 @@ both were released together on 2026-09-23 UTC (2026-09-22 evening Central).
 
 | Workspace | Host | Deployed commit | How it got there |
 |---|---|---|---|
-| CRC | `overlays.centralreform.org` (alt `crc-overlays.vercel.app`) | `6b76cbd` | paired staged release, 2026-09-24, `dpl_F9xDh92SXof7KT5pXy6VoGs2vnwo` (the Git integration also builds every push to `main`; `main` is at `6b76cbd`) |
-| TBI | `overlays.templebnaiisrael.com` (alt `tbi-overlays.vercel.app`) | `6b76cbd` | same paired run, 2026-09-24, `dpl_2LgcY9t1ZXgSbZkFQbk1kE2taSdZ` |
+| CRC | `overlays.centralreform.org` (alt `crc-overlays.vercel.app`) | `0c2e895` | paired staged release, 2026-09-24, `dpl_4N2DYBckX3dFQH1W28hfZ77rTxtD` (the Git integration also builds every push to `main`; `main` is at `0c2e895`) |
+| TBI | `overlays.templebnaiisrael.com` (alt `tbi-overlays.vercel.app`) | `0c2e895` | same paired run, 2026-09-24, `dpl_2dn5RTJ1AmgijMU2vu32N5PoNM1r` |
 
 This file is written after the release it describes, so the commit carrying these words is always one
 ahead of the shas in the table. That one commit is documentation: CRC's Git integration builds it by
 itself and TBI is not owed a release for it. Any commit that touches `app/`, `lib/`, `content/`,
 `components/`, `schemas/` or `workspaces/` **is** owed one.
+
+### Release 0c2e895: TBI redo tools G1-G6 (2026-09-24 UTC)
+
+- Plan: `docs/planning/2026-09-24-tbi-redo-tools/STATE.md`. Adds file intake (open_import_dropzone, get_import, list_imports, the `/import/<token>` page), upload_asset by importId or allowlisted url with server downscale (sharp 0.35.4), local sources with kind / no page / transliteration-only blocks / no credit, import_local_sources, batch_create_drafts, apply_deck_plan. 131 MCP tools.
+- Migrations first, same procedure as 6b76cbd: `public` 38 -> 40 on both (`workspace_imports`, `build_keys`). Rows unchanged: CRC 282 drafts / 457 revisions, TBI 265 / 205.
+- `relay/` unchanged since `e512d86`: no relay release.
+- Gates at `e7d77e1` (code identical to `0c2e895`): `tsc --noEmit`; `npm test` 1210 + 35 pass, 0 fail, 12 skipped; lint (known warnings); `npm run build`; `audit-companion-packages` ok. The CRC upload was type-checked as a `.vercelignore`-filtered copy.
+- Verified: CRC `dpl_4N2DYBckX3dFQH1W28hfZ77rTxtD`, TBI `dpl_2dn5RTJ1AmgijMU2vu32N5PoNM1r` Ready; four hosts 200 on `/health` and on `/import/<token>` (an unknown token shows "This link has expired or is not valid", with `Referrer-Policy: no-referrer` and `X-Robots-Tag: noindex, nofollow`). `main` fast-forwarded to `0c2e895`.
+- Not verified here: sharp loading on Vercel (the first large upload proves it), and the tools over OAuth (the TBI redo thread's next calls).
 
 ### Release 6b76cbd: the MCP completeness plan (2026-09-24 UTC)
 
@@ -274,7 +283,7 @@ relay rollback target; the new relay serves the old web unchanged.
 
 ## Databases
 
-Neon, one per workspace, 38 tables each since 2026-09-24 (see Release 6b76cbd). **Pending:** `db/imports.sql` and `db/build-keys.sql` (TBI redo tools, not yet released; applied with that release).
+Neon, one per workspace, 38 tables each since 2026-09-24 (see Release 6b76cbd). 40 since release 0c2e895 (`workspace_imports`, `build_keys`). **No migration is pending.**
 
 One ran on 2026-09-22, before the release that needed it, from `scripts/migrate-authoring.mjs`:
 `authoring_revisions` gained `source_commits text[]` on both, 9 columns to 10. `ADD COLUMN IF NOT
