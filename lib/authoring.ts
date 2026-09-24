@@ -21,6 +21,7 @@ import {sharedCueHash,sharedLibraryClient,type SharedLibraryEntry,type SharedLib
 import {compareUpstream,groupSets,setState,shelfState} from './shared-shelf';
 import {AssetError,cueAssetId,defaultAssetRepository,defaultAssetUploadStore,importSharedAsset,markCueAssetPublished,signedCueArtworkPath,type AssetRepository,type AssetUploadStore} from './assets';
 import {assetToolOperation,isAssetTool} from './asset-tools';
+import {isBrandingTool} from './branding-tools';
 import {liveRelayConfigured} from './rehearsal';
 // Only the contract, never the browser: lib/server-fit.ts is reached exclusively through the
 // dynamic import in defaultServerFitRunner, so playwright-core and the Chromium pack stay out
@@ -1147,6 +1148,8 @@ export async function authoringOperation(operation:string,input:unknown,actor:st
  if(review){const {sourceReviewOperation}=await import('./source-review');return sourceReviewOperation(review,input,actor)}
  if(operation==='seed_deck_from_export'||operation==='convert_singular_deck'){const {deckConversionOperation,DeckConversionError}=await import('./companion-deck/convert');try{return await deckConversionOperation(operation,input,actor)}catch(error){if(error instanceof DeckConversionError)throw new AuthoringError(error.code,error.message,error.status);throw error}}
  // C3 - the Companion deck tools (lib/companion-deck/tools.ts): their own store, reached by dynamic import like source review.
+ // L4 - workspace branding (lib/branding-tools.ts): its own store, reached by dynamic import like the deck.
+ if(isBrandingTool(operation)){const [{brandingToolOperation,defaultBrandingContext},{BrandingError}]=await Promise.all([import('./branding-tools'),import('./branding-store')]);try{return await brandingToolOperation(operation,input,actor,await defaultBrandingContext())}catch(error){if(error instanceof BrandingError)throw new AuthoringError(error.code,error.message,error.status);throw error}}
  if(isDeckTool(operation)){const {deckToolOperation,DeckToolError}=await import('./companion-deck/tools');try{return await deckToolOperation(operation,input,actor)}catch(error){if(error instanceof DeckToolError)throw new AuthoringError(error.code,error.message,error.status);throw error}}
  const result=await defaults().operation(operation,input,actor);
  if(['publish_draft','save_slots','rollback_draft','import_cue','retire_cue','restore_cue'].includes(operation)||(operation==='ship_draft'&&(result as {shipped?:unknown}).shipped===true)||((operation==='batch_ship'||operation==='supersede_cue'||operation==='rebase_to_layout')&&(result as {liveCatalogChanged?:unknown}).liveCatalogChanged===true)){

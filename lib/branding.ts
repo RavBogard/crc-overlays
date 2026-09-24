@@ -1,4 +1,5 @@
 import type {PublicWorkspace} from './workspace';
+import {readFonts,readPalette,type BrandingFonts,type BrandingPalette} from './branding-palette.ts';
 
 export type OverlayBranding = {
   name: string;
@@ -8,6 +9,10 @@ export type OverlayBranding = {
   accentColor: string;
   logo: string;
   logoAlt: string;
+  // L4: present only when the workspace has stored branding (/api/workspace `branding`). Without
+  // them the renderer derives today's values (lib/branding-palette.ts brandingCssVariables).
+  palette?: BrandingPalette;
+  fonts?: BrandingFonts;
 };
 
 export const branding: OverlayBranding = {
@@ -20,12 +25,15 @@ export const branding: OverlayBranding = {
   logoAlt: 'Central Reform Congregation artwork',
 };
 
-export function overlayBrandingFromWorkspace(workspace: Pick<PublicWorkspace, 'shortName'|'organizationName'|'colors'|'logo'>): OverlayBranding {
+export function overlayBrandingFromWorkspace(workspace: Pick<PublicWorkspace, 'shortName'|'organizationName'|'colors'|'logo'> & {branding?: unknown}): OverlayBranding {
   if (!workspace || typeof workspace.shortName !== 'string' || typeof workspace.organizationName !== 'string' ||
       !workspace.colors || typeof workspace.colors.primary !== 'string' || typeof workspace.colors.deep !== 'string' || typeof workspace.colors.accent !== 'string' ||
       !workspace.logo || typeof workspace.logo.src !== 'string' || typeof workspace.logo.alt !== 'string') {
     throw new Error('Workspace branding is unavailable');
   }
+  const stored = workspace.branding && typeof workspace.branding === 'object' ? workspace.branding as {palette?: unknown; fonts?: unknown} : null;
+  const palette = stored ? readPalette(stored.palette) : null;
+  const fonts = stored ? readFonts(stored.fonts) : {};
   return {
     name: workspace.shortName,
     organizationName: workspace.organizationName,
@@ -34,5 +42,7 @@ export function overlayBrandingFromWorkspace(workspace: Pick<PublicWorkspace, 's
     accentColor: workspace.colors.accent,
     logo: workspace.logo.src,
     logoAlt: workspace.logo.alt,
+    ...(palette ? {palette} : {}),
+    ...(Object.keys(fonts).length ? {fonts} : {}),
   };
 }
