@@ -15,6 +15,8 @@ export type AssetToolContext={
  drafts:()=>Promise<UsingDraft[]>;
  /** The published cues in the catalog now (archived drafts' publications excluded). */
  published:()=>Promise<UsingCue[]>;
+ /** L4 - artwork the workspace branding names (logo, resting logo, scan card); the output page loads it. */
+ branding?:()=>Promise<{role:string;assetId:string}[]>;
  now?:()=>number;
 };
 
@@ -29,6 +31,7 @@ const assetId=(value:unknown)=>{if(typeof value!=='string'||!/^asset_[a-f0-9]{64
 // truncated chunk is refused here instead of silently decoding to fewer bytes.
 function base64(value:unknown){if(typeof value!=='string'||!value.length||value.length%4!==0||!/^[A-Za-z0-9+/]+={0,2}$/.test(value))throw invalid('dataBase64 must be standard base64 (A-Z, a-z, 0-9, + and /, padded with = to a multiple of 4 characters).');const bytes=Buffer.from(value,'base64');if(!bytes.byteLength)throw invalid('dataBase64 is empty.');return new Uint8Array(bytes)}
 
+const BRANDING_ROLE_NAMES:Record<string,string>={logo:'logo',restingLogo:'resting logo',scanCard:'scan card'};
 const usesAsset=(id:string)=>(cue:UsingCue)=>cue.presentation?.imageAssetId===id;
 const named=(cues:UsingCue[])=>cues.map(cue=>`"${cue.name}"`).join(', ');
 function compact(asset:AssetMetadata,drafts:UsingDraft[],published:Set<string>){
@@ -95,6 +98,8 @@ export async function assetToolOperation(operation:string,input:unknown,actor:st
   if(asset.archived)throw new AssetError('already_archived',`"${asset.name}" is already archived. Nothing was changed.`,409);
   const inUse=(await context.published()).filter(usesAsset(id));
   if(inUse.length)throw new AssetError('asset_in_use',`"${asset.name}" can't be archived while ${inUse.length===1?'a published graphic uses':`${inUse.length} published graphics use`} it: ${named(inUse)}. Nothing was changed. Publish ${inUse.length===1?'that graphic':'those graphics'} with other artwork (update_draft presentation.imageAssetId, then ship_draft) or archive ${inUse.length===1?'it':'them'} first.`,409);
+  const roles=(await context.branding?.()??[]).filter(item=>item.assetId===id).map(item=>BRANDING_ROLE_NAMES[item.role]??item.role);
+  if(roles.length)throw new AssetError('asset_in_use',`"${asset.name}" can't be archived while the branding uses it as the ${roles.join(' and the ')}. Nothing was changed. Change the branding with update_branding first.`,409);
   const updated=await context.assets.setArchived(id,expectedVersion,true,actor,now);
   if(!updated)throw new AssetError('version_conflict',`"${asset.name}" is at version ${asset.version}, not ${expectedVersion}. Nothing was changed. Read it again with list_assets and pass that version.`,409);
   const drafts=(await context.drafts()).filter(draft=>!draft.archivedAt&&usesAsset(id)(draft));
