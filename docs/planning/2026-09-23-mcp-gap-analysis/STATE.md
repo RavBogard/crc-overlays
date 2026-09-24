@@ -209,6 +209,16 @@ app/api/catalog/route.ts and lib/sync-live-catalog.ts; L2 and C5 add envelope-on
 - GATE (A6): signing key derived from RELAY_SECRET (no new env var); one upload_asset tool with a step field;
   5-minute expiry and 192 KB chunks chosen by the worker. Noted: before A6 every artwork graphic failed the
   server fit (still true on a deployment without RELAY_SECRET); signed URLs appear in request logs (expire in 5 min).
+- T4 merged (5269efd): create/get/update_review_board (lib/mcp/review.ts; db/review-boards.sql not applied;
+  answers stored apart from the board so clicks never bump its version); /author/review/<boardId> for any
+  signed-in member, stored fit frames, "Before"/old-slide reference, grouping none|deck-page|service (deck-page
+  refused until C3 wires the stored deck unless groupLabels given). Browser-checked by the worker at laptop and
+  tablet widths. Gate after merge: tsc clean, npm test 1059+35, lint 0 errors, Turbopack build ok; snapshot 90.
+- GATE (T4): a republished item becomes undecided but keeps the earlier answer; any signed-in member may review;
+  grouping fixed when a graphic is added; a graphic in several pages/services groups under the first;
+  removing an answered item needs dropAnswers:true.
+- Review page copy (T4) needs Daniel's review: the full string list is in lib/review-board*.ts and
+  app/author/review/review-model.ts (COPY).
 - Owed: a real-browser check of the library's Retired label and Return button (A3 did a server render only).
 - V3 merged (ae37165): nine live tools in lib/mcp/live.ts dispatched to a separate live
   operation (route wires runMcpCommand/snapshot/catalog); deck guard on lastPress.companion; server-side
