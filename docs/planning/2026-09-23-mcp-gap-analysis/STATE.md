@@ -81,6 +81,14 @@ app/api/catalog/route.ts and lib/sync-live-catalog.ts; L2 and C5 add envelope-on
   Needs the gated relay release before any web change depends on it (docs/RELAY-RELEASE.md).
 - GATE: a superseded press counts as a controller press for the V3 guard; relay/tests/history.test.ts
   now expects `commandId:null` on old rows — proceeded because ruling 10 adds the key.
+- A1 merged (d4cac8a): 18 new MCP tools (48 total), 7 widened; templateCueId optional (layout look);
+  compact list_drafts/search_sources by default on MCP only. Server instructions updated to match.
+  Gate after merge: tsc clean, npm test 927+38 pass, lint 0 errors.
+- GATE: compact is the MCP default for list_drafts/search_sources (web keeps the full shape) — proceeded
+  because R-A5 asks for it. GATE: named text sizes duplicated in lib/template-looks.ts, held equal to
+  app/author/look-drawer.tsx by a test. GATE: shared-library descriptions don't say CRC (TBI rule).
+- Known follow-ups from A1: update_draft patch doesn't map a TBI templateCueId; web /api/slots has no
+  version check; preview_content's real server fit is covered only by a stubbed runner.
 
 ## Evidence
 Four read-only audits (MCP surface, layouts/renderer, Companion, live/services/access) plus a

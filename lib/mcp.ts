@@ -20,7 +20,7 @@ export function workspaceIdentity(env:Parameters<typeof getPublicWorkspace>[0]=p
 // The house rules an agent otherwise has no way to learn. Sent once, at initialize.
 function instructions(identity:McpIdentity){return [
  `This connection serves ${identity.organizationName} (${identity.shortName}, workspace '${identity.workspaceId}', ${identity.host}) and no other congregation. Every change takes workspace:'${identity.workspaceId}'; a call naming another congregation is refused, so use that congregation's own connector.`,
- 'Make a graphic: search_sources, then create_draft with the source block ids (or content mode custom for free text such as an announcement), then preview_draft, fit_check_draft (includePreviewImage:true shows you the frame), review_draft and publish_draft with the same draftId, expectedVersion and previewId.',
+ 'Make a graphic: search_sources with includeBlocks:true, then create_draft with those block ids (or content mode custom for free text such as an announcement; compose_custom_draft fills a named form). templateCueId is optional: each layout defaults to its look. Then preview_draft, fit_check_draft (includePreviewImage:true shows you the frame), review_draft and publish_draft with the same draftId, expectedVersion and previewId.',
  'Layouts: bottom is a lower third, left and right are panels, and corner is a small bottom-right card for a line or two that takes a bottom template. Text that would need more than two lower thirds becomes a left panel sequence instead.',
  'To show a long prayer in parts, use create_source_draft_set from its source; do not use split_draft_into_set for that.',
  'Nothing on this connection puts anything on screen.',
