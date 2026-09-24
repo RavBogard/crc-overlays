@@ -8,6 +8,56 @@
  * Node's type stripping.
  */
 export type LayoutId=string;
+/**
+ * How a body channel's lines sit across its box. `start` and `end` are relative to the channel's
+ * own `direction` and are resolved to a physical side before they reach CSS, so a line of the other
+ * script in the box never flips it. `natural` aligns each line to its own start (CSS `start` under
+ * `.prayer`'s unicode-bidi:plaintext): a Hebrew line right, a Latin line left.
+ */
+export type CardAlign='start'|'end'|'natural';
+/** One text box of the card body, in card-local px (y from the card's top edge). */
+export type CardChannel={y:number;height:number;fontSize:number;lineHeight:number;align:CardAlign;
+ /** Omitted: the channel inherits the overlay's direction (ltr). */
+ direction?:'ltr'|'rtl'};
+/**
+ * A card: a self-contained box on the 1920x1080 frame - surface, title strip with a flat logo,
+ * an optional accent lane, and a text body - drawn by the one generic `.overlay[data-card]` block in
+ * app/overlay.css from the custom properties the Player derives from this definition (cardStyle).
+ * Every x/y is card-local, from the card's left and top edges; `frame.anchor` says which corner of
+ * the frame the card is pinned to and `frame.inset` how far in, so the CSS can anchor on the same
+ * edges and the parts keep their places whatever the stage's size.
+ */
+export type CardDefinition={
+ frame:{anchor:'top-left'|'top-right'|'bottom-left'|'bottom-right';insetX:number;insetY:number;width:number;height:number};
+ /** Corner radius of the surface, the title strip's height at the top, and the accent rule's at the bottom. */
+ surface:{radius:number;stripHeight:number;ruleHeight:number};
+ /** The flat logo in the title strip. */
+ logo:{x:number;y:number;size:number};
+ /** The title lane. With an accent title the accent takes the lane's far `accentWidth` px and the title ends `accentGap` before it. */
+ title:{x:number;y:number;width:number;height:number;fontSize:number;lineHeight:number;accentWidth:number;accentGap:number};
+ /**
+  * The body's channels, sharing one x and width. `stacked` holds the Hebrew channel (`hebrew`)
+  * over its transliteration or translation (`latin`); a lone channel takes `single`, which keeps any
+  * direction its script's channel set.
+  */
+ body:{x:number;width:number;hebrew:CardChannel;latin:CardChannel;single:Omit<CardChannel,'direction'>};
+ fit:{
+  /** `shrink-to-floor`: each title and body box that does not fit steps down a pixel at a time to `floor`. */
+  strategy:'shrink-to-floor';
+  floor:number;
+  /** At most this many 1 px steps per box. */
+  maxSteps:number;
+  /** Slack for a Hebrew line's taller glyph box (FONT_METRIC_TOLERANCE in app/author/preview.ts). */
+  glyphTolerance:number;
+  /**
+   * The sparse-fill measure: text height over `denominator`, warned below `sparseBelow`. null: the
+   * card reports no fill ratio and never warns sparse - a corner card is meant to hold a line or two.
+   */
+  fill:null|{denominator:number;sparseBelow:number};
+  /** A native height the card must not exceed. null: the card's height is fixed by `frame`. */
+  heightCeiling:number|null;
+ };
+};
 export type LayoutDefinition={
  id:LayoutId;
  /** The operator's name for it. */
@@ -24,13 +74,70 @@ export type LayoutDefinition={
   /** Each slide carries exactly one source block, so a second block always needs another slide. */
   oneBlockPerSlide:boolean;
  };
+ /** Drawn and fitted as a card from this definition. The lower third and the panels are built-in layered CSS instead (ruling 7). */
+ card?:CardDefinition;
 };
+
+/**
+ * The corner card: flush in the bottom-right corner for a line or two ("Vaimru Amen", "El Na Refa
+ * Na La", a one-line thank-you); it replaces the old Singular bottom-right pop-up. It takes the same
+ * 48px inset as the resting logo (RESTING_LOGO_RECT) and the scan card (BUG_RESERVED_RECT): the
+ * resting logo steps aside while any cue holds the stage, and the scan card paints beneath the cue
+ * layer (docs/RENDERER.md), so the corner card covers it.
+ * Card x 1232..1872, y 832..1032. Title strip y 832..888 with the logo at its right end, like the
+ * panels'. Body x 1264..1848, y 898..1018: Hebrew RTL and right-aligned above its left-aligned
+ * transliteration; a lone channel (custom text, one English line) is centred in the whole body.
+ */
+export const CORNER_CARD:CardDefinition={
+ frame:{anchor:'bottom-right',insetX:48,insetY:48,width:640,height:200},
+ surface:{radius:18,stripHeight:56,ruleHeight:6},
+ logo:{x:580,y:6,size:44},
+ title:{x:32,y:4,width:532,height:48,fontSize:28,lineHeight:1.1,accentWidth:220,accentGap:12},
+ body:{x:32,width:584,
+  hebrew:{y:66,height:58,fontSize:40,lineHeight:1.24,direction:'rtl',align:'start'},
+  latin:{y:130,height:56,fontSize:32,lineHeight:1.24,align:'start'},
+  single:{y:66,height:120,fontSize:36,lineHeight:1.22,align:'natural'}},
+ fit:{strategy:'shrink-to-floor',floor:20,maxSteps:40,glyphTolerance:6,fill:null,heightCeiling:null},
+};
+
+/** The physical side a channel's lines align to (see CardAlign), or CSS `start` for `natural`. */
+export function cardTextAlign(channel:Pick<CardChannel,'align'|'direction'>):'left'|'right'|'start'{
+ if(channel.align==='natural')return 'start';
+ return (channel.align==='start')===((channel.direction??'ltr')==='ltr')?'left':'right';
+}
+/**
+ * The custom properties the Player sets on a card's box, which the `.overlay[data-card]` block in
+ * app/overlay.css reads. Each part is placed from the frame edges the card is anchored to
+ * (`--card-<part>-right` for a right-anchored card, `-left` otherwise; `-bottom` or `-top` likewise)
+ * and the CSS leaves the other edge auto.
+ */
+export function cardStyle(card:CardDefinition):Record<string,string>{
+ const {frame,surface,logo,title,body}=card,right=frame.anchor.endsWith('right'),bottom=frame.anchor.startsWith('bottom');
+ const style:Record<string,string>={'--card-origin':`${right?'right':'left'} center`,'--card-radius':`${surface.radius}px`};
+ const across=(part:string,x:number,width:number)=>{style[`--card-${part}-${right?'right':'left'}`]=`${frame.insetX+(right?frame.width-x-width:x)}px`;style[`--card-${part}-width`]=`${width}px`};
+ const down=(part:string,y:number,height:number)=>{style[`--card-${part}-${bottom?'bottom':'top'}`]=`${frame.insetY+(bottom?frame.height-y-height:y)}px`;style[`--card-${part}-height`]=`${height}px`};
+ across('base',0,frame.width);down('base',0,frame.height);
+ across('strip',0,frame.width);down('strip',0,surface.stripHeight);
+ across('rule',0,frame.width);down('rule',frame.height-surface.ruleHeight,surface.ruleHeight);
+ across('logo',logo.x,logo.size);down('logo',logo.y,logo.size);
+ across('title',title.x,title.width);down('title',title.y,title.height);
+ style['--card-title-font-size']=`${title.fontSize}px`;style['--card-title-line-height']=String(title.lineHeight);
+ across('accent',title.x+title.width-title.accentWidth,title.accentWidth);
+ across('title-shared',title.x,title.width-title.accentWidth-title.accentGap);
+ across('body',body.x,body.width);
+ for(const [part,channel] of [['hebrew',body.hebrew],['latin',body.latin],['single',body.single]] as const){
+  down(part,channel.y,channel.height);
+  style[`--card-${part}-font-size`]=`${channel.fontSize}px`;style[`--card-${part}-line-height`]=String(channel.lineHeight);style[`--card-${part}-align`]=cardTextAlign(channel);
+  if('direction' in channel&&channel.direction)style[`--card-${part}-direction`]=channel.direction;
+ }
+ return style;
+}
 
 const BUILT_IN:readonly LayoutDefinition[]=[
  {id:'bottom',label:'Lower third',templateLayout:'bottom',contained:false,capabilities:{sets:true,translation:true,oneBlockPerSlide:true}},
  {id:'left',label:'Left panel',templateLayout:'left',contained:true,capabilities:{sets:true,translation:true,oneBlockPerSlide:false}},
  {id:'right',label:'Right panel',templateLayout:'right',contained:true,capabilities:{sets:true,translation:true,oneBlockPerSlide:false}},
- {id:'corner',label:'Corner',templateLayout:'bottom',contained:true,capabilities:{sets:false,translation:false,oneBlockPerSlide:true}},
+ {id:'corner',label:'Corner',templateLayout:'bottom',contained:true,capabilities:{sets:false,translation:false,oneBlockPerSlide:true},card:CORNER_CARD},
 ];
 const registry=new Map<LayoutId,LayoutDefinition>(BUILT_IN.map(definition=>[definition.id,definition]));
 // Companion reads a layout id as part of a variable name, so the id follows its grammar.
