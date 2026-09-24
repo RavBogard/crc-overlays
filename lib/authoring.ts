@@ -84,7 +84,10 @@ function retirementUpdate(current:Draft,expectedVersion:number,retired:boolean,a
  const base={...current,version:expectedVersion+1,updatedAt:now,updatedBy:actor};
  if(retired){if(current.activeRevision===null||current.activeDraftVersion===null)return null;return {...base,activeRevision:null,activeDraftVersion:null,retired:{revision:current.activeRevision,draftVersion:current.activeDraftVersion,retiredAt:now,retiredBy:actor}}}
  if(!isRetiredDraft(current))return null;
- const {retired:was,...rest}=base;return {...rest,activeRevision:was!.revision,activeDraftVersion:was!.draftVersion};
+ // Retiring bumps the version once. A draft that was clean when retired and not edited since is still what
+ // is published, so it comes back clean (not "changed since publish") at the version this restore makes.
+ const {retired:was,...rest}=base;const untouched=was!.draftVersion===current.version-1;
+ return {...rest,activeRevision:was!.revision,activeDraftVersion:untouched?base.version:was!.draftVersion};
 }
 
 export interface AuthoringRepository{

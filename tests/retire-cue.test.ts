@@ -51,7 +51,7 @@ test('restore brings back the same revision with no new review, and is idempoten
  const restored=await service.operation('restore_cue',{cueId:BARECHU,expectedVersion:retired.draft.version},'editor') as Retired;
  assert.equal(restored.changed,true);
  assert.equal(restored.draft.activeRevision,1);
- assert.equal(restored.draft.activeDraftVersion,1);
+ assert.equal(restored.draft.activeDraftVersion,restored.draft.version,'untouched while retired, so it comes back clean, not "changed since publish"');
  assert.equal('retired' in restored.draft,false);
  assert.match(restored.message,/back in the live library at revision 1/);
  assert.deepEqual((await liveCatalog(service)).cues.find(cue=>cue.id===BARECHU),before);
