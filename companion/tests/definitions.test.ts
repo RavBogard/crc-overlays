@@ -6,7 +6,8 @@ import { buildDefinitions, DEFINITIONS_PATH, formatDefinitions } from '../script
 
 describe('definitions.json', () => {
   it('is what this module source registers (run npm run build to regenerate)', async () => {
-    const committed = readFileSync(DEFINITIONS_PATH as string, 'utf8')
+    // Line endings may be converted on checkout; the content is what matters.
+    const committed = readFileSync(DEFINITIONS_PATH as string, 'utf8').replace(/\r\n/g, '\n')
     expect(committed).toBe((formatDefinitions as (d: unknown) => string)(await (buildDefinitions as (c: unknown) => Promise<unknown>)(CrcOverlaysInstance)))
   })
 
