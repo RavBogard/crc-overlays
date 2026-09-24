@@ -38,6 +38,7 @@ import {LayoutDefinitionError,ensurePublishedLayoutsRegistered,layoutDefinitions
 import {isLayoutTool,layoutToolOperation} from './layout-tools';
 import type {ResolvedLayouts} from './layout-registry';
 import {parseDraftReference} from './companion-deck/singular-references';
+import {defaultImportRepository,type ImportRepository} from './imports';
 
 export type BrowserMeasurement={viewportWidth:number;viewportHeight:number;fontsReady:true;overflow:false;rendererVersion:string;measuredAt:number};
 /**
@@ -327,7 +328,7 @@ const defaultServerFitRunner:ServerFitRunner=async(cue,options)=>{
  // the page this deployment serves, and a request host is attacker-controllable.
  return measureCueOnServer(cue as unknown as Cue,{origin:canonicalOrigin(),includePreviewImage:options?.includePreviewImage,...(options?.artworkUrl?{artworkUrl:options.artworkUrl}:{}),...(options?.layouts?{layouts:options.layouts}:{})});
 };
-export type AssetStores={assets?:AssetRepository;uploads?:AssetUploadStore};
+export type AssetStores={assets?:AssetRepository;uploads?:AssetUploadStore;imports?:ImportRepository;fetch?:typeof fetch;siteHosts?:()=>string[]};
 export function createAuthoringService(repo:AuthoringRepository,workspace:AuthoringWorkspace={rehearsal:false,storage:'postgres',label:null},shared:SharedLibraryReader=sharedLibraryClient,sharedAssetImporter:SharedAssetImporter=(id,actor)=>importSharedAsset(id,actor),runServerFit:ServerFitRunner=defaultServerFitRunner,localSources:LocalSourceRepository=new MemoryLocalSourceRepository(),defaultsRepo:AuthoringDefaultsRepository=repo instanceof MemoryAuthoringRepository?new MemoryAuthoringDefaultsRepository():new PgAuthoringDefaultsRepository(),assetStores:AssetStores={},layoutRepo:LayoutDefinitionsRepository=layoutDefinitionsRepository()){
  // The Companion deck store follows the authoring store: a service over the in-memory repository
  // (tests, local runs) keeps its deck in memory too; rehearsal and Postgres use the deck tools' default.
@@ -419,7 +420,7 @@ export function createAuthoringService(repo:AuthoringRepository,workspace:Author
   if(isServiceTool(operation)){const [{serviceToolOperation},{ServicesError:ServicesFailure}]=await Promise.all([import('./service-tools'),import('./service-collections')]);try{return await serviceToolOperation(operation,data,who)}catch(error){if(error instanceof ServicesFailure)throw new AuthoringError(error.code,error.message,error.status);throw error}}
   // R-B1 - the artwork library (lib/asset-tools.ts). A published cue counts only while its draft
   // is not archived, the same catalog libraryNames measures.
-  if(isAssetTool(operation)){try{return await assetToolOperation(operation,data,who,{assets:assetStores.assets??defaultAssetRepository(),uploads:assetStores.uploads??defaultAssetUploadStore(),drafts:()=>repo.listDrafts(),published:async()=>{const [drafts,published]=await Promise.all([repo.listDrafts(),repo.published()]);const archived=new Set(drafts.filter(draft=>draft.archivedAt).map(draft=>draft.id));return published.filter(cue=>!archived.has(cue.id))},branding:async()=>{try{const {defaultBrandingRepository}=await import('./branding-store');const artwork=(await defaultBrandingRepository().get())?.document.artwork??{};return Object.entries(artwork).flatMap(([role,ref])=>ref?[{role,assetId:ref.assetId}]:[])}catch{return []}}})}catch(error){if(error instanceof AssetError)throw new AuthoringError(error.code,error.message,error.status);throw error}}
+  if(isAssetTool(operation)){try{return await assetToolOperation(operation,data,who,{assets:assetStores.assets??defaultAssetRepository(),uploads:assetStores.uploads??defaultAssetUploadStore(),imports:()=>assetStores.imports??defaultImportRepository(),fetch:assetStores.fetch,siteHosts:assetStores.siteHosts,drafts:()=>repo.listDrafts(),published:async()=>{const [drafts,published]=await Promise.all([repo.listDrafts(),repo.published()]);const archived=new Set(drafts.filter(draft=>draft.archivedAt).map(draft=>draft.id));return published.filter(cue=>!archived.has(cue.id))},branding:async()=>{try{const {defaultBrandingRepository}=await import('./branding-store');const artwork=(await defaultBrandingRepository().get())?.document.artwork??{};return Object.entries(artwork).flatMap(([role,ref])=>ref?[{role,assetId:ref.assetId}]:[])}catch{return []}}})}catch(error){if(error instanceof AssetError)throw new AuthoringError(error.code,error.message,error.status);throw error}}
   // T4 - review boards (lib/review-board.ts) read this service's drafts and kept fit frames.
   // Grouping by deck page reads the deck C3 stores (deckSourceForDeployment); none stored means groupLabels.
   if(REVIEW_BOARD_OPERATIONS.has(operation)){const [{reviewBoardOperation,deckPlacements},{deckSourceForDeployment}]=await Promise.all([import('./review-board'),import('./companion-deck/tools')]);return reviewBoardOperation(operation,data,who,{authoring:repo,deck:async()=>{const source=await deckSourceForDeployment(await deckContext());const stored=source?await source.repository.get(source.workspace):null;return stored?deckPlacements(stored.deck):null}})}

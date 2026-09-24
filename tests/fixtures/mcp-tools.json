@@ -9879,18 +9879,29 @@
  },
  {
   "name": "upload_asset",
-  "description": "Add an image to the CRC artwork library in chunks: step 'begin' {name, altText, totalBytes} returns an uploadId; step 'append' {uploadId, chunkIndex from 0, dataBase64} sends the bytes in order, each chunk at most 192 KB before base64; step 'commit' {uploadId} checks and stores it. The rules are the editor's: a non-animated PNG, JPEG or WebP, at most 512 KB and 4096 px per side. The id is the image's sha256, so the same image uploaded twice is one asset. Attach it with update_draft patch.presentation.imageAssetId; ship_draft then shows it in the frame.",
+  "description": "Add an image to the CRC artwork library. In one call: {importId, name, altText} reads an image someone dropped on open_import_dropzone kind 'asset'; {url, name, altText} fetches an https image from image.singular.live, assets.singular.live or this workspace's own site (no other host, no credentials in the link, at most 10 MB). Or in chunks: step 'begin' {name, altText, totalBytes} returns an uploadId; step 'append' {uploadId, chunkIndex from 0, dataBase64} sends the bytes in order, each chunk at most 192 KB before base64; step 'commit' {uploadId} checks and stores it. The image must be a non-animated PNG, JPEG or WebP. One within 512 KB, 4096 px per side and 16 megapixels is stored byte for byte; a larger one is fitted on the server (resized, metadata stripped, re-encoded) and the result says how (downscaled, original, stored). The id is the stored image's sha256, so the same image uploaded twice is one asset. Attach it with update_draft patch.presentation.imageAssetId; ship_draft then shows it in the frame.",
   "inputSchema": {
    "type": "object",
    "$schema": "https://json-schema.org/draft/2020-12/schema",
    "properties": {
     "step": {
+     "description": "Only for the chunked form; leave it out with importId or url.",
      "type": "string",
      "enum": [
       "begin",
       "append",
       "commit"
      ]
+    },
+    "importId": {
+     "type": "string",
+     "pattern": "^import_[a-f0-9]{32}$"
+    },
+    "url": {
+     "description": "An https image link on image.singular.live, assets.singular.live or this workspace's own site.",
+     "type": "string",
+     "minLength": 9,
+     "maxLength": 2048
     },
     "name": {
      "type": "string",
@@ -9931,7 +9942,6 @@
     }
    },
    "required": [
-    "step",
     "workspace"
    ]
   },

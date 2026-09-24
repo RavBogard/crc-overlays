@@ -100,3 +100,9 @@ export async function readImportText(repository:ImportRepository,importId:unknow
  try{return {record,text:new TextDecoder('utf-8',{fatal:true}).decode(data).replace(/^﻿/,'')}}
  catch{return refuse('import_not_text','That import is not valid UTF-8 text. Nothing was read.',422)}
 }
+
+// G2 wiring placeholder, for upload_asset importId until G1 lands: G1 replaces this with the
+// Postgres-backed default (PgImportRepository). Until then nothing is stored here, so every importId
+// is answered as unknown.
+const placeholderImports=new MemoryImportRepository();
+export function defaultImportRepository():ImportRepository{return placeholderImports}
