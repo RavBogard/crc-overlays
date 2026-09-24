@@ -105,7 +105,8 @@ test('acceptance: find_catalog_issues finds the known cases, read only',async()=
  assert.equal(inherited[0].graphics[0].id,zochreinu.id);assert.ok(idsOf(inherited[0]).includes(miChamocha.id));
  assert.match(inherited[0].message,/"Zochreinu" shows the title "Mi Chamocha"/);
 
- assert.deepEqual(of('archived_but_published').map(idsOf),[[sukkot.id]]);assert.equal(of('archived_but_published')[0].suggestedFix.tool,'retire_cue');
+ assert.deepEqual(of('archived_but_published').map(idsOf),[[sukkot.id]]);assert.equal(of('archived_but_published')[0].suggestedFix.tool,'batch_retire');
+ assert.deepEqual(found.batchRetire,{items:[{draftId:sukkot.id,expectedVersion:await f.version(sukkot.id)}]},'the batch_retire input, ready to send');
  assert.deepEqual(of('retired_in_service').map(issue=>[idsOf(issue),issue.services.map((item:{serviceId:string})=>item.serviceId)]),[[[blessing.id],[service.serviceId]]]);
  assert.deepEqual(of('retired_on_deck').map(issue=>[idsOf(issue),issue.buttons]),[[[blessing.id],[{page:2,pageName:'Friday evening',row:1,col:1,label:'Blessing'}]]]);
  assert.equal(of('retired_on_deck')[0].suggestedFix.tool,'supersede_cue');
