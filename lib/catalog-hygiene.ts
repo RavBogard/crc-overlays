@@ -2,6 +2,7 @@ import {createHash} from 'node:crypto';
 import {AuthoringError,buildCue,isRetiredDraft,normalizeGraphicName,previewValidation,type AuthoringCue,type Draft} from './authoring-model';
 import {hygieneToolSchemas,ISSUE_KINDS,type HygieneToolName,type IssueKind} from './catalog-hygiene-schemas';
 import {baselineCatalogForWorkspace} from './workspace-catalog';
+import {missingCueRefusal,notPublishedRefusal} from './retire-rules';
 import type {AuthoringRepository} from './authoring';
 import type {CompanionDeck,DeckWorkspace} from './companion-deck/model.ts';
 import type {CompanionDeckRepository} from './companion-deck/repository.ts';
@@ -93,7 +94,7 @@ async function findIssues(ctx:HygieneContext,input:{kinds?:IssueKind[];limit?:nu
   }
  }
  if(wanted.has('archived_but_published'))for(const draft of drafts.filter(item=>item.archivedAt&&isPublished(item)))
-  issues.push({kind:'archived_but_published',graphics:[draftRef(draft)],message:`"${draft.name}" is archived in the editor but still published: it is in the live library, Companion's picker and the relay.`,suggestedFix:{tool:'retire_cue',how:'Retire it to take it out of use, or restore_draft to see it in the editor again.'}});
+  issues.push({kind:'archived_but_published',graphics:[draftRef(draft)],message:`"${draft.name}" is archived in the editor but still published: it is in the live library, Companion's picker and the relay.`,suggestedFix:{tool:'batch_retire',how:'Retire it to take it out of use (batchRetire in this result is the batch_retire input for every one found; retire_cue does one), or restore_draft to see it in the editor again.'}});
  const retired=new Map(drafts.filter(isRetiredDraft).map(draft=>[draft.id,draft]));
  const checked:{drafts:number;builtIns:number;services:{checked:boolean;count?:number;message?:string};deck:{checked:boolean;version?:number;message?:string}}={drafts:drafts.length,builtIns:builtIns.length,services:{checked:false},deck:{checked:false}};
  if(wanted.has('retired_in_service')){
@@ -136,7 +137,9 @@ async function findIssues(ctx:HygieneContext,input:{kinds?:IssueKind[];limit?:nu
  issues.sort((a,b)=>order.get(a.kind)!-order.get(b.kind)!||a.graphics[0].name.localeCompare(b.graphics[0].name));
  const counts=Object.fromEntries(ISSUE_KINDS.filter(kind=>wanted.has(kind)).map(kind=>[kind,issues.filter(issue=>issue.kind===kind).length]));
  const shown=issues.slice(0,limit);
- return {total:issues.length,truncated:shown.length<issues.length,counts,issues:shown,checked,message:issues.length?`Found ${issues.length} issue${issues.length===1?'':'s'} in the library. Nothing was changed; each issue names the tool that fixes it.`:'No issues found. Nothing was changed.'};
+ // G8 - every archived-but-published graphic as batch_retire items, whatever limit cut from issues.
+ const toRetire=issues.filter(issue=>issue.kind==='archived_but_published').map(issue=>({draftId:issue.graphics[0].id,expectedVersion:issue.graphics[0].version!}));
+ return {total:issues.length,truncated:shown.length<issues.length,counts,issues:shown,...(toRetire.length?{batchRetire:{items:toRetire}}:{}),checked,message:issues.length?`Found ${issues.length} issue${issues.length===1?'':'s'} in the library. Nothing was changed; each issue names the tool that fixes it.`:'No issues found. Nothing was changed.'};
 }
 
 /* ---------- batch_update ---------- */
@@ -246,6 +249,49 @@ async function batchShip(ctx:HygieneContext,input:{items:ShipItem[];cursor?:stri
   message:`${shipped} of ${handled} shipped in this call${remaining?`; ${remaining} left. Call batch_ship again with the same items and cursor:'${nextCursor}' to continue`:''}. Items that stopped or failed published nothing; each says why.`};
 }
 
+/* ---------- batch_retire ---------- */
+
+// G8 - many retire_cue calls in one: each applied item is retire_cue itself, and the dry run refuses
+// with retire_cue's own sentences (lib/retire-rules.ts). A set member retires alone, as in retire_cue.
+type RetireItem={draftId:string;expectedVersion:number};
+type RetireStatus='retired'|'would-retire'|'already-retired'|'refused';
+type RetireResult={index:number;draftId:string;expectedVersion:number;ok:boolean;status:RetireStatus;name?:string;version?:number;revision?:number|null;code?:string;reason:string;setWarning?:string};
+const staleSentence=(draft:Draft,expected:number)=>`"${draft.name}" is at version ${draft.version}, not ${expected}: it changed since you read it. Read it again and retry this item.`;
+
+async function batchRetire(ctx:HygieneContext,input:{items:RetireItem[];dryRun?:boolean},actor:string){
+ const dryRun=input.dryRun??true,drafts=await ctx.repo.listDrafts(),byId=new Map(drafts.map(draft=>[draft.id,draft]));
+ const listed=new Set(input.items.map(item=>item.draftId)),first=new Map<string,number>();
+ const results:RetireResult[]=[];
+ // One at a time and never stopping: a refused item is that item's result and the next one runs.
+ for(const [index,item] of input.items.entries()){
+  const base={index,draftId:item.draftId,expectedVersion:item.expectedVersion};
+  const refused=(code:string,message:string,draft?:Draft):RetireResult=>({...base,ok:false,status:'refused',...(draft?{name:draft.name,version:draft.version}:{}),code,reason:`${message} Nothing was changed.`});
+  if(first.has(item.draftId)){results.push(refused('duplicate_item',`This graphic is already item ${first.get(item.draftId)} of this call, and only that item runs.`));continue}
+  first.set(item.draftId,index);
+  try{
+   // An apply reads each draft as it reaches it, so a change made meanwhile is this item's answer.
+   const draft=dryRun?byId.get(item.draftId)??null:await ctx.repo.getDraft(item.draftId);
+   if(!draft){const why=missingCueRefusal(item.draftId);results.push(refused(why.code,why.message));continue}
+   // Already retired is done whatever version was read, so repeating an interrupted call is safe.
+   if(isRetiredDraft(draft)){results.push({...base,ok:true,status:'already-retired',name:draft.name,version:draft.version,revision:draft.retired!.revision,reason:`"${draft.name}" is already retired; nothing to do.`});continue}
+   if(draft.version!==item.expectedVersion){results.push(refused('version_conflict',staleSentence(draft,item.expectedVersion),draft));continue}
+   if(!isPublished(draft)){const why=notPublishedRefusal(draft);results.push(refused(why.code,why.message,draft));continue}
+   const others=draft.draftSetId?drafts.filter(other=>other.draftSetId===draft.draftSetId&&other.id!==draft.id&&isPublished(other)&&!listed.has(other.id)):[];
+   const setWarning=others.length?{setWarning:`"${draft.name}" is part ${draft.setIndex??'?'} of a ${draft.setCount??'?'}-part set. Parts retire one at a time, and ${others.length} other published part${others.length===1?' is':'s are'} not in this call and stay${others.length===1?'s':''} live: ${quoted(others.map(other=>other.name))}. Add them to retire the whole set.`}:{};
+   if(dryRun){results.push({...base,ok:true,status:'would-retire',name:draft.name,version:draft.version,revision:draft.activeRevision,...setWarning,reason:`"${draft.name}" would be retired: out of the live library, Companion's picker and the relay catalog.${draft.archivedAt?' It is archived in the editor and stays archived.':''}`});continue}
+   const done=await ctx.run('retire_cue',{cueId:draft.id,expectedVersion:item.expectedVersion},actor) as {draft:Draft;cue:{revision:number|null};changed:boolean;message:string};
+   results.push({...base,ok:true,status:done.changed?'retired':'already-retired',name:done.draft.name,version:done.draft.version,revision:done.cue.revision,...setWarning,reason:done.message});
+  }catch(error){
+   const why=failure(error),current=why.code==='version_conflict'?await ctx.repo.getDraft(item.draftId):null;
+   results.push(refused(why.code,current?staleSentence(current,item.expectedVersion):why.message,current??byId.get(item.draftId)));
+  }
+ }
+ const count=(status:RetireStatus)=>results.filter(item=>item.status===status).length;
+ const done=count(dryRun?'would-retire':'retired'),already=count('already-retired'),refusedCount=count('refused'),rest=`${already?`, ${already} already retired`:''}${refusedCount?`, ${refusedCount} refused (each says why)`:''}`;
+ return {dryRun,total:results.length,[dryRun?'wouldRetire':'retired']:done,alreadyRetired:already,refused:refusedCount,...(dryRun?{}:{liveCatalogChanged:done>0}),results,
+  message:dryRun?`Dry run: ${done} of ${results.length} would be retired${rest}. Nothing was changed. Call again with dryRun:false to retire them.`:`${done} of ${results.length} retired${rest}. Retired graphics are out of the live library, Companion's picker and the relay catalog; one on screen now stays there until it is taken out, and restore_cue brings one back. find_catalog_issues (retired_in_service, retired_on_deck) lists services and deck keys that still use them.`};
+}
+
 /* ---------- supersede_cue ---------- */
 
 const swap=(ids:string[],oldId:string,newId:string)=>[...new Set(ids.map(id=>id===oldId?newId:id))];
@@ -310,5 +356,6 @@ export async function hygieneOperation(operation:HygieneToolName,raw:unknown,act
  if(operation==='find_catalog_issues')return findIssues(ctx,input);
  if(operation==='batch_update')return batchUpdate(ctx,input,actor);
  if(operation==='batch_ship')return batchShip(ctx,input,actor);
+ if(operation==='batch_retire')return batchRetire(ctx,input,actor);
  return supersede(ctx,input,actor);
 }

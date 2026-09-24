@@ -34,6 +34,7 @@ import {MemoryBuildKeyRepository,defaultBuildKeyRepository,type BuildKeyReposito
 // T4 - kept here rather than imported, so lib/review-board.ts loads only when a board is used.
 const REVIEW_BOARD_OPERATIONS=new Set(['create_review_board','get_review_board','update_review_board']);
 import {isHygieneTool} from './catalog-hygiene-schemas';
+import {missingCueRefusal,notPublishedRefusal} from './retire-rules';
 import {isDeckTool} from './companion-deck/tool-schemas';
 // L3 - layouts as data: the layout tools, and the pinned definitions every server fit is handed.
 import {LayoutDefinitionError,ensurePublishedLayoutsRegistered,layoutDefinitionsRepository,resolvedLayoutsFor,type LayoutDefinitionsRepository} from './layout-definitions';
@@ -618,12 +619,12 @@ export function createAuthoringService(repo:AuthoringRepository,workspace:Author
   if(operation==='retire_cue'||operation==='restore_cue'){
    keys(data,['cueId','expectedVersion']);const id=string(data.cueId,'cueId'),expected=integer(data.expectedVersion,'expectedVersion',1);const retire=operation==='retire_cue';
    const current=await repo.getDraft(id);
-   if(!current){const builtIn=baselineCatalogForWorkspace().find(cue=>cue.id===id);if(builtIn)throw new AuthoringError('not_a_draft',`"${builtIn.name}" is a built-in graphic with no draft in this library yet. Import it first (import_cue), then retire the imported draft.`,409);throw new AuthoringError('unknown_cue',`No graphic in this library has the id ${id}. Check the id with list_catalog.`,404)}
+   if(!current)throw missingCueRefusal(id);
    if(current.version!==expected)throw conflict();
    const done=(draft:Draft,changed:boolean)=>{const retired=isRetiredDraft(draft);const revision=retired?draft.retired!.revision:draft.activeRevision;return {draft,cue:{id:draft.id,name:draft.name,retired,revision},changed,message:retired?`"${draft.name}" is retired: it is out of the live library, Companion's picker and the relay catalog. If it is on screen now it stays there until it is taken out. restore_cue brings back revision ${revision}.`:`"${draft.name}" is back in the live library at revision ${revision}.`}};
    if(retire&&isRetiredDraft(current))return done(current,false);
    if(!retire&&!isRetiredDraft(current)){if(current.activeRevision!==null)return done(current,false);throw new AuthoringError('not_retired',`"${current.name}" is not retired and has never been published. Publish it to put it in the live library.`,409)}
-   if(retire&&current.activeRevision===null)throw new AuthoringError('not_published',`"${current.name}" has never been published, so it is not in the live library and there is nothing to retire. Archive the draft instead (archive_draft) to take it out of the editor.`,409);
+   if(retire&&current.activeRevision===null)throw notPublishedRefusal(current);
    const draft=await repo.setRetired(id,expected,retire,who);if(!draft)throw conflict();return done(draft,true);
   }
   if(operation==='archive_draft_set'||operation==='restore_draft_set'){keys(data,['setId','expectedDraftIds']);const setId=string(data.setId,'setId');if(!Array.isArray(data.expectedDraftIds)||!data.expectedDraftIds.length||data.expectedDraftIds.length>200)throw new AuthoringError('invalid_input','expectedDraftIds must contain 1-200 draft IDs');const expectedDraftIds=data.expectedDraftIds.map((id,index)=>string(id,`expectedDraftIds[${index}]`,160));const drafts=await repo.setDraftSetArchived(setId,expectedDraftIds,operation==='archive_draft_set',who);return {set:{id:setId,count:drafts.length,draftIds:drafts.map(draft=>draft.id)},drafts};}
@@ -1178,7 +1179,7 @@ export async function authoringOperation(operation:string,input:unknown,actor:st
  if(isBrandingTool(operation)){const [{brandingToolOperation,defaultBrandingContext},{BrandingError}]=await Promise.all([import('./branding-tools'),import('./branding-store')]);try{return await brandingToolOperation(operation,input,actor,await defaultBrandingContext())}catch(error){if(error instanceof BrandingError)throw new AuthoringError(error.code,error.message,error.status);throw error}}
  if(isDeckTool(operation)){const {deckToolOperation,DeckToolError}=await import('./companion-deck/tools');try{return await deckToolOperation(operation,input,actor)}catch(error){if(error instanceof DeckToolError)throw new AuthoringError(error.code,error.message,error.status);throw error}}
  const result=await defaults().operation(operation,input,actor);
- if(['publish_draft','save_slots','rollback_draft','import_cue','retire_cue','restore_cue'].includes(operation)||(operation==='ship_draft'&&(result as {shipped?:unknown}).shipped===true)||((operation==='batch_ship'||operation==='supersede_cue'||operation==='rebase_to_layout')&&(result as {liveCatalogChanged?:unknown}).liveCatalogChanged===true)){
+ if(['publish_draft','save_slots','rollback_draft','import_cue','retire_cue','restore_cue'].includes(operation)||(operation==='ship_draft'&&(result as {shipped?:unknown}).shipped===true)||((operation==='batch_ship'||operation==='batch_retire'||operation==='supersede_cue'||operation==='rebase_to_layout')&&(result as {liveCatalogChanged?:unknown}).liveCatalogChanged===true)){
   const {relayConfigured}=await import('./relay');
   if(relayConfigured()){
    try{const {syncLiveCatalog}=await import('./sync-live-catalog');await syncLiveCatalog()}

@@ -1427,6 +1427,62 @@
   }
  },
  {
+  "name": "batch_retire",
+  "description": "Retire up to 200 published graphics in one call: each item is one retire_cue (the graphic leaves the live library, Companion's picker and the relay catalog, and its name is free for the next ship), with its own expectedVersion. Dry run by default: says, per item, would-retire, already-retired or refused with retire_cue's own reason, and changes nothing. With dryRun:false each item runs retire_cue in turn; a refused item is reported and the rest still run. A part of a multipart set retires alone, as with retire_cue, and the item warns when other published parts are not in the call. Archived-but-published graphics come ready as items in find_catalog_issues' batchRetire. restore_cue brings one back.",
+  "inputSchema": {
+   "type": "object",
+   "$schema": "https://json-schema.org/draft/2020-12/schema",
+   "properties": {
+    "items": {
+     "minItems": 1,
+     "maxItems": 200,
+     "type": "array",
+     "items": {
+      "type": "object",
+      "properties": {
+       "draftId": {
+        "type": "string",
+        "minLength": 1,
+        "maxLength": 200,
+        "description": "The published graphic to retire: its draft id, which is its cue id (as retire_cue's cueId)."
+       },
+       "expectedVersion": {
+        "type": "integer",
+        "minimum": 1,
+        "maximum": 9007199254740991,
+        "description": "The draft version you last read. A change made elsewhere since then fails this item and leaves the rest running."
+       }
+      },
+      "required": [
+       "draftId",
+       "expectedVersion"
+      ],
+      "additionalProperties": false
+     }
+    },
+    "dryRun": {
+     "description": "Default true: say what would happen and change nothing. Pass false to apply.",
+     "type": "boolean"
+    },
+    "workspace": {
+     "type": "string",
+     "minLength": 1,
+     "maxLength": 80,
+     "description": "Which congregation this call is for. This connection serves 'crc' (CRC) only."
+    }
+   },
+   "required": [
+    "items",
+    "workspace"
+   ]
+  },
+  "annotations": {
+   "readOnlyHint": false,
+   "destructiveHint": true,
+   "idempotentHint": true
+  }
+ },
+ {
   "name": "batch_ship",
   "description": "Publish many drafts: one ship_draft per item (server fit check, approval, publish), each item with its own expectedVersion. Dry run by default: checks each item (version, validation, name clash) without opening a browser. With dryRun:false it ships items until about 40 seconds have passed, then returns nextCursor: call again with the same items and that cursor to continue. Per-item results say shipped, stopped (stoppedAt and why, nothing published), failed, or already_published (skipped, so repeating a call is safe). Frames are not returned; use ship_draft for one graphic with its image. Publishes to the catalog; puts nothing on screen.",
   "inputSchema": {
