@@ -1,4 +1,7 @@
+import { fontWaits } from "./font-registry.ts";
+
 const HEBREW_SAMPLE = "שְׁמַע יִשְׂרָאֵל";
+const LATIN_SAMPLE = "Shabbat Shalom";
 export const OVERLAY_ASSET_TIMEOUT_MS = 8000;
 
 export function overlayAssetUrl(cue: { presentation?: { imageAssetId?: string } }, audience: "preview" | "content") {
@@ -59,29 +62,19 @@ function settledImage(image: HTMLImageElement, failure: string, label: string, d
 
 export async function waitForOverlayFonts(signal?: AbortSignal, faces: 'default' | 'book' = 'default') {
   await withDeadline(signal, async (deadline) => {
-    const loads = [
-      document.fonts.load('400 40px "Noto Sans Hebrew"', HEBREW_SAMPLE),
-      document.fonts.load('500 40px "Noto Sans Hebrew"', HEBREW_SAMPLE),
-      document.fonts.load('400 40px "WorkRefresh"', "Shabbat Shalom"),
-      document.fonts.load('500 40px "WorkRefresh"', "Shabbat Shalom"),
-    ];
+    const sample = (script: 'hebrew' | 'latin') => script === 'hebrew' ? HEBREW_SAMPLE : LATIN_SAMPLE;
+    const load = ({family, weight, sample: script}: ReturnType<typeof fontWaits>[number]) => document.fonts.load(`${weight} 40px "${family}"`, sample(script));
+    const loads = fontWaits('default').map(load);
     // The book faces are a typography trial layered over the required faces. A missing or
     // broken book face must never keep the output page from starting, so their loads are
     // awaited but swallowed: the CSS font stack falls back to the default faces.
-    const bookLoads = faces === 'book'
-      ? [
-          document.fonts.load('400 40px "David Libre"', HEBREW_SAMPLE),
-          document.fonts.load('500 40px "David Libre"', HEBREW_SAMPLE),
-          document.fonts.load('400 40px "Frank Ruhl Libre"', "Shabbat Shalom"),
-          document.fonts.load('500 40px "Frank Ruhl Libre"', "Shabbat Shalom"),
-        ].map((load) => load.catch(() => []))
-      : [];
+    const bookLoads = faces === 'book' ? fontWaits('book').map((face) => load(face).catch(() => [])) : [];
     await bounded(Promise.all([...loads, ...bookLoads]), "Overlay font loading", deadline);
     await bounded(document.fonts.ready, "Overlay font readiness", deadline);
-    if (!document.fonts.check('400 40px "Noto Sans Hebrew"', HEBREW_SAMPLE))
-      throw Error("The Hebrew overlay font is not ready.");
-    if (!document.fonts.check('400 40px "WorkRefresh"', "Shabbat Shalom"))
-      throw Error("The overlay font is not ready.");
+    // One check per required family at its regular weight.
+    for (const {family, sample: script} of fontWaits('default').filter(({weight}) => weight === '400'))
+      if (!document.fonts.check(`400 40px "${family}"`, sample(script)))
+        throw Error(script === 'hebrew' ? "The Hebrew overlay font is not ready." : "The overlay font is not ready.");
   });
 }
 
