@@ -89,6 +89,13 @@ app/api/catalog/route.ts and lib/sync-live-catalog.ts; L2 and C5 add envelope-on
   app/author/look-drawer.tsx by a test. GATE: shared-library descriptions don't say CRC (TBI rule).
 - Known follow-ups from A1: update_draft patch doesn't map a TBI templateCueId; web /api/slots has no
   version check; preview_content's real server fit is covered only by a stubbed runner.
+- C1 merged (a7651bd): lib/companion-deck/{model,render,seed,extract,repository}.ts; renderDeck(seed)
+  reproduces the released CRC preset byte for byte (gzip bfc718e1…, JSON 52d1da91…; 56 pages, 1460
+  buttons). db/companion-decks.sql written, not applied. Gate after merge: tsc clean, npm test 939+38 pass,
+  lint 0 errors, audit-companion-packages ok.
+- GATE: C1's seed is derived from the released preset, not Michael's raw export (the generator no longer
+  needs the raw export; GAP-ANALYSIS §7's "can't run without it" is now historical); each button stores
+  its own id seed so edits never renumber other buttons; TBI page template is provisional until C4.
 
 ## Evidence
 Four read-only audits (MCP surface, layouts/renderer, Companion, live/services/access) plus a
