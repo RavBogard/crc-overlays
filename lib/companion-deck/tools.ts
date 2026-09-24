@@ -25,8 +25,8 @@ import {
 import {DeckConflictError, MemoryCompanionDeckRepository, type CompanionDeckRepository, type StoredDeck} from './repository.ts'
 import {PgCompanionDeckRepository} from './postgres-repository.ts'
 import {AuthoringError, isRetiredDraft, type Draft} from '../authoring-model.ts'
-import {readImportText, type ImportRepository} from '../imports.ts'
-import type {BuildKeyRepository} from '../build-keys.ts'
+import {defaultImportRepository, readImportText, type ImportRepository} from '../imports.ts'
+import {defaultBuildKeyRepository, type BuildKeyRepository} from '../build-keys.ts'
 import {DeckPlanError, GRAPHIC_KINDS, deckPlanFromRows, deckPlanFromText, layDeckPlan, type PlanCue, type PlanOutcome, type PlanResolution, type PlanRow} from './deck-plan.ts'
 import {EXPORT_LINK_MS, EXPORT_ROUTE, exportFileName, exportSigningKey, fullExport, signExport} from './export.ts'
 import {buttonText, validateDeck, type Finding, type ModuleDefinitions, type ValidationResult} from './validate.ts'
@@ -919,20 +919,11 @@ async function sync(r: Resolved, input: Input<'sync_deck_with_catalog'>, actor: 
 
 /* ------------------------------------------------------------ deck plan (G6) --- */
 
-// Until G1 and G3 land their defaults (defaultImportRepository, defaultBuildKeyRepository), a deployment has
-// no import store and reads build keys from db/build-keys.sql.
 async function planImports(r: Resolved): Promise<ImportRepository> {
-  if (r.imports) return r.imports
-  const mod = (await import('../imports.ts')) as unknown as {defaultImportRepository?: () => ImportRepository}
-  if (mod.defaultImportRepository) return mod.defaultImportRepository()
-  throw refuse('File intake (open_import_dropzone) is not available on this deployment yet, so there is no import to read. Pass the plan as rows instead. Nothing was changed.', 'imports_unavailable', 503)
+  return r.imports ?? defaultImportRepository()
 }
 async function planBuildKeys(r: Resolved): Promise<BuildKeyRepository> {
-  if (r.buildKeys) return r.buildKeys
-  const mod = (await import('../build-keys.ts')) as unknown as {defaultBuildKeyRepository?: () => BuildKeyRepository; PgBuildKeyRepository: new (workspaceId: string) => BuildKeyRepository}
-  if (mod.defaultBuildKeyRepository) return mod.defaultBuildKeyRepository()
-  const {getPublicWorkspace} = await import('../workspace')
-  return new mod.PgBuildKeyRepository(getPublicWorkspace().id)
+  return r.buildKeys ?? defaultBuildKeyRepository()
 }
 
 async function planRows(r: Resolved, input: Input<'apply_deck_plan'>): Promise<PlanRow[]> {
