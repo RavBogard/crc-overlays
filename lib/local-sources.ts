@@ -217,6 +217,8 @@ export async function localSourceOperation(operation:string,data:Record<string,u
   if(current.version!==expected)throw conflict();
   const has=(key:string)=>data[key]!==undefined;
   const name=has('name')?field(data.name,'a name',LOCAL_SOURCE_LIMITS.name,true)!:current.name,book=has('book')?field(data.book,'a book',LOCAL_SOURCE_LIMITS.book,true)!:current.book,at=has('page')?page(data.page):current.page;
+  // A rename or move gets the same one-name-per-page rule add_local_source applies.
+  if(has('name')||has('book')||has('page')){const duplicate=(await deps.sources.list()).find(record=>record.id!==id&&record.page===at&&normalizedBook(record.book)===normalizedBook(book)&&normalizedName(record.name)===normalizedName(name));if(duplicate)throw new AuthoringError('local_source_exists',`${book} page ${at} already has a local source named "${duplicate.name}" (${duplicate.id}, version ${duplicate.version}). Give this one a different name, or change that one instead. Nothing was changed.`,409,{sourceId:duplicate.id})}
   // null clears an optional field; undefined leaves it as it was.
   const optional=(key:'section'|'service'|'licence',max:number)=>data[key]===null?null:has(key)?field(data[key],key,max,false):current[key];
   const next={id,name,book,page:at,section:optional('section',LOCAL_SOURCE_LIMITS.section),attribution:has('attribution')?field(data.attribution,'attribution',LOCAL_SOURCE_LIMITS.attribution,true)!:current.attribution,licence:optional('licence',LOCAL_SOURCE_LIMITS.licence),blocks:has('blocks')?blocks(data.blocks):current.blocks};

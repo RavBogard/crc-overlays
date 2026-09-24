@@ -129,6 +129,11 @@ test('refusals are sentences that say what to do next',async()=>{
  await refused({page:0},/page must be the printed page number/);
  assert.equal((await call('add_local_source',READING)).isError,false);
  await refused({},/already has a local source named "For the Gift of Shabbat".*update_local_source/);
+ // A rename onto a name already on that page is refused the same way; a different name on it is fine.
+ const other=await call('add_local_source',{...READING,name:'Another reading'});assert.equal(other.isError,false,other.text);
+ const renamed=await call('update_local_source',{sourceId:other.output.source.id,expectedVersion:other.output.source.version,name:'for the gift of shabbat'});
+ assert.equal(renamed.isError,true);assert.match(renamed.text,/already has a local source named "For the Gift of Shabbat".*Nothing was changed/);
+ assert.equal((await call('update_local_source',{sourceId:other.output.source.id,expectedVersion:other.output.source.version,name:'Another reading, revised'})).isError,false);
  const service=createAuthoringService(new MemoryAuthoringRepository());
  await assert.rejects(service.operation('add_local_source',{...READING,blocks:[]},'tester'),(error:unknown)=>error instanceof AuthoringError&&/at least one block of text/.test(error.message));
  await assert.rejects(service.operation('add_local_source',{...READING,colour:'red'},'tester'),(error:unknown)=>error instanceof AuthoringError&&/cannot take colour/.test(error.message));

@@ -22,6 +22,9 @@ export async function GET(request:Request){
  try{
   const current=await catalog();
   const register=slotCueRegister();
+  // Each slot's draft version, handed back on Save so one person's Save can't silently replace another's.
+  const listed=await authoringOperation('list_slots',{},actor.id) as {slots:{key:string;version:number|null}[]};
+  const versions=Object.fromEntries(listed.slots.filter(slot=>slot.version!==null).map(slot=>[slot.key,slot.version]));
   const values=Object.fromEntries(slotIndex(current.cues,register).map(slot=>[slot.key,slot.text]));
   return json({
    serviceTypes:SERVICE_TYPES,
@@ -30,6 +33,7 @@ export async function GET(request:Request){
    // A slot with no published graphic yet cannot be typed into. Saying so on the page is
    // better than a field that silently refuses on Save.
    minted:SLOTS.filter(slot=>register.has(slot.key)).map(slot=>slot.key),
+   versions,
   });
  }catch{return json({error:'The slot list is unavailable right now.'},503)}
 }
@@ -41,6 +45,8 @@ export async function POST(request:Request){
   if(!body||typeof body!=='object'||Array.isArray(body))throw new AuthoringError('invalid_input','Body must be an object');
   return json(await authoringOperation('save_slots',body,actor.id));
  }catch(error){
+  // The MCP wording says to call list_slots; on the page the remedy is a reload.
+  if(error instanceof AuthoringError&&error.code==='version_conflict')return json({error:'Someone else saved this service’s text after this page loaded. Reload the page to see it, then make your change again. Nothing was saved.',code:error.code},409);
   if(error instanceof AuthoringError)return json({error:error.message,code:error.code,...publicErrorDetails(error.details)},error.status);
   console.error('Slot save failed');return json({error:'The slot service is unavailable right now.',code:'slots_unavailable'},503);
  }

@@ -20,7 +20,7 @@ import type {AccessRole} from '@/lib/access';
 import {SLOT_LINE_MAX,slotFieldsFromText,slotTextFromFields,slotTextProblems,type ServiceTypeDefinition,type SlotDefinition} from '@/lib/slots';
 import './this-service.css';
 
-type Payload={serviceTypes:ServiceTypeDefinition[];slots:SlotDefinition[];values:Record<string,string>;minted:string[]};
+type Payload={serviceTypes:ServiceTypeDefinition[];slots:SlotDefinition[];values:Record<string,string>;minted:string[];versions?:Record<string,number>};
 type Fields=Record<string,string[]>;
 
 const fieldsFrom=(slots:SlotDefinition[],values:Record<string,string>):Fields=>
@@ -97,7 +97,8 @@ export default function ThisServicePage(){
   setSaving(true);setError('');setNotice('');
   try{
    const values=Object.fromEntries(shown.filter(slot=>payload.minted.includes(slot.key)).map(slot=>[slot.key,slotTextFromFields(slot,fields[slot.key]??[])]));
-   const response=await fetch('/api/slots',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({serviceType,values})});
+   const expectedVersions=Object.fromEntries(Object.keys(values).flatMap(key=>payload.versions?.[key]?[[key,payload.versions[key]]]:[]));
+   const response=await fetch('/api/slots',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({serviceType,values,...(Object.keys(expectedVersions).length?{expectedVersions}:{})})});
    const data=await response.json() as {published?:number;error?:string;warning?:string};
    if(!response.ok)throw new Error(data.error||'The save did not go through.');
    setNotice(data.warning??(data.published?`Saved. ${data.published} ${data.published===1?'graphic is':'graphics are'} on the new text.`:'Saved. Nothing had changed.'));
