@@ -36,7 +36,22 @@ export type BrowserMeasurement={viewportWidth:number;viewportHeight:number;fonts
  * `standingApproval` names what the receipt stands on, in place of the measurement, and only
  * the slot path writes one. The publish gate refuses a receipt that carries neither.
  */
-export type ReviewReceipt={humanApproved:true;browserMeasurement?:BrowserMeasurement;standingApproval?:string;reviewedAt:number;reviewedBy:string};
+/**
+ * R-A1 - who approved: `agent` (an MCP actor, on the server's own fit check) or `person` (a
+ * signed-in member, or anything that is not an MCP actor), and the member behind it - the
+ * approving member for an agent's connection, the member id itself for a person. Receipts
+ * written before R-A1 carry only `humanApproved:true`, which still satisfies the publish gate;
+ * a person's receipt keeps writing it, an agent's no longer claims it.
+ */
+export type ReviewApprover='agent'|'person';
+export type ReviewReceipt={approvedBy?:ReviewApprover;member?:string|null;humanApproved?:true;browserMeasurement?:BrowserMeasurement;standingApproval?:string;reviewedAt:number;reviewedBy:string};
+/** R-A2 - the frame the server fit captured, kept with its preview so a person sees what the agent saw. */
+export type StoredFitImage={mimeType:'image/jpeg'|'image/png';width:number;height:number;data:Buffer};
+export type StoredFitImageInfo={mimeType:string;width:number;height:number;byteSize:number};
+/** The screenshot cap in lib/server-fit.ts; a stored frame is never larger than one it can return. */
+export const STORED_FIT_IMAGE_MAX_BYTES=750_000;
+/** One publication as `list_recent_publications` reads it: the revision without its cue body. */
+export type PublicationRecord={draftId:string;revision:number;draftVersion:number;cueHash:string;previewId:string|null;review:ReviewReceipt|null;actor:string;createdAt:number;name:string;layout:string;texts:Record<string,unknown>};
 // D17/D18 - the server-attested fit measurement `fit_check_draft` writes onto the preview it
 // measured. It is version-bound by construction: it lives on one preview, which is already
 // bound to one draft version and one cue hash.
@@ -59,6 +74,8 @@ export interface AuthoringRepository{
  publish(id:string,expectedVersion:number,previewId:string,actor:string):Promise<Revision>;
  revisions(id:string):Promise<Revision[]>; rollback(id:string,expectedVersion:number,revision:number,actor:string):Promise<{draft:Draft;revision:Revision}>;
  published():Promise<AuthoringCue[]>;
+ saveFitImage(previewId:string,image:StoredFitImage):Promise<void>; getFitImage(previewId:string):Promise<StoredFitImage|null>; fitImageInfo(previewIds:string[]):Promise<Map<string,StoredFitImageInfo>>;
+ recentPublications(since:number,limit:number,publisher?:ReviewApprover):Promise<PublicationRecord[]>;
 }
 
 const object=(value:unknown,label='input')=>{if(!value||typeof value!=='object'||Array.isArray(value))throw new AuthoringError('invalid_input',`${label} must be an object`);return value as Record<string,unknown>};
@@ -580,13 +597,19 @@ export function createAuthoringService(repo:AuthoringRepository,workspace:Author
     return {verdict:'unavailable',reason:result.reason,fitCheckUrl:`/author/fit-check?draft=${encodeURIComponent(draft.id)}`,message:FIT_CHECK_UNAVAILABLE};
    const fitCheck:ServerFitCheck={verdict:result.verdict,fitErrors:result.fitErrors,warnings:result.warnings,fill:result.fill,artwork:result.artwork,measuredAt:result.measuredAt,rendererVersion:result.rendererVersion};
    await repo.saveFitCheck(preview.id,fitCheck);
+   // R-A2 - the frame goes with the preview it measured, so the publications page later shows
+   // what the agent saw. Keeping it is best effort: a verdict never depends on the picture.
+   const imageStored=includePreviewImage&&result.previewImage?await storeFitImage(repo,preview.id,result.previewImage):false;
    // A pass whose artwork never loaded on the server is still a pass - findFitErrors never
    // evaluates artwork - but it says what it did not see rather than implying it did.
    const passMessage=fitCheck.artwork==='not-loaded'?FIT_CHECK_PASSED_NO_ARTWORK:FIT_CHECK_PASSED;
-   return {draftId:draft.id,draftVersion:draft.version,previewId:preview.id,cueHash:preview.cueHash,...fitCheck,...(includePreviewImage?{previewImage:result.previewImage??null,...(result.previewImageUnavailable?{previewImageUnavailable:result.previewImageUnavailable}:{})}:{}),...(fitCheck.verdict==='pass'?{message:passMessage}:{})};
+   return {draftId:draft.id,draftVersion:draft.version,previewId:preview.id,cueHash:preview.cueHash,...fitCheck,...(includePreviewImage?{previewImage:result.previewImage??null,imageStored,...(result.previewImageUnavailable?{previewImageUnavailable:result.previewImageUnavailable}:{})}:{}),...(fitCheck.verdict==='pass'?{message:passMessage}:{})};
   }
   if(operation==='review_draft'){
-   keys(data,['draftId','expectedVersion','previewId','browserMeasurement','humanApproved']);const draft=await versionedDraft(repo,string(data.draftId,'draftId'),integer(data.expectedVersion,'expectedVersion',1));assertSourcePin(draft);const preview=await requiredPreview(repo,string(data.previewId,'previewId'));if(preview.draftId!==draft.id||preview.draftVersion!==draft.version)throw new AuthoringError('stale_preview','Preview does not match this draft version',409);if(data.humanApproved!==true)throw new AuthoringError('review_required','Human approval is required',400);
+   keys(data,['draftId','expectedVersion','previewId','browserMeasurement','humanApproved']);const draft=await versionedDraft(repo,string(data.draftId,'draftId'),integer(data.expectedVersion,'expectedVersion',1));assertSourcePin(draft);const preview=await requiredPreview(repo,string(data.previewId,'previewId'));if(preview.draftId!==draft.id||preview.draftVersion!==draft.version)throw new AuthoringError('stale_preview','Preview does not match this draft version',409);
+   // R-A1 - calling review_draft is the approval; `humanApproved:true` is still accepted from
+   // existing clients, and anything else in it is refused rather than read as a yes.
+   if(data.humanApproved!==undefined&&data.humanApproved!==true)throw new AuthoringError('review_required','humanApproved can only be true. Leave it out to approve, or do not call review_draft.',400);
    // D18 - where the measurement may come from depends on who is asking.
    //
    // The web dock path (a signed-in member measuring in their own browser) is unchanged: it
@@ -594,9 +617,9 @@ export function createAuthoringService(repo:AuthoringRepository,workspace:Author
    // a real session. An MCP actor cannot be trusted to have rendered anything, so for it only
    // a stored, server-attested measurement counts - the one `fit_check_draft` wrote onto this
    // exact preview with a `server-chromium/` renderer. A hand-asserted measurement from an MCP
-   // actor is ignored and the call is refused. `humanApproved` keeps exactly today's meaning.
+   // actor is ignored and the call is refused. The receipt says which it was (`approvedBy`).
    const measurement=isMcpActor(who)?attestedMeasurement(preview):assertedMeasurement(data);
-   const review:ReviewReceipt={humanApproved:true,browserMeasurement:measurement,reviewedAt:Date.now(),reviewedBy:who};await repo.saveReview(preview.id,review);return {draftId:draft.id,draftVersion:draft.version,previewId:preview.id,cueHash:preview.cueHash,review};
+   const review=reviewReceipt(who,{browserMeasurement:measurement});await repo.saveReview(preview.id,review);return {draftId:draft.id,draftVersion:draft.version,previewId:preview.id,cueHash:preview.cueHash,review};
   }
   // One Save on "This service", in one call: every slot of the chosen service type whose
   // text changed is republished, and nothing else is touched. No review round trip and no
@@ -655,10 +678,50 @@ export function createAuthoringService(repo:AuthoringRepository,workspace:Author
     const renamedCue=buildCue(renamed);
     const preview:PreviewRecord={id:randomUUID(),draftId:renamed.id,draftVersion:renamed.version,cueHash:cueHash(renamedCue),cue:renamedCue,validation:previewValidation(renamedCue),review:null,createdAt:Date.now(),createdBy:who};
     await repo.insertPreview(preview);await repo.saveReview(preview.id,approved.review!);
+    // The measurement and its frame travel with the review, so the renamed publication still
+    // shows what was checked (R-A2). Best effort: the receipt above is what the gate reads.
+    if(approved.fitCheck)await repo.saveFitCheck(preview.id,approved.fitCheck);
+    try{const image=await repo.getFitImage(approved.id);if(image)await repo.saveFitImage(preview.id,image)}catch{/* no stored frame; publication proceeds */}
     const renamedRevision=await repo.publish(renamed.id,renamed.version,preview.id,who);
     return {revision:renamedRevision,cue:renamedRevision.cue,draft:renamed,renamedFrom:draft.name,previewId:preview.id};
    }
    const revision=await repo.publish(draft.id,draft.version,previewId,who);return {revision,cue:revision.cue};
+  }
+  // R-A1 - preview, server fit with its frame, attested review and publish in one call, each
+  // step the operation above it. It stops, having published nothing, at the first thing a
+  // person would have to decide: a name already in use (unless allowRename takes the
+  // suggestion), a fit problem (the renderer's own sentences, with the frame), or a server that
+  // could not open a browser. The review is always the attested one, whoever calls: the check
+  // it stands on is the one this call just ran.
+  if(operation==='ship_draft'){
+   keys(data,['draftId','expectedVersion','allowRename']);
+   const draftId=string(data.draftId,'draftId'),expectedVersion=integer(data.expectedVersion,'expectedVersion',1),allowRename=optionalBoolean(data.allowRename,'allowRename')===true;
+   const draft=await versionedDraft(repo,draftId,expectedVersion);assertSourcePin(draft);
+   const {publishedNames,taken}=await libraryNames(draft.id);
+   if(publishedNames.has(normalizeGraphicName(draft.name))&&!allowRename){const suggestedName=suggestGraphicName(draft.name,draft.layout,taken);return {shipped:false,stoppedAt:'duplicate_name',draftId,draftVersion:draft.version,name:draft.name,suggestedName,message:`Another published graphic is already named "${draft.name}". Nothing was published. Call ship_draft again with allowRename:true to publish it as "${suggestedName}", or rename the draft first.`}}
+   const preview=await execute('preview_draft',{draftId,expectedVersion},who) as {previewId:string;validation:{valid:boolean;errors:string[]}};
+   if(!preview.validation.valid)return {shipped:false,stoppedAt:'validation',draftId,draftVersion:draft.version,previewId:preview.previewId,validation:preview.validation,message:`${preview.validation.errors.join(' ')} Nothing was published.`};
+   const fit=await execute('fit_check_draft',{draftId,expectedVersion,previewId:preview.previewId,includePreviewImage:true},who) as Record<string,unknown>&{verdict:string};
+   if(fit.verdict==='unavailable')return {shipped:false,stoppedAt:'fit_unavailable',draftId,draftVersion:draft.version,previewId:preview.previewId,verdict:'unavailable',reason:fit.reason,fitCheckUrl:fit.fitCheckUrl,message:`${FIT_CHECK_UNAVAILABLE} Nothing was published.`};
+   const measured=Object.fromEntries(Object.entries(fit).filter(([key])=>!['draftId','draftVersion','previewId','cueHash'].includes(key)));
+   if(fit.verdict!=='pass')return {shipped:false,stoppedAt:'fit_failed',draftId,draftVersion:draft.version,previewId:preview.previewId,...measured,message:`${(fit.fitErrors as string[]).join(' ')} Nothing was published.`};
+   const checked=await requiredPreview(repo,preview.previewId);
+   await repo.saveReview(checked.id,reviewReceipt(who,{browserMeasurement:attestedMeasurement(checked)}));
+   const published=await execute('publish_draft',{draftId,expectedVersion,previewId:preview.previewId,...(allowRename?{confirmDuplicateName:true}:{})},who) as {revision:Revision;draft?:Draft;renamedFrom?:string;previewId?:string};
+   const revision=published.revision;
+   return {shipped:true,draftId,draftVersion:published.draft?.version??draft.version,name:revision.cue.name,...(published.renamedFrom?{renamedFrom:published.renamedFrom}:{}),revision:revision.revision,cueHash:revision.cueHash,previewId:published.previewId??preview.previewId,review:revision.review,...measured,message:`Published "${revision.cue.name}". ${String(measured.message??FIT_CHECK_PASSED)}`};
+  }
+  // R-A2 - what was published since a moment, newest first, with who approved it and whether
+  // it is still the live version. Read only; rollback_draft undoes one.
+  if(operation==='list_recent_publications'){
+   keys(data,['since','actor','limit']);
+   const since=data.since===undefined?Date.now()-7*24*60*60*1000:integer(data.since,'since',0);
+   const limit=data.limit===undefined?50:integer(data.limit,'limit',1,200);
+   if(data.actor!==undefined&&data.actor!=='agent'&&data.actor!=='person')throw new AuthoringError('invalid_input',"actor must be 'agent' or 'person'");
+   const rows=await repo.recentPublications(since,limit,data.actor as ReviewApprover|undefined);
+   const [drafts,images]=await Promise.all([Promise.all([...new Set(rows.map(row=>row.draftId))].map(id=>repo.getDraft(id))),repo.fitImageInfo(rows.flatMap(row=>row.previewId?[row.previewId]:[])).catch(()=>new Map<string,StoredFitImageInfo>())]);
+   const byId=new Map(drafts.filter((item):item is Draft=>Boolean(item)).map(item=>[item.id,item]));
+   return {since,publications:rows.map(row=>{const current=byId.get(row.draftId),live=current?.activeRevision===row.revision,image=row.previewId?images.get(row.previewId):undefined;const approver=row.review?.approvedBy??(row.review?.humanApproved?'person':null);return {draftId:row.draftId,name:row.name,layout:row.layout,excerpt:publicationExcerpt(row.texts),revision:row.revision,publishedAt:row.createdAt,publishedBy:isMcpActor(row.actor)?'agent':'person',approvedBy:approver,member:row.review?.member??(approver==='person'?row.review?.reviewedBy??null:null),standingApproval:Boolean(row.review?.standingApproval),current:live,archived:Boolean(current?.archivedAt),draftVersion:current?.version??null,rollbackTo:live&&row.revision>1?row.revision-1:null,previewId:row.previewId,image:image?{width:image.width,height:image.height,mimeType:image.mimeType}:null}})};
   }
   if(operation==='list_revisions'){keys(data,['draftId']);const id=string(data.draftId,'draftId');await requiredDraft(repo,id);return {revisions:await repo.revisions(id)};}
   if(operation==='rollback_draft'){keys(data,['draftId','expectedVersion','revision']);const id=string(data.draftId,'draftId');const revision=integer(data.revision,'revision',1);const selected=(await repo.revisions(id)).find(row=>row.revision===revision);if(!selected)throw new AuthoringError('unknown_revision','Unknown revision',404);assertRevisionAuthority(selected.cue);const result=await repo.rollback(id,integer(data.expectedVersion,'expectedVersion',1),revision,who);return result;}
@@ -717,6 +780,11 @@ export class MemoryAuthoringRepository implements AuthoringRepository{
  async revisions(id:string){return clone(this.revisionRows.get(id)??[])}
  async rollback(id:string,v:number,revision:number,actor:string){const d=this.drafts.get(id);if(!d||d.version!==v)throw conflict();const row=(this.revisionRows.get(id)??[]).find(r=>r.revision===revision);if(!row)throw new AuthoringError('unknown_revision','Unknown revision',404);d.version++;d.activeRevision=row.revision;d.activeDraftVersion=row.draftVersion;d.updatedAt=Date.now();d.updatedBy=actor;return {draft:clone(d),revision:clone(row)}}
  async published(){return [...this.drafts.values()].filter(d=>d.activeRevision!==null).map(d=>clone((this.revisionRows.get(d.id)??[]).find(r=>r.revision===d.activeRevision)!.cue))}
+ images=new Map<string,StoredFitImage>();
+ async saveFitImage(id:string,image:StoredFitImage){if(!this.previews.has(id))throw new AuthoringError('unknown_preview','Unknown preview',404);this.images.set(id,{...image,data:Buffer.from(image.data)})}
+ async getFitImage(id:string){const image=this.images.get(id);return image?{...image,data:Buffer.from(image.data)}:null}
+ async fitImageInfo(ids:string[]){return new Map(ids.flatMap(id=>{const image=this.images.get(id);return image?[[id,{mimeType:image.mimeType,width:image.width,height:image.height,byteSize:image.data.byteLength}] as const]:[]}))}
+ async recentPublications(since:number,limit:number,publisher?:ReviewApprover){return [...this.revisionRows.values()].flat().filter(row=>row.createdAt>=since&&(!publisher||(publisher==='agent')===isMcpActor(row.actor))).sort((a,b)=>b.createdAt-a.createdAt||b.revision-a.revision).slice(0,limit).map(({cue,sourceCommits:_,...row})=>{void _;return clone({...row,name:cue.name,layout:cue.layout,texts:cue.texts as Record<string,unknown>})})}
 }
 
 /**
@@ -729,6 +797,30 @@ function assertedMeasurement(data:Record<string,unknown>):BrowserMeasurement{
  const m=object(data.browserMeasurement,'browserMeasurement');keys(m,['viewportWidth','viewportHeight','fontsReady','overflow','rendererVersion','measuredAt'],'browserMeasurement');
  if(m.viewportWidth!==1920||m.viewportHeight!==1080||m.fontsReady!==true||m.overflow!==false)throw new AuthoringError('fit_failed','Preview must be measured at 1920x1080 with loaded fonts and no overflow',409);
  return {viewportWidth:1920,viewportHeight:1080,fontsReady:true,overflow:false,rendererVersion:string(m.rendererVersion,'rendererVersion',80),measuredAt:integer(m.measuredAt,'measuredAt',1)};
+}
+/**
+ * Who approves, from the actor alone. An MCP actor is `mcp:<client>:member:<id>` (the member who
+ * consented, lib/oauth-store.ts actorMemberId); older and test actors name no member.
+ */
+export function reviewApprover(actor:string):{approvedBy:ReviewApprover;member:string|null}{
+ if(isMcpActor(actor))return {approvedBy:'agent',member:/^mcp:[0-9a-f]{1,64}:member:(.+)$/.exec(actor)?.[1]??null};
+ return {approvedBy:'person',member:actor};
+}
+function reviewReceipt(who:string,fields:Pick<ReviewReceipt,'browserMeasurement'|'standingApproval'>):ReviewReceipt{
+ const approver=reviewApprover(who);
+ return {...approver,...(approver.approvedBy==='person'?{humanApproved:true as const}:{}),...fields,reviewedAt:Date.now(),reviewedBy:who};
+}
+/** Keeps a server frame with its preview when it is a bounded JPEG or PNG; never throws. */
+async function storeFitImage(repo:AuthoringRepository,previewId:string,image:{mimeType:string;dataBase64:string;width:number;height:number}){
+ if(image.mimeType!=='image/jpeg'&&image.mimeType!=='image/png')return false;
+ const data=Buffer.from(image.dataBase64,'base64');
+ if(!data.byteLength||data.byteLength>STORED_FIT_IMAGE_MAX_BYTES)return false;
+ try{await repo.saveFitImage(previewId,{mimeType:image.mimeType,width:image.width,height:image.height,data});return true}catch{return false}
+}
+/** A publication's first words, for a list a person scans; no field names, no ids. */
+function publicationExcerpt(texts:Record<string,unknown>){
+ const flat=Object.entries(texts??{}).filter(([key,value])=>typeof value==='string'&&!/title/i.test(key)).map(([,value])=>String(value)).join(' ').replace(/<[^>]*>/g,' ').replace(/\s+/g,' ').trim();
+ return flat.length>120?`${flat.slice(0,119).trimEnd()}…`:flat;
 }
 /** The D18 path: only what a server browser measured on this preview, never what was claimed. */
 function attestedMeasurement(preview:PreviewRecord):BrowserMeasurement{
@@ -755,7 +847,7 @@ async function publishSlotText(repo:AuthoringRepository,key:string,cueId:string,
  if(!validation.valid)throw new AuthoringError('invalid_preview',validation.errors.join(' '),409);
  const preview:PreviewRecord={id:randomUUID(),draftId:updated.id,draftVersion:updated.version,cueHash:cueHash(cue),cue,validation,review:null,createdAt:Date.now(),createdBy:who};
  await repo.insertPreview(preview);
- await repo.saveReview(preview.id,{humanApproved:true,standingApproval:`slot:${key}`,reviewedAt:Date.now(),reviewedBy:who});
+ await repo.saveReview(preview.id,reviewReceipt(who,{standingApproval:`slot:${key}`}));
  await repo.publish(updated.id,updated.version,preview.id,who);
  return {key,cueId,text,published:true};
 }
@@ -764,7 +856,8 @@ function validatePublishPreview(draft:Draft,preview?:PreviewRecord){
  if(preview.draftId!==draft.id||preview.draftVersion!==draft.version)throw new AuthoringError('stale_preview','Preview does not match this draft version',409);
  if(!preview.validation.valid)throw new AuthoringError('invalid_preview','Preview validation failed',409);
  const review=preview.review;
- if(!review?.humanApproved)throw new AuthoringError('review_required','Exact-version browser fit review is required',409);
+ // A receipt from before R-A1 says humanApproved; a newer one says who approved.
+ if(!review||(review.humanApproved!==true&&review.approvedBy!=='agent'&&review.approvedBy!=='person'))throw new AuthoringError('review_required','Exact-version browser fit review is required',409);
  // A standing approval stands in for the measurement, and only for a slot's text. Everything
  // else still needs a browser that actually looked at this exact version.
  if(review.standingApproval)return;
@@ -848,7 +941,15 @@ export class PgAuthoringRepository implements AuthoringRepository{
  async revisions(id:string){return (await (await this.db()).query('SELECT draft_id AS "draftId",revision,draft_version AS "draftVersion",cue_hash AS "cueHash",cue,preview_id AS "previewId",review,actor,created_at AS "createdAt",source_commits AS "sourceCommits" FROM authoring_revisions WHERE draft_id=$1 ORDER BY revision DESC',[id])).rows}
  async rollback(id:string,v:number,revision:number,actor:string){const db=await this.db();const client=await db.connect();try{await client.query('BEGIN');const dr=await client.query('SELECT document FROM authoring_drafts WHERE id=$1 AND version=$2 FOR UPDATE',[id,v]);const d=dr.rows[0]?.document as Draft|undefined;if(!d)throw conflict();const rr=await client.query('SELECT draft_id AS "draftId",revision,draft_version AS "draftVersion",cue_hash AS "cueHash",cue,preview_id AS "previewId",review,actor,created_at AS "createdAt",source_commits AS "sourceCommits" FROM authoring_revisions WHERE draft_id=$1 AND revision=$2',[id,revision]);const row=rr.rows[0] as Revision|undefined;if(!row)throw new AuthoringError('unknown_revision','Unknown revision',404);d.version++;d.activeRevision=row.revision;d.activeDraftVersion=row.draftVersion;d.updatedAt=Date.now();d.updatedBy=actor;await client.query('UPDATE authoring_drafts SET document=$2,version=$3,active_revision=$4,active_draft_version=$5,updated_at=$6,updated_by=$7 WHERE id=$1',[id,d,d.version,row.revision,row.draftVersion,d.updatedAt,actor]);await client.query('COMMIT');return {draft:d,revision:row}}catch(e){await client.query('ROLLBACK');throw e}finally{client.release()}}
  async published(){return this.publishedCache()}
+ // R-A2 - frames live in their own table (db/authoring.sql), not in the preview row, so every
+ // getPreview stays as small as it was. Until that table exists the reads below answer "no
+ // frame" and a save fails, which the service treats as "not kept" - never as a failed check.
+ async saveFitImage(id:string,image:StoredFitImage){await (await this.db()).query('INSERT INTO authoring_preview_images(preview_id,mime_type,width,height,byte_size,data,created_at) VALUES($1,$2,$3,$4,$5,$6,$7) ON CONFLICT(preview_id) DO UPDATE SET mime_type=EXCLUDED.mime_type,width=EXCLUDED.width,height=EXCLUDED.height,byte_size=EXCLUDED.byte_size,data=EXCLUDED.data,created_at=EXCLUDED.created_at',[id,image.mimeType,image.width,image.height,image.data.byteLength,image.data,Date.now()])}
+ async getFitImage(id:string){try{const row=(await (await this.db()).query('SELECT mime_type AS "mimeType",width,height,data FROM authoring_preview_images WHERE preview_id=$1',[id])).rows[0] as StoredFitImage|undefined;return row??null}catch(error){if(missingTable(error))return null;throw error}}
+ async fitImageInfo(ids:string[]){if(!ids.length)return new Map<string,StoredFitImageInfo>();try{const rows=(await (await this.db()).query('SELECT preview_id AS "previewId",mime_type AS "mimeType",width,height,byte_size AS "byteSize" FROM authoring_preview_images WHERE preview_id=ANY($1::text[])',[ids])).rows as Array<StoredFitImageInfo&{previewId:string}>;return new Map(rows.map(({previewId,...info})=>[previewId,info]))}catch(error){if(missingTable(error))return new Map<string,StoredFitImageInfo>();throw error}}
+ async recentPublications(since:number,limit:number,publisher?:ReviewApprover){const filter=publisher==='agent'?" AND actor LIKE 'mcp:%'":publisher==='person'?" AND actor NOT LIKE 'mcp:%'":'';return (await (await this.db()).query(`SELECT draft_id AS "draftId",revision,draft_version AS "draftVersion",cue_hash AS "cueHash",preview_id AS "previewId",review,actor,created_at AS "createdAt",cue->>'name' AS name,cue->>'layout' AS layout,COALESCE(cue->'texts','{}'::jsonb) AS texts FROM authoring_revisions WHERE created_at>=$1${filter} ORDER BY created_at DESC,revision DESC LIMIT $2`,[since,limit])).rows.map((row:PublicationRecord&{createdAt:string|number})=>({...row,createdAt:Number(row.createdAt)}))}
 }
+const missingTable=(error:unknown)=>Boolean(error&&typeof error==='object'&&(error as {code?:unknown}).code==='42P01');
 
 export function authoringRepositoryMode(env:Partial<Pick<NodeJS.ProcessEnv,'CRC_AUTHORING_REHEARSAL'|'NODE_ENV'|'RELAY_URL'|'VERCEL'>>):AuthoringWorkspace{
  if(env.CRC_AUTHORING_REHEARSAL!=='1')return {rehearsal:false,storage:'postgres',label:null};
@@ -868,7 +969,7 @@ export async function authoringOperation(operation:string,input:unknown,actor:st
  const review=Object.hasOwn(SOURCE_REVIEW_OPERATIONS,operation)?SOURCE_REVIEW_OPERATIONS[operation]:undefined;
  if(review){const {sourceReviewOperation}=await import('./source-review');return sourceReviewOperation(review,input,actor)}
  const result=await defaults().operation(operation,input,actor);
- if(['publish_draft','save_slots','rollback_draft','import_cue'].includes(operation)){
+ if(['publish_draft','save_slots','rollback_draft','import_cue'].includes(operation)||(operation==='ship_draft'&&(result as {shipped?:unknown}).shipped===true)){
   const {relayConfigured}=await import('./relay');
   if(relayConfigured()){
    try{const {syncLiveCatalog}=await import('./sync-live-catalog');await syncLiveCatalog()}

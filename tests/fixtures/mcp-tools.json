@@ -1489,7 +1489,7 @@
  },
  {
   "name": "fit_check_draft",
-  "description": "Measure a version-bound preview in a real browser on the server and store the result on that preview. Optional preview image is ephemeral and is never stored. Returns pass, fail with the fit problems found, or unavailable with a web fit-check link.",
+  "description": "Measure a version-bound preview in a real browser on the server and store the result on that preview. includePreviewImage:true returns the frame as an image and keeps it with the preview, so the publications page can show what was checked. Returns pass, fail with the fit problems found, or unavailable with a web fit-check link.",
   "inputSchema": {
    "type": "object",
    "$schema": "https://json-schema.org/draft/2020-12/schema",
@@ -1902,6 +1902,42 @@
    "type": "object",
    "$schema": "https://json-schema.org/draft/2020-12/schema",
    "properties": {
+    "workspace": {
+     "type": "string",
+     "minLength": 1,
+     "maxLength": 80,
+     "description": "Which congregation this call is for. This connection serves 'crc' (CRC) only."
+    }
+   }
+  },
+  "annotations": {
+   "readOnlyHint": true
+  }
+ },
+ {
+  "name": "list_recent_publications",
+  "description": "List graphics published since a time (milliseconds since 1970; default the last 7 days), newest first: name, when, whether an agent or a person published and approved it, the member, whether it is still the live version, whether its checked frame was kept, and rollbackTo - the revision rollback_draft would restore. actor narrows to agent or person publications. Read only.",
+  "inputSchema": {
+   "type": "object",
+   "$schema": "https://json-schema.org/draft/2020-12/schema",
+   "properties": {
+    "since": {
+     "type": "integer",
+     "minimum": 0,
+     "maximum": 9007199254740991
+    },
+    "actor": {
+     "type": "string",
+     "enum": [
+      "agent",
+      "person"
+     ]
+    },
+    "limit": {
+     "type": "integer",
+     "minimum": 1,
+     "maximum": 200
+    },
     "workspace": {
      "type": "string",
      "minLength": 1,
@@ -2838,7 +2874,7 @@
  },
  {
   "name": "publish_draft",
-  "description": "Publish only a preview with a stored, exact-version human review receipt.",
+  "description": "Publish only a preview with a stored, exact-version review receipt. When another published graphic already has this name the publish is refused with a suggested name; confirmDuplicateName:true publishes under that suggestion instead.",
   "inputSchema": {
    "type": "object",
    "$schema": "https://json-schema.org/draft/2020-12/schema",
@@ -2857,6 +2893,9 @@
      "type": "string",
      "minLength": 1,
      "maxLength": 200
+    },
+    "confirmDuplicateName": {
+     "type": "boolean"
     },
     "workspace": {
      "type": "string",
@@ -3297,7 +3336,7 @@
  },
  {
   "name": "review_draft",
-  "description": "Record human approval for a preview this actor has already fit-checked on the server. The measurement is the stored server fit check; none can be supplied.",
+  "description": "Approve a preview this actor has already fit-checked on the server. The receipt records approvedBy agent and the member who connected you; the measurement is the stored server fit check, and none can be supplied. humanApproved is optional and accepted for older clients.",
   "inputSchema": {
    "type": "object",
    "$schema": "https://json-schema.org/draft/2020-12/schema",
@@ -3332,7 +3371,6 @@
     "draftId",
     "expectedVersion",
     "previewId",
-    "humanApproved",
     "workspace"
    ]
   },
@@ -3817,6 +3855,43 @@
   "annotations": {
    "readOnlyHint": false,
    "idempotentHint": true
+  }
+ },
+ {
+  "name": "ship_draft",
+  "description": "Publish a draft in one call: preview, server fit check with the frame returned as an image, approval on that check, and publish. Returns shipped:true with the image, verdict, revision and final name. Otherwise shipped:false and stoppedAt says why, with nothing published: duplicate_name (pass allowRename:true to publish under suggestedName), validation, fit_failed (the renderer's own sentences and the image) or fit_unavailable (open the fit-check link). Publishes to the catalog; puts nothing on screen.",
+  "inputSchema": {
+   "type": "object",
+   "$schema": "https://json-schema.org/draft/2020-12/schema",
+   "properties": {
+    "draftId": {
+     "type": "string",
+     "minLength": 1,
+     "maxLength": 200
+    },
+    "expectedVersion": {
+     "type": "integer",
+     "minimum": 1,
+     "maximum": 9007199254740991
+    },
+    "allowRename": {
+     "type": "boolean"
+    },
+    "workspace": {
+     "type": "string",
+     "minLength": 1,
+     "maxLength": 80,
+     "description": "Which congregation this call is for. This connection serves 'crc' (CRC) only."
+    }
+   },
+   "required": [
+    "draftId",
+    "expectedVersion",
+    "workspace"
+   ]
+  },
+  "annotations": {
+   "readOnlyHint": false
   }
  },
  {

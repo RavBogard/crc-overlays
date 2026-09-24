@@ -757,8 +757,9 @@ test('D18: an MCP actor cannot hand-assert a browser measurement, but the web do
  // After a server-attested pass the same call is accepted, and the receipt records the
  // renderer that actually measured rather than the one the caller claimed.
  await service.operation('fit_check_draft',{draftId,expectedVersion:1,previewId},'mcp:client');
- const reviewed=await service.operation('review_draft',{draftId,expectedVersion:1,previewId,browserMeasurement:measurement,humanApproved:true},'mcp:client') as {review:{humanApproved:boolean;browserMeasurement:{rendererVersion:string}}};
- assert.equal(reviewed.review.humanApproved,true);
+ const reviewed=await service.operation('review_draft',{draftId,expectedVersion:1,previewId,browserMeasurement:measurement,humanApproved:true},'mcp:client') as {review:{humanApproved?:boolean;approvedBy:string;browserMeasurement:{rendererVersion:string}}};
+ // R-A1 - an agent's receipt says an agent approved; it no longer claims a human did.
+ assert.equal(reviewed.review.approvedBy,'agent');assert.equal(reviewed.review.humanApproved,undefined);
  assert.ok(reviewed.review.browserMeasurement.rendererVersion.startsWith('server-chromium/'));
  assert.notEqual(reviewed.review.browserMeasurement.rendererVersion,measurement.rendererVersion);
  await service.operation('publish_draft',{draftId,expectedVersion:1,previewId},'mcp:client');
