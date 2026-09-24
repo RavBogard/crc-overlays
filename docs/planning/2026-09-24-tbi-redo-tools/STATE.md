@@ -41,10 +41,11 @@ changes, paired web release, push to main.
 | G7 | Raleway in the font registry (addendum) | merged; get_branding lists Raleway, preview_branding draws lower third + left panel in it (real Chrome), CRC golden stills 16/16 identical |
 | G8 | batch_retire (≤200, dry run default) + find_catalog_issues batchRetire input | merged; in memory 193 retired in 1 dry run + 1 apply, then batch_ship of 44 copies: 0 duplicate_name |
 | G9 | panels mixing English-only and Hebrew/transliteration blocks (G4 finding) | merged; bilingual selections take English-only blocks as their own rows in block order; real data: 30 mixed panels in 29 sources all build (119/119 panels); no cue or unit hash moved; Omer builds without includeTranslation |
-| G10 | accent title size/weight as branding data + re-fit published graphics (order: docs/planning/2026-09-23-tbi-redo/HANDOFF-CODE-2026-09-24-G10-accent-title.md) | worker running |
+| G10 | accent title size/weight as branding data + batch_refit | released 9bd67bc; CRC stills identical (12 layout + 16 corner), TBI 1.3/600 and 1.6/700 frames pass with real SemiBold/Bold loaded, batch_refit rehearsal dry run 6 total / 4 would re-check, live 4 pass |
 
 ## Evidence
 
+- Released 2026-09-24: G10 live as web 9bd67bc; TBI thread told in its STATE.md.
 - Released 2026-09-24: G9 live as web 186aa14. Every packet G1-G9 is live on both workspaces.
 - Released 2026-09-24: G7 and G8 live as web db34734 (RELEASE-STATE.md).
 - Released 2026-09-24: G1-G6 live on both workspaces as web 0c2e895 (RELEASE-STATE.md), tables 38 -> 40.
@@ -70,4 +71,5 @@ changes, paired web release, push to main.
 - G8: 27 TBI starter cues ('notFirstPass' in retire.json) are not in the retire plan and may still clash by name; run batch_ship as a dry run on TBI before shipping.
 - G9: an English passage in a bilingual graphic always shows (it is the text, not a translation). "In blocks" cuts at each English passage; on a lower third it joins the English line; corner/card layouts refuse it. The author editor has not been checked with a mixed draft.
 - G9: corpus-counting-the-omer with includeTranslation is still refused (block 0 has no authorized translation); without it, the corpus English shows as its own row. Pair them in the corpus instead?
+- G10: the right-panel accent is capped at 48px (scale ~1.41) and the lower third/card at the title line (40px), so higher scales only grow the left panel. A graphic with its own title size keeps it for its accent. Each re-check stores a 30-80 KB frame (~20 MB for all of TBI). Not yet proven on TBI production: preview on Aleinu 1 and batch_refit dry-run counts (the TBI thread's calls).
 - G8: batch_retire's per-item version conflict uses batch_update's sentence; an already-retired item answers already-retired whatever version was sent.

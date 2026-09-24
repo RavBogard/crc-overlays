@@ -4,7 +4,7 @@ What is deployed right now. Update this file on every release — it is the one 
 "what is live", and it is short so it can be read under pressure. The history is in
 `docs/planning/2026-09-deploys/` (25 deploy records, the release chain, the phase build notes).
 
-**Last updated: 2026-09-24** (TBI redo tools G9 mixed English/Hebrew panels released as web `186aa14`; before it G7 Raleway + G8 batch_retire as `db34734`; before it G1-G6 as `0c2e895`, two more tables; before it the MCP completeness plan: relays `e512d86`, web `6b76cbd`, ten new tables on both databases, `main` fast-forwarded to production. Before it, paired release `ebd4be4`: group tabs renamed; before it `3636857`, Michael's review — Corner layout, per-graphic row order, inline siddur wording edits with a Wording changes list, right-justified lower-third Hebrew title, honest siddur-picker preview. Evidence below under "Release 3636857".)
+**Last updated: 2026-09-24** (TBI redo tools G10 accent title typography + batch_refit released as web `9bd67bc`; before it G9 as `186aa14`; before it G7 Raleway + G8 batch_retire as `db34734`; before it G1-G6 as `0c2e895`, two more tables; before it the MCP completeness plan: relays `e512d86`, web `6b76cbd`, ten new tables on both databases, `main` fast-forwarded to production. Before it, paired release `ebd4be4`: group tabs renamed; before it `3636857`, Michael's review — Corner layout, per-graphic row order, inline siddur wording edits with a Wording changes list, right-justified lower-third Hebrew title, honest siddur-picker preview. Evidence below under "Release 3636857".)
 
 ## Web, per workspace
 
@@ -13,13 +13,19 @@ both were released together on 2026-09-23 UTC (2026-09-22 evening Central).
 
 | Workspace | Host | Deployed commit | How it got there |
 |---|---|---|---|
-| CRC | `overlays.centralreform.org` (alt `crc-overlays.vercel.app`) | `186aa14` | paired staged release, 2026-09-24, `dpl_4RbF5w3zCqZx7coDF4BNfLwHcVGr` (the Git integration also builds every push to `main`; `main` is at `186aa14`) |
-| TBI | `overlays.templebnaiisrael.com` (alt `tbi-overlays.vercel.app`) | `186aa14` | same paired run, 2026-09-24, `dpl_14VvL3Ui1rScQ587MSJt6WiJAUL6` |
+| CRC | `overlays.centralreform.org` (alt `crc-overlays.vercel.app`) | `9bd67bc` | paired staged release, 2026-09-24, `dpl_De5FNNZonmoUALq1zifdgecXTG7R` (the Git integration also builds every push to `main`; `main` is at `9bd67bc`) |
+| TBI | `overlays.templebnaiisrael.com` (alt `tbi-overlays.vercel.app`) | `9bd67bc` | same paired run, 2026-09-24, `dpl_241sQmuFAG4ALSkF6GzNnJFyNMzW` |
 
 This file is written after the release it describes, so the commit carrying these words is always one
 ahead of the shas in the table. That one commit is documentation: CRC's Git integration builds it by
 itself and TBI is not owed a release for it. Any commit that touches `app/`, `lib/`, `content/`,
 `components/`, `schemas/` or `workspaces/` **is** owed one.
+
+### Release 9bd67bc: TBI redo tools G10 (2026-09-24 UTC)
+
+- Branding `typography.accentTitle {scale, weight}` drawn through CSS variables only when stored; Noto Sans Hebrew SemiBold and Bold added (notofonts hinted TTF, pinned); `batch_refit` (133 MCP tools). CRC with nothing stored: 12 layout stills and 16 corner stills pixel-identical to 250c21a; cue hashes unchanged.
+- No migration, no relay change. Gates at `9bd67bc`: `tsc --noEmit`; `npm test` 1242 + 35 pass, 0 fail, 12 skipped; lint; `npm run build`.
+- Verified: CRC `dpl_De5FNNZonmoUALq1zifdgecXTG7R`, TBI `dpl_241sQmuFAG4ALSkF6GzNnJFyNMzW` Ready; four hosts 200 on `/health` and `/assets/NotoSansHebrew-Bold.ttf`. `main` fast-forwarded to `9bd67bc`.
 
 ### Release 186aa14: TBI redo tools G9 (2026-09-24 UTC)
 
