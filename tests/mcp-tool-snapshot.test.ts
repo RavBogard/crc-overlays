@@ -19,5 +19,5 @@ test('MCP tool list and schemas match the recorded snapshot',async()=>{
  const tools=[...body.result.tools].sort((a,b)=>a.name.localeCompare(b.name));
  const text=JSON.stringify(tools,null,1)+'\n';
  if(process.env.MCP_TOOL_SNAPSHOT==='write')writeFileSync(FIXTURE,text);
- assert.equal(text,readFileSync(FIXTURE,'utf8'));
+ assert.equal(text,readFileSync(FIXTURE,'utf8').replace(/\r\n/g,'\n'));
 });
