@@ -447,6 +447,15 @@ test('import_singular_extract: credentials refused in a sentence, strict shape, 
   assert.ok(converted.rows.every((r) => r.reference))
 })
 
+test('import_singular_extract: a picture must be in the artwork library when the deployment can check', async () => {
+  const known = `asset_${'a'.repeat(64)}`, unknown = `asset_${'b'.repeat(64)}`
+  const deps: DeckConversionDeps = { workspace: 'tbi', repository: new MemoryCompanionDeckRepository(), cues: async () => shalomCues, committedSeed: async () => seedData, now: () => 1000, references: new MemorySingularReferenceRepository(), assetExists: async (id) => id === known }
+  const withPicture = (assetId: string) => { const e = extract(); (e.apps[0].subcompositions as Record<string, unknown>[])[0].imageAssetId = assetId; return e }
+  await assert.rejects(deckConversionOperation('import_singular_extract', { extract: withPicture(unknown) }, 'mcp:t', deps), (e: unknown) => e instanceof DeckConversionError && e.code === 'unknown_asset' && /^Nothing was imported: kab ".*" names picture asset_b+, which is not in this workspace's artwork library\. Upload it with upload_asset first, or leave imageAssetId out\.$/.test((e as Error).message))
+  const dry = await deckConversionOperation('import_singular_extract', { extract: withPicture(known) }, 'mcp:t', deps) as { apps: { withPicture: number }[] }
+  assert.equal(dry.apps[0].withPicture, 1)
+})
+
 test('import_singular_extract: a reference store that is not set up is a sentence, and conversion still runs', async () => {
   const missing = { get: async () => { throw Object.assign(new Error('relation "singular_references" does not exist'), { code: '42P01' }) }, put: async () => { throw new Error('unreachable') } }
   const deps: DeckConversionDeps = { workspace: 'tbi', repository: new MemoryCompanionDeckRepository(), cues: async () => catalog, committedSeed: async () => seedData, now: () => 1000, references: missing }

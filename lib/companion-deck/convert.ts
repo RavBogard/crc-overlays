@@ -582,6 +582,8 @@ export type DeckConversionDeps = {
   now(): number
   /** T3: where imported Singular reference material is kept. Left out, conversion runs without it (name matching only). */
   references?: SingularReferenceRepository | null
+  /** Whether an asset id names artwork in this workspace's library. Left out, imageAssetId is checked for its shape only. */
+  assetExists?: (id: string) => Promise<boolean>
 }
 
 let configuredRepository: CompanionDeckRepository | null = null
@@ -592,6 +594,7 @@ async function defaultDeps(): Promise<DeckConversionDeps> {
   const [{ getPublicWorkspace }, { authoringCatalog }, { isNamesCueId }, { defaultDeckRepository }, { defaultSingularReferenceRepository }] = await Promise.all([import('../workspace'), import('../server'), import('../names-list'), import('./tools.ts'), import('./singular-references.ts')])
   return {
     references: defaultSingularReferenceRepository(),
+    assetExists: async (id) => { const { defaultAssetRepository } = await import('../assets'); return Boolean(await defaultAssetRepository().get(id)) },
     workspace: getPublicWorkspace().id === 'temple-bnai-israel-kalamazoo' ? 'tbi' : 'crc',
     // One store for the deck: a deck seeded or converted here is the one get_deck reads and edits.
     repository: configuredRepository ?? defaultDeckRepository(),
@@ -784,6 +787,11 @@ async function importExtractOperation(data: Obj, actor: string, deps: DeckConver
   const dryRun = data.dryRun !== false
   const now = deps.now()
   const incoming: SingularReferenceApp[] = extract.apps.map((a) => ({ label: a.label, name: a.name ?? null, importedAt: now, importedBy: actor, compositions: referenceRecords(a) }))
+  if (deps.assetExists) {
+    for (const a of incoming) for (const c of a.compositions) {
+      if (c.imageAssetId && !(await deps.assetExists(c.imageAssetId))) refuse('unknown_asset', `Nothing was imported: ${a.label} "${c.name}" names picture ${c.imageAssetId}, which is not in this workspace's artwork library. Upload it with upload_asset first, or leave imageAssetId out.`, 404)
+    }
+  }
   let existing
   try { existing = deps.references ? await deps.references.get(deps.workspace) : null } catch (e) {
     if (isMissingTable(e)) refuse('reference_store_missing', REFERENCE_STORE_MISSING, 503)
