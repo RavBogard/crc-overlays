@@ -40,7 +40,7 @@ changes, paired web release, push to main.
 | G6 | apply_deck_plan | merged; real 282-row plan: dry run + apply, validate 0 errors / 0 warnings |
 | G7 | Raleway in the font registry (addendum) | merged; get_branding lists Raleway, preview_branding draws lower third + left panel in it (real Chrome), CRC golden stills 16/16 identical |
 | G8 | batch_retire (≤200, dry run default) + find_catalog_issues batchRetire input | merged; in memory 193 retired in 1 dry run + 1 apply, then batch_ship of 44 copies: 0 duplicate_name |
-| G9 | panels mixing English-only and Hebrew/transliteration blocks (G4 finding) | worker running |
+| G9 | panels mixing English-only and Hebrew/transliteration blocks (G4 finding) | merged; bilingual selections take English-only blocks as their own rows in block order; real data: 30 mixed panels in 29 sources all build (119/119 panels); no cue or unit hash moved; Omer builds without includeTranslation |
 
 ## Evidence
 
@@ -66,4 +66,6 @@ changes, paired web release, push to main.
 - G2: sharp loading on Vercel is unproven until the first large upload after release.
 - G7: panel transliteration/translation rows now follow the branding's Latin font (they were fixed to WorkRefresh); CRC unchanged. Raleway's OFL reserves the name and the files are subsets (same practice as Google Fonts). The scan-card caption and page pill stay WorkRefresh.
 - G8: 27 TBI starter cues ('notFirstPass' in retire.json) are not in the retire plan and may still clash by name; run batch_ship as a dry run on TBI before shipping.
+- G9: an English passage in a bilingual graphic always shows (it is the text, not a translation). "In blocks" cuts at each English passage; on a lower third it joins the English line; corner/card layouts refuse it. The author editor has not been checked with a mixed draft.
+- G9: corpus-counting-the-omer with includeTranslation is still refused (block 0 has no authorized translation); without it, the corpus English shows as its own row. Pair them in the corpus instead?
 - G8: batch_retire's per-item version conflict uses batch_update's sentence; an already-retired item answers already-retired whatever version was sent.
