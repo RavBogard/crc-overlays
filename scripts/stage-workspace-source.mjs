@@ -28,6 +28,9 @@ for(const directory of ['app','components','content','lib','schemas'])copy(direc
 for(const directory of ['hooks'])copyIfPresent(directory);
 for(const file of ['package.json','package-lock.json','next.config.ts','tsconfig.json','postcss.config.mjs','vercel.json','next-env.d.ts'])copy(file);
 copy('workspaces/temple-bnai-israel');
+// The deck tools (lib/companion-deck/tools.ts) import the packaged module definitions and the released
+// preset's cue manifest, so TBI's copy carries them (release e512d86 was refused at build without them).
+for(const file of ['companion/definitions.json','companion/definitions','docs/planning/2026-09-23-overlay-consistency/companion/CUE-MANIFEST.json'])copy(file);
 // The font files and their licences come from the font registry, so a face the stylesheets load cannot
 // be left out of TBI's copy (release f753093 served the Arabic face as a 404).
 for(const file of [...STAGED_FONT_ASSETS,'public/workspaces/temple-bnai-israel'])copy(file);

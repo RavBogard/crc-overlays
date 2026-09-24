@@ -8,6 +8,9 @@ node_modules
 # to prove the shipped parser tolerates new presence fields, so the Companion source must be uploaded too.
 companion/*
 !companion/src
+# the deck tools import the packaged module definitions (lib/companion-deck/tools.ts)
+!companion/definitions.json
+!companion/definitions
 # relay ships from relay/ with wrangler, but scripts/rehearsal-relay.ts and its test import relay/src/protocol.ts,
 # and Next type-checks scripts/ and tests/ on Vercel, so the relay source must be uploaded.
 relay/*
