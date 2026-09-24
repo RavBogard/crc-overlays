@@ -8,10 +8,22 @@ export type AliasCatalogCue=Cue&{hidden?:boolean;aliasOf?:string};
 export {db};
 export function authorized(request:Request,control=false){const token=request.headers.get('authorization')?.replace(/^Bearer /,'');return !!token&&((!!process.env.CONTROL_KEY&&token===process.env.CONTROL_KEY)||(!control&&!!process.env.OUTPUT_KEY&&token===process.env.OUTPUT_KEY));}
 export function json(value:unknown,status=200){return Response.json(value,{status,headers:{'Cache-Control':'no-store','Referrer-Policy':'no-referrer','X-Content-Type-Options':'nosniff'}})}
-export function mergePublishedCatalog(baseline:readonly AliasCatalogCue[],published:readonly Cue[]){
+/**
+ * `retired` (MCP plan A3) names cues withdrawn from the live library. A retired id leaves the
+ * catalog even when a built-in cue shares it, and a hidden alias that resolves to a retired cue
+ * leaves with it, so an old Companion button bound to the alias cannot bring the graphic back.
+ */
+export function mergePublishedCatalog(baseline:readonly AliasCatalogCue[],published:readonly Cue[],retired:ReadonlySet<string>=new Set()){
  const declarations=new Map(baseline.map(cue=>[cue.id,cue]));
  const active=new Map<string,AliasCatalogCue>(baseline.map(cue=>[cue.id,cue]));
  for(const cue of published)active.set(cue.id,cue);
+ const gone=(id:string,visiting:Set<string>):boolean=>{
+  if(retired.has(id))return true;
+  const declaration=declarations.get(id);
+  if(!declaration?.hidden||!declaration.aliasOf||visiting.has(id))return false;
+  visiting.add(id);return gone(declaration.aliasOf,visiting);
+ };
+ if(retired.size)for(const id of [...active.keys()])if(gone(id,new Set()))active.delete(id);
  const resolved=new Map<string,AliasCatalogCue>();
  const resolve=(id:string,visiting:Set<string>):AliasCatalogCue|undefined=>{
   if(resolved.has(id))return resolved.get(id);
@@ -38,8 +50,8 @@ export async function catalog(){return relayConfigured()?relayCatalog():authorin
  * `authoring_drafts`, `authoring_previews` or `authoring_revisions`, and never appear in
  * `publishedCues()`; clearing a list removes its panels from the very next read.
  */
-export function composeAuthoringCatalog(baseline:readonly AliasCatalogCue[],published:readonly Cue[],names:readonly Cue[]=[]){
- const items=[...mergePublishedCatalog(baseline,published),...names];
+export function composeAuthoringCatalog(baseline:readonly AliasCatalogCue[],published:readonly Cue[],names:readonly Cue[]=[],retired:ReadonlySet<string>=new Set()){
+ const items=[...mergePublishedCatalog(baseline,published,retired),...names];
  return {cues:items,version:createHash('sha256').update(JSON.stringify(items)).digest('hex').slice(0,16)};
 }
 // A signature cache in the shape of `publishedCache`: the collection rows carry their own
@@ -56,7 +68,9 @@ export async function serviceNamesCues():Promise<Cue[]>{
  namesCache={signature,value};
  return value;
 }
-export async function authoringCatalog(){const {publishedCues}=await import('./authoring');const [published,names]=await Promise.all([publishedCues(),serviceNamesCues()]);return composeAuthoringCatalog(baselineCatalogForWorkspace() as AliasCatalogCue[],published,names)}
+// The one composition /api/catalog (without a relay) and syncLiveCatalog both read, so a retired
+// cue leaves Companion's picker and the relay catalog together.
+export async function authoringCatalog(){const {publishedCues,retiredCues}=await import('./authoring');const [published,names,retired]=await Promise.all([publishedCues(),serviceNamesCues(),retiredCues()]);return composeAuthoringCatalog(baselineCatalogForWorkspace() as AliasCatalogCue[],published,names,new Set(retired.map(cue=>cue.id)))}
 export async function knownCue(id:unknown){return typeof id==='string'&&(await catalog()).cues.some(c=>c.id===id)}
 export const cues=baselineCatalogForWorkspace();
 let payloadCache:PayloadCache|null=null;

@@ -47,6 +47,14 @@ Clients can search licensed sources, inspect a source, list available cue templa
 
 The shortest source-backed path is two calls: `search_sources{query, includeBlocks:true}` returns each unit's block ids with their kind and first words, and `create_draft` takes those ids with no `templateCueId` (below). Neither `get_source` nor `list_templates` is needed when the defaults suit.
 
+### Retire is not archive (packet A3)
+
+- **Archive** (`archive_draft`, `archive_draft_set`) tidies the editor library. The published graphic keeps playing: it stays in `/api/catalog`, Companion's picker and the relay catalog.
+- **Retire** (`retire_cue{cueId, expectedVersion}`) withdraws a published graphic from every live surface: `/api/catalog`, Companion's picker, the relay catalog, and the shared library shelf. The draft and its revisions are kept; the draft's active revision is cleared and the one that was live is remembered (`draft.retired`). A retired id also hides a built-in cue with the same id and any hidden alias that resolves to it. The editor lists it under Drafts as "Retired · out of the live library" with a Return action; `list_catalog` rows and `list_drafts` rows carry `retired`. Prepared services flag entries and coverage rows bound to it (`retired`, `cueRetired`), and a covered row reads needs-review. `isRetired(cueId)` in `lib/authoring.ts` is the check for deck validation.
+- **Restore** (`restore_cue`) brings the remembered revision back with no new review. Publishing or rolling back a retired draft also brings it back; bulk publish skips retired drafts.
+- **On air.** A graphic on screen when it is retired stays on screen (the relay holds its payload and a sync is not a command); its own Out still works, Clear and Cut still work, and it cannot be put up again. See docs/RELAY-RELEASE.md.
+- A built-in graphic with no draft is refused with a sentence: import it (`import_cue`) first. A never-published draft is refused: archive it instead.
+
 ### Reads, looks and the editor's other operations (packet A1)
 
 - **Leaner reads.** `list_drafts` is compact by default: rows sorted by name and then set order, each with `set {id, index, count}`, `published`, `dirty` (published, and the draft has changes the live graphic lacks), `archived`, and an `excerpt` of what it reads (custom text included). `includeArchived` adds archived drafts; `nextCursor` pages in name order. `compact:false` still returns every full record. `get_draft{view:'rendered'}` returns what the graphic reads on screen plus its version, set and publish state, without snapshots; the default view is the full record. `search_sources` is compact by default (no licence or pin blocks; `compact:false` restores the legacy summaries), takes `book` and `service` filters, and lists block ids with `includeBlocks:true`.

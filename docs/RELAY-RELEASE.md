@@ -125,6 +125,23 @@ Release order: relay first, then the web (V2's `lib/live-command.ts` is the firs
 pass the extra answer fields through untouched: the command route returns the relay body as is,
 `lib/browser-realtime.ts` and the Companion client ignore unknown snapshot keys.
 
+## A graphic retired while on air (MCP plan A3, not yet released)
+
+Established by test before any change (tests/rehearsal-relay.test.ts, relay/tests/retirement.test.ts):
+`POST /catalog` never touches live state, so when a sync drops the pinned cue the relay keeps its
+revision, cue and payload, sends only the `catalog` frame, and an open output page keeps rendering
+its pinned copy (`withPinnedCue`). A new `in` for that cue is `400 Unknown cue`, as it should be. The
+unsafe part: an `out` naming it was also `400 Unknown cue`, so the operator's own Out button for the
+graphic stopped working mid-service and only Clear or Cut could take it down.
+
+Rule added in `decideCommand` (`outOfPinnedCue`): an `out` naming the cue that is pinned right now,
+whose payload the state holds, is accepted whether or not the catalog still has it. Everything else
+is unchanged: sequence, preconditions and receipts apply to it; an `out` for any other unknown cue is
+still refused. The cue log row keeps the held payload's source ids (`commandPayload`). Additive and
+backward compatible: no schema, no new fields, and a caller that never sends such an `out` sees no
+difference. Release order: relay first, then the web that can retire (a web that retires before the
+relay ships only brings back the old Clear/Cut-only behaviour for that one graphic).
+
 ## Rollback and first use
 
 From `relay/`, per worker — the two are independent: `npx wrangler deployments list [--env tbi]`

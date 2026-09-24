@@ -74,7 +74,16 @@ export type SharedCueOrigin={workspaceId:'crc';cueId:string;cueHash:string;impor
 export type DraftSetSelection={sourceId:string;blockId:string;channels:VariantChannel[]};
 export type DraftSetManifest={version:1;selections:DraftSetSelection[]};
 export type DraftSplitOrigin={draftId:string;draftVersion:number};
-export type Draft=EditableDraft&{id:string;version:number;sourcePin:SourcePin;activeRevision:number|null;activeDraftVersion:number|null;createdAt:number;updatedAt:number;createdBy:string;updatedBy:string;draftSetId?:string;setIndex?:number;setCount?:number;draftSetManifest?:DraftSetManifest;splitFrom?:DraftSplitOrigin;sourceSnapshots?:AuthoringSource[];sharedFrom?:SharedCueOrigin;archivedAt?:number;archivedBy?:string};
+export type Draft=EditableDraft&{id:string;version:number;sourcePin:SourcePin;activeRevision:number|null;activeDraftVersion:number|null;createdAt:number;updatedAt:number;createdBy:string;updatedBy:string;draftSetId?:string;setIndex?:number;setCount?:number;draftSetManifest?:DraftSetManifest;splitFrom?:DraftSplitOrigin;sourceSnapshots?:AuthoringSource[];sharedFrom?:SharedCueOrigin;archivedAt?:number;archivedBy?:string;retired?:DraftRetirement};
+/**
+ * MCP plan A3 - retire is not archive. Archive tidies the editor library and leaves the published
+ * graphic playing. Retire withdraws the published graphic from every live surface (the catalog,
+ * Companion's picker, the relay) by clearing activeRevision, and remembers here which revision was
+ * live so restore_cue brings exactly that one back without a new review. A draft is retired only
+ * while this is set AND activeRevision is null: publishing or rolling back puts it back on air.
+ */
+export type DraftRetirement={revision:number;draftVersion:number;retiredAt:number;retiredBy:string};
+export const isRetiredDraft=(draft:Pick<Draft,'retired'|'activeRevision'>)=>Boolean(draft.retired)&&draft.activeRevision===null;
 export type AuthoringCue=Cue&{presentation?:Presentation;authoring:{draftId:string;draftVersion:number;origin:'canonical'|'variant'|'local';sourceIds:string[];feedSha256:string;unitSha256:Record<string,string>;sourceAuthority?:Record<string,SourceAuthorityPin>;copySpec?:SharedCueCopySpec}};
 export type SourcePack={schemaVersion:number;authority:{repository:string;repositoryCommit:string;feed:string;feedSha256:string;license:unknown;printing:unknown};sources:AuthoringSource[];authorities?:unknown[];library?:unknown};
 

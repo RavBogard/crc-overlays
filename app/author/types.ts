@@ -64,6 +64,8 @@ export type Draft = {
   sharedFrom?: SharedCueOrigin;
   archivedAt?: number;
   archivedBy?: string;
+  // MCP plan A3: set while the graphic is retired (activeRevision is then null).
+  retired?: { revision: number; draftVersion: number; retiredAt: number; retiredBy: string };
   updatedAt: number;
 };
 export type SourceBlock = {
@@ -177,6 +179,8 @@ export type CatalogCue = {
   canEdit: boolean;
   canDuplicate: boolean;
   editAction: "open" | "import" | "duplicate";
+  retired?: boolean;
+  retiredRevision?: number;
 };
 export type BrowserMeasurement = {
   viewportWidth: 1920;

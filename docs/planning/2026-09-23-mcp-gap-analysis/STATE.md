@@ -87,6 +87,20 @@ app/api/catalog/route.ts and lib/sync-live-catalog.ts; L2 and C5 add envelope-on
 - GATE: compact is the MCP default for list_drafts/search_sources (web keeps the full shape) — proceeded
   because R-A5 asks for it. GATE: named text sizes duplicated in lib/template-looks.ts, held equal to
   app/author/look-drawer.tsx by a test. GATE: shared-library descriptions don't say CRC (TBI rule).
+- A3 (worktree branch, not merged): relay test first showed a retired on-air graphic stays on screen
+  but its own Out was `Unknown cue`; `decideCommand` now accepts an Out for the pinned cue (relay +
+  rehearsal port). Retire clears activeRevision and remembers it in `draft.retired` (no migration);
+  catalog/relay sync/shared shelf drop retired ids (and built-in cues/aliases sharing them);
+  `retire_cue`/`restore_cue`; services flag bindings; editor Drafts row shows "Retired" + Return.
+- GATE: retire implemented as "active revision cleared + remembered" rather than a column or a
+  document flag read by the signature query — proceeded because it needs no schema change and keeps
+  the per-request signature SQL off the documents (tests/published-cache.test.ts guard).
+- GATE: publishing or rolling back a retired draft un-retires it; bulk publish skips retired drafts —
+  proceeded because "publish means live" is the existing meaning and avoids touching A2's publish path.
+- GATE: a multipart set member can be retired on its own (cue ids bind per button) — proceeded because
+  archive's whole-set rule protects editor order, which retire does not change.
+- GATE: web UI offers Return (restore) but no Retire button — proceeded because retire copy for the web
+  is a wording decision; retire is MCP-only for now.
 - Known follow-ups from A1: update_draft patch doesn't map a TBI templateCueId; web /api/slots has no
   version check; preview_content's real server fit is covered only by a stubbed runner.
 
