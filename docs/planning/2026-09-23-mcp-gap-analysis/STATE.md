@@ -70,6 +70,10 @@ app/api/catalog/route.ts and lib/sync-live-catalog.ts; L2 and C5 add envelope-on
 - Tracks opened 2026-09-23: A1, S1, V1, C1, L1 running in isolated worktrees (V1 already owns the relay
   files per the addendum; none of the five touches the catalog route or sync). Addendum folded in the same
   day; `AccessRole` confirmed as owner/editor/operator (lib/access.ts:5).
+- S1 merged (eae5c16): lib/service-rows.ts; `rows[]` + `origin` on prepared services, lazy on read, importer
+  writes them in setlist order. Gate after merge: tsc clean, npm test 907+38 pass, lint 0 errors.
+- GATE: S1 keeps entries[]/coverage[] as the stored truth the web edits and adds rows[] as the linking
+  spine — proceeded because it keeps /services unchanged; S2 needs a raw rows parser and positioned inserts.
 
 ## Evidence
 Four read-only audits (MCP surface, layouts/renderer, Companion, live/services/access) plus a
