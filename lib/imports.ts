@@ -57,15 +57,16 @@ export const bytesSha256=(data:Uint8Array)=>createHash('sha256').update(data).di
 export const isImportId=(value:unknown):value is string=>typeof value==='string'&&/^import_[a-f0-9]{32}$/.test(value);
 
 const clone=<T>(value:T):T=>structuredClone(value);
+const withoutData=(row:ImportWithData):ImportRecord=>{const record:Partial<ImportWithData>={...row};delete record.data;return clone(record as ImportRecord)};
 export class MemoryImportRepository implements ImportRepository{
  rows=new Map<string,ImportWithData>();
  async insert(record:ImportRecord){this.rows.set(record.id,{...clone(record),data:new Uint8Array(0)});return clone(record)}
- async get(id:string){const row=this.rows.get(id);if(!row)return null;const {data:_data,...record}=row;return clone(record)}
+ async get(id:string){const row=this.rows.get(id);return row?withoutData(row):null}
  async getWithData(id:string){const row=this.rows.get(id);return row?{...clone({...row,data:undefined}),data:row.data.slice()} as ImportWithData:null}
- async byToken(tokenSha256:string){for(const row of this.rows.values())if(row.tokenSha256===tokenSha256){const {data:_data,...record}=row;return clone(record)}return null}
+ async byToken(tokenSha256:string){for(const row of this.rows.values())if(row.tokenSha256===tokenSha256)return withoutData(row);return null}
  async append(id:string,chunk:number,data:Uint8Array,now:number){const row=this.rows.get(id);if(!row||row.nextChunk!==chunk||row.totalBytes===null||row.receivedBytes+data.byteLength>row.totalBytes)return null;const joined=new Uint8Array(row.receivedBytes+data.byteLength);joined.set(row.data);joined.set(data,row.receivedBytes);row.data=joined;row.receivedBytes=joined.byteLength;row.nextChunk+=1;row.updatedAt=now;return this.get(id)}
  async update(id:string,patch:Parameters<ImportRepository['update']>[1]){const row=this.rows.get(id);if(!row)return null;const {resetData,...fields}=patch;Object.assign(row,fields);if(resetData){row.data=new Uint8Array(0);row.receivedBytes=0;row.nextChunk=0}return this.get(id)}
- async list(now:number){return [...this.rows.values()].filter(row=>row.expiresAt>now).sort((a,b)=>b.createdAt-a.createdAt).map(({data:_data,...record})=>clone(record))}
+ async list(now:number){return [...this.rows.values()].filter(row=>row.expiresAt>now).sort((a,b)=>b.createdAt-a.createdAt).map(withoutData)}
  async sweep(now:number){for(const [id,row] of this.rows)if(row.expiresAt<=now)this.rows.delete(id)}
 }
 
