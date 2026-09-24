@@ -206,7 +206,26 @@ function reportLiturgyMiss(ids:readonly string[]){
  * a unit and matched neither way is logged rather than silently nulled.
  */
 export function liturgyForCue(cue:{authoring?:{sourceIds?:string[]}}|null|undefined,lookups:LiturgyLookups={}):LiturgyRef{
- return liturgyForSourceIds(cue?.authoring?.sourceIds,lookups);
+ const ref=liturgyForSourceIds(cue?.authoring?.sourceIds,lookups);
+ if(ref.unitId!==null||ref.book!==null)return ref;
+ return localLiturgy(cue as LocalBackedCue)??ref;
+}
+
+/**
+ * T2 - a graphic built on a workspace-owned source (`local:` id, lib/local-sources.ts) is placed by
+ * the snapshot it pins: that source's book (as its slug) and page. The library never holds these
+ * units, so the position rides with the published cue itself; nothing is looked up or guessed.
+ */
+type LocalBackedCue={authoring?:{sourceIds?:string[];copySpec?:{sourceSnapshots?:LiturgySource[]}}}|null|undefined;
+function localLiturgy(cue:LocalBackedCue):LiturgyRef|null{
+ const ids=(cue?.authoring?.sourceIds??[]).filter(id=>typeof id==='string'&&id.startsWith('local:'));
+ const snapshots=cue?.authoring?.copySpec?.sourceSnapshots??[];
+ for(const id of ids){
+  const source=snapshots.find(item=>item.id===id);if(!source)continue;
+  const slug=typeof source.metadata?.bookSlug==='string'&&source.metadata.bookSlug?source.metadata.bookSlug:typeof source.book==='string'&&source.book?source.book:null;
+  return {unitId:id,momentId:null,book:slug,folio:firstFolio(source)};
+ }
+ return null;
 }
 
 /**

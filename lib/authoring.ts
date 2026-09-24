@@ -26,6 +26,7 @@ import {liveRelayConfigured} from './rehearsal';
 // of the function trace of every entrypoint that touches the authoring service.
 import {SERVER_RENDERER_PREFIX,type ServerFitArtwork,type ServerFitResult} from './server-fit-contract';
 import {isServiceTool} from './service-tool-schemas';
+import {MemoryLocalSourceRepository,PgLocalSourceRepository,currentWorkspaceId,isLocalSourceId,isLocalSourceTool,localProvenance,localSourceOperation,localSourceUnit,type LocalSourceRepository} from './local-sources';
 
 export type BrowserMeasurement={viewportWidth:number;viewportHeight:number;fontsReady:true;overflow:false;rendererVersion:string;measuredAt:number};
 /**
@@ -103,6 +104,7 @@ const sourceRefreshIds=(value:unknown)=>{if(!Array.isArray(value)||value.length<
 const normalized=(value:unknown)=>String(value??'').normalize('NFKD').replace(/[\u0591-\u05c7\p{M}]/gu,'').toLocaleLowerCase().replace(/[^\p{L}\p{N}]+/gu,' ').trim();
 const MAX_SOURCE_RESPONSE_BYTES=128*1024;
 const jsonBytes=(value:unknown)=>Buffer.byteLength(JSON.stringify(value));
+type AuthoringSourceLike=(typeof sourcePack.sources)[number];
 type SearchSource=(typeof sourcePack.sources)[number]&{book?:string;service?:string;aliases?:string[];openingWords?:string[];metadata?:Record<string,unknown>};
 const sourceBook=(source:SearchSource)=>{const value=typeof source.metadata?.bookSlug==='string'?source.metadata.bookSlug:source.book??'';const label=typeof source.metadata?.bookTitle==='string'?source.metadata.bookTitle:source.book??value;return {value,label}};
 const sourceService=(source:SearchSource)=>({value:source.service??'',label:source.service??''});
@@ -112,7 +114,7 @@ const legacyBrowseSources=sourcePack.sources.filter(source=>!source.id.startsWit
 const legacyBrowseByKey=new Map(legacyBrowseSources.map(source=>[browseEquivalence(source),source]));
 const richLibraryKeys=new Set(sourcePack.sources.filter(source=>source.id.startsWith('library:')&&source.blocks.length).filter(raw=>{const source=raw as SearchSource,legacy=legacyBrowseByKey.get(browseEquivalence(source));return legacy&&sourceEnglishCount(source)>sourceEnglishCount(legacy)}).map(source=>browseEquivalence(source as SearchSource)));
 const browsableSources=sourcePack.sources.filter(raw=>{const source=raw as SearchSource;if(!source.blocks.length)return false;const key=browseEquivalence(source),legacy=legacyBrowseByKey.get(key);return source.id.startsWith('library:')?(!legacy||richLibraryKeys.has(key)):!richLibraryKeys.has(key)});
-const sourceFacets=(field:'book'|'service')=>{const facets=new Map<string,{value:string;label:string;count:number}>();for(const raw of browsableSources){const source=raw as SearchSource;const item=field==='book'?sourceBook(source):sourceService(source);if(!item.value)continue;const existing=facets.get(item.value);if(existing)existing.count++;else facets.set(item.value,{...item,count:1})}return [...facets.values()].sort((a,b)=>a.label.localeCompare(b.label)||a.value.localeCompare(b.value))};
+const sourceFacets=(field:'book'|'service',pool:readonly AuthoringSourceLike[]=browsableSources)=>{const facets=new Map<string,{value:string;label:string;count:number}>();for(const raw of pool){const source=raw as SearchSource;const item=field==='book'?sourceBook(source):sourceService(source);if(!item.value)continue;const existing=facets.get(item.value);if(existing)existing.count++;else facets.set(item.value,{...item,count:1})}return [...facets.values()].sort((a,b)=>a.label.localeCompare(b.label)||a.value.localeCompare(b.value))};
 const compactStylePlan=(plan:DraftStylePlan)=>{
  const {content,...patch}=plan.patch;
  return {changedFields:Object.keys(plan.patch),patch:{...patch,...(content?{content:{arrangement:plan.after.arrangement,...(plan.after.rowOrder?{rowOrder:plan.after.rowOrder}:{})}}:{})},warnings:plan.warnings,before:plan.before,after:plan.after,sourcePreserved:true as const};
@@ -124,8 +126,10 @@ const unitNoteLikeOnly=(source:SearchSource)=>source.blocks.every(block=>block.k
 /** The printed section a unit belongs to: library metadata first, then a legacy section label. */
 const sourceSection=(source:SearchSource)=>{const index=typeof source.metadata?.sectionIndex==='number'?source.metadata.sectionIndex:null;const metadataTitle=typeof source.metadata?.sectionTitle==='string'?source.metadata.sectionTitle.trim():'';const legacyTitle=typeof source.section==='string'?source.section.trim():'';return {index,title:metadataTitle||legacyTitle||null}};
 const searchRank=(source:SearchSource,query:string)=>{if(!query)return 0;const name=normalized(source.name),opening=normalized((source.openingWords??[]).join(' ')),body=normalized(source.blocks.flatMap(block=>[block.he,block.tr,block.en]).join(' ')),metadata=normalized([source.id,source.section,...(source.aliases??[]),sourceBook(source).value,sourceBook(source).label,source.service].join(' '));if(name===query)return 0;if(name.startsWith(query))return 1;if(name.includes(query))return 2;if(opening.includes(query))return 3;if(body.includes(query))return 4;if(metadata.includes(query))return 5;return null};
-/** Browsable sources matching a normalized query, book and service, best rank first, then corpus order. */
-const matchSources=(query:string,book:string,service:string)=>browsableSources.map((raw,index)=>{const source=raw as SearchSource,rank=searchRank(source,query);return {source,index,rank}}).filter(item=>item.rank!==null&&(!book||[sourceBook(item.source).value,sourceBook(item.source).label].some(value=>normalized(value)===book))&&(!service||[sourceService(item.source).value,sourceService(item.source).label].some(value=>normalized(value)===service))).sort((a,b)=>a.rank!-b.rank!||a.index-b.index);
+/** T2 - the printed pages a unit sits on (library `metadata.folios`; a local source's one page). */
+const sourceFolios=(source:SearchSource)=>Array.isArray(source.metadata?.folios)?(source.metadata!.folios as unknown[]):[];
+/** Browsable sources matching a normalized query, book, service and printed page, best rank first, then corpus order. */
+const matchSources=(query:string,book:string,service:string,page:number|null=null,pool:readonly AuthoringSourceLike[]=browsableSources)=>pool.map((raw,index)=>{const source=raw as SearchSource,rank=searchRank(source,query);return {source,index,rank}}).filter(item=>item.rank!==null&&(!book||[sourceBook(item.source).value,sourceBook(item.source).label].some(value=>normalized(value)===book))&&(!service||[sourceService(item.source).value,sourceService(item.source).label].some(value=>normalized(value)===service))&&(page===null||sourceFolios(item.source).includes(page))).sort((a,b)=>a.rank!-b.rank!||a.index-b.index);
 const SEARCH_EXCERPT=60;
 const searchExcerpt=(value:string|undefined)=>{const flat=(value??'').replace(/\s+/g,' ').trim();return flat.length>SEARCH_EXCERPT?`${flat.slice(0,SEARCH_EXCERPT-1).trimEnd()}…`:flat};
 /**
@@ -134,13 +138,14 @@ const searchExcerpt=(value:string|undefined)=>{const flat=(value??'').replace(/\
  * selectable block - derived slices included - with its first words; a translation block names
  * the blocks it translates, which includeTranslation pulls in on its own.
  */
-function compactSourceSearch(query:string,book:string,service:string,limit:number,includeBlocks:boolean){
- const matches=matchSources(query,book,service),sources:unknown[]=[];
+function compactSourceSearch(query:string,book:string,service:string,limit:number,includeBlocks:boolean,page:number|null=null,pool:readonly AuthoringSourceLike[]=browsableSources){
+ const matches=matchSources(query,book,service,page,pool),sources:unknown[]=[];
  for(const {source:raw} of matches){
   if(sources.length>=limit)break;
   const source=includeBlocks?resolveSourceBoundaries(raw) as SearchSource:raw,blocks=source.blocks;
   const sourceEnglish=(block:SourceBlock)=>block.kind==='source-en'||(block.kind==='bilingual'&&Boolean(block.en));
   const candidate={id:source.id,name:source.name,section:source.section??null,bookValue:sourceBook(source).value,bookLabel:sourceBook(source).label,service:source.service??null,folio:sourceDisplay(source).folio,blockCount:blocks.length,kinds:[...new Set(blocks.map(block=>block.kind))],coverage:{bilingual:blocks.filter(block=>block.kind==='bilingual').length,originalEnglish:blocks.filter(block=>block.kind==='original-en').length,sourceEnglish:blocks.filter(sourceEnglish).length,translation:blocks.filter(block=>block.kind==='translation-en').length},
+   ...(isLocalSourceId(source.id)?{local:true,version:source.metadata?.localVersion??null,attribution:source.metadata?.attribution??null}:{}),
    ...(includeBlocks?{blocks:blocks.map(block=>({id:block.id,kind:block.kind,text:searchExcerpt(block.tr||block.en||block.he),...(block.pairedBlockIds?{translates:block.pairedBlockIds}:{}),...(block.automatic===false?{automatic:false}:{}),...(block.noteLike?{noteLike:true}:{})}))}:{})};
   if(jsonBytes({sources:[...sources,candidate]})>MAX_SOURCE_RESPONSE_BYTES)break;
   sources.push(candidate);
@@ -305,7 +310,11 @@ const defaultServerFitRunner:ServerFitRunner=async(cue,options)=>{
  // the page this deployment serves, and a request host is attacker-controllable.
  return measureCueOnServer(cue as unknown as Cue,{origin:canonicalOrigin(),includePreviewImage:options?.includePreviewImage});
 };
-export function createAuthoringService(repo:AuthoringRepository,workspace:AuthoringWorkspace={rehearsal:false,storage:'postgres',label:null},shared:SharedLibraryReader=sharedLibraryClient,sharedAssetImporter:SharedAssetImporter=(id,actor)=>importSharedAsset(id,actor),serverFit:ServerFitRunner=defaultServerFitRunner,defaultsRepo:AuthoringDefaultsRepository=repo instanceof MemoryAuthoringRepository?new MemoryAuthoringDefaultsRepository():new PgAuthoringDefaultsRepository()){
+export function createAuthoringService(repo:AuthoringRepository,workspace:AuthoringWorkspace={rehearsal:false,storage:'postgres',label:null},shared:SharedLibraryReader=sharedLibraryClient,sharedAssetImporter:SharedAssetImporter=(id,actor)=>importSharedAsset(id,actor),serverFit:ServerFitRunner=defaultServerFitRunner,localSources:LocalSourceRepository=new MemoryLocalSourceRepository(),defaultsRepo:AuthoringDefaultsRepository=repo instanceof MemoryAuthoringRepository?new MemoryAuthoringDefaultsRepository():new PgAuthoringDefaultsRepository()){
+ // T2 - this workspace's own sources, in the corpus shape, ordered as a book prints them. Read only
+ // where a call can reach one: a search, a book outline, or content that names a local: id.
+ const localUnits=async()=>(await localSources.list()).sort((a,b)=>a.book.localeCompare(b.book)||a.page-b.page||a.name.localeCompare(b.name)).map(localSourceUnit);
+ const localsFor=async(value:unknown)=>JSON.stringify(value??null).includes('"local:')?localUnits():[];
  // Every name a person can currently see in the library: the baseline catalog this
  // workspace ships with, live drafts, and published graphics. The catalog a viewer
  // actually sees is baseline + published (lib/server.ts authoringCatalog), so uniqueness
@@ -359,6 +368,7 @@ export function createAuthoringService(repo:AuthoringRepository,workspace:Author
  const execute=async(operation:string,input:unknown,actor:string):Promise<unknown>=>{
   const who=string(actor,'actor',80); const data=object(input);
   if(operation==='get_workspace'){keys(data,[]);return {workspace};}
+  if(isLocalSourceTool(operation))return localSourceOperation(operation,data,who,{sources:localSources,drafts:()=>repo.listDrafts(),workspaceId:currentWorkspaceId()});
   // D20 — G5 is one tool and nothing else: it delegates to D19's importer on the services
   // side and returns the prepared service it created. The import is dynamic because
   // `lib/service-collections` imports the authoring catalog, and a static import here would
@@ -468,14 +478,14 @@ export function createAuthoringService(repo:AuthoringRepository,workspace:Author
    return {...head,beforeAvailable:true,before:structuredClone(before),after,...compareUpstream(before,after)};
   }
   if(operation==='source_facets'||operation==='list_source_facets'){
-   keys(data,[]);return {books:sourceFacets('book'),services:sourceFacets('service')};
+   keys(data,[]);const pool=[...browsableSources,...await localUnits()];return {books:sourceFacets('book',pool),services:sourceFacets('service',pool)};
   }
   // The printed outline of one book: every browsable unit, in printed order, grouped by the
   // section a reader would find it under. Names and folios only — the corpus itself stays on
   // the server, and `get_source` remains the way to read one unit.
   if(operation==='list_book_units'){
    keys(data,['book']);const book=normalized(string(data.book,'book',100));
-   const matches=browsableSources.map(raw=>raw as SearchSource).filter(source=>[sourceBook(source).value,sourceBook(source).label].some(value=>normalized(value)===book));
+   const matches=[...browsableSources,...await localUnits()].map(raw=>raw as SearchSource).filter(source=>[sourceBook(source).value,sourceBook(source).label].some(value=>normalized(value)===book));
    if(!matches.length)throw new AuthoringError('unknown_source','Unknown authoring source book',404);
    const sections=new Map<string,{index:number;title:string|null;units:BookUnit[]}>();
    for(const source of matches){
@@ -489,13 +499,18 @@ export function createAuthoringService(repo:AuthoringRepository,workspace:Author
    return result;
   }
   if(operation==='search_sources'){
-   keys(data,['query','book','service','limit','compact','includeBlocks']);const query=normalized(optionalString(data.query,'query',100));const book=normalized(optionalString(data.book,'book',100));const service=normalized(optionalString(data.service,'service',100));const limit=data.limit===undefined?20:integer(data.limit,'limit',1,50);
+   keys(data,['query','book','service','page','limit','compact','includeBlocks']);const query=normalized(optionalString(data.query,'query',100));const book=normalized(optionalString(data.book,'book',100));const service=normalized(optionalString(data.service,'service',100));const limit=data.limit===undefined?20:integer(data.limit,'limit',1,50);
+   // T2 - a printed page narrows to the units on it; this workspace's local sources are searched with the corpus.
+   const page=data.page===undefined?null:integer(data.page,'page',1,9999);const pool=[...browsableSources,...await localUnits()];
    // R-A5 - compact drops the licence and pin blocks (repeated per source, most of a result) and
    // includeBlocks lists each selectable block id with its first words, so create_draft needs no get_source.
-   if(optionalBoolean(data.compact,'compact')===true||optionalBoolean(data.includeBlocks,'includeBlocks')===true)return compactSourceSearch(query,book,service,limit,data.includeBlocks===true);
-   const matches=matchSources(query,book,service);const summaries=[];for(const {source} of matches){const {blocks,...summary}=source;if(summaries.length>=limit)break;const sourceEnglish=(block:SourceBlock)=>block.kind==='source-en'||(block.kind==='bilingual'&&Boolean(block.en));const coverage={bilingual:blocks.filter(block=>block.kind==='bilingual').length,originalEnglish:blocks.filter(block=>block.kind==='original-en').length,sourceEnglish:blocks.filter(sourceEnglish).length,automaticSourceEnglish:blocks.filter(block=>sourceEnglish(block)&&block.automatic!==false).length,noteLikeEnglish:blocks.filter(block=>block.noteLike===true).length};const candidate={...summary,bookValue:sourceBook(source).value,bookLabel:sourceBook(source).label,display:sourceDisplay(source),blockCount:blocks.length,kinds:[...new Set(blocks.map(b=>b.kind))],coverage};if(jsonBytes({authority:sourcePack.authority,sources:[...summaries,candidate]})>MAX_SOURCE_RESPONSE_BYTES)break;summaries.push(candidate)}return {authority:sourcePack.authority,sources:summaries,truncated:summaries.length<matches.length};
+   if(optionalBoolean(data.compact,'compact')===true||optionalBoolean(data.includeBlocks,'includeBlocks')===true)return compactSourceSearch(query,book,service,limit,data.includeBlocks===true,page,pool);
+   const matches=matchSources(query,book,service,page,pool);const summaries=[];for(const {source} of matches){const {blocks,...summary}=source;if(summaries.length>=limit)break;const sourceEnglish=(block:SourceBlock)=>block.kind==='source-en'||(block.kind==='bilingual'&&Boolean(block.en));const coverage={bilingual:blocks.filter(block=>block.kind==='bilingual').length,originalEnglish:blocks.filter(block=>block.kind==='original-en').length,sourceEnglish:blocks.filter(sourceEnglish).length,automaticSourceEnglish:blocks.filter(block=>sourceEnglish(block)&&block.automatic!==false).length,noteLikeEnglish:blocks.filter(block=>block.noteLike===true).length};const candidate={...summary,bookValue:sourceBook(source).value,bookLabel:sourceBook(source).label,display:sourceDisplay(source),blockCount:blocks.length,kinds:[...new Set(blocks.map(b=>b.kind))],coverage};if(jsonBytes({authority:sourcePack.authority,sources:[...summaries,candidate]})>MAX_SOURCE_RESPONSE_BYTES)break;summaries.push(candidate)}return {authority:sourcePack.authority,sources:summaries,truncated:summaries.length<matches.length};
   }
-  if(operation==='get_source'){keys(data,['sourceId']);const id=string(data.sourceId,'sourceId');const canonical=sourcePack.sources.find(s=>s.id===id);if(!canonical)throw new AuthoringError('unknown_source','Unknown authoring source',404);const source=resolveSourceBoundaries(canonical);const result={authority:sourcePack.authority,source,display:sourceDisplay(source)};if(jsonBytes(result)>MAX_SOURCE_RESPONSE_BYTES)throw new AuthoringError('source_too_large','This source is too large for direct browser authoring',413);return result;}
+  if(operation==='get_source'){keys(data,['sourceId']);const id=string(data.sourceId,'sourceId');
+   // A local source answers with its own authority - its attribution and licence as entered - never the corpus licence.
+   if(isLocalSourceId(id)){const local=(await localUnits()).find(unit=>unit.id===id);if(!local)throw new AuthoringError('unknown_source','There is no local source with that id here. list_local_sources names them.',404);const provenance=localProvenance([local])[0];return {authority:{repository:local.authority!.repository,repositoryCommit:'',feed:'local-sources',feedSha256:local.unitSha256,license:provenance.licence,printing:null},source:local,display:sourceDisplay(local),local:provenance};}
+   const canonical=sourcePack.sources.find(s=>s.id===id);if(!canonical)throw new AuthoringError('unknown_source','Unknown authoring source',404);const source=resolveSourceBoundaries(canonical);const result={authority:sourcePack.authority,source,display:sourceDisplay(source)};if(jsonBytes(result)>MAX_SOURCE_RESPONSE_BYTES)throw new AuthoringError('source_too_large','This source is too large for direct browser authoring',413);return result;}
   // Both listings enumerate this workspace's own catalog - baselineCatalogForWorkspace(), the
   // same seam lib/server.ts mergePublishedCatalog reads for the live catalog - so a TBI editor
   // never sees a CRC id. Origin detection still needs the CRC source id, so baselineSourceCueId
@@ -559,7 +574,7 @@ export function createAuthoringService(repo:AuthoringRepository,workspace:Author
   if(operation==='archive_draft_set'||operation==='restore_draft_set'){keys(data,['setId','expectedDraftIds']);const setId=string(data.setId,'setId');if(!Array.isArray(data.expectedDraftIds)||!data.expectedDraftIds.length||data.expectedDraftIds.length>200)throw new AuthoringError('invalid_input','expectedDraftIds must contain 1-200 draft IDs');const expectedDraftIds=data.expectedDraftIds.map((id,index)=>string(id,`expectedDraftIds[${index}]`,160));const drafts=await repo.setDraftSetArchived(setId,expectedDraftIds,operation==='archive_draft_set',who);return {set:{id:setId,count:drafts.length,draftIds:drafts.map(draft=>draft.id)},drafts};}
   if(operation==='create_source_draft_set'){
    keys(data,['sourceId','mode','includeTranslation','layout','templateCueId','applyDefaults']);const house=optionalBoolean(data.applyDefaults,'applyDefaults')===false?null:await houseDefaults(),report:DefaultsReport={applied:[],skipped:[]};
-   const sourceId=string(data.sourceId,'sourceId');const canonicalSource=sourcePack.sources.find(item=>item.id===sourceId) as SearchSource|undefined;if(!canonicalSource)throw new AuthoringError('unknown_source','Unknown authoring source',404);const source=resolveSourceBoundaries(canonicalSource) as SearchSource;
+   const sourceId=string(data.sourceId,'sourceId');const localUnit=isLocalSourceId(sourceId)?(await localUnits()).find(item=>item.id===sourceId):undefined;const canonicalSource=(localUnit??sourcePack.sources.find(item=>item.id===sourceId)) as SearchSource|undefined;if(!canonicalSource)throw new AuthoringError('unknown_source','Unknown authoring source',404);const source=resolveSourceBoundaries(canonicalSource) as SearchSource;
    if(data.mode!=='bilingual'&&data.mode!=='original-en'&&data.mode!=='source-en')throw new AuthoringError('invalid_input','mode must be bilingual, original-en, or source-en');const mode=data.mode;
    if(data.includeTranslation!==undefined&&typeof data.includeTranslation!=='boolean')throw new AuthoringError('invalid_input','includeTranslation must be boolean');
    const includeTranslation=data.includeTranslation===true;if(mode!=='bilingual'&&includeTranslation)throw new AuthoringError('invalid_input','includeTranslation is available only for bilingual sources');
@@ -575,9 +590,9 @@ export function createAuthoringService(repo:AuthoringRepository,workspace:Author
    let drafts=pages.map((page,index)=>{
     const groups=mode==='bilingual'?[{sourceId,blockIds:page.map(block=>block.id)}]:page.map(block=>({sourceId,blockIds:[block.id]}));
     const content:DraftContent=mode==='bilingual'?{mode,hebrewGroups:groups,transliterationGroups:structuredClone(groups),...(includeTranslation?{includeTranslation:true}:{})}:{mode,englishGroups:groups};
-    const plain=parseEditable({name:`${source.name} — ${String(index+1).padStart(width,'0')} of ${String(count).padStart(width,'0')}`,title:source.name,layout,templateCueId,content:withCreateDefaultBilingualBlocks(content),presentation:{}}) as EditableDraft;
+    const plain=parseEditable({name:`${source.name} — ${String(index+1).padStart(width,'0')} of ${String(count).padStart(width,'0')}`,title:source.name,layout,templateCueId,content:withCreateDefaultBilingualBlocks(content),presentation:{}},false,localUnit?[localUnit]:undefined) as EditableDraft;
     // The translation choice is includeTranslation here: it decides the pages, so no default changes it.
-    const housed=house?withHouseDefaults(plain,house,{translation:false}):null;if(housed&&index===0)report.applied.push(...housed.applied);const editable=housed?parseEditable(housed.editable) as EditableDraft:plain;
+    const housed=house?withHouseDefaults(plain,house,{translation:false}):null;if(housed&&index===0)report.applied.push(...housed.applied);const editable=housed?parseEditable(housed.editable,false,localUnit?[localUnit]:undefined) as EditableDraft:plain;
     const sourceSnapshots=[structuredClone(canonicalSource)];return {...editable,id:newDraftId(),version:1,sourcePin:sourcePinFor(editable.content,sourceSnapshots),sourceSnapshots,activeRevision:null,activeDraftVersion:null,createdAt:now,updatedAt:now,createdBy:who,updatedBy:who,draftSetId:setId,setIndex:index+1,setCount:count} satisfies Draft;
    });
   const draftSetManifest={version:1 as const,selections:drafts.flatMap(draft=>draftSetSelections(draft.content,draft.sourceSnapshots))};drafts=drafts.map(draft=>({...draft,draftSetManifest:structuredClone(draftSetManifest)}));
@@ -601,10 +616,11 @@ export function createAuthoringService(repo:AuthoringRepository,workspace:Author
    // T1 - house defaults fill in what the call leaves out; a translation default the selected
    // source can't honour is dropped, and said so, rather than refusing the whole draft.
    const housed=house?withHouseCreateDefaults(request,house):null,report:DefaultsReport={applied:housed?.applied??[],skipped:[]};
-   let input=housed?.data??request,parsed:EditableDraft;try{parsed=parseEditable(withDraftDefaults(input)) as EditableDraft}catch(error){if(!housed?.withoutTranslation||!(error instanceof AuthoringError))throw error;input=housed.withoutTranslation;parsed=parseEditable(withDraftDefaults(input)) as EditableDraft;report.applied=report.applied.filter(item=>item!=='translation included');report.skipped.push(`translation included: ${error.message}`)}
-   const rawContent=object(input.content,'content'),rawBase=rawContent.mode==='local-variant'?object(rawContent.base,'content.base'):rawContent,explicitArrangement=Object.hasOwn(rawBase,'arrangement');const editable=explicitArrangement?parsed:{...parsed,content:withCreateDefaultBilingualBlocks(parsed.content)};const sourceSnapshots=sourceSnapshotsFor(editable.content);const now=Date.now(); const draft:Draft={...editable,id:newDraftId(),version:1,sourcePin:sourcePinFor(editable.content,sourceSnapshots),...(sourceSnapshots.length?{sourceSnapshots}:{}),activeRevision:null,activeDraftVersion:null,createdAt:now,updatedAt:now,createdBy:who,updatedBy:who};
-   const warnings=await duplicateNameWarnings(draft);
-   return {draft:await repo.insertDraft(draft),warnings,...reportField(report)};
+   const locals=await localsFor(request.content);
+   let input=housed?.data??request,parsed:EditableDraft;try{parsed=parseEditable(withDraftDefaults(input),false,locals) as EditableDraft}catch(error){if(!housed?.withoutTranslation||!(error instanceof AuthoringError))throw error;input=housed.withoutTranslation;parsed=parseEditable(withDraftDefaults(input),false,locals) as EditableDraft;report.applied=report.applied.filter(item=>item!=='translation included');report.skipped.push(`translation included: ${error.message}`)}
+   const rawContent=object(input.content,'content'),rawBase=rawContent.mode==='local-variant'?object(rawContent.base,'content.base'):rawContent,explicitArrangement=Object.hasOwn(rawBase,'arrangement');const editable=explicitArrangement?parsed:{...parsed,content:withCreateDefaultBilingualBlocks(parsed.content)};const sourceSnapshots=sourceSnapshotsFor(editable.content,locals);const now=Date.now(); const draft:Draft={...editable,id:newDraftId(),version:1,sourcePin:sourcePinFor(editable.content,sourceSnapshots),...(sourceSnapshots.length?{sourceSnapshots}:{}),activeRevision:null,activeDraftVersion:null,createdAt:now,updatedAt:now,createdBy:who,updatedBy:who};
+   const warnings=await duplicateNameWarnings(draft);const provenance=localProvenance(sourceSnapshots);
+   return {draft:await repo.insertDraft(draft),warnings,...reportField(report),...(provenance.length?{provenance}:{})};
   }
   if(operation==='create_local_variant'){
    keys(data,['draftId','cueId','label','reason','overrides']);const draftId=optionalString(data.draftId,'draftId'),cueId=optionalString(data.cueId,'cueId');if(Boolean(draftId)===Boolean(cueId))throw new AuthoringError('invalid_input','Provide exactly one of draftId or cueId');let sourceDraft:Draft|undefined,editable:EditableDraft,sourceSnapshots:Draft['sourceSnapshots'];
@@ -660,22 +676,30 @@ export function createAuthoringService(repo:AuthoringRepository,workspace:Author
    // names each stale source it keeps, or drops it from the selection. The new pin is rebuilt below.
    const requestedRefresh=data.refreshSourceIds===undefined?[]:sourceRefreshIds(data.refreshSourceIds);const stalePinSources=staleSourceIds(current);if(!requestedRefresh.length)assertSourcePin(current);if(requestedRefresh.length&&(!data.patch||typeof data.patch!=='object'||Array.isArray(data.patch)||!Object.hasOwn(data.patch,'content')))throw new AuthoringError('source_refresh_requires_content','refreshSourceIds requires a content selection in patch',400);
    const inheritedSnapshots=current.sourceSnapshots?.length?structuredClone(current.sourceSnapshots):sourceSnapshotsFor(current.content);
-   const refreshedSources=requestedRefresh.map(sourceId=>{const source=sourcePack.sources.find(candidate=>candidate.id===sourceId);if(!source)throw new AuthoringError('unknown_source',`Unknown source ${sourceId}`,404);return structuredClone(source)});
-   const validationSnapshots=requestedRefresh.length?[...inheritedSnapshots.filter(source=>!requestedRefresh.includes(source.id)),...refreshedSources]:inheritedSnapshots;
+   // T2 - a local source is found like a corpus one: the current unit when refreshed or newly
+   // selected, the draft's own snapshot otherwise (a snapshot always wins over the current unit).
+   const locals=await localsFor([data.patch,requestedRefresh]);
+   const refreshedSources=requestedRefresh.map(sourceId=>{const source=sourcePack.sources.find(candidate=>candidate.id===sourceId)??locals.find(candidate=>candidate.id===sourceId);if(!source)throw new AuthoringError('unknown_source',`Unknown source ${sourceId}`,404);return structuredClone(source)});
+   const pinnedSnapshots=requestedRefresh.length?[...inheritedSnapshots.filter(source=>!requestedRefresh.includes(source.id)),...refreshedSources]:inheritedSnapshots;
+   const validationSnapshots=[...pinnedSnapshots,...locals.filter(unit=>!pinnedSnapshots.some(source=>source.id===unit.id))];
    const patch=parseEditable(data.patch,true,validationSnapshots);const merged=parseEditable({...editableOnly(current),...patch},false,validationSnapshots) as EditableDraft;
    if(requestedRefresh.length){const selected=new Set(sourceReferences(merged.content,validationSnapshots).map(reference=>reference.sourceId));for(const sourceId of requestedRefresh)if(!selected.has(sourceId))throw new AuthoringError('invalid_source_refresh','refreshSourceIds must name sources selected by patch.content',400);for(const sourceId of stalePinSources)if(selected.has(sourceId)&&!requestedRefresh.includes(sourceId))throw new AuthoringError('source_pin_mismatch',`Pinned source authority has changed for ${sourceId}; include it in refreshSourceIds or remove it from the selection`,409);const sourceSnapshots=sourceSnapshotsFor(merged.content,validationSnapshots);const sourcePin=sourcePinFor(merged.content,sourceSnapshots);const updated=await repo.updateDraft(id,expected,{...merged,sourceSnapshots,sourcePin},who);if(!updated)throw conflict();return {draft:updated,warnings:await duplicateNameWarnings(updated)}}
+   // A local source newly selected by this patch has no snapshot yet, so the draft takes one now.
+   const newlyLocal=sourceReferences(merged.content,validationSnapshots).some(reference=>isLocalSourceId(reference.sourceId)&&!inheritedSnapshots.some(source=>source.id===reference.sourceId));
+   if(newlyLocal){const sourceSnapshots=sourceSnapshotsFor(merged.content,validationSnapshots);const sourcePin=sourcePinFor(merged.content,sourceSnapshots,current.sourceSnapshots?.length?current.sourcePin.feedSha256:undefined);const updated=await repo.updateDraft(id,expected,{...merged,sourceSnapshots,sourcePin},who);if(!updated)throw conflict();return {draft:updated,warnings:await duplicateNameWarnings(updated)}}
    const updated=await repo.updateDraft(id,expected,merged,who);if(!updated)throw conflict();return {draft:updated,warnings:await duplicateNameWarnings(updated)};
   }
   if(operation==='preview_draft'){
    keys(data,['draftId','expectedVersion']);const draft=await versionedDraft(repo,string(data.draftId,'draftId'),integer(data.expectedVersion,'expectedVersion',1));assertSourcePin(draft);const cue=buildCue(draft);const validation=previewValidation(cue);const preview:PreviewRecord={id:randomUUID(),draftId:draft.id,draftVersion:draft.version,cueHash:cueHash(cue),cue,validation,review:null,createdAt:Date.now(),createdBy:who};await repo.insertPreview(preview);
-   return {previewId:preview.id,draftVersion:draft.version,cue,cueHash:preview.cueHash,validation,previewPath:`/author?draft=${encodeURIComponent(draft.id)}`,fitContract:{viewport:{width:1920,height:1080},fontsReadyRequired:true,noOverflowRequired:true,browserReported:true,humanReviewRequired:true}};
+   const provenance=localProvenance(draft.sourceSnapshots);
+   return {previewId:preview.id,draftVersion:draft.version,cue,cueHash:preview.cueHash,validation,previewPath:`/author?draft=${encodeURIComponent(draft.id)}`,fitContract:{viewport:{width:1920,height:1080},fontsReadyRequired:true,noOverflowRequired:true,browserReported:true,humanReviewRequired:true},...(provenance.length?{provenance}:{})};
   }
   // A look at content before any draft exists. With includePreviewImage the same server browser
   // fit_check_draft uses measures it and returns the frame; the verdict is stored nowhere, so it
   // can never stand in for the review a publish needs.
   if(operation==='preview_content'){
    const {includePreviewImage:rawImage,...draft}=data;const includePreviewImage=optionalBoolean(rawImage,'includePreviewImage')===true;
-   const preview=ephemeralCue(parseEditable(withDraftDefaults(draft)) as EditableDraft,who);if(!includePreviewImage)return preview;
+   const locals=await localsFor(draft.content);const preview=ephemeralCue(parseEditable(withDraftDefaults(draft),false,locals) as EditableDraft,who,undefined,locals);if(!includePreviewImage)return preview;
    const result=await serverFit(preview.cue,{includePreviewImage:true});
    if(result.verdict==='unavailable')return {...preview,fitCheck:{verdict:'unavailable',reason:result.reason,message:FIT_CHECK_UNAVAILABLE}};
    return {...preview,fitCheck:{verdict:result.verdict,fitErrors:result.fitErrors,warnings:result.warnings,fill:result.fill,artwork:result.artwork,measuredAt:result.measuredAt,rendererVersion:result.rendererVersion,stored:false},previewImage:result.previewImage??null,...(result.previewImageUnavailable?{previewImageUnavailable:result.previewImageUnavailable}:{})};
@@ -826,7 +850,7 @@ export function createAuthoringService(repo:AuthoringRepository,workspace:Author
    return {since,publications:rows.map(row=>{const current=byId.get(row.draftId),live=current?.activeRevision===row.revision,image=row.previewId?images.get(row.previewId):undefined;const approver=row.review?.approvedBy??(row.review?.humanApproved?'person':null);return {draftId:row.draftId,name:row.name,layout:row.layout,excerpt:publicationExcerpt(row.texts),revision:row.revision,publishedAt:row.createdAt,publishedBy:isMcpActor(row.actor)?'agent':'person',approvedBy:approver,member:row.review?.member??(approver==='person'?row.review?.reviewedBy??null:null),standingApproval:Boolean(row.review?.standingApproval),current:live,archived:Boolean(current?.archivedAt),draftVersion:current?.version??null,rollbackTo:live&&row.revision>1?row.revision-1:null,previewId:row.previewId,image:image?{width:image.width,height:image.height,mimeType:image.mimeType}:null}})};
   }
   if(operation==='list_revisions'){keys(data,['draftId']);const id=string(data.draftId,'draftId');await requiredDraft(repo,id);return {revisions:await repo.revisions(id)};}
-  if(operation==='rollback_draft'){keys(data,['draftId','expectedVersion','revision']);const id=string(data.draftId,'draftId');const revision=integer(data.revision,'revision',1);const selected=(await repo.revisions(id)).find(row=>row.revision===revision);if(!selected)throw new AuthoringError('unknown_revision','Unknown revision',404);assertRevisionAuthority(selected.cue);const result=await repo.rollback(id,integer(data.expectedVersion,'expectedVersion',1),revision,who);return result;}
+  if(operation==='rollback_draft'){keys(data,['draftId','expectedVersion','revision']);const id=string(data.draftId,'draftId');const revision=integer(data.revision,'revision',1);const selected=(await repo.revisions(id)).find(row=>row.revision===revision);if(!selected)throw new AuthoringError('unknown_revision','Unknown revision',404);assertRevisionAuthority(selected.cue,await localsFor(selected.cue.authoring?.sourceIds));const result=await repo.rollback(id,integer(data.expectedVersion,'expectedVersion',1),revision,who);return result;}
   throw new AuthoringError('unknown_operation',`Unknown authoring operation: ${operation}`,404);
  };
  return {operation:execute,publishedCues:()=>repo.published(),retiredCues:()=>repo.retiredCues()};
@@ -842,8 +866,8 @@ const FIT_CHECK_UNAVAILABLE='The server could not open a browser to check this g
  * preview record, nothing a publication could later cite. Every ephemeral preview goes through
  * here so a look at a graphic can never leave a trace in the library.
  */
-function ephemeralCue(editable:EditableDraft,who:string,cueId?:string){
- const sourceSnapshots=sourceSnapshotsFor(editable.content);const now=Date.now();
+function ephemeralCue(editable:EditableDraft,who:string,cueId?:string,locals:Draft['sourceSnapshots']=[]){
+ const sourceSnapshots=sourceSnapshotsFor(editable.content,locals);const now=Date.now();
  const draft:Draft={...editable,id:newDraftId(),version:1,sourcePin:sourcePinFor(editable.content,sourceSnapshots),...(sourceSnapshots.length?{sourceSnapshots}:{}),activeRevision:null,activeDraftVersion:null,createdAt:now,updatedAt:now,createdBy:who,updatedBy:who};
  // A look at a catalog graphic reports it under the id the catalog publishes it as, so a fit
  // check measures the graphic a person asked for rather than a throwaway draft id.
@@ -967,12 +991,13 @@ function validatePublishPreview(draft:Draft,preview?:PreviewRecord){
  if(review.standingApproval)return;
  if(!review.browserMeasurement||review.browserMeasurement.overflow||!review.browserMeasurement.fontsReady)throw new AuthoringError('review_required','Exact-version browser fit review is required',409);
 }
-function assertRevisionAuthority(cue:AuthoringCue){
+function assertRevisionAuthority(cue:AuthoringCue,locals:Draft['sourceSnapshots']=[]){
  const value=cue as AuthoringCue&{provenance?:{liturgy?:{feedSha256?:string}}};
  if(value.authoring?.origin==='local'){if(value.authoring.feedSha256!=='local'||value.authoring.sourceIds.length)throw new AuthoringError('source_pin_mismatch','Local revision authority is invalid',409);return}
  const feed=value.authoring?.feedSha256??value.provenance?.liturgy?.feedSha256;if(feed!==sourcePack.authority.feedSha256)throw new AuthoringError('source_pin_mismatch','Revision source authority no longer matches the pinned feed',409);
  if(!value.authoring)return;
- const sources=value.authoring.sourceIds.map(id=>sourcePack.sources.find(item=>item.id===id));if(sources.some(item=>!item))throw new AuthoringError('source_pin_mismatch','A revision source is no longer available',409);
+ // T2 - a local source is checked against its current unit exactly as a corpus source is.
+ const sources=value.authoring.sourceIds.map(id=>sourcePack.sources.find(item=>item.id===id)??locals?.find(item=>item.id===id));if(sources.some(item=>!item))throw new AuthoringError('source_pin_mismatch','A revision source is no longer available',409);
  const units=Object.fromEntries(sources.map(item=>[item!.id,item!.unitSha256]));if(!sameStructuredValue(units,value.authoring.unitSha256))throw new AuthoringError('source_pin_mismatch','Revision source units no longer match the pinned authority',409);
  const expanded=Object.fromEntries(sources.filter(item=>item!.id.startsWith('library:')).map(item=>{const source=item!;if(!source.authority||!source.sourceSha256)throw new AuthoringError('source_pin_mismatch','Expanded revision source authority is unavailable',409);return [source.id,{id:source.authority.id,feedSha256:source.authority.feedSha256,unitSha256:source.authority.unitSha256,sourceSha256:source.sourceSha256}]}));
  if(Object.keys(expanded).length&&!sameStructuredValue(expanded,value.authoring.sourceAuthority))throw new AuthoringError('source_pin_mismatch','Expanded revision authority no longer matches its source feed',409);
@@ -1075,7 +1100,10 @@ export function authoringRepositoryMode(env:Partial<Pick<NodeJS.ProcessEnv,'CRC_
 let defaultService:ReturnType<typeof createAuthoringService>|undefined;
 let defaultRepository:AuthoringRepository|undefined;
 export function authoringRepository(){if(defaultRepository)return defaultRepository;const workspace=authoringRepositoryMode(process.env);return defaultRepository=workspace.storage==='memory'?new MemoryAuthoringRepository(defaultAssetRepository()):new PgAuthoringRepository()}
-const defaults=()=>{if(defaultService)return defaultService;const workspace=authoringRepositoryMode(process.env);return defaultService=createAuthoringService(authoringRepository(),workspace)};
+let defaultLocalSources:LocalSourceRepository|undefined;
+/** T2 - this workspace's own sources, in the same storage mode as its drafts (db/local-sources.sql). */
+export function localSourceRepository(){if(defaultLocalSources)return defaultLocalSources;const workspace=authoringRepositoryMode(process.env);return defaultLocalSources=workspace.storage==='memory'?new MemoryLocalSourceRepository():new PgLocalSourceRepository()}
+const defaults=()=>{if(defaultService)return defaultService;const workspace=authoringRepositoryMode(process.env);return defaultService=createAuthoringService(authoringRepository(),workspace,undefined,undefined,undefined,localSourceRepository())};
 // The web's source-review inbox (/api/source-review) under MCP names. It is its own service over
 // the same drafts table, reached by dynamic import because lib/source-review.ts imports this file.
 export const SOURCE_REVIEW_OPERATIONS:Readonly<Record<string,'scan'|'list'|'get'|'decide'>>={scan_source_changes:'scan',list_source_changes:'list',get_source_change:'get',decide_source_change:'decide'};
