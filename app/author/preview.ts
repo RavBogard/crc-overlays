@@ -76,7 +76,7 @@ export function findFitErrors(root: HTMLElement) {
   // A side panel's copy must also sit inside the panel itself, not merely inside the frame: a
   // stale geometry rule once put a custom right panel's text 16px outside the panel's left edge.
   // The corner card is held to its own card the same way.
-  const panel = root.querySelector<HTMLElement>(".overlay.left .base, .overlay.right .base, .overlay.corner .base")?.getBoundingClientRect();
+  const panel = root.querySelector<HTMLElement>(".overlay[data-contain] .base")?.getBoundingClientRect();
   for (const element of root.querySelectorAll<HTMLElement>(".overlay .part, .overlay .content-row, .overlay .prayer")) {
     const box = element.getBoundingClientRect();
     const name = element.dataset.element || "Graphic";

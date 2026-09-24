@@ -11,7 +11,9 @@
  * Client-safe and pure: no server imports, no catalog ids.
  */
 
-export type CustomTemplateLayout = "bottom" | "left" | "right" | "corner";
+import type { LayoutId } from "./layout-registry";
+
+export type CustomTemplateLayout = LayoutId;
 
 export type CustomTemplateField = { key: string; label: string; placeholder: string; maxLength: number; dir?: "rtl" };
 

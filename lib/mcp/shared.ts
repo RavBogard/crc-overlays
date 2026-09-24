@@ -1,4 +1,5 @@
 import {z} from 'zod/v4';
+import {layoutIds} from '../layout-registry';
 
 export type ToolAnnotations={readOnlyHint?:boolean;idempotentHint?:boolean;destructiveHint?:boolean};
 // Each lib/mcp/<area>.ts module registers its tools through this one function, so validation,
@@ -10,7 +11,9 @@ export type RegisterTool=(name:string,description:string,inputSchema:z.ZodObject
 export type McpIdentity={workspaceId:string;shortName:string;organizationName:string;host:string};
 export type RegisterArea=(register:RegisterTool,identity:McpIdentity)=>void;
 
-export const layoutId=z.enum(['left','bottom','right','corner']);
+// Built when each server is created, so a layout registered after startup is offered too. The
+// list keeps the historical order (left, bottom, right, corner) so the published schema is unchanged.
+export const layoutId=()=>{const ids=layoutIds(),historical=['left','bottom','right','corner'].filter(id=>ids.includes(id)),added=ids.filter(id=>!historical.includes(id));return z.enum([...historical,...added] as [string,...string[]])};
 export const id=z.string().min(1).max(200);
 export const version=z.number().int().nonnegative();
 const presentation=z.object({hebrewFontSize:z.number().int().min(24).max(52).optional(),transliterationFontSize:z.number().int().min(20).max(48).optional(),titleFontSize:z.number().int().min(20).max(42).optional(),alignment:z.enum(['start','center']).optional(),lineSpacing:z.enum(['compact','spacious']).optional(),latinLineBreaks:z.enum(['preserve','paragraphs','phrases']).optional(),imageAssetId:z.string().regex(/^asset_[a-f0-9]{64}$/).optional()}).strict();
@@ -24,4 +27,4 @@ const variantOverride=z.object({sourceId:z.string().min(1).max(160),blockId:z.st
 const localVariant=z.object({mode:z.literal('local-variant'),label:z.string().min(1).max(80),reason:z.string().min(1).max(500).optional(),base:canonicalContent,overrides:z.array(variantOverride).min(1).max(96)}).strict();
 const custom=z.object({mode:z.literal('custom'),text:z.string().min(1).max(4000)}).strict();
 const content=z.union([canonicalContent,localVariant,custom]);
-export const draftFields=z.object({name:z.string().min(1).max(80),title:z.string().min(1).max(100),accentTitle:z.string().max(60).optional(),layout:layoutId,templateCueId:z.string().min(1).max(80),content,presentation:presentation.optional()}).strict();
+export const draftFields=()=>z.object({name:z.string().min(1).max(80),title:z.string().min(1).max(100),accentTitle:z.string().max(60).optional(),layout:layoutId(),templateCueId:z.string().min(1).max(80),content,presentation:presentation.optional()}).strict();

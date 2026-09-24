@@ -1,6 +1,7 @@
+import type { LayoutId } from "@/lib/layout-registry";
 import type { Cue } from "@/lib/player";
 
-export type Layout = "bottom" | "left" | "right" | "corner";
+export type Layout = LayoutId;
 export type CanonicalContentMode = "bilingual" | "source-en" | "original-en";
 export type ContentMode = CanonicalContentMode | "local-variant" | "custom";
 export type SourceEnglishRole = "translation" | "interpretation" | "translation-interpretation" | "reading" | "kavannah" | "rubric" | "note" | "unclassified";

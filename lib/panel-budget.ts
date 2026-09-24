@@ -7,6 +7,8 @@
  * server imports — and both sides read them from this file.
  */
 
+import { layoutDefinition, type LayoutId } from "./layout-registry";
+
 /** Never more than three canonical blocks in one panel, however short they are. */
 export const PANEL_BLOCK_LIMIT = 3;
 /** Hebrew plus transliteration, or original English, on a side panel. */
@@ -15,7 +17,7 @@ export const PANEL_CHAR_BUDGET = 600;
 export const PANEL_ENGLISH_CHAR_BUDGET = 400;
 
 export type PanelMode = "bilingual" | "original-en" | "source-en";
-export type PanelLayout = "bottom" | "left" | "right" | "corner";
+export type PanelLayout = LayoutId;
 /** Only the text channels matter here, so any source block shape is accepted. */
 export type PanelBlock = { he?: string; tr?: string; en?: string };
 
@@ -36,7 +38,7 @@ export function panelCharacterBudget(mode: PanelMode) {
  */
 export function exceedsOnePanel(blocks: readonly PanelBlock[], mode: PanelMode, layout: PanelLayout): boolean {
   if (blocks.length <= 1) return false;
-  if (layout === "bottom" || layout === "corner") return true;
+  if (layoutDefinition(layout)?.capabilities.oneBlockPerSlide) return true;
   if (blocks.length > PANEL_BLOCK_LIMIT) return true;
   return blocks.reduce((sum, block) => sum + blockCharacters(block, mode), 0) > panelCharacterBudget(mode);
 }

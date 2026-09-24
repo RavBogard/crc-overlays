@@ -17,7 +17,7 @@ function rightPanelRoot(textLeft: number): HTMLElement {
   return {
     ownerDocument: { createRange: () => ({ selectNodeContents() {}, getClientRects: () => [] }) },
     getBoundingClientRect: () => ({ left: 0, top: 0, right: 1920, bottom: 1080, width: 1920, height: 1080 }),
-    querySelector: (selector: string) => selector === ".overlay" ? {} : selector === ".overlay.left .base, .overlay.right .base, .overlay.corner .base" ? base : null,
+    querySelector: (selector: string) => selector === ".overlay" ? {} : selector === ".overlay[data-contain] .base" ? base : null,
     querySelectorAll: (selector: string) => selector === ".overlay .part, .overlay .content-row, .overlay .prayer" ? [element] : [],
   } as unknown as HTMLElement;
 }
@@ -46,7 +46,7 @@ function cornerRoot(textLeft: number, textTop = 898): HTMLElement {
   return {
     ownerDocument: { createRange: () => ({ selectNodeContents() {}, getClientRects: () => [] }) },
     getBoundingClientRect: () => ({ left: 0, top: 0, right: 1920, bottom: 1080, width: 1920, height: 1080 }),
-    querySelector: (selector: string) => selector === ".overlay" ? {} : selector === ".overlay.left .base, .overlay.right .base, .overlay.corner .base" ? base : null,
+    querySelector: (selector: string) => selector === ".overlay" ? {} : selector === ".overlay[data-contain] .base" ? base : null,
     querySelectorAll: (selector: string) => selector === ".overlay .part, .overlay .content-row, .overlay .prayer" ? [element] : [],
   } as unknown as HTMLElement;
 }

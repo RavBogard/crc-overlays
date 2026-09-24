@@ -1,3 +1,4 @@
+import {isLayoutId,layoutChoices,layoutDefinition} from './layout-registry';
 import {createHash,randomUUID} from 'node:crypto';
 import type {Cue} from './player';
 import {AuthoringError,assertSourcePin,staleSourceIds,baselineCues,buildCue,cueHash,draftSetSelections,editableFromBaseline,newDraftId,normalizeGraphicName,parseEditable,previewValidation,resolveSourceBoundaries,sameStructuredValue,sourceBlockFor,sourcePack,sourcePinFor,sourceReferences,sourceSnapshotsFor,type AuthoringCue,type BilingualContent,type CanonicalContent,type Draft,type DraftContent,type DraftSetSelection,type EditableDraft,type Layout,type LocalVariantContent,type LocalVariantOverride,type VariantChannel,type SourceBlock,type SharedCueUpstream} from './authoring-model';
@@ -115,7 +116,7 @@ function sourceSetPages(source:SearchSource,mode:'bilingual'|'original-en'|'sour
 function sourceSetPagesFromSegments(source:SearchSource,segments:SourceBlock[][],mode:'bilingual'|'original-en'|'source-en',includeTranslation:boolean,layout:Layout){
  // A corner card is one short line on its own; a prayer that needs several slides is a lower
  // third's or a panel's work, so a set is never cut into corner cards.
- if(layout==='corner')throw new AuthoringError('corner_set_unsupported','A corner card holds one short line and cannot be split into a set of slides. Use a lower third or a panel for a longer reading.',409);
+ if(layoutDefinition(layout)?.capabilities.sets===false)throw new AuthoringError('corner_set_unsupported','A corner card holds one short line and cannot be split into a set of slides. Use a lower third or a panel for a longer reading.',409);
  // A translated slide keeps its whole authorized pair. English lower thirds retain a marked
  // attribution with the preceding text; otherwise an attribution becomes an unreadable orphan.
  if(layout==='bottom'){
@@ -366,7 +367,7 @@ export function createAuthoringService(repo:AuthoringRepository,workspace:Author
    if(data.compact===false&&compactFields)throw new AuthoringError('invalid_input','filters require compact results');
    const drafts=(await repo.listDrafts()).filter(draft=>!draft.archivedAt);
    if(data.compact!==true&&!compactFields)return {drafts};
-   const layout=data.layout;if(layout!==undefined&&layout!=='left'&&layout!=='bottom'&&layout!=='right'&&layout!=='corner')throw new AuthoringError('invalid_input','layout must be left, bottom, right, or corner');
+   const layout=data.layout;if(layout!==undefined&&!isLayoutId(layout))throw new AuthoringError('invalid_input',`layout must be ${layoutChoices()}`);
    const input:DraftCatalogInput={query:optionalString(data.query,'query',100),service:optionalString(data.service,'service',100),book:optionalString(data.book,'book',100),layout,limit:data.limit===undefined?undefined:integer(data.limit,'limit',1,50),cursor:optionalString(data.cursor,'cursor',200)};
    return compactDraftCatalog(drafts,input);
   }
@@ -382,7 +383,7 @@ export function createAuthoringService(repo:AuthoringRepository,workspace:Author
    if(data.mode!=='bilingual'&&data.mode!=='original-en'&&data.mode!=='source-en')throw new AuthoringError('invalid_input','mode must be bilingual, original-en, or source-en');const mode=data.mode;
    if(data.includeTranslation!==undefined&&typeof data.includeTranslation!=='boolean')throw new AuthoringError('invalid_input','includeTranslation must be boolean');
    const includeTranslation=data.includeTranslation===true;if(mode!=='bilingual'&&includeTranslation)throw new AuthoringError('invalid_input','includeTranslation is available only for bilingual sources');
-   if(!['bottom','left','right','corner'].includes(String(data.layout)))throw new AuthoringError('invalid_input','layout must be bottom, left, right, or corner');const layout=data.layout as Layout;
+   if(!isLayoutId(data.layout))throw new AuthoringError('invalid_input',`layout must be ${layoutChoices()}`);const layout:Layout=data.layout;
    const templateCueId=baselineSourceCueId(string(data.templateCueId,'templateCueId',80));const template=baselineCues.find(cue=>cue.id===templateCueId);if(!template)throw new AuthoringError('unknown_template','Unknown baseline cue template',404);if(template.layout!==templateLayoutFor(layout))throw new AuthoringError('template_layout_mismatch','Template cue layout must match the draft layout');
    const pages=sourceSetPages(source,mode,includeTranslation,layout);const setId=randomUUID();const count=pages.length;const width=Math.max(2,String(count).length);const now=Date.now();
    let drafts=pages.map((page,index)=>{
@@ -443,7 +444,7 @@ export function createAuthoringService(repo:AuthoringRepository,workspace:Author
   if(operation==='style_draft'){
    keys(data,['draftId','expectedVersion','layout','arrangement','rowOrder','comfortableTypography','latinLineBreaks','dryRun']);
    const id=string(data.draftId,'draftId'),expected=integer(data.expectedVersion,'expectedVersion',1),current=await requiredDraft(repo,id);if(current.version!==expected)throw conflict();assertSourcePin(current);
-   const layout=data.layout;if(layout!==undefined&&layout!=='left'&&layout!=='bottom'&&layout!=='right'&&layout!=='corner')throw new AuthoringError('invalid_input','layout must be left, bottom, right, or corner');
+   const layout=data.layout;if(layout!==undefined&&!isLayoutId(layout))throw new AuthoringError('invalid_input',`layout must be ${layoutChoices()}`);
    const arrangement=data.arrangement;if(arrangement!==undefined&&arrangement!=='together'&&arrangement!=='blocks')throw new AuthoringError('invalid_input','arrangement must be together or blocks');
    const latinLineBreaks=data.latinLineBreaks;if(latinLineBreaks!==undefined&&latinLineBreaks!=='preserve'&&latinLineBreaks!=='paragraphs'&&latinLineBreaks!=='phrases')throw new AuthoringError('invalid_input','latinLineBreaks must be preserve, paragraphs, or phrases');const rowOrder=data.rowOrder===undefined?undefined:parseRowOrder(data.rowOrder)??[...LAYER_ORDER];const options:DraftStyleOptions={layout,arrangement,rowOrder,comfortableTypography:optionalBoolean(data.comfortableTypography,'comfortableTypography'),latinLineBreaks};
    const dryRun=optionalBoolean(data.dryRun,'dryRun')??true;

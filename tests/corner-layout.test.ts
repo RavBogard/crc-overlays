@@ -118,6 +118,11 @@ test('the renderer draws a corner cue as .overlay.corner with the shared parts',
  assert.equal(box.querySelector('.hebrew')!.style.fontSize,'','a short line keeps its designed size');
 });
 
+test('the renderer marks the layouts whose fit is held to their own card, and only those',()=>{
+ // app/author/preview.ts finds the card through data-contain (lib/layout-registry.ts), not a list of layout classes.
+ for(const layout of ['corner','left','right','bottom']){const cue={...cornerCue({textTitle:'Response',textMain:'Vaimru Amen'}),layout};const box=new Player(new FakeElement('div') as unknown as HTMLElement,[cue]).render(cue) as unknown as FakeElement;assert.equal('contain' in box.dataset,layout!=='bottom',layout)}
+});
+
 test('a corner line too long for its box shrinks to fit, and re-fits idempotently',()=>{
  const {box,player,cue}=renderCorner({textTitle:'Thank you',textMain:'Thank you for joining us this morning. Learn more about our community at centralreform.org'});
  const single=box.querySelector('.single-channel')!;
@@ -208,7 +213,7 @@ test('the authoring service creates and lists corner drafts, and refuses to cut 
  assert.equal(created.draft.layout,'corner');
  const listed=await service.operation('list_drafts',{compact:true,layout:'corner'},'tester') as {drafts:Array<{id:string;layout:string}>};
  assert.deepEqual(listed.drafts.map(row=>row.layout),['corner']);
- await assert.rejects(service.operation('list_drafts',{compact:true,layout:'middle'},'tester'),/layout must be left, bottom, right, or corner/);
+ await assert.rejects(service.operation('list_drafts',{compact:true,layout:'middle'},'tester'),/layout must be bottom, left, right, or corner/);
  await assert.rejects(service.operation('create_source_draft_set',{sourceId:KOL_NIDRE,mode:'bilingual',layout:'corner',templateCueId:bottomTemplate.id},'tester'),(error:unknown)=>error instanceof AuthoringError&&error.code==='corner_set_unsupported');
  const dry=await service.operation('style_draft',{draftId:created.draft.id,expectedVersion:created.draft.version,layout:'corner'},'tester') as {dryRun:boolean};
  assert.equal(dry.dryRun,true,'style_draft accepts the corner layout');

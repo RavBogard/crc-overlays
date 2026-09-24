@@ -9,20 +9,19 @@
  * catalog order.
  */
 import { layoutLabel, templateLayoutFor } from "./layout-label";
+import { layoutDefinition, layoutIds, type LayoutId } from "./layout-registry";
 
-export type TemplateLookLayout = "bottom" | "left" | "right" | "corner";
+export type TemplateLookLayout = LayoutId;
 /** Every content mode the editor can be in; only the canonical three change the descriptor. */
 export type TemplateLookMode = "bilingual" | "source-en" | "original-en" | "local-variant" | "custom";
 /** The shape of a `list_templates` row this module needs. */
 export type TemplateLookSummary = { id: string; layout: TemplateLookLayout; importable: boolean };
 export type TemplateLook = { id: string; layout: TemplateLookLayout; label: string };
 
-/** Catalog order for the tiles themselves: the lower third first, then the two panels, then the corner card. */
-const LAYOUT_ORDER: readonly TemplateLookLayout[] = ["bottom", "left", "right", "corner"];
 
 /** What this look puts on screen, in the operator's words. Never a cue name. */
 export function lookDescriptor(mode: TemplateLookMode, layout: TemplateLookLayout): string {
-  if (mode === "custom") return layout === "bottom" || layout === "corner" ? "one line" : "custom text";
+  if (mode === "custom") return layoutDefinition(layout)?.capabilities.oneBlockPerSlide ? "one line" : "custom text";
   if (mode === "source-en" || mode === "original-en") return "English reading";
   return "Hebrew + transliteration";
 }
@@ -34,7 +33,8 @@ export function lookDescriptor(mode: TemplateLookMode, layout: TemplateLookLayou
  */
 export function templateLooks(templates: readonly TemplateLookSummary[], mode: TemplateLookMode): TemplateLook[] {
   const looks: TemplateLook[] = [];
-  for (const layout of LAYOUT_ORDER) {
+  // Catalog order for the tiles themselves (lib/layout-registry.ts): the lower third first, then the two panels, then the corner card.
+  for (const layout of layoutIds()) {
     // A corner card has no baseline of its own; it takes a lower third's (templateLayoutFor).
     const from = templateLayoutFor(layout);
     const baseline = templates.find((item) => item.layout === from && item.importable) ?? templates.find((item) => item.layout === from);

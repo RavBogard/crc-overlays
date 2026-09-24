@@ -1,3 +1,4 @@
+import {isLayoutId,layoutChoices,layoutDefinition,type LayoutId} from './layout-registry';
 import {createHash,randomUUID} from 'node:crypto';
 import {createRequire} from 'node:module';
 import type {Cue} from './player';
@@ -8,7 +9,7 @@ const require=createRequire(import.meta.url);
 const sourceMapJson=require('../content/legacy-crc-shabbat-morning.sources.json');
 const baselineCueJson=require('./cues.json');
 
-export type Layout='bottom'|'left'|'right'|'corner';
+export type Layout=LayoutId;
 export type Presentation={hebrewFontSize?:number;transliterationFontSize?:number;titleFontSize?:number;alignment?:'start'|'center';lineSpacing?:'compact'|'spacious';imageAssetId?:string;latinLineBreaks?:'preserve'|'paragraphs'|'phrases'};
 export type SourceGroup={sourceId:string;blockIds:string[]};
 /**
@@ -258,7 +259,7 @@ export function parseEditable(value:unknown,partial=false,snapshots:AuthoringSou
  if(!partial||input.title!==undefined)result.title=text(input.title,'title',100)!;
  if(!partial||input.accentTitle!==undefined)result.accentTitle=text(input.accentTitle,'accentTitle',60,true);
  if(!partial||input.layout!==undefined){
-  if(!['bottom','left','right','corner'].includes(String(input.layout)))throw new AuthoringError('invalid_input','layout must be bottom, left, right, or corner');
+  if(!isLayoutId(input.layout))throw new AuthoringError('invalid_input',`layout must be ${layoutChoices()}`);
   result.layout=input.layout as Layout;
  }
  if(!partial||input.templateCueId!==undefined){
@@ -366,7 +367,7 @@ export function buildCue(draft:Draft):AuthoringCue{
  const content=draft.content.mode==='local-variant'?draft.content.base:draft.content;const overrides=draft.content.mode==='local-variant'?draft.content.overrides:[];
  // A corner card holds a line or two: Hebrew and its transliteration, or one English line. It
  // has no room for a third, translated layer, and dropping a lit layer silently would not do.
- if(draft.layout==='corner'&&content.mode==='bilingual'&&textLayers(content).includes('en'))throw new AuthoringError('corner_translation_unsupported','A corner card shows Hebrew and transliteration only. Turn off Translation, or use a lower third or a panel.',409);
+ if(layoutDefinition(draft.layout)?.capabilities.translation===false&&content.mode==='bilingual'&&textLayers(content).includes('en'))throw new AuthoringError('corner_translation_unsupported','A corner card shows Hebrew and transliteration only. Turn off Translation, or use a lower third or a panel.',409);
  const texts:Record<string,string>={textTitle:draft.title};
  if(draft.accentTitle)texts.accentTextTitle=draft.accentTitle;
  const groups=content.mode==='bilingual'?[...content.hebrewGroups,...content.transliterationGroups]:content.mode==='original-en'||content.mode==='source-en'?content.englishGroups:[];
