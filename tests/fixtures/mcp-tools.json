@@ -1,0 +1,2101 @@
+[
+ {
+  "name": "archive_draft",
+  "description": "Archive a standalone draft without changing its published output.",
+  "inputSchema": {
+   "type": "object",
+   "$schema": "https://json-schema.org/draft/2020-12/schema",
+   "properties": {
+    "draftId": {
+     "type": "string",
+     "minLength": 1,
+     "maxLength": 200
+    },
+    "expectedVersion": {
+     "type": "integer",
+     "minimum": 1,
+     "maximum": 9007199254740991
+    }
+   },
+   "required": [
+    "draftId",
+    "expectedVersion"
+   ]
+  },
+  "annotations": {
+   "readOnlyHint": false,
+   "idempotentHint": true
+  }
+ },
+ {
+  "name": "archive_draft_set",
+  "description": "Atomically archive a complete multipart draft set without changing published output.",
+  "inputSchema": {
+   "type": "object",
+   "$schema": "https://json-schema.org/draft/2020-12/schema",
+   "properties": {
+    "setId": {
+     "type": "string",
+     "minLength": 1,
+     "maxLength": 200
+    },
+    "expectedDraftIds": {
+     "minItems": 1,
+     "maxItems": 200,
+     "type": "array",
+     "items": {
+      "type": "string",
+      "minLength": 1,
+      "maxLength": 200
+     }
+    }
+   },
+   "required": [
+    "setId",
+    "expectedDraftIds"
+   ]
+  },
+  "annotations": {
+   "readOnlyHint": false,
+   "idempotentHint": true
+  }
+ },
+ {
+  "name": "create_draft",
+  "description": "Create a source-reference draft with a new stable ID. The corner layout is a small card for a line or two in the bottom-right corner; it takes a lower-third (bottom) template.",
+  "inputSchema": {
+   "type": "object",
+   "$schema": "https://json-schema.org/draft/2020-12/schema",
+   "properties": {
+    "name": {
+     "type": "string",
+     "minLength": 1,
+     "maxLength": 80
+    },
+    "title": {
+     "type": "string",
+     "minLength": 1,
+     "maxLength": 100
+    },
+    "accentTitle": {
+     "type": "string",
+     "maxLength": 60
+    },
+    "layout": {
+     "type": "string",
+     "enum": [
+      "left",
+      "bottom",
+      "right",
+      "corner"
+     ]
+    },
+    "templateCueId": {
+     "type": "string",
+     "minLength": 1,
+     "maxLength": 80
+    },
+    "content": {
+     "anyOf": [
+      {
+       "oneOf": [
+        {
+         "type": "object",
+         "properties": {
+          "mode": {
+           "type": "string",
+           "const": "bilingual"
+          },
+          "hebrewGroups": {
+           "minItems": 1,
+           "maxItems": 24,
+           "type": "array",
+           "items": {
+            "type": "object",
+            "properties": {
+             "sourceId": {
+              "type": "string",
+              "minLength": 1,
+              "maxLength": 160
+             },
+             "blockIds": {
+              "minItems": 1,
+              "maxItems": 48,
+              "type": "array",
+              "items": {
+               "type": "string",
+               "minLength": 1,
+               "maxLength": 220
+              }
+             }
+            },
+            "required": [
+             "sourceId",
+             "blockIds"
+            ],
+            "additionalProperties": false
+           }
+          },
+          "transliterationGroups": {
+           "minItems": 1,
+           "maxItems": 24,
+           "type": "array",
+           "items": {
+            "type": "object",
+            "properties": {
+             "sourceId": {
+              "type": "string",
+              "minLength": 1,
+              "maxLength": 160
+             },
+             "blockIds": {
+              "minItems": 1,
+              "maxItems": 48,
+              "type": "array",
+              "items": {
+               "type": "string",
+               "minLength": 1,
+               "maxLength": 220
+              }
+             }
+            },
+            "required": [
+             "sourceId",
+             "blockIds"
+            ],
+            "additionalProperties": false
+           }
+          },
+          "includeTranslation": {
+           "type": "boolean"
+          },
+          "layers": {
+           "minItems": 1,
+           "maxItems": 3,
+           "type": "array",
+           "items": {
+            "type": "string",
+            "enum": [
+             "he",
+             "tr",
+             "en"
+            ]
+           }
+          },
+          "arrangement": {
+           "type": "string",
+           "enum": [
+            "together",
+            "blocks"
+           ]
+          },
+          "rowOrder": {
+           "minItems": 3,
+           "maxItems": 3,
+           "type": "array",
+           "items": {
+            "type": "string",
+            "enum": [
+             "he",
+             "tr",
+             "en"
+            ]
+           },
+           "description": "Order the Hebrew (he), transliteration (tr) and translation (en) layers stack in on a left or right panel, in both arrangements. Default he, tr, en, which is stored as absent; a lower third ignores it."
+          }
+         },
+         "required": [
+          "mode",
+          "hebrewGroups",
+          "transliterationGroups"
+         ],
+         "additionalProperties": false
+        },
+        {
+         "type": "object",
+         "properties": {
+          "mode": {
+           "type": "string",
+           "const": "original-en"
+          },
+          "englishGroups": {
+           "minItems": 1,
+           "maxItems": 24,
+           "type": "array",
+           "items": {
+            "type": "object",
+            "properties": {
+             "sourceId": {
+              "type": "string",
+              "minLength": 1,
+              "maxLength": 160
+             },
+             "blockIds": {
+              "minItems": 1,
+              "maxItems": 48,
+              "type": "array",
+              "items": {
+               "type": "string",
+               "minLength": 1,
+               "maxLength": 220
+              }
+             }
+            },
+            "required": [
+             "sourceId",
+             "blockIds"
+            ],
+            "additionalProperties": false
+           }
+          }
+         },
+         "required": [
+          "mode",
+          "englishGroups"
+         ],
+         "additionalProperties": false
+        },
+        {
+         "type": "object",
+         "properties": {
+          "mode": {
+           "type": "string",
+           "const": "source-en"
+          },
+          "englishGroups": {
+           "minItems": 1,
+           "maxItems": 24,
+           "type": "array",
+           "items": {
+            "type": "object",
+            "properties": {
+             "sourceId": {
+              "type": "string",
+              "minLength": 1,
+              "maxLength": 160
+             },
+             "blockIds": {
+              "minItems": 1,
+              "maxItems": 48,
+              "type": "array",
+              "items": {
+               "type": "string",
+               "minLength": 1,
+               "maxLength": 220
+              }
+             }
+            },
+            "required": [
+             "sourceId",
+             "blockIds"
+            ],
+            "additionalProperties": false
+           }
+          }
+         },
+         "required": [
+          "mode",
+          "englishGroups"
+         ],
+         "additionalProperties": false
+        }
+       ]
+      },
+      {
+       "type": "object",
+       "properties": {
+        "mode": {
+         "type": "string",
+         "const": "local-variant"
+        },
+        "label": {
+         "type": "string",
+         "minLength": 1,
+         "maxLength": 80
+        },
+        "reason": {
+         "type": "string",
+         "minLength": 1,
+         "maxLength": 500
+        },
+        "base": {
+         "oneOf": [
+          {
+           "type": "object",
+           "properties": {
+            "mode": {
+             "type": "string",
+             "const": "bilingual"
+            },
+            "hebrewGroups": {
+             "minItems": 1,
+             "maxItems": 24,
+             "type": "array",
+             "items": {
+              "type": "object",
+              "properties": {
+               "sourceId": {
+                "type": "string",
+                "minLength": 1,
+                "maxLength": 160
+               },
+               "blockIds": {
+                "minItems": 1,
+                "maxItems": 48,
+                "type": "array",
+                "items": {
+                 "type": "string",
+                 "minLength": 1,
+                 "maxLength": 220
+                }
+               }
+              },
+              "required": [
+               "sourceId",
+               "blockIds"
+              ],
+              "additionalProperties": false
+             }
+            },
+            "transliterationGroups": {
+             "minItems": 1,
+             "maxItems": 24,
+             "type": "array",
+             "items": {
+              "type": "object",
+              "properties": {
+               "sourceId": {
+                "type": "string",
+                "minLength": 1,
+                "maxLength": 160
+               },
+               "blockIds": {
+                "minItems": 1,
+                "maxItems": 48,
+                "type": "array",
+                "items": {
+                 "type": "string",
+                 "minLength": 1,
+                 "maxLength": 220
+                }
+               }
+              },
+              "required": [
+               "sourceId",
+               "blockIds"
+              ],
+              "additionalProperties": false
+             }
+            },
+            "includeTranslation": {
+             "type": "boolean"
+            },
+            "layers": {
+             "minItems": 1,
+             "maxItems": 3,
+             "type": "array",
+             "items": {
+              "type": "string",
+              "enum": [
+               "he",
+               "tr",
+               "en"
+              ]
+             }
+            },
+            "arrangement": {
+             "type": "string",
+             "enum": [
+              "together",
+              "blocks"
+             ]
+            },
+            "rowOrder": {
+             "minItems": 3,
+             "maxItems": 3,
+             "type": "array",
+             "items": {
+              "type": "string",
+              "enum": [
+               "he",
+               "tr",
+               "en"
+              ]
+             },
+             "description": "Order the Hebrew (he), transliteration (tr) and translation (en) layers stack in on a left or right panel, in both arrangements. Default he, tr, en, which is stored as absent; a lower third ignores it."
+            }
+           },
+           "required": [
+            "mode",
+            "hebrewGroups",
+            "transliterationGroups"
+           ],
+           "additionalProperties": false
+          },
+          {
+           "type": "object",
+           "properties": {
+            "mode": {
+             "type": "string",
+             "const": "original-en"
+            },
+            "englishGroups": {
+             "minItems": 1,
+             "maxItems": 24,
+             "type": "array",
+             "items": {
+              "type": "object",
+              "properties": {
+               "sourceId": {
+                "type": "string",
+                "minLength": 1,
+                "maxLength": 160
+               },
+               "blockIds": {
+                "minItems": 1,
+                "maxItems": 48,
+                "type": "array",
+                "items": {
+                 "type": "string",
+                 "minLength": 1,
+                 "maxLength": 220
+                }
+               }
+              },
+              "required": [
+               "sourceId",
+               "blockIds"
+              ],
+              "additionalProperties": false
+             }
+            }
+           },
+           "required": [
+            "mode",
+            "englishGroups"
+           ],
+           "additionalProperties": false
+          },
+          {
+           "type": "object",
+           "properties": {
+            "mode": {
+             "type": "string",
+             "const": "source-en"
+            },
+            "englishGroups": {
+             "minItems": 1,
+             "maxItems": 24,
+             "type": "array",
+             "items": {
+              "type": "object",
+              "properties": {
+               "sourceId": {
+                "type": "string",
+                "minLength": 1,
+                "maxLength": 160
+               },
+               "blockIds": {
+                "minItems": 1,
+                "maxItems": 48,
+                "type": "array",
+                "items": {
+                 "type": "string",
+                 "minLength": 1,
+                 "maxLength": 220
+                }
+               }
+              },
+              "required": [
+               "sourceId",
+               "blockIds"
+              ],
+              "additionalProperties": false
+             }
+            }
+           },
+           "required": [
+            "mode",
+            "englishGroups"
+           ],
+           "additionalProperties": false
+          }
+         ]
+        },
+        "overrides": {
+         "minItems": 1,
+         "maxItems": 96,
+         "type": "array",
+         "items": {
+          "type": "object",
+          "properties": {
+           "sourceId": {
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 160
+           },
+           "blockId": {
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 220
+           },
+           "channel": {
+            "type": "string",
+            "enum": [
+             "he",
+             "tr",
+             "en"
+            ]
+           },
+           "sourceText": {
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 4000
+           },
+           "localText": {
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 4000
+           }
+          },
+          "required": [
+           "sourceId",
+           "blockId",
+           "channel",
+           "sourceText",
+           "localText"
+          ],
+          "additionalProperties": false
+         }
+        }
+       },
+       "required": [
+        "mode",
+        "label",
+        "base",
+        "overrides"
+       ],
+       "additionalProperties": false
+      },
+      {
+       "type": "object",
+       "properties": {
+        "mode": {
+         "type": "string",
+         "const": "custom"
+        },
+        "text": {
+         "type": "string",
+         "minLength": 1,
+         "maxLength": 4000
+        }
+       },
+       "required": [
+        "mode",
+        "text"
+       ],
+       "additionalProperties": false
+      }
+     ]
+    },
+    "presentation": {
+     "type": "object",
+     "properties": {
+      "hebrewFontSize": {
+       "type": "integer",
+       "minimum": 24,
+       "maximum": 52
+      },
+      "transliterationFontSize": {
+       "type": "integer",
+       "minimum": 20,
+       "maximum": 48
+      },
+      "titleFontSize": {
+       "type": "integer",
+       "minimum": 20,
+       "maximum": 42
+      },
+      "alignment": {
+       "type": "string",
+       "enum": [
+        "start",
+        "center"
+       ]
+      },
+      "lineSpacing": {
+       "type": "string",
+       "enum": [
+        "compact",
+        "spacious"
+       ]
+      },
+      "latinLineBreaks": {
+       "type": "string",
+       "enum": [
+        "preserve",
+        "paragraphs",
+        "phrases"
+       ]
+      },
+      "imageAssetId": {
+       "type": "string",
+       "pattern": "^asset_[a-f0-9]{64}$"
+      }
+     },
+     "additionalProperties": false
+    }
+   },
+   "required": [
+    "name",
+    "title",
+    "layout",
+    "templateCueId",
+    "content"
+   ]
+  },
+  "annotations": {
+   "readOnlyHint": false
+  }
+ },
+ {
+  "name": "create_local_variant",
+  "description": "Create an unpublished local liturgical variant while retaining exact source text and pins.",
+  "inputSchema": {
+   "type": "object",
+   "$schema": "https://json-schema.org/draft/2020-12/schema",
+   "properties": {
+    "draftId": {
+     "type": "string",
+     "minLength": 1,
+     "maxLength": 200
+    },
+    "cueId": {
+     "type": "string",
+     "minLength": 1,
+     "maxLength": 200
+    },
+    "label": {
+     "type": "string",
+     "minLength": 1,
+     "maxLength": 80
+    },
+    "reason": {
+     "type": "string",
+     "minLength": 1,
+     "maxLength": 500
+    },
+    "overrides": {
+     "minItems": 1,
+     "maxItems": 96,
+     "type": "array",
+     "items": {
+      "type": "object",
+      "properties": {
+       "sourceId": {
+        "type": "string",
+        "minLength": 1,
+        "maxLength": 160
+       },
+       "blockId": {
+        "type": "string",
+        "minLength": 1,
+        "maxLength": 220
+       },
+       "channel": {
+        "type": "string",
+        "enum": [
+         "he",
+         "tr",
+         "en"
+        ]
+       },
+       "localText": {
+        "type": "string",
+        "minLength": 1,
+        "maxLength": 4000
+       }
+      },
+      "required": [
+       "sourceId",
+       "blockId",
+       "channel",
+       "localText"
+      ],
+      "additionalProperties": false
+     }
+    }
+   },
+   "required": [
+    "label",
+    "overrides"
+   ]
+  },
+  "annotations": {
+   "readOnlyHint": false
+  }
+ },
+ {
+  "name": "create_source_draft_set",
+  "description": "Create an unpublished ordered set from every automatic block in one maintained source.",
+  "inputSchema": {
+   "type": "object",
+   "$schema": "https://json-schema.org/draft/2020-12/schema",
+   "properties": {
+    "sourceId": {
+     "type": "string",
+     "minLength": 1,
+     "maxLength": 200
+    },
+    "mode": {
+     "type": "string",
+     "enum": [
+      "bilingual",
+      "original-en",
+      "source-en"
+     ]
+    },
+    "includeTranslation": {
+     "type": "boolean"
+    },
+    "layout": {
+     "type": "string",
+     "enum": [
+      "left",
+      "bottom",
+      "right",
+      "corner"
+     ]
+    },
+    "templateCueId": {
+     "type": "string",
+     "minLength": 1,
+     "maxLength": 200
+    }
+   },
+   "required": [
+    "sourceId",
+    "mode",
+    "layout",
+    "templateCueId"
+   ]
+  },
+  "annotations": {
+   "readOnlyHint": false
+  }
+ },
+ {
+  "name": "duplicate_draft_in_set",
+  "description": "Duplicate one multipart slide with a new identity and contiguous set order.",
+  "inputSchema": {
+   "type": "object",
+   "$schema": "https://json-schema.org/draft/2020-12/schema",
+   "properties": {
+    "draftId": {
+     "type": "string",
+     "minLength": 1,
+     "maxLength": 200
+    },
+    "expectedVersion": {
+     "type": "integer",
+     "minimum": 1,
+     "maximum": 9007199254740991
+    },
+    "expectedDraftIds": {
+     "minItems": 1,
+     "maxItems": 200,
+     "type": "array",
+     "items": {
+      "type": "string",
+      "minLength": 1,
+      "maxLength": 200
+     }
+    }
+   },
+   "required": [
+    "draftId",
+    "expectedVersion",
+    "expectedDraftIds"
+   ]
+  },
+  "annotations": {
+   "readOnlyHint": false
+  }
+ },
+ {
+  "name": "fit_check_draft",
+  "description": "Measure a version-bound preview in a real browser on the server and store the result on that preview. Optional preview image is ephemeral and is never stored. Returns pass, fail with the fit problems found, or unavailable with a web fit-check link.",
+  "inputSchema": {
+   "type": "object",
+   "$schema": "https://json-schema.org/draft/2020-12/schema",
+   "properties": {
+    "draftId": {
+     "type": "string",
+     "minLength": 1,
+     "maxLength": 200
+    },
+    "expectedVersion": {
+     "type": "integer",
+     "minimum": 1,
+     "maximum": 9007199254740991
+    },
+    "previewId": {
+     "type": "string",
+     "minLength": 1,
+     "maxLength": 200
+    },
+    "includePreviewImage": {
+     "type": "boolean"
+    }
+   },
+   "required": [
+    "draftId",
+    "expectedVersion",
+    "previewId"
+   ]
+  },
+  "annotations": {
+   "readOnlyHint": false,
+   "idempotentHint": true
+  }
+ },
+ {
+  "name": "get_draft",
+  "description": "Get one draft and its current version.",
+  "inputSchema": {
+   "type": "object",
+   "$schema": "https://json-schema.org/draft/2020-12/schema",
+   "properties": {
+    "draftId": {
+     "type": "string",
+     "minLength": 1,
+     "maxLength": 200
+    }
+   },
+   "required": [
+    "draftId"
+   ]
+  },
+  "annotations": {
+   "readOnlyHint": true
+  }
+ },
+ {
+  "name": "get_service_history",
+  "description": "Read what this congregation's output actually did: one row per accepted command, with the graphic id and its liturgical position (unit, moment, book, folio) and the time. Bounded to the last 2,000 commands or 14 days, whichever is smaller. It carries no graphic names, no text and nobody's identity, and it never puts anything on screen.",
+  "inputSchema": {
+   "type": "object",
+   "$schema": "https://json-schema.org/draft/2020-12/schema",
+   "properties": {
+    "since": {
+     "type": "integer",
+     "minimum": 0,
+     "maximum": 9007199254740991
+    },
+    "until": {
+     "type": "integer",
+     "minimum": 0,
+     "maximum": 9007199254740991
+    },
+    "after": {
+     "type": "integer",
+     "minimum": 0,
+     "maximum": 9007199254740991
+    }
+   }
+  },
+  "annotations": {
+   "readOnlyHint": true
+  }
+ },
+ {
+  "name": "get_source",
+  "description": "Get one authorized source by ID.",
+  "inputSchema": {
+   "type": "object",
+   "$schema": "https://json-schema.org/draft/2020-12/schema",
+   "properties": {
+    "sourceId": {
+     "type": "string",
+     "minLength": 1,
+     "maxLength": 200
+    }
+   },
+   "required": [
+    "sourceId"
+   ]
+  },
+  "annotations": {
+   "readOnlyHint": true
+  }
+ },
+ {
+  "name": "import_cue",
+  "description": "Idempotently create or return a source-reference draft for an existing baseline cue. No plaintext prayer content is accepted.",
+  "inputSchema": {
+   "type": "object",
+   "$schema": "https://json-schema.org/draft/2020-12/schema",
+   "properties": {
+    "cueId": {
+     "type": "string",
+     "minLength": 1,
+     "maxLength": 200
+    }
+   },
+   "required": [
+    "cueId"
+   ]
+  },
+  "annotations": {
+   "readOnlyHint": false,
+   "idempotentHint": true
+  }
+ },
+ {
+  "name": "list_archived_drafts",
+  "description": "List recoverable archived authoring drafts.",
+  "inputSchema": {
+   "type": "object",
+   "$schema": "https://json-schema.org/draft/2020-12/schema",
+   "properties": {}
+  },
+  "annotations": {
+   "readOnlyHint": true
+  }
+ },
+ {
+  "name": "list_drafts",
+  "description": "List authoring drafts. With compact, query, service, book, layout, limit, or cursor, returns bounded summaries without source text.",
+  "inputSchema": {
+   "type": "object",
+   "$schema": "https://json-schema.org/draft/2020-12/schema",
+   "properties": {
+    "compact": {
+     "type": "boolean"
+    },
+    "query": {
+     "type": "string",
+     "minLength": 1,
+     "maxLength": 100
+    },
+    "service": {
+     "type": "string",
+     "minLength": 1,
+     "maxLength": 100
+    },
+    "book": {
+     "type": "string",
+     "minLength": 1,
+     "maxLength": 100
+    },
+    "layout": {
+     "type": "string",
+     "enum": [
+      "left",
+      "bottom",
+      "right",
+      "corner"
+     ]
+    },
+    "limit": {
+     "type": "integer",
+     "minimum": 1,
+     "maximum": 50
+    },
+    "cursor": {
+     "type": "string",
+     "minLength": 1,
+     "maxLength": 200
+    }
+   }
+  },
+  "annotations": {
+   "readOnlyHint": true
+  }
+ },
+ {
+  "name": "list_revisions",
+  "description": "List immutable revisions for a draft.",
+  "inputSchema": {
+   "type": "object",
+   "$schema": "https://json-schema.org/draft/2020-12/schema",
+   "properties": {
+    "draftId": {
+     "type": "string",
+     "minLength": 1,
+     "maxLength": 200
+    }
+   },
+   "required": [
+    "draftId"
+   ]
+  },
+  "annotations": {
+   "readOnlyHint": true
+  }
+ },
+ {
+  "name": "list_templates",
+  "description": "List baseline cue templates and whether each can be imported.",
+  "inputSchema": {
+   "type": "object",
+   "$schema": "https://json-schema.org/draft/2020-12/schema",
+   "properties": {}
+  },
+  "annotations": {
+   "readOnlyHint": true
+  }
+ },
+ {
+  "name": "list_wording_changes",
+  "description": "List every edited siddur line in this workspace (local-variant wording): the draft, whether it is published or archived, the source and passage, the channel, the exact source text and the edited text, and why. Read only; use it to find source spellings to correct. It never changes a draft or the siddur.",
+  "inputSchema": {
+   "type": "object",
+   "$schema": "https://json-schema.org/draft/2020-12/schema",
+   "properties": {}
+  },
+  "annotations": {
+   "readOnlyHint": true
+  }
+ },
+ {
+  "name": "prepare_service_from_setlist",
+  "description": "Build a prepared service on /services from a centralreform.live setlist: each row is matched to a published graphic and every row that could not be settled comes back for review. It never publishes anything, never changes a published graphic, and never puts anything on screen.",
+  "inputSchema": {
+   "type": "object",
+   "$schema": "https://json-schema.org/draft/2020-12/schema",
+   "properties": {
+    "setlistId": {
+     "type": "string",
+     "minLength": 1,
+     "maxLength": 160
+    },
+    "name": {
+     "type": "string",
+     "minLength": 1,
+     "maxLength": 120
+    },
+    "service": {
+     "type": "string",
+     "minLength": 1,
+     "maxLength": 120
+    }
+   },
+   "required": [
+    "setlistId"
+   ]
+  },
+  "annotations": {
+   "readOnlyHint": false
+  }
+ },
+ {
+  "name": "preview_draft",
+  "description": "Create a version-bound preview and return its authenticated preview path and fit contract. A human must review it in the web UI before publishing.",
+  "inputSchema": {
+   "type": "object",
+   "$schema": "https://json-schema.org/draft/2020-12/schema",
+   "properties": {
+    "draftId": {
+     "type": "string",
+     "minLength": 1,
+     "maxLength": 200
+    },
+    "expectedVersion": {
+     "type": "integer",
+     "minimum": 1,
+     "maximum": 9007199254740991
+    }
+   },
+   "required": [
+    "draftId",
+    "expectedVersion"
+   ]
+  },
+  "annotations": {
+   "readOnlyHint": false,
+   "idempotentHint": true
+  }
+ },
+ {
+  "name": "publish_draft",
+  "description": "Publish only a preview with a stored, exact-version human review receipt.",
+  "inputSchema": {
+   "type": "object",
+   "$schema": "https://json-schema.org/draft/2020-12/schema",
+   "properties": {
+    "draftId": {
+     "type": "string",
+     "minLength": 1,
+     "maxLength": 200
+    },
+    "expectedVersion": {
+     "type": "integer",
+     "minimum": 1,
+     "maximum": 9007199254740991
+    },
+    "previewId": {
+     "type": "string",
+     "minLength": 1,
+     "maxLength": 200
+    }
+   },
+   "required": [
+    "draftId",
+    "expectedVersion",
+    "previewId"
+   ]
+  },
+  "annotations": {
+   "readOnlyHint": false
+  }
+ },
+ {
+  "name": "reorder_draft_set",
+  "description": "Atomically reorder every slide in a multipart draft set.",
+  "inputSchema": {
+   "type": "object",
+   "$schema": "https://json-schema.org/draft/2020-12/schema",
+   "properties": {
+    "setId": {
+     "type": "string",
+     "minLength": 1,
+     "maxLength": 200
+    },
+    "expectedDraftIds": {
+     "minItems": 1,
+     "maxItems": 200,
+     "type": "array",
+     "items": {
+      "type": "string",
+      "minLength": 1,
+      "maxLength": 200
+     }
+    },
+    "orderedDraftIds": {
+     "minItems": 1,
+     "maxItems": 200,
+     "type": "array",
+     "items": {
+      "type": "string",
+      "minLength": 1,
+      "maxLength": 200
+     }
+    }
+   },
+   "required": [
+    "setId",
+    "expectedDraftIds",
+    "orderedDraftIds"
+   ]
+  },
+  "annotations": {
+   "readOnlyHint": false,
+   "idempotentHint": true
+  }
+ },
+ {
+  "name": "restore_draft",
+  "description": "Restore a standalone archived draft.",
+  "inputSchema": {
+   "type": "object",
+   "$schema": "https://json-schema.org/draft/2020-12/schema",
+   "properties": {
+    "draftId": {
+     "type": "string",
+     "minLength": 1,
+     "maxLength": 200
+    },
+    "expectedVersion": {
+     "type": "integer",
+     "minimum": 1,
+     "maximum": 9007199254740991
+    }
+   },
+   "required": [
+    "draftId",
+    "expectedVersion"
+   ]
+  },
+  "annotations": {
+   "readOnlyHint": false,
+   "idempotentHint": true
+  }
+ },
+ {
+  "name": "restore_draft_set",
+  "description": "Atomically restore a complete multipart draft set.",
+  "inputSchema": {
+   "type": "object",
+   "$schema": "https://json-schema.org/draft/2020-12/schema",
+   "properties": {
+    "setId": {
+     "type": "string",
+     "minLength": 1,
+     "maxLength": 200
+    },
+    "expectedDraftIds": {
+     "minItems": 1,
+     "maxItems": 200,
+     "type": "array",
+     "items": {
+      "type": "string",
+      "minLength": 1,
+      "maxLength": 200
+     }
+    }
+   },
+   "required": [
+    "setId",
+    "expectedDraftIds"
+   ]
+  },
+  "annotations": {
+   "readOnlyHint": false,
+   "idempotentHint": true
+  }
+ },
+ {
+  "name": "review_draft",
+  "description": "Record human approval for a preview this actor has already fit-checked on the server. The measurement is the stored server fit check; none can be supplied.",
+  "inputSchema": {
+   "type": "object",
+   "$schema": "https://json-schema.org/draft/2020-12/schema",
+   "properties": {
+    "draftId": {
+     "type": "string",
+     "minLength": 1,
+     "maxLength": 200
+    },
+    "expectedVersion": {
+     "type": "integer",
+     "minimum": 1,
+     "maximum": 9007199254740991
+    },
+    "previewId": {
+     "type": "string",
+     "minLength": 1,
+     "maxLength": 200
+    },
+    "humanApproved": {
+     "type": "boolean",
+     "const": true
+    }
+   },
+   "required": [
+    "draftId",
+    "expectedVersion",
+    "previewId",
+    "humanApproved"
+   ]
+  },
+  "annotations": {
+   "readOnlyHint": false
+  }
+ },
+ {
+  "name": "review_draft_set",
+  "description": "Verify exact-once source blocks, language channels, and order for a multipart draft set.",
+  "inputSchema": {
+   "type": "object",
+   "$schema": "https://json-schema.org/draft/2020-12/schema",
+   "properties": {
+    "setId": {
+     "type": "string",
+     "minLength": 1,
+     "maxLength": 200
+    }
+   },
+   "required": [
+    "setId"
+   ]
+  },
+  "annotations": {
+   "readOnlyHint": true
+  }
+ },
+ {
+  "name": "rollback_draft",
+  "description": "Select an earlier immutable revision for future resolution.",
+  "inputSchema": {
+   "type": "object",
+   "$schema": "https://json-schema.org/draft/2020-12/schema",
+   "properties": {
+    "draftId": {
+     "type": "string",
+     "minLength": 1,
+     "maxLength": 200
+    },
+    "expectedVersion": {
+     "type": "integer",
+     "minimum": 1,
+     "maximum": 9007199254740991
+    },
+    "revision": {
+     "type": "integer",
+     "minimum": 1,
+     "maximum": 9007199254740991
+    }
+   },
+   "required": [
+    "draftId",
+    "expectedVersion",
+    "revision"
+   ]
+  },
+  "annotations": {
+   "readOnlyHint": false,
+   "idempotentHint": true,
+   "destructiveHint": true
+  }
+ },
+ {
+  "name": "search_sources",
+  "description": "Search the authorized CRC source corpus. Returns references, never a public corpus export.",
+  "inputSchema": {
+   "type": "object",
+   "$schema": "https://json-schema.org/draft/2020-12/schema",
+   "properties": {
+    "query": {
+     "type": "string",
+     "minLength": 1,
+     "maxLength": 100
+    },
+    "limit": {
+     "type": "integer",
+     "minimum": 1,
+     "maximum": 50
+    }
+   },
+   "required": [
+    "query"
+   ]
+  },
+  "annotations": {
+   "readOnlyHint": true
+  }
+ },
+ {
+  "name": "split_draft_into_set",
+  "description": "Split one existing source-backed draft at its current selected pinned blocks, preserving its presentation and source variants in an ordered unpublished set.",
+  "inputSchema": {
+   "type": "object",
+   "$schema": "https://json-schema.org/draft/2020-12/schema",
+   "properties": {
+    "draftId": {
+     "type": "string",
+     "minLength": 1,
+     "maxLength": 200
+    },
+    "expectedVersion": {
+     "type": "integer",
+     "minimum": 1,
+     "maximum": 9007199254740991
+    }
+   },
+   "required": [
+    "draftId",
+    "expectedVersion"
+   ]
+  },
+  "annotations": {
+   "readOnlyHint": false,
+   "idempotentHint": true
+  }
+ },
+ {
+  "name": "style_draft",
+  "description": "Plan a readable draft style by default: comfortable typography and bilingual blocks. Dry run is the default; applying uses the same optimistic draft update safeguards and never publishes.",
+  "inputSchema": {
+   "type": "object",
+   "$schema": "https://json-schema.org/draft/2020-12/schema",
+   "properties": {
+    "draftId": {
+     "type": "string",
+     "minLength": 1,
+     "maxLength": 200
+    },
+    "expectedVersion": {
+     "type": "integer",
+     "minimum": 1,
+     "maximum": 9007199254740991
+    },
+    "layout": {
+     "type": "string",
+     "enum": [
+      "left",
+      "bottom",
+      "right",
+      "corner"
+     ]
+    },
+    "arrangement": {
+     "type": "string",
+     "enum": [
+      "together",
+      "blocks"
+     ]
+    },
+    "rowOrder": {
+     "minItems": 3,
+     "maxItems": 3,
+     "type": "array",
+     "items": {
+      "type": "string",
+      "enum": [
+       "he",
+       "tr",
+       "en"
+      ]
+     },
+     "description": "Order the Hebrew (he), transliteration (tr) and translation (en) layers stack in on a left or right panel, in both arrangements. Default he, tr, en, which is stored as absent; a lower third ignores it."
+    },
+    "comfortableTypography": {
+     "type": "boolean"
+    },
+    "latinLineBreaks": {
+     "type": "string",
+     "enum": [
+      "preserve",
+      "paragraphs",
+      "phrases"
+     ]
+    },
+    "dryRun": {
+     "type": "boolean"
+    }
+   },
+   "required": [
+    "draftId",
+    "expectedVersion"
+   ]
+  },
+  "annotations": {
+   "readOnlyHint": false,
+   "idempotentHint": true
+  }
+ },
+ {
+  "name": "update_draft",
+  "description": "Update a draft using optimistic version matching.",
+  "inputSchema": {
+   "type": "object",
+   "$schema": "https://json-schema.org/draft/2020-12/schema",
+   "properties": {
+    "draftId": {
+     "type": "string",
+     "minLength": 1,
+     "maxLength": 200
+    },
+    "expectedVersion": {
+     "type": "integer",
+     "minimum": 1,
+     "maximum": 9007199254740991
+    },
+    "patch": {
+     "type": "object",
+     "properties": {
+      "name": {
+       "type": "string",
+       "minLength": 1,
+       "maxLength": 80
+      },
+      "title": {
+       "type": "string",
+       "minLength": 1,
+       "maxLength": 100
+      },
+      "accentTitle": {
+       "type": "string",
+       "maxLength": 60
+      },
+      "layout": {
+       "type": "string",
+       "enum": [
+        "left",
+        "bottom",
+        "right",
+        "corner"
+       ]
+      },
+      "templateCueId": {
+       "type": "string",
+       "minLength": 1,
+       "maxLength": 80
+      },
+      "content": {
+       "anyOf": [
+        {
+         "oneOf": [
+          {
+           "type": "object",
+           "properties": {
+            "mode": {
+             "type": "string",
+             "const": "bilingual"
+            },
+            "hebrewGroups": {
+             "minItems": 1,
+             "maxItems": 24,
+             "type": "array",
+             "items": {
+              "type": "object",
+              "properties": {
+               "sourceId": {
+                "type": "string",
+                "minLength": 1,
+                "maxLength": 160
+               },
+               "blockIds": {
+                "minItems": 1,
+                "maxItems": 48,
+                "type": "array",
+                "items": {
+                 "type": "string",
+                 "minLength": 1,
+                 "maxLength": 220
+                }
+               }
+              },
+              "required": [
+               "sourceId",
+               "blockIds"
+              ],
+              "additionalProperties": false
+             }
+            },
+            "transliterationGroups": {
+             "minItems": 1,
+             "maxItems": 24,
+             "type": "array",
+             "items": {
+              "type": "object",
+              "properties": {
+               "sourceId": {
+                "type": "string",
+                "minLength": 1,
+                "maxLength": 160
+               },
+               "blockIds": {
+                "minItems": 1,
+                "maxItems": 48,
+                "type": "array",
+                "items": {
+                 "type": "string",
+                 "minLength": 1,
+                 "maxLength": 220
+                }
+               }
+              },
+              "required": [
+               "sourceId",
+               "blockIds"
+              ],
+              "additionalProperties": false
+             }
+            },
+            "includeTranslation": {
+             "type": "boolean"
+            },
+            "layers": {
+             "minItems": 1,
+             "maxItems": 3,
+             "type": "array",
+             "items": {
+              "type": "string",
+              "enum": [
+               "he",
+               "tr",
+               "en"
+              ]
+             }
+            },
+            "arrangement": {
+             "type": "string",
+             "enum": [
+              "together",
+              "blocks"
+             ]
+            },
+            "rowOrder": {
+             "minItems": 3,
+             "maxItems": 3,
+             "type": "array",
+             "items": {
+              "type": "string",
+              "enum": [
+               "he",
+               "tr",
+               "en"
+              ]
+             },
+             "description": "Order the Hebrew (he), transliteration (tr) and translation (en) layers stack in on a left or right panel, in both arrangements. Default he, tr, en, which is stored as absent; a lower third ignores it."
+            }
+           },
+           "required": [
+            "mode",
+            "hebrewGroups",
+            "transliterationGroups"
+           ],
+           "additionalProperties": false
+          },
+          {
+           "type": "object",
+           "properties": {
+            "mode": {
+             "type": "string",
+             "const": "original-en"
+            },
+            "englishGroups": {
+             "minItems": 1,
+             "maxItems": 24,
+             "type": "array",
+             "items": {
+              "type": "object",
+              "properties": {
+               "sourceId": {
+                "type": "string",
+                "minLength": 1,
+                "maxLength": 160
+               },
+               "blockIds": {
+                "minItems": 1,
+                "maxItems": 48,
+                "type": "array",
+                "items": {
+                 "type": "string",
+                 "minLength": 1,
+                 "maxLength": 220
+                }
+               }
+              },
+              "required": [
+               "sourceId",
+               "blockIds"
+              ],
+              "additionalProperties": false
+             }
+            }
+           },
+           "required": [
+            "mode",
+            "englishGroups"
+           ],
+           "additionalProperties": false
+          },
+          {
+           "type": "object",
+           "properties": {
+            "mode": {
+             "type": "string",
+             "const": "source-en"
+            },
+            "englishGroups": {
+             "minItems": 1,
+             "maxItems": 24,
+             "type": "array",
+             "items": {
+              "type": "object",
+              "properties": {
+               "sourceId": {
+                "type": "string",
+                "minLength": 1,
+                "maxLength": 160
+               },
+               "blockIds": {
+                "minItems": 1,
+                "maxItems": 48,
+                "type": "array",
+                "items": {
+                 "type": "string",
+                 "minLength": 1,
+                 "maxLength": 220
+                }
+               }
+              },
+              "required": [
+               "sourceId",
+               "blockIds"
+              ],
+              "additionalProperties": false
+             }
+            }
+           },
+           "required": [
+            "mode",
+            "englishGroups"
+           ],
+           "additionalProperties": false
+          }
+         ]
+        },
+        {
+         "type": "object",
+         "properties": {
+          "mode": {
+           "type": "string",
+           "const": "local-variant"
+          },
+          "label": {
+           "type": "string",
+           "minLength": 1,
+           "maxLength": 80
+          },
+          "reason": {
+           "type": "string",
+           "minLength": 1,
+           "maxLength": 500
+          },
+          "base": {
+           "oneOf": [
+            {
+             "type": "object",
+             "properties": {
+              "mode": {
+               "type": "string",
+               "const": "bilingual"
+              },
+              "hebrewGroups": {
+               "minItems": 1,
+               "maxItems": 24,
+               "type": "array",
+               "items": {
+                "type": "object",
+                "properties": {
+                 "sourceId": {
+                  "type": "string",
+                  "minLength": 1,
+                  "maxLength": 160
+                 },
+                 "blockIds": {
+                  "minItems": 1,
+                  "maxItems": 48,
+                  "type": "array",
+                  "items": {
+                   "type": "string",
+                   "minLength": 1,
+                   "maxLength": 220
+                  }
+                 }
+                },
+                "required": [
+                 "sourceId",
+                 "blockIds"
+                ],
+                "additionalProperties": false
+               }
+              },
+              "transliterationGroups": {
+               "minItems": 1,
+               "maxItems": 24,
+               "type": "array",
+               "items": {
+                "type": "object",
+                "properties": {
+                 "sourceId": {
+                  "type": "string",
+                  "minLength": 1,
+                  "maxLength": 160
+                 },
+                 "blockIds": {
+                  "minItems": 1,
+                  "maxItems": 48,
+                  "type": "array",
+                  "items": {
+                   "type": "string",
+                   "minLength": 1,
+                   "maxLength": 220
+                  }
+                 }
+                },
+                "required": [
+                 "sourceId",
+                 "blockIds"
+                ],
+                "additionalProperties": false
+               }
+              },
+              "includeTranslation": {
+               "type": "boolean"
+              },
+              "layers": {
+               "minItems": 1,
+               "maxItems": 3,
+               "type": "array",
+               "items": {
+                "type": "string",
+                "enum": [
+                 "he",
+                 "tr",
+                 "en"
+                ]
+               }
+              },
+              "arrangement": {
+               "type": "string",
+               "enum": [
+                "together",
+                "blocks"
+               ]
+              },
+              "rowOrder": {
+               "minItems": 3,
+               "maxItems": 3,
+               "type": "array",
+               "items": {
+                "type": "string",
+                "enum": [
+                 "he",
+                 "tr",
+                 "en"
+                ]
+               },
+               "description": "Order the Hebrew (he), transliteration (tr) and translation (en) layers stack in on a left or right panel, in both arrangements. Default he, tr, en, which is stored as absent; a lower third ignores it."
+              }
+             },
+             "required": [
+              "mode",
+              "hebrewGroups",
+              "transliterationGroups"
+             ],
+             "additionalProperties": false
+            },
+            {
+             "type": "object",
+             "properties": {
+              "mode": {
+               "type": "string",
+               "const": "original-en"
+              },
+              "englishGroups": {
+               "minItems": 1,
+               "maxItems": 24,
+               "type": "array",
+               "items": {
+                "type": "object",
+                "properties": {
+                 "sourceId": {
+                  "type": "string",
+                  "minLength": 1,
+                  "maxLength": 160
+                 },
+                 "blockIds": {
+                  "minItems": 1,
+                  "maxItems": 48,
+                  "type": "array",
+                  "items": {
+                   "type": "string",
+                   "minLength": 1,
+                   "maxLength": 220
+                  }
+                 }
+                },
+                "required": [
+                 "sourceId",
+                 "blockIds"
+                ],
+                "additionalProperties": false
+               }
+              }
+             },
+             "required": [
+              "mode",
+              "englishGroups"
+             ],
+             "additionalProperties": false
+            },
+            {
+             "type": "object",
+             "properties": {
+              "mode": {
+               "type": "string",
+               "const": "source-en"
+              },
+              "englishGroups": {
+               "minItems": 1,
+               "maxItems": 24,
+               "type": "array",
+               "items": {
+                "type": "object",
+                "properties": {
+                 "sourceId": {
+                  "type": "string",
+                  "minLength": 1,
+                  "maxLength": 160
+                 },
+                 "blockIds": {
+                  "minItems": 1,
+                  "maxItems": 48,
+                  "type": "array",
+                  "items": {
+                   "type": "string",
+                   "minLength": 1,
+                   "maxLength": 220
+                  }
+                 }
+                },
+                "required": [
+                 "sourceId",
+                 "blockIds"
+                ],
+                "additionalProperties": false
+               }
+              }
+             },
+             "required": [
+              "mode",
+              "englishGroups"
+             ],
+             "additionalProperties": false
+            }
+           ]
+          },
+          "overrides": {
+           "minItems": 1,
+           "maxItems": 96,
+           "type": "array",
+           "items": {
+            "type": "object",
+            "properties": {
+             "sourceId": {
+              "type": "string",
+              "minLength": 1,
+              "maxLength": 160
+             },
+             "blockId": {
+              "type": "string",
+              "minLength": 1,
+              "maxLength": 220
+             },
+             "channel": {
+              "type": "string",
+              "enum": [
+               "he",
+               "tr",
+               "en"
+              ]
+             },
+             "sourceText": {
+              "type": "string",
+              "minLength": 1,
+              "maxLength": 4000
+             },
+             "localText": {
+              "type": "string",
+              "minLength": 1,
+              "maxLength": 4000
+             }
+            },
+            "required": [
+             "sourceId",
+             "blockId",
+             "channel",
+             "sourceText",
+             "localText"
+            ],
+            "additionalProperties": false
+           }
+          }
+         },
+         "required": [
+          "mode",
+          "label",
+          "base",
+          "overrides"
+         ],
+         "additionalProperties": false
+        },
+        {
+         "type": "object",
+         "properties": {
+          "mode": {
+           "type": "string",
+           "const": "custom"
+          },
+          "text": {
+           "type": "string",
+           "minLength": 1,
+           "maxLength": 4000
+          }
+         },
+         "required": [
+          "mode",
+          "text"
+         ],
+         "additionalProperties": false
+        }
+       ]
+      },
+      "presentation": {
+       "type": "object",
+       "properties": {
+        "hebrewFontSize": {
+         "type": "integer",
+         "minimum": 24,
+         "maximum": 52
+        },
+        "transliterationFontSize": {
+         "type": "integer",
+         "minimum": 20,
+         "maximum": 48
+        },
+        "titleFontSize": {
+         "type": "integer",
+         "minimum": 20,
+         "maximum": 42
+        },
+        "alignment": {
+         "type": "string",
+         "enum": [
+          "start",
+          "center"
+         ]
+        },
+        "lineSpacing": {
+         "type": "string",
+         "enum": [
+          "compact",
+          "spacious"
+         ]
+        },
+        "latinLineBreaks": {
+         "type": "string",
+         "enum": [
+          "preserve",
+          "paragraphs",
+          "phrases"
+         ]
+        },
+        "imageAssetId": {
+         "type": "string",
+         "pattern": "^asset_[a-f0-9]{64}$"
+        }
+       },
+       "additionalProperties": false
+      }
+     },
+     "additionalProperties": false
+    },
+    "refreshSourceIds": {
+     "minItems": 1,
+     "maxItems": 24,
+     "type": "array",
+     "items": {
+      "type": "string",
+      "minLength": 1,
+      "maxLength": 200
+     }
+    }
+   },
+   "required": [
+    "draftId",
+    "expectedVersion",
+    "patch"
+   ]
+  },
+  "annotations": {
+   "readOnlyHint": false,
+   "idempotentHint": true
+  }
+ }
+]

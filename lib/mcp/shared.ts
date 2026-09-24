@@ -1,0 +1,22 @@
+import {z} from 'zod/v4';
+
+export type ToolAnnotations={readOnlyHint?:boolean;idempotentHint?:boolean;destructiveHint?:boolean};
+// Each lib/mcp/<area>.ts module registers its tools through this one function, so validation,
+// coverage checks and result shaping stay in lib/mcp.ts and cannot drift between areas.
+export type RegisterTool=(name:string,description:string,inputSchema:z.ZodObject,annotations:ToolAnnotations)=>void;
+
+export const layoutId=z.enum(['left','bottom','right','corner']);
+export const id=z.string().min(1).max(200);
+export const version=z.number().int().nonnegative();
+const presentation=z.object({hebrewFontSize:z.number().int().min(24).max(52).optional(),transliterationFontSize:z.number().int().min(20).max(48).optional(),titleFontSize:z.number().int().min(20).max(42).optional(),alignment:z.enum(['start','center']).optional(),lineSpacing:z.enum(['compact','spacious']).optional(),latinLineBreaks:z.enum(['preserve','paragraphs','phrases']).optional(),imageAssetId:z.string().regex(/^asset_[a-f0-9]{64}$/).optional()}).strict();
+export const rowOrder=z.array(z.enum(['he','tr','en'])).length(3).refine(order=>new Set(order).size===3,{message:'rowOrder must list he, tr and en exactly once each'}).describe('Order the Hebrew (he), transliteration (tr) and translation (en) layers stack in on a left or right panel, in both arrangements. Default he, tr, en, which is stored as absent; a lower third ignores it.');
+const sourceGroup=z.object({sourceId:z.string().min(1).max(160),blockIds:z.array(z.string().min(1).max(220)).min(1).max(48)}).strict();
+const bilingual=z.object({mode:z.literal('bilingual'),hebrewGroups:z.array(sourceGroup).min(1).max(24),transliterationGroups:z.array(sourceGroup).min(1).max(24),includeTranslation:z.boolean().optional(),layers:z.array(z.enum(['he','tr','en'])).min(1).max(3).optional(),arrangement:z.enum(['together','blocks']).optional(),rowOrder:rowOrder.optional()}).strict();
+const originalEnglish=z.object({mode:z.literal('original-en'),englishGroups:z.array(sourceGroup).min(1).max(24)}).strict();
+const sourceEnglish=z.object({mode:z.literal('source-en'),englishGroups:z.array(sourceGroup).min(1).max(24)}).strict();
+const canonicalContent=z.discriminatedUnion('mode',[bilingual,originalEnglish,sourceEnglish]);
+const variantOverride=z.object({sourceId:z.string().min(1).max(160),blockId:z.string().min(1).max(220),channel:z.enum(['he','tr','en']),sourceText:z.string().min(1).max(4000),localText:z.string().min(1).max(4000)}).strict();
+const localVariant=z.object({mode:z.literal('local-variant'),label:z.string().min(1).max(80),reason:z.string().min(1).max(500).optional(),base:canonicalContent,overrides:z.array(variantOverride).min(1).max(96)}).strict();
+const custom=z.object({mode:z.literal('custom'),text:z.string().min(1).max(4000)}).strict();
+const content=z.union([canonicalContent,localVariant,custom]);
+export const draftFields=z.object({name:z.string().min(1).max(80),title:z.string().min(1).max(100),accentTitle:z.string().max(60).optional(),layout:layoutId,templateCueId:z.string().min(1).max(80),content,presentation:presentation.optional()}).strict();

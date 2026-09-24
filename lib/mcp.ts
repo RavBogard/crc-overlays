@@ -1,23 +1,17 @@
 import {McpServer,createMcpHandler,type AuthInfo} from '@modelcontextprotocol/server';
 import {z} from 'zod/v4';
 import {canonicalOrigin} from './oauth-core';
+import {registerAssetsTools} from './mcp/assets';
+import {registerAuthoringTools} from './mcp/authoring';
+import {registerBrandingTools} from './mcp/branding';
+import {registerCatalogTools} from './mcp/catalog';
+import {registerDeckTools} from './mcp/deck';
+import {registerLayoutsTools} from './mcp/layouts';
+import {registerLiveTools} from './mcp/live';
+import {registerServicesTools} from './mcp/services';
+import type {RegisterTool} from './mcp/shared';
 
 export type AuthoringOperation=(operation:string,input:unknown,actor:string)=>Promise<unknown>;
-
-const id=z.string().min(1).max(200);
-const version=z.number().int().nonnegative();
-const presentation=z.object({hebrewFontSize:z.number().int().min(24).max(52).optional(),transliterationFontSize:z.number().int().min(20).max(48).optional(),titleFontSize:z.number().int().min(20).max(42).optional(),alignment:z.enum(['start','center']).optional(),lineSpacing:z.enum(['compact','spacious']).optional(),latinLineBreaks:z.enum(['preserve','paragraphs','phrases']).optional(),imageAssetId:z.string().regex(/^asset_[a-f0-9]{64}$/).optional()}).strict();
-const rowOrder=z.array(z.enum(['he','tr','en'])).length(3).refine(order=>new Set(order).size===3,{message:'rowOrder must list he, tr and en exactly once each'}).describe('Order the Hebrew (he), transliteration (tr) and translation (en) layers stack in on a left or right panel, in both arrangements. Default he, tr, en, which is stored as absent; a lower third ignores it.');
-const sourceGroup=z.object({sourceId:z.string().min(1).max(160),blockIds:z.array(z.string().min(1).max(220)).min(1).max(48)}).strict();
-const bilingual=z.object({mode:z.literal('bilingual'),hebrewGroups:z.array(sourceGroup).min(1).max(24),transliterationGroups:z.array(sourceGroup).min(1).max(24),includeTranslation:z.boolean().optional(),layers:z.array(z.enum(['he','tr','en'])).min(1).max(3).optional(),arrangement:z.enum(['together','blocks']).optional(),rowOrder:rowOrder.optional()}).strict();
-const originalEnglish=z.object({mode:z.literal('original-en'),englishGroups:z.array(sourceGroup).min(1).max(24)}).strict();
-const sourceEnglish=z.object({mode:z.literal('source-en'),englishGroups:z.array(sourceGroup).min(1).max(24)}).strict();
-const canonicalContent=z.discriminatedUnion('mode',[bilingual,originalEnglish,sourceEnglish]);
-const variantOverride=z.object({sourceId:z.string().min(1).max(160),blockId:z.string().min(1).max(220),channel:z.enum(['he','tr','en']),sourceText:z.string().min(1).max(4000),localText:z.string().min(1).max(4000)}).strict();
-const localVariant=z.object({mode:z.literal('local-variant'),label:z.string().min(1).max(80),reason:z.string().min(1).max(500).optional(),base:canonicalContent,overrides:z.array(variantOverride).min(1).max(96)}).strict();
-const custom=z.object({mode:z.literal('custom'),text:z.string().min(1).max(4000)}).strict();
-const content=z.union([canonicalContent,localVariant,custom]);
-const draftFields=z.object({name:z.string().min(1).max(80),title:z.string().min(1).max(100),accentTitle:z.string().max(60).optional(),layout:z.enum(['left','bottom','right','corner']),templateCueId:z.string().min(1).max(80),content,presentation:presentation.optional()}).strict();
 
 function actor(authInfo:AuthInfo|undefined){const stored=authInfo?.extra?.actor;return typeof stored==='string'?stored:`mcp:${authInfo?.clientId??'unknown'}`}
 // Reads return the full record. Every other result drops what an agent never acts on - embedded
@@ -46,43 +40,8 @@ function ensureCoverage(input:Record<string,unknown>){const patch=input.patch as
 export function createAuthoringMcpHandler(authoringOperation:AuthoringOperation){
  return createMcpHandler(({authInfo})=>{
   const server=new McpServer({name:'CRC Overlay Authoring',version:'1.0.0'});
-  const register=(name:string,description:string,inputSchema:z.ZodObject,annotations:{readOnlyHint?:boolean;idempotentHint?:boolean;destructiveHint?:boolean})=>server.registerTool(name,{description,inputSchema:inputSchema.shape,annotations},async (input:Record<string,unknown>)=>{const parsed=inputSchema.parse(input);ensureCoverage(parsed);return result(name,await authoringOperation(name,parsed,actor(authInfo)))});
-  register('search_sources','Search the authorized CRC source corpus. Returns references, never a public corpus export.',z.object({query:z.string().min(1).max(100),limit:z.number().int().min(1).max(50).optional()}).strict(),{readOnlyHint:true});
-  register('get_source','Get one authorized source by ID.',z.object({sourceId:id}).strict(),{readOnlyHint:true});
-  register('list_templates','List baseline cue templates and whether each can be imported.',z.object({}).strict(),{readOnlyHint:true});
-  register('list_drafts','List authoring drafts. With compact, query, service, book, layout, limit, or cursor, returns bounded summaries without source text.',z.object({compact:z.boolean().optional(),query:z.string().min(1).max(100).optional(),service:z.string().min(1).max(100).optional(),book:z.string().min(1).max(100).optional(),layout:z.enum(['left','bottom','right','corner']).optional(),limit:z.number().int().min(1).max(50).optional(),cursor:z.string().min(1).max(200).optional()}).strict(),{readOnlyHint:true});
-  register('list_archived_drafts','List recoverable archived authoring drafts.',z.object({}).strict(),{readOnlyHint:true});
-  register('get_draft','Get one draft and its current version.',z.object({draftId:id}).strict(),{readOnlyHint:true});
-  register('list_wording_changes','List every edited siddur line in this workspace (local-variant wording): the draft, whether it is published or archived, the source and passage, the channel, the exact source text and the edited text, and why. Read only; use it to find source spellings to correct. It never changes a draft or the siddur.',z.object({}).strict(),{readOnlyHint:true});
-  register('import_cue','Idempotently create or return a source-reference draft for an existing baseline cue. No plaintext prayer content is accepted.',z.object({cueId:id}).strict(),{readOnlyHint:false,idempotentHint:true});
-  register('create_draft','Create a source-reference draft with a new stable ID. The corner layout is a small card for a line or two in the bottom-right corner; it takes a lower-third (bottom) template.',draftFields,{readOnlyHint:false});
-  register('create_local_variant','Create an unpublished local liturgical variant while retaining exact source text and pins.',z.object({draftId:id.optional(),cueId:id.optional(),label:z.string().min(1).max(80),reason:z.string().min(1).max(500).optional(),overrides:z.array(z.object({sourceId:z.string().min(1).max(160),blockId:z.string().min(1).max(220),channel:z.enum(['he','tr','en']),localText:z.string().min(1).max(4000)}).strict()).min(1).max(96)}).strict(),{readOnlyHint:false});
-  register('archive_draft','Archive a standalone draft without changing its published output.',z.object({draftId:id,expectedVersion:version.min(1)}).strict(),{readOnlyHint:false,idempotentHint:true});
-  register('restore_draft','Restore a standalone archived draft.',z.object({draftId:id,expectedVersion:version.min(1)}).strict(),{readOnlyHint:false,idempotentHint:true});
-  register('archive_draft_set','Atomically archive a complete multipart draft set without changing published output.',z.object({setId:id,expectedDraftIds:z.array(id).min(1).max(200)}).strict(),{readOnlyHint:false,idempotentHint:true});
-  register('restore_draft_set','Atomically restore a complete multipart draft set.',z.object({setId:id,expectedDraftIds:z.array(id).min(1).max(200)}).strict(),{readOnlyHint:false,idempotentHint:true});
-  register('reorder_draft_set','Atomically reorder every slide in a multipart draft set.',z.object({setId:id,expectedDraftIds:z.array(id).min(1).max(200),orderedDraftIds:z.array(id).min(1).max(200)}).strict(),{readOnlyHint:false,idempotentHint:true});
-  register('duplicate_draft_in_set','Duplicate one multipart slide with a new identity and contiguous set order.',z.object({draftId:id,expectedVersion:version.min(1),expectedDraftIds:z.array(id).min(1).max(200)}).strict(),{readOnlyHint:false});
-  register('create_source_draft_set','Create an unpublished ordered set from every automatic block in one maintained source.',z.object({sourceId:id,mode:z.enum(['bilingual','original-en','source-en']),includeTranslation:z.boolean().optional(),layout:z.enum(['left','bottom','right','corner']),templateCueId:id}).strict(),{readOnlyHint:false});
-  register('review_draft_set','Verify exact-once source blocks, language channels, and order for a multipart draft set.',z.object({setId:id}).strict(),{readOnlyHint:true});
-  register('split_draft_into_set','Split one existing source-backed draft at its current selected pinned blocks, preserving its presentation and source variants in an ordered unpublished set.',z.object({draftId:id,expectedVersion:version.min(1)}).strict(),{readOnlyHint:false,idempotentHint:true});
-  register('update_draft','Update a draft using optimistic version matching.',z.object({draftId:id,expectedVersion:version.min(1),patch:draftFields.partial().strict(),refreshSourceIds:z.array(id).min(1).max(24).optional()}).strict(),{readOnlyHint:false,idempotentHint:true});
-  register('style_draft','Plan a readable draft style by default: comfortable typography and bilingual blocks. Dry run is the default; applying uses the same optimistic draft update safeguards and never publishes.',z.object({draftId:id,expectedVersion:version.min(1),layout:z.enum(['left','bottom','right','corner']).optional(),arrangement:z.enum(['together','blocks']).optional(),rowOrder:rowOrder.optional(),comfortableTypography:z.boolean().optional(),latinLineBreaks:z.enum(['preserve','paragraphs','phrases']).optional(),dryRun:z.boolean().optional()}).strict(),{readOnlyHint:false,idempotentHint:true});
-  register('preview_draft','Create a version-bound preview and return its authenticated preview path and fit contract. A human must review it in the web UI before publishing.',z.object({draftId:id,expectedVersion:version.min(1)}).strict(),{readOnlyHint:false,idempotentHint:true});
-  register('fit_check_draft','Measure a version-bound preview in a real browser on the server and store the result on that preview. Optional preview image is ephemeral and is never stored. Returns pass, fail with the fit problems found, or unavailable with a web fit-check link.',z.object({draftId:id,expectedVersion:version.min(1),previewId:id,includePreviewImage:z.boolean().optional()}).strict(),{readOnlyHint:false,idempotentHint:true});
-  // D18 - the MCP half of the review. An MCP actor's review carries no measurement of its own:
-  // `review_draft` routes an `mcp:` actor to `attestedMeasurement`, which reads the
-  // `server-chromium/` fit check stored on this exact preview and ignores anything asserted, so
-  // there is nothing here a client could forge - which is why the schema has no
-  // `browserMeasurement` field at all. Without this tool the attested path D18 built is
-  // unreachable over MCP and `publish_draft` can never be satisfied: every MCP publish answers
-  // 409 `review_required` however green the fit check is.
-  register('review_draft','Record human approval for a preview this actor has already fit-checked on the server. The measurement is the stored server fit check; none can be supplied.',z.object({draftId:id,expectedVersion:version.min(1),previewId:id,humanApproved:z.literal(true)}).strict(),{readOnlyHint:false});
-  register('publish_draft','Publish only a preview with a stored, exact-version human review receipt.',z.object({draftId:id,expectedVersion:version.min(1),previewId:id}).strict(),{readOnlyHint:false});
-  register('prepare_service_from_setlist','Build a prepared service on /services from a centralreform.live setlist: each row is matched to a published graphic and every row that could not be settled comes back for review. It never publishes anything, never changes a published graphic, and never puts anything on screen.',z.object({setlistId:z.string().min(1).max(160),name:z.string().min(1).max(120).optional(),service:z.string().min(1).max(120).optional()}).strict(),{readOnlyHint:false});
-  register('get_service_history','Read what this congregation\'s output actually did: one row per accepted command, with the graphic id and its liturgical position (unit, moment, book, folio) and the time. Bounded to the last 2,000 commands or 14 days, whichever is smaller. It carries no graphic names, no text and nobody\'s identity, and it never puts anything on screen.',z.object({since:z.number().int().nonnegative().optional(),until:z.number().int().nonnegative().optional(),after:z.number().int().nonnegative().optional()}).strict(),{readOnlyHint:true});
-  register('list_revisions','List immutable revisions for a draft.',z.object({draftId:id}).strict(),{readOnlyHint:true});
-  register('rollback_draft','Select an earlier immutable revision for future resolution.',z.object({draftId:id,expectedVersion:version.min(1),revision:version.min(1)}).strict(),{readOnlyHint:false,idempotentHint:true,destructiveHint:true});
+  const register:RegisterTool=(name:string,description:string,inputSchema:z.ZodObject,annotations)=>server.registerTool(name,{description,inputSchema:inputSchema.shape,annotations},async (input:Record<string,unknown>)=>{const parsed=inputSchema.parse(input);ensureCoverage(parsed);return result(name,await authoringOperation(name,parsed,actor(authInfo)))});
+  registerCatalogTools(register);registerAuthoringTools(register);registerServicesTools(register);registerLiveTools(register);registerLayoutsTools(register);registerAssetsTools(register);registerBrandingTools(register);registerDeckTools(register);
   return server;
  },{responseMode:'json'});
 }
