@@ -435,6 +435,242 @@
   }
  },
  {
+  "name": "batch_ship",
+  "description": "Publish many drafts: one ship_draft per item (server fit check, approval, publish), each item with its own expectedVersion. Dry run by default: checks each item (version, validation, name clash) without opening a browser. With dryRun:false it ships items until about 40 seconds have passed, then returns nextCursor: call again with the same items and that cursor to continue. Per-item results say shipped, stopped (stoppedAt and why, nothing published), failed, or already_published (skipped, so repeating a call is safe). Frames are not returned; use ship_draft for one graphic with its image. Publishes to the catalog; puts nothing on screen.",
+  "inputSchema": {
+   "type": "object",
+   "$schema": "https://json-schema.org/draft/2020-12/schema",
+   "properties": {
+    "items": {
+     "minItems": 1,
+     "maxItems": 200,
+     "type": "array",
+     "items": {
+      "type": "object",
+      "properties": {
+       "draftId": {
+        "type": "string",
+        "minLength": 1,
+        "maxLength": 200,
+        "description": "The draft (graphic) id, as list_drafts returns it."
+       },
+       "expectedVersion": {
+        "type": "integer",
+        "minimum": 1,
+        "maximum": 9007199254740991,
+        "description": "The draft version you last read. A change made elsewhere since then fails this item and leaves the rest running."
+       },
+       "allowRename": {
+        "type": "boolean"
+       }
+      },
+      "required": [
+       "draftId",
+       "expectedVersion"
+      ],
+      "additionalProperties": false
+     }
+    },
+    "cursor": {
+     "description": "The nextCursor the previous call returned, with the same items.",
+     "type": "string",
+     "minLength": 1,
+     "maxLength": 200
+    },
+    "dryRun": {
+     "description": "Default true: say what would happen and change nothing. Pass false to apply.",
+     "type": "boolean"
+    },
+    "workspace": {
+     "type": "string",
+     "minLength": 1,
+     "maxLength": 80,
+     "description": "Which congregation this call is for. This connection serves 'crc' (CRC) only."
+    }
+   },
+   "required": [
+    "items",
+    "workspace"
+   ]
+  },
+  "annotations": {
+   "readOnlyHint": false
+  }
+ },
+ {
+  "name": "batch_update",
+  "description": "Rename (name, title, accentTitle), restyle (the style_draft options) or archive many drafts in one call, each item with its own expectedVersion. Dry run by default: says what each item would do and changes nothing. With dryRun:false it runs update_draft, style_draft or archive_draft per item, one after another; a failed item is reported and the rest still run. Never publishes; a renamed published graphic keeps its old wording on screen until it is shipped again.",
+  "inputSchema": {
+   "type": "object",
+   "$schema": "https://json-schema.org/draft/2020-12/schema",
+   "properties": {
+    "items": {
+     "minItems": 1,
+     "maxItems": 100,
+     "type": "array",
+     "items": {
+      "oneOf": [
+       {
+        "type": "object",
+        "properties": {
+         "action": {
+          "type": "string",
+          "const": "rename"
+         },
+         "draftId": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 200,
+          "description": "The draft (graphic) id, as list_drafts returns it."
+         },
+         "expectedVersion": {
+          "type": "integer",
+          "minimum": 1,
+          "maximum": 9007199254740991,
+          "description": "The draft version you last read. A change made elsewhere since then fails this item and leaves the rest running."
+         },
+         "name": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 80
+         },
+         "title": {
+          "description": "The on-screen title.",
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 100
+         },
+         "accentTitle": {
+          "type": "string",
+          "maxLength": 60
+         }
+        },
+        "required": [
+         "action",
+         "draftId",
+         "expectedVersion"
+        ],
+        "additionalProperties": false
+       },
+       {
+        "type": "object",
+        "properties": {
+         "action": {
+          "type": "string",
+          "const": "style"
+         },
+         "draftId": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 200,
+          "description": "The draft (graphic) id, as list_drafts returns it."
+         },
+         "expectedVersion": {
+          "type": "integer",
+          "minimum": 1,
+          "maximum": 9007199254740991,
+          "description": "The draft version you last read. A change made elsewhere since then fails this item and leaves the rest running."
+         },
+         "layout": {
+          "type": "string",
+          "enum": [
+           "left",
+           "bottom",
+           "right",
+           "corner"
+          ]
+         },
+         "arrangement": {
+          "type": "string",
+          "enum": [
+           "together",
+           "blocks"
+          ]
+         },
+         "rowOrder": {
+          "minItems": 3,
+          "maxItems": 3,
+          "type": "array",
+          "items": {
+           "type": "string",
+           "enum": [
+            "he",
+            "tr",
+            "en"
+           ]
+          },
+          "description": "Order the Hebrew (he), transliteration (tr) and translation (en) layers stack in on a left or right panel, in both arrangements. Default he, tr, en, which is stored as absent; a lower third ignores it."
+         },
+         "comfortableTypography": {
+          "type": "boolean"
+         },
+         "latinLineBreaks": {
+          "type": "string",
+          "enum": [
+           "preserve",
+           "paragraphs",
+           "phrases"
+          ]
+         }
+        },
+        "required": [
+         "action",
+         "draftId",
+         "expectedVersion"
+        ],
+        "additionalProperties": false
+       },
+       {
+        "type": "object",
+        "properties": {
+         "action": {
+          "type": "string",
+          "const": "archive"
+         },
+         "draftId": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 200,
+          "description": "The draft (graphic) id, as list_drafts returns it."
+         },
+         "expectedVersion": {
+          "type": "integer",
+          "minimum": 1,
+          "maximum": 9007199254740991,
+          "description": "The draft version you last read. A change made elsewhere since then fails this item and leaves the rest running."
+         }
+        },
+        "required": [
+         "action",
+         "draftId",
+         "expectedVersion"
+        ],
+        "additionalProperties": false
+       }
+      ]
+     }
+    },
+    "dryRun": {
+     "description": "Default true: say what would happen and change nothing. Pass false to apply.",
+     "type": "boolean"
+    },
+    "workspace": {
+     "type": "string",
+     "minLength": 1,
+     "maxLength": 80,
+     "description": "Which congregation this call is for. This connection serves 'crc' (CRC) only."
+    }
+   },
+   "required": [
+    "items",
+    "workspace"
+   ]
+  },
+  "annotations": {
+   "readOnlyHint": false
+  }
+ },
+ {
   "name": "clear_names",
   "description": "Remove a prepared service's names list. Refused while one of its panels is on air: clear the output on Live control first.",
   "inputSchema": {
@@ -1934,6 +2170,51 @@
   },
   "annotations": {
    "readOnlyHint": false
+  }
+ },
+ {
+  "name": "find_catalog_issues",
+  "description": "Find what is wrong with the library, read only: graphics that read the same on screen (duplicate_content), share a name or are copies of one (duplicate_name, near_duplicate_name, e.g. \"Copy of Thank you\"), carry a title copied from another graphic (inherited_title), are archived but still published (archived_but_published), are retired but still used by a service or a deck key (retired_in_service, retired_on_deck), came back under a name published since (restored_name_clash), or have changes not yet published (unpublished_changes). Each issue names the graphics (id, name, version), says what is wrong in a sentence, and names the tool that fixes it. kinds narrows the search.",
+  "inputSchema": {
+   "type": "object",
+   "$schema": "https://json-schema.org/draft/2020-12/schema",
+   "properties": {
+    "kinds": {
+     "description": "Only these kinds of issue. Default: every kind.",
+     "minItems": 1,
+     "maxItems": 9,
+     "type": "array",
+     "items": {
+      "type": "string",
+      "enum": [
+       "duplicate_content",
+       "duplicate_name",
+       "near_duplicate_name",
+       "inherited_title",
+       "archived_but_published",
+       "retired_in_service",
+       "retired_on_deck",
+       "restored_name_clash",
+       "unpublished_changes"
+      ]
+     }
+    },
+    "limit": {
+     "description": "At most this many issues (default 100).",
+     "type": "integer",
+     "minimum": 1,
+     "maximum": 500
+    },
+    "workspace": {
+     "type": "string",
+     "minLength": 1,
+     "maxLength": 80,
+     "description": "Which congregation this call is for. This connection serves 'crc' (CRC) only."
+    }
+   }
+  },
+  "annotations": {
+   "readOnlyHint": true
   }
  },
  {
@@ -4993,6 +5274,54 @@
   "annotations": {
    "readOnlyHint": false,
    "idempotentHint": true
+  }
+ },
+ {
+  "name": "supersede_cue",
+  "description": "Replace one published graphic with another everywhere it is used: every prepared service entry, coverage decision and candidate, and every Companion deck key bound to old move to new, then old is retired (retire_cue; expectedVersion is the old graphic's draft version). Dry run by default: lists every service row and deck key that would move. Row and key labels are left as they are. new must already be published.",
+  "inputSchema": {
+   "type": "object",
+   "$schema": "https://json-schema.org/draft/2020-12/schema",
+   "properties": {
+    "old": {
+     "type": "string",
+     "minLength": 1,
+     "maxLength": 200,
+     "description": "The graphic being replaced (its cue id, which is its draft id)."
+    },
+    "new": {
+     "type": "string",
+     "minLength": 1,
+     "maxLength": 200,
+     "description": "The published graphic that takes its place."
+    },
+    "expectedVersion": {
+     "type": "integer",
+     "minimum": 1,
+     "maximum": 9007199254740991,
+     "description": "The old graphic's draft version, as for retire_cue."
+    },
+    "dryRun": {
+     "description": "Default true: say what would happen and change nothing. Pass false to apply.",
+     "type": "boolean"
+    },
+    "workspace": {
+     "type": "string",
+     "minLength": 1,
+     "maxLength": 80,
+     "description": "Which congregation this call is for. This connection serves 'crc' (CRC) only."
+    }
+   },
+   "required": [
+    "old",
+    "new",
+    "expectedVersion",
+    "workspace"
+   ]
+  },
+  "annotations": {
+   "readOnlyHint": false,
+   "destructiveHint": true
   }
  },
  {
