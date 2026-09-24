@@ -193,3 +193,13 @@ test('a refresh exchange stops when the member is gone, disabled or demoted',asy
  await withDatabase(refreshQuery(actor),{...editor,enabled:false},async()=>{await assert.rejects(exchange,/invalid_grant/)});
  await withDatabase(refreshQuery(actor),{...operator,role:'operator'},async()=>{await assert.rejects(exchange,/invalid_grant/)});
 });
+
+test('the consent page names the congregation it connects to',async()=>{
+ const saved=process.env.WORKSPACE_ID;process.env.WORKSPACE_ID='temple-bnai-israel-kalamazoo';
+ try{
+  await withStubs({getClient:async()=>client,createAuthorizationRequest:async()=>HANDLE},null,async()=>{
+   const html=await (await authorizeGet(new Request(`${ORIGIN}/oauth/authorize?${START}`))).text();
+   assert.doesNotMatch(html,/\bCRC\b/);assert.match(html,/<title>Connect TBI authoring<\/title>/);
+  });
+ }finally{if(saved===undefined)delete process.env.WORKSPACE_ID;else process.env.WORKSPACE_ID=saved}
+});

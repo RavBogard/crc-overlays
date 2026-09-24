@@ -96,11 +96,14 @@ def rpc(method, params):
 rpc('initialize', {'protocolVersion':'2025-06-18','capabilities':{},'clientInfo':{'name':'CRC isolated rehearsal','version':'1'}})
 listing = rpc('tools/list', {})
 names = {tool['name'] for tool in listing['result']['tools']}
-check({'list_templates','create_draft','publish_draft'} <= names and 'review_draft' not in names, 'MCP authoring tool boundary')
+check({'get_workspace','list_templates','create_draft','review_draft','publish_draft'} <= names and not any('control' in name for name in names), 'MCP authoring tool boundary')
 def tool(name, args):
-    result = rpc('tools/call', {'name':name,'arguments':args})
+    result = rpc('tools/call', {'name':name,'arguments':{**args,'workspace':WORKSPACE} if WORKSPACE else args})
     check(not result.get('error') and not result.get('result',{}).get('isError'), name+' success')
     return json.loads(result['result']['content'][0]['text'])
+# Every change names the congregation; read it once from the connection itself.
+WORKSPACE = None
+WORKSPACE = tool('get_workspace', {})['workspaceId']
 templates = tool('list_templates', {})['templates']
 groups = []
 # The first hit is not always bilingual; the draft needs a source that actually has Hebrew.
@@ -112,7 +115,7 @@ check(bool(groups), 'a bilingual source is available for the draft')
 draft = tool('create_draft', {'name':'MCP isolated rehearsal','title':'MCP rehearsal','layout':'bottom','templateCueId':next(t['id'] for t in templates if t['layout']=='bottom'),'presentation':{},'content':{'mode':'bilingual','hebrewGroups':groups,'transliterationGroups':groups}})['draft']
 preview = tool('preview_draft', {'draftId':draft['id'],'expectedVersion':draft['version']})
 check(preview['previewPath'].startswith('/author?draft='), 'usable authenticated preview link')
-rejected = rpc('tools/call', {'name':'publish_draft','arguments':{'draftId':draft['id'],'expectedVersion':draft['version'],'previewId':preview['previewId']}})
+rejected = rpc('tools/call', {'name':'publish_draft','arguments':{'draftId':draft['id'],'expectedVersion':draft['version'],'previewId':preview['previewId'],'workspace':WORKSPACE}})
 check(bool(rejected.get('error') or rejected.get('result',{}).get('isError')), 'MCP cannot publish without browser review')
 code, refreshed, _ = call('/oauth/token', {'grant_type':'refresh_token','refresh_token':tokens['refresh_token'],'client_id':client['client_id'],'resource':BASE+'/api/mcp'}, form=True)
 check(code == 200 and refreshed['refresh_token'] != tokens['refresh_token'], 'refresh rotates token')

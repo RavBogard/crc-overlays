@@ -4,6 +4,11 @@ export type ToolAnnotations={readOnlyHint?:boolean;idempotentHint?:boolean;destr
 // Each lib/mcp/<area>.ts module registers its tools through this one function, so validation,
 // coverage checks and result shaping stay in lib/mcp.ts and cannot drift between areas.
 export type RegisterTool=(name:string,description:string,inputSchema:z.ZodObject,annotations:ToolAnnotations)=>void;
+// Who this connection serves. Each deployment has its own database, issuer and relay, so a token
+// reaches one congregation only - but an editor at both holds two connectors that otherwise look
+// alike, so every description, result and refusal names the congregation.
+export type McpIdentity={workspaceId:string;shortName:string;organizationName:string;host:string};
+export type RegisterArea=(register:RegisterTool,identity:McpIdentity)=>void;
 
 export const layoutId=z.enum(['left','bottom','right','corner']);
 export const id=z.string().min(1).max(200);

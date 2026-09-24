@@ -125,12 +125,12 @@ const mcpRequest=(body:unknown)=>new Request('https://crc.example/api/mcp',{meth
 const authInfo={token:'test',clientId:'client',scopes:['crc.authoring'],expiresAt:Math.floor(Date.now()/1000)+60,resource:new URL('https://crc.example/api/mcp'),extra:{actor:'mcp:test-actor'}};
 async function payload(response:Response){const text=await response.text();if(response.headers.get('content-type')?.includes('application/json'))return JSON.parse(text);const data=text.split(/\r?\n/).find(line=>line.startsWith('data: '))?.slice(6);assert.ok(data);return JSON.parse(data)}
 
-test('MCP exposes list_wording_changes as a read-only tool with no arguments',async()=>{
+test('MCP exposes list_wording_changes as a read-only tool whose only argument is the optional workspace',async()=>{
  const calls:{operation:string;input:unknown;actor:string}[]=[];
  const handler=createAuthoringMcpHandler(async(operation,input,actor)=>{calls.push({operation,input,actor});return {changes:[],count:0}});
  const listed=await payload(await handler.fetch(mcpRequest({jsonrpc:'2.0',id:1,method:'tools/list',params:{}}),{authInfo})) as {result:{tools:{name:string;annotations?:{readOnlyHint?:boolean};inputSchema:{properties?:Record<string,unknown>}}[]}};
  const tool=listed.result.tools.find(item=>item.name==='list_wording_changes');
- assert.ok(tool);assert.equal(tool.annotations?.readOnlyHint,true);assert.deepEqual(Object.keys(tool.inputSchema.properties??{}),[]);
+ assert.ok(tool);assert.equal(tool.annotations?.readOnlyHint,true);assert.deepEqual(Object.keys(tool.inputSchema.properties??{}),['workspace']);
  const called=await payload(await handler.fetch(mcpRequest({jsonrpc:'2.0',id:2,method:'tools/call',params:{name:'list_wording_changes',arguments:{}}}),{authInfo})) as {result:{content:{text:string}[]}};
  assert.match(called.result.content[0].text,/"count":\s*0/);
  assert.deepEqual(calls,[{operation:'list_wording_changes',input:{},actor:'mcp:test-actor'}]);

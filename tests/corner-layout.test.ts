@@ -215,7 +215,10 @@ test('the authoring service creates and lists corner drafts, and refuses to cut 
 });
 
 const authInfo={token:'test',clientId:'client',scopes:['crc.authoring'],expiresAt:Math.floor(Date.now()/1000)+60,resource:new URL('https://crc.example/api/mcp'),extra:{actor:'mcp:test-actor'}} satisfies AuthInfo;
-const request=(body:unknown)=>new Request('https://crc.example/api/mcp',{method:'POST',headers:{'content-type':'application/json','accept':'application/json, text/event-stream'},body:JSON.stringify(body)});
+// Every change names its congregation (lib/mcp.ts). These tests are about the tools, so a call
+// names CRC unless it says otherwise; a test that wants the argument absent sets it undefined.
+const withWorkspace=(body:unknown)=>{const call=body as {method?:string;params?:{arguments?:Record<string,unknown>}};return call.method==='tools/call'&&call.params?.arguments&&!('workspace' in call.params.arguments)?{...call,params:{...call.params,arguments:{...call.params.arguments,workspace:'crc'}}}:body};
+const request=(body:unknown)=>new Request('https://crc.example/api/mcp',{method:'POST',headers:{'content-type':'application/json','accept':'application/json, text/event-stream'},body:JSON.stringify(withWorkspace(body))});
 async function payload(response:Response){const text=await response.text();if(response.headers.get('content-type')?.includes('application/json'))return JSON.parse(text);const data=text.split(/\r?\n/).find(line=>line.startsWith('data: '))?.slice(6);assert.ok(data,'SSE response has a data event');return JSON.parse(data)}
 
 test('every MCP tool that takes a layout accepts corner',async()=>{

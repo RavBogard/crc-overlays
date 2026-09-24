@@ -1,6 +1,6 @@
-# CRC authoring MCP
+# Overlay authoring MCP
 
-The hosted authoring endpoint is `https://overlays.centralreform.org/api/mcp`. It uses the MCP TypeScript SDK's stateless Streamable HTTP handler, OAuth 2.1 authorization code flow with PKCE S256, and the single `crc.authoring` scope. It exposes source-reference and draft operations only. It does not expose live overlay control or the web-only review operation.
+Each congregation's deployment hosts its own authoring endpoint at `/api/mcp` (CRC: `https://overlays.centralreform.org/api/mcp`). It uses the MCP TypeScript SDK's stateless Streamable HTTP handler, OAuth 2.1 authorization code flow with PKCE S256, and the single `crc.authoring` scope. It exposes source, draft, publish and prepared-service operations. It does not expose live overlay control.
 
 ## Server configuration
 
@@ -31,11 +31,21 @@ The session cookie is `SameSite=Strict`, so the first arrival from an MCP client
 
 The code, the access token and the refresh token all carry the approving member as their actor (`mcp:<client>:member:<id>`). Every MCP request and every refresh re-checks that member: removing them from the workspace, or moving them to Operator, ends their MCP access at the next request. Tokens minted before this change, whose actor names no member, are refused; those clients reconnect through the new consent. The page stores only the opaque request handle in the form and the cookie, and never places a bearer token in a URL. Requests have durable database rate limits and bounded bodies.
 
+## Which congregation (`get_workspace`)
+
+Each deployment has its own database, OAuth issuer and relay, so a token reaches one congregation only. An editor at both congregations holds two connectors, so the connection says who it is everywhere an agent looks:
+
+- The server name is `<short name> Overlay Authoring` (`CRC Overlay Authoring`, `TBI Overlay Authoring`), the consent page reads "Connect <short name> authoring", and tool descriptions name the congregation.
+- `initialize` returns `instructions`: which congregation this is, the authoring workflow, and the layout house rules (corner takes a bottom template; text needing more than two lower thirds becomes a left panel sequence; use `create_source_draft_set`, not `split_draft_into_set`, for a long prayer in parts).
+- `get_workspace` returns `{workspaceId, shortName, host, organizationName, rehearsal, rehearsalLabel}`.
+- Every result starts with `{workspaceId, shortName, host}`.
+- Every tool that changes anything takes a required `workspace` argument: the workspace id (`crc`, `temple-bnai-israel-kalamazoo`) or the short name. A call naming a different congregation is refused before anything runs: "This connection serves CRC (workspace 'crc' at overlays.centralreform.org), not '…'. Nothing was changed. Use the connector for '…', or pass workspace:'crc' if you meant CRC." Reads accept the same argument optionally and refuse a mismatch the same way.
+
 ## Authoring workflow
 
-Clients can search licensed CRC sources, inspect a source, list available cue templates, import an existing cue by ID, and create or update source-reference drafts. Draft content selects source and block IDs; MCP inputs do not accept arbitrary prayer text. Bilingual drafts require identical ordered source/block coverage in Hebrew and transliteration.
+Clients can search licensed sources, inspect a source, list available cue templates, import an existing cue by ID, and create or update drafts. Source-backed content selects source and block IDs; bilingual drafts require identical ordered source/block coverage in Hebrew and transliteration. Content mode `custom` takes free text (up to 4,000 characters) for announcements and other graphics that come from no source.
 
-`preview_draft` returns an authenticated `previewPath` and a fit contract. It does not claim browser fit. Michael must open that preview in the authenticated CRC web UI, allow the renderer to measure it at 1920x1080 with fonts loaded, and approve it. `review_draft` is intentionally absent from MCP. `publish_draft` accepts only `{draftId, expectedVersion, previewId}` and the authoring service rejects it unless that exact preview/version/hash has a stored human review receipt.
+`preview_draft` returns an authenticated `previewPath` and a fit contract. `fit_check_draft` measures that exact preview in a browser on the server (below). `review_draft` is registered for MCP: it records approval of a preview this actor has already fit-checked on the server, and takes no measurement of its own. `publish_draft` accepts only `{draftId, expectedVersion, previewId}` (plus `workspace`) and the authoring service rejects it unless that exact preview/version/hash has a stored review receipt.
 
 ## Server-side fit check (`fit_check_draft`)
 

@@ -1,11 +1,14 @@
 import assert from 'node:assert/strict';
 import test from 'node:test';
 import type {AuthInfo} from '@modelcontextprotocol/server';
-import {createAuthoringMcpHandler} from '../lib/mcp';
+import {createAuthoringMcpHandler,workspaceIdentity} from '../lib/mcp';
 import {boundedMcpRequest,hasTrustedOrigin} from '../lib/mcp-http';
 
 const authInfo={token:'test',clientId:'client',scopes:['crc.authoring'],expiresAt:Math.floor(Date.now()/1000)+60,resource:new URL('https://crc.example/api/mcp'),extra:{actor:'mcp:test-actor'}} satisfies AuthInfo;
-const request=(body:unknown)=>new Request('https://crc.example/api/mcp',{method:'POST',headers:{'content-type':'application/json','accept':'application/json, text/event-stream'},body:JSON.stringify(body)});
+// Every change names its congregation (lib/mcp.ts). These tests are about the tools, so a call
+// names CRC unless it says otherwise; a test that wants the argument absent sets it undefined.
+const withWorkspace=(body:unknown)=>{const call=body as {method?:string;params?:{arguments?:Record<string,unknown>}};return call.method==='tools/call'&&call.params?.arguments&&!('workspace' in call.params.arguments)?{...call,params:{...call.params,arguments:{...call.params.arguments,workspace:'crc'}}}:body};
+const request=(body:unknown)=>new Request('https://crc.example/api/mcp',{method:'POST',headers:{'content-type':'application/json','accept':'application/json, text/event-stream'},body:JSON.stringify(withWorkspace(body))});
 async function payload(response:Response){const text=await response.text();if(response.headers.get('content-type')?.includes('application/json'))return JSON.parse(text);const data=text.split(/\r?\n/).find(line=>line.startsWith('data: '))?.slice(6);assert.ok(data,'SSE response has a data event');return JSON.parse(data)}
 
 test('MCP initializes over Streamable HTTP and exposes authoring tools without web review',async()=>{
@@ -41,7 +44,7 @@ test('review_draft is exposed to MCP and accepts no measurement of its own',asyn
  const listed=await payload(await handler.fetch(request({jsonrpc:'2.0',id:20,method:'tools/list',params:{}}),{authInfo})) as {result:{tools:{name:string;inputSchema:{properties:Record<string,unknown>}}[]}};
  const tool=listed.result.tools.find(entry=>entry.name==='review_draft');
  assert.ok(tool,'review_draft is registered');
- assert.deepEqual(Object.keys(tool.inputSchema.properties).sort(),['draftId','expectedVersion','humanApproved','previewId']);
+ assert.deepEqual(Object.keys(tool.inputSchema.properties).sort(),['draftId','expectedVersion','humanApproved','previewId','workspace']);
  const ok=await payload(await handler.fetch(request({jsonrpc:'2.0',id:21,method:'tools/call',params:{name:'review_draft',arguments:{draftId:'draft-1',expectedVersion:2,previewId:'preview-1',humanApproved:true}}}),{authInfo})) as {result:{content:{text:string}[]}};
  assert.match(ok.result.content[0].text,/humanApproved/);
  assert.deepEqual(calls,[{operation:'review_draft',input:{draftId:'draft-1',expectedVersion:2,previewId:'preview-1',humanApproved:true},actor:'mcp:test-actor'}]);
@@ -106,8 +109,8 @@ test('MCP exposes compact draft inspection and authenticated style planning with
  const calls:{operation:string;input:unknown;actor:string}[]=[];const handler=createAuthoringMcpHandler(async(operation,input,actor)=>{calls.push({operation,input,actor});return {drafts:[],nextCursor:null};});
  const listed=await payload(await handler.fetch(request({jsonrpc:'2.0',id:23,method:'tools/list',params:{}}),{authInfo})) as {result:{tools:{name:string;annotations?:{readOnlyHint?:boolean};inputSchema:{properties:Record<string,unknown>}}[]}};
  const drafts=listed.result.tools.find(tool=>tool.name==='list_drafts'),style=listed.result.tools.find(tool=>tool.name==='style_draft');
- assert.equal(drafts?.annotations?.readOnlyHint,true);assert.deepEqual(Object.keys(drafts!.inputSchema.properties).sort(),['book','compact','cursor','layout','limit','query','service']);
- assert.equal(style?.annotations?.readOnlyHint,false);assert.deepEqual(Object.keys(style!.inputSchema.properties).sort(),['arrangement','comfortableTypography','draftId','dryRun','expectedVersion','latinLineBreaks','layout','rowOrder']);
+ assert.equal(drafts?.annotations?.readOnlyHint,true);assert.deepEqual(Object.keys(drafts!.inputSchema.properties).sort(),['book','compact','cursor','layout','limit','query','service','workspace']);
+ assert.equal(style?.annotations?.readOnlyHint,false);assert.deepEqual(Object.keys(style!.inputSchema.properties).sort(),['arrangement','comfortableTypography','draftId','dryRun','expectedVersion','latinLineBreaks','layout','rowOrder','workspace']);
  await payload(await handler.fetch(request({jsonrpc:'2.0',id:24,method:'tools/call',params:{name:'list_drafts',arguments:{query:'Shabbat',limit:10}}}),{authInfo}));
  await payload(await handler.fetch(request({jsonrpc:'2.0',id:25,method:'tools/call',params:{name:'style_draft',arguments:{draftId:'draft-1',expectedVersion:2,latinLineBreaks:'phrases'}}}),{authInfo}));
  assert.deepEqual(calls,[{operation:'list_drafts',input:{query:'Shabbat',limit:10},actor:'mcp:test-actor'},{operation:'style_draft',input:{draftId:'draft-1',expectedVersion:2,latinLineBreaks:'phrases'},actor:'mcp:test-actor'}]);
@@ -195,4 +198,34 @@ test('MCP compact results name a repeated publish cue once and summarize set man
  assert.deepEqual(published.revision.cue,cue);assert.equal(published.cue,'same as revision.cue');
  const archived=await call('archive_draft_set',{setId:'set',expectedDraftIds:['a','b']});
  assert.deepEqual(archived.drafts.map((draft:{draftSetManifest:unknown})=>draft.draftSetManifest),[{version:1,selectionCount:2},{version:1,selectionCount:2}]);
+});
+
+test('on a TBI configuration nothing the MCP says names CRC',async()=>{
+ const tbi=()=>workspaceIdentity({WORKSPACE_ID:'temple-bnai-israel-kalamazoo'});
+ const handler=createAuthoringMcpHandler(async()=>({workspace:{rehearsal:false,storage:'postgres',label:null}}),tbi);
+ const initialized=await payload(await handler.fetch(request({jsonrpc:'2.0',id:60,method:'initialize',params:{protocolVersion:'2025-06-18',capabilities:{},clientInfo:{name:'test',version:'1'}}}),{authInfo})) as {result:{serverInfo:{name:string};instructions?:string}};
+ const listed=await payload(await handler.fetch(request({jsonrpc:'2.0',id:61,method:'tools/list',params:{}}),{authInfo})) as {result:{tools:unknown[]}};
+ const said=JSON.stringify([initialized.result,listed.result]);
+ assert.doesNotMatch(said,/\bCRC\b|Central Reform/);
+ assert.match(initialized.result.serverInfo.name,new RegExp(tbi().shortName));
+ assert.match(initialized.result.instructions??'',/temple-bnai-israel-kalamazoo/);
+ const identity=JSON.parse((await payload(await handler.fetch(request({jsonrpc:'2.0',id:62,method:'tools/call',params:{name:'get_workspace',arguments:{workspace:undefined}}}),{authInfo})) as {result:{content:{text:string}[]}}).result.content[0].text);
+ assert.deepEqual({workspaceId:identity.workspaceId,shortName:identity.shortName,host:identity.host,rehearsal:identity.rehearsal},{workspaceId:'temple-bnai-israel-kalamazoo',shortName:tbi().shortName,host:tbi().host,rehearsal:false});
+});
+
+test('a change naming another congregation, or none, is refused in a sentence before the backend',async()=>{
+ let calls=0;const handler=createAuthoringMcpHandler(async()=>{calls++;return {draft:{id:'draft-1'}}});
+ const call=async(args:Record<string,unknown>)=>await payload(await handler.fetch(request({jsonrpc:'2.0',id:63,method:'tools/call',params:{name:'archive_draft',arguments:{draftId:'draft-1',expectedVersion:1,...args}}}),{authInfo})) as {result:{isError?:boolean;content:{text:string}[]}};
+ const wrong=await call({workspace:'temple-bnai-israel-kalamazoo'});
+ assert.equal(wrong.result.isError,true);assert.match(wrong.result.content[0].text,/This connection serves CRC \(workspace 'crc'.*Nothing was changed\./);
+ const missing=await call({workspace:undefined});
+ assert.equal(missing.result.isError,true);assert.match(missing.result.content[0].text,/Name the congregation: pass workspace:'crc'/);
+ const wrongRead=await payload(await handler.fetch(request({jsonrpc:'2.0',id:64,method:'tools/call',params:{name:'get_draft',arguments:{draftId:'draft-1',workspace:'tbi'}}}),{authInfo})) as {result:{isError?:boolean}};
+ assert.equal(wrongRead.result.isError,true,'a read that names the wrong congregation is refused too');
+ assert.equal(calls,0);
+ const ok=JSON.parse((await call({workspace:'CRC'})).result.content[0].text);
+ assert.equal(calls,1,'the short name is accepted as well as the id');
+ assert.deepEqual([ok.workspaceId,ok.shortName,typeof ok.host],['crc','CRC','string'],'every result names the congregation');
+ const read=JSON.parse((await payload(await handler.fetch(request({jsonrpc:'2.0',id:65,method:'tools/call',params:{name:'get_draft',arguments:{draftId:'draft-1',workspace:undefined}}}),{authInfo})) as {result:{content:{text:string}[]}}).result.content[0].text);
+ assert.equal(read.workspaceId,'crc','a read needs no workspace argument');
 });

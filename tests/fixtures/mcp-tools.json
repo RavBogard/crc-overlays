@@ -15,11 +15,18 @@
      "type": "integer",
      "minimum": 1,
      "maximum": 9007199254740991
+    },
+    "workspace": {
+     "type": "string",
+     "minLength": 1,
+     "maxLength": 80,
+     "description": "Which congregation this call is for. This connection serves 'crc' (CRC) only."
     }
    },
    "required": [
     "draftId",
-    "expectedVersion"
+    "expectedVersion",
+    "workspace"
    ]
   },
   "annotations": {
@@ -48,11 +55,18 @@
       "minLength": 1,
       "maxLength": 200
      }
+    },
+    "workspace": {
+     "type": "string",
+     "minLength": 1,
+     "maxLength": 80,
+     "description": "Which congregation this call is for. This connection serves 'crc' (CRC) only."
     }
    },
    "required": [
     "setId",
-    "expectedDraftIds"
+    "expectedDraftIds",
+    "workspace"
    ]
   },
   "annotations": {
@@ -644,6 +658,12 @@
       }
      },
      "additionalProperties": false
+    },
+    "workspace": {
+     "type": "string",
+     "minLength": 1,
+     "maxLength": 80,
+     "description": "Which congregation this call is for. This connection serves 'crc' (CRC) only."
     }
    },
    "required": [
@@ -651,7 +671,8 @@
     "title",
     "layout",
     "templateCueId",
-    "content"
+    "content",
+    "workspace"
    ]
   },
   "annotations": {
@@ -724,11 +745,18 @@
       ],
       "additionalProperties": false
      }
+    },
+    "workspace": {
+     "type": "string",
+     "minLength": 1,
+     "maxLength": 80,
+     "description": "Which congregation this call is for. This connection serves 'crc' (CRC) only."
     }
    },
    "required": [
     "label",
-    "overrides"
+    "overrides",
+    "workspace"
    ]
   },
   "annotations": {
@@ -771,13 +799,20 @@
      "type": "string",
      "minLength": 1,
      "maxLength": 200
+    },
+    "workspace": {
+     "type": "string",
+     "minLength": 1,
+     "maxLength": 80,
+     "description": "Which congregation this call is for. This connection serves 'crc' (CRC) only."
     }
    },
    "required": [
     "sourceId",
     "mode",
     "layout",
-    "templateCueId"
+    "templateCueId",
+    "workspace"
    ]
   },
   "annotations": {
@@ -810,12 +845,19 @@
       "minLength": 1,
       "maxLength": 200
      }
+    },
+    "workspace": {
+     "type": "string",
+     "minLength": 1,
+     "maxLength": 80,
+     "description": "Which congregation this call is for. This connection serves 'crc' (CRC) only."
     }
    },
    "required": [
     "draftId",
     "expectedVersion",
-    "expectedDraftIds"
+    "expectedDraftIds",
+    "workspace"
    ]
   },
   "annotations": {
@@ -846,12 +888,19 @@
     },
     "includePreviewImage": {
      "type": "boolean"
+    },
+    "workspace": {
+     "type": "string",
+     "minLength": 1,
+     "maxLength": 80,
+     "description": "Which congregation this call is for. This connection serves 'crc' (CRC) only."
     }
    },
    "required": [
     "draftId",
     "expectedVersion",
-    "previewId"
+    "previewId",
+    "workspace"
    ]
   },
   "annotations": {
@@ -870,6 +919,12 @@
      "type": "string",
      "minLength": 1,
      "maxLength": 200
+    },
+    "workspace": {
+     "type": "string",
+     "minLength": 1,
+     "maxLength": 80,
+     "description": "Which congregation this call is for. This connection serves 'crc' (CRC) only."
     }
    },
    "required": [
@@ -901,6 +956,12 @@
      "type": "integer",
      "minimum": 0,
      "maximum": 9007199254740991
+    },
+    "workspace": {
+     "type": "string",
+     "minLength": 1,
+     "maxLength": 80,
+     "description": "Which congregation this call is for. This connection serves 'crc' (CRC) only."
     }
    }
   },
@@ -919,11 +980,36 @@
      "type": "string",
      "minLength": 1,
      "maxLength": 200
+    },
+    "workspace": {
+     "type": "string",
+     "minLength": 1,
+     "maxLength": 80,
+     "description": "Which congregation this call is for. This connection serves 'crc' (CRC) only."
     }
    },
    "required": [
     "sourceId"
    ]
+  },
+  "annotations": {
+   "readOnlyHint": true
+  }
+ },
+ {
+  "name": "get_workspace",
+  "description": "Say which congregation this connection serves (Central Reform Congregation, workspace 'crc' at overlays.centralreform.org) and whether it is a rehearsal. Call it first when you hold more than one overlays connector; every change here takes this workspace id.",
+  "inputSchema": {
+   "type": "object",
+   "$schema": "https://json-schema.org/draft/2020-12/schema",
+   "properties": {
+    "workspace": {
+     "type": "string",
+     "minLength": 1,
+     "maxLength": 80,
+     "description": "Which congregation this call is for. This connection serves 'crc' (CRC) only."
+    }
+   }
   },
   "annotations": {
    "readOnlyHint": true
@@ -940,10 +1026,17 @@
      "type": "string",
      "minLength": 1,
      "maxLength": 200
+    },
+    "workspace": {
+     "type": "string",
+     "minLength": 1,
+     "maxLength": 80,
+     "description": "Which congregation this call is for. This connection serves 'crc' (CRC) only."
     }
    },
    "required": [
-    "cueId"
+    "cueId",
+    "workspace"
    ]
   },
   "annotations": {
@@ -957,7 +1050,14 @@
   "inputSchema": {
    "type": "object",
    "$schema": "https://json-schema.org/draft/2020-12/schema",
-   "properties": {}
+   "properties": {
+    "workspace": {
+     "type": "string",
+     "minLength": 1,
+     "maxLength": 80,
+     "description": "Which congregation this call is for. This connection serves 'crc' (CRC) only."
+    }
+   }
   },
   "annotations": {
    "readOnlyHint": true
@@ -1006,6 +1106,12 @@
      "type": "string",
      "minLength": 1,
      "maxLength": 200
+    },
+    "workspace": {
+     "type": "string",
+     "minLength": 1,
+     "maxLength": 80,
+     "description": "Which congregation this call is for. This connection serves 'crc' (CRC) only."
     }
    }
   },
@@ -1024,6 +1130,12 @@
      "type": "string",
      "minLength": 1,
      "maxLength": 200
+    },
+    "workspace": {
+     "type": "string",
+     "minLength": 1,
+     "maxLength": 80,
+     "description": "Which congregation this call is for. This connection serves 'crc' (CRC) only."
     }
    },
    "required": [
@@ -1040,7 +1152,14 @@
   "inputSchema": {
    "type": "object",
    "$schema": "https://json-schema.org/draft/2020-12/schema",
-   "properties": {}
+   "properties": {
+    "workspace": {
+     "type": "string",
+     "minLength": 1,
+     "maxLength": 80,
+     "description": "Which congregation this call is for. This connection serves 'crc' (CRC) only."
+    }
+   }
   },
   "annotations": {
    "readOnlyHint": true
@@ -1052,7 +1171,14 @@
   "inputSchema": {
    "type": "object",
    "$schema": "https://json-schema.org/draft/2020-12/schema",
-   "properties": {}
+   "properties": {
+    "workspace": {
+     "type": "string",
+     "minLength": 1,
+     "maxLength": 80,
+     "description": "Which congregation this call is for. This connection serves 'crc' (CRC) only."
+    }
+   }
   },
   "annotations": {
    "readOnlyHint": true
@@ -1079,10 +1205,17 @@
      "type": "string",
      "minLength": 1,
      "maxLength": 120
+    },
+    "workspace": {
+     "type": "string",
+     "minLength": 1,
+     "maxLength": 80,
+     "description": "Which congregation this call is for. This connection serves 'crc' (CRC) only."
     }
    },
    "required": [
-    "setlistId"
+    "setlistId",
+    "workspace"
    ]
   },
   "annotations": {
@@ -1105,11 +1238,18 @@
      "type": "integer",
      "minimum": 1,
      "maximum": 9007199254740991
+    },
+    "workspace": {
+     "type": "string",
+     "minLength": 1,
+     "maxLength": 80,
+     "description": "Which congregation this call is for. This connection serves 'crc' (CRC) only."
     }
    },
    "required": [
     "draftId",
-    "expectedVersion"
+    "expectedVersion",
+    "workspace"
    ]
   },
   "annotations": {
@@ -1138,12 +1278,19 @@
      "type": "string",
      "minLength": 1,
      "maxLength": 200
+    },
+    "workspace": {
+     "type": "string",
+     "minLength": 1,
+     "maxLength": 80,
+     "description": "Which congregation this call is for. This connection serves 'crc' (CRC) only."
     }
    },
    "required": [
     "draftId",
     "expectedVersion",
-    "previewId"
+    "previewId",
+    "workspace"
    ]
   },
   "annotations": {
@@ -1181,12 +1328,19 @@
       "minLength": 1,
       "maxLength": 200
      }
+    },
+    "workspace": {
+     "type": "string",
+     "minLength": 1,
+     "maxLength": 80,
+     "description": "Which congregation this call is for. This connection serves 'crc' (CRC) only."
     }
    },
    "required": [
     "setId",
     "expectedDraftIds",
-    "orderedDraftIds"
+    "orderedDraftIds",
+    "workspace"
    ]
   },
   "annotations": {
@@ -1210,11 +1364,18 @@
      "type": "integer",
      "minimum": 1,
      "maximum": 9007199254740991
+    },
+    "workspace": {
+     "type": "string",
+     "minLength": 1,
+     "maxLength": 80,
+     "description": "Which congregation this call is for. This connection serves 'crc' (CRC) only."
     }
    },
    "required": [
     "draftId",
-    "expectedVersion"
+    "expectedVersion",
+    "workspace"
    ]
   },
   "annotations": {
@@ -1243,11 +1404,18 @@
       "minLength": 1,
       "maxLength": 200
      }
+    },
+    "workspace": {
+     "type": "string",
+     "minLength": 1,
+     "maxLength": 80,
+     "description": "Which congregation this call is for. This connection serves 'crc' (CRC) only."
     }
    },
    "required": [
     "setId",
-    "expectedDraftIds"
+    "expectedDraftIds",
+    "workspace"
    ]
   },
   "annotations": {
@@ -1280,13 +1448,20 @@
     "humanApproved": {
      "type": "boolean",
      "const": true
+    },
+    "workspace": {
+     "type": "string",
+     "minLength": 1,
+     "maxLength": 80,
+     "description": "Which congregation this call is for. This connection serves 'crc' (CRC) only."
     }
    },
    "required": [
     "draftId",
     "expectedVersion",
     "previewId",
-    "humanApproved"
+    "humanApproved",
+    "workspace"
    ]
   },
   "annotations": {
@@ -1304,6 +1479,12 @@
      "type": "string",
      "minLength": 1,
      "maxLength": 200
+    },
+    "workspace": {
+     "type": "string",
+     "minLength": 1,
+     "maxLength": 80,
+     "description": "Which congregation this call is for. This connection serves 'crc' (CRC) only."
     }
    },
    "required": [
@@ -1335,12 +1516,19 @@
      "type": "integer",
      "minimum": 1,
      "maximum": 9007199254740991
+    },
+    "workspace": {
+     "type": "string",
+     "minLength": 1,
+     "maxLength": 80,
+     "description": "Which congregation this call is for. This connection serves 'crc' (CRC) only."
     }
    },
    "required": [
     "draftId",
     "expectedVersion",
-    "revision"
+    "revision",
+    "workspace"
    ]
   },
   "annotations": {
@@ -1365,6 +1553,12 @@
      "type": "integer",
      "minimum": 1,
      "maximum": 50
+    },
+    "workspace": {
+     "type": "string",
+     "minLength": 1,
+     "maxLength": 80,
+     "description": "Which congregation this call is for. This connection serves 'crc' (CRC) only."
     }
    },
    "required": [
@@ -1391,11 +1585,18 @@
      "type": "integer",
      "minimum": 1,
      "maximum": 9007199254740991
+    },
+    "workspace": {
+     "type": "string",
+     "minLength": 1,
+     "maxLength": 80,
+     "description": "Which congregation this call is for. This connection serves 'crc' (CRC) only."
     }
    },
    "required": [
     "draftId",
-    "expectedVersion"
+    "expectedVersion",
+    "workspace"
    ]
   },
   "annotations": {
@@ -1463,11 +1664,18 @@
     },
     "dryRun": {
      "type": "boolean"
+    },
+    "workspace": {
+     "type": "string",
+     "minLength": 1,
+     "maxLength": 80,
+     "description": "Which congregation this call is for. This connection serves 'crc' (CRC) only."
     }
    },
    "required": [
     "draftId",
-    "expectedVersion"
+    "expectedVersion",
+    "workspace"
    ]
   },
   "annotations": {
@@ -2085,12 +2293,19 @@
       "minLength": 1,
       "maxLength": 200
      }
+    },
+    "workspace": {
+     "type": "string",
+     "minLength": 1,
+     "maxLength": 80,
+     "description": "Which congregation this call is for. This connection serves 'crc' (CRC) only."
     }
    },
    "required": [
     "draftId",
     "expectedVersion",
-    "patch"
+    "patch",
+    "workspace"
    ]
   },
   "annotations": {
