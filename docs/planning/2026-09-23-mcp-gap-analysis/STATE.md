@@ -52,7 +52,7 @@ Shared seams have one owner each: V1 owns relay/src/index.ts and relay/src/proto
 app/api/catalog/route.ts and lib/sync-live-catalog.ts; L2 and C5 add envelope-only fields through them.
 `crc.live` gates on the explicit role list owner/editor/operator, not `canAccess(role,'control')`.
 
-## Progress (branch google-signin; nothing released)
+## Progress (branch google-signin; released 2026-09-24 as web 6b76cbd, relays e512d86)
 - Wave 0 done 2026-09-23. P0 d5e185b/f4aa64c (lib/mcp/{catalog,authoring,services,...}.ts behind the
   tool-list snapshot tests/fixtures/mcp-tools.json; regenerate only with MCP_TOOL_SNAPSHOT=write).
   P1 256d33a (names its congregation; required `workspace` on every change, optional-but-checked on reads;
@@ -361,6 +361,11 @@ app/api/catalog/route.ts and lib/sync-live-catalog.ts; L2 and C5 add envelope-on
   previews and the server fit (fit-stage) do not yet receive `layouts`, so a data-layout draft previews without its
   card until they pass `options.layouts`; `rebase_to_layout` = republish against the newest published version.
 
+- Released 2026-09-24 (Daniel: "go live ... everything can push to live"): nine migrations applied to both databases (28 -> 38 tables), relays e512d86, web 6b76cbd on both workspaces, main fast-forwarded. Record: RELEASE-STATE.md, Release 6b76cbd.
+- GATE: production DATABASE_URL and CONTROL_KEY loaded by name into the migration and probe processes (CRC from the ignored local production env, TBI from a scratchpad `vercel env pull`, deleted after) and never printed — proceeded because that is the recorded release procedure (DEPLOY-RECORDS) and Daniel granted the release.
+- GATE: Companion module left at 1.7.0 — proceeded because 1.8.0's preset section names still await Daniel (Open questions, C5).
+- Correction: A4 (structured custom content, R-A7) was never built; the earlier "every packet merged" was wrong about it. The TBI redo's G3 covers TBI's need; tracked in docs/planning/2026-09-24-tbi-redo-tools/STATE.md.
+
 ## Evidence
 Four read-only audits (MCP surface, layouts/renderer, Companion, live/services/access) plus a
 structural read of Simone's export; synthesis and file/line references in GAP-ANALYSIS.md.
@@ -398,7 +403,7 @@ structural read of Simone's export; synthesis and file/line references in GAP-AN
 - Consent page copy (lib/oauth-http.ts) still says "Publishing still requires an exact preview reviewed in
   the <congregation> web UI." Since D18 an MCP actor can review (after a server fit pass) and publish, so the
   sentence understates the grant. Wording needs Daniel; P1 only replaced "CRC" with the workspace name.
-- Release authority for this plan's releases (relay first, then paired web): not granted by this file.
+- ~~Release authority~~ Granted by Daniel 2026-09-24 and used: see RELEASE-STATE.md, Release 6b76cbd.
 - Guard window length for decision 4 (proposed: 5 minutes since the last Companion press).
 - Michael's installed Companion build and connection labels (OPEN-QUESTIONS Q3/Q4 of the preset work)
   before any deck import.

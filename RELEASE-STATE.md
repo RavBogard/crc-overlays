@@ -4,7 +4,7 @@ What is deployed right now. Update this file on every release — it is the one 
 "what is live", and it is short so it can be read under pressure. The history is in
 `docs/planning/2026-09-deploys/` (25 deploy records, the release chain, the phase build notes).
 
-**Last updated: 2026-09-23** (paired release `ebd4be4`: group tabs renamed; before it `3636857`, Michael's review — Corner layout, per-graphic row order, inline siddur wording edits with a Wording changes list, right-justified lower-third Hebrew title, honest siddur-picker preview. Evidence below under "Release 3636857".)
+**Last updated: 2026-09-24** (MCP completeness plan released: relays `e512d86`, web `6b76cbd`, ten new tables on both databases, `main` fast-forwarded to production. Before it, paired release `ebd4be4`: group tabs renamed; before it `3636857`, Michael's review — Corner layout, per-graphic row order, inline siddur wording edits with a Wording changes list, right-justified lower-third Hebrew title, honest siddur-picker preview. Evidence below under "Release 3636857".)
 
 ## Web, per workspace
 
@@ -13,13 +13,25 @@ both were released together on 2026-09-23 UTC (2026-09-22 evening Central).
 
 | Workspace | Host | Deployed commit | How it got there |
 |---|---|---|---|
-| CRC | `overlays.centralreform.org` (alt `crc-overlays.vercel.app`) | `ebd4be4` | paired staged release, 2026-09-23, `dpl_9eT5dbGBiJpCNfaNm1jqcVpiJPmA` (the Git integration also builds every push to `main`) |
-| TBI | `overlays.templebnaiisrael.com` (alt `tbi-overlays.vercel.app`) | `ebd4be4` | same paired run, 2026-09-23, `dpl_F9qerggQiJ8D53kGTPdjFU6T9yHA` |
+| CRC | `overlays.centralreform.org` (alt `crc-overlays.vercel.app`) | `6b76cbd` | paired staged release, 2026-09-24, `dpl_F9xDh92SXof7KT5pXy6VoGs2vnwo` (the Git integration also builds every push to `main`; `main` is at `6b76cbd`) |
+| TBI | `overlays.templebnaiisrael.com` (alt `tbi-overlays.vercel.app`) | `6b76cbd` | same paired run, 2026-09-24, `dpl_2LgcY9t1ZXgSbZkFQbk1kE2taSdZ` |
 
 This file is written after the release it describes, so the commit carrying these words is always one
 ahead of the shas in the table. That one commit is documentation: CRC's Git integration builds it by
 itself and TBI is not owed a release for it. Any commit that touches `app/`, `lib/`, `content/`,
 `components/`, `schemas/` or `workspaces/` **is** owed one.
+
+### Release 6b76cbd: the MCP completeness plan (2026-09-24 UTC)
+
+- Authority: Daniel, 2026-09-24 ("go live ... everything can push to live"). Plan: `docs/planning/2026-09-23-mcp-gap-analysis/STATE.md`. The MCP now has 125 tools (29 in production before).
+- Order: migrations, then relays, then web, then `main`. Released from a clean detached worktree (`crc-overlays-release`, beside this checkout) because this checkout holds another thread's untracked folder.
+- Migrations: `scripts/migrate-authoring.mjs` (now lists every `db/*.sql` file) once per workspace with only that workspace's `DATABASE_URL` (CRC from the ignored local production env, TBI from a `vercel env pull` into the session scratchpad, deleted afterward). Both "Authoring schema ready", exit 0. `public` 28 -> 38 tables on both: `authoring_preview_images`, `workspace_asset_uploads`, `authoring_defaults`, `local_sources`, `workspace_branding`, `layout_definitions`, `review_boards`, `review_board_answers`, `companion_decks`, `singular_references`. Rows unchanged: CRC 282 drafts / 457 revisions, TBI 220 / 205. Additive and `IF NOT EXISTS`; the old web ignored them.
+- Relays: gate read-only at 15:03 UTC, CRC 0 renderers / 1 controller, TBI 0 / 0 (a cue selected on each, nobody rendering). Clean `--dry-run`, then `deploy-relays.mjs --commit e512d86...`: status `complete`; `crc-live-relay` `b0aca062-84f1-4fea-b83a-714c15abcf5e`, `tbi-overlays-live-relay` `110aeed8-1fee-476e-bdcc-b7836a6d4d1a`. Re-probe: state kept, `lastPress` now answered. `relay/` is identical at `6b76cbd`.
+- Web: three attempts stopped before any deploy, and one CRC build failed on Vercel (not promoted; production stayed on `ebd4be4`). A fresh checkout lacks the generated `next-env.d.ts` the TBI staging copies; TBI staging lacked the deck tools' JSON (`companion/definitions*.json`, the preset `CUE-MANIFEST.json`); CRC's `.vercelignore` left out those and the `companion/scripts` / `companion/tests` files `tests/cue-roles.test.ts` imports. Fixed in `1539b69` and `6b76cbd`, checked by type-checking a copy of exactly the files `.vercelignore` uploads. Then `deploy-workspaces.mjs --commit 6b76cbd...`, exit 0.
+- Verified: all four hosts 200 on `/health` and `/api/workspace` (CRC `crc`, TBI `temple-bnai-israel-kalamazoo`); `/api/catalog?include=layouts` answers the new `{version,cues,layouts}` envelope on both custom domains (CRC 248 cues, TBI 219); `/author/publications` 200 on both.
+- `main` fast-forwarded `c5497ab..6b76cbd` (the hazard below is closed; the Git integration rebuilds the same tree). Companion module stays 1.7.0: 1.8.0 waits on Daniel confirming its preset section names.
+- Gates at `e512d86`: `tsc --noEmit`; `npm test` 1166 + 35 pass, 0 fail, 12 skipped (the first full run had two server-fit timing failures under load; 3/3 alone and a full rerun passed); lint (known warnings); `npm run build`; relay 86; `audit-companion-packages` ok.
+- Not verified here: the MCP tool list over OAuth (needs a connector session; the TBI redo thread's entry gate checks it), hardware, and a publish end to end on the new build.
 
 ### Release ebd4be4 (2026-09-23 UTC)
 
@@ -196,7 +208,7 @@ one overlay stylesheet), `d1ab609` (server fit-stage readiness hardening, anothe
 (documents), `8954415` (keeps TBI's 1.6.0 archive in the staging allowlist; the first web attempt was
 refused by staging, before any deploy, for its absence).
 
-> **Hazard: `origin/main` is at `c5497ab`, behind production.** Any push to `main` of that line, or
+> **Closed 2026-09-24: `main` was fast-forwarded to `6b76cbd`, the released commit.** Historical: **Hazard: `origin/main` is at `c5497ab`, behind production.** Any push to `main` of that line, or
 > a redeploy of CRC's latest Git build, would put CRC back on `c5497ab` — without the resting logo,
 > A1's stylesheet or the fit hardening, and under a Companion 1.7.0 whose logo buttons it would refuse.
 > The fix is a fast-forward: `git push origin be8e7da:main` (`origin/main` is an ancestor). The
@@ -241,10 +253,10 @@ the gate requires `renderers: 0` on both.
 
 | Worker | Environment | Version id | Commit |
 |---|---|---|---|
-| `crc-live-relay` | default | `00f3c73f-0014-42cc-8a66-119544228b96` | `2668bfd` |
-| `tbi-overlays-live-relay` | `tbi` | `dd1e9899-c1a2-402b-88b6-b93c1e99219c` | `2668bfd` |
+| `crc-live-relay` | default | `b0aca062-84f1-4fea-b83a-714c15abcf5e` | `e512d86` |
+| `tbi-overlays-live-relay` | `tbi` | `110aeed8-1fee-476e-bdcc-b7836a6d4d1a` | `e512d86` |
 
-Released 2026-09-22 19:44 UTC (the resting logo's `logo` action and state field; sixth relay release).
+Released 2026-09-24 15:03 UTC (V1 command outcome, preconditions and lastPress; A3 out-of-pinned-cue; L2 approved layouts; seventh relay release; rollback target `00f3c73f...` / `dd1e9899...` from `2668bfd`). Before it: released 2026-09-22 19:44 UTC (the resting logo's `logo` action and state field; sixth relay release).
 Gate, taken by Daniel read-only at 19:43: CRC 0 renderers / 1 controller, TBI 0 / 0. Record:
 `work/deploy-staging/releases/2668bfd…/relay.json`, `status: complete`. `relay/` is identical at the
 web commit `8954415`. Previous: `c013c8eb…` / `47f7d260…` from `0fb6514` (2026-09-20), which is the
@@ -262,7 +274,7 @@ relay rollback target; the new relay serves the old web unchanged.
 
 ## Databases
 
-Neon, one per workspace, 28 tables each. **No migration is pending.**
+Neon, one per workspace, 38 tables each since 2026-09-24 (see Release 6b76cbd). **Pending:** `db/imports.sql` and `db/build-keys.sql` (TBI redo tools, not yet released; applied with that release).
 
 One ran on 2026-09-22, before the release that needed it, from `scripts/migrate-authoring.mjs`:
 `authoring_revisions` gained `source_commits text[]` on both, 9 columns to 10. `ADD COLUMN IF NOT
