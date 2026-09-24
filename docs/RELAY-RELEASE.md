@@ -82,6 +82,49 @@ Durable Object state survives a worker deploy: current cue, revision and rendere
 reset. Open sockets drop and reconnect on their first retry; the Companion module's 3 s grace
 before "disconnected" absorbs that, so the deck should not flash red.
 
+## Command answers: outcome, preconditions, press times (MCP plan V1, not yet released)
+
+Added in `relay/src/protocol.ts` (`decideCommand`, shared by the worker and the rehearsal port) so
+an agent can tell a retried call from a new one and refuse to act on a stale view. Every field is
+additive; a caller that sends none of the new fields gets exactly the old behaviour and the old
+body plus new keys.
+
+- **`outcome`** on every `POST /command` 200 answer:
+  - `applied` — a commandId the relay had not seen, from a caller with no `clientId` or with a
+    `sequence` above that controller's last one. Revision + 1, a cue-log row, a broadcast.
+  - `replayed` — a commandId the relay already holds a receipt for, same action and cue. Nothing
+    changes; the answer is current state. `originalOutcome` (only on a replay) is `applied` or
+    `superseded` for what the first delivery did, or `null` for a receipt an earlier build wrote.
+  - `superseded` — a new commandId whose `sequence` is not above that `clientId`'s last one: a newer
+    press from the same controller already won. Nothing moves, the receipt is kept (a retry then
+    answers `replayed`), no cue-log row. Different controllers still resolve last-writer-wins.
+- **Preconditions** (optional on a command): `ifRevision` (non-negative integer; holds only at
+  exactly that revision) and `ifCue` (a cue id, or `null` for "only while nothing is pinned").
+  A malformed value is `400 Invalid command`. A failed one is `409` with
+  `{error,commandId,precondition:'ifRevision'|'ifCue',revision,cue}`, where `error` is a plain
+  sentence ending "Nothing was changed; read the live state and decide again." A refusal writes
+  nothing: no receipt, no sequence, no press time, so the same commandId can be sent again.
+  Order of checks: receipt (so a retry of a command that already moved the state replays rather than
+  tripping its own precondition), unknown cue, preconditions, controller sequence.
+- **`commandId` on cue-log rows** (ruling 10: a correlation id only). New column
+  `command_history.command_id`; `null` on older rows and on `history_cleared`. The web's
+  `lib/service-history.ts` rebuilds rows key by key and does not publish it yet.
+- **`lastPress`** `{control,companion,mcp}` (ms epoch or `null`) on `GET /state` and on
+  `POST /command` answers, never in a socket frame, so it takes nothing from `MAX_SNAPSHOT_BYTES`
+  and changes no cue-payload headroom. Classes are the cue log's `source`. A press is a new command
+  the relay processed (`applied` or `superseded`); replays, refusals and invalid requests are not.
+  Stored in a new `controller_presses` table, so it survives eviction and deploys; it starts empty.
+
+Schema: the two new columns are added in place by a guarded `ALTER TABLE` in the Durable Object
+constructor (a duplicate-column error on an already-migrated room is expected and swallowed); both
+are nullable. Rolling the worker back is safe: the earlier build names its columns explicitly and
+ignores the extra ones and the new table.
+
+Release order: relay first, then the web (V2's `lib/live-command.ts` is the first sender of
+`ifRevision`/`ifCue` and the first reader of `outcome`/`lastPress`). The deployed web and Companion
+pass the extra answer fields through untouched: the command route returns the relay body as is,
+`lib/browser-realtime.ts` and the Companion client ignore unknown snapshot keys.
+
 ## Rollback and first use
 
 From `relay/`, per worker — the two are independent: `npx wrangler deployments list [--env tbi]`

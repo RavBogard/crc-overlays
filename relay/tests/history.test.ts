@@ -16,7 +16,9 @@ describe('the cue log',()=>{
  it('builds a row of exactly the permitted keys',()=>{
   const built=historyRow({seq:1,at:2,action:'in',cueId:'cue-a',source:'companion',serviceRef:COLLECTION,sourceIds:['library:barechu']});
   expect(Object.keys(built).sort()).toEqual([...HISTORY_KEYS].sort());
-  expect(built).toEqual({seq:1,at:2,action:'in',cueId:'cue-a',source:'companion',serviceRef:COLLECTION,sourceIds:['library:barechu']});
+  // `commandId` joined the permitted keys under the 2026-09-23 ruling 10 (a correlation id only);
+  // a row built without one carries an explicit null rather than omitting the key.
+  expect(built).toEqual({seq:1,at:2,action:'in',cueId:'cue-a',source:'companion',serviceRef:COLLECTION,sourceIds:['library:barechu'],commandId:null});
   expect(historyRow({seq:1,at:2,action:'clear',cueId:null,source:'control',serviceRef:null}).sourceIds).toEqual([]);
  });
 

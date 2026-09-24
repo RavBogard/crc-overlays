@@ -71,7 +71,35 @@ export type BugState={on:boolean;page:string|null};
 export type LogoState={on:boolean};
 export type LiveState={revision:number;cue:string|null;mode:Mode;updated:number;cuePayload:CuePayload|null;catalogVersion:string;bug?:BugState;logo?:LogoState};
 export type Snapshot=LiveState&{renderers:Renderer[];controllers:Controller[];serverTime:number};
-export type Command={action:'in'|'out'|'clear'|'cut'|'bug'|'logo';cue:string|null;bug:BugState|null;logo:LogoState|null;commandId:string;clientId:string|null;sequence:number|null;source:HistorySource;serviceRef:string|null};
+export type Command={action:'in'|'out'|'clear'|'cut'|'bug'|'logo';cue:string|null;bug:BugState|null;logo:LogoState|null;commandId:string;clientId:string|null;sequence:number|null;source:HistorySource;serviceRef:string|null;ifRevision?:number;ifCue?:string|null};
+/**
+ * What the relay did with a command, on every command response (MCP plan V1). Read from the
+ * exactly-once receipt and the per-controller sequence guard the relay already had:
+ *
+ * - 'applied': a commandId the relay had not seen, from a caller with no clientId or with a
+ *   sequence above that controller's last one. Live state moved (revision + 1), the cue log
+ *   gained a row, and connected sockets got the new snapshot.
+ * - 'replayed': a commandId the relay already holds a receipt for, with the same action and cue.
+ *   Nothing changed this time; the response is the current state. `originalOutcome` says what
+ *   the first delivery did ('applied' or 'superseded'), or null for a receipt written by an
+ *   earlier worker build that did not record it.
+ * - 'superseded': a new commandId whose `sequence` is not above the last one this `clientId`
+ *   already sent, so a newer press from the same controller has already won. Nothing moved, but
+ *   the receipt is kept, so retrying the same commandId answers 'replayed'. Only the same
+ *   controller supersedes: two different controllers still resolve last-writer-wins.
+ *
+ * A precondition that fails (`ifRevision`, `ifCue`) is not an outcome: it is a 409 refusal that
+ * writes nothing -- no receipt, no sequence, no press time -- so the caller can read state and
+ * decide again, even with the same commandId.
+ */
+export type CommandOutcome='applied'|'replayed'|'superseded';
+export type CommandReceipt={action:string;cue:string|null;outcome:string|null};
+export type CommandPrecondition='ifRevision'|'ifCue';
+export type CommandDecision=
+ |{kind:'applied'}
+ |{kind:'superseded'}
+ |{kind:'replayed';originalOutcome:'applied'|'superseded'|null}
+ |{kind:'refused';status:400|409;error:string;precondition?:CommandPrecondition};
 // Where the command came from, for the cue log. Not an identity: 'control' is any web or
 // legacy caller, 'companion' the paired deck, 'mcp' an assistant acting on consent. A caller
 // that says nothing is 'control', so every already-deployed client keeps working unchanged.
@@ -83,8 +111,21 @@ export type HistoryAction='in'|'out'|'clear'|'cut'|'bug'|'logo'|'history_cleared
  * as `/api/now`. `sourceIds` is internal: the web server joins it to the siddur library and
  * drops it, so what leaves `/api/history` is a liturgical position, never a source pin.
  */
-export type HistoryRow={seq:number;at:number;action:HistoryAction;cueId:string|null;source:HistorySource;serviceRef:string|null;sourceIds:string[]};
-export const HISTORY_KEYS=['seq','at','action','cueId','source','serviceRef','sourceIds'] as const;
+export type HistoryRow={seq:number;at:number;action:HistoryAction;cueId:string|null;source:HistorySource;serviceRef:string|null;sourceIds:string[];commandId:string|null};
+// `commandId` is a correlation id only (2026-09-23 ruling 10): the random id the caller chose for
+// the command, so a retried call can be matched to its row. It never names a member, a device or
+// a connection. Rows written before it existed, and the `history_cleared` row, carry null.
+export const HISTORY_KEYS=['seq','at','action','cueId','source','serviceRef','sourceIds','commandId'] as const;
+/**
+ * When each controller class last pressed something, by the same `source` the cue log uses
+ * ('control' = console or legacy caller, 'companion' = a paired deck, 'mcp' = an assistant).
+ * A press is a new command the relay processed -- 'applied' or 'superseded' -- never a replay, a
+ * refusal or an invalid request. Milliseconds since the epoch, null when that class has not
+ * pressed since this build started recording. Class times only: no id, no device, no member.
+ * Served on the HTTP `/state` and `/command` answers only, never in a socket frame, so it takes
+ * nothing from the MAX_SNAPSHOT_BYTES budget the realtime clients enforce.
+ */
+export type LastPress=Record<HistorySource,number|null>;
 // `client`/`version` are optional: attachments serialized by an earlier worker build
 // survive a deploy without them, and a 1.3.0 hello never carries them.
 export type SocketAttachment={role:Role;id:string|null;client?:ClientKind;version?:string|null;seen:number;ack:Renderer|null};
@@ -173,7 +214,65 @@ export function parseCommand(value:unknown):Command|null{
  if(!source)return null;
  const serviceRef=input.serviceRef===undefined||input.serviceRef===null?null:validUuid(input.serviceRef)?input.serviceRef as string:undefined;
  if(serviceRef===undefined)return null;
- return {action:action as Command['action'],cue,bug,logo,commandId:input.commandId as string,clientId:clientId as string|null,sequence:sequence as number|null,source,serviceRef};
+ const command:Command={action:action as Command['action'],cue,bug,logo,commandId:input.commandId as string,clientId:clientId as string|null,sequence:sequence as number|null,source,serviceRef};
+ // The two optional preconditions (MCP plan V1). Absent -- which is every deployed client --
+ // means no check at all, and the parsed command is exactly what it was before. `ifCue:null`
+ // is a real condition ("only if nothing is pinned"), distinct from leaving the field out.
+ if(input.ifRevision!==undefined){
+  if(!validInteger(input.ifRevision))return null;
+  command.ifRevision=input.ifRevision as number;
+ }
+ if(input.ifCue!==undefined){
+  if(input.ifCue!==null&&!(typeof input.ifCue==='string'&&input.ifCue.length>0&&input.ifCue.length<=160))return null;
+  command.ifCue=input.ifCue as string|null;
+ }
+ return command;
+}
+
+/**
+ * The preconditions, read against the state the command would change. A plain sentence, because
+ * an assistant relays it to a person; null when the command carries none or all of them hold.
+ */
+export function commandPreconditionFailure(current:LiveState,command:Command):{precondition:CommandPrecondition;error:string}|null{
+ const again=' Nothing was changed; read the live state and decide again.';
+ if(command.ifRevision!==undefined&&command.ifRevision!==current.revision)
+  return {precondition:'ifRevision',error:`Live state has moved on: it is at revision ${current.revision}, not ${command.ifRevision}.${again}`};
+ if(command.ifCue!==undefined&&command.ifCue!==current.cue){
+  const error=current.cue===null?'Nothing is live now, not the graphic this command expected.':command.ifCue===null?'A graphic is live now, not the empty screen this command expected.':'A different graphic is live now than the one this command expected.';
+  return {precondition:'ifCue',error:error+again};
+ }
+ return null;
+}
+
+/**
+ * The one decision the worker and the rehearsal port both make about a parsed command, in the
+ * order the worker has always used: the receipt first (so a retry of a command that already
+ * moved the state replays instead of tripping its own precondition), then the cue, then the
+ * preconditions, then the controller's sequence. `priorSequence` is that clientId's last
+ * accepted sequence, -1 when it has none; it is ignored for a command with no clientId.
+ */
+export function decideCommand(input:{command:Command;current:LiveState;receipt:CommandReceipt|null;cueKnown:boolean;priorSequence:number}):CommandDecision{
+ const {command,current,receipt}=input;
+ if(receipt){
+  if(receipt.action!==command.action||receipt.cue!==command.cue)return {kind:'refused',status:409,error:'Command ID already used for a different command'};
+  return {kind:'replayed',originalOutcome:receipt.outcome==='applied'||receipt.outcome==='superseded'?receipt.outcome:null};
+ }
+ if((command.action==='in'||command.action==='out')&&!input.cueKnown)return {kind:'refused',status:400,error:'Unknown cue'};
+ const failure=commandPreconditionFailure(current,command);
+ if(failure)return {kind:'refused',status:409,...failure};
+ if(command.clientId!==null&&!(command.sequence!>input.priorSequence))return {kind:'superseded'};
+ return {kind:'applied'};
+}
+
+/** Folds stored press times into the fixed three-class shape; an unknown source is ignored. */
+export function lastPressFrom(rows:readonly {source:string;at:number}[]):LastPress{
+ const press:LastPress={control:null,companion:null,mcp:null};
+ for(const row of rows){
+  const source=parseHistorySource(row.source);
+  const at=Number(row.at);
+  if(source&&Number.isSafeInteger(at)&&(press[source]===null||at>(press[source] as number)))press[source]=at;
+ }
+ return press;
 }
 
 export const parseHistorySource=(value:unknown):HistorySource|null=>value==='control'||value==='companion'||value==='mcp'?value:null;
@@ -207,8 +306,8 @@ export function collectionFromNamesCue(cueId:string|null):string|null{
 }
 
 /** The only constructor of a history row: these keys, in one place, from validated parts. */
-export function historyRow(input:{seq:number;at:number;action:HistoryAction;cueId:string|null;source:HistorySource;serviceRef:string|null;sourceIds?:readonly string[]}):HistoryRow{
- return {seq:input.seq,at:input.at,action:input.action,cueId:input.cueId,source:input.source,serviceRef:input.serviceRef,sourceIds:[...(input.sourceIds??[])]};
+export function historyRow(input:{seq:number;at:number;action:HistoryAction;cueId:string|null;source:HistorySource;serviceRef:string|null;sourceIds?:readonly string[];commandId?:string|null}):HistoryRow{
+ return {seq:input.seq,at:input.at,action:input.action,cueId:input.cueId,source:input.source,serviceRef:input.serviceRef,sourceIds:[...(input.sourceIds??[])],commandId:validToken(input.commandId)?input.commandId as string:null};
 }
 
 /** Rows older than this are dropped on the next append or read, whichever comes first. */
