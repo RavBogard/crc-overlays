@@ -119,8 +119,8 @@ test('branding documents are parsed strictly, in sentences',()=>{
  assert.throws(()=>parseBrandingDocument({fonts:{latin:'Comic Sans'}}),/installed overlay fonts/);
  assert.throws(()=>parseBrandingDocument({artwork:{logo:{assetId:'nope',alt:'x'}}}),/asset id/);
  assert.deepEqual(parseBrandingDocument({colors:{ink:'#ABCDEF'}}),{colors:{ink:'#abcdef'}});
- assert.deepEqual(brandingFontChoices(false),['Noto Sans Hebrew','WorkRefresh']);
- assert.deepEqual(brandingFontChoices(true),['Noto Sans Hebrew','WorkRefresh','David Libre','Frank Ruhl Libre']);
+ assert.deepEqual(brandingFontChoices(false),['Noto Sans Hebrew','WorkRefresh','Raleway']);
+ assert.deepEqual(brandingFontChoices(true),['Noto Sans Hebrew','WorkRefresh','Raleway','David Libre','Frank Ruhl Libre']);
 });
 
 /* --------------------------------------------------------------- store --- */
@@ -173,7 +173,7 @@ test('update_branding saves a versioned change, publishes the artwork it uses, a
  await assert.rejects(run('update_branding',{expectedVersion:1,colors:{ink:'#000000'}}),/now version 0/);
  await assert.rejects(run('update_branding',{expectedVersion:0,artwork:{logo:ARCHIVED}}),/is archived/);
  await assert.rejects(run('update_branding',{expectedVersion:0,artwork:{logo:`asset_${'d'.repeat(64)}`}}),/no artwork/);
- await assert.rejects(run('update_branding',{expectedVersion:0,fonts:{latin:'David Libre'}}),/installed overlay fonts: Noto Sans Hebrew, WorkRefresh/,'a book face needs book faces on');
+ await assert.rejects(run('update_branding',{expectedVersion:0,fonts:{latin:'David Libre'}}),/installed overlay fonts: Noto Sans Hebrew, WorkRefresh, Raleway\./,'a book face needs book faces on');
  const saved=await run('update_branding',{expectedVersion:0,colors:{accent:'#AA0000'},artwork:{logo:ASSET}});
  assert.equal(saved.version,1);
  assert.equal(saved.colors.find((row:{key:string})=>row.key==='ring').value,'#aa0000','the ring follows the accent');
@@ -182,6 +182,20 @@ test('update_branding saves a versioned change, publishes the artwork it uses, a
  const cleared=await run('update_branding',{expectedVersion:1,colors:{accent:null}});
  assert.equal(cleared.colors.find((row:{key:string})=>row.key==='accent').value,'#e55c5e');
  assert.equal(cleared.artwork.find((row:{role:string})=>row.role==='logo').assetId,ASSET,'what the patch does not name is kept');
+});
+
+// G7: ruling 6 names Raleway for TBI's Latin text. It is a default overlay face, so TBI can choose it
+// without the book-face trial, and the stored choice reaches every Latin stack, panel rows included.
+test('TBI lists Raleway among its fonts and update_branding stores it as the latin face',async()=>{
+ const {run}=context();
+ assert.equal(TBI.bookFaces,false);
+ const read=await run('get_branding');
+ assert.ok(read.fonts.choices.includes('Raleway'),'get_branding lists Raleway');
+ const saved=await run('update_branding',{expectedVersion:0,fonts:{latin:'Raleway'}});
+ assert.equal(saved.fonts.roles.find((row:{role:string})=>row.role==='latin').family,'Raleway');
+ assert.equal(brandingCssVariables(overlayBrandingFor(TBI,resolveBranding(TBI,{version:1,document:{fonts:{latin:'Raleway'}}})))['--crc-font-latin'],'"Raleway"');
+ for(const selector of ['.overlay{','.overlay .prayer{','.row-transliteration{','.row-translation{','.overlay[data-card] .prayer.single-channel{'])
+  assert.ok(css.split(/[}\n]/).some(rule=>rule.trimStart().startsWith(selector)&&rule.includes('font-family:var(--crc-font-latin,WorkRefresh)')),`${selector} follows the latin role`);
 });
 
 test('preview_branding draws one graphic per layout with the candidate branding and saves nothing',async()=>{

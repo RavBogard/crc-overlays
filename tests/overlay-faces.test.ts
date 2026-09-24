@@ -28,6 +28,8 @@ test('waitForOverlayFonts loads only the default faces when faces is omitted or 
     '500 40px "Noto Sans Hebrew"',
     '400 40px "WorkRefresh"',
     '500 40px "WorkRefresh"',
+    '400 40px "Raleway"',
+    '500 40px "Raleway"',
   ]);
 
   const explicitDefaultCalls = stubDocument();
@@ -43,6 +45,8 @@ test('waitForOverlayFonts additionally loads the book faces when faces==="book"'
     '500 40px "Noto Sans Hebrew"',
     '400 40px "WorkRefresh"',
     '500 40px "WorkRefresh"',
+    '400 40px "Raleway"',
+    '500 40px "Raleway"',
     '400 40px "David Libre"',
     '500 40px "David Libre"',
     '400 40px "Frank Ruhl Libre"',
@@ -60,7 +64,7 @@ test('a book face that fails to load never blocks the output page: the wait reso
     },
   };
   await waitForOverlayFonts(undefined, 'book');
-  assert.deepEqual(checks, ['400 40px "Noto Sans Hebrew"', '400 40px "WorkRefresh"']);
+  assert.deepEqual(checks, ['400 40px "Noto Sans Hebrew"', '400 40px "WorkRefresh"', '400 40px "Raleway"']);
 });
 
 test('a required face that fails to load still rejects, with or without the book faces', async () => {

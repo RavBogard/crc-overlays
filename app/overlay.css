@@ -73,6 +73,11 @@
 /* Arabic fallback (Od Yavo Shalom's سلام): the overlay faces carry no Arabic letters, so a renderer without a
    system Arabic font drew empty boxes. unicode-range keeps it off the wire for every other cue. */
 @font-face{font-family:Noto Sans Arabic;src:url('/assets/NotoSansArabic-Regular.ttf') format('truetype');font-style:normal;font-weight:400 500;font-display:block;unicode-range:U+0600-06FF,U+0750-077F,U+08A0-08FF,U+FB50-FDFF,U+FE70-FEFF}
+/* Raleway: TBI's Latin face (update_branding fonts.latin). Only a workspace that names it draws with it. */
+@font-face{font-family:Raleway;src:url('/assets/raleway-latin-400-normal.woff2') format('woff2');font-style:normal;font-weight:400;font-display:block;unicode-range:U+0000-00FF,U+0131,U+0152-0153,U+02BB-02BC,U+02C6,U+02DA,U+02DC,U+0304,U+0308,U+0329,U+2000-206F,U+20AC,U+2122,U+2191,U+2193,U+2212,U+2215,U+FEFF,U+FFFD}
+@font-face{font-family:Raleway;src:url('/assets/raleway-latin-500-normal.woff2') format('woff2');font-style:normal;font-weight:500;font-display:block;unicode-range:U+0000-00FF,U+0131,U+0152-0153,U+02BB-02BC,U+02C6,U+02DA,U+02DC,U+0304,U+0308,U+0329,U+2000-206F,U+20AC,U+2122,U+2191,U+2193,U+2212,U+2215,U+FEFF,U+FFFD}
+@font-face{font-family:Raleway;src:url('/assets/raleway-latin-ext-400-normal.woff2') format('woff2');font-style:normal;font-weight:400;font-display:block;unicode-range:U+0100-02BA,U+02BD-02C5,U+02C7-02CC,U+02CE-02D7,U+02DD-02FF,U+0304,U+0308,U+0329,U+1D00-1DBF,U+1E00-1E9F,U+1EF2-1EFF,U+2020,U+20A0-20AB,U+20AD-20C0,U+2113,U+2C60-2C7F,U+A720-A7FF}
+@font-face{font-family:Raleway;src:url('/assets/raleway-latin-ext-500-normal.woff2') format('woff2');font-style:normal;font-weight:500;font-display:block;unicode-range:U+0100-02BA,U+02BD-02C5,U+02C7-02CC,U+02CE-02D7,U+02DD-02FF,U+0304,U+0308,U+0329,U+1D00-1DBF,U+1E00-1E9F,U+1EF2-1EFF,U+2020,U+20A0-20AB,U+20AD-20C0,U+2113,U+2C60-2C7F,U+A720-A7FF}
 .overlay{font-family:var(--crc-font-latin,WorkRefresh),Noto Sans Arabic,Arial,sans-serif}
 .overlay .prayer{font-family:var(--crc-font-latin,WorkRefresh),Noto Sans Arabic,Arial,sans-serif}
 .overlay .hebrew,.overlay .row-hebrew,.overlay .title-accent{font-family:var(--crc-font-hebrew,Noto Sans Hebrew),Noto Sans Arabic,Arial,sans-serif}
@@ -179,8 +184,8 @@
 .content-row{padding:12px 16px 13px;border-top:2px solid color-mix(in srgb,var(--crc-turquoise) 38%,transparent);background:color-mix(in srgb,var(--crc-paper) 82%,transparent)}
 .content-row:first-child{border-top-color:transparent}
 .row-hebrew{font-family:WorkRefresh,Arial,sans-serif;font-size:38px;line-height:1.18;direction:rtl;text-align:right;unicode-bidi:plaintext}
-.row-transliteration{margin-top:5px;font-family:WorkRefresh,Noto Sans Arabic,Arial,sans-serif;font-size:30px;line-height:1.2;font-weight:500;unicode-bidi:plaintext}
-.row-translation{margin-top:4px;font-family:WorkRefresh,Noto Sans Arabic,Arial,sans-serif;font-size:24px;line-height:1.22;color:var(--crc-translation-ink,#385365);unicode-bidi:plaintext}
+.row-transliteration{margin-top:5px;font-family:var(--crc-font-latin,WorkRefresh),Noto Sans Arabic,Arial,sans-serif;font-size:30px;line-height:1.2;font-weight:500;unicode-bidi:plaintext}
+.row-translation{margin-top:4px;font-family:var(--crc-font-latin,WorkRefresh),Noto Sans Arabic,Arial,sans-serif;font-size:24px;line-height:1.22;color:var(--crc-translation-ink,#385365);unicode-bidi:plaintext}
 .content-row>.prayer:first-child{margin-top:0}
 .panel-rows-dense{gap:10px;justify-content:flex-start}
 .panel-rows-dense .content-row{padding-block:8px 9px}
