@@ -4,6 +4,7 @@ import {createRequire} from 'node:module';
 import type {Cue} from './player';
 import {loadSourceLibrary} from './source-library.ts';
 import {templateLayoutFor} from './layout-label.ts';
+import {layoutMotion} from './layout-definitions.ts';
 
 const require=createRequire(import.meta.url);
 const sourceMapJson=require('../content/legacy-crc-shabbat-morning.sources.json');
@@ -394,8 +395,12 @@ export function buildCue(draft:Draft):AuthoringCue{
  // published cue free of an empty string nobody reads.
  else if(content.text)texts.textMain=content.text;
  const sourceIds=[...new Set(groups.map(group=>group.sourceId))].sort();
- const animations=structuredClone(template.animations);
- if(content.mode==='bilingual'&&!animations.some(track=>track.element==='textMainheb'||track.element==='textMainEng')){
+ // MCP plan L2: a data layout pins its published definition and takes that definition's own
+ // motion (R-L5); only the built-in four still clone their template cue's, unchanged.
+ const dataLayout=layoutDefinition(draft.layout)?.ref?layoutDefinition(draft.layout):undefined;
+ const motion=dataLayout?.motion?layoutMotion(dataLayout.motion):null;
+ const animations=motion?motion.animations:structuredClone(template.animations);
+ if(motion){/* the definition's motion already names every text element */}else if(content.mode==='bilingual'&&!animations.some(track=>track.element==='textMainheb'||track.element==='textMainEng')){
   const combined=animations.filter(track=>track.element==='textMain');
   if(combined.length){
    for(let index=animations.length-1;index>=0;index--)if(animations[index].element==='textMain')animations.splice(index,1);
@@ -413,10 +418,10 @@ export function buildCue(draft:Draft):AuthoringCue{
   animations.push(...animations.filter(track=>track.element==='textMainEng').map(track=>({...structuredClone(track),element:'textTranslation'})));
  }
  return {
-  id:draft.id,name:draft.name,layout:draft.layout,texts,
+  id:draft.id,name:draft.name,layout:draft.layout,...(dataLayout?.ref?{layoutRef:{...dataLayout.ref}}:{}),texts,
   ...(content.mode==='bilingual'?(rows=>rows.length?{contentRows:rows,...(content.rowOrder?{rowOrder:textRowOrder(content)}:{})}:{})(composeContentRows(draft,content,overrides,layers)):{}),
-  animations,duration:structuredClone(template.duration),
-  ...(template.template?{template:structuredClone(template.template)}:{}),
+  animations,duration:motion?motion.duration:structuredClone(template.duration),
+  ...(!motion&&template.template?{template:structuredClone(template.template)}:{}),
   ...(Object.keys(draft.presentation).length?{presentation:structuredClone(draft.presentation)}:{}),
   authoring:{
    draftId:draft.id,draftVersion:draft.version,origin:draft.content.mode==='custom'?'local':draft.content.mode==='local-variant'?'variant':'canonical',sourceIds,feedSha256:draft.content.mode==='custom'?'local':draft.sourcePin.feedSha256,

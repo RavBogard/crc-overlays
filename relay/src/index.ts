@@ -82,6 +82,7 @@ export class LiveRoom extends DurableObject<Env>{
    CREATE TABLE IF NOT EXISTS command_history(seq INTEGER PRIMARY KEY AUTOINCREMENT,at INTEGER NOT NULL,action TEXT NOT NULL,cue_id TEXT,source TEXT NOT NULL,service_ref TEXT,source_ids TEXT NOT NULL);
    CREATE INDEX IF NOT EXISTS command_history_at ON command_history(at);
    CREATE TABLE IF NOT EXISTS controller_presses(source TEXT PRIMARY KEY,at INTEGER NOT NULL);
+   CREATE TABLE IF NOT EXISTS approved_layouts(singleton INTEGER PRIMARY KEY CHECK(singleton=1),layouts_json TEXT NOT NULL);
   `);
   // Columns added after the tables first shipped (MCP plan V1). A Durable Object created by an
   // earlier build keeps its tables, so each column is added in place; on a room that already has
@@ -144,9 +145,17 @@ export class LiveRoom extends DurableObject<Env>{
  private writeState(state:LiveState){this.sql.exec('INSERT OR REPLACE INTO live_state(singleton,state_json) VALUES(1,?)',JSON.stringify(state))}
  private readCatalog(){
   const row=this.sql.exec<CatalogRow>('SELECT version,cues_json FROM approved_catalog WHERE singleton=1').toArray()[0];
-  return row?{version:row.version,cues:JSON.parse(row.cues_json) as CuePayload[]}:null;
+  if(!row)return null;
+  // MCP plan L2: the pinned layout definitions live beside the cues, in their own row, so the
+  // catalog row and a room created before L2 are untouched; GET /catalog adds `layouts` only when set.
+  const layouts=this.sql.exec<{layouts_json:string}>('SELECT layouts_json FROM approved_layouts WHERE singleton=1').toArray()[0];
+  return {version:row.version,cues:JSON.parse(row.cues_json) as CuePayload[],...(layouts?{layouts:JSON.parse(layouts.layouts_json) as Record<string,CuePayload>}:{})};
  }
- private writeCatalog(catalog:ApprovedCatalog){this.sql.exec('INSERT OR REPLACE INTO approved_catalog(singleton,version,cues_json) VALUES(1,?,?)',catalog.version,JSON.stringify(catalog.cues))}
+ private writeCatalog(catalog:ApprovedCatalog){
+  this.sql.exec('INSERT OR REPLACE INTO approved_catalog(singleton,version,cues_json) VALUES(1,?,?)',catalog.version,JSON.stringify(catalog.cues));
+  if(catalog.layouts&&Object.keys(catalog.layouts).length)this.sql.exec('INSERT OR REPLACE INTO approved_layouts(singleton,layouts_json) VALUES(1,?)',JSON.stringify(catalog.layouts));
+  else this.sql.exec('DELETE FROM approved_layouts WHERE singleton=1');
+ }
  /**
   * The cue log's one write. It runs after the command has committed and before the broadcast,
   * outside the transaction on purpose: a history that cannot be written must never cost the
@@ -242,7 +251,7 @@ export class LiveRoom extends DurableObject<Env>{
  private initialize(value:unknown){
   if(!value||typeof value!=='object'||Array.isArray(value))throw new HttpError(400,'Invalid initialization');
   const input=value as Record<string,unknown>;
-  const catalog=parseCatalog({version:input.catalogVersion,cues:input.cues});
+  const catalog=parseCatalog({version:input.catalogVersion,cues:input.cues,layouts:input.layouts});
   const state=parseInitialState(input.state,input.catalogVersion);
   if(!state||!catalog||(state.cue===null)!==(state.cuePayload===null))throw new HttpError(400,'Invalid initialization');
   if(state.cue!==null&&state.cuePayload?.id!==state.cue)throw new HttpError(400,'Selected cue payload does not match cue');

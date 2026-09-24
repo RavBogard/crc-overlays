@@ -9,6 +9,9 @@ import {cuesWithSlotMarkers,slotIndex} from '@/lib/slot-catalog';
  * always been, header for header. `?include=liturgy` and `?include=slots` are the only ways
  * to get an envelope, and the slot envelope is the only place a cue carries `category` or
  * `slot` — adding either to the default response would move a shape three clients check.
+ * `?include=layouts` (MCP plan L2) is the output page's: the cues plus `layouts`, the pinned
+ * data-layout definitions they render with ({} when no cue pins one). An output page from before
+ * L2 keeps asking for the bare array and keeps receiving exactly that.
  */
 export async function GET(r:Request){
  if(!await authorizeRequest(r,'read'))return json({error:'Access key required'},401);
@@ -17,6 +20,7 @@ export async function GET(r:Request){
   const include=new URL(r.url).searchParams.get('include');
   const body=include==='liturgy'?{version:current.version,cues:current.cues,liturgy:liturgyIndex(current.cues)}
    :include==='slots'?{version:current.version,cues:cuesWithSlotMarkers(current.cues),slots:slotIndex(current.cues)}
+   :include==='layouts'?{version:current.version,cues:current.cues,layouts:current.layouts??{}}
    :current.cues;
   return new Response(JSON.stringify(body),{headers:{'Content-Type':'application/json','Cache-Control':'no-store','Referrer-Policy':'no-referrer','X-Content-Type-Options':'nosniff','X-CRC-Catalog-Version':current.version}});
  }catch{return json({error:'Catalog unavailable'},503)}

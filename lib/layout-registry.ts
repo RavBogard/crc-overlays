@@ -7,6 +7,7 @@
  * Plain type syntax only: lib/player.ts imports this file, and the renderer tests run it with
  * Node's type stripping.
  */
+import type {AnimationTrack} from './player-motion.ts';
 export type LayoutId=string;
 /**
  * How a body channel's lines sit across its box. `start` and `end` are relative to the channel's
@@ -76,7 +77,58 @@ export type LayoutDefinition={
  };
  /** Drawn and fitted as a card from this definition. The lower third and the panels are built-in layered CSS instead (ruling 7). */
  card?:CardDefinition;
+ /**
+  * Set only on a data layout (packet L2): the published version of its stored definition that a
+  * graphic built now pins. Built-in layouts carry none, so their graphics carry no `layoutRef`.
+  */
+ ref?:LayoutRef;
+ /** A data layout's own motion. A built-in layout's graphics take their template cue's instead. */
+ motion?:LayoutMotion;
 };
+
+/**
+ * Layouts as data (packet L2, R-L3/R-L5). A data layout is a card stored per workspace as a
+ * versioned document (lib/layout-definitions.ts). A published graphic in one pins
+ * `layoutRef{id,version,sha256}` inside its cue - and so inside `cueHash` - and every catalog and
+ * relay payload that carries the graphic carries the pinned definition beside it, in `layouts`,
+ * keyed by `layoutRefKey`. Editing a definition makes version N+1; a graphic stays on N until it
+ * is republished or rebased.
+ */
+export type LayoutRef={id:LayoutId;version:number;sha256:string};
+/** Named motion for a card: `card-scale` is the corner card's (bars scale in from the anchored edge, text fades); `fade` fades every part. */
+export type MotionPreset='card-scale'|'fade';
+export type LayoutMotion={preset:MotionPreset}|{tracks:AnimationTrack[];duration:{In:number;Out:number}};
+/** What a data layout stores, one document per version. */
+export type LayoutDocument={label:string;capabilities:LayoutDefinition['capabilities'];card:CardDefinition;motion:LayoutMotion};
+/** One pinned definition as the catalog envelope and the relay carry it. */
+export type ResolvedLayout=LayoutRef&{document:LayoutDocument};
+export type ResolvedLayouts=Record<string,ResolvedLayout>;
+export const layoutRefKey=(ref:Pick<LayoutRef,'id'|'version'>)=>`${ref.id}@${ref.version}`;
+/**
+ * The registry entry a stored document becomes. A data layout is always a contained card; it
+ * names the lower third as its template layout only so the editor and `parseEditable` accept a
+ * lower-third template id for its drafts - `buildCue` takes nothing from that template.
+ */
+export function definitionFromDocument(id:LayoutId,document:LayoutDocument,ref?:LayoutRef):LayoutDefinition{
+ return {id,label:document.label,templateLayout:'bottom',contained:true,capabilities:document.capabilities,card:document.card,motion:document.motion,...(ref?{ref}:{})};
+}
+/**
+ * The definition a cue renders with. A cue that pins a data layout renders from the pinned
+ * definition in `resolved` (the envelope's `layouts`). If that exact version is missing - an
+ * output page opened after a republish, holding the old graphic - it degrades to the newest
+ * version of the same layout it was given, then to this process's registry. A cue without a
+ * pin is a built-in layout and reads the registry, as every graphic did before L2.
+ */
+export function resolveCueLayout(cue:{layout:string;layoutRef?:LayoutRef},resolved?:ResolvedLayouts):LayoutDefinition|undefined{
+ const ref=cue.layoutRef;
+ if(!ref)return registry.get(cue.layout);
+ const exact=resolved?.[layoutRefKey(ref)];
+ if(exact&&exact.id===ref.id&&exact.sha256===ref.sha256)return definitionFromDocument(exact.id,exact.document,ref);
+ const newest=Object.values(resolved??{}).filter(item=>item.id===ref.id).sort((a,b)=>b.version-a.version)[0];
+ if(newest)return definitionFromDocument(newest.id,newest.document,{id:newest.id,version:newest.version,sha256:newest.sha256});
+ const registered=registry.get(ref.id);
+ return registered?.card?registered:undefined;
+}
 
 /**
  * The corner card: flush in the bottom-right corner for a line or two ("Vaimru Amen", "El Na Refa
@@ -156,4 +208,18 @@ export function registerLayout(definition:LayoutDefinition):void{
  registry.set(definition.id,definition);
 }
 /** Removes a layout added with `registerLayout`. The built-in four cannot be removed. */
-export function unregisterLayout(id:LayoutId):void{if(BUILT_IN.some(definition=>definition.id===id))throw new Error(`Layout ${id} is built in`);registry.delete(id)}
+export function unregisterLayout(id:LayoutId):void{if(isBuiltInLayout(id))throw new Error(`Layout ${id} is built in`);registry.delete(id)}
+export function isBuiltInLayout(id:LayoutId):boolean{return BUILT_IN.some(definition=>definition.id===id)}
+/**
+ * Registers a data layout's newest published version, replacing the version registered before it
+ * (lib/layout-definitions.ts calls this at load and on every publish). A built-in id is refused.
+ */
+export function registerDataLayout(definition:LayoutDefinition):void{
+ if(isBuiltInLayout(definition.id))throw new Error(`Layout ${definition.id} is built in`);
+ if(!definition.ref||!definition.card||!definition.motion)throw new Error(`Layout ${definition.id} is not a data layout`);
+ const previous=registry.get(definition.id);
+ if(previous&&!previous.ref)throw new Error(`Layout ${definition.id} is already registered`);
+ if(previous&&previous.ref!.version>definition.ref.version)return;
+ registry.delete(definition.id);
+ registerLayout(definition);
+}

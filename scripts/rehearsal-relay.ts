@@ -132,7 +132,7 @@ export class RehearsalRoom{
  initialize(value:unknown):[unknown,number]{
   if(!value||typeof value!=='object'||Array.isArray(value))throw new HttpError(400,'Invalid initialization');
   const input=value as Record<string,unknown>;
-  const catalog=parseCatalog({version:input.catalogVersion,cues:input.cues});
+  const catalog=parseCatalog({version:input.catalogVersion,cues:input.cues,layouts:input.layouts});
   const state=parseInitialState(input.state,input.catalogVersion);
   if(!state||!catalog||(state.cue===null)!==(state.cuePayload===null))throw new HttpError(400,'Invalid initialization');
   if(state.cue!==null&&state.cuePayload?.id!==state.cue)throw new HttpError(400,'Selected cue payload does not match cue');

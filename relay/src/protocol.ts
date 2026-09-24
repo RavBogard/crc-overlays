@@ -51,7 +51,12 @@ export type Role='control'|'output'|'preview';
 export type Mode='animate'|'cut';
 export type Phase='settled'|'transition'|'error';
 export type CuePayload=Record<string,unknown>;
-export type ApprovedCatalog={version:string;cues:CuePayload[]};
+/**
+ * `layouts` (MCP plan L2) is the envelope's pinned data-layout definitions, keyed `id@version`, carried
+ * beside the cues and returned by GET /catalog only when present. The relay stores it opaquely: the
+ * catalog version stays the web's hash of the cues, each of which names its definition's sha256.
+ */
+export type ApprovedCatalog={version:string;cues:CuePayload[];layouts?:Record<string,CuePayload>};
 export type Renderer={id:string;revision:number;cue:string|null;phase:Phase;seen:number};
 export type ClientKind='companion'|'browser'|'unknown';
 export type Controller={id:string;client:ClientKind;version:string|null;seen:number};
@@ -372,7 +377,24 @@ export function parseCatalog(value:unknown):ApprovedCatalog|null{
   if(typeof id!=='string'||!id||id.length>160||ids.has(id)||jsonBytes(cue)>MAX_CUE_PAYLOAD_BYTES)return null;
   ids.add(id);cues.push(cue as CuePayload);
  }
- return {version:input.version as string,cues};
+ if(input.layouts===undefined)return {version:input.version as string,cues};
+ const layouts=parseCatalogLayouts(input.layouts);
+ if(!layouts)return null;
+ return Object.keys(layouts).length?{version:input.version as string,cues,layouts}:{version:input.version as string,cues};
+}
+const LAYOUT_KEY=/^[a-z][a-z0-9_-]{0,39}@[1-9][0-9]{0,8}$/;
+// Shape only: each entry names the id, version and sha256 its key and the cues' pins agree on,
+// and carries its document. The web validated the document; the renderer reads it.
+function parseCatalogLayouts(value:unknown):Record<string,CuePayload>|null{
+ if(!value||typeof value!=='object'||Array.isArray(value))return null;
+ const layouts:Record<string,CuePayload>={};
+ for(const [key,entry] of Object.entries(value as Record<string,unknown>)){
+  if(!LAYOUT_KEY.test(key)||!entry||typeof entry!=='object'||Array.isArray(entry))return null;
+  const item=entry as Record<string,unknown>;
+  if(`${item.id}@${item.version}`!==key||typeof item.sha256!=='string'||!/^[a-f0-9]{64}$/.test(item.sha256)||!item.document||typeof item.document!=='object'||Array.isArray(item.document))return null;
+  layouts[key]=item;
+ }
+ return layouts;
 }
 
 export function parseInitialState(value:unknown,catalogVersion:unknown):LiveState|null{

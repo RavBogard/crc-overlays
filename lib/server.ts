@@ -3,6 +3,8 @@ import {relayConfigured,relaySnapshot,relayCatalog} from './relay';
 import {baselineCatalogForWorkspace} from './workspace-catalog';
 import {db} from './database';
 import type {Cue} from './player';
+import {withResolvedLayouts} from './layout-definitions';
+import type {ResolvedLayouts} from './layout-registry';
 import {SNAPSHOT_STATE_SQL,newestPayloadCache,resolvePayload,type PayloadCache} from './snapshot-payload-cache';
 export type AliasCatalogCue=Cue&{hidden?:boolean;aliasOf?:string};
 export {db};
@@ -70,7 +72,10 @@ export async function serviceNamesCues():Promise<Cue[]>{
 }
 // The one composition /api/catalog (without a relay) and syncLiveCatalog both read, so a retired
 // cue leaves Companion's picker and the relay catalog together.
-export async function authoringCatalog(){const {publishedCues,retiredCues}=await import('./authoring');const [published,names,retired]=await Promise.all([publishedCues(),serviceNamesCues(),retiredCues()]);return composeAuthoringCatalog(baselineCatalogForWorkspace() as AliasCatalogCue[],published,names,new Set(retired.map(cue=>cue.id)))}
+// MCP plan L2: when a cue pins a data layout, the envelope carries the pinned definitions beside
+// the cues (`layouts`, keyed by layoutRefKey). The version stays the hash of the cues alone: each
+// pin already names its definition's sha256, and a catalog with no data layout is unchanged.
+export async function authoringCatalog():Promise<{cues:Cue[];version:string;layouts?:ResolvedLayouts}>{const {publishedCues,retiredCues}=await import('./authoring');const [published,names,retired]=await Promise.all([publishedCues(),serviceNamesCues(),retiredCues()]);return withResolvedLayouts(composeAuthoringCatalog(baselineCatalogForWorkspace() as AliasCatalogCue[],published,names,new Set(retired.map(cue=>cue.id))))}
 export async function knownCue(id:unknown){return typeof id==='string'&&(await catalog()).cues.some(c=>c.id===id)}
 export const cues=baselineCatalogForWorkspace();
 let payloadCache:PayloadCache|null=null;

@@ -5,7 +5,7 @@ import {db} from '../lib/database.ts';
 try{
  const state=await legacySnapshot();
  const catalog=await authoringCatalog();
- const response=await relayRequest('/initialize',{state,catalogVersion:catalog.version,cues:catalog.cues});
+ const response=await relayRequest('/initialize',{state,catalogVersion:catalog.version,cues:catalog.cues,...(catalog.layouts?{layouts:catalog.layouts}:{})});
  if(!response.ok)throw Error(`Relay initialization refused (${response.status})`);
  const result=await response.json();
  console.log(JSON.stringify({initialized:true,revision:result.revision??result.snapshot?.revision}));
