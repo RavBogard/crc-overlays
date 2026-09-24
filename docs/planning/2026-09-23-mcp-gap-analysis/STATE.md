@@ -309,6 +309,20 @@ app/api/catalog/route.ts and lib/sync-live-catalog.ts; L2 and C5 add envelope-on
   for graphics the placement grammar would not place (CRC 12 of 14; TBI pages are all named "PAGE", no chains) and
   took each review row's first candidate — proceeded because these are the calls an agent makes through the MCP;
   which pages and candidates are right is Michael's and Simone's call. Findings 2-5 in the receipt are open.
+- Follow-ups cleared 2026-09-23 (ed8a8e7..a9ce9b4): publications page shows its loading line before the account
+  check; library Retired subtitle fits (full sentence as hover title); update_draft maps a TBI template id; /this-service
+  pins slot versions on Save (409 "Someone else saved…" sentence); update_local_source refuses a duplicate name on the
+  page; drafts record houseDefaultsVersion; retire→restore untouched comes back clean (not "changed since publish");
+  archive_asset refuses artwork the branding uses; import_singular_extract checks imageAssetId against the library;
+  recovery export/restore include the plan's tables (syntax-checked only, no rehearsal database used); coverage rows
+  can name local: sources; the console passes pinned layouts to its previews. Gate: tsc clean, npm test 1166+35,
+  lint 0 errors, Turbopack build ok. Browser (rehearsal): Retired label fits, Return restores clean (v3=v3),
+  console reads ?include=layouts.
+- Not done, and why: rehearsal cannot exercise /this-service at all (content/slot-cues.json names production cue ids
+  rehearsal's store lacks: "That slot graphic no longer exists" before and after this change); setlist book
+  (`crc-saturday`) → siddur book mapping waits on the crc-friday/crc-saturday unit-identity work (audit plan item 5);
+  preview_content real-fit test and placement-grammar changes (acceptance findings 2-4) are product decisions or
+  heavier test work.
 - Plan status: every packet merged; headline acceptance passes on both workspaces locally. What remains is
   outside Code's authority: Daniel's wording/product answers (Open questions), release authority (relay first,
   then paired web), applying the nine migrations, and the staffed hardware rehearsal with Michael and Simone.
