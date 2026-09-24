@@ -4,7 +4,7 @@ What is deployed right now. Update this file on every release — it is the one 
 "what is live", and it is short so it can be read under pressure. The history is in
 `docs/planning/2026-09-deploys/` (25 deploy records, the release chain, the phase build notes).
 
-**Last updated: 2026-09-24** (TBI redo tools G10 accent title typography + batch_refit released as web `9bd67bc`; before it G9 as `186aa14`; before it G7 Raleway + G8 batch_retire as `db34734`; before it G1-G6 as `0c2e895`, two more tables; before it the MCP completeness plan: relays `e512d86`, web `6b76cbd`, ten new tables on both databases, `main` fast-forwarded to production. Before it, paired release `ebd4be4`: group tabs renamed; before it `3636857`, Michael's review — Corner layout, per-graphic row order, inline siddur wording edits with a Wording changes list, right-justified lower-third Hebrew title, honest siddur-picker preview. Evidence below under "Release 3636857".)
+**Last updated: 2026-09-24** (setlist rows matched by liturgy unit id + /setup as each operator's install flow (S1-S3) released as web `608d530`, one migration; before it TBI redo tools G10 accent title typography + batch_refit released as web `9bd67bc`; before it G9 as `186aa14`; before it G7 Raleway + G8 batch_retire as `db34734`; before it G1-G6 as `0c2e895`, two more tables; before it the MCP completeness plan: relays `e512d86`, web `6b76cbd`, ten new tables on both databases, `main` fast-forwarded to production. Before it, paired release `ebd4be4`: group tabs renamed; before it `3636857`, Michael's review — Corner layout, per-graphic row order, inline siddur wording edits with a Wording changes list, right-justified lower-third Hebrew title, honest siddur-picker preview. Evidence below under "Release 3636857".)
 
 ## Web, per workspace
 
@@ -13,13 +13,21 @@ both were released together on 2026-09-23 UTC (2026-09-22 evening Central).
 
 | Workspace | Host | Deployed commit | How it got there |
 |---|---|---|---|
-| CRC | `overlays.centralreform.org` (alt `crc-overlays.vercel.app`) | `9bd67bc` | paired staged release, 2026-09-24, `dpl_De5FNNZonmoUALq1zifdgecXTG7R` (the Git integration also builds every push to `main`; `main` is at `9bd67bc`) |
-| TBI | `overlays.templebnaiisrael.com` (alt `tbi-overlays.vercel.app`) | `9bd67bc` | same paired run, 2026-09-24, `dpl_241sQmuFAG4ALSkF6GzNnJFyNMzW` |
+| CRC | `overlays.centralreform.org` (alt `crc-overlays.vercel.app`) | `608d530` | paired staged release, 2026-09-24, `dpl_CEJgLkPEaALHEjz3TTxyz3t3LZSA` (the Git integration also builds every push to `main`; `main` is at `608d530`) |
+| TBI | `overlays.templebnaiisrael.com` (alt `tbi-overlays.vercel.app`) | `608d530` | same paired run, 2026-09-24, `dpl_4q4daBp8uxpGqEKHGsPUbjLFoYGM` |
 
 This file is written after the release it describes, so the commit carrying these words is always one
 ahead of the shas in the table. That one commit is documentation: CRC's Git integration builds it by
 itself and TBI is not owed a release for it. Any commit that touches `app/`, `lib/`, `content/`,
 `components/`, `schemas/` or `workspaces/` **is** owed one.
+
+### Release 608d530: setlist unit ids, and /setup S1-S3 (2026-09-24 UTC)
+
+- `prepare_service_from_setlist` / `refresh_from_setlist` match a centralreform.live row by `liturgyRef.unitId` first (one cue covers, several go to review as alternates, none falls to page then title); `liturgyRef.stale` rows match by title and say so; the import is unconfigured on any workspace but CRC. Order and dry run: `docs/planning/2026-09-24-setlist-unit-ids/STATE.md` (Ha'azinu: covered 3 -> 6, review 6 -> 10, needs a graphic 14 -> 7).
+- Also on this commit (setup pages, `docs/planning/2026-09-24-setup-pages/STATE.md`): `/setup` as each operator's install flow, the Owner-only personal Companion download (stays refused with a sentence until `COMPANION_CONNECTION_VALUES` is set and the deck validates clean; not set yet), the durable graphics URL, the siddur card on System, and validate_deck's style and placeholder checks.
+- Migration `db/setup-output.sql` (`device_credentials.sealed_token`) applied to both databases before the web release: CRC 282 drafts / 5 devices, TBI 419 drafts / 0 devices, unchanged; column present after on both. No relay change.
+- Gates at `608d530`: `tsc --noEmit`; `npm test` 1265 + 35 pass, 0 fail; lint 0 errors (2 known warnings); `npm run build`. (`audit-companion-packages` ok at the S3 merge.)
+- Verified: CRC `dpl_CEJgLkPEaALHEjz3TTxyz3t3LZSA`, TBI `dpl_4q4daBp8uxpGqEKHGsPUbjLFoYGM` Ready; four hosts `/health` 307 to `/system#status` then 200 (the long-standing redirect), `/setup` 200, `/api/setup/deck` 401 signed out. `main` fast-forwarded to `608d530`.
 
 ### Release 9bd67bc: TBI redo tools G10 (2026-09-24 UTC)
 

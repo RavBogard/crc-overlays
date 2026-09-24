@@ -4,7 +4,7 @@ Order: docs/planning/2026-09-24-tbi-setup-page/HANDOFF-CODE-2026-09-24-setup-pag
 same folder (Cowork's, untracked here and never staged by Code). S4/S5 evidence goes in that folder, as
 the order asks. Release as usual: gates, migration (db/setup-output.sql), secrets, paired web release, main.
 
-NEXT (paused 2026-09-24 for the setlist-unit-ids order): release S1–S3; set COMPANION_CONNECTION_VALUES on both projects; then S4 QC and the S5 style sheet
+NEXT: S1–S3 released as web 608d530 with its migration (RELEASE-STATE.md); set COMPANION_CONNECTION_VALUES on both projects; then S4 QC and the S5 style sheet
 for Daniel (stop there).
 
 ## Packets

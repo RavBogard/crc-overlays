@@ -4,7 +4,7 @@ Order: docs/planning/2026-09-24-setlist-asks-return/HANDOFF-CODE-2026-09-24-setl
 untracked, never staged by Code). Source note: centralreform.live
 sheet-music-app/docs/planning/2026-09-24-overlays-asks/RETURN-OVERLAYS-ASKS-2026-09-24.md. CRC only.
 
-NEXT: release (paired web release with the setup-pages S1-S3 work already on this branch), then RELEASE-STATE.md.
+NEXT: none. Released as web 608d530 on both workspaces (with the setup-pages S1-S3 work and its migration); RELEASE-STATE.md updated; main fast-forwarded.
 
 ## Done
 
