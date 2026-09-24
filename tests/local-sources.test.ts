@@ -122,7 +122,9 @@ test('refusals are sentences that say what to do next',async()=>{
  const {call}=wired();
  const refused=async(args:Record<string,unknown>,pattern:RegExp)=>{const result=await call('add_local_source',{...READING,...args});assert.equal(result.isError,true,`expected a refusal for ${JSON.stringify(args)}`);assert.match(result.text,pattern)};
  await refused({blocks:[{he:'שָׁלוֹם'}]},/Block 1 has Hebrew but no transliteration\. Add tr/);
- await refused({blocks:[{tr:'shalom'}]},/Block 1 has a transliteration but no Hebrew/);
+ await refused({book:undefined},/A page needs its book\. Add book/);
+ await refused({page:undefined},/A prayer-book reading from Mishkan T'filah needs its printed page\. Add page, or set kind/);
+ await refused({kind:'hymn'},/kind must be one of 'prayer-book reading', 'song setting', 'tbi text'/);
  await refused({blocks:[{he:'shalom',tr:'shalom'}]},/Block 1's he has no Hebrew letters/);
  await refused({blocks:Array.from({length:12},()=>({en:'x'.repeat(1900)}))},/holds at most 20000\. Enter the reading as two sources/);
  await refused({attribution:'   '},/attribution .* is empty/);

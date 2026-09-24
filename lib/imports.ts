@@ -100,3 +100,8 @@ export async function readImportText(repository:ImportRepository,importId:unknow
  try{return {record,text:new TextDecoder('utf-8',{fatal:true}).decode(data).replace(/^﻿/,'')}}
  catch{return refuse('import_not_text','That import is not valid UTF-8 text. Nothing was read.',422)}
 }
+
+// MERGE NOTE (G3): a placeholder so import_local_sources can be wired before G1 lands. G1's
+// defaultImportRepository (PgImportRepository, with the rehearsal memory fallback) replaces it.
+const placeholderImports=new MemoryImportRepository();
+export function defaultImportRepository():ImportRepository{return placeholderImports}

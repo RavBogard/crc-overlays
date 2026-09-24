@@ -132,7 +132,7 @@
  },
  {
   "name": "add_local_source",
-  "description": "Enter a reading CRC owns (a prayer-book page, a song setting) once, as a source: blocks of he / tr / en, its attribution and licence text as given, and its printed position {book, page}. It is then found by search_sources (by text, and by book and page), read by get_source and listed by list_book_units, and drafts built from it are source-backed like any other. It stays in this workspace and is never shared.",
+  "description": "Enter a reading CRC owns (a prayer-book page, a song setting, its own text) once, as a source: its kind, blocks of he / tr / en, its attribution and licence text as given, and its printed position {book, page} when it has one. It is then found by search_sources (by text and kind, and by book and page when printed), read by get_source and listed by list_book_units when it has a book, and drafts built from it are source-backed like any other. It stays in this workspace and is never shared.",
   "inputSchema": {
    "type": "object",
    "$schema": "https://json-schema.org/draft/2020-12/schema",
@@ -142,17 +142,26 @@
      "minLength": 1,
      "maxLength": 120
     },
+    "kind": {
+     "type": "string",
+     "enum": [
+      "prayer-book reading",
+      "song setting",
+      "tbi text"
+     ],
+     "description": "What the source is: a 'prayer-book reading' (the default), a 'song setting' or a 'tbi text' (the congregation's own). A prayer-book reading from a named book needs its page; the others may have no book or page."
+    },
     "book": {
      "type": "string",
      "minLength": 1,
      "maxLength": 100,
-     "description": "The printed book, e.g. Mishkan T'filah."
+     "description": "The printed book, e.g. Mishkan T'filah. Leave it out for a source no book prints."
     },
     "page": {
      "type": "integer",
      "minimum": 1,
      "maximum": 9999,
-     "description": "The printed page number."
+     "description": "The printed page number. A page needs its book; a prayer-book reading from a named book needs its page."
     },
     "section": {
      "type": "string",
@@ -168,7 +177,7 @@
      "type": "string",
      "minLength": 1,
      "maxLength": 300,
-     "description": "Who wrote or holds the text, as it should be credited. Stored exactly as given."
+     "description": "Who wrote or holds the text, as it should be credited. Stored exactly as given; leave it out when there is no credit (never invent one): the source then says \"not credited\" and a graphic carries no credit line."
     },
     "licence": {
      "type": "string",
@@ -209,7 +218,7 @@
        }
       },
       "additionalProperties": false,
-      "description": "One passage: he (Hebrew) with tr (its transliteration), optionally en (its English translation); or en alone for an English reading."
+      "description": "One passage: he (Hebrew) with tr (its transliteration), optionally en (its English translation); tr alone, or tr with en, for a line sung in transliteration (it renders as a transliteration row, never an empty Hebrew one); or en alone for an English reading."
      }
     },
     "workspace": {
@@ -221,9 +230,6 @@
    },
    "required": [
     "name",
-    "book",
-    "page",
-    "attribution",
     "blocks",
     "workspace"
    ]
@@ -3810,6 +3816,49 @@
   }
  },
  {
+  "name": "import_local_sources",
+  "description": "Enter many CRC sources at once, idempotently by each item's key: a new key creates a source, a key seen before updates the same source when anything changed and otherwise reports it unchanged. Pass importId (a 'local-sources' import from open_import_dropzone: a JSON array, or {items:[...]}) or up to 100 items inline as sources. One bad item never stops the rest; each item reports its status, local: id, version, the reason when refused, and blockSha256 (sha256 of each stored block's [he, tr, en] as stored) so you can prove the text arrived byte for byte. dryRun:true reports what would happen and writes nothing.",
+  "inputSchema": {
+   "type": "object",
+   "$schema": "https://json-schema.org/draft/2020-12/schema",
+   "properties": {
+    "importId": {
+     "type": "string",
+     "pattern": "^import_[a-f0-9]{32}$"
+    },
+    "sources": {
+     "minItems": 1,
+     "maxItems": 100,
+     "type": "array",
+     "items": {
+      "type": "object",
+      "propertyNames": {
+       "type": "string"
+      },
+      "additionalProperties": {},
+      "description": "One build-prep item: key, name, kind, book, page, section, service, attribution, licence, aliases, blocks [{he, tr, en}]. null means not given. Any other field (title, layout, panels, notes, ...) is planning only: it is ignored and listed once in the result."
+     }
+    },
+    "dryRun": {
+     "type": "boolean"
+    },
+    "workspace": {
+     "type": "string",
+     "minLength": 1,
+     "maxLength": 80,
+     "description": "Which congregation this call is for. This connection serves 'crc' (CRC) only."
+    }
+   },
+   "required": [
+    "workspace"
+   ]
+  },
+  "annotations": {
+   "readOnlyHint": false,
+   "idempotentHint": true
+  }
+ },
+ {
   "name": "import_singular_extract",
   "description": "Store a Singular.live extract as CRC reference material: for each composition only its app, name, layer and text (title, accent title and text), and optionally a picture of the old slide (imageAssetId from upload_asset). convert_singular_deck then shows each button's old text beside the proposed graphic, matches by what the composition showed as well as its name, and flags buttons whose composition no longer exists in an imported app. The extract is the first pass's shape: {apps:[{label (the Companion connection label, e.g. kab), name, id, subcompositions:[{id, name, layer, template, fields:{<fieldId>:{title, type, value}}, notes}]}]}. Anything that looks like a credential (a Singular control link, token, key or password) is refused and nothing is stored. Apps named replace the stored apps of the same label; others are kept. Dry run by default; a stored extract needs its expectedVersion.",
   "inputSchema": {
@@ -4245,7 +4294,7 @@
  },
  {
   "name": "list_local_sources",
-  "description": "List the sources CRC entered itself, by book and page: each with its version, attribution, licence, block ids and the drafts that use it (stale when a draft pins an earlier wording). Filter by query, book or page. Read only.",
+  "description": "List the sources CRC entered itself, by book and page (those with no book last): each with its kind, version, attribution (\"not credited\" when it has none), licence, block ids and the drafts that use it (stale when a draft pins an earlier wording). Filter by query, kind, book or page. Read only.",
   "inputSchema": {
    "type": "object",
    "$schema": "https://json-schema.org/draft/2020-12/schema",
@@ -4254,6 +4303,15 @@
      "type": "string",
      "minLength": 1,
      "maxLength": 100
+    },
+    "kind": {
+     "type": "string",
+     "enum": [
+      "prayer-book reading",
+      "song setting",
+      "tbi text"
+     ],
+     "description": "What the source is: a 'prayer-book reading' (the default), a 'song setting' or a 'tbi text' (the congregation's own). A prayer-book reading from a named book needs its page; the others may have no book or page."
     },
     "book": {
      "type": "string",
@@ -9631,7 +9689,7 @@
  },
  {
   "name": "update_local_source",
-  "description": "Change a local source. expectedVersion is the version list_local_sources returned; fields left out stay as they are, blocks replaces every block, and null clears section, service or licence. A wording change moves the version, and drafts pinned to the earlier wording show as stale until refreshed (scan_source_changes, or update_draft refreshSourceIds).",
+  "description": "Change a local source. expectedVersion is the version list_local_sources returned; fields left out stay as they are, blocks replaces every block, and null clears book, page, attribution, section, service or licence. A wording change moves the version, and drafts pinned to the earlier wording show as stale until refreshed (scan_source_changes, or update_draft refreshSourceIds).",
   "inputSchema": {
    "type": "object",
    "$schema": "https://json-schema.org/draft/2020-12/schema",
@@ -9652,17 +9710,40 @@
      "minLength": 1,
      "maxLength": 120
     },
-    "book": {
+    "kind": {
      "type": "string",
-     "minLength": 1,
-     "maxLength": 100,
-     "description": "The printed book, e.g. Mishkan T'filah."
+     "enum": [
+      "prayer-book reading",
+      "song setting",
+      "tbi text"
+     ],
+     "description": "What the source is: a 'prayer-book reading' (the default), a 'song setting' or a 'tbi text' (the congregation's own). A prayer-book reading from a named book needs its page; the others may have no book or page."
+    },
+    "book": {
+     "anyOf": [
+      {
+       "type": "string",
+       "minLength": 1,
+       "maxLength": 100,
+       "description": "The printed book, e.g. Mishkan T'filah. Leave it out for a source no book prints."
+      },
+      {
+       "type": "null"
+      }
+     ]
     },
     "page": {
-     "type": "integer",
-     "minimum": 1,
-     "maximum": 9999,
-     "description": "The printed page number."
+     "anyOf": [
+      {
+       "type": "integer",
+       "minimum": 1,
+       "maximum": 9999,
+       "description": "The printed page number. A page needs its book; a prayer-book reading from a named book needs its page."
+      },
+      {
+       "type": "null"
+      }
+     ]
     },
     "section": {
      "anyOf": [
@@ -9689,10 +9770,17 @@
      ]
     },
     "attribution": {
-     "type": "string",
-     "minLength": 1,
-     "maxLength": 300,
-     "description": "Who wrote or holds the text, as it should be credited. Stored exactly as given."
+     "anyOf": [
+      {
+       "type": "string",
+       "minLength": 1,
+       "maxLength": 300,
+       "description": "Who wrote or holds the text, as it should be credited. Stored exactly as given; leave it out when there is no credit (never invent one): the source then says \"not credited\" and a graphic carries no credit line."
+      },
+      {
+       "type": "null"
+      }
+     ]
     },
     "licence": {
      "anyOf": [
@@ -9740,7 +9828,7 @@
        }
       },
       "additionalProperties": false,
-      "description": "One passage: he (Hebrew) with tr (its transliteration), optionally en (its English translation); or en alone for an English reading."
+      "description": "One passage: he (Hebrew) with tr (its transliteration), optionally en (its English translation); tr alone, or tr with en, for a line sung in transliteration (it renders as a transliteration row, never an empty Hebrew one); or en alone for an English reading."
      }
     },
     "workspace": {
