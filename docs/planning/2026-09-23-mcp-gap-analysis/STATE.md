@@ -1,7 +1,8 @@
 # MCP completeness: current state
 
 Gap analysis: [GAP-ANALYSIS.md](GAP-ANALYSIS.md) (recommendation IDs R-F*, R-A*, R-H*, R-L*, R-B*, R-S*, R-V*, R-C*).
-Code order: [HANDOFF-CODE-2026-09-23-mcp.md](HANDOFF-CODE-2026-09-23-mcp.md).
+Code order: [HANDOFF-CODE-2026-09-23-mcp.md](HANDOFF-CODE-2026-09-23-mcp.md), amended by
+[HANDOFF-CODE-ADDENDUM-2026-09-23.md](HANDOFF-CODE-ADDENDUM-2026-09-23.md) (seam owners, `crc.live` role list, Track T).
 TBI source deck (contains connection config; gitignored, never copy out):
 `work/companion-conversion/tbi-2026-09-14/TBIComputer-2026-09-14-1618-source.companionconfig`.
 
@@ -37,11 +38,19 @@ deck in step with them, through the MCP, with no code change and no novel workar
     authored and published → deck check shows every graphic the service needs is placed on its
     standing service page → full-deck export ready for the next big import. Both workspaces.
 
+13. TBI onboarding tools added as Track T. The TBI redo thread (docs/planning/2026-09-23-tbi-redo/)
+    runs after this plan lands and relies on them (addendum, Daniel, after Code started).
+
 ## Work
 Packets, ownership and acceptance: the Code handoff. Shape: a small foundation wave (MCP module split,
 identity, registry, font registry, TBI derivation), then five tracks that can run side by side —
 publish pipeline, layouts, services, live, Companion — with hygiene and branding after their
-prerequisites.
+prerequisites, then Track T (TBI onboarding: T1 batch copy with house defaults, T2 workspace-owned sources
+with book/page, T3 Singular reference material and content-based matching, T4 review board) after its
+listed prerequisites. Track T is part of done: the TBI redo depends on every Track T tool.
+Shared seams have one owner each: V1 owns relay/src/index.ts and relay/src/protocol.ts; A3 owns
+app/api/catalog/route.ts and lib/sync-live-catalog.ts; L2 and C5 add envelope-only fields through them.
+`crc.live` gates on the explicit role list owner/editor/operator, not `canAccess(role,'control')`.
 
 ## Progress (branch google-signin; nothing released)
 - Wave 0 done 2026-09-23. P0 d5e185b/f4aa64c (lib/mcp/{catalog,authoring,services,...}.ts behind the
@@ -58,7 +67,9 @@ prerequisites.
 - GATE: both "layout must be" refusals now list layouts in registry order (bottom, left, right, or corner);
   one test updated — proceeded because it is an error sentence, not product copy.
 - P2 touches lib/player.ts (adds an inert `data-contain` attribute); it rides the next paired web release.
-- Next: open the tracks with A1, L1, S1, V1, C1 as the first packet of each.
+- Tracks opened 2026-09-23: A1, S1, V1, C1, L1 running in isolated worktrees (V1 already owns the relay
+  files per the addendum; none of the five touches the catalog route or sync). Addendum folded in the same
+  day; `AccessRole` confirmed as owner/editor/operator (lib/access.ts:5).
 
 ## Evidence
 Four read-only audits (MCP surface, layouts/renderer, Companion, live/services/access) plus a

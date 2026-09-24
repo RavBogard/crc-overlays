@@ -1,4 +1,7 @@
-# Code handoff: MCP completeness (overlays, services, live, layouts, Companion)
+# Code handoff: MCP completeness (overlays, services, live, layouts, Companion, TBI onboarding)
+
+Amended 2026-09-23 with [HANDOFF-CODE-ADDENDUM-2026-09-23.md](HANDOFF-CODE-ADDENDUM-2026-09-23.md):
+shared-seam owners, the explicit `crc.live` role list (V2), and Track T.
 
 From: the Cowork planning sitting of 2026-09-23. Rulings: [STATE.md](STATE.md). Findings, file/line
 evidence and the reasoning behind every packet: [GAP-ANALYSIS.md](GAP-ANALYSIS.md). Recommendation IDs
@@ -153,11 +156,14 @@ console and Companion unaffected.
 **V2. Command core and `crc.live` scope (R-V1, R-V2).** lib/live-command.ts shared by the route and MCP
 (`source:'mcp'`, stable `clientId` from the token family, clock-based sequence, caller `commandId`).
 Scopes: `normalizeScope` accepts subsets and keeps existing rows valid; consent offers `crc.live` as a
-separate, unchecked-by-default line to any role with `control` (Admin, Editor, Operator) and grants
+separate, unchecked-by-default line to the owner, editor and operator roles (Admin, Editor, Operator) and grants
 the intersection; per-request scope-aware member re-check; per-tool gating with `insufficient_scope`.
 Console WebMCP commands tagged `source:'mcp'` (R-V4). Acceptance: an authoring-only token can't reach
 live tools; a live-only token can't author; removing a member's role ends the matching scope at the
-next request.
+next request. Gate `crc.live` on the explicit role list owner / editor / operator (`AccessRole` is
+exactly those three, confirmed 2026-09-23 in lib/access.ts:5), not on `canAccess(role,'control')`,
+which is permission-based and returns true for every permission except owner / author / history
+(addendum §1).
 
 **V3. Live tools (R-V3) with the deck guard.** `get_live_state`, `show_graphic`, `take_out`,
 `animate_out`, `clear_now` (`immediate:true` required; result says it also clears the scan card and
@@ -213,10 +219,53 @@ envelope; the agent-activity variable from V3; README refresh claim corrected an
 carry device actions" limit documented. Acceptance: old module versions still validate the catalog;
 audit-companion-packages passes; the TBI build derives cleanly (P4).
 
+## Track T: TBI onboarding (after its prerequisites; addendum §2, STATE decision 13)
+
+The TBI redo (docs/planning/2026-09-23-tbi-redo/) runs through the MCP with no code after this plan
+lands and relies on every tool below, so Track T is part of done.
+
+**T1. Batch copy with house defaults (after A1).** Per-workspace authoring defaults:
+`get_authoring_defaults` / `update_authoring_defaults` (typography, row order, translation choice,
+arrangement, the layout rule), applied on create and on customize. `customize_shared_batch{items[],
+applyDefaults, dryRun}` copies CRC library graphics into the workspace as local drafts, keeping
+attribution and the upstream link, with per-item results, resumable. Acceptance: 50 CRC graphics copied
+into a TBI fixture in one call, with TBI defaults applied and a dry run first.
+
+**T2. Workspace-owned sources with book and page (after A1).** `add_local_source` /
+`update_local_source` / `list_local_sources`: workspace-owned source units with per-channel blocks
+(he/tr/en), attribution and licence text, and a liturgical position `{book, page}` (e.g. Mishkan
+T'filah 176) that search, `prepare_service_from_setlist` and deck conversion match on. Drafts built
+from them are source-backed like corpus drafts; these sources are never shared upstream. Acceptance: a
+Mishkan T'filah reading is entered once, found by `search_sources` and by page, and built into a
+graphic that carries its attribution.
+
+**T3. Reference material on conversion rows (after C4 and A6).** `import_singular_extract` stores a
+Singular extract's compositions as reference records (app, name, layer, text; no credentials).
+`convert_singular_deck` rows and drafts carry `reference{origin, app, comp, text, imageAssetId?}`.
+Matching is content-based, not name-only, following work/companion-simone/crc-match-report.md: Hebrew
+NFKD with presentation forms folded, niqqud stripped, final letters folded; transliteration normalised.
+Acceptance: every conversion row shows the old text beside the proposed graphic, and matching
+reproduces the first pass's EXACT / TEXT-MATCH counts on the same inputs.
+
+**T4. Review board (after A2).** `create_review_board{draftIds, grouping, title}` creates a web page
+for signed-in members: per graphic the stored render, and the reference when there is one, grouped by
+deck page or by service, with Approve / Needs change and a note per item. `get_review_board` returns
+the decisions and notes to the agent. Written for a non-technical reviewer: no ids, no jargon, works
+on a laptop and a tablet. Acceptance: a reviewer marks 20 items and the agent reads the decisions
+back; a fix that is republished shows as updated on the board.
+
 ## Dependencies (shape, not a schedule)
 P0 → everything that registers tools. P2 → L1 → L2 → L3; P3 → L4; A6 → L4 and A2's artwork. A2 and A3
 → A5. S1 → S2 and C3's `check_service_on_deck`. V1 → V2's command core → V3. C1 → C2 → C3, C4; P4 →
-C5; V3's variable lands in C5. A3 → C2's retired-cue rule.
+C5; V3's variable lands in C5. A3 → C2's retired-cue rule. A1 → T1, T2; C4 and A6 → T3; A2 → T4.
+
+## Shared seams: one owner each (addendum §1)
+
+The catalog envelope and relay payload are touched by four packets: A3 (retirement), L2 (resolved
+layout definitions), V1 (outcome, commandId, preconditions) and C5 (role and sequence metadata). The
+files are app/api/catalog/route.ts, lib/sync-live-catalog.ts, relay/src/index.ts and
+relay/src/protocol.ts. V1 owns the relay files; A3 owns the catalog route and the sync. L2 and C5 add
+their fields through those owners, in the envelope only, so old clients keep validating.
 
 ## Headline acceptance (both workspaces, recorded as a receipt in this folder)
 1. `get_setlist` (centralreform.live MCP) → `prepare_service_from_setlist` → `service_readiness`.
