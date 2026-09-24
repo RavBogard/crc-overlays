@@ -133,6 +133,28 @@ A prepared service is an ordered list of **rows**. A row may hold graphics (an *
 
 Every change takes `expectedVersion` (the version `get_service` returned) and returns the new `version`; a stale version is refused with a sentence and writes nothing. Unresolved coverage rows default their owner to "Unassigned", as the importer does. `get_service` reports `serviceRef`, the id a deck button generated from the service sends with its commands so the cue log attributes them (R-S3; the deck side is Track C). The web's `search_coverage_sources` is covered by `search_sources`, and feedback (`record_feedback`, `update_feedback`, the CSV) lives on `/services/log` and is not an MCP tool. None of these tools publishes a graphic or puts anything on screen.
 
+## The Companion deck (C3)
+
+Each congregation has one stored Companion deck (`companion_decks`, db/companion-decks.sql): the whole Stream Deck configuration, camera, vMix and X32 keys included, as a complete and stable library. There is no weekly service page. CRC's deck is created from its released seed the first time it is read; until C4 seeds TBI's deck from Simone's export, every TBI deck tool refuses with "The TBI deck hasn't been seeded yet…". Rows and columns count from 0, as Companion's own `page/row/column` locations do.
+
+| Tool | Does |
+|---|---|
+| `get_deck` / `get_deck_page` | The deck in brief (version, pages, chains, templates, connection labels) / one page cell by cell with cues, roles, gestures, fixed keys and free cells |
+| `create_page`, `rename_page`, `move_page`, `delete_page` | Pages on the deck's templates. `chainAfter` joins a service's Prev/Next chain, and `jumpFrom` adds a key that reaches the page. Prev/Next labels and jumps follow a rename or a move. |
+| `place_button`, `move_button`, `remove_button` | Keys: cue, jump, module action, device key, camera merge, or `copy` of another key. A device key placed twice gets new ids. |
+| `bind_cue`, `attach_camera_gesture` | Point a cue key at another cue, keeping its gesture. Add, copy or remove the camera gesture (only where the page template allows gestures). |
+| `apply_template`, `layout_column` | Put back a template's fixed keys; lay out a column by the grammar |
+| `sync_deck_with_catalog` | After publish, revise or retire: places new cues, relabels renamed ones, removes (or flags) keys on retired cues. **Dry run by default.** |
+| `check_service_on_deck{serviceId}` | Is every graphic a prepared service needs on the deck? Says where each one is, and where each missing one would go. |
+| `validate_deck` | C2's validator with the live catalog's published and retired lookups |
+| `export_deck_config{scope:'full'}` | Validates, then returns a signed 15-minute download link (`/api/companion/deck?token=…`), the file's sha256 and every connection label the booth must match exactly |
+
+**Writes.** Every change takes `expectedVersion` (the deck version from `get_deck`). It is applied to a copy and validated, then saved only if it adds no error-severity finding. Otherwise it is refused in plain sentences and nothing is saved. A stale version is refused.
+
+**The grammar** (Michael's H1–H4). A column is a slot. A sequence runs down its column, lead at the top, and continues into the next column. Alternates of a slot share its column. A new cue's standing page is the page whose keys already hold its slot, matched by name with part numbers, parentheses and service words ignored. When several pages match, the service word in the cue's name (Friday, Saturday, Holy Days…) or the prepared service's name narrows it. `sync_deck_with_catalog` never places a cue silently when it can't tell: it lists the candidate pages and takes `placements[{cueId, page, row?, column?, label?}]`. Without `cueIds`, it considers cues published or changed since the deck was last synced. A renamed cue's label is updated only when the label came from its name; a hand-written label is flagged (`relabelHandWritten:true` overrides).
+
+**Export.** The file is the Companion full export of the stored deck, byte for byte what `renderDeck` makes. For the unchanged CRC seed it is the preset released on 2026-09-23 (sha256 `bfc718e1…`). It holds connection labels only, never a connection's config or secrets. The link names the deck version and the sha256 of the validated bytes, so it is refused (410) once the deck changes. Signing uses `COMPANION_EXPORT_KEY` when it is set (32+ characters). Otherwise it uses a key derived, with a purpose label, from `RELAY_SECRET` or `CONTROL_KEY`, never the secret itself. The Setup page lists the same download for a signed-in member who runs the booth (`/api/companion/deck?download=full` validates, then redirects to a fresh link).
+
 ## Client status
 
 The routes implement the standards used by remote MCP clients, including protected-resource discovery, authorization-server discovery, dynamic public-client registration, PKCE, bearer challenges, refresh, and revocation. The automated smoke test exercises Streamable HTTP initialization, tool discovery, tool invocation, input boundaries, audience/scope constraints, redirects, PKCE, and chunked body limits. A real ChatGPT or Claude connection still requires deployment and provider-side testing; this repository does not claim that either client has been connected.

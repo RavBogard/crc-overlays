@@ -24,6 +24,7 @@ import {liveRelayConfigured} from './rehearsal';
 // of the function trace of every entrypoint that touches the authoring service.
 import {SERVER_RENDERER_PREFIX,type ServerFitArtwork,type ServerFitResult} from './server-fit-contract';
 import {isServiceTool} from './service-tool-schemas';
+import {isDeckTool} from './companion-deck/tool-schemas';
 
 export type BrowserMeasurement={viewportWidth:number;viewportHeight:number;fontsReady:true;overflow:false;rendererVersion:string;measuredAt:number};
 /**
@@ -867,6 +868,8 @@ export const SOURCE_REVIEW_OPERATIONS:Readonly<Record<string,'scan'|'list'|'get'
 export async function authoringOperation(operation:string,input:unknown,actor:string){
  const review=Object.hasOwn(SOURCE_REVIEW_OPERATIONS,operation)?SOURCE_REVIEW_OPERATIONS[operation]:undefined;
  if(review){const {sourceReviewOperation}=await import('./source-review');return sourceReviewOperation(review,input,actor)}
+ // C3 - the Companion deck tools (lib/companion-deck/tools.ts): their own store, reached by dynamic import like source review.
+ if(isDeckTool(operation)){const {deckToolOperation,DeckToolError}=await import('./companion-deck/tools');try{return await deckToolOperation(operation,input,actor)}catch(error){if(error instanceof DeckToolError)throw new AuthoringError(error.code,error.message,error.status);throw error}}
  const result=await defaults().operation(operation,input,actor);
  if(['publish_draft','save_slots','rollback_draft','import_cue'].includes(operation)){
   const {relayConfigured}=await import('./relay');
