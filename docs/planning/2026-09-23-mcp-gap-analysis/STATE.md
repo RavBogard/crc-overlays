@@ -96,12 +96,26 @@ app/api/catalog/route.ts and lib/sync-live-catalog.ts; L2 and C5 add envelope-on
 - GATE: C1's seed is derived from the released preset, not Michael's raw export (the generator no longer
   needs the raw export; GAP-ANALYSIS §7's "can't run without it" is now historical); each button stores
   its own id seed so edits never renumber other buttons; TBI page template is provisional until C4.
+- V2 merged (f7474c3): lib/live-command.ts shared by /api/command (byte-compatible, pinned) and MCP
+  (runMcpCommand: source mcp, per-token-family clientId, clock sequence, caller commandId); scopes are
+  subsets of crc.authoring/crc.live/offline_access; consent offers crc.live unchecked, gated on
+  LIVE_ROLES owner/editor/operator; per-request re-check narrows scopes; per-group tool gating with
+  insufficient_scope; console WebMCP sends source mcp; /api/history rows carry commandId.
+  Gate after merge: tsc clean, npm test 955+38 pass, lint 0 errors. Web release must follow the relay release.
+- GATE (V2): the crc.live checkbox shows before sign-in (Approve re-checks the role); an Operator may
+  approve a live-only connection; scopes are declared per tool group in lib/mcp.ts; a refresh narrows the
+  stored scope to what the role allows; unknown `source` values ignored as before.
 
 ## Evidence
 Four read-only audits (MCP surface, layouts/renderer, Companion, live/services/access) plus a
 structural read of Simone's export; synthesis and file/line references in GAP-ANALYSIS.md.
 
 ## Open questions
+- Consent copy written by V2 needs Daniel's review (user-visible, no precedent): checkbox "Live control:
+  also let this connection show, take out and clear graphics on the <congregation> output, as the console
+  does."; Operator without the tick: "Your role here can't author graphics, so this connection can have
+  live control only. Tick Live control to allow it, or Deny."; nothing ticked: "Nothing was chosen to
+  allow. Tick Live control to connect, or Deny."
 - Consent page copy (lib/oauth-http.ts) still says "Publishing still requires an exact preview reviewed in
   the <congregation> web UI." Since D18 an MCP actor can review (after a server fit pass) and publish, so the
   sentence understates the grant. Wording needs Daniel; P1 only replaced "CRC" with the workspace name.
