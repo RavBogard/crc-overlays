@@ -15,6 +15,8 @@ npm run lint
 npm run package
 ```
 
+`npm run build` also writes `definitions.json` beside `package.json`: the action and feedback ids, names and option ids this version registers, which the deck validator (`lib/companion-deck/validate.ts`) reads. Commit it with any change to the definitions; `tests/definitions.test.ts` fails while it is stale. It is not part of the packaged archive.
+
 The package command creates a Companion module archive in this directory. In Companion 5, open **Settings > Advanced > Developer modules** to load this directory for development, or install the generated archive using Companion's module installation UI. Add a **CRC Overlays** connection and set:
 
 - Overlay base URL: `https://overlays.centralreform.org` by default, or another deployment.
