@@ -5,7 +5,7 @@ import {AuthoringError,assertSourcePin,staleSourceIds,baselineCues,buildCue,cueH
 import {compactDraftCatalog,type DraftCatalogInput} from './draft-catalog';
 import {planDraftStyle,type DraftStyleOptions,type DraftStylePlan} from './authoring-style';
 import {withCreateDefaultBilingualBlocks} from './authoring-defaults';
-import {LAYER_ORDER,parseRowOrder} from './authoring-model';
+import {LAYER_ORDER,isRetiredDraft,parseRowOrder} from './authoring-model';
 import {layoutLabel,templateLayoutFor} from './layout-label';
 import {TEXT_SIZE_IDS,TEXT_SIZE_PRESETS,templateLooks,withTextSize,type TemplateLookMode,type TextSizePreset} from './template-looks';
 import {CUSTOM_TEMPLATES,customTemplate,customTemplateProblems,describeCustomTemplate} from './custom-templates';
@@ -62,12 +62,25 @@ export type PreviewRecord={id:string;draftId:string;draftVersion:number;cueHash:
 export type Revision={draftId:string;revision:number;draftVersion:number;cueHash:string;cue:AuthoringCue;previewId:string|null;review:ReviewReceipt|null;actor:string;createdAt:number;sourceCommits:string[]|null};
 
 type DraftUpdate=EditableDraft&Partial<Pick<Draft,'sourceSnapshots'|'sourcePin'>>;
+/** A retired graphic, by cue id: what the live catalog, services and deck checks leave out or flag. */
+export type RetiredCue={id:string;name:string;retiredAt:number};
+// The next document for a retire or a restore; null when the draft is not in the state that allows it.
+function retirementUpdate(current:Draft,expectedVersion:number,retired:boolean,actor:string,now:number):Draft|null{
+ if(current.version!==expectedVersion)return null;
+ const base={...current,version:expectedVersion+1,updatedAt:now,updatedBy:actor};
+ if(retired){if(current.activeRevision===null||current.activeDraftVersion===null)return null;return {...base,activeRevision:null,activeDraftVersion:null,retired:{revision:current.activeRevision,draftVersion:current.activeDraftVersion,retiredAt:now,retiredBy:actor}}}
+ if(!isRetiredDraft(current))return null;
+ const {retired:was,...rest}=base;return {...rest,activeRevision:was!.revision,activeDraftVersion:was!.draftVersion};
+}
 
 export interface AuthoringRepository{
  listDrafts():Promise<Draft[]>; getDraft(id:string):Promise<Draft|null>; insertDraft(draft:Draft):Promise<Draft>; insertDraftSet(drafts:Draft[]):Promise<Draft[]>; insertImportedDraft(draft:Draft,cue:AuthoringCue,actor:string):Promise<Draft>;
  updateDraft(id:string,expectedVersion:number,editable:DraftUpdate,actor:string):Promise<Draft|null>;
  setArchived(id:string,expectedVersion:number,archived:boolean,actor:string):Promise<Draft|null>;
  setDraftSetArchived(setId:string,expectedIds:string[],archived:boolean,actor:string):Promise<Draft[]>;
+ // MCP plan A3: withdraw a published graphic from the live catalog (or bring the same revision back).
+ setRetired(id:string,expectedVersion:number,retired:boolean,actor:string):Promise<Draft|null>;
+ retiredCues():Promise<RetiredCue[]>;
  reorderDraftSet(setId:string,expectedIds:string[],orderedIds:string[],actor:string):Promise<Draft[]>;
  duplicateDraftInSet(sourceId:string,expectedVersion:number,expectedIds:string[],duplicate:Draft,actor:string):Promise<Draft[]>;
  insertPreview(preview:PreviewRecord):Promise<void>; getPreview(id:string):Promise<PreviewRecord|null>; saveReview(id:string,review:ReviewReceipt):Promise<void>; saveFitCheck(id:string,fitCheck:ServerFitCheck):Promise<void>;
@@ -301,7 +314,8 @@ export function createAuthoringService(repo:AuthoringRepository,workspace:Author
   const [drafts,published]=await Promise.all([repo.listDrafts(),repo.published()]);
   const archived=new Set(drafts.filter(draft=>draft.archivedAt).map(draft=>draft.id));
   const live=published.filter(cue=>!archived.has(cue.id));
-  const overridden=new Set(live.map(cue=>cue.id));
+  // A retired draft hides the built-in cue it overrode, so the built-in name is free too.
+  const overridden=new Set([...live.map(cue=>cue.id),...drafts.filter(isRetiredDraft).map(draft=>draft.id)]);
   const draftNames=new Set(drafts.filter(draft=>!draft.archivedAt&&draft.id!==excludeId).map(draft=>normalizeGraphicName(draft.name)));
   const catalogNames=baselineCatalogForWorkspace().filter(cue=>!cue.hidden&&!cue.aliasOf&&!overridden.has(cue.id)&&cue.id!==excludeId).concat(live.filter(cue=>cue.id!==excludeId));
   const publishedNames=new Set(catalogNames.map(cue=>normalizeGraphicName(cue.name)));
@@ -440,8 +454,11 @@ export function createAuthoringService(repo:AuthoringRepository,workspace:Author
    return execute('create_draft',{name:optionalString(data.name,'name',80)??composed.name,title:composed.title,layout:data.layout??template.layout,...(data.templateCueId!==undefined?{templateCueId:data.templateCueId}:{}),...(data.textSize!==undefined?{textSize:data.textSize}:{}),content:{mode:'custom',text:composed.text},presentation:data.presentation??{}},who);
   }
   if(operation==='list_catalog'){
-   keys(data,['query','layout']);const catalogQuery=normalized(optionalString(data.query,'query',100));const catalogLayout=data.layout;if(catalogLayout!==undefined&&!isLayoutId(catalogLayout))throw new AuthoringError('invalid_input',`layout must be ${layoutChoices()}`);const [allDrafts,published]=await Promise.all([repo.listDrafts(),repo.published()]);const archivedIds=new Set(allDrafts.filter(draft=>draft.archivedAt).map(draft=>draft.id));const drafts=allDrafts.filter(draft=>!draft.archivedAt);const active=new Map(baselineCatalogForWorkspace().filter(cue=>!archivedIds.has(cue.id)).map(cue=>[cue.id,cue]));for(const cue of published)if(!archivedIds.has(cue.id))active.set(cue.id,cue);const byId=new Map(drafts.map(draft=>[draft.id,draft]));
-   return {cues:[...active.values()].filter(cue=>(!catalogLayout||cue.layout===catalogLayout)&&(!catalogQuery||normalized([cue.id,cue.name,cue.texts.textTitle].join(' ')).includes(catalogQuery))).map(cue=>{const draft=byId.get(cue.id);let origin:'canonical'|'variant'|'local'|'legacy'='legacy';const authoredOrigin=(cue as AuthoringCue).authoring?.origin;if(authoredOrigin)origin=authoredOrigin;if(origin==='legacy')try{editableFromBaseline(baselineSourceCueId(cue.id));origin='canonical'}catch{}const editAction=draft?'open':origin==='canonical'?'import':'duplicate';return {id:cue.id,name:cue.name,title:cue.texts.textTitle,layout:cue.layout,hidden:Boolean(cue.hidden),origin,draftId:draft?.id??null,draftVersion:draft?.version??null,activeRevision:draft?.activeRevision??null,canEdit:true,editAction,canDuplicate:true}})};
+   keys(data,['query','layout']);const catalogQuery=normalized(optionalString(data.query,'query',100));const catalogLayout=data.layout;if(catalogLayout!==undefined&&!isLayoutId(catalogLayout))throw new AuthoringError('invalid_input',`layout must be ${layoutChoices()}`);const [allDrafts,published]=await Promise.all([repo.listDrafts(),repo.published()]);const archivedIds=new Set(allDrafts.filter(draft=>draft.archivedAt).map(draft=>draft.id));const drafts=allDrafts.filter(draft=>!draft.archivedAt);const retiredDrafts=drafts.filter(isRetiredDraft);const retiredIds=new Set(retiredDrafts.map(draft=>draft.id));const active=new Map(baselineCatalogForWorkspace().filter(cue=>!archivedIds.has(cue.id)&&!retiredIds.has(cue.id)).map(cue=>[cue.id,cue]));for(const cue of published)if(!archivedIds.has(cue.id))active.set(cue.id,cue);const byId=new Map(drafts.map(draft=>[draft.id,draft]));
+   return {cues:[...[...active.values()].filter(cue=>(!catalogLayout||cue.layout===catalogLayout)&&(!catalogQuery||normalized([cue.id,cue.name,cue.texts.textTitle].join(' ')).includes(catalogQuery))).map(cue=>{const draft=byId.get(cue.id);let origin:'canonical'|'variant'|'local'|'legacy'='legacy';const authoredOrigin=(cue as AuthoringCue).authoring?.origin;if(authoredOrigin)origin=authoredOrigin;if(origin==='legacy')try{editableFromBaseline(baselineSourceCueId(cue.id));origin='canonical'}catch{}const editAction=draft?'open':origin==='canonical'?'import':'duplicate';return {id:cue.id,name:cue.name,title:cue.texts.textTitle,layout:cue.layout,hidden:Boolean(cue.hidden),origin,draftId:draft?.id??null,draftVersion:draft?.version??null,activeRevision:draft?.activeRevision??null,canEdit:true,editAction,canDuplicate:true}}),...
+    // Retired graphics stay visible to the editor, labelled, so they can be found and restored;
+    // they are absent from every live catalog (lib/server.ts authoringCatalog).
+    retiredDrafts.filter(draft=>(!catalogLayout||draft.layout===catalogLayout)&&(!catalogQuery||normalized([draft.id,draft.name,draft.title].join(' ')).includes(catalogQuery))).map(draft=>({id:draft.id,name:draft.name,title:draft.title,layout:draft.layout,hidden:false,origin:draft.content.mode==='custom'?'local' as const:draft.content.mode==='local-variant'?'variant' as const:'canonical' as const,draftId:draft.id,draftVersion:draft.version,activeRevision:null,canEdit:true,editAction:'open' as const,canDuplicate:true,retired:true,retiredRevision:draft.retired!.revision}))]};
   }
   if(operation==='list_drafts'){
    keys(data,['compact','query','service','book','layout','limit','cursor','includeArchived']);
@@ -464,9 +481,22 @@ export function createAuthoringService(repo:AuthoringRepository,workspace:Author
    keys(data,['draftId','view']);const draft=await requiredDraft(repo,string(data.draftId,'draftId'));if(data.view===undefined||data.view==='full')return {draft};
    if(data.view!=='rendered')throw new AuthoringError('invalid_input','view must be full or rendered');
    const cue=buildCue(draft);const published=draft.activeRevision!==null;
-   return {draft:{id:draft.id,version:draft.version,name:draft.name,title:draft.title,layout:draft.layout,templateCueId:draft.templateCueId,mode:draft.content.mode,presentation:draft.presentation,activeRevision:draft.activeRevision,activeVersion:draft.activeDraftVersion,published,dirty:published&&draft.activeDraftVersion!==draft.version,archived:Boolean(draft.archivedAt),set:draft.draftSetId?{id:draft.draftSetId,index:draft.setIndex??0,count:draft.setCount??0}:null},rendered:{texts:Object.fromEntries(Object.entries(cue.texts).filter(([,value])=>typeof value==='string'&&value.trim())),...(cue.contentRows?{contentRows:cue.contentRows}:{}),...(cue.rowOrder?{rowOrder:cue.rowOrder}:{})},validation:previewValidation(cue),fullRecord:"get_draft{view:'full'}"};
+   return {draft:{id:draft.id,version:draft.version,name:draft.name,title:draft.title,layout:draft.layout,templateCueId:draft.templateCueId,mode:draft.content.mode,presentation:draft.presentation,activeRevision:draft.activeRevision,activeVersion:draft.activeDraftVersion,published,dirty:published&&draft.activeDraftVersion!==draft.version,archived:Boolean(draft.archivedAt),retired:isRetiredDraft(draft),set:draft.draftSetId?{id:draft.draftSetId,index:draft.setIndex??0,count:draft.setCount??0}:null},rendered:{texts:Object.fromEntries(Object.entries(cue.texts).filter(([,value])=>typeof value==='string'&&value.trim())),...(cue.contentRows?{contentRows:cue.contentRows}:{}),...(cue.rowOrder?{rowOrder:cue.rowOrder}:{})},validation:previewValidation(cue),fullRecord:"get_draft{view:'full'}"};
   }
   if(operation==='archive_draft'||operation==='restore_draft'){keys(data,['draftId','expectedVersion']);const id=string(data.draftId,'draftId'),expected=integer(data.expectedVersion,'expectedVersion',1);const current=await requiredDraft(repo,id);if(current.version!==expected)throw conflict();if(current.draftSetId)throw new AuthoringError('set_member_archive','Archive or restore multipart graphics as a complete set',409);if(operation==='archive_draft'&&current.archivedAt)return {draft:current};if(operation==='restore_draft'&&!current.archivedAt)return {draft:current};const draft=await repo.setArchived(id,expected,operation==='archive_draft',who);if(!draft)throw conflict();return {draft};}
+  // MCP plan A3 - retire withdraws a published graphic from every live surface; restore brings the
+  // same revision back. Unlike archive, it changes what Companion and the relay can show.
+  if(operation==='retire_cue'||operation==='restore_cue'){
+   keys(data,['cueId','expectedVersion']);const id=string(data.cueId,'cueId'),expected=integer(data.expectedVersion,'expectedVersion',1);const retire=operation==='retire_cue';
+   const current=await repo.getDraft(id);
+   if(!current){const builtIn=baselineCatalogForWorkspace().find(cue=>cue.id===id);if(builtIn)throw new AuthoringError('not_a_draft',`"${builtIn.name}" is a built-in graphic with no draft in this library yet. Import it first (import_cue), then retire the imported draft.`,409);throw new AuthoringError('unknown_cue',`No graphic in this library has the id ${id}. Check the id with list_catalog.`,404)}
+   if(current.version!==expected)throw conflict();
+   const done=(draft:Draft,changed:boolean)=>{const retired=isRetiredDraft(draft);const revision=retired?draft.retired!.revision:draft.activeRevision;return {draft,cue:{id:draft.id,name:draft.name,retired,revision},changed,message:retired?`"${draft.name}" is retired: it is out of the live library, Companion's picker and the relay catalog. If it is on screen now it stays there until it is taken out. restore_cue brings back revision ${revision}.`:`"${draft.name}" is back in the live library at revision ${revision}.`}};
+   if(retire&&isRetiredDraft(current))return done(current,false);
+   if(!retire&&!isRetiredDraft(current)){if(current.activeRevision!==null)return done(current,false);throw new AuthoringError('not_retired',`"${current.name}" is not retired and has never been published. Publish it to put it in the live library.`,409)}
+   if(retire&&current.activeRevision===null)throw new AuthoringError('not_published',`"${current.name}" has never been published, so it is not in the live library and there is nothing to retire. Archive the draft instead (archive_draft) to take it out of the editor.`,409);
+   const draft=await repo.setRetired(id,expected,retire,who);if(!draft)throw conflict();return done(draft,true);
+  }
   if(operation==='archive_draft_set'||operation==='restore_draft_set'){keys(data,['setId','expectedDraftIds']);const setId=string(data.setId,'setId');if(!Array.isArray(data.expectedDraftIds)||!data.expectedDraftIds.length||data.expectedDraftIds.length>200)throw new AuthoringError('invalid_input','expectedDraftIds must contain 1-200 draft IDs');const expectedDraftIds=data.expectedDraftIds.map((id,index)=>string(id,`expectedDraftIds[${index}]`,160));const drafts=await repo.setDraftSetArchived(setId,expectedDraftIds,operation==='archive_draft_set',who);return {set:{id:setId,count:drafts.length,draftIds:drafts.map(draft=>draft.id)},drafts};}
   if(operation==='create_source_draft_set'){
    keys(data,['sourceId','mode','includeTranslation','layout','templateCueId']);
@@ -727,7 +757,7 @@ export function createAuthoringService(repo:AuthoringRepository,workspace:Author
   if(operation==='rollback_draft'){keys(data,['draftId','expectedVersion','revision']);const id=string(data.draftId,'draftId');const revision=integer(data.revision,'revision',1);const selected=(await repo.revisions(id)).find(row=>row.revision===revision);if(!selected)throw new AuthoringError('unknown_revision','Unknown revision',404);assertRevisionAuthority(selected.cue);const result=await repo.rollback(id,integer(data.expectedVersion,'expectedVersion',1),revision,who);return result;}
   throw new AuthoringError('unknown_operation',`Unknown authoring operation: ${operation}`,404);
  };
- return {operation:execute,publishedCues:()=>repo.published()};
+ return {operation:execute,publishedCues:()=>repo.published(),retiredCues:()=>repo.retiredCues()};
 }
 
 const FIT_CONTRACT={viewport:{width:1920,height:1080},fontsReadyRequired:true,noOverflowRequired:true,browserReported:true,humanReviewRequired:true} as const;
@@ -772,6 +802,8 @@ export class MemoryAuthoringRepository implements AuthoringRepository{
  async updateDraft(id:string,v:number,e:DraftUpdate,actor:string){const d=this.drafts.get(id);if(!d||d.version!==v)return null;const sourceSnapshots=e.sourceSnapshots??d.sourceSnapshots;const sourcePin=e.sourcePin??sourcePinFor(e.content,sourceSnapshots,sourceSnapshots?.length?d.sourcePin.feedSha256:undefined);const next={...d,...clone(e),sourceSnapshots,version:v+1,sourcePin,updatedAt:Date.now(),updatedBy:actor};this.drafts.set(id,next);return clone(next)}
  async setArchived(id:string,v:number,archived:boolean,actor:string){const d=this.drafts.get(id);if(!d||d.version!==v)return null;const next:Draft={...d,version:v+1,updatedAt:Date.now(),updatedBy:actor,...(archived?{archivedAt:Date.now(),archivedBy:actor}:{archivedAt:undefined,archivedBy:undefined})};this.drafts.set(id,next);return clone(next)}
  async setDraftSetArchived(setId:string,expectedIds:string[],archived:boolean,actor:string){const members=[...this.drafts.values()].filter(d=>d.draftSetId===setId&&Boolean(d.archivedAt)===!archived).sort((a,b)=>(a.setIndex??0)-(b.setIndex??0));if(JSON.stringify(members.map(d=>d.id))!==JSON.stringify(expectedIds))throw conflict();const now=Date.now(),result=members.map(draft=>({...draft,version:draft.version+1,updatedAt:now,updatedBy:actor,...(archived?{archivedAt:now,archivedBy:actor}:{archivedAt:undefined,archivedBy:undefined})}));for(const draft of result)this.drafts.set(draft.id,draft);return clone(result)}
+ async setRetired(id:string,v:number,retired:boolean,actor:string){const d=this.drafts.get(id);const next=d?retirementUpdate(d,v,retired,actor,Date.now()):null;if(!next)return null;this.drafts.set(id,next);return clone(next)}
+ async retiredCues(){return [...this.drafts.values()].filter(isRetiredDraft).map(d=>({id:d.id,name:d.name,retiredAt:d.retired!.retiredAt}))}
  async reorderDraftSet(setId:string,expectedIds:string[],orderedIds:string[],actor:string){const members=[...this.drafts.values()].filter(d=>d.draftSetId===setId&&!d.archivedAt).sort((a,b)=>(a.setIndex??0)-(b.setIndex??0));if(JSON.stringify(members.map(d=>d.id))!==JSON.stringify(expectedIds))throw conflict();const byId=new Map(members.map(d=>[d.id,d]));if(orderedIds.length!==members.length||new Set(orderedIds).size!==members.length||orderedIds.some(id=>!byId.has(id)))throw new AuthoringError('invalid_set_order','orderedDraftIds must be the complete draft set',400);const now=Date.now();const result=orderedIds.map((id,index)=>({...byId.get(id)!,setIndex:index+1,setCount:members.length,updatedAt:now,updatedBy:actor}));for(const draft of result)this.drafts.set(draft.id,draft);return clone(result)}
  async duplicateDraftInSet(sourceId:string,v:number,expectedIds:string[],duplicate:Draft,actor:string){const source=this.drafts.get(sourceId);if(!source||source.version!==v||!source.draftSetId)throw conflict();const members=[...this.drafts.values()].filter(d=>d.draftSetId===source.draftSetId&&!d.archivedAt).sort((a,b)=>(a.setIndex??0)-(b.setIndex??0));if(JSON.stringify(members.map(d=>d.id))!==JSON.stringify(expectedIds)||this.drafts.has(duplicate.id))throw conflict();const offset=members.findIndex(d=>d.id===sourceId);if(offset<0)throw conflict();const ordered=[...members.slice(0,offset+1),duplicate,...members.slice(offset+1)];const now=Date.now();for(const [index,draft] of ordered.entries()){draft.setIndex=index+1;draft.setCount=ordered.length;draft.updatedAt=now;draft.updatedBy=actor;this.drafts.set(draft.id,clone(draft))}return clone(ordered)}
  async insertPreview(p:PreviewRecord){this.previews.set(p.id,clone(p))} async getPreview(id:string){const p=this.previews.get(id);return p?clone(p):null} async saveReview(id:string,r:ReviewReceipt){const p=this.previews.get(id);if(!p)throw new AuthoringError('unknown_preview','Unknown preview',404);p.review=clone(r)}
@@ -913,12 +945,20 @@ SELECT COALESCE(json_agg(r.cue ORDER BY active.updated_at DESC),'[]'::json) AS c
  COALESCE(md5(string_agg(active.id || ':' || active.active_revision::text, ',' ORDER BY active.id)),md5('')) AS signature
 FROM active
 JOIN authoring_revisions r ON r.draft_id=active.id AND r.revision=active.active_revision`;
+// MCP plan A3: a retired draft has no active revision and remembers the one it had. Read only
+// when the published signature moves, never on the per-request signature check.
+export const RETIRED_CUES_SQL=`SELECT id,document->>'name' AS name,document->'retired'->>'retiredAt' AS "retiredAt"
+FROM authoring_drafts
+WHERE active_revision IS NULL AND document ? 'retired'
+ORDER BY id`;
 
 export class PgAuthoringRepository implements AuthoringRepository{
  private async db(){return (await import('./database')).db}
+ // Retiring or restoring always moves a row in or out of the active set, so the published
+ // signature changes with it and the retired list can ride in the same cached load.
  private readonly publishedCache=signatureCache(
   async()=>String((await (await this.db()).query(PUBLISHED_SIGNATURE_SQL)).rows[0]?.signature??''),
-  async()=>{const row=(await (await this.db()).query(PUBLISHED_CUES_SQL)).rows[0] as {signature:string;cues:AuthoringCue[]};return {signature:String(row.signature),value:row.cues}},
+  async()=>{const db=await this.db();const [published,retired]=await Promise.all([db.query(PUBLISHED_CUES_SQL),db.query(RETIRED_CUES_SQL)]);const row=published.rows[0] as {signature:string;cues:AuthoringCue[]};return {signature:String(row.signature),value:{cues:row.cues,retired:(retired.rows as Array<{id:string;name:string|null;retiredAt:string|number|null}>).map(item=>({id:item.id,name:item.name??item.id,retiredAt:Number(item.retiredAt??0)}))}}},
  );
  async listDrafts(){return (await (await this.db()).query('SELECT document FROM authoring_drafts ORDER BY updated_at DESC')).rows.map((r:{document:Draft})=>r.document)}
  async getDraft(id:string){return (await (await this.db()).query('SELECT document FROM authoring_drafts WHERE id=$1',[id])).rows[0]?.document??null}
@@ -940,7 +980,9 @@ export class PgAuthoringRepository implements AuthoringRepository{
  async publish(id:string,v:number,previewId:string,actor:string){const db=await this.db();const client=await db.connect();try{await client.query('BEGIN');const dr=await client.query('SELECT document FROM authoring_drafts WHERE id=$1 AND version=$2 FOR UPDATE',[id,v]);const d=dr.rows[0]?.document as Draft|undefined;if(!d)throw conflict();const pr=await client.query('SELECT id,draft_id AS "draftId",draft_version AS "draftVersion",cue_hash AS "cueHash",cue,validation,review,created_at AS "createdAt",created_by AS "createdBy" FROM authoring_previews WHERE id=$1',[previewId]);const p=pr.rows[0] as PreviewRecord|undefined;validatePublishPreview(d,p);let rr=await client.query('SELECT draft_id AS "draftId",revision,draft_version AS "draftVersion",cue_hash AS "cueHash",cue,preview_id AS "previewId",review,actor,created_at AS "createdAt",source_commits AS "sourceCommits" FROM authoring_revisions WHERE draft_id=$1 AND draft_version=$2 AND cue_hash=$3',[id,v,p!.cueHash]);if(!rr.rows[0])rr=await client.query('INSERT INTO authoring_revisions(draft_id,revision,draft_version,cue_hash,cue,preview_id,review,actor,created_at,source_commits) SELECT $1,COALESCE(MAX(revision),0)+1,$2,$3,$4,$5,$6,$7,$8,$9 FROM authoring_revisions WHERE draft_id=$1 RETURNING draft_id AS "draftId",revision,draft_version AS "draftVersion",cue_hash AS "cueHash",cue,preview_id AS "previewId",review,actor,created_at AS "createdAt",source_commits AS "sourceCommits"',[id,v,p!.cueHash,p!.cue,previewId,p!.review,actor,Date.now(),revisionSourceCommits(p!.cue)]);try{await markCueAssetPublished(client,p!.cue)}catch(error){if(error instanceof AssetError)throw new AuthoringError(error.code,error.message,error.status);throw error}const row=rr.rows[0] as Revision;d.activeRevision=row.revision;d.activeDraftVersion=row.draftVersion;d.updatedAt=Date.now();d.updatedBy=actor;await client.query('UPDATE authoring_drafts SET document=$2,active_revision=$3,active_draft_version=$4,updated_at=$5,updated_by=$6 WHERE id=$1',[id,d,row.revision,row.draftVersion,d.updatedAt,actor]);await client.query('COMMIT');return row}catch(e){await client.query('ROLLBACK');throw e}finally{client.release()}}
  async revisions(id:string){return (await (await this.db()).query('SELECT draft_id AS "draftId",revision,draft_version AS "draftVersion",cue_hash AS "cueHash",cue,preview_id AS "previewId",review,actor,created_at AS "createdAt",source_commits AS "sourceCommits" FROM authoring_revisions WHERE draft_id=$1 ORDER BY revision DESC',[id])).rows}
  async rollback(id:string,v:number,revision:number,actor:string){const db=await this.db();const client=await db.connect();try{await client.query('BEGIN');const dr=await client.query('SELECT document FROM authoring_drafts WHERE id=$1 AND version=$2 FOR UPDATE',[id,v]);const d=dr.rows[0]?.document as Draft|undefined;if(!d)throw conflict();const rr=await client.query('SELECT draft_id AS "draftId",revision,draft_version AS "draftVersion",cue_hash AS "cueHash",cue,preview_id AS "previewId",review,actor,created_at AS "createdAt",source_commits AS "sourceCommits" FROM authoring_revisions WHERE draft_id=$1 AND revision=$2',[id,revision]);const row=rr.rows[0] as Revision|undefined;if(!row)throw new AuthoringError('unknown_revision','Unknown revision',404);d.version++;d.activeRevision=row.revision;d.activeDraftVersion=row.draftVersion;d.updatedAt=Date.now();d.updatedBy=actor;await client.query('UPDATE authoring_drafts SET document=$2,version=$3,active_revision=$4,active_draft_version=$5,updated_at=$6,updated_by=$7 WHERE id=$1',[id,d,d.version,row.revision,row.draftVersion,d.updatedAt,actor]);await client.query('COMMIT');return {draft:d,revision:row}}catch(e){await client.query('ROLLBACK');throw e}finally{client.release()}}
- async published(){return this.publishedCache()}
+ async published(){return (await this.publishedCache()).cues}
+ async retiredCues(){return (await this.publishedCache()).retired}
+ async setRetired(id:string,v:number,retired:boolean,actor:string){const db=await this.db();const client=await db.connect();try{await client.query('BEGIN');const row=await client.query('SELECT document FROM authoring_drafts WHERE id=$1 AND version=$2 FOR UPDATE',[id,v]);const current=row.rows[0]?.document as Draft|undefined;const next=current?retirementUpdate(current,v,retired,actor,Date.now()):null;if(!next){await client.query('ROLLBACK');return null}await client.query('UPDATE authoring_drafts SET document=$2,version=$3,active_revision=$4,active_draft_version=$5,updated_at=$6,updated_by=$7 WHERE id=$1',[id,next,next.version,next.activeRevision,next.activeDraftVersion,next.updatedAt,actor]);await client.query('COMMIT');return next}catch(error){await client.query('ROLLBACK');throw error}finally{client.release()}}
  // R-A2 - frames live in their own table (db/authoring.sql), not in the preview row, so every
  // getPreview stays as small as it was. Until that table exists the reads below answer "no
  // frame" and a save fails, which the service treats as "not kept" - never as a failed check.
@@ -969,7 +1011,7 @@ export async function authoringOperation(operation:string,input:unknown,actor:st
  const review=Object.hasOwn(SOURCE_REVIEW_OPERATIONS,operation)?SOURCE_REVIEW_OPERATIONS[operation]:undefined;
  if(review){const {sourceReviewOperation}=await import('./source-review');return sourceReviewOperation(review,input,actor)}
  const result=await defaults().operation(operation,input,actor);
- if(['publish_draft','save_slots','rollback_draft','import_cue'].includes(operation)||(operation==='ship_draft'&&(result as {shipped?:unknown}).shipped===true)){
+ if(['publish_draft','save_slots','rollback_draft','import_cue','retire_cue','restore_cue'].includes(operation)||(operation==='ship_draft'&&(result as {shipped?:unknown}).shipped===true)){
   const {relayConfigured}=await import('./relay');
   if(relayConfigured()){
    try{const {syncLiveCatalog}=await import('./sync-live-catalog');await syncLiveCatalog()}
@@ -979,3 +1021,7 @@ export async function authoringOperation(operation:string,input:unknown,actor:st
  return result;
 }
 export async function publishedCues():Promise<Cue[]>{return defaults().publishedCues()}
+/** MCP plan A3: every retired graphic in this workspace, for the live catalog, services and deck checks. */
+export async function retiredCues():Promise<RetiredCue[]>{return defaults().retiredCues()}
+/** For the deck validator (plan T-C / C2): a binding to a retired cue must be flagged. */
+export async function isRetired(cueId:string):Promise<boolean>{return (await retiredCues()).some(cue=>cue.id===cueId)}

@@ -7,7 +7,7 @@ import {createHash,timingSafeEqual} from 'node:crypto';
 import {createServer,type IncomingMessage,type Server,type ServerResponse} from 'node:http';
 import type {Duplex} from 'node:stream';
 import {WebSocketServer,type WebSocket as RelaySocket} from 'ws';
-import {HISTORY_WINDOW_DAYS,MAX_CATALOG_BYTES,MAX_HISTORY_ROWS,MAX_MESSAGE_BYTES,MAX_RECEIPTS,MAX_REQUEST_BYTES,MAX_SNAPSHOT_BYTES,PROTOCOL,collectionFromNamesCue,decideCommand,historyPage,historyRow,historyWindowStart,jsonBytes,lastPressFrom,librarySourceIds,nextState,parseAck,parseCatalog,parseCommand,parseHello,parseHistoryRange,parseInitialState,presenceFrame,rankControllers,rendererExpired,validCatalogVersion,validInteger,validToken,validUuid,verifyTicket,type ApprovedCatalog,type Command,type CommandOutcome,type CuePayload,type HistorySource,type LastPress,type Controller,type HistoryRow,type LiveState,type Renderer,type Role,type Snapshot,type SocketAttachment} from '../relay/src/protocol.ts';
+import {HISTORY_WINDOW_DAYS,MAX_CATALOG_BYTES,MAX_HISTORY_ROWS,MAX_MESSAGE_BYTES,MAX_RECEIPTS,MAX_REQUEST_BYTES,MAX_SNAPSHOT_BYTES,PROTOCOL,collectionFromNamesCue,commandPayload,decideCommand,historyPage,historyRow,historyWindowStart,jsonBytes,lastPressFrom,librarySourceIds,nextState,parseAck,parseCatalog,parseCommand,parseHello,parseHistoryRange,parseInitialState,presenceFrame,rankControllers,rendererExpired,validCatalogVersion,validInteger,validToken,validUuid,verifyTicket,type ApprovedCatalog,type Command,type CommandOutcome,type CuePayload,type HistorySource,type LastPress,type Controller,type HistoryRow,type LiveState,type Renderer,type Role,type Snapshot,type SocketAttachment} from '../relay/src/protocol.ts';
 
 export const DEFAULT_REHEARSAL_RELAY_PORT=8788;
 // Real-time cadence of the presence sweep. The worker uses a Durable Object
@@ -153,7 +153,7 @@ export class RehearsalRoom{
   const accepted=result.outcome==='applied';
   // Mirrors LiveRoom.command: the append happens after the command has been applied and
   // before the broadcast, and can never refuse the command.
-  if(accepted)this.appendHistory(command,this.catalog?.cues.find(cue=>cue.id===command.cue)??null,this.now());
+  if(accepted)this.appendHistory(command,result.selected,this.now());
   const snapshot=this.snapshot();
   this.ensureSnapshotSize(snapshot);
   if(accepted)this.broadcast({type:'snapshot',snapshot});
@@ -171,7 +171,7 @@ export class RehearsalRoom{
   const priorSequence=command.clientId===null?-1:this.sequences.get(command.clientId)??-1;
   const decision=decideCommand({command,current,receipt,cueKnown:selected!==null,priorSequence});
   if(decision.kind==='refused')throw new HttpError(decision.status,decision.error,decision.precondition?{commandId:command.commandId,precondition:decision.precondition,revision:current.revision,cue:current.cue}:undefined);
-  if(decision.kind==='replayed')return {outcome:'replayed' as CommandOutcome,originalOutcome:decision.originalOutcome};
+  if(decision.kind==='replayed')return {outcome:'replayed' as CommandOutcome,originalOutcome:decision.originalOutcome,selected:null};
   if(decision.kind==='applied'){
    const next=nextState(current,command,selected,this.now());
    // The worker runs applyCommand inside one transaction, so a 413 here rolls the
@@ -184,7 +184,7 @@ export class RehearsalRoom{
   const excess=this.receipts.size-MAX_RECEIPTS;
   if(excess>0)for(const [id] of [...this.receipts].sort((a,b)=>a[1].createdAt-b[1].createdAt||(a[0]<b[0]?-1:1)).slice(0,excess))this.receipts.delete(id);
   this.presses.set(command.source,this.now());
-  return {outcome:decision.kind as CommandOutcome,originalOutcome:null};
+  return {outcome:decision.kind as CommandOutcome,originalOutcome:null,selected:commandPayload(current,command,selected)};
  }
  // --- the cue log -----------------------------------------------------------
  appendHistory(command:Command,selected:CuePayload|null,now:number){

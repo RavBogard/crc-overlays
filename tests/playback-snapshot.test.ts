@@ -17,3 +17,14 @@ test('cleared or mismatched state cannot substitute a different cue', () => {
   assert.equal(withPinnedCue(catalog, 'a', {id: 'b', text: 'b'}), catalog);
   assert.equal(withPinnedCue(catalog, 'a', null), catalog);
 });
+
+// MCP plan A3: a graphic retired while on air is missing from the next catalog an open output
+// page installs. The output keeps the payload the live state carries, so the screen holds.
+test('an on-air graphic that left the catalog stays renderable from the live payload', () => {
+  const onAir = {id: 'retired', text: 'on air'};
+  const afterRetire = [{id: 'other', text: 'other'}];
+  const result = withPinnedCue(afterRetire, 'retired', onAir);
+  assert.deepEqual(result, [afterRetire[0], onAir]);
+  // Once it is taken out (cue null) the next catalog install drops it for good.
+  assert.equal(withPinnedCue(afterRetire, null, null), afterRetire);
+});

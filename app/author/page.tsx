@@ -275,7 +275,7 @@ export default function AuthorPage() {
   }, [editorKind, form, key, previewSequence, setPreviewError, setPreviewWarnings, showCue]);
 
   const publishedItems = useMemo<LibraryItem[]>(() => catalog
-    .filter((cue) => cue.activeRevision !== null || cue.origin !== "local")
+    .filter((cue) => !cue.retired && (cue.activeRevision !== null || cue.origin !== "local"))
     .map((cue) => ({ kind: "catalog", cue })), [catalog]);
   const draftItems = useMemo<LibraryItem[]>(() => drafts.filter(draftHasUnpublishedWork).map((item) => ({ kind: "draft", draft: item })), [drafts]);
   const archivedItems = useMemo<LibraryItem[]>(() => {
@@ -414,6 +414,18 @@ export default function AuthorPage() {
       const restored = "draft" in response ? response.draft : response.drafts[0];
       setLibraryTab(restored?.activeRevision ? "published" : "drafts");
       setMessage(target.draftSetId ? `Restored all ${setMembers.length} slides in “${target.title}”.` : `Restored “${target.name}” to the graphics library.`);
+    } catch (value) { fail(value); }
+    finally { setBusy(""); }
+  }
+
+  // MCP plan A3 - a retired graphic is out of the live library; this returns the revision it had.
+  async function restoreRetired(target: Draft) {
+    setBusy("restore"); setError("");
+    try {
+      const response = await authoringCall<{ message?: string }>(key, "restore_cue", { cueId: target.id, expectedVersion: target.version });
+      await refreshLists(key);
+      setLibraryTab("published");
+      setMessage(response.message || `“${target.name}” is back in the live library.`);
     } catch (value) { fail(value); }
     finally { setBusy(""); }
   }
@@ -770,7 +782,7 @@ export default function AuthorPage() {
             else void openCatalogCue(item.cue);
           }}
           duplicateItem={(item) => void duplicateItem(item)}
-          archiveItem={(item) => void archiveItem(item)} restoreItem={(item) => void restoreArchived(item)}
+          archiveItem={(item) => void archiveItem(item)} restoreItem={(item) => void restoreArchived(item)} restoreRetired={(item) => void restoreRetired(item)}
         />
 
         {activeLibraryTab === "sources" ? <SourceReviewPanel state={sourceReview} /> : activeLibraryTab === "shared" ? <SharedShelf

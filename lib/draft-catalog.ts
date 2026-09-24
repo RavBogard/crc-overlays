@@ -1,4 +1,4 @@
-import {AuthoringError,resolveSourceBoundaries,sourcePack,textLayers,type Draft,type DraftContent,type Layout,type Presentation,type TextLayer} from './authoring-model';
+import {AuthoringError,isRetiredDraft,resolveSourceBoundaries,sourcePack,textLayers,type Draft,type DraftContent,type Layout,type Presentation,type TextLayer} from './authoring-model';
 
 export type DraftCatalogInput={
  query?:string;
@@ -39,6 +39,8 @@ export type DraftCatalogSummary={
  published:boolean;
  dirty:boolean;
  archived:boolean;
+ // MCP plan A3: out of every live catalog; restore_cue brings the remembered revision back.
+ retired:boolean;
  excerpt:string;
 };
 
@@ -128,7 +130,7 @@ function summary(draft:Draft):DraftCatalogSummary{
  // not a measurement or a visual-pass claim.
  const smallFont=(presentation.hebrewFontSize!==undefined&&presentation.hebrewFontSize<34)||(presentation.transliterationFontSize!==undefined&&presentation.transliterationFontSize<28)||(presentation.titleFontSize!==undefined&&presentation.titleFontSize<28);
  const published=draft.activeRevision!==null;
- return {id:draft.id,name:draft.name,title:draft.title,version:draft.version,activeVersion:draft.activeDraftVersion,activeRevision:draft.activeRevision,layout:draft.layout,templateCueId:draft.templateCueId,presentation,arrangement,sourceBooks,sourceServices,contentSummary:contentSummary(draft),accentTitle:draft.accentTitle||null,flags:{smallFont,alternatingGrouping:arrangement==='together'&&draft.layout!=='bottom'&&selectedBlocks>1&&visibleLanguages>1,accentTitleSharedWith:[]},set:draft.draftSetId?{id:draft.draftSetId,index:draft.setIndex??0,count:draft.setCount??0}:null,published,dirty:published&&draft.activeDraftVersion!==draft.version,archived:Boolean(draft.archivedAt),excerpt:excerpt(draft)};
+ return {id:draft.id,name:draft.name,title:draft.title,version:draft.version,activeVersion:draft.activeDraftVersion,activeRevision:draft.activeRevision,layout:draft.layout,templateCueId:draft.templateCueId,presentation,arrangement,sourceBooks,sourceServices,contentSummary:contentSummary(draft),accentTitle:draft.accentTitle||null,flags:{smallFont,alternatingGrouping:arrangement==='together'&&draft.layout!=='bottom'&&selectedBlocks>1&&visibleLanguages>1,accentTitleSharedWith:[]},set:draft.draftSetId?{id:draft.draftSetId,index:draft.setIndex??0,count:draft.setCount??0}:null,published,dirty:published&&draft.activeDraftVersion!==draft.version,archived:Boolean(draft.archivedAt),retired:isRetiredDraft(draft),excerpt:excerpt(draft)};
 }
 
 const EXCERPT_LENGTH=80;

@@ -3223,6 +3223,41 @@
   }
  },
  {
+  "name": "restore_cue",
+  "description": "Bring a retired graphic back into the live library at the same revision it had when it was retired, with no new review. Publishing or rolling back a retired draft also brings it back.",
+  "inputSchema": {
+   "type": "object",
+   "$schema": "https://json-schema.org/draft/2020-12/schema",
+   "properties": {
+    "cueId": {
+     "type": "string",
+     "minLength": 1,
+     "maxLength": 200
+    },
+    "expectedVersion": {
+     "type": "integer",
+     "minimum": 1,
+     "maximum": 9007199254740991
+    },
+    "workspace": {
+     "type": "string",
+     "minLength": 1,
+     "maxLength": 80,
+     "description": "Which congregation this call is for. This connection serves 'crc' (CRC) only."
+    }
+   },
+   "required": [
+    "cueId",
+    "expectedVersion",
+    "workspace"
+   ]
+  },
+  "annotations": {
+   "readOnlyHint": false,
+   "idempotentHint": true
+  }
+ },
+ {
   "name": "restore_draft",
   "description": "Restore a standalone archived draft.",
   "inputSchema": {
@@ -3325,6 +3360,41 @@
    },
    "required": [
     "serviceId",
+    "expectedVersion",
+    "workspace"
+   ]
+  },
+  "annotations": {
+   "readOnlyHint": false,
+   "idempotentHint": true
+  }
+ },
+ {
+  "name": "retire_cue",
+  "description": "Withdraw a published graphic from the live library: it leaves the catalog, Companion's picker and the relay, and services flag entries that use it. The draft and its revisions are kept, and the editor lists it as retired. A graphic on screen when you retire it stays there until someone takes it out, and it cannot be shown again until restore_cue. Not the same as archive_draft, which leaves the published graphic playing. cueId is the graphic's id (the draft id); a built-in graphic must be imported with import_cue first.",
+  "inputSchema": {
+   "type": "object",
+   "$schema": "https://json-schema.org/draft/2020-12/schema",
+   "properties": {
+    "cueId": {
+     "type": "string",
+     "minLength": 1,
+     "maxLength": 200
+    },
+    "expectedVersion": {
+     "type": "integer",
+     "minimum": 1,
+     "maximum": 9007199254740991
+    },
+    "workspace": {
+     "type": "string",
+     "minLength": 1,
+     "maxLength": 80,
+     "description": "Which congregation this call is for. This connection serves 'crc' (CRC) only."
+    }
+   },
+   "required": [
+    "cueId",
     "expectedVersion",
     "workspace"
    ]

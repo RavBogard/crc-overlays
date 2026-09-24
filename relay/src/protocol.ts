@@ -244,6 +244,15 @@ export function commandPreconditionFailure(current:LiveState,command:Command):{p
  return null;
 }
 
+/** An 'out' naming the graphic that is pinned right now, whose payload the live state holds. */
+export const outOfPinnedCue=(current:LiveState,command:Command)=>command.action==='out'&&command.cue!==null&&command.cue===current.cue&&current.cuePayload!==null;
+
+/**
+ * The payload a command concerns, for the cue log: the approved catalog's copy, or, for an 'out'
+ * of a pinned graphic that has since left the catalog, the copy the live state still holds.
+ */
+export const commandPayload=(current:LiveState,command:Command,fromCatalog:CuePayload|null)=>fromCatalog??(outOfPinnedCue(current,command)?current.cuePayload:null);
+
 /**
  * The one decision the worker and the rehearsal port both make about a parsed command, in the
  * order the worker has always used: the receipt first (so a retry of a command that already
@@ -257,7 +266,9 @@ export function decideCommand(input:{command:Command;current:LiveState;receipt:C
   if(receipt.action!==command.action||receipt.cue!==command.cue)return {kind:'refused',status:409,error:'Command ID already used for a different command'};
   return {kind:'replayed',originalOutcome:receipt.outcome==='applied'||receipt.outcome==='superseded'?receipt.outcome:null};
  }
- if((command.action==='in'||command.action==='out')&&!input.cueKnown)return {kind:'refused',status:400,error:'Unknown cue'};
+ // MCP plan A3: a graphic retired while on air leaves the catalog but stays pinned (the relay
+ // holds its payload), so its own Out button must still work. Only an 'in' needs the catalog.
+ if((command.action==='in'||command.action==='out')&&!input.cueKnown&&!outOfPinnedCue(current,command))return {kind:'refused',status:400,error:'Unknown cue'};
  const failure=commandPreconditionFailure(current,command);
  if(failure)return {kind:'refused',status:409,...failure};
  if(command.clientId!==null&&!(command.sequence!>input.priorSequence))return {kind:'superseded'};

@@ -1,5 +1,5 @@
 import {DurableObject} from 'cloudflare:workers';
-import {HISTORY_WINDOW_DAYS,MAX_CATALOG_BYTES,MAX_HISTORY_ROWS,MAX_MESSAGE_BYTES,MAX_RECEIPTS,MAX_REQUEST_BYTES,MAX_SNAPSHOT_BYTES,PROTOCOL,STALE_MS,collectionFromNamesCue,decideCommand,historyPage,historyRow,historyWindowStart,jsonBytes,lastPressFrom,librarySourceIds,nextState,parseAck,parseCatalog,parseCommand,parseHello,parseHistoryRange,parseInitialState,presenceFrame,rankControllers,rendererExpired,validCatalogVersion,validInteger,validToken,validUuid,verifyTicket,type ApprovedCatalog,type Command,type CommandOutcome,type LastPress,type Controller,type CuePayload,type HistoryAction,type HistoryRow,type HistorySource,type LiveState,type Renderer,type Role,type Snapshot,type SocketAttachment} from './protocol';
+import {HISTORY_WINDOW_DAYS,MAX_CATALOG_BYTES,MAX_HISTORY_ROWS,MAX_MESSAGE_BYTES,MAX_RECEIPTS,MAX_REQUEST_BYTES,MAX_SNAPSHOT_BYTES,PROTOCOL,STALE_MS,collectionFromNamesCue,commandPayload,decideCommand,historyPage,historyRow,historyWindowStart,jsonBytes,lastPressFrom,librarySourceIds,nextState,parseAck,parseCatalog,parseCommand,parseHello,parseHistoryRange,parseInitialState,presenceFrame,rankControllers,rendererExpired,validCatalogVersion,validInteger,validToken,validUuid,verifyTicket,type ApprovedCatalog,type Command,type CommandOutcome,type LastPress,type Controller,type CuePayload,type HistoryAction,type HistoryRow,type HistorySource,type LiveState,type Renderer,type Role,type Snapshot,type SocketAttachment} from './protocol';
 
 interface Env{
  LIVE_ROOM:DurableObjectNamespace<LiveRoom>;
@@ -310,7 +310,8 @@ export class LiveRoom extends DurableObject<Env>{
   if(excess>0)this.sql.exec('DELETE FROM command_receipts WHERE command_id IN (SELECT command_id FROM command_receipts ORDER BY created_at,command_id LIMIT ?)',excess);
   // A press is a new command the relay processed, applied or superseded; a replay is not one.
   this.sql.exec('INSERT INTO controller_presses(source,at) VALUES(?,?) ON CONFLICT(source) DO UPDATE SET at=excluded.at',command.source,now);
-  return {outcome:decision.kind as CommandOutcome,originalOutcome:null,selected};
+  // The cue log names what was on screen, even for an Out of a graphic retired while on air.
+  return {outcome:decision.kind as CommandOutcome,originalOutcome:null,selected:commandPayload(current,command,selected)};
  }
  private catalog(value:unknown){
   if(!value||typeof value!=='object'||Array.isArray(value))throw new HttpError(400,'Invalid approved catalog');

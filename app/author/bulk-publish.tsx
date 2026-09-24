@@ -24,9 +24,10 @@ export type BulkResult = { id: string; name: string; status: "published" | "skip
 
 const RENDERER_VERSION = "crc-author-bulk-v1";
 
-/** Never published, not archived: the drafts a bulk publish is for. */
+/** Never published, not archived: the drafts a bulk publish is for. A retired graphic is not
+ *  "never published" - publishing it would silently put it back on the deck (MCP plan A3). */
 export function bulkCandidates(drafts: Draft[]) {
-  return drafts.filter((draft) => !draft.archivedAt && draft.activeRevision === null);
+  return drafts.filter((draft) => !draft.archivedAt && !draft.retired && draft.activeRevision === null);
 }
 
 export function BulkPublish({ apiKey, drafts, workspace, onFinished }: {

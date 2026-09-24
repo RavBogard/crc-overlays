@@ -237,6 +237,58 @@ test('a new approved catalog version is broadcast to connected sockets',async()=
  control.socket.close();
 });
 
+// MCP plan A3: a graphic that is retired while it is on air leaves the approved catalog on the
+// next sync. The relay keeps the payload it already holds, so the screen does not change; the
+// operator can still take that graphic out with its own button; nobody can put it up again.
+test('an on-air graphic that leaves the catalog stays on air, can be taken out, and cannot be shown again',async()=>{
+ const relay=await initializedRelay();
+ const shown=await (await request(relay,'/command',{action:'in',cue:'cue-two',commandId:randomUUID(),clientId:null,sequence:null})).json();
+ assert.equal(shown.cue,'cue-two');
+ const control=connect(relay,'control');
+ assert.equal(await control.opened,'open');
+ await control.recorder.next(frame=>frame.type==='snapshot');
+
+ const synced=await request(relay,'/catalog',{version:'rehearsal-v2',cues:[CUES[0]]});
+ assert.equal(synced.status,200);
+ assert.equal((await control.recorder.next(frame=>frame.type==='catalog')).version,'rehearsal-v2');
+ // Nothing on screen moves: same revision, same cue, same payload. A sync is not a command.
+ const held=await (await request(relay,'/state')).json();
+ assert.equal(held.revision,1);
+ assert.equal(held.cue,'cue-two');
+ assert.deepEqual(held.cuePayload,CUES[1]);
+ assert.equal(held.catalogVersion,'rehearsal-v2');
+ assert.equal(control.recorder.frames.some(frame=>frame.type==='snapshot'),false);
+
+ const again=await request(relay,'/command',{action:'in',cue:'cue-two',commandId:randomUUID(),clientId:null,sequence:null});
+ assert.equal(again.status,400);
+ assert.equal((await again.json()).error,'Unknown cue');
+ // Out for some other graphic that is not in the catalog is still refused.
+ const stray=await request(relay,'/command',{action:'out',cue:'no-such-cue',commandId:randomUUID(),clientId:null,sequence:null});
+ assert.equal(stray.status,400);
+
+ const out=await request(relay,'/command',{action:'out',cue:'cue-two',commandId:randomUUID(),clientId:null,sequence:null});
+ assert.equal(out.status,200);
+ const taken=await out.json();
+ assert.equal(taken.outcome,'applied');
+ assert.equal(taken.revision,2);
+ assert.equal(taken.cue,null);
+ assert.equal(taken.cuePayload,null);
+ const history=await (await request(relay,'/history')).json();
+ assert.deepEqual(history.rows.map((row:{action:string;cueId:string|null})=>[row.action,row.cueId]),[['in','cue-two'],['out','cue-two']]);
+ control.socket.close();
+});
+
+test('clear and cut still take down an on-air graphic that left the catalog',async()=>{
+ for(const action of ['clear','cut']){
+  const relay=await initializedRelay();
+  await request(relay,'/command',{action:'in',cue:'cue-two',commandId:randomUUID(),clientId:null,sequence:null});
+  assert.equal((await request(relay,'/catalog',{version:'rehearsal-v2',cues:[CUES[0]]})).status,200);
+  const down=await (await request(relay,'/command',{action,cue:null,commandId:randomUUID(),clientId:null,sequence:null})).json();
+  assert.equal(down.cue,null,action);
+  assert.equal(down.revision,2,action);
+ }
+});
+
 test('unknown routes are 404 and unauthenticated routes are 401',async()=>{
  const relay=await startRelay();
  assert.equal((await request(relay,'/nope')).status,404);
