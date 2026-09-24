@@ -37,6 +37,7 @@ import {isDeckTool} from './companion-deck/tool-schemas';
 import {LayoutDefinitionError,ensurePublishedLayoutsRegistered,layoutDefinitionsRepository,resolvedLayoutsFor,type LayoutDefinitionsRepository} from './layout-definitions';
 import {isLayoutTool,layoutToolOperation} from './layout-tools';
 import type {ResolvedLayouts} from './layout-registry';
+import {parseDraftReference} from './companion-deck/singular-references';
 
 export type BrowserMeasurement={viewportWidth:number;viewportHeight:number;fontsReady:true;overflow:false;rendererVersion:string;measuredAt:number};
 /**
@@ -646,13 +647,13 @@ export function createAuthoringService(repo:AuthoringRepository,workspace:Author
   const draftSetManifest={version:1 as const,selections:drafts.flatMap(draft=>draftSetSelections(draft.content,draft.sourceSnapshots))};drafts=drafts.map(draft=>({...draft,draftSetManifest:structuredClone(draftSetManifest)}));try{const inserted=await repo.insertDraftSet(drafts);return {drafts:inserted,set:{id:setId,name:original.name,count,draftIds:inserted.map(draft=>draft.id)},splitFrom:origin,reused:false}}catch(error){const recovered=await existingSplit();if(recovered)return recovered;throw error}
  }
  if(operation==='create_draft'){
-   const {applyDefaults:rawApply,...request}=data;{const content=object(request.content,'content');if(content.mode==='local-variant')object(content.base,'content.base')}const house=optionalBoolean(rawApply,'applyDefaults')===false?null:await houseDefaults();
+   const {applyDefaults:rawApply,reference:rawReference,...request}=data;let reference:Draft['reference'];try{reference=parseDraftReference(rawReference)}catch(error){throw new AuthoringError('invalid_input',(error as Error).message)}{const content=object(request.content,'content');if(content.mode==='local-variant')object(content.base,'content.base')}const house=optionalBoolean(rawApply,'applyDefaults')===false?null:await houseDefaults();
    // T1 - house defaults fill in what the call leaves out; a translation default the selected
    // source can't honour is dropped, and said so, rather than refusing the whole draft.
    const housed=house?withHouseCreateDefaults(request,house):null,report:DefaultsReport={applied:housed?.applied??[],skipped:[]};
    const locals=await localsFor(request.content);
    let input=housed?.data??request,parsed:EditableDraft;try{parsed=parseEditable(withDraftDefaults(input),false,locals) as EditableDraft}catch(error){if(!housed?.withoutTranslation||!(error instanceof AuthoringError))throw error;input=housed.withoutTranslation;parsed=parseEditable(withDraftDefaults(input),false,locals) as EditableDraft;report.applied=report.applied.filter(item=>item!=='translation included');report.skipped.push(`translation included: ${error.message}`)}
-   const rawContent=object(input.content,'content'),rawBase=rawContent.mode==='local-variant'?object(rawContent.base,'content.base'):rawContent,explicitArrangement=Object.hasOwn(rawBase,'arrangement');const editable=explicitArrangement?parsed:{...parsed,content:withCreateDefaultBilingualBlocks(parsed.content)};const sourceSnapshots=sourceSnapshotsFor(editable.content,locals);const now=Date.now(); const draft:Draft={...editable,id:newDraftId(),version:1,sourcePin:sourcePinFor(editable.content,sourceSnapshots),...(sourceSnapshots.length?{sourceSnapshots}:{}),activeRevision:null,activeDraftVersion:null,createdAt:now,updatedAt:now,createdBy:who,updatedBy:who};
+   const rawContent=object(input.content,'content'),rawBase=rawContent.mode==='local-variant'?object(rawContent.base,'content.base'):rawContent,explicitArrangement=Object.hasOwn(rawBase,'arrangement');const editable=explicitArrangement?parsed:{...parsed,content:withCreateDefaultBilingualBlocks(parsed.content)};const sourceSnapshots=sourceSnapshotsFor(editable.content,locals);const now=Date.now(); const draft:Draft={...editable,id:newDraftId(),version:1,sourcePin:sourcePinFor(editable.content,sourceSnapshots),...(sourceSnapshots.length?{sourceSnapshots}:{}),activeRevision:null,activeDraftVersion:null,createdAt:now,updatedAt:now,createdBy:who,updatedBy:who,...(reference?{reference}:{})};
    const warnings=await duplicateNameWarnings(draft);const provenance=localProvenance(sourceSnapshots);
    return {draft:await repo.insertDraft(draft),warnings,...reportField(report),...(provenance.length?{provenance}:{})};
   }
@@ -1146,7 +1147,7 @@ export async function authoringOperation(operation:string,input:unknown,actor:st
 // L3 - this process knows the workspace's published data layouts before it validates a draft.
  await ensurePublishedLayoutsRegistered();
  if(review){const {sourceReviewOperation}=await import('./source-review');return sourceReviewOperation(review,input,actor)}
- if(operation==='seed_deck_from_export'||operation==='convert_singular_deck'){const {deckConversionOperation,DeckConversionError}=await import('./companion-deck/convert');try{return await deckConversionOperation(operation,input,actor)}catch(error){if(error instanceof DeckConversionError)throw new AuthoringError(error.code,error.message,error.status);throw error}}
+ if(operation==='seed_deck_from_export'||operation==='convert_singular_deck'||operation==='import_singular_extract'){const {deckConversionOperation,DeckConversionError}=await import('./companion-deck/convert');try{return await deckConversionOperation(operation,input,actor)}catch(error){if(error instanceof DeckConversionError)throw new AuthoringError(error.code,error.message,error.status);throw error}}
  // C3 - the Companion deck tools (lib/companion-deck/tools.ts): their own store, reached by dynamic import like source review.
  // L4 - workspace branding (lib/branding-tools.ts): its own store, reached by dynamic import like the deck.
  if(isBrandingTool(operation)){const [{brandingToolOperation,defaultBrandingContext},{BrandingError}]=await Promise.all([import('./branding-tools'),import('./branding-store')]);try{return await brandingToolOperation(operation,input,actor,await defaultBrandingContext())}catch(error){if(error instanceof BrandingError)throw new AuthoringError(error.code,error.message,error.status);throw error}}

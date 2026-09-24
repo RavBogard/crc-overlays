@@ -14,6 +14,7 @@ import {
   DeckConversionError, applyConversion, convertSingularDeck, deckConversionOperation, prayersNamed, type DeckConversionDeps,
 } from '../lib/companion-deck/convert.ts'
 import { catalogCueLookups, validateDeck, type ModuleDefinitions } from '../lib/companion-deck/validate.ts'
+import { MemorySingularReferenceRepository, REFERENCE_STORE_MISSING, SINGULAR_EXTRACT, referenceRecords } from '../lib/companion-deck/singular-references.ts'
 import type { Cue } from '../lib/player.ts'
 
 const root = path.resolve(import.meta.dirname, '..')
@@ -351,4 +352,106 @@ test('one deck store: a TBI deck seeded and converted here is the deck the C3 de
   const page = await deckToolOperation('get_deck_page', { page: 3 }, 'mcp:t', ctx) as { page: number }
   assert.equal(page.page, 3)
   await deckToolOperation('validate_deck', {}, 'mcp:t', ctx)
+})
+
+/* ------------------------------------------------ T3: Singular reference material --- */
+
+// A hand-built extract in the first pass's shape (not derived from work/): two kab compositions and
+// one HHDs composition, Hebrew in presentation forms as Singular stores it.
+const SHALOM_3 = 'שָׁלוֹם עֲלֵיכֶם מַלְאֲכֵי הַשָּׁרֵת מַלְאֲכֵי עֶלְיוֹן'
+const SHALOM_1 = 'בּוֹאֲכֶם לְשָׁלוֹם מַלְאֲכֵי הַשָּׁלוֹם מִמֶּלֶךְ מַלְכֵי הַמְּלָכִים'
+const presentation = (s: string) => s.replace(/שׁ/g, 'שׁ')
+const comp = (id: string, name: string, title: string, text: string) =>
+  ({ id, name, layer: 'Lower Third' as string | null, template: 'Title + Title Accent + Text + Logo', fields: { title: { title: 'Title', type: 'text', value: title }, text: { title: 'Text', type: 'textarea', value: text } } as Record<string, unknown> })
+const extract = () => ({
+  apps: [
+    { label: 'kab', name: 'Kabbalat Shabbat', subcompositions: [
+      comp('c1', 'Shalom Aleicheim 3', 'Shalom Aleichem', `${presentation(SHALOM_3)}\n   Shalom aleichem malachei hashareit`),
+      comp('c2', "L'cha Dodi 1", "L'cha Dodi", 'לְכָה דוֹדִי לִקְרַאת כַּלָּה'),
+    ] as Record<string, unknown>[] },
+    { label: 'singular__HHDs', subcompositions: [comp('h1', 'Avinu 1', 'Avinu Malkeinu', 'אָבִינוּ מַלְכֵּנוּ')] as Record<string, unknown>[] },
+  ] as Record<string, unknown>[],
+})
+const textCue = (id: string, name: string, texts: Record<string, string>): Cue => ({ id, name, layout: 'bottom', texts, animations: [], duration: {} })
+const plain = (s: string) => s.replace(/[֑-ׇ]/g, '')
+const shalomCues = [
+  textCue('c-sa3', 'Shalom Aleichem 3', { textTitle: 'Shalom Aleichem', textMainheb: plain(SHALOM_3), textMainEng: 'Shalom aleichem malachei hashareit' }),
+  textCue('c-sa1', 'Shalom Aleichem 1', { textTitle: 'Shalom Aleichem', textMainheb: plain(SHALOM_1), textMainEng: 'Boachem lshalom' }),
+  cue('c-lcha1', "L'cha Dodi 1"),
+]
+
+test("every row of Simone's deck carries a reference, empty of text until the extract is imported; counts unchanged", () => {
+  const { rows, summary } = convertSingularDeck(tbi(), { cues: catalog })
+  assert.deepEqual(summary.byStatus, { covered: 192, 'needs-review': 46, 'needs-a-graphic': 16 })
+  assert.equal(rows.length, 254)
+  assert.ok(rows.every((r) => r.reference && r.reference.origin === 'singular' && r.reference.comp === (r.singular.in ?? r.singular.out)!.comp && r.reference.text === ''))
+})
+
+test('with the extract: each row shows the old text, content matching settles what names alone could not, and a missing composition is a dead button', () => {
+  const deck = miniDeck([
+    { row: 0, col: 1, label: 'Shalom Aleichem 3', inComp: 'Shalom Aleicheim 3' },
+    { row: 1, col: 1, label: 'Ani vAtah 1', inComp: "Ani v'Atah pt 1" },
+    { row: 2, col: 1, label: 'Avinu 1', inComp: 'Avinu 1' },
+  ])
+  const hhd = deck.pages[0].buttons.find((b) => b.row === 2 && b.col === 1)!
+  hhd.singular = { in: { app: 'singular__HHDs', comp: 'Avinu 1' }, out: { app: 'singular__HHDs', comp: 'Avinu 1' } }
+  // Names alone: both Shalom Aleichem graphics are candidates.
+  const byName = convertSingularDeck(deck, { cues: shalomCues }).rows.find((r) => r.id === '1/0/1')!
+  assert.equal(byName.status, 'needs-review')
+  // Only kab imported: HHDs buttons are not judged for dead compositions.
+  const references = referenceRecords(SINGULAR_EXTRACT.parse({ apps: [extract().apps[0]] }).apps[0])
+  const { rows } = convertSingularDeck(deck, { cues: shalomCues, references })
+  const [shalom, ani, avinu] = ['1/0/1', '1/1/1', '1/2/1'].map((id) => rows.find((r) => r.id === id)!)
+  assert.deepEqual([shalom.status, shalom.cue?.id, shalom.match.method], ['covered', 'c-sa3', 'content'])
+  assert.match(shalom.reason, /by what it shows/)
+  assert.equal(shalom.reference!.text, `Shalom Aleichem\n${presentation(SHALOM_3)}\nShalom aleichem malachei hashareit`)
+  assert.deepEqual([shalom.reference!.origin, shalom.reference!.app, shalom.reference!.comp], ['singular', 'kab', 'Shalom Aleicheim 3'])
+  assert.equal(ani.defects.filter((d) => d.code === 'composition-missing').length, 1, 'a kab button firing a composition the kab app no longer has, said once')
+  assert.equal(ani.reference!.text, '')
+  assert.ok(!avinu.defects.some((d) => d.code === 'composition-missing'), 'HHDs was not imported, so it is not judged')
+})
+
+test('import_singular_extract: credentials refused in a sentence, strict shape, dry run by default, versioned writes, per-app replace', async () => {
+  const references = new MemorySingularReferenceRepository()
+  const deps: DeckConversionDeps = { workspace: 'tbi', repository: new MemoryCompanionDeckRepository(), cues: async () => shalomCues, committedSeed: async () => seedData, now: () => 1000, references }
+  const run = (input: unknown) => deckConversionOperation('import_singular_extract', input, 'mcp:tester', deps) as Promise<Record<string, unknown>>
+  const refused = (e: unknown) => e instanceof DeckConversionError && e.code === 'credential_in_extract'
+  const withLink = extract()
+  ;(withLink.apps[0].subcompositions as Record<string, unknown>[])[0].notes = 'pulled from https://app.singular.live/apiv1/control/SECRETVALUE123'
+  await assert.rejects(run({ extract: withLink }), (e: unknown) => refused(e) && /^Nothing was imported: the extract carries something that looks like a credential \(at input\.extract\.apps\[0\]\.subcompositions\[0\]\.notes\)\./.test((e as Error).message) && !(e as Error).message.includes('SECRETVALUE123'))
+  await assert.rejects(run({ extract: { apps: [{ ...extract().apps[0], controlToken: 'x' }] } }), refused)
+  const withPassword = extract()
+  ;((withPassword.apps[1].subcompositions as Record<string, unknown>[])[0].fields as Record<string, unknown>).password = { value: 'hunter2' }
+  await assert.rejects(run({ extract: withPassword }), refused)
+  await assert.rejects(run({ extract: { apps: [{ label: 'kab', subcompositions: [{ id: 'x', name: 'X', layer: null, fields: {}, colour: 'red' }] }] } }), /Nothing was imported: the extract is not in the expected shape .*extract\.apps\.0\.subcompositions\.0/)
+  await assert.rejects(run({ extract: { apps: [extract().apps[0], extract().apps[0]] } }), /the app kab appears twice/)
+
+  const dry = await run({ extract: extract() })
+  assert.equal(dry.dryRun, true)
+  assert.equal(await references.get('tbi'), null, 'a dry run stores nothing')
+  assert.deepEqual((dry.apps as { app: string; compositions: number; withText: number; withHebrew: number }[]).map((a) => [a.app, a.compositions, a.withText, a.withHebrew]), [['kab', 2, 2, 2], ['singular__HHDs', 1, 1, 1]])
+  const stored = await run({ extract: extract(), dryRun: false })
+  assert.deepEqual(stored.stored, { version: 1, apps: ['kab', 'singular__HHDs'] })
+  const doc = (await references.get('tbi'))!.document
+  assert.deepEqual(Object.keys(doc.apps[0].compositions[0]).sort(), ['app', 'compId', 'layer', 'name', 'text'], 'app, name, layer and text only: no fields, notes or template')
+  await assert.rejects(run({ extract: { apps: [extract().apps[1]] }, dryRun: false }), /already stored \(version 1\)\. Pass expectedVersion:1/)
+  await assert.rejects(run({ extract: { apps: [extract().apps[1]] }, dryRun: false, expectedVersion: 7 }), /changed in another session \(it is now version 1\)/)
+  const replaced = await run({ extract: { apps: [{ label: 'singular__HHDs', subcompositions: [comp('h2', 'Avinu 2', 'Avinu Malkeinu', 'חָנֵּנוּ וַעֲנֵנוּ')] }] }, dryRun: false, expectedVersion: 1 })
+  assert.deepEqual([replaced.stored, replaced.keptApps], [{ version: 2, apps: ['kab', 'singular__HHDs'] }, ['kab']])
+  assert.deepEqual((await references.get('tbi'))!.document.apps[1].compositions.map((c) => c.name), ['Avinu 2'])
+
+  // The stored material reaches convert_singular_deck: every row carries a reference.
+  await deckConversionOperation('seed_deck_from_export', { useCommittedSeed: true, dryRun: false }, 'mcp:t', deps)
+  const converted = await deckConversionOperation('convert_singular_deck', { view: 'full' }, 'mcp:t', deps) as { references: { version: number; apps: string[] }; rows: { reference: { text: string } | null }[] }
+  assert.deepEqual([converted.references.version, converted.references.apps], [2, ['kab', 'singular__HHDs']])
+  assert.ok(converted.rows.every((r) => r.reference))
+})
+
+test('import_singular_extract: a reference store that is not set up is a sentence, and conversion still runs', async () => {
+  const missing = { get: async () => { throw Object.assign(new Error('relation "singular_references" does not exist'), { code: '42P01' }) }, put: async () => { throw new Error('unreachable') } }
+  const deps: DeckConversionDeps = { workspace: 'tbi', repository: new MemoryCompanionDeckRepository(), cues: async () => catalog, committedSeed: async () => seedData, now: () => 1000, references: missing }
+  await assert.rejects(deckConversionOperation('import_singular_extract', { extract: extract() }, 'mcp:t', deps), (e: unknown) => e instanceof DeckConversionError && e.message === REFERENCE_STORE_MISSING)
+  const preview = await deckConversionOperation('convert_singular_deck', { deck: 'committed-seed' }, 'mcp:t', deps) as { counts: { covered: number }; references: { note: string } }
+  assert.equal(preview.counts.covered, 192)
+  assert.match(preview.references.note, /No Singular extract is imported/)
 })
