@@ -9,6 +9,7 @@ import {registerCatalogTools} from './mcp/catalog';
 import {registerDeckTools} from './mcp/deck';
 import {registerLayoutsTools} from './mcp/layouts';
 import {registerLiveTools,type LiveOperation} from './mcp/live';
+import {registerReviewTools} from './mcp/review';
 import {registerServicesTools} from './mcp/services';
 import type {McpIdentity,RegisterArea,RegisterTool} from './mcp/shared';
 
@@ -21,7 +22,7 @@ export type {LiveOperation} from './mcp/live';
  * `operation:'live'` sends its calls to the live operation (V3) instead of the authoring one.
  */
 export type ScopedArea={register:RegisterArea;scope:ResourceScope;operation?:'live'};
-const AREAS:ScopedArea[]=[{register:registerCatalogTools,scope:AUTHORING_SCOPE},{register:registerAuthoringTools,scope:AUTHORING_SCOPE},{register:registerServicesTools,scope:AUTHORING_SCOPE},{register:registerLiveTools,scope:LIVE_SCOPE,operation:'live'},{register:registerLayoutsTools,scope:AUTHORING_SCOPE},{register:registerAssetsTools,scope:AUTHORING_SCOPE},{register:registerBrandingTools,scope:AUTHORING_SCOPE},{register:registerDeckTools,scope:AUTHORING_SCOPE}];
+const AREAS:ScopedArea[]=[{register:registerCatalogTools,scope:AUTHORING_SCOPE},{register:registerAuthoringTools,scope:AUTHORING_SCOPE},{register:registerServicesTools,scope:AUTHORING_SCOPE},{register:registerLiveTools,scope:LIVE_SCOPE,operation:'live'},{register:registerLayoutsTools,scope:AUTHORING_SCOPE},{register:registerAssetsTools,scope:AUTHORING_SCOPE},{register:registerBrandingTools,scope:AUTHORING_SCOPE},{register:registerDeckTools,scope:AUTHORING_SCOPE},{register:registerReviewTools,scope:AUTHORING_SCOPE}];
 // Saying which congregation this is needs no grant beyond reaching the server at all.
 const ANY_SCOPE_TOOLS=new Set(['get_workspace']);
 const SCOPE_NAMES:Record<ResourceScope,string>={[AUTHORING_SCOPE]:'authoring',[LIVE_SCOPE]:'live control'};

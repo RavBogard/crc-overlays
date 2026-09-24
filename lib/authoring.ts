@@ -28,6 +28,8 @@ import {liveRelayConfigured} from './rehearsal';
 import {SERVER_RENDERER_PREFIX,type ServerFitArtwork,type ServerFitResult} from './server-fit-contract';
 import {isServiceTool} from './service-tool-schemas';
 import {MemoryLocalSourceRepository,PgLocalSourceRepository,currentWorkspaceId,isLocalSourceId,isLocalSourceTool,localProvenance,localSourceOperation,localSourceUnit,type LocalSourceRepository} from './local-sources';
+// T4 - kept here rather than imported, so lib/review-board.ts loads only when a board is used.
+const REVIEW_BOARD_OPERATIONS=new Set(['create_review_board','get_review_board','update_review_board']);
 
 export type BrowserMeasurement={viewportWidth:number;viewportHeight:number;fontsReady:true;overflow:false;rendererVersion:string;measuredAt:number};
 /**
@@ -396,6 +398,8 @@ export function createAuthoringService(repo:AuthoringRepository,workspace:Author
   // R-B1 - the artwork library (lib/asset-tools.ts). A published cue counts only while its draft
   // is not archived, the same catalog libraryNames measures.
   if(isAssetTool(operation)){try{return await assetToolOperation(operation,data,who,{assets:assetStores.assets??defaultAssetRepository(),uploads:assetStores.uploads??defaultAssetUploadStore(),drafts:()=>repo.listDrafts(),published:async()=>{const [drafts,published]=await Promise.all([repo.listDrafts(),repo.published()]);const archived=new Set(drafts.filter(draft=>draft.archivedAt).map(draft=>draft.id));return published.filter(cue=>!archived.has(cue.id))}})}catch(error){if(error instanceof AssetError)throw new AuthoringError(error.code,error.message,error.status);throw error}}
+  // T4 - review boards (lib/review-board.ts) read this service's drafts and kept fit frames.
+  if(REVIEW_BOARD_OPERATIONS.has(operation)){const {reviewBoardOperation}=await import('./review-board');return reviewBoardOperation(operation,data,who,{authoring:repo})}
   // The cue log, read-only, for an assistant asked what a service actually did. Same bound and
   // same shape as `GET /api/history`: graphics, liturgical positions and times - no names, no
   // titles, no text, nobody's identity. An unavailable relay is a sentence, not a stack trace.

@@ -1,0 +1,16 @@
+import {z} from 'zod/v4';
+import {id,version,type RegisterTool} from './shared';
+
+// T4 - review boards: a web page where a signed-in member approves graphics or asks for changes,
+// and the agent reads the answers back. Nothing here publishes or puts anything on screen.
+const draftIds=z.array(id).min(1).max(400);
+const reference=z.object({origin:z.string().min(1).max(80),app:z.string().max(160).optional(),comp:z.string().max(200).optional(),text:z.string().max(4000),imageAssetId:z.string().regex(/^asset_[a-f0-9]{64}$/).optional()}).strict().describe('What the old deck showed for this graphic (a Singular composition, for example), shown to the reviewer beside the new picture. A draft that already carries a reference shows it without this.');
+const groupLabels=z.record(id,z.string().min(1).max(80)).describe('Group heading per draft id, in plain words the reviewer reads (for example "Page 3: Shabbat evening"). Overrides the grouping; drafts without a label go under "Other graphics". Use it for deck pages until a Companion deck is stored.');
+const references=z.record(id,reference);
+const boardId=z.string().min(1).max(80);
+
+export function registerReviewTools(register:RegisterTool){
+ register('create_review_board','Put published graphics in front of a person on one web page (a review board) and return its link. For each graphic the page shows the picture the server fit check kept for the version in use, the old slide\'s text when there is a reference, and Approve / Needs change with a note, saved as the reviewer clicks. The reviewer must be signed in as a member. grouping: deck-page (the stored Companion deck\'s pages; refused until a deck is stored unless you pass groupLabels), service (the prepared service each graphic is in) or none. Unpublished drafts are shown without a picture. Publishes nothing; puts nothing on screen.',z.object({title:z.string().min(1).max(120).describe('The heading the reviewer sees, for example "TBI graphics for Rabbi Schicker".'),draftIds,grouping:z.enum(['deck-page','service','none']).optional(),groupLabels:groupLabels.optional(),references:references.optional()}).strict(),{readOnlyHint:false});
+ register('get_review_board','Read a review board\'s answers: per graphic its decision (approve, needs-change or null for not yet answered), the reviewer\'s note, who answered and for which revision. A graphic republished after it was answered reads updated:true with decision null and the earlier answer under earlier, until the reviewer looks again. filter narrows to needs-change, undecided, approved or updated. Read only.',z.object({boardId,filter:z.enum(['all','needs-change','undecided','approved','updated']).optional()}).strict(),{readOnlyHint:true});
+ register('update_review_board','Add graphics to a review board, remove them, or rename it, with the version get_review_board returned. Removing a graphic the reviewer already answered is refused, listing those answers, until you pass dropAnswers:true. A fix needs no update: republish the graphic and the board shows it as updated by itself.',z.object({boardId,expectedVersion:version.min(1),title:z.string().min(1).max(120).optional(),add:draftIds.optional(),remove:draftIds.optional(),groupLabels:groupLabels.optional(),references:references.optional(),dropAnswers:z.boolean().optional()}).strict(),{readOnlyHint:false});
+}

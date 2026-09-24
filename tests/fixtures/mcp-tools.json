@@ -1345,6 +1345,108 @@
   }
  },
  {
+  "name": "create_review_board",
+  "description": "Put published graphics in front of a person on one web page (a review board) and return its link. For each graphic the page shows the picture the server fit check kept for the version in use, the old slide's text when there is a reference, and Approve / Needs change with a note, saved as the reviewer clicks. The reviewer must be signed in as a member. grouping: deck-page (the stored Companion deck's pages; refused until a deck is stored unless you pass groupLabels), service (the prepared service each graphic is in) or none. Unpublished drafts are shown without a picture. Publishes nothing; puts nothing on screen.",
+  "inputSchema": {
+   "type": "object",
+   "$schema": "https://json-schema.org/draft/2020-12/schema",
+   "properties": {
+    "title": {
+     "type": "string",
+     "minLength": 1,
+     "maxLength": 120,
+     "description": "The heading the reviewer sees, for example \"TBI graphics for Rabbi Schicker\"."
+    },
+    "draftIds": {
+     "minItems": 1,
+     "maxItems": 400,
+     "type": "array",
+     "items": {
+      "type": "string",
+      "minLength": 1,
+      "maxLength": 200
+     }
+    },
+    "grouping": {
+     "type": "string",
+     "enum": [
+      "deck-page",
+      "service",
+      "none"
+     ]
+    },
+    "groupLabels": {
+     "type": "object",
+     "propertyNames": {
+      "type": "string",
+      "minLength": 1,
+      "maxLength": 200
+     },
+     "additionalProperties": {
+      "type": "string",
+      "minLength": 1,
+      "maxLength": 80
+     },
+     "description": "Group heading per draft id, in plain words the reviewer reads (for example \"Page 3: Shabbat evening\"). Overrides the grouping; drafts without a label go under \"Other graphics\". Use it for deck pages until a Companion deck is stored."
+    },
+    "references": {
+     "type": "object",
+     "propertyNames": {
+      "type": "string",
+      "minLength": 1,
+      "maxLength": 200
+     },
+     "additionalProperties": {
+      "type": "object",
+      "properties": {
+       "origin": {
+        "type": "string",
+        "minLength": 1,
+        "maxLength": 80
+       },
+       "app": {
+        "type": "string",
+        "maxLength": 160
+       },
+       "comp": {
+        "type": "string",
+        "maxLength": 200
+       },
+       "text": {
+        "type": "string",
+        "maxLength": 4000
+       },
+       "imageAssetId": {
+        "type": "string",
+        "pattern": "^asset_[a-f0-9]{64}$"
+       }
+      },
+      "required": [
+       "origin",
+       "text"
+      ],
+      "additionalProperties": false,
+      "description": "What the old deck showed for this graphic (a Singular composition, for example), shown to the reviewer beside the new picture. A draft that already carries a reference shows it without this."
+     }
+    },
+    "workspace": {
+     "type": "string",
+     "minLength": 1,
+     "maxLength": 80,
+     "description": "Which congregation this call is for. This connection serves 'crc' (CRC) only."
+    }
+   },
+   "required": [
+    "title",
+    "draftIds",
+    "workspace"
+   ]
+  },
+  "annotations": {
+   "readOnlyHint": false
+  }
+ },
+ {
   "name": "create_service",
   "description": "Create a prepared service: empty, from the published library, or from rows you give in service order. It never publishes anything.",
   "inputSchema": {
@@ -1955,6 +2057,43 @@
    },
    "required": [
     "target"
+   ]
+  },
+  "annotations": {
+   "readOnlyHint": true
+  }
+ },
+ {
+  "name": "get_review_board",
+  "description": "Read a review board's answers: per graphic its decision (approve, needs-change or null for not yet answered), the reviewer's note, who answered and for which revision. A graphic republished after it was answered reads updated:true with decision null and the earlier answer under earlier, until the reviewer looks again. filter narrows to needs-change, undecided, approved or updated. Read only.",
+  "inputSchema": {
+   "type": "object",
+   "$schema": "https://json-schema.org/draft/2020-12/schema",
+   "properties": {
+    "boardId": {
+     "type": "string",
+     "minLength": 1,
+     "maxLength": 80
+    },
+    "filter": {
+     "type": "string",
+     "enum": [
+      "all",
+      "needs-change",
+      "undecided",
+      "approved",
+      "updated"
+     ]
+    },
+    "workspace": {
+     "type": "string",
+     "minLength": 1,
+     "maxLength": 80,
+     "description": "Which congregation this call is for. This connection serves 'crc' (CRC) only."
+    }
+   },
+   "required": [
+    "boardId"
    ]
   },
   "annotations": {
@@ -5927,6 +6066,122 @@
   "annotations": {
    "readOnlyHint": false,
    "idempotentHint": true
+  }
+ },
+ {
+  "name": "update_review_board",
+  "description": "Add graphics to a review board, remove them, or rename it, with the version get_review_board returned. Removing a graphic the reviewer already answered is refused, listing those answers, until you pass dropAnswers:true. A fix needs no update: republish the graphic and the board shows it as updated by itself.",
+  "inputSchema": {
+   "type": "object",
+   "$schema": "https://json-schema.org/draft/2020-12/schema",
+   "properties": {
+    "boardId": {
+     "type": "string",
+     "minLength": 1,
+     "maxLength": 80
+    },
+    "expectedVersion": {
+     "type": "integer",
+     "minimum": 1,
+     "maximum": 9007199254740991
+    },
+    "title": {
+     "type": "string",
+     "minLength": 1,
+     "maxLength": 120
+    },
+    "add": {
+     "minItems": 1,
+     "maxItems": 400,
+     "type": "array",
+     "items": {
+      "type": "string",
+      "minLength": 1,
+      "maxLength": 200
+     }
+    },
+    "remove": {
+     "minItems": 1,
+     "maxItems": 400,
+     "type": "array",
+     "items": {
+      "type": "string",
+      "minLength": 1,
+      "maxLength": 200
+     }
+    },
+    "groupLabels": {
+     "type": "object",
+     "propertyNames": {
+      "type": "string",
+      "minLength": 1,
+      "maxLength": 200
+     },
+     "additionalProperties": {
+      "type": "string",
+      "minLength": 1,
+      "maxLength": 80
+     },
+     "description": "Group heading per draft id, in plain words the reviewer reads (for example \"Page 3: Shabbat evening\"). Overrides the grouping; drafts without a label go under \"Other graphics\". Use it for deck pages until a Companion deck is stored."
+    },
+    "references": {
+     "type": "object",
+     "propertyNames": {
+      "type": "string",
+      "minLength": 1,
+      "maxLength": 200
+     },
+     "additionalProperties": {
+      "type": "object",
+      "properties": {
+       "origin": {
+        "type": "string",
+        "minLength": 1,
+        "maxLength": 80
+       },
+       "app": {
+        "type": "string",
+        "maxLength": 160
+       },
+       "comp": {
+        "type": "string",
+        "maxLength": 200
+       },
+       "text": {
+        "type": "string",
+        "maxLength": 4000
+       },
+       "imageAssetId": {
+        "type": "string",
+        "pattern": "^asset_[a-f0-9]{64}$"
+       }
+      },
+      "required": [
+       "origin",
+       "text"
+      ],
+      "additionalProperties": false,
+      "description": "What the old deck showed for this graphic (a Singular composition, for example), shown to the reviewer beside the new picture. A draft that already carries a reference shows it without this."
+     }
+    },
+    "dropAnswers": {
+     "type": "boolean"
+    },
+    "workspace": {
+     "type": "string",
+     "minLength": 1,
+     "maxLength": 80,
+     "description": "Which congregation this call is for. This connection serves 'crc' (CRC) only."
+    }
+   },
+   "required": [
+    "boardId",
+    "expectedVersion",
+    "workspace"
+   ]
+  },
+  "annotations": {
+   "readOnlyHint": false
   }
  },
  {
