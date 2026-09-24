@@ -20,6 +20,20 @@ const pageName=z.string().min(1).max(40);
 const text=z.string().min(1).max(40);
 const colour=z.number().int().min(0).max(0xffffff).describe('Background colour as a 24-bit number (0x990033 is 10027059).');
 
+// G6 (TBI redo) - one row of a deck plan (lib/companion-deck/deck-plan.ts), the columns of the build's
+// deck-plan.csv as an object. The build-key pattern is lib/build-keys.ts's BUILD_KEY_PATTERN (a test pins them equal).
+export const DECK_PLAN_TARGET_KINDS=['local','corpus','slide','crc','birddog','obs','empty','dropped'] as const;
+export const PLAN_BUILD_KEY=/^[a-z0-9][a-z0-9._:-]{0,119}$/;
+export const DECK_PLAN_ROW=z.object({
+ page:page,row,col:column,
+ label:z.string().max(80).describe('The key\'s text. Empty on a camera or OBS key (kept as it is).'),
+ bg:z.string().max(16).describe('Background colour as #rrggbb. Empty leaves the role colour.'),
+ targetKind:z.enum(DECK_PLAN_TARGET_KINDS).describe('local, corpus, slide or crc: a graphic, targetKey naming its build key. birddog or obs: the camera or OBS key already on the deck there, kept as it is. empty: the cell ends empty. dropped: not placed.'),
+ targetKey:z.string().max(400).nullable().optional().describe('The graphic\'s build key (the key batch_create_drafts recorded), or a device key\'s actions (Birddog:zoom:in).'),
+ panelIndex:z.number().int().min(0).max(47).nullable().optional().describe('For a multipart set, which part (0 is the first). Default 0.'),
+ notes:z.string().max(4000).optional(),
+ pageName:pageName.optional().describe('Rename the page (or name a page the plan creates). Left out, the page keeps its name.'),
+}).strict();
 const button=z.discriminatedUnion('kind',[
  z.object({kind:z.literal('cue'),cueId,label:label.optional().describe('Defaults to the cue\'s catalog name.'),role:role.optional().describe('Default single.')}).strict(),
  z.object({kind:z.literal('jump'),text,page}).strict(),
@@ -50,6 +64,14 @@ export const deckToolSchemas={
  check_service_on_deck:z.object({serviceId:z.string().min(1).max(80).describe('The prepared service, as list_services returns it.')}).strict(),
  validate_deck:z.object({}).strict(),
  export_deck_config:z.object({scope:z.literal('full').optional().describe('full (default): the whole deck, for a full import.'),expectedVersion:expectedVersion.optional().describe('Refuse unless the deck is still at this version.')}).strict(),
+ // G6 (TBI redo) - a whole deck plan in one call (lib/companion-deck/deck-plan.ts).
+ apply_deck_plan:z.object({
+  importId:z.string().regex(/^import_[a-f0-9]{32}$/).optional().describe('A deck-plan import from open_import_dropzone: the CSV (page,row,col,label,bg,targetKind,targetKey,panelIndex,notes) or a JSON array of the same rows. Give importId or rows, not both.'),
+  rows:z.array(DECK_PLAN_ROW).min(1).max(400).optional().describe('The plan inline, one object per button with the CSV\'s columns.'),
+  expectedVersion:expectedVersion.optional().describe('Required when dryRun is false.'),
+  dryRun:z.boolean().optional().describe('Default true: return the full change plan, every finding and the validator\'s findings on the would-be deck, and save nothing.'),
+  targets:z.record(z.string().regex(PLAN_BUILD_KEY),z.union([cueId,z.array(cueId).min(1).max(48)])).optional().describe('Override or extend how build keys resolve: key -> cue id, or key -> [cue ids by panel, first panel first]. Every cue named must be published.'),
+ }).strict(),
 } satisfies Record<string,z.ZodObject>;
 
 export type DeckToolName=keyof typeof deckToolSchemas;
