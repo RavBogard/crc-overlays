@@ -677,6 +677,589 @@
   }
  },
  {
+  "name": "batch_create_drafts",
+  "description": "Make up to 50 unpublished drafts from a build plan in one call. Each item has your own stable key and a type: source (sourceId or sourceKey, with blockIds or a local source's block positions as blocks), set (the same source, with panels [{blockIds} or {blocks}], one graphic per panel, stored as one ordered set), slide (custom text, with an optional imageAssetId beside it) or customize_shared (cueId or setId from list_shared_library). Each is made as create_draft or customize_shared_batch would make it, house defaults included unless applyDefaults is false. Idempotent by key: a key that already made a live draft or set answers exists with its ids, and nothing is made. Dry run by default: every item is checked and nothing is written. Per-item results say created, exists, would-create or refused with the reason; one refusal never stops the rest. The result carries batchShip, the batch_ship input naming every draft made or found. Publishes nothing.",
+  "inputSchema": {
+   "type": "object",
+   "$schema": "https://json-schema.org/draft/2020-12/schema",
+   "properties": {
+    "items": {
+     "minItems": 1,
+     "maxItems": 500,
+     "type": "array",
+     "items": {
+      "oneOf": [
+       {
+        "type": "object",
+        "properties": {
+         "type": {
+          "type": "string",
+          "const": "source"
+         },
+         "key": {
+          "type": "string",
+          "pattern": "^[a-z0-9][a-z0-9._:-]{0,119}$",
+          "description": "Your stable name for this item. Run the same plan again and an item whose key already made a live draft or set is reported as exists, and nothing is made."
+         },
+         "name": {
+          "description": "The graphic's name in the library. Default: the title.",
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 80
+         },
+         "title": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 100,
+          "description": "The on-screen title."
+         },
+         "accentTitle": {
+          "type": "string",
+          "maxLength": 60
+         },
+         "layout": {
+          "type": "string",
+          "enum": [
+           "left",
+           "bottom",
+           "right",
+           "corner"
+          ]
+         },
+         "templateCueId": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 80,
+          "description": "A baseline template id from list_templates. Leave it out to use the layout's default look; it contributes motion and timing only."
+         },
+         "textSize": {
+          "type": "string",
+          "enum": [
+           "comfortable",
+           "large",
+           "compact"
+          ],
+          "description": "A named text size: comfortable is the template's own sizes, large is 42/35/34 and compact 34/28/28 (Hebrew/transliteration/title). Explicit font sizes in presentation win."
+         },
+         "presentation": {
+          "type": "object",
+          "properties": {
+           "hebrewFontSize": {
+            "type": "integer",
+            "minimum": 24,
+            "maximum": 52
+           },
+           "transliterationFontSize": {
+            "type": "integer",
+            "minimum": 20,
+            "maximum": 48
+           },
+           "titleFontSize": {
+            "type": "integer",
+            "minimum": 20,
+            "maximum": 42
+           },
+           "alignment": {
+            "type": "string",
+            "enum": [
+             "start",
+             "center"
+            ]
+           },
+           "lineSpacing": {
+            "type": "string",
+            "enum": [
+             "compact",
+             "spacious"
+            ]
+           },
+           "latinLineBreaks": {
+            "type": "string",
+            "enum": [
+             "preserve",
+             "paragraphs",
+             "phrases"
+            ]
+           },
+           "imageAssetId": {
+            "type": "string",
+            "pattern": "^asset_[a-f0-9]{64}$"
+           }
+          },
+          "additionalProperties": false
+         },
+         "applyDefaults": {
+          "type": "boolean"
+         },
+         "sourceId": {
+          "description": "A corpus source id, or a local: id.",
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 200
+         },
+         "sourceKey": {
+          "description": "The key import_local_sources recorded for a local source, in place of sourceId.",
+          "type": "string",
+          "pattern": "^[a-z0-9][a-z0-9._:-]{0,119}$"
+         },
+         "mode": {
+          "description": "Default: bilingual when every selected block pairs Hebrew and transliteration, original-en when every one is English.",
+          "type": "string",
+          "enum": [
+           "bilingual",
+           "original-en",
+           "source-en"
+          ]
+         },
+         "includeTranslation": {
+          "type": "boolean"
+         },
+         "arrangement": {
+          "type": "string",
+          "enum": [
+           "together",
+           "blocks"
+          ]
+         },
+         "rowOrder": {
+          "minItems": 3,
+          "maxItems": 3,
+          "type": "array",
+          "items": {
+           "type": "string",
+           "enum": [
+            "he",
+            "tr",
+            "en"
+           ]
+          },
+          "description": "Order the Hebrew (he), transliteration (tr) and translation (en) layers stack in on a left or right panel, in both arrangements. Default he, tr, en, which is stored as absent; a lower third ignores it."
+         },
+         "blockIds": {
+          "minItems": 1,
+          "maxItems": 48,
+          "type": "array",
+          "items": {
+           "type": "string",
+           "minLength": 1,
+           "maxLength": 220
+          },
+          "description": "Block ids from search_sources (includeBlocks:true) or get_source, in order."
+         },
+         "blocks": {
+          "minItems": 1,
+          "maxItems": 48,
+          "type": "array",
+          "items": {
+           "type": "integer",
+           "minimum": 0,
+           "maximum": 47
+          },
+          "description": "A local source's block positions (0 is its first block, as import_local_sources entered them), in order. They resolve to that source's block ids."
+         }
+        },
+        "required": [
+         "type",
+         "key",
+         "title",
+         "layout"
+        ],
+        "additionalProperties": false
+       },
+       {
+        "type": "object",
+        "properties": {
+         "type": {
+          "type": "string",
+          "const": "set"
+         },
+         "key": {
+          "type": "string",
+          "pattern": "^[a-z0-9][a-z0-9._:-]{0,119}$",
+          "description": "Your stable name for this item. Run the same plan again and an item whose key already made a live draft or set is reported as exists, and nothing is made."
+         },
+         "name": {
+          "description": "The graphic's name in the library. Default: the title.",
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 80
+         },
+         "title": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 100,
+          "description": "The on-screen title."
+         },
+         "accentTitle": {
+          "type": "string",
+          "maxLength": 60
+         },
+         "layout": {
+          "type": "string",
+          "enum": [
+           "left",
+           "bottom",
+           "right",
+           "corner"
+          ]
+         },
+         "templateCueId": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 80,
+          "description": "A baseline template id from list_templates. Leave it out to use the layout's default look; it contributes motion and timing only."
+         },
+         "textSize": {
+          "type": "string",
+          "enum": [
+           "comfortable",
+           "large",
+           "compact"
+          ],
+          "description": "A named text size: comfortable is the template's own sizes, large is 42/35/34 and compact 34/28/28 (Hebrew/transliteration/title). Explicit font sizes in presentation win."
+         },
+         "presentation": {
+          "type": "object",
+          "properties": {
+           "hebrewFontSize": {
+            "type": "integer",
+            "minimum": 24,
+            "maximum": 52
+           },
+           "transliterationFontSize": {
+            "type": "integer",
+            "minimum": 20,
+            "maximum": 48
+           },
+           "titleFontSize": {
+            "type": "integer",
+            "minimum": 20,
+            "maximum": 42
+           },
+           "alignment": {
+            "type": "string",
+            "enum": [
+             "start",
+             "center"
+            ]
+           },
+           "lineSpacing": {
+            "type": "string",
+            "enum": [
+             "compact",
+             "spacious"
+            ]
+           },
+           "latinLineBreaks": {
+            "type": "string",
+            "enum": [
+             "preserve",
+             "paragraphs",
+             "phrases"
+            ]
+           },
+           "imageAssetId": {
+            "type": "string",
+            "pattern": "^asset_[a-f0-9]{64}$"
+           }
+          },
+          "additionalProperties": false
+         },
+         "applyDefaults": {
+          "type": "boolean"
+         },
+         "sourceId": {
+          "description": "A corpus source id, or a local: id.",
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 200
+         },
+         "sourceKey": {
+          "description": "The key import_local_sources recorded for a local source, in place of sourceId.",
+          "type": "string",
+          "pattern": "^[a-z0-9][a-z0-9._:-]{0,119}$"
+         },
+         "mode": {
+          "description": "Default: bilingual when every selected block pairs Hebrew and transliteration, original-en when every one is English.",
+          "type": "string",
+          "enum": [
+           "bilingual",
+           "original-en",
+           "source-en"
+          ]
+         },
+         "includeTranslation": {
+          "type": "boolean"
+         },
+         "arrangement": {
+          "type": "string",
+          "enum": [
+           "together",
+           "blocks"
+          ]
+         },
+         "rowOrder": {
+          "minItems": 3,
+          "maxItems": 3,
+          "type": "array",
+          "items": {
+           "type": "string",
+           "enum": [
+            "he",
+            "tr",
+            "en"
+           ]
+          },
+          "description": "Order the Hebrew (he), transliteration (tr) and translation (en) layers stack in on a left or right panel, in both arrangements. Default he, tr, en, which is stored as absent; a lower third ignores it."
+         },
+         "panels": {
+          "minItems": 1,
+          "maxItems": 48,
+          "type": "array",
+          "items": {
+           "type": "object",
+           "properties": {
+            "blockIds": {
+             "minItems": 1,
+             "maxItems": 48,
+             "type": "array",
+             "items": {
+              "type": "string",
+              "minLength": 1,
+              "maxLength": 220
+             },
+             "description": "Block ids from search_sources (includeBlocks:true) or get_source, in order."
+            },
+            "blocks": {
+             "minItems": 1,
+             "maxItems": 48,
+             "type": "array",
+             "items": {
+              "type": "integer",
+              "minimum": 0,
+              "maximum": 47
+             },
+             "description": "A local source's block positions (0 is its first block, as import_local_sources entered them), in order. They resolve to that source's block ids."
+            }
+           },
+           "additionalProperties": false
+          },
+          "description": "One graphic per panel, in order, each {blockIds} or {blocks}."
+         }
+        },
+        "required": [
+         "type",
+         "key",
+         "title",
+         "layout",
+         "panels"
+        ],
+        "additionalProperties": false
+       },
+       {
+        "type": "object",
+        "properties": {
+         "type": {
+          "type": "string",
+          "const": "slide"
+         },
+         "key": {
+          "type": "string",
+          "pattern": "^[a-z0-9][a-z0-9._:-]{0,119}$",
+          "description": "Your stable name for this item. Run the same plan again and an item whose key already made a live draft or set is reported as exists, and nothing is made."
+         },
+         "name": {
+          "description": "The graphic's name in the library. Default: the title.",
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 80
+         },
+         "title": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 100,
+          "description": "The on-screen title."
+         },
+         "accentTitle": {
+          "type": "string",
+          "maxLength": 60
+         },
+         "layout": {
+          "type": "string",
+          "enum": [
+           "left",
+           "bottom",
+           "right",
+           "corner"
+          ]
+         },
+         "templateCueId": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 80,
+          "description": "A baseline template id from list_templates. Leave it out to use the layout's default look; it contributes motion and timing only."
+         },
+         "textSize": {
+          "type": "string",
+          "enum": [
+           "comfortable",
+           "large",
+           "compact"
+          ],
+          "description": "A named text size: comfortable is the template's own sizes, large is 42/35/34 and compact 34/28/28 (Hebrew/transliteration/title). Explicit font sizes in presentation win."
+         },
+         "presentation": {
+          "type": "object",
+          "properties": {
+           "hebrewFontSize": {
+            "type": "integer",
+            "minimum": 24,
+            "maximum": 52
+           },
+           "transliterationFontSize": {
+            "type": "integer",
+            "minimum": 20,
+            "maximum": 48
+           },
+           "titleFontSize": {
+            "type": "integer",
+            "minimum": 20,
+            "maximum": 42
+           },
+           "alignment": {
+            "type": "string",
+            "enum": [
+             "start",
+             "center"
+            ]
+           },
+           "lineSpacing": {
+            "type": "string",
+            "enum": [
+             "compact",
+             "spacious"
+            ]
+           },
+           "latinLineBreaks": {
+            "type": "string",
+            "enum": [
+             "preserve",
+             "paragraphs",
+             "phrases"
+            ]
+           },
+           "imageAssetId": {
+            "type": "string",
+            "pattern": "^asset_[a-f0-9]{64}$"
+           }
+          },
+          "additionalProperties": false
+         },
+         "applyDefaults": {
+          "type": "boolean"
+         },
+         "text": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 4000
+         },
+         "imageAssetId": {
+          "description": "An asset from upload_asset, shown beside the text.",
+          "type": "string",
+          "pattern": "^asset_[a-f0-9]{64}$"
+         }
+        },
+        "required": [
+         "type",
+         "key",
+         "title",
+         "layout",
+         "text"
+        ],
+        "additionalProperties": false
+       },
+       {
+        "type": "object",
+        "properties": {
+         "type": {
+          "type": "string",
+          "const": "customize_shared"
+         },
+         "key": {
+          "type": "string",
+          "pattern": "^[a-z0-9][a-z0-9._:-]{0,119}$",
+          "description": "Your stable name for this item. Run the same plan again and an item whose key already made a live draft or set is reported as exists, and nothing is made."
+         },
+         "cueId": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 200
+         },
+         "setId": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 200
+         },
+         "expectedCueHash": {
+          "type": "string",
+          "pattern": "^[a-f0-9]{64}$"
+         },
+         "expectedCueHashes": {
+          "type": "object",
+          "propertyNames": {
+           "type": "string",
+           "minLength": 1,
+           "maxLength": 160
+          },
+          "additionalProperties": {
+           "type": "string",
+           "pattern": "^[a-f0-9]{64}$"
+          }
+         },
+         "name": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 80
+         },
+         "applyDefaults": {
+          "type": "boolean"
+         }
+        },
+        "required": [
+         "type",
+         "key"
+        ],
+        "additionalProperties": false
+       }
+      ]
+     },
+     "description": "At most 50 items per call."
+    },
+    "applyDefaults": {
+     "type": "boolean"
+    },
+    "dryRun": {
+     "description": "Default true: check every item and change nothing. Pass false to create.",
+     "type": "boolean"
+    },
+    "workspace": {
+     "type": "string",
+     "minLength": 1,
+     "maxLength": 80,
+     "description": "Which congregation this call is for. This connection serves 'crc' (CRC) only."
+    }
+   },
+   "required": [
+    "items",
+    "workspace"
+   ]
+  },
+  "annotations": {
+   "readOnlyHint": false,
+   "idempotentHint": true
+  }
+ },
+ {
   "name": "batch_ship",
   "description": "Publish many drafts: one ship_draft per item (server fit check, approval, publish), each item with its own expectedVersion. Dry run by default: checks each item (version, validation, name clash) without opening a browser. With dryRun:false it ships items until about 40 seconds have passed, then returns nextCursor: call again with the same items and that cursor to continue. Per-item results say shipped, stopped (stoppedAt and why, nothing published), failed, or already_published (skipped, so repeating a call is safe). Frames are not returned; use ship_draft for one graphic with its image. Publishes to the catalog; puts nothing on screen.",
   "inputSchema": {
