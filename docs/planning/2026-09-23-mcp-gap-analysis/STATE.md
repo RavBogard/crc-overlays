@@ -59,6 +59,24 @@ prerequisites.
   one test updated — proceeded because it is an error sentence, not product copy.
 - P2 touches lib/player.ts (adds an inert `data-contain` attribute); it rides the next paired web release.
 - Next: open the tracks with A1, L1, S1, V1, C1 as the first packet of each.
+- L1 (card primitive, Corner first) done on its worktree branch. `CardDefinition` / `CORNER_CARD` and
+  `cardStyle()` in lib/layout-registry.ts; the Player sets `data-card` and the `--card-*` properties; one
+  flat `.overlay[data-card]` block replaces the `.corner` rules; `applyFit` dispatches card layouts by
+  `fit.strategy` (`shrink-to-floor`); preview.ts reads fill/sparse/height ceiling from the definition for
+  cards. Golden stills (scripts/corner-golden-stills.mjs, baseline tests/fixtures/corner-golden-stills/crc.json
+  captured at e35693f): 16 corner cases pixel- and part-dump-identical after, on the dev server and on a
+  webpack production build; a 1 px definition change fails all 16. Rides the next paired web release.
+- GATE: the corner card gains no fill ratio (`fit.fill: null`, `heightCeiling: null`) — proceeded because
+  panelFillRatio returned null for corner before, so no warning or verdict changes; a card that defines
+  them is measured against its own.
+- GATE: the corner's Hebrew accent title still packs to the left of its 220 px lane (`justify-content:
+  flex-end` under `direction:rtl`, the bug class the lower third fixed) — kept because L1 must be
+  pixel-identical; fixing it is a visible change for Daniel to approve.
+- GATE: `npm run build` (Turbopack) refuses a worktree whose node_modules is a junction; the worker ran
+  `next build --webpack` and the golden stills on it — proceeded because the Turbopack build is re-run at
+  integration on the main checkout.
+- GATE: TBI stills not captured (TBI's workspace profile lives in env files the worker may not read) —
+  proceeded because corner geometry does not depend on branding; colours only change `--crc-*` values.
 
 ## Evidence
 Four read-only audits (MCP surface, layouts/renderer, Companion, live/services/access) plus a

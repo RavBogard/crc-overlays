@@ -5,6 +5,8 @@ import {fileURLToPath} from 'node:url';
 import baseline from '../lib/cues.json';
 import {layoutLabel,templateLayoutFor} from '../lib/layout-label.ts';
 import {Player,CORNER_FONT_FLOOR,type Cue} from '../lib/player.ts';
+import {CORNER_CARD,cardStyle,cardTextAlign,layoutDefinition,registerLayout,unregisterLayout} from '../lib/layout-registry.ts';
+import {findFitErrors,findFitWarnings,panelFillRatio} from '../app/author/preview.ts';
 import {RESTING_LOGO_RECT} from '../lib/resting-logo.ts';
 import {BUG_RESERVED_RECT} from '../lib/bug-layer.ts';
 import {CUSTOM_TEMPLATES} from '../lib/custom-templates.ts';
@@ -22,68 +24,115 @@ const leftTemplate=cues.find(cue=>cue.layout==='left'&&!cue.hidden)!;
 
 /* ------------------------------------------------------------ geometry --- */
 
-const css=readFileSync(fileURLToPath(new URL('../app/overlay.css',import.meta.url)),'utf8');
-/** The px declarations of the last rule whose selector list is exactly `selector`. */
-const rule=(selector:string)=>{
- const escaped=selector.replace(/[.*+?^${}()|[\]\\]/g,'\\$&');
- const body=[...css.matchAll(new RegExp(`(?:^|\\})\\s*${escaped}\\{([^}]*)\\}`,'g'))].at(-1)?.[1];
- assert.ok(body,`app/overlay.css declares ${selector}`);
- return (name:string)=>{const value=body!.match(new RegExp(`(?:^|;)${name}:(-?\\d+)px`))?.[1];assert.ok(value!==undefined,`${selector} sets ${name}`);return Number(value)};
-};
-/** A right/bottom-anchored box as frame coordinates. */
-const rect=(selector:string,height?:number)=>{const r=rule(selector);const h=height??r('height');return {left:1920-r('right')-r('width'),right:1920-r('right'),top:1080-r('bottom')-h,bottom:1080-r('bottom')}};
+// The corner card is drawn from its definition (CORNER_CARD in lib/layout-registry.ts): the Player
+// sets the custom properties cardStyle() derives, and the generic `.overlay[data-card]` block in
+// app/overlay.css reads them. Geometry is asserted on those properties - the values the CSS
+// actually receives - converted back to frame coordinates.
+const card=layoutDefinition('corner')!.card!;
+const style=cardStyle(card);
 type Rect={left:number;right:number;top:number;bottom:number};
+const px=(name:string)=>{const value=style[name];assert.ok(value!==undefined&&/^\d+px$/.test(value),`cardStyle sets ${name}`);return Number(value.slice(0,-2))};
+const across=(part:string)=>{const width=px(`--card-${part}-width`),right=px(`--card-${part}-right`);return {left:1920-right-width,right:1920-right}};
+const down=(part:string)=>{const height=px(`--card-${part}-height`),bottom=px(`--card-${part}-bottom`);return {top:1080-bottom-height,bottom:1080-bottom}};
+/** A part placed on both axes, or a body channel (the body's x, the channel's y). */
+const rect=(part:string,vertical=part):Rect=>({...across(part),...down(vertical)});
 const inside=(inner:Rect,outer:Rect)=>inner.left>=outer.left&&inner.right<=outer.right&&inner.top>=outer.top&&inner.bottom<=outer.bottom;
 
+test('the corner layout is a card anchored bottom-right, and only the corner is',()=>{
+ assert.equal(card,CORNER_CARD);
+ assert.equal(card.frame.anchor,'bottom-right');
+ for(const layout of ['bottom','left','right'])assert.equal(layoutDefinition(layout)?.card,undefined,`${layout} stays built-in layered CSS (ruling 7)`);
+});
+
 test('the corner card sits flush in the bottom-right corner at the logo and scan-card inset',()=>{
- const card=rect('.corner .base');
- assert.deepEqual(card,{left:1232,right:1872,top:832,bottom:1032});
- assert.equal(card.right,RESTING_LOGO_RECT.right,'same right inset as the resting logo');
- assert.equal(card.bottom,RESTING_LOGO_RECT.bottom,'same bottom inset as the resting logo');
- assert.equal(card.right,BUG_RESERVED_RECT.right);
- assert.equal(card.bottom,BUG_RESERVED_RECT.bottom);
- assert.ok(inside(card,{left:0,top:0,right:1920,bottom:1080}),'inside the 1920x1080 frame');
+ const base=rect('base');
+ assert.deepEqual(base,{left:1232,right:1872,top:832,bottom:1032});
+ assert.equal(base.right,RESTING_LOGO_RECT.right,'same right inset as the resting logo');
+ assert.equal(base.bottom,RESTING_LOGO_RECT.bottom,'same bottom inset as the resting logo');
+ assert.equal(base.right,BUG_RESERVED_RECT.right);
+ assert.equal(base.bottom,BUG_RESERVED_RECT.bottom);
+ assert.ok(inside(base,{left:0,top:0,right:1920,bottom:1080}),'inside the 1920x1080 frame');
 });
 
 test('every corner part and text box lies inside the card',()=>{
- const card=rect('.corner .base');
- const titlebar=rect('.corner .titlebar');
- for(const selector of ['.corner .titlebar','.corner .accent','.corner .logo','.corner .title']){
-  assert.ok(inside(rect(selector),card),`${selector} is inside the card`);
+ const base=rect('base'),strip=rect('strip'),logo=rect('logo'),title=rect('title');
+ assert.deepEqual(strip,{left:1232,right:1872,top:832,bottom:888},'the title strip is the top 56px');
+ assert.deepEqual(rect('rule'),{left:1232,right:1872,top:1026,bottom:1032},'the accent rule is the bottom 6px');
+ for(const [name,box] of [['strip',strip],['rule',rect('rule')],['logo',logo],['title',title]] as const)assert.ok(inside(box,base),`${name} is inside the card`);
+ const hebrew=rect('body','hebrew'),latin=rect('body','latin'),single=rect('body','single');
+ assert.deepEqual(single,{left:1264,right:1848,top:898,bottom:1018},'the body');
+ for(const [name,box] of [['hebrew',hebrew],['latin',latin],['single',single]] as const){
+  assert.ok(inside(box,base),`${name} is inside the card`);
+  assert.ok(box.top>=strip.bottom,`${name} is below the title strip`);
  }
- // The body boxes take their width and right edge from `.corner .prayer`.
- const prayer=rule('.corner .prayer');
- const body=(selector:string)=>{const r=rule(selector);return {left:1920-prayer('right')-prayer('width'),right:1920-prayer('right'),top:1080-r('bottom')-r('height'),bottom:1080-r('bottom')}};
- const hebrew=body('.corner .hebrew'),english=body('.corner .english,.corner .translation'),single=body('.corner .single-channel');
- for(const [name,box] of [['hebrew',hebrew],['english',english],['single',single]] as const){
-  assert.ok(inside(box,card),`${name} is inside the card`);
-  assert.ok(box.top>=titlebar.bottom,`${name} is below the title strip`);
- }
- assert.ok(hebrew.bottom<=english.top,'Hebrew stacks above its transliteration without overlapping');
- assert.ok(inside(rect('.corner .logo'),titlebar),'the logo sits in the title strip');
- const title=rect('.corner .title');
- assert.ok(title.right<=rect('.corner .logo').left,'the title ends before the logo');
+ assert.ok(hebrew.bottom<=latin.top,'Hebrew stacks above its transliteration without overlapping');
+ assert.ok(inside(logo,strip),'the logo sits in the title strip');
+ assert.ok(title.right<=logo.left,'the title ends before the logo');
+ // With an accent title the accent takes the lane's far end and the title stops short of it.
+ const accent={...across('accent'),...down('title')},shared={...across('title-shared'),...down('title')};
+ assert.equal(accent.right,title.right);
+ assert.equal(accent.left-shared.right,card.title.accentGap);
+ assert.equal(shared.left,title.left);
 });
 
-test('the corner card sets Hebrew RTL and right-aligned, its transliteration left-aligned',()=>{
- assert.match(css,/\.corner \.hebrew\{[^}]*direction:rtl;text-align:right\}/);
- assert.match(css,/\.corner \.english,\.corner \.translation\{[^}]*text-align:left\}/);
- assert.match(css,/\.corner \.single-channel\{[^}]*text-align:start\}/,'a lone channel aligns each line to its own direction');
- assert.match(css,/\.corner::before,\.corner::after\{display:none\}/,'no decorative circles');
- assert.match(css,/\.corner \.base\{[^}]*transform-origin:right center\}/,'the card scales in from its right edge');
+test('the corner card sets Hebrew RTL and right-aligned, its transliteration left-aligned, a lone channel natural',()=>{
+ assert.equal(style['--card-hebrew-direction'],'rtl');
+ assert.equal(style['--card-hebrew-align'],'right');
+ assert.equal(style['--card-latin-direction'],undefined,'the transliteration inherits the overlay direction');
+ assert.equal(style['--card-latin-align'],'left');
+ assert.equal(style['--card-single-align'],'start','a lone channel aligns each line to its own direction');
+ assert.equal(style['--card-origin'],'right center','the card scales in from its right edge');
+});
+
+test('logical alignment resolves against the channel direction, never the line content',()=>{
+ assert.equal(cardTextAlign({align:'start',direction:'rtl'}),'right');
+ assert.equal(cardTextAlign({align:'end',direction:'rtl'}),'left');
+ assert.equal(cardTextAlign({align:'start'}),'left');
+ assert.equal(cardTextAlign({align:'end',direction:'ltr'}),'right');
+ assert.equal(cardTextAlign({align:'natural',direction:'rtl'}),'start');
+});
+
+test('a card anchored top-left is placed from the left and top edges',()=>{
+ const topLeft=cardStyle({...CORNER_CARD,frame:{...CORNER_CARD.frame,anchor:'top-left'}});
+ assert.equal(topLeft['--card-base-left'],'48px');
+ assert.equal(topLeft['--card-base-top'],'48px');
+ assert.equal(topLeft['--card-logo-left'],`${48+CORNER_CARD.logo.x}px`);
+ assert.equal(topLeft['--card-hebrew-top'],`${48+CORNER_CARD.body.hebrew.y}px`);
+ assert.equal(topLeft['--card-origin'],'left center');
+ assert.ok(!Object.keys(topLeft).some(name=>name.endsWith('-right')||name.endsWith('-bottom')),'the far edges stay auto');
+});
+
+const css=readFileSync(fileURLToPath(new URL('../app/overlay.css',import.meta.url)),'utf8');
+test('the generic card block reads every property cardStyle sets, and each one it reads is set or edge-defaulted',()=>{
+ const block=css.slice(css.indexOf('.overlay[data-card]::before'));
+ const read=new Set([...block.matchAll(/var\((--card-[a-z-]+)/g)].map(match=>match[1]));
+ for(const name of Object.keys(style))assert.ok(read.has(name),`app/overlay.css reads ${name}`);
+ for(const name of read){
+  const edge=/-(left|right|top|bottom)$/.test(name);
+  assert.ok(name in style||edge||name==='--card-latin-direction',`${name} is set by cardStyle or falls back to auto`);
+  if(edge)assert.match(block,new RegExp(`var\\(${name},auto\\)`),`${name} falls back to auto`);
+ }
+ assert.match(block,/^\.overlay\[data-card\]::before,\.overlay\[data-card\]::after\{display:none\}/,'no decorative circles');
+ assert.doesNotMatch(css,/\.corner[ .:{]/,'no rule is keyed to the corner class any more');
+ // A lone channel is also .hebrew or .english: its rule comes after theirs and sets no direction.
+ const single=block.indexOf('.overlay[data-card] .single-channel{');
+ assert.ok(single>block.indexOf('.overlay[data-card] .hebrew{')&&single>block.indexOf('.overlay[data-card] .english,'));
+ assert.doesNotMatch(block.slice(single).split('}')[0],/direction/);
 });
 
 /* ------------------------------------------------------------ renderer --- */
 
 // Just enough DOM for Player.render and applyFit: class lists, text, style and a crude text
 // metric (0.55em per character, wrapping at the box width) so the corner fit can be exercised.
-const BOX:Record<string,{width:number;height:number}>={title:{width:532,height:48},hebrew:{width:584,height:58},english:{width:584,height:56},'single-channel':{width:584,height:120}};
+// The boxes and base sizes are the definition's: what the card CSS computes from cardStyle().
+const {title:TITLE,body:BODY}=CORNER_CARD;
+const BOX:Record<string,{width:number;height:number}>={title:{width:TITLE.width,height:TITLE.height},hebrew:{width:BODY.width,height:BODY.hebrew.height},english:{width:BODY.width,height:BODY.latin.height},'single-channel':{width:BODY.width,height:BODY.single.height}};
 class FakeElement{
  tagName:string;className='';dataset:Record<string,string>={};textContent='';children:FakeElement[]=[];src='';alt='';
  style:{fontSize:string;visibility?:string;properties:Record<string,string>;setProperty(name:string,value:string):void}={fontSize:'',properties:{},setProperty(name,value){this.properties[name]=value}};
  constructor(tag:string){this.tagName=tag}
  get classes(){return this.className.split(/\s+/).filter(Boolean)}
- get base(){return this.classes.includes('title')?28:this.classes.includes('hebrew')?40:this.classes.includes('single-channel')?36:32}
+ get base(){return this.classes.includes('title')?TITLE.fontSize:this.classes.includes('single-channel')?BODY.single.fontSize:this.classes.includes('hebrew')?BODY.hebrew.fontSize:BODY.latin.fontSize}
  get font(){return this.style.fontSize?parseFloat(this.style.fontSize):this.base}
  get metrics(){const key=['single-channel','title','hebrew','english'].find(name=>this.classes.includes(name));return key?BOX[key]:{width:1920,height:1080}}
  get clientWidth(){return this.metrics.width}
@@ -114,13 +163,15 @@ test('the renderer draws a corner cue as .overlay.corner with the shared parts',
  assert.equal(box.className,'overlay corner');
  assert.deepEqual(box.children.map(child=>child.dataset.element),['baseMain','baseTitle','baseTitleGrad','accentLineBottom','textTitle','textMainEng','textMainheb','Image']);
  assert.equal(box.style.properties['--crc-blue'],box.style.properties['--crc-blue-deep'],'branding variables are set as for every layout');
+ assert.equal(box.dataset.card,'corner','drawn by the generic card block');
+ for(const [name,value] of Object.entries(cardStyle(CORNER_CARD)))assert.equal(box.style.properties[name],value,`the box carries ${name}`);
  assert.equal(box.dataset.fit,'fit');
  assert.equal(box.querySelector('.hebrew')!.style.fontSize,'','a short line keeps its designed size');
 });
 
 test('the renderer marks the layouts whose fit is held to their own card, and only those',()=>{
  // app/author/preview.ts finds the card through data-contain (lib/layout-registry.ts), not a list of layout classes.
- for(const layout of ['corner','left','right','bottom']){const cue={...cornerCue({textTitle:'Response',textMain:'Vaimru Amen'}),layout};const box=new Player(new FakeElement('div') as unknown as HTMLElement,[cue]).render(cue) as unknown as FakeElement;assert.equal('contain' in box.dataset,layout!=='bottom',layout)}
+ for(const layout of ['corner','left','right','bottom']){const cue={...cornerCue({textTitle:'Response',textMain:'Vaimru Amen'}),layout};const box=new Player(new FakeElement('div') as unknown as HTMLElement,[cue]).render(cue) as unknown as FakeElement;assert.equal('contain' in box.dataset,layout!=='bottom',layout);assert.equal('card' in box.dataset,layout==='corner',`${layout} card`)}
 });
 
 test('a corner line too long for its box shrinks to fit, and re-fits idempotently',()=>{
@@ -139,6 +190,58 @@ test('text that cannot fit even at the floor is reported as overflow',()=>{
  const {box}=renderCorner({textTitle:'Too long',textMain:'word '.repeat(200)});
  assert.equal(box.querySelector('.single-channel')!.font,CORNER_FONT_FLOOR);
  assert.equal(box.dataset.fit,'overflow');
+});
+
+test('the fit is dispatched by the definition\'s strategy, with its own floor',()=>{
+ assert.equal(CORNER_FONT_FLOOR,CORNER_CARD.fit.floor);
+ const id='fixture-card';
+ registerLayout({id,label:'Fixture card',templateLayout:'bottom',contained:true,capabilities:{sets:false,translation:false,oneBlockPerSlide:true},card:{...CORNER_CARD,fit:{...CORNER_CARD.fit,floor:30}}});
+ try{
+  const cue={...cornerCue({textTitle:'Too long',textMain:'word '.repeat(200)}),layout:id};
+  const box=new Player(new FakeElement('div') as unknown as HTMLElement,[cue]).render(cue) as unknown as FakeElement;
+  assert.equal(box.dataset.card,id);
+  assert.equal(box.querySelector('.single-channel')!.font,30,'a registered card shrinks to its own floor');
+  assert.equal(box.dataset.fit,'overflow');
+ }finally{unregisterLayout(id)}
+});
+
+/* --------------------------------------------------------- fit contract --- */
+
+// Just the DOM surface findFitErrors / panelFillRatio read: a card's base and one lone body box
+// whose text spans `textHeight` px, rendered with data-card set to `layout`.
+function cardRoot(layout:string,textHeight:number){
+ const base={getBoundingClientRect:()=>({left:1232,top:832,right:1872,bottom:1032,width:640,height:200})};
+ const box={left:1264,top:898,right:1848,bottom:1018,width:584,height:120};
+ const element={dataset:{element:'textMain'},textContent:'Thank you',classList:{contains:(name:string)=>name==='single-channel'},scrollWidth:584,clientWidth:584,scrollHeight:120,clientHeight:120,getBoundingClientRect:()=>box};
+ const overlay={dataset:{card:layout},classList:{contains:(name:string)=>name===layout}};
+ const createRange=()=>({selectNodeContents(){},getClientRects:()=>[{left:1264,top:930,right:1500,bottom:930+textHeight}]});
+ const previous=globals.document;globals.document={...(previous as object),createRange};
+ const root={ownerDocument:{createRange:()=>({selectNodeContents(){},getClientRects:()=>[]})},getBoundingClientRect:()=>({left:0,top:0,right:1920,bottom:1080,width:1920,height:1080}),
+  querySelector:(selector:string)=>selector==='.overlay'||selector==='.overlay[data-card]'?overlay:selector==='.overlay[data-contain] .base'||selector==='.overlay .base'?base:null,
+  querySelectorAll:(selector:string)=>selector==='.overlay .part, .overlay .content-row, .overlay .prayer'||selector==='.overlay .prayer'?[element]:[]} as unknown as HTMLElement;
+ return {root,restore:()=>{globals.document=previous}};
+}
+
+test('a corner card reports no fill ratio and is never warned sparse, as before',()=>{
+ assert.equal(CORNER_CARD.fit.fill,null);
+ assert.equal(CORNER_CARD.fit.heightCeiling,null);
+ const {root,restore}=cardRoot('corner',30);
+ try{
+  assert.equal(panelFillRatio(root),null);
+  assert.deepEqual(findFitWarnings(root),[]);
+  assert.deepEqual(findFitErrors(root),[]);
+ }finally{restore()}
+});
+
+test('a card that defines a fill and a height ceiling is measured against its own',()=>{
+ const id='fixture-sparse-card';
+ registerLayout({id,label:'Fixture',templateLayout:'bottom',contained:true,capabilities:{sets:false,translation:false,oneBlockPerSlide:true},card:{...CORNER_CARD,fit:{...CORNER_CARD.fit,fill:{denominator:120,sparseBelow:0.5},heightCeiling:180}}});
+ const {root,restore}=cardRoot(id,30);
+ try{
+  assert.equal(panelFillRatio(root),0.25);
+  assert.deepEqual(findFitWarnings(root),['Sparse — consider Lower third']);
+  assert.deepEqual(findFitErrors(root),['The card is 200px tall; limit is 180px.']);
+ }finally{restore();unregisterLayout(id)}
 });
 
 /* ----------------------------------------------------- authoring model --- */

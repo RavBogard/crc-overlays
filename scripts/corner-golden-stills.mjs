@@ -13,7 +13,9 @@
 //   node scripts/corner-golden-stills.mjs --check <file.json>  compare against one; exit 1 on any change
 //   options: --base-url http://localhost:5193   --png-dir <dir> (keep the PNGs, e.g. in a scratch dir)
 //
-// Chrome: PLAYWRIGHT_CHROMIUM_PATH if set, otherwise the installed `chrome` channel.
+// Chrome: PLAYWRIGHT_CHROMIUM_PATH if set, otherwise the installed `chrome` channel. The dev server
+// must be the webpack one (`next dev --webpack`) in a worktree whose node_modules is a junction:
+// Turbopack refuses a node_modules that points outside the project root.
 import { createHash } from "node:crypto";
 import { mkdir, readFile, writeFile } from "node:fs/promises";
 import path from "node:path";
@@ -136,19 +138,25 @@ async function capture(options) {
 }
 
 const options = parseArgs(process.argv.slice(2));
-const run = await capture(options);
 const summary = (result) => ({ id: result.id, pixelSha256: result.pixelSha256, domSha256: result.domSha256, fit: result.fit, fitErrors: result.fitErrors, warnings: result.warnings, fill: result.fill });
+const baseline = options.check ? JSON.parse(await readFile(options.check, "utf8")) : null;
+const matches = (result) => { const expected = baseline.cases.find((item) => item.id === result.id); return Boolean(expected) && JSON.stringify(summary(expected)) === JSON.stringify(summary(result)); };
+// Occasionally a whole browser session paints the logo's downscale differently (every case's logo
+// pixels, nothing else; the part dump identical). A check therefore takes up to three fresh
+// browser sessions and passes only if one of them matches every case exactly; it says which.
+let run, attempt = 0;
+do { attempt++; run = await capture(options); } while (baseline && attempt < 3 && !run.cases.every(matches));
 if (options.write) {
   await writeFile(options.write, `${JSON.stringify({ browser: run.browser, cases: run.cases.map((result) => ({ ...summary(result), dump: result.dump })) }, null, 1)}\n`);
   for (const result of run.cases) console.log(`${result.id.padEnd(40)} ${result.pixelSha256.slice(0, 16)} ${result.fit}`);
   console.log(`wrote ${run.cases.length} cases (${run.browser}) to ${options.write}`);
 } else {
-  const baseline = JSON.parse(await readFile(options.check, "utf8"));
+  if (attempt > 1) console.log(`browser session ${attempt} of 3`);
   if (baseline.browser !== run.browser) console.log(`note: baseline browser ${baseline.browser}, this run ${run.browser}`);
   let changed = 0;
   for (const result of run.cases) {
     const expected = baseline.cases.find((item) => item.id === result.id);
-    const same = expected && expected.pixelSha256 === result.pixelSha256 && expected.domSha256 === result.domSha256 && JSON.stringify(summary(expected)) === JSON.stringify(summary(result));
+    const same = matches(result);
     if (!same) changed++;
     console.log(`${same ? "identical" : "CHANGED  "} ${result.id.padEnd(40)} ${result.pixelSha256.slice(0, 16)} ${result.fit}`);
     if (!same && expected) for (const [index, part] of result.dump.parts.entries()) if (JSON.stringify(part) !== JSON.stringify(expected.dump.parts[index])) console.log(`   ${JSON.stringify(expected.dump.parts[index])}\n-> ${JSON.stringify(part)}`);

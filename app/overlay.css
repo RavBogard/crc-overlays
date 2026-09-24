@@ -249,29 +249,27 @@ only its translation is a single channel and takes the full block, as any single
 .bottom .title-accent{left:auto;right:50px;width:480px;direction:rtl;text-align:right;justify-content:flex-start}
 .bottom:not(:has(.title-accent)) .title:not(.title-accent){width:calc(1850px - 240px - var(--bottom-title-clearance))}
 
-/* Corner card - a small card flush in the bottom-right corner for a line or two ("Vaimru Amen",
-   "El Na Refa Na La", a one-line thank-you); it replaces the old Singular bottom-right pop-up.
-   It takes the same 48px inset as the resting logo (RESTING_LOGO_RECT) and the scan card
-   (BUG_RESERVED_RECT): the resting logo steps aside while any cue holds the stage, and the scan
-   card paints beneath the cue layer (docs/RENDERER.md), so the corner card covers it.
-   Card: right 48, bottom 48, 640 x 200, so x 1232..1872 and y 832..1032 of the 1920x1080 frame.
-   Title strip: the top 56px (y 832..888), the flat logo at its right end like the panels'.
-   Body: x 1264..1848, y 898..1018. Two channels stack Hebrew above its transliteration, the
-   Hebrew RTL and right-aligned, the transliteration left-aligned. A lone channel (custom text,
-   one English line) is centred vertically in the whole body, and each of its lines is aligned to
-   its own start - a Hebrew line right, a Latin line left - through .prayer's unicode-bidi:plaintext.
-   fitCornerText() (lib/player.ts) shrinks any line that does not fit its box. The bars scale in
-   from the card's right edge: a corner card borrows a lower third's template motion. */
-.corner::before,.corner::after{display:none}
-.corner .base{right:48px;bottom:48px;width:640px;height:200px;border-radius:18px;transform-origin:right center}
-.corner .titlebar{right:48px;bottom:192px;width:640px;height:56px;border-radius:18px 18px 0 0;transform-origin:right center}
-.corner .accent{right:48px;bottom:48px;width:640px;height:6px;border-radius:0 0 18px 18px;transform-origin:right center}
-.corner .logo{right:64px;bottom:198px;width:44px;height:44px;padding:0;border:0;box-shadow:none;filter:none;transform-origin:center;z-index:10}
-.corner .title{right:124px;bottom:196px;width:532px;height:48px;font-size:28px;line-height:1.1;overflow:hidden}
-.corner .title-accent{right:124px;width:220px;direction:rtl;text-align:right;justify-content:flex-end}
-.corner:has(.title-accent) .title:not(.title-accent){right:356px;width:300px}
-.corner .prayer{right:72px;width:584px;overflow:hidden}
-.corner .hebrew{bottom:124px;height:58px;font-size:40px;line-height:1.24;direction:rtl;text-align:right}
-.corner .english,.corner .translation{bottom:62px;height:56px;font-size:32px;line-height:1.24;text-align:left}
-.corner .single-channel{bottom:62px;height:120px;display:grid;align-content:center;font-size:36px;line-height:1.22;text-align:start}
-.overlay.corner .prayer.single-channel{font-family:WorkRefresh,Noto Sans Hebrew,Noto Sans Arabic,Arial,sans-serif}
+/* Cards - layouts drawn from a card definition (CardDefinition in lib/layout-registry.ts); the corner
+   card is the first. The Player marks the box data-card and sets the --card-* custom properties
+   cardStyle() derives from the definition: every part is placed from the frame edges the card is
+   anchored to (the other edge stays auto), and each body channel carries its own size, line height,
+   direction and physical alignment. This block is flat - one rule per part, read in this order: a
+   lone channel is also .hebrew or .english/.translation, so .single-channel comes after them and
+   keeps the direction its script's channel set. A lone channel is centred vertically in the whole
+   body, and each of its lines is aligned to its own start through .prayer's unicode-bidi:plaintext.
+   The fit strategy the definition names (lib/player.ts) shrinks any line that does not fit its box.
+   The bars scale in from the card's anchored edge (--card-origin): a corner card borrows a lower
+   third's template motion. The flat logo sits in the title strip like the panels'. */
+.overlay[data-card]::before,.overlay[data-card]::after{display:none}
+.overlay[data-card] .base{left:var(--card-base-left,auto);right:var(--card-base-right,auto);top:var(--card-base-top,auto);bottom:var(--card-base-bottom,auto);width:var(--card-base-width);height:var(--card-base-height);border-radius:var(--card-radius);transform-origin:var(--card-origin)}
+.overlay[data-card] .titlebar{left:var(--card-strip-left,auto);right:var(--card-strip-right,auto);top:var(--card-strip-top,auto);bottom:var(--card-strip-bottom,auto);width:var(--card-strip-width);height:var(--card-strip-height);border-radius:var(--card-radius) var(--card-radius) 0 0;transform-origin:var(--card-origin)}
+.overlay[data-card] .accent{left:var(--card-rule-left,auto);right:var(--card-rule-right,auto);top:var(--card-rule-top,auto);bottom:var(--card-rule-bottom,auto);width:var(--card-rule-width);height:var(--card-rule-height);border-radius:0 0 var(--card-radius) var(--card-radius);transform-origin:var(--card-origin)}
+.overlay[data-card] .logo{left:var(--card-logo-left,auto);right:var(--card-logo-right,auto);top:var(--card-logo-top,auto);bottom:var(--card-logo-bottom,auto);width:var(--card-logo-width);height:var(--card-logo-height);padding:0;border:0;box-shadow:none;filter:none;transform-origin:center;z-index:10}
+.overlay[data-card] .title{left:var(--card-title-left,auto);right:var(--card-title-right,auto);top:var(--card-title-top,auto);bottom:var(--card-title-bottom,auto);width:var(--card-title-width);height:var(--card-title-height);font-size:var(--card-title-font-size);line-height:var(--card-title-line-height);overflow:hidden}
+.overlay[data-card] .title-accent{left:var(--card-accent-left,auto);right:var(--card-accent-right,auto);width:var(--card-accent-width);direction:rtl;text-align:right;justify-content:flex-end}
+.overlay[data-card]:has(.title-accent) .title:not(.title-accent){left:var(--card-title-shared-left,auto);right:var(--card-title-shared-right,auto);width:var(--card-title-shared-width)}
+.overlay[data-card] .prayer{left:var(--card-body-left,auto);right:var(--card-body-right,auto);width:var(--card-body-width);overflow:hidden}
+.overlay[data-card] .hebrew{top:var(--card-hebrew-top,auto);bottom:var(--card-hebrew-bottom,auto);height:var(--card-hebrew-height);font-size:var(--card-hebrew-font-size);line-height:var(--card-hebrew-line-height);direction:var(--card-hebrew-direction);text-align:var(--card-hebrew-align)}
+.overlay[data-card] .english,.overlay[data-card] .translation{top:var(--card-latin-top,auto);bottom:var(--card-latin-bottom,auto);height:var(--card-latin-height);font-size:var(--card-latin-font-size);line-height:var(--card-latin-line-height);direction:var(--card-latin-direction);text-align:var(--card-latin-align)}
+.overlay[data-card] .single-channel{top:var(--card-single-top,auto);bottom:var(--card-single-bottom,auto);height:var(--card-single-height);display:grid;align-content:center;font-size:var(--card-single-font-size);line-height:var(--card-single-line-height);text-align:var(--card-single-align)}
+.overlay[data-card] .prayer.single-channel{font-family:WorkRefresh,Noto Sans Hebrew,Noto Sans Arabic,Arial,sans-serif}
