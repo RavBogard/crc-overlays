@@ -74,6 +74,13 @@ app/api/catalog/route.ts and lib/sync-live-catalog.ts; L2 and C5 add envelope-on
   writes them in setlist order. Gate after merge: tsc clean, npm test 907+38 pass, lint 0 errors.
 - GATE: S1 keeps entries[]/coverage[] as the stored truth the web edits and adds rows[] as the linking
   spine — proceeded because it keeps /services unchanged; S2 needs a raw rows parser and positioned inserts.
+- V1 merged (d9d3232): relay `outcome` applied|replayed|superseded (+`originalOutcome` on replays),
+  `ifRevision`/`ifCue` preconditions (409 with a sentence, writes nothing), `command_id` on cue-log rows,
+  `lastPress{control,companion,mcp}` on GET /state and command answers (HTTP only, not socket frames).
+  scripts/rehearsal-relay.ts kept in step. Relay tests 77 pass; root npm test 912+38 pass; lint 0 errors.
+  Needs the gated relay release before any web change depends on it (docs/RELAY-RELEASE.md).
+- GATE: a superseded press counts as a controller press for the V3 guard; relay/tests/history.test.ts
+  now expects `commandId:null` on old rows — proceeded because ruling 10 adds the key.
 
 ## Evidence
 Four read-only audits (MCP surface, layouts/renderer, Companion, live/services/access) plus a
