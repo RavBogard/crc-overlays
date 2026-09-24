@@ -264,11 +264,42 @@ app/api/catalog/route.ts and lib/sync-live-catalog.ts; L2 and C5 add envelope-on
 - Deck wiring (c73879f): deckSourceForDeployment gives T4's deck-page grouping and A5's retired_on_deck /
   supersede_cue the same deck get_deck reads (CRC seeded on first read; null where none is stored). A service
   over the in-memory authoring repository keeps its deck in memory. Gate: npm test 1126+35, lint 0 errors.
-- L3, L4, T3 launched as workers from f7d261b.
-- NEXT (resume here): merge L3, L4, T3 as they finish (snapshot regenerate + 3-way check each time; golden
-  stills after L3 and L4 on a Turbopack dev server). Then the consolidated browser pass (Retired label,
-  /author/publications, /author/review, /setup) and the headline acceptance receipt.
-- Owed: a real-browser check of the library's Retired label and Return button (A3 did a server render only).
+- Consolidated browser pass (rehearsal, Chrome, 2026-09-23): library Retired label + Return works (Published
+  24→25); /author/publications lists and rolls back; /setup whole-deck download refuses signed out (401) and, signed
+  in, refuses in a sentence because rehearsal's 29 graphics don't cover the ~235 the CRC deck binds (expected);
+  /author/review at laptop and 820 px tablet: decisions and notes round-trip to the agent, a republished item shows
+  "Updated since you looked" with the earlier answer. Bug found and fixed (ef6e8c1): an unpublished draft said
+  "This graphic is no longer in the library."; now "This graphic is not published yet." (wording for Daniel).
+- L3 merged (ef33dd7; merge 902f59a): 8 layout tools (list/get/create-by-clone/update/validate/preview/publish/
+  rebase_to_layout; lib/layout-tools.ts), createAuthoringService 9th param layoutRepo, editor/fit-stage previews
+  pass `layouts`. Acceptance test: an agent creates a top-right card layout and publishes a graphic in it, no code
+  change. Snapshot 121 = 3-way union. Conflict (lib/authoring.ts) kept both the layout dispatch and deck wiring.
+- L4 merged (31c7e54; merge 51fe8ff): workspace_branding (db/workspace-branding.sql, not applied), CSS variables
+  with the same literals as fallbacks (9 literals in app/overlay.css, no rule moved), get/preview/update_branding.
+  TBI accent reaches the medallion ring (real Chrome: CRC rgba(217,166,46,.9) unchanged, TBI rgba(229,92,94,.9)).
+  Conflicts: stage options/measureCueOnServer carry both `layouts` and `branding`; lib/mcp.ts returns layout and
+  branding frames. Snapshot 124 = 3-way union.
+- GATE (L4): small additive edits outside its list (workspace route, fit-stage page/client, server-fit, mcp.ts,
+  authoring dispatch) — proceeded because there was no other route to the renderer; branding read failing, >1.5 s,
+  or without DATABASE_URL serves built-in identity (output page must always start; 5 s cache); font roles limited to
+  faces the output already waits for; artwork used in branding is marked published; scan-card artwork stored but not
+  drawn (bug-layer outside the packet).
+- T3 merged (b3cc96e; merge ca79ba0): import_singular_extract (dry run default; credential-looking input refused),
+  row `reference{origin,app,comp,text,imageAssetId?}` on convert_singular_deck, content-before-title matching once
+  an extract is stored, drafts carry `reference` (create_draft; outside the cue, hashes unchanged), review board shows
+  it under Before. db/singular-references.sql not applied. Snapshot 125 = 3-way union.
+- GATE (T3): singular-extract.json and the first pass's matcher are not on this machine, so the counts test replays
+  the first pass's recorded 540 categories from its recorded sub-scores (tests/fixtures/singular-first-pass-
+  categories.json, no composition text): 0 mismatches; 207 referenced = 34/27/23/41/82 — proceeded because it
+  proves the category rules; which graphic ranks first on real text may still differ. `comparableText` inferred from
+  combined = 0.9 × name score (fits all 540).
+- TBI conversion report script now validates each deck against the module version it asks for (080a8a0); report
+  unchanged (192/46/16), both decks pass.
+- Integration gate at 080a8a0: tsc clean; npm test 1162 pass/0 fail/13 skipped + 35; lint 0 errors (2 known
+  warnings); Turbopack `npm run build` ok; companion vitest 153; audit-companion-packages ok; audit-companion-preset
+  PASS; golden stills 16/16 identical (next dev --webpack :5193). One rehearsal-relay timing test failed once in the
+  full run after the L3 merge and passed 2/2 alone (known load flake).
+- NEXT (resume here): headline acceptance receipt (both workspaces) in rehearsal.
 - V3 merged (ae37165): nine live tools in lib/mcp/live.ts dispatched to a separate live
   operation (route wires runMcpCommand/snapshot/catalog); deck guard on lastPress.companion; server-side
   panel stepping (lib/panel-navigation.ts); Companion `last_source` variable + `last_source_agent` feedback
@@ -309,6 +340,14 @@ Four read-only audits (MCP surface, layouts/renderer, Companion, live/services/a
 structural read of Simone's export; synthesis and file/line references in GAP-ANALYSIS.md.
 
 ## Open questions
+- T3: can the first pass's singular-extract.json be re-pulled? Run it through import_singular_extract (dry run
+  first); it may carry control links in notes, which the tool refuses.
+- L4: TBI's coral ring (visible) needs a TBI look; an open output page keeps old branding until reloaded (refresh
+  live?); archive_asset doesn't know branding use; new get_branding / update_branding sentences need review; four
+  preview frames from a Vercel cold start untimed.
+- Review board: "This graphic is not published yet." (new sentence).
+- Browser pass: /author/publications shows nothing until the account check resolves (no loading state); the
+  library's "Retired" label truncates to "Retired…" in the narrow sidebar.
 - C5: Companion preset section names (Controls, Sets, Prayers, Alternates, Short selections, Announcements,
   Utility graphics, Slots, Other graphics) are what Michael sees in Companion; confirm them before 1.8.0 ships.
 - V3 integration: C2's companion/definitions.json went stale against V3's new feedback, and the package
