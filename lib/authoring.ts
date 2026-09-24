@@ -381,7 +381,9 @@ export function createAuthoringService(repo:AuthoringRepository,workspace:Author
   const report:DefaultsReport={applied:[...new Set(built.reports.flatMap(item=>item.applied))],skipped:[...new Set(built.reports.flatMap(item=>item.skipped))]};
   return {draftSetId:built.draftSetId,drafts:built.copies.map(draft=>({...draft,draftSetManifest:structuredClone(draftSetManifest)})),report};
  };
- const houseDefaults=async()=>(await defaultsRepo.get())?.defaults??null;
+ // The stored defaults with their version: a draft they shaped records houseDefaultsVersion.
+ const houseStored=async(apply:boolean)=>apply?await defaultsRepo.get():null;
+ const stamped=(drafts:Draft[],report:DefaultsReport,version:number|undefined)=>report.applied.length&&version?drafts.map(draft=>({...draft,houseDefaultsVersion:version})):drafts;
  const reportField=(report:DefaultsReport)=>report.applied.length||report.skipped.length?{houseDefaults:report}:{};
  // The layout rule is CRC's shape to keep, not to redo: a copied lower-third set longer than the
  // rule allows is copied as it is and flagged, never re-split on another layout.
@@ -452,8 +454,8 @@ export function createAuthoringService(repo:AuthoringRepository,workspace:Author
   }
   if(operation==='customize_shared_cue'){
    keys(data,['cueId','expectedCueHash','name','applyDefaults']);const cueId=string(data.cueId,'cueId',160);const expectedCueHash=string(data.expectedCueHash,'expectedCueHash',64);if(!/^[a-f0-9]{64}$/.test(expectedCueHash))throw new AuthoringError('invalid_input','expectedCueHash must be a SHA-256 hash');const name=optionalString(data.name,'name',80);const snapshot=await shared.get();if(!snapshot.available)throw new AuthoringError('shared_library_unavailable',snapshot.error,503);const entry=snapshot.payload.cues.find(item=>item.id===cueId);if(!entry)throw new AuthoringError('unknown_shared_cue','This CRC library item is no longer available',404);if(entry.cueHash!==expectedCueHash)throw new AuthoringError('shared_cue_changed','This CRC graphic changed after you opened it. Refresh the CRC library and review the current version before customizing.',409);
-   const defaults=optionalBoolean(data.applyDefaults,'applyDefaults')===false?null:await houseDefaults();
-   const {draft,report}=await sharedDraftFromEntry(entry,snapshot.payload,who,name,{defaults});return {draft:await repo.insertDraft(draft),sharedFrom:draft.sharedFrom,...reportField(report)};
+   const stored=await houseStored(optionalBoolean(data.applyDefaults,'applyDefaults')!==false),defaults=stored?.defaults??null;
+   const {draft,report}=await sharedDraftFromEntry(entry,snapshot.payload,who,name,{defaults});return {draft:await repo.insertDraft(stamped([draft],report,stored?.version)[0]),sharedFrom:draft.sharedFrom,...reportField(report)};
   }
   // A CRC whole prayer arrives as N graphics that belong together. Copying it takes them all
   // or none: one insert, one new TBI set, CRC's order preserved.
@@ -463,9 +465,9 @@ export function createAuthoringService(repo:AuthoringRepository,workspace:Author
    const snapshot=await shared.get();if(!snapshot.available)throw new AuthoringError('shared_library_unavailable',snapshot.error,503);
    const members=snapshot.payload.cues.filter(entry=>entry.set?.id===setId).sort((a,b)=>a.set!.index-b.set!.index);if(!members.length)throw new AuthoringError('unknown_shared_set','This CRC multipart graphic is no longer available',404);
    if(members.length!==expectedIds.length||members.some(entry=>expected[entry.id]!==entry.cueHash))throw new AuthoringError('shared_cue_changed','This CRC multipart graphic changed after you opened it. Refresh the CRC library and review the current version before customizing.',409);
-   const defaults=optionalBoolean(data.applyDefaults,'applyDefaults')===false?null:await houseDefaults();
+   const stored=await houseStored(optionalBoolean(data.applyDefaults,'applyDefaults')!==false),defaults=stored?.defaults??null;
    const {draftSetId,drafts,report}=await sharedSetDrafts(members,snapshot.payload,who,{defaults});const notes=layoutRuleNote(members,defaults);
-   const inserted=await repo.insertDraftSet(drafts);return {drafts:inserted,set:{id:draftSetId,name:members[0].set!.title,count:members.length,draftIds:inserted.map(draft=>draft.id)},sharedFrom:inserted.map(draft=>draft.sharedFrom),...reportField(report),...(notes.length?{notes}:{})};
+   const inserted=await repo.insertDraftSet(stamped(drafts,report,stored?.version));return {drafts:inserted,set:{id:draftSetId,name:members[0].set!.title,count:members.length,draftIds:inserted.map(draft=>draft.id)},sharedFrom:inserted.map(draft=>draft.sharedFrom),...reportField(report),...(notes.length?{notes}:{})};
   }
   // T1 - many shared-library graphics copied in one call, each through the path above. Dry run by
   // default; per-item results, never a stop on the first refusal; resumable (lib/shared-batch.ts).
@@ -483,7 +485,8 @@ export function createAuthoringService(repo:AuthoringRepository,workspace:Author
     try{
      const built=plan.kind==='cue'?await sharedDraftFromEntry(plan.entries[0],snapshot.payload,who,plan.item.name,{defaults,importArtwork:!dryRun}).then(({draft,report})=>({drafts:[draft],report,draftSetId:null})):await sharedSetDrafts(plan.entries,snapshot.payload,who,{defaults,importArtwork:!dryRun});
      const clash=built.drafts.find(draft=>taken.has(normalizeGraphicName(draft.name)));if(clash)notes.push(`A graphic here is already named "${clash.name}"; publishing will ask you to confirm the name or take a suggested one.`);for(const draft of built.drafts)taken.add(normalizeGraphicName(draft.name));
-     const inserted=dryRun?null:plan.kind==='cue'?[await repo.insertDraft(built.drafts[0])]:await repo.insertDraftSet(built.drafts);
+     const drafts=defaults?stamped(built.drafts,built.report,stored?.version):built.drafts;
+     const inserted=dryRun?null:plan.kind==='cue'?[await repo.insertDraft(drafts[0])]:await repo.insertDraftSet(drafts);
      results.push({...head,status:dryRun?'would-create':'created',...(inserted?{draftIds:inserted.map(draft=>draft.id),...(built.draftSetId?{setId:built.draftSetId}:{})}:{}),...reportField(built.report),...(notes.length?{notes}:{})});
      if(dryRun)apply.push(plan.kind==='cue'?{cueId:plan.id,expectedCueHash:plan.entries[0].cueHash,...(plan.item.name?{name:plan.item.name}:{}),...(plan.item.applyDefaults!==undefined?{applyDefaults:plan.item.applyDefaults}:{})}:{setId:plan.id,expectedCueHashes:Object.fromEntries(plan.entries.map(entry=>[entry.id,entry.cueHash])),...(plan.item.applyDefaults!==undefined?{applyDefaults:plan.item.applyDefaults}:{})});
     }catch(error){if(error instanceof AuthoringError){results.push({...head,status:'refused',reason:error.message});continue}throw error}
@@ -608,7 +611,7 @@ export function createAuthoringService(repo:AuthoringRepository,workspace:Author
   }
   if(operation==='archive_draft_set'||operation==='restore_draft_set'){keys(data,['setId','expectedDraftIds']);const setId=string(data.setId,'setId');if(!Array.isArray(data.expectedDraftIds)||!data.expectedDraftIds.length||data.expectedDraftIds.length>200)throw new AuthoringError('invalid_input','expectedDraftIds must contain 1-200 draft IDs');const expectedDraftIds=data.expectedDraftIds.map((id,index)=>string(id,`expectedDraftIds[${index}]`,160));const drafts=await repo.setDraftSetArchived(setId,expectedDraftIds,operation==='archive_draft_set',who);return {set:{id:setId,count:drafts.length,draftIds:drafts.map(draft=>draft.id)},drafts};}
   if(operation==='create_source_draft_set'){
-   keys(data,['sourceId','mode','includeTranslation','layout','templateCueId','applyDefaults']);const house=optionalBoolean(data.applyDefaults,'applyDefaults')===false?null:await houseDefaults(),report:DefaultsReport={applied:[],skipped:[]};
+   keys(data,['sourceId','mode','includeTranslation','layout','templateCueId','applyDefaults']);const stored=await houseStored(optionalBoolean(data.applyDefaults,'applyDefaults')!==false),house=stored?.defaults??null,report:DefaultsReport={applied:[],skipped:[]};
    const sourceId=string(data.sourceId,'sourceId');const localUnit=isLocalSourceId(sourceId)?(await localUnits()).find(item=>item.id===sourceId):undefined;const canonicalSource=(localUnit??sourcePack.sources.find(item=>item.id===sourceId)) as SearchSource|undefined;if(!canonicalSource)throw new AuthoringError('unknown_source','Unknown authoring source',404);const source=resolveSourceBoundaries(canonicalSource) as SearchSource;
    if(data.mode!=='bilingual'&&data.mode!=='original-en'&&data.mode!=='source-en')throw new AuthoringError('invalid_input','mode must be bilingual, original-en, or source-en');const mode=data.mode;
    if(data.includeTranslation!==undefined&&typeof data.includeTranslation!=='boolean')throw new AuthoringError('invalid_input','includeTranslation must be boolean');
@@ -631,7 +634,7 @@ export function createAuthoringService(repo:AuthoringRepository,workspace:Author
     const sourceSnapshots=[structuredClone(canonicalSource)];return {...editable,id:newDraftId(),version:1,sourcePin:sourcePinFor(editable.content,sourceSnapshots),sourceSnapshots,activeRevision:null,activeDraftVersion:null,createdAt:now,updatedAt:now,createdBy:who,updatedBy:who,draftSetId:setId,setIndex:index+1,setCount:count} satisfies Draft;
    });
   const draftSetManifest={version:1 as const,selections:drafts.flatMap(draft=>draftSetSelections(draft.content,draft.sourceSnapshots))};drafts=drafts.map(draft=>({...draft,draftSetManifest:structuredClone(draftSetManifest)}));
-  const inserted=await repo.insertDraftSet(drafts);return {drafts:inserted,set:{id:setId,name:source.name,count,draftIds:inserted.map(draft=>draft.id)},...reportField(report)};
+  const inserted=await repo.insertDraftSet(stamped(drafts,report,stored?.version));return {drafts:inserted,set:{id:setId,name:source.name,count,draftIds:inserted.map(draft=>draft.id)},...reportField(report)};
  }
  if(operation==='split_draft_into_set'){
   keys(data,['draftId','expectedVersion']);const draftId=string(data.draftId,'draftId'),expectedVersion=integer(data.expectedVersion,'expectedVersion',1);const original=await requiredDraft(repo,draftId);
@@ -647,7 +650,7 @@ export function createAuthoringService(repo:AuthoringRepository,workspace:Author
   const draftSetManifest={version:1 as const,selections:drafts.flatMap(draft=>draftSetSelections(draft.content,draft.sourceSnapshots))};drafts=drafts.map(draft=>({...draft,draftSetManifest:structuredClone(draftSetManifest)}));try{const inserted=await repo.insertDraftSet(drafts);return {drafts:inserted,set:{id:setId,name:original.name,count,draftIds:inserted.map(draft=>draft.id)},splitFrom:origin,reused:false}}catch(error){const recovered=await existingSplit();if(recovered)return recovered;throw error}
  }
  if(operation==='create_draft'){
-   const {applyDefaults:rawApply,reference:rawReference,...request}=data;let reference:Draft['reference'];try{reference=parseDraftReference(rawReference)}catch(error){throw new AuthoringError('invalid_input',(error as Error).message)}{const content=object(request.content,'content');if(content.mode==='local-variant')object(content.base,'content.base')}const house=optionalBoolean(rawApply,'applyDefaults')===false?null:await houseDefaults();
+   const {applyDefaults:rawApply,reference:rawReference,...request}=data;let reference:Draft['reference'];try{reference=parseDraftReference(rawReference)}catch(error){throw new AuthoringError('invalid_input',(error as Error).message)}{const content=object(request.content,'content');if(content.mode==='local-variant')object(content.base,'content.base')}const stored=await houseStored(optionalBoolean(rawApply,'applyDefaults')!==false),house=stored?.defaults??null;
    // T1 - house defaults fill in what the call leaves out; a translation default the selected
    // source can't honour is dropped, and said so, rather than refusing the whole draft.
    const housed=house?withHouseCreateDefaults(request,house):null,report:DefaultsReport={applied:housed?.applied??[],skipped:[]};
@@ -655,7 +658,7 @@ export function createAuthoringService(repo:AuthoringRepository,workspace:Author
    let input=housed?.data??request,parsed:EditableDraft;try{parsed=parseEditable(withDraftDefaults(input),false,locals) as EditableDraft}catch(error){if(!housed?.withoutTranslation||!(error instanceof AuthoringError))throw error;input=housed.withoutTranslation;parsed=parseEditable(withDraftDefaults(input),false,locals) as EditableDraft;report.applied=report.applied.filter(item=>item!=='translation included');report.skipped.push(`translation included: ${error.message}`)}
    const rawContent=object(input.content,'content'),rawBase=rawContent.mode==='local-variant'?object(rawContent.base,'content.base'):rawContent,explicitArrangement=Object.hasOwn(rawBase,'arrangement');const editable=explicitArrangement?parsed:{...parsed,content:withCreateDefaultBilingualBlocks(parsed.content)};const sourceSnapshots=sourceSnapshotsFor(editable.content,locals);const now=Date.now(); const draft:Draft={...editable,id:newDraftId(),version:1,sourcePin:sourcePinFor(editable.content,sourceSnapshots),...(sourceSnapshots.length?{sourceSnapshots}:{}),activeRevision:null,activeDraftVersion:null,createdAt:now,updatedAt:now,createdBy:who,updatedBy:who,...(reference?{reference}:{})};
    const warnings=await duplicateNameWarnings(draft);const provenance=localProvenance(sourceSnapshots);
-   return {draft:await repo.insertDraft(draft),warnings,...reportField(report),...(provenance.length?{provenance}:{})};
+   return {draft:await repo.insertDraft(stamped([draft],report,stored?.version)[0]),warnings,...reportField(report),...(provenance.length?{provenance}:{})};
   }
   if(operation==='create_local_variant'){
    keys(data,['draftId','cueId','label','reason','overrides']);const draftId=optionalString(data.draftId,'draftId'),cueId=optionalString(data.cueId,'cueId');if(Boolean(draftId)===Boolean(cueId))throw new AuthoringError('invalid_input','Provide exactly one of draftId or cueId');let sourceDraft:Draft|undefined,editable:EditableDraft,sourceSnapshots:Draft['sourceSnapshots'];

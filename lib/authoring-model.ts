@@ -75,7 +75,7 @@ export type SharedCueOrigin={workspaceId:'crc';cueId:string;cueHash:string;impor
 export type DraftSetSelection={sourceId:string;blockId:string;channels:VariantChannel[]};
 export type DraftSetManifest={version:1;selections:DraftSetSelection[]};
 export type DraftSplitOrigin={draftId:string;draftVersion:number};
-export type Draft=EditableDraft&{id:string;version:number;sourcePin:SourcePin;activeRevision:number|null;activeDraftVersion:number|null;createdAt:number;updatedAt:number;createdBy:string;updatedBy:string;draftSetId?:string;setIndex?:number;setCount?:number;draftSetManifest?:DraftSetManifest;splitFrom?:DraftSplitOrigin;sourceSnapshots?:AuthoringSource[];sharedFrom?:SharedCueOrigin;archivedAt?:number;archivedBy?:string;retired?:DraftRetirement;reference?:DraftReference};
+export type Draft=EditableDraft&{id:string;version:number;sourcePin:SourcePin;activeRevision:number|null;activeDraftVersion:number|null;createdAt:number;updatedAt:number;createdBy:string;updatedBy:string;draftSetId?:string;setIndex?:number;setCount?:number;draftSetManifest?:DraftSetManifest;splitFrom?:DraftSplitOrigin;sourceSnapshots?:AuthoringSource[];sharedFrom?:SharedCueOrigin;archivedAt?:number;archivedBy?:string;retired?:DraftRetirement;reference?:DraftReference;houseDefaultsVersion?:number};
 /** T3 - what the old deck showed (a Singular composition's text), kept beside the draft for review; never part of the cue. */
 export type DraftReference={origin:string;app?:string;comp?:string;text:string;imageAssetId?:string};
 /**

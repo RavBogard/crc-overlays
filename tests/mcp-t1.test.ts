@@ -142,12 +142,13 @@ test('create_draft takes the house defaults unless the call names its own value 
  const custom={name:'Welcome',title:'Welcome',layout:'bottom',content:{mode:'custom',text:'Welcome to Shabbat'}};
  const housed=await call('create_draft',custom);
  assert.equal(housed.isError,false,housed.text);assert.deepEqual(housed.output.draft.presentation,{...TEXT_SIZE_PRESETS.large.sizes,lineSpacing:'spacious'});assert.deepEqual(housed.output.houseDefaults.applied,['text size large','line spacing spacious']);
+ assert.equal(housed.output.draft.houseDefaultsVersion,1,'the draft records which defaults shaped it');
  const own=await call('create_draft',{...custom,name:'Welcome 2',textSize:'compact'});
  assert.equal(own.output.draft.presentation.hebrewFontSize,TEXT_SIZE_PRESETS.compact.sizes.hebrewFontSize,'the call\'s own size wins');assert.equal(own.output.draft.presentation.lineSpacing,'spacious');
  const explicit=await call('create_draft',{...custom,name:'Welcome 3',presentation:{hebrewFontSize:30}});
  assert.deepEqual(explicit.output.draft.presentation,{hebrewFontSize:30,lineSpacing:'spacious'},'an explicit font size keeps the caller\'s typography');
  const plain=await call('create_draft',{...custom,name:'Welcome 4',applyDefaults:false});
- assert.deepEqual(plain.output.draft.presentation,{});assert.equal(plain.output.houseDefaults,undefined);
+ assert.deepEqual(plain.output.draft.presentation,{});assert.equal(plain.output.houseDefaults,undefined);assert.equal(plain.output.draft.houseDefaultsVersion,undefined);
  const cleared=await call('update_authoring_defaults',{expectedVersion:1,textSize:null,lineSpacing:null});
  assert.deepEqual(cleared.output.defaults,{});assert.deepEqual(cleared.output.changed,['textSize','lineSpacing']);
  const noop=await call('update_authoring_defaults',{expectedVersion:2,textSize:null});
@@ -184,10 +185,10 @@ test('customize_shared_cue takes the defaults; applyDefaults:false is the exact 
  const payload=buildSharedLibraryPayload({cues:baselineCues,version:'crc-catalog'});const {call}=tbiFixture(payload);
  const entry=payload.cues.find(item=>item.id===BARECHU)!;
  const exact=await call('customize_shared_cue',{cueId:BARECHU,expectedCueHash:entry.cueHash});
- assert.equal(exact.output.houseDefaults,undefined,'with no defaults stored nothing changes');
+ assert.equal(exact.output.houseDefaults,undefined,'with no defaults stored nothing changes');assert.equal(exact.output.draft.houseDefaultsVersion,undefined);
  await call('update_authoring_defaults',{expectedVersion:0,textSize:'large'});
  const housed=await call('customize_shared_cue',{cueId:BARECHU,expectedCueHash:entry.cueHash,name:'TBI Barechu'});
- assert.equal(housed.output.draft.presentation.hebrewFontSize,TEXT_SIZE_PRESETS.large.sizes.hebrewFontSize);assert.deepEqual(housed.output.houseDefaults.applied,['text size large']);assert.equal(housed.output.sharedFrom.cueHash,entry.cueHash);
+ assert.equal(housed.output.draft.presentation.hebrewFontSize,TEXT_SIZE_PRESETS.large.sizes.hebrewFontSize);assert.deepEqual(housed.output.houseDefaults.applied,['text size large']);assert.equal(housed.output.sharedFrom.cueHash,entry.cueHash);assert.equal(housed.output.draft.houseDefaultsVersion,1);
  const optOut=await call('customize_shared_cue',{cueId:BARECHU,expectedCueHash:entry.cueHash,applyDefaults:false});
  assert.deepEqual(optOut.output.draft.presentation,exact.output.draft.presentation);
 });
