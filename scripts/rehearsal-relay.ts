@@ -7,7 +7,7 @@ import {createHash,timingSafeEqual} from 'node:crypto';
 import {createServer,type IncomingMessage,type Server,type ServerResponse} from 'node:http';
 import type {Duplex} from 'node:stream';
 import {WebSocketServer,type WebSocket as RelaySocket} from 'ws';
-import {HISTORY_WINDOW_DAYS,MAX_CATALOG_BYTES,MAX_HISTORY_ROWS,MAX_MESSAGE_BYTES,MAX_RECEIPTS,MAX_REQUEST_BYTES,MAX_SNAPSHOT_BYTES,PROTOCOL,collectionFromNamesCue,historyPage,historyRow,historyWindowStart,jsonBytes,librarySourceIds,nextState,parseAck,parseCatalog,parseCommand,parseHello,parseHistoryRange,parseInitialState,presenceFrame,rankControllers,rendererExpired,validCatalogVersion,validInteger,validToken,validUuid,verifyTicket,type ApprovedCatalog,type Command,type CuePayload,type Controller,type HistoryRow,type LiveState,type Renderer,type Role,type Snapshot,type SocketAttachment} from '../relay/src/protocol.ts';
+import {HISTORY_WINDOW_DAYS,MAX_CATALOG_BYTES,MAX_HISTORY_ROWS,MAX_MESSAGE_BYTES,MAX_RECEIPTS,MAX_REQUEST_BYTES,MAX_SNAPSHOT_BYTES,PROTOCOL,collectionFromNamesCue,decideCommand,historyPage,historyRow,historyWindowStart,jsonBytes,lastPressFrom,librarySourceIds,nextState,parseAck,parseCatalog,parseCommand,parseHello,parseHistoryRange,parseInitialState,presenceFrame,rankControllers,rendererExpired,validCatalogVersion,validInteger,validToken,validUuid,verifyTicket,type ApprovedCatalog,type Command,type CommandOutcome,type CuePayload,type HistorySource,type LastPress,type Controller,type HistoryRow,type LiveState,type Renderer,type Role,type Snapshot,type SocketAttachment} from '../relay/src/protocol.ts';
 
 export const DEFAULT_REHEARSAL_RELAY_PORT=8788;
 // Real-time cadence of the presence sweep. The worker uses a Durable Object
@@ -19,9 +19,9 @@ const STATUS_TEXT:Record<number,string>={400:'Bad Request',401:'Unauthorized',40
 const ROUTES=['/state','/initialize','/command','/catalog','/ack','/history','/history/clear'];
 const LOCAL_ORIGIN=/^http:\/\/(?:localhost|127\.0\.0\.1)(?::\d{1,5})?$/;
 
-export class HttpError extends Error{constructor(readonly status:number,message:string){super(message)}}
+export class HttpError extends Error{constructor(readonly status:number,message:string,readonly detail?:Record<string,unknown>){super(message)}}
 
-type Receipt={action:string;cue:string|null;createdAt:number};
+type Receipt={action:string;cue:string|null;createdAt:number;outcome:'applied'|'superseded'};
 
 function secretMatches(candidate:string,expected:string){
  if(!candidate||!expected)return false;
@@ -70,6 +70,8 @@ export class RehearsalRoom{
  readonly sequences=new Map<string,number>();
  readonly tickets=new Map<string,number>();
  readonly legacyPresence=new Map<string,Renderer>();
+ /** Mirrors the worker's controller_presses table: the last press time per controller class. */
+ readonly presses=new Map<HistorySource,number>();
  /** The cue log, in memory. Same bound, same shape, same order as the worker's table. */
  readonly history:HistoryRow[]=[];
  private historySeq=0;
@@ -119,6 +121,12 @@ export class RehearsalRoom{
   return state?{...state,renderers:this.currentRenderers(exclude),controllers:this.currentControllers(exclude),serverTime:this.now()}:null;
  }
  private ensureSnapshotSize(snapshot:Snapshot|null){if(jsonBytes(snapshot)>MAX_SNAPSHOT_BYTES)throw new HttpError(413,'Snapshot too large')}
+ lastPress():LastPress{return lastPressFrom([...this.presses].map(([source,at])=>({source,at})))}
+ /** Mirrors LiveRoom.httpSnapshot: the HTTP answer carries press times; socket frames never do. */
+ httpSnapshot(){
+  const snapshot=this.snapshot();
+  return snapshot?{...snapshot,lastPress:this.lastPress()}:null;
+ }
 
  // --- HTTP operations -------------------------------------------------------
  initialize(value:unknown):[unknown,number]{
@@ -141,14 +149,15 @@ export class RehearsalRoom{
  command(value:unknown):[unknown,number]{
   const command=parseCommand(value);
   if(!command)throw new HttpError(400,'Invalid command');
-  const accepted=this.applyCommand(command);
+  const result=this.applyCommand(command);
+  const accepted=result.outcome==='applied';
   // Mirrors LiveRoom.command: the append happens after the command has been applied and
   // before the broadcast, and can never refuse the command.
   if(accepted)this.appendHistory(command,this.catalog?.cues.find(cue=>cue.id===command.cue)??null,this.now());
   const snapshot=this.snapshot();
   this.ensureSnapshotSize(snapshot);
   if(accepted)this.broadcast({type:'snapshot',snapshot});
-  return [{commandId:command.commandId,...snapshot},200];
+  return [{commandId:command.commandId,...snapshot,lastPress:this.lastPress(),outcome:result.outcome,...(result.outcome==='replayed'?{originalOutcome:result.originalOutcome}:{})},200];
  }
  // Mirrors LiveRoom.applyCommand exactly, the scan card included: 'bug' is not a special
  // case here either -- it takes the same receipt, the same sequence guard, the same
@@ -157,16 +166,13 @@ export class RehearsalRoom{
   const current=this.state;
   const catalog=this.catalog;
   if(!current||!catalog)throw new HttpError(409,'Relay initialization required');
-  const receipt=this.receipts.get(command.commandId);
-  if(receipt){
-   if(receipt.action!==command.action||receipt.cue!==command.cue)throw new HttpError(409,'Command ID already used for a different command');
-   return false;
-  }
+  const receipt=this.receipts.get(command.commandId)??null;
   const selected=command.cue===null?null:catalog.cues.find(cue=>cue.id===command.cue)??null;
-  if((command.action==='in'||command.action==='out')&&!selected)throw new HttpError(400,'Unknown cue');
-  let accepted=true;
-  if(command.clientId!==null)accepted=command.sequence!>(this.sequences.get(command.clientId)??-1);
-  if(accepted){
+  const priorSequence=command.clientId===null?-1:this.sequences.get(command.clientId)??-1;
+  const decision=decideCommand({command,current,receipt,cueKnown:selected!==null,priorSequence});
+  if(decision.kind==='refused')throw new HttpError(decision.status,decision.error,decision.precondition?{commandId:command.commandId,precondition:decision.precondition,revision:current.revision,cue:current.cue}:undefined);
+  if(decision.kind==='replayed')return {outcome:'replayed' as CommandOutcome,originalOutcome:decision.originalOutcome};
+  if(decision.kind==='applied'){
    const next=nextState(current,command,selected,this.now());
    // The worker runs applyCommand inside one transaction, so a 413 here rolls the
    // sequence back; record it only once the size check has passed.
@@ -174,15 +180,16 @@ export class RehearsalRoom{
    this.state=next;
    if(command.clientId!==null)this.sequences.set(command.clientId,command.sequence!);
   }
-  this.receipts.set(command.commandId,{action:command.action,cue:command.cue,createdAt:this.now()});
+  this.receipts.set(command.commandId,{action:command.action,cue:command.cue,createdAt:this.now(),outcome:decision.kind});
   const excess=this.receipts.size-MAX_RECEIPTS;
   if(excess>0)for(const [id] of [...this.receipts].sort((a,b)=>a[1].createdAt-b[1].createdAt||(a[0]<b[0]?-1:1)).slice(0,excess))this.receipts.delete(id);
-  return accepted;
+  this.presses.set(command.source,this.now());
+  return {outcome:decision.kind as CommandOutcome,originalOutcome:null};
  }
  // --- the cue log -----------------------------------------------------------
  appendHistory(command:Command,selected:CuePayload|null,now:number){
   try{
-   this.history.push(historyRow({seq:++this.historySeq,at:now,action:command.action,cueId:command.cue,source:command.source,serviceRef:command.serviceRef??collectionFromNamesCue(command.cue),sourceIds:librarySourceIds(selected)}));
+   this.history.push(historyRow({seq:++this.historySeq,at:now,action:command.action,cueId:command.cue,source:command.source,serviceRef:command.serviceRef??collectionFromNamesCue(command.cue),sourceIds:librarySourceIds(selected),commandId:command.commandId}));
    this.pruneHistory(now);
   }catch{/* a history that cannot be written never costs the congregation a graphic */}
  }
@@ -355,7 +362,7 @@ export function startRehearsalRelay({port,host='127.0.0.1',secret,now=Date.now,w
   if(!ROUTES.includes(url.pathname))return sendJson(response,{error:'Not found'},404);
   if(!secretMatches(bearer(request),secret))return sendJson(response,{error:'Relay authentication required'},401);
   try{
-   if(url.pathname==='/state'&&request.method==='GET')return sendJson(response,room.snapshot());
+   if(url.pathname==='/state'&&request.method==='GET')return sendJson(response,room.httpSnapshot());
    if(url.pathname==='/catalog'&&request.method==='GET')return sendJson(response,room.catalog);
    if(url.pathname==='/history'&&request.method==='GET')return sendJson(response,...room.historyRange(url));
    if(url.pathname==='/history/clear'&&request.method==='POST')return sendJson(response,...room.clearHistory());
@@ -367,7 +374,7 @@ export function startRehearsalRelay({port,host='127.0.0.1',secret,now=Date.now,w
    if(url.pathname==='/ack'&&request.method==='POST')return sendJson(response,...room.ack(input));
    return sendJson(response,{error:'Not found'},404);
   }catch(error){
-   if(error instanceof HttpError)return sendJson(response,{error:error.message},error.status);
+   if(error instanceof HttpError)return sendJson(response,{error:error.message,...error.detail},error.status);
    return sendJson(response,{error:'Relay unavailable'},503);
   }
  }

@@ -1,5 +1,5 @@
 import {DurableObject} from 'cloudflare:workers';
-import {HISTORY_WINDOW_DAYS,MAX_CATALOG_BYTES,MAX_HISTORY_ROWS,MAX_MESSAGE_BYTES,MAX_RECEIPTS,MAX_REQUEST_BYTES,MAX_SNAPSHOT_BYTES,PROTOCOL,STALE_MS,collectionFromNamesCue,historyPage,historyRow,historyWindowStart,jsonBytes,librarySourceIds,nextState,parseAck,parseCatalog,parseCommand,parseHello,parseHistoryRange,parseInitialState,presenceFrame,rankControllers,rendererExpired,validCatalogVersion,validInteger,validToken,validUuid,verifyTicket,type ApprovedCatalog,type Command,type Controller,type CuePayload,type HistoryAction,type HistoryRow,type HistorySource,type LiveState,type Renderer,type Role,type Snapshot,type SocketAttachment} from './protocol';
+import {HISTORY_WINDOW_DAYS,MAX_CATALOG_BYTES,MAX_HISTORY_ROWS,MAX_MESSAGE_BYTES,MAX_RECEIPTS,MAX_REQUEST_BYTES,MAX_SNAPSHOT_BYTES,PROTOCOL,STALE_MS,collectionFromNamesCue,decideCommand,historyPage,historyRow,historyWindowStart,jsonBytes,lastPressFrom,librarySourceIds,nextState,parseAck,parseCatalog,parseCommand,parseHello,parseHistoryRange,parseInitialState,presenceFrame,rankControllers,rendererExpired,validCatalogVersion,validInteger,validToken,validUuid,verifyTicket,type ApprovedCatalog,type Command,type CommandOutcome,type LastPress,type Controller,type CuePayload,type HistoryAction,type HistoryRow,type HistorySource,type LiveState,type Renderer,type Role,type Snapshot,type SocketAttachment} from './protocol';
 
 interface Env{
  LIVE_ROOM:DurableObjectNamespace<LiveRoom>;
@@ -11,13 +11,13 @@ interface Env{
 
 type StateRow={state_json:string};
 type CatalogRow={version:string;cues_json:string};
-type ReceiptRow={action:string;cue:string|null};
-type HistoryRecord={seq:number;at:number;action:string;cue_id:string|null;source:string;service_ref:string|null;source_ids:string};
-const HISTORY_COLUMNS='seq,at,action,cue_id,source,service_ref,source_ids';
+type ReceiptRow={action:string;cue:string|null;outcome:string|null};
+type HistoryRecord={seq:number;at:number;action:string;cue_id:string|null;source:string;service_ref:string|null;source_ids:string;command_id:string|null};
+const HISTORY_COLUMNS='seq,at,action,cue_id,source,service_ref,source_ids,command_id';
 const readHistoryRow=(row:HistoryRecord):HistoryRow=>{
  let sourceIds:string[]=[];
  try{const parsed=JSON.parse(row.source_ids) as unknown;if(Array.isArray(parsed))sourceIds=parsed.filter((id):id is string=>typeof id==='string')}catch{sourceIds=[]}
- return historyRow({seq:Number(row.seq),at:Number(row.at),action:row.action as HistoryAction,cueId:row.cue_id,source:row.source as HistorySource,serviceRef:row.service_ref,sourceIds});
+ return historyRow({seq:Number(row.seq),at:Number(row.at),action:row.action as HistoryAction,cueId:row.cue_id,source:row.source as HistorySource,serviceRef:row.service_ref,sourceIds,commandId:row.command_id});
 };
 const ROOM='crc';
 const headers={'Cache-Control':'no-store','Content-Type':'application/json','Referrer-Policy':'no-referrer','X-Content-Type-Options':'nosniff'};
@@ -81,14 +81,22 @@ export class LiveRoom extends DurableObject<Env>{
    CREATE INDEX IF NOT EXISTS ticket_receipts_expires ON ticket_receipts(expires);
    CREATE TABLE IF NOT EXISTS command_history(seq INTEGER PRIMARY KEY AUTOINCREMENT,at INTEGER NOT NULL,action TEXT NOT NULL,cue_id TEXT,source TEXT NOT NULL,service_ref TEXT,source_ids TEXT NOT NULL);
    CREATE INDEX IF NOT EXISTS command_history_at ON command_history(at);
+   CREATE TABLE IF NOT EXISTS controller_presses(source TEXT PRIMARY KEY,at INTEGER NOT NULL);
   `);
+  // Columns added after the tables first shipped (MCP plan V1). A Durable Object created by an
+  // earlier build keeps its tables, so each column is added in place; on a room that already has
+  // it the ALTER fails with a duplicate-column error, which is the expected answer. Both are
+  // nullable: an old receipt reads as "original outcome unknown", an old row as "no commandId".
+  for(const statement of ['ALTER TABLE command_receipts ADD COLUMN outcome TEXT','ALTER TABLE command_history ADD COLUMN command_id TEXT']){
+   try{this.sql.exec(statement)}catch{/* already present */}
+  }
  }
 
  async fetch(request:Request):Promise<Response>{
   const url=new URL(request.url);
   if(url.pathname==='/connect')return this.acceptConnection(request);
   try{
-   if(url.pathname==='/state'&&request.method==='GET')return json(this.snapshot());
+   if(url.pathname==='/state'&&request.method==='GET')return json(this.httpSnapshot());
    if(url.pathname==='/catalog'&&request.method==='GET')return json(this.readCatalog());
    if(url.pathname==='/history'&&request.method==='GET')return this.history(url);
    if(url.pathname==='/history/clear'&&request.method==='POST')return this.clearHistory();
@@ -100,7 +108,7 @@ export class LiveRoom extends DurableObject<Env>{
    if(url.pathname==='/ack'&&request.method==='POST')return this.ack(input);
    return json({error:'Not found'},404);
   }catch(error){
-   if(error instanceof HttpError)return json({error:error.message},error.status);
+   if(error instanceof HttpError)return json({error:error.message,...error.detail},error.status);
    return json({error:'Relay unavailable'},503);
   }
  }
@@ -147,8 +155,8 @@ export class LiveRoom extends DurableObject<Env>{
  private appendHistory(command:Command,selected:CuePayload|null,now:number){
   try{
    this.sql.exec(
-    'INSERT INTO command_history(at,action,cue_id,source,service_ref,source_ids) VALUES(?,?,?,?,?,?)',
-    now,command.action,command.cue,command.source,command.serviceRef??collectionFromNamesCue(command.cue),JSON.stringify(librarySourceIds(selected)),
+    'INSERT INTO command_history(at,action,cue_id,source,service_ref,source_ids,command_id) VALUES(?,?,?,?,?,?,?)',
+    now,command.action,command.cue,command.source,command.serviceRef??collectionFromNamesCue(command.cue),JSON.stringify(librarySourceIds(selected)),command.commandId,
    );
    this.pruneHistory(now);
   }catch(error){console.error('history_append_failed',{name:error instanceof Error?error.name:'UnknownError'})}
@@ -224,6 +232,12 @@ export class LiveRoom extends DurableObject<Env>{
   const state=this.readState();
   return state?{...state,renderers:this.currentRenderers(exclude),controllers:this.currentControllers(exclude),serverTime:Date.now()}:null;
  }
+ private lastPress():LastPress{return lastPressFrom(this.sql.exec<{source:string;at:number}>('SELECT source,at FROM controller_presses').toArray())}
+ /** The HTTP answer: the snapshot plus press times per controller class. Never a socket frame. */
+ private httpSnapshot(){
+  const snapshot=this.snapshot();
+  return snapshot?{...snapshot,lastPress:this.lastPress()}:null;
+ }
  private ensureSnapshotSize(snapshot:Snapshot|null){if(jsonBytes(snapshot)>MAX_SNAPSHOT_BYTES)throw new HttpError(413,'Snapshot too large')}
  private initialize(value:unknown){
   if(!value||typeof value!=='object'||Array.isArray(value))throw new HttpError(400,'Invalid initialization');
@@ -249,14 +263,17 @@ export class LiveRoom extends DurableObject<Env>{
  private command(value:unknown){
   const command=parseCommand(value);
   if(!command)throw new HttpError(400,'Invalid command');
-  const outcome=this.ctx.storage.transactionSync(()=>this.applyCommand(command));
+  const result=this.ctx.storage.transactionSync(()=>this.applyCommand(command));
+  const accepted=result.outcome==='applied';
   // The cue log is a side effect of an accepted command: after the commit, before the
   // broadcast, and never able to refuse or delay what is already on screen.
-  if(outcome.accepted)this.appendHistory(command,outcome.selected,Date.now());
+  if(accepted)this.appendHistory(command,result.selected,Date.now());
   const snapshot=this.snapshot();
   this.ensureSnapshotSize(snapshot);
-  if(outcome.accepted)this.broadcast({type:'snapshot',snapshot});
-  return json({commandId:command.commandId,...snapshot});
+  if(accepted)this.broadcast({type:'snapshot',snapshot});
+  // Additive fields only (MCP plan V1): the body every deployed client already reads, plus what
+  // the relay did with it. `originalOutcome` travels only on a replay.
+  return json({commandId:command.commandId,...snapshot,lastPress:this.lastPress(),outcome:result.outcome,...(result.outcome==='replayed'?{originalOutcome:result.originalOutcome}:{})});
  }
  // Every action -- 'in', 'out', 'clear', 'cut', the scan card's 'bug' and the resting
  // logo's 'logo' -- takes this one path: the same command receipt, the same
@@ -272,28 +289,28 @@ export class LiveRoom extends DurableObject<Env>{
   if(!current||!catalog)throw new HttpError(409,'Relay initialization required');
   // Receipts key on action+cue, so a replayed commandId is idempotent for 'bug' exactly
   // as it already is for 'cut' and 'clear', both of which also carry a null cue.
-  const receipt=this.sql.exec<ReceiptRow>('SELECT action,cue FROM command_receipts WHERE command_id=?',command.commandId).toArray()[0];
-  if(receipt){
-   if(receipt.action!==command.action||receipt.cue!==command.cue)throw new HttpError(409,'Command ID already used for a different command');
-   return {accepted:false,selected:null};
-  }
+  const receipt=this.sql.exec<ReceiptRow>('SELECT action,cue,outcome FROM command_receipts WHERE command_id=?',command.commandId).toArray()[0]??null;
   const selected=command.cue===null?null:catalog.cues.find(cue=>cue.id===command.cue)??null;
-  if((command.action==='in'||command.action==='out')&&!selected)throw new HttpError(400,'Unknown cue');
-  let accepted=true;
-  if(command.clientId!==null){
-   const prior=this.sql.exec<{sequence:number}>('SELECT sequence FROM controller_sequences WHERE client_id=?',command.clientId).toArray()[0]?.sequence??-1;
-   accepted=command.sequence!>prior;
-   if(accepted)this.sql.exec('INSERT INTO controller_sequences(client_id,sequence) VALUES(?,?) ON CONFLICT(client_id) DO UPDATE SET sequence=excluded.sequence',command.clientId,command.sequence);
-  }
-  if(accepted){
-   const next=nextState(current,command,selected,Date.now());
-   this.ensureSnapshotSize({...next,renderers:[],controllers:[],serverTime:Date.now()});
+  const priorSequence=command.clientId===null?-1:this.sql.exec<{sequence:number}>('SELECT sequence FROM controller_sequences WHERE client_id=?',command.clientId).toArray()[0]?.sequence??-1;
+  // One decision shared with the rehearsal port (protocol.ts decideCommand): receipt, cue,
+  // preconditions, sequence, in that order. A refusal throws inside the transaction, so it
+  // writes nothing at all.
+  const decision=decideCommand({command,current,receipt,cueKnown:selected!==null,priorSequence});
+  if(decision.kind==='refused')throw new HttpError(decision.status,decision.error,decision.precondition?{commandId:command.commandId,precondition:decision.precondition,revision:current.revision,cue:current.cue}:undefined);
+  if(decision.kind==='replayed')return {outcome:'replayed' as CommandOutcome,originalOutcome:decision.originalOutcome,selected:null};
+  const now=Date.now();
+  if(decision.kind==='applied'){
+   if(command.clientId!==null)this.sql.exec('INSERT INTO controller_sequences(client_id,sequence) VALUES(?,?) ON CONFLICT(client_id) DO UPDATE SET sequence=excluded.sequence',command.clientId,command.sequence);
+   const next=nextState(current,command,selected,now);
+   this.ensureSnapshotSize({...next,renderers:[],controllers:[],serverTime:now});
    this.writeState(next);
   }
-  this.sql.exec('INSERT INTO command_receipts(command_id,action,cue,created_at) VALUES(?,?,?,?)',command.commandId,command.action,command.cue,Date.now());
+  this.sql.exec('INSERT INTO command_receipts(command_id,action,cue,created_at,outcome) VALUES(?,?,?,?,?)',command.commandId,command.action,command.cue,now,decision.kind);
   const excess=(this.sql.exec<{count:number}>('SELECT COUNT(*) AS count FROM command_receipts').toArray()[0]?.count??0)-MAX_RECEIPTS;
   if(excess>0)this.sql.exec('DELETE FROM command_receipts WHERE command_id IN (SELECT command_id FROM command_receipts ORDER BY created_at,command_id LIMIT ?)',excess);
-  return {accepted,selected};
+  // A press is a new command the relay processed, applied or superseded; a replay is not one.
+  this.sql.exec('INSERT INTO controller_presses(source,at) VALUES(?,?) ON CONFLICT(source) DO UPDATE SET at=excluded.at',command.source,now);
+  return {outcome:decision.kind as CommandOutcome,originalOutcome:null,selected};
  }
  private catalog(value:unknown){
   if(!value||typeof value!=='object'||Array.isArray(value))throw new HttpError(400,'Invalid approved catalog');
@@ -408,4 +425,4 @@ export class LiveRoom extends DurableObject<Env>{
  }
 }
 
-class HttpError extends Error{constructor(readonly status:number,message:string){super(message)}}
+class HttpError extends Error{constructor(readonly status:number,message:string,readonly detail?:Record<string,unknown>){super(message)}}

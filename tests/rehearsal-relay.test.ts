@@ -746,3 +746,95 @@ test('a client that ignores the scan card still completes a handshake against a 
  assert.equal(companionSockets[0].readyState,1,'a snapshot carrying a bug field closed the socket');
  subscription.stop();
 });
+
+// --- MCP plan V1: outcome, commandId on the cue log, preconditions, press time per class --------
+
+test('every command answer names its outcome: applied, replayed (with the original), superseded',async()=>{
+ const relay=await initializedRelay();
+ const clientId=randomUUID();
+ const first=command({clientId,sequence:5});
+ const applied=await (await request(relay,'/command',first)).json();
+ assert.equal(applied.outcome,'applied');
+ assert.equal(applied.revision,1);
+ assert.equal('originalOutcome' in applied,false);
+ const replayed=await (await request(relay,'/command',first)).json();
+ assert.equal(replayed.outcome,'replayed');
+ assert.equal(replayed.originalOutcome,'applied');
+ assert.equal(replayed.revision,1);
+ const stale=command({cue:'cue-two',clientId,sequence:4});
+ const superseded=await (await request(relay,'/command',stale)).json();
+ assert.equal(superseded.outcome,'superseded');
+ assert.equal(superseded.revision,1);
+ assert.equal(superseded.cue,'cue-one');
+ const retried=await (await request(relay,'/command',stale)).json();
+ assert.equal(retried.outcome,'replayed');
+ assert.equal(retried.originalOutcome,'superseded');
+ // Only the applied command reached the cue log, and it carries the caller's commandId.
+ assert.deepEqual(relay.room.history.map(row=>row.commandId),[first.commandId]);
+});
+
+test('a command without the V1 fields gets the same body as before plus outcome and lastPress',async()=>{
+ const relay=await initializedRelay();
+ const body=await (await request(relay,'/command',command())).json();
+ assert.deepEqual(Object.keys(body).sort(),['catalogVersion','commandId','controllers','cue','cuePayload','lastPress','mode','outcome','renderers','revision','serverTime','updated']);
+ assert.equal(body.outcome,'applied');
+});
+
+test('ifRevision refuses in words with 409 and writes nothing; the same commandId applies once it holds',async()=>{
+ const relay=await initializedRelay();
+ const clientId=randomUUID();
+ const guarded=command({clientId,sequence:1,ifRevision:3});
+ const refused=await request(relay,'/command',guarded);
+ assert.equal(refused.status,409);
+ assert.deepEqual(await refused.json(),{error:'Live state has moved on: it is at revision 0, not 3. Nothing was changed; read the live state and decide again.',commandId:guarded.commandId,precondition:'ifRevision',revision:0,cue:null});
+ assert.equal(relay.room.state?.revision,0);
+ assert.equal(relay.room.receipts.has(guarded.commandId),false);
+ assert.equal(relay.room.sequences.has(clientId),false);
+ assert.equal(relay.room.history.length,0);
+ assert.deepEqual(relay.room.lastPress(),{control:null,companion:null,mcp:null});
+ const held=await (await request(relay,'/command',{...guarded,ifRevision:0})).json();
+ assert.equal(held.outcome,'applied');
+ assert.equal(held.revision,1);
+ // A retry of the command that moved the state replays; it is not refused by its own precondition.
+ const retried=await request(relay,'/command',{...guarded,ifRevision:0});
+ assert.equal(retried.status,200);
+ assert.equal((await retried.json()).outcome,'replayed');
+});
+
+test('ifCue holds only while that graphic, or nothing for null, is pinned',async()=>{
+ const relay=await initializedRelay();
+ const wrong=await request(relay,'/command',command({ifCue:'cue-two'}));
+ assert.equal(wrong.status,409);
+ assert.equal((await wrong.json()).precondition,'ifCue');
+ assert.equal((await (await request(relay,'/command',command({ifCue:null}))).json()).outcome,'applied');
+ const out=await request(relay,'/command',command({action:'out',cue:'cue-one',ifCue:'cue-one',ifRevision:1}));
+ assert.equal((await out.json()).outcome,'applied');
+ const malformed=await request(relay,'/command',command({ifRevision:'1'}));
+ assert.equal(malformed.status,400);
+ assert.deepEqual(await malformed.json(),{error:'Invalid command'});
+});
+
+test('press time per controller class is on /state and /command, never in a socket frame',async()=>{
+ // Starts at wall time because the socket ticket is minted from the real clock.
+ let clock=Date.now();
+ const relay=await initializedRelay(()=>clock);
+ const {socket,recorder:listener,opened}=connect(relay,'control');
+ assert.equal(await opened,'open');
+ await listener.next(frame=>frame.type==='snapshot');
+ assert.deepEqual((await (await request(relay,'/state')).json()).lastPress,{control:null,companion:null,mcp:null});
+ const clientId=randomUUID();
+ const deck=await (await request(relay,'/command',command({source:'companion',clientId,sequence:2}))).json();
+ assert.deepEqual(deck.lastPress,{control:null,companion:clock,mcp:null});
+ const broadcast=await listener.next(frame=>frame.type==='snapshot');
+ assert.equal('lastPress' in (broadcast.snapshot as Frame),false);
+ clock+=1000;
+ // A superseded press is still a press; a replay of it is not.
+ const stale=command({source:'companion',clientId,sequence:1});
+ await request(relay,'/command',stale);
+ clock+=1000;
+ await request(relay,'/command',stale);
+ await request(relay,'/command',command({source:'mcp'}));
+ const state=await (await request(relay,'/state')).json();
+ assert.deepEqual(state.lastPress,{control:null,companion:clock-1000,mcp:clock});
+ socket.close();
+});
