@@ -187,6 +187,18 @@ app/api/catalog/route.ts and lib/sync-live-catalog.ts; L2 and C5 add envelope-on
   while a caller's explicit sizes win on create_draft; the web shelf copy takes stored defaults too;
   translation default not applied to create_source_draft_set; a single part of a shared set may be a batch
   item. Follow-ups: drafts don't record which defaults version made them.
+- T2 merged (64d0e87): add/update/list_local_sources (lib/local-sources.ts; db/local-sources.sql not
+  applied, missing table reads as empty and refuses writes in a sentence); local sources merge into search
+  (new page filter), get_source, facets, list_book_units, drafts/sets/preview, source review drift, the
+  liturgy index and setlist book matching; never in the shared-library payload (tested). Merged by hand
+  with T1 in create_draft/create_source_draft_set (house defaults and local units both apply; test added);
+  createAuthoringService takes localSources 6th, defaultsRepo 7th. Gate: tsc clean, npm test 1044+35,
+  lint 0 errors; snapshot 84 tools = 3-way union.
+- GATE (T2): attribution required, licence optional and stored as given; attribution travels as data
+  (snapshot + provenance), not on-screen text; setlist book match ignores case/punctuation; local-backed
+  cues now report a liturgical position; migration not in migrate-authoring.mjs (C1 precedent).
+  Follow-ups: service coverage rows can't name a local source id directly; update_local_source doesn't refuse
+  a duplicate name on the same page.
 - Owed: a real-browser check of the library's Retired label and Return button (A3 did a server render only).
 - V3 merged (ae37165): nine live tools in lib/mcp/live.ts dispatched to a separate live
   operation (route wires runMcpCommand/snapshot/catalog); deck guard on lastPress.companion; server-side
