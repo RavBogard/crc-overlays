@@ -179,6 +179,14 @@ app/api/catalog/route.ts and lib/sync-live-catalog.ts; L2 and C5 add envelope-on
   service_readiness already reads a retired graphic as "no longer published" → needs-review. Relay rule
   (on-air `out` accepted for a cue no longer in the catalog) ships with the next relay release, before
   the web. Gate after merge: tsc clean, npm test 1016+35, lint 0 errors, relay 83, Turbopack build ok.
+- T1 merged (39e2f70): get/update_authoring_defaults (db/authoring-defaults.sql, not applied; writes refused
+  in a sentence until it is), customize_shared_batch (≤50 items, dry run default, idempotent per upstream
+  version so a rerun resumes), applyDefaults on create_draft/create_source_draft_set/customize_shared_*.
+  Gate after merge: tsc clean, npm test 1035+35, lint 0 errors; snapshot 81 tools = 3-way union.
+- GATE (T1): layout rule applies only where a set is formed; house typography replaces a shared copy's sizes
+  while a caller's explicit sizes win on create_draft; the web shelf copy takes stored defaults too;
+  translation default not applied to create_source_draft_set; a single part of a shared set may be a batch
+  item. Follow-ups: drafts don't record which defaults version made them.
 - Owed: a real-browser check of the library's Retired label and Return button (A3 did a server render only).
 - V3 merged (ae37165): nine live tools in lib/mcp/live.ts dispatched to a separate live
   operation (route wires runMcpCommand/snapshot/catalog); deck guard on lastPress.companion; server-side
