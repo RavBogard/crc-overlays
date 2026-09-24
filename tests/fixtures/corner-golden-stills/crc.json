@@ -1,0 +1,3071 @@
+{
+ "browser": "153.0.8010.53",
+ "cases": [
+  {
+   "id": "short-line",
+   "pixelSha256": "c7426ea49dc01147a70e47e2f8a8e6314783fb410374b77b16ebf9e5b070e2ac",
+   "domSha256": "6d2fe3d87a5000c53b113eeb916abae3bf5cfc4c86ed218fdcb1a825db94dc57",
+   "fit": "fit",
+   "fitErrors": [],
+   "warnings": [],
+   "fill": null,
+   "dump": {
+    "className": "overlay corner",
+    "fit": "fit",
+    "before": "none",
+    "parts": [
+     {
+      "element": "baseMain",
+      "className": "part base",
+      "box": [
+       1232,
+       832,
+       640,
+       200
+      ],
+      "fontSize": "16px",
+      "lineHeight": "normal",
+      "textAlign": "start",
+      "direction": "ltr",
+      "justifyContent": "normal",
+      "display": "block",
+      "transformOrigin": "640px 100px",
+      "fontFamily": "WorkRefresh, \"Noto Sans Arabic\", Arial, sans-serif",
+      "scroll": [
+       640,
+       200,
+       640,
+       200
+      ]
+     },
+     {
+      "element": "baseTitle",
+      "className": "part titlebar",
+      "box": [
+       1232,
+       832,
+       640,
+       56
+      ],
+      "fontSize": "16px",
+      "lineHeight": "normal",
+      "textAlign": "start",
+      "direction": "ltr",
+      "justifyContent": "normal",
+      "display": "block",
+      "transformOrigin": "640px 28px",
+      "fontFamily": "WorkRefresh, \"Noto Sans Arabic\", Arial, sans-serif",
+      "scroll": [
+       640,
+       56,
+       640,
+       56
+      ]
+     },
+     {
+      "element": "baseTitleGrad",
+      "className": "part titlebar titlegrad",
+      "box": [
+       1232,
+       832,
+       640,
+       56
+      ],
+      "fontSize": "16px",
+      "lineHeight": "normal",
+      "textAlign": "start",
+      "direction": "ltr",
+      "justifyContent": "normal",
+      "display": "block",
+      "transformOrigin": "640px 28px",
+      "fontFamily": "WorkRefresh, \"Noto Sans Arabic\", Arial, sans-serif",
+      "scroll": [
+       640,
+       56,
+       640,
+       56
+      ]
+     },
+     {
+      "element": "accentLineBottom",
+      "className": "part accent",
+      "box": [
+       1232,
+       1026,
+       640,
+       6
+      ],
+      "fontSize": "16px",
+      "lineHeight": "normal",
+      "textAlign": "start",
+      "direction": "ltr",
+      "justifyContent": "normal",
+      "display": "block",
+      "transformOrigin": "640px 3px",
+      "fontFamily": "WorkRefresh, \"Noto Sans Arabic\", Arial, sans-serif",
+      "scroll": [
+       640,
+       6,
+       640,
+       6
+      ]
+     },
+     {
+      "element": "textTitle",
+      "className": "part title",
+      "box": [
+       1264,
+       836,
+       532,
+       48
+      ],
+      "fontSize": "28px",
+      "lineHeight": "30.8px",
+      "textAlign": "start",
+      "direction": "ltr",
+      "justifyContent": "normal",
+      "display": "flex",
+      "transformOrigin": "0px 24px",
+      "fontFamily": "WorkRefresh, \"Noto Sans Arabic\", Arial, sans-serif",
+      "scroll": [
+       532,
+       48,
+       532,
+       48
+      ]
+     },
+     {
+      "element": "textMain",
+      "className": "part prayer combined single-channel",
+      "box": [
+       1264,
+       898,
+       584,
+       120
+      ],
+      "fontSize": "36px",
+      "lineHeight": "43.92px",
+      "textAlign": "start",
+      "direction": "ltr",
+      "justifyContent": "normal",
+      "display": "grid",
+      "transformOrigin": "0px 60px",
+      "fontFamily": "WorkRefresh, \"Noto Sans Hebrew\", \"Noto Sans Arabic\", Arial, sans-serif",
+      "scroll": [
+       584,
+       120,
+       584,
+       120
+      ]
+     },
+     {
+      "element": "Image",
+      "className": "part logo",
+      "box": [
+       1812,
+       838,
+       44,
+       44
+      ],
+      "fontSize": "16px",
+      "lineHeight": "normal",
+      "textAlign": "start",
+      "direction": "ltr",
+      "justifyContent": "normal",
+      "display": "block",
+      "transformOrigin": "22px 22px",
+      "fontFamily": "WorkRefresh, \"Noto Sans Arabic\", Arial, sans-serif",
+      "scroll": [
+       44,
+       44,
+       44,
+       44
+      ]
+     }
+    ]
+   }
+  },
+  {
+   "id": "two-lines",
+   "pixelSha256": "e2d0a3bb2cc50a7f77ceef556ee0a7aaed257ac0c809e846604b0245dbda9d1e",
+   "domSha256": "6d2fe3d87a5000c53b113eeb916abae3bf5cfc4c86ed218fdcb1a825db94dc57",
+   "fit": "fit",
+   "fitErrors": [],
+   "warnings": [],
+   "fill": null,
+   "dump": {
+    "className": "overlay corner",
+    "fit": "fit",
+    "before": "none",
+    "parts": [
+     {
+      "element": "baseMain",
+      "className": "part base",
+      "box": [
+       1232,
+       832,
+       640,
+       200
+      ],
+      "fontSize": "16px",
+      "lineHeight": "normal",
+      "textAlign": "start",
+      "direction": "ltr",
+      "justifyContent": "normal",
+      "display": "block",
+      "transformOrigin": "640px 100px",
+      "fontFamily": "WorkRefresh, \"Noto Sans Arabic\", Arial, sans-serif",
+      "scroll": [
+       640,
+       200,
+       640,
+       200
+      ]
+     },
+     {
+      "element": "baseTitle",
+      "className": "part titlebar",
+      "box": [
+       1232,
+       832,
+       640,
+       56
+      ],
+      "fontSize": "16px",
+      "lineHeight": "normal",
+      "textAlign": "start",
+      "direction": "ltr",
+      "justifyContent": "normal",
+      "display": "block",
+      "transformOrigin": "640px 28px",
+      "fontFamily": "WorkRefresh, \"Noto Sans Arabic\", Arial, sans-serif",
+      "scroll": [
+       640,
+       56,
+       640,
+       56
+      ]
+     },
+     {
+      "element": "baseTitleGrad",
+      "className": "part titlebar titlegrad",
+      "box": [
+       1232,
+       832,
+       640,
+       56
+      ],
+      "fontSize": "16px",
+      "lineHeight": "normal",
+      "textAlign": "start",
+      "direction": "ltr",
+      "justifyContent": "normal",
+      "display": "block",
+      "transformOrigin": "640px 28px",
+      "fontFamily": "WorkRefresh, \"Noto Sans Arabic\", Arial, sans-serif",
+      "scroll": [
+       640,
+       56,
+       640,
+       56
+      ]
+     },
+     {
+      "element": "accentLineBottom",
+      "className": "part accent",
+      "box": [
+       1232,
+       1026,
+       640,
+       6
+      ],
+      "fontSize": "16px",
+      "lineHeight": "normal",
+      "textAlign": "start",
+      "direction": "ltr",
+      "justifyContent": "normal",
+      "display": "block",
+      "transformOrigin": "640px 3px",
+      "fontFamily": "WorkRefresh, \"Noto Sans Arabic\", Arial, sans-serif",
+      "scroll": [
+       640,
+       6,
+       640,
+       6
+      ]
+     },
+     {
+      "element": "textTitle",
+      "className": "part title",
+      "box": [
+       1264,
+       836,
+       532,
+       48
+      ],
+      "fontSize": "28px",
+      "lineHeight": "30.8px",
+      "textAlign": "start",
+      "direction": "ltr",
+      "justifyContent": "normal",
+      "display": "flex",
+      "transformOrigin": "0px 24px",
+      "fontFamily": "WorkRefresh, \"Noto Sans Arabic\", Arial, sans-serif",
+      "scroll": [
+       532,
+       48,
+       532,
+       48
+      ]
+     },
+     {
+      "element": "textMain",
+      "className": "part prayer combined single-channel",
+      "box": [
+       1264,
+       898,
+       584,
+       120
+      ],
+      "fontSize": "36px",
+      "lineHeight": "43.92px",
+      "textAlign": "start",
+      "direction": "ltr",
+      "justifyContent": "normal",
+      "display": "grid",
+      "transformOrigin": "0px 60px",
+      "fontFamily": "WorkRefresh, \"Noto Sans Hebrew\", \"Noto Sans Arabic\", Arial, sans-serif",
+      "scroll": [
+       584,
+       120,
+       584,
+       120
+      ]
+     },
+     {
+      "element": "Image",
+      "className": "part logo",
+      "box": [
+       1812,
+       838,
+       44,
+       44
+      ],
+      "fontSize": "16px",
+      "lineHeight": "normal",
+      "textAlign": "start",
+      "direction": "ltr",
+      "justifyContent": "normal",
+      "display": "block",
+      "transformOrigin": "22px 22px",
+      "fontFamily": "WorkRefresh, \"Noto Sans Arabic\", Arial, sans-serif",
+      "scroll": [
+       44,
+       44,
+       44,
+       44
+      ]
+     }
+    ]
+   }
+  },
+  {
+   "id": "hebrew-transliteration",
+   "pixelSha256": "fbcc21a16ee7533c7f922bb609576ac5130b27e70afac2ad1b9a29f086629af3",
+   "domSha256": "efd558be257a86c303b29a3f4aeec55de494a47f61bb39a981a979057b5ea936",
+   "fit": "fit",
+   "fitErrors": [],
+   "warnings": [],
+   "fill": null,
+   "dump": {
+    "className": "overlay corner",
+    "fit": "fit",
+    "before": "none",
+    "parts": [
+     {
+      "element": "baseMain",
+      "className": "part base",
+      "box": [
+       1232,
+       832,
+       640,
+       200
+      ],
+      "fontSize": "16px",
+      "lineHeight": "normal",
+      "textAlign": "start",
+      "direction": "ltr",
+      "justifyContent": "normal",
+      "display": "block",
+      "transformOrigin": "640px 100px",
+      "fontFamily": "WorkRefresh, \"Noto Sans Arabic\", Arial, sans-serif",
+      "scroll": [
+       640,
+       200,
+       640,
+       200
+      ]
+     },
+     {
+      "element": "baseTitle",
+      "className": "part titlebar",
+      "box": [
+       1232,
+       832,
+       640,
+       56
+      ],
+      "fontSize": "16px",
+      "lineHeight": "normal",
+      "textAlign": "start",
+      "direction": "ltr",
+      "justifyContent": "normal",
+      "display": "block",
+      "transformOrigin": "640px 28px",
+      "fontFamily": "WorkRefresh, \"Noto Sans Arabic\", Arial, sans-serif",
+      "scroll": [
+       640,
+       56,
+       640,
+       56
+      ]
+     },
+     {
+      "element": "baseTitleGrad",
+      "className": "part titlebar titlegrad",
+      "box": [
+       1232,
+       832,
+       640,
+       56
+      ],
+      "fontSize": "16px",
+      "lineHeight": "normal",
+      "textAlign": "start",
+      "direction": "ltr",
+      "justifyContent": "normal",
+      "display": "block",
+      "transformOrigin": "640px 28px",
+      "fontFamily": "WorkRefresh, \"Noto Sans Arabic\", Arial, sans-serif",
+      "scroll": [
+       640,
+       56,
+       640,
+       56
+      ]
+     },
+     {
+      "element": "accentLineBottom",
+      "className": "part accent",
+      "box": [
+       1232,
+       1026,
+       640,
+       6
+      ],
+      "fontSize": "16px",
+      "lineHeight": "normal",
+      "textAlign": "start",
+      "direction": "ltr",
+      "justifyContent": "normal",
+      "display": "block",
+      "transformOrigin": "640px 3px",
+      "fontFamily": "WorkRefresh, \"Noto Sans Arabic\", Arial, sans-serif",
+      "scroll": [
+       640,
+       6,
+       640,
+       6
+      ]
+     },
+     {
+      "element": "textTitle",
+      "className": "part title",
+      "box": [
+       1264,
+       836,
+       532,
+       48
+      ],
+      "fontSize": "28px",
+      "lineHeight": "30.8px",
+      "textAlign": "start",
+      "direction": "ltr",
+      "justifyContent": "normal",
+      "display": "flex",
+      "transformOrigin": "0px 24px",
+      "fontFamily": "WorkRefresh, \"Noto Sans Arabic\", Arial, sans-serif",
+      "scroll": [
+       532,
+       48,
+       532,
+       48
+      ]
+     },
+     {
+      "element": "textMainEng",
+      "className": "part prayer english",
+      "box": [
+       1264,
+       962,
+       584,
+       56
+      ],
+      "fontSize": "32px",
+      "lineHeight": "39.68px",
+      "textAlign": "left",
+      "direction": "ltr",
+      "justifyContent": "normal",
+      "display": "block",
+      "transformOrigin": "0px 28px",
+      "fontFamily": "WorkRefresh, \"Noto Sans Arabic\", Arial, sans-serif",
+      "scroll": [
+       584,
+       56,
+       584,
+       56
+      ]
+     },
+     {
+      "element": "textMainheb",
+      "className": "part prayer hebrew",
+      "box": [
+       1264,
+       898,
+       584,
+       58
+      ],
+      "fontSize": "40px",
+      "lineHeight": "49.6px",
+      "textAlign": "right",
+      "direction": "rtl",
+      "justifyContent": "normal",
+      "display": "block",
+      "transformOrigin": "0px 29px",
+      "fontFamily": "\"Noto Sans Hebrew\", \"Noto Sans Arabic\", Arial, sans-serif",
+      "scroll": [
+       584,
+       58,
+       584,
+       58
+      ]
+     },
+     {
+      "element": "Image",
+      "className": "part logo",
+      "box": [
+       1812,
+       838,
+       44,
+       44
+      ],
+      "fontSize": "16px",
+      "lineHeight": "normal",
+      "textAlign": "start",
+      "direction": "ltr",
+      "justifyContent": "normal",
+      "display": "block",
+      "transformOrigin": "22px 22px",
+      "fontFamily": "WorkRefresh, \"Noto Sans Arabic\", Arial, sans-serif",
+      "scroll": [
+       44,
+       44,
+       44,
+       44
+      ]
+     }
+    ]
+   }
+  },
+  {
+   "id": "hebrew-transliteration-accent-title",
+   "pixelSha256": "8d6895a97f0268589d38cf699693cad1830ae44e6cb8c7401ecb0769e084511e",
+   "domSha256": "1d73fe3ba5b2400bcf3fa86ea9d66d2db451ffe8cec233ffe0b89e84dfe2856d",
+   "fit": "fit",
+   "fitErrors": [],
+   "warnings": [],
+   "fill": null,
+   "dump": {
+    "className": "overlay corner",
+    "fit": "fit",
+    "before": "none",
+    "parts": [
+     {
+      "element": "baseMain",
+      "className": "part base",
+      "box": [
+       1232,
+       832,
+       640,
+       200
+      ],
+      "fontSize": "16px",
+      "lineHeight": "normal",
+      "textAlign": "start",
+      "direction": "ltr",
+      "justifyContent": "normal",
+      "display": "block",
+      "transformOrigin": "640px 100px",
+      "fontFamily": "WorkRefresh, \"Noto Sans Arabic\", Arial, sans-serif",
+      "scroll": [
+       640,
+       200,
+       640,
+       200
+      ]
+     },
+     {
+      "element": "baseTitle",
+      "className": "part titlebar",
+      "box": [
+       1232,
+       832,
+       640,
+       56
+      ],
+      "fontSize": "16px",
+      "lineHeight": "normal",
+      "textAlign": "start",
+      "direction": "ltr",
+      "justifyContent": "normal",
+      "display": "block",
+      "transformOrigin": "640px 28px",
+      "fontFamily": "WorkRefresh, \"Noto Sans Arabic\", Arial, sans-serif",
+      "scroll": [
+       640,
+       56,
+       640,
+       56
+      ]
+     },
+     {
+      "element": "baseTitleGrad",
+      "className": "part titlebar titlegrad",
+      "box": [
+       1232,
+       832,
+       640,
+       56
+      ],
+      "fontSize": "16px",
+      "lineHeight": "normal",
+      "textAlign": "start",
+      "direction": "ltr",
+      "justifyContent": "normal",
+      "display": "block",
+      "transformOrigin": "640px 28px",
+      "fontFamily": "WorkRefresh, \"Noto Sans Arabic\", Arial, sans-serif",
+      "scroll": [
+       640,
+       56,
+       640,
+       56
+      ]
+     },
+     {
+      "element": "accentLineBottom",
+      "className": "part accent",
+      "box": [
+       1232,
+       1026,
+       640,
+       6
+      ],
+      "fontSize": "16px",
+      "lineHeight": "normal",
+      "textAlign": "start",
+      "direction": "ltr",
+      "justifyContent": "normal",
+      "display": "block",
+      "transformOrigin": "640px 3px",
+      "fontFamily": "WorkRefresh, \"Noto Sans Arabic\", Arial, sans-serif",
+      "scroll": [
+       640,
+       6,
+       640,
+       6
+      ]
+     },
+     {
+      "element": "textTitle",
+      "className": "part title",
+      "box": [
+       1264,
+       836,
+       300,
+       48
+      ],
+      "fontSize": "28px",
+      "lineHeight": "30.8px",
+      "textAlign": "start",
+      "direction": "ltr",
+      "justifyContent": "normal",
+      "display": "flex",
+      "transformOrigin": "0px 24px",
+      "fontFamily": "WorkRefresh, \"Noto Sans Arabic\", Arial, sans-serif",
+      "scroll": [
+       300,
+       48,
+       300,
+       48
+      ]
+     },
+     {
+      "element": "accentTextTitle",
+      "className": "part title title-accent",
+      "box": [
+       1576,
+       836,
+       220,
+       48
+      ],
+      "fontSize": "28px",
+      "lineHeight": "30.8px",
+      "textAlign": "right",
+      "direction": "rtl",
+      "justifyContent": "flex-end",
+      "display": "flex",
+      "transformOrigin": "0px 24px",
+      "fontFamily": "\"Noto Sans Hebrew\", \"Noto Sans Arabic\", Arial, sans-serif",
+      "scroll": [
+       220,
+       48,
+       220,
+       48
+      ]
+     },
+     {
+      "element": "textMainEng",
+      "className": "part prayer english",
+      "box": [
+       1264,
+       962,
+       584,
+       56
+      ],
+      "fontSize": "32px",
+      "lineHeight": "39.68px",
+      "textAlign": "left",
+      "direction": "ltr",
+      "justifyContent": "normal",
+      "display": "block",
+      "transformOrigin": "0px 28px",
+      "fontFamily": "WorkRefresh, \"Noto Sans Arabic\", Arial, sans-serif",
+      "scroll": [
+       584,
+       56,
+       584,
+       56
+      ]
+     },
+     {
+      "element": "textMainheb",
+      "className": "part prayer hebrew",
+      "box": [
+       1264,
+       898,
+       584,
+       58
+      ],
+      "fontSize": "40px",
+      "lineHeight": "49.6px",
+      "textAlign": "right",
+      "direction": "rtl",
+      "justifyContent": "normal",
+      "display": "block",
+      "transformOrigin": "0px 29px",
+      "fontFamily": "\"Noto Sans Hebrew\", \"Noto Sans Arabic\", Arial, sans-serif",
+      "scroll": [
+       584,
+       58,
+       584,
+       58
+      ]
+     },
+     {
+      "element": "Image",
+      "className": "part logo",
+      "box": [
+       1812,
+       838,
+       44,
+       44
+      ],
+      "fontSize": "16px",
+      "lineHeight": "normal",
+      "textAlign": "start",
+      "direction": "ltr",
+      "justifyContent": "normal",
+      "display": "block",
+      "transformOrigin": "22px 22px",
+      "fontFamily": "WorkRefresh, \"Noto Sans Arabic\", Arial, sans-serif",
+      "scroll": [
+       44,
+       44,
+       44,
+       44
+      ]
+     }
+    ]
+   }
+  },
+  {
+   "id": "long-english-shrinks",
+   "pixelSha256": "2e7e5d8643c1139b7ad57f76c01f6d7009e2e28d07ba6662a1cf9d97f8d8a2a6",
+   "domSha256": "bee0a5348a2fa1aa2e1baa65bbf54e74b5cf2e9b26bc37fa7b341d8ec35da42f",
+   "fit": "fit",
+   "fitErrors": [],
+   "warnings": [],
+   "fill": null,
+   "dump": {
+    "className": "overlay corner",
+    "fit": "fit",
+    "before": "none",
+    "parts": [
+     {
+      "element": "baseMain",
+      "className": "part base",
+      "box": [
+       1232,
+       832,
+       640,
+       200
+      ],
+      "fontSize": "16px",
+      "lineHeight": "normal",
+      "textAlign": "start",
+      "direction": "ltr",
+      "justifyContent": "normal",
+      "display": "block",
+      "transformOrigin": "640px 100px",
+      "fontFamily": "WorkRefresh, \"Noto Sans Arabic\", Arial, sans-serif",
+      "scroll": [
+       640,
+       200,
+       640,
+       200
+      ]
+     },
+     {
+      "element": "baseTitle",
+      "className": "part titlebar",
+      "box": [
+       1232,
+       832,
+       640,
+       56
+      ],
+      "fontSize": "16px",
+      "lineHeight": "normal",
+      "textAlign": "start",
+      "direction": "ltr",
+      "justifyContent": "normal",
+      "display": "block",
+      "transformOrigin": "640px 28px",
+      "fontFamily": "WorkRefresh, \"Noto Sans Arabic\", Arial, sans-serif",
+      "scroll": [
+       640,
+       56,
+       640,
+       56
+      ]
+     },
+     {
+      "element": "baseTitleGrad",
+      "className": "part titlebar titlegrad",
+      "box": [
+       1232,
+       832,
+       640,
+       56
+      ],
+      "fontSize": "16px",
+      "lineHeight": "normal",
+      "textAlign": "start",
+      "direction": "ltr",
+      "justifyContent": "normal",
+      "display": "block",
+      "transformOrigin": "640px 28px",
+      "fontFamily": "WorkRefresh, \"Noto Sans Arabic\", Arial, sans-serif",
+      "scroll": [
+       640,
+       56,
+       640,
+       56
+      ]
+     },
+     {
+      "element": "accentLineBottom",
+      "className": "part accent",
+      "box": [
+       1232,
+       1026,
+       640,
+       6
+      ],
+      "fontSize": "16px",
+      "lineHeight": "normal",
+      "textAlign": "start",
+      "direction": "ltr",
+      "justifyContent": "normal",
+      "display": "block",
+      "transformOrigin": "640px 3px",
+      "fontFamily": "WorkRefresh, \"Noto Sans Arabic\", Arial, sans-serif",
+      "scroll": [
+       640,
+       6,
+       640,
+       6
+      ]
+     },
+     {
+      "element": "textTitle",
+      "className": "part title",
+      "box": [
+       1264,
+       836,
+       532,
+       48
+      ],
+      "fontSize": "28px",
+      "lineHeight": "30.8px",
+      "textAlign": "start",
+      "direction": "ltr",
+      "justifyContent": "normal",
+      "display": "flex",
+      "transformOrigin": "0px 24px",
+      "fontFamily": "WorkRefresh, \"Noto Sans Arabic\", Arial, sans-serif",
+      "scroll": [
+       532,
+       48,
+       532,
+       48
+      ]
+     },
+     {
+      "element": "textMain",
+      "className": "part prayer combined single-channel",
+      "box": [
+       1264,
+       898,
+       584,
+       120
+      ],
+      "fontSize": "33px",
+      "lineHeight": "40.26px",
+      "textAlign": "start",
+      "direction": "ltr",
+      "justifyContent": "normal",
+      "display": "grid",
+      "transformOrigin": "0px 60px",
+      "fontFamily": "WorkRefresh, \"Noto Sans Hebrew\", \"Noto Sans Arabic\", Arial, sans-serif",
+      "scroll": [
+       584,
+       120,
+       584,
+       120
+      ]
+     },
+     {
+      "element": "Image",
+      "className": "part logo",
+      "box": [
+       1812,
+       838,
+       44,
+       44
+      ],
+      "fontSize": "16px",
+      "lineHeight": "normal",
+      "textAlign": "start",
+      "direction": "ltr",
+      "justifyContent": "normal",
+      "display": "block",
+      "transformOrigin": "22px 22px",
+      "fontFamily": "WorkRefresh, \"Noto Sans Arabic\", Arial, sans-serif",
+      "scroll": [
+       44,
+       44,
+       44,
+       44
+      ]
+     }
+    ]
+   }
+  },
+  {
+   "id": "overflow-at-floor",
+   "pixelSha256": "ce86e227e92936a70851e97375cef78ce227d36684dcc1e06ccc51b0d48f5a53",
+   "domSha256": "758eef28265d2b262a5e89a7e76a8c2403a0670786c09d63266153205a0892b9",
+   "fit": "overflow",
+   "fitErrors": [
+    "textMain does not fit its box."
+   ],
+   "warnings": [],
+   "fill": null,
+   "dump": {
+    "className": "overlay corner",
+    "fit": "overflow",
+    "before": "none",
+    "parts": [
+     {
+      "element": "baseMain",
+      "className": "part base",
+      "box": [
+       1232,
+       832,
+       640,
+       200
+      ],
+      "fontSize": "16px",
+      "lineHeight": "normal",
+      "textAlign": "start",
+      "direction": "ltr",
+      "justifyContent": "normal",
+      "display": "block",
+      "transformOrigin": "640px 100px",
+      "fontFamily": "WorkRefresh, \"Noto Sans Arabic\", Arial, sans-serif",
+      "scroll": [
+       640,
+       200,
+       640,
+       200
+      ]
+     },
+     {
+      "element": "baseTitle",
+      "className": "part titlebar",
+      "box": [
+       1232,
+       832,
+       640,
+       56
+      ],
+      "fontSize": "16px",
+      "lineHeight": "normal",
+      "textAlign": "start",
+      "direction": "ltr",
+      "justifyContent": "normal",
+      "display": "block",
+      "transformOrigin": "640px 28px",
+      "fontFamily": "WorkRefresh, \"Noto Sans Arabic\", Arial, sans-serif",
+      "scroll": [
+       640,
+       56,
+       640,
+       56
+      ]
+     },
+     {
+      "element": "baseTitleGrad",
+      "className": "part titlebar titlegrad",
+      "box": [
+       1232,
+       832,
+       640,
+       56
+      ],
+      "fontSize": "16px",
+      "lineHeight": "normal",
+      "textAlign": "start",
+      "direction": "ltr",
+      "justifyContent": "normal",
+      "display": "block",
+      "transformOrigin": "640px 28px",
+      "fontFamily": "WorkRefresh, \"Noto Sans Arabic\", Arial, sans-serif",
+      "scroll": [
+       640,
+       56,
+       640,
+       56
+      ]
+     },
+     {
+      "element": "accentLineBottom",
+      "className": "part accent",
+      "box": [
+       1232,
+       1026,
+       640,
+       6
+      ],
+      "fontSize": "16px",
+      "lineHeight": "normal",
+      "textAlign": "start",
+      "direction": "ltr",
+      "justifyContent": "normal",
+      "display": "block",
+      "transformOrigin": "640px 3px",
+      "fontFamily": "WorkRefresh, \"Noto Sans Arabic\", Arial, sans-serif",
+      "scroll": [
+       640,
+       6,
+       640,
+       6
+      ]
+     },
+     {
+      "element": "textTitle",
+      "className": "part title",
+      "box": [
+       1264,
+       836,
+       532,
+       48
+      ],
+      "fontSize": "28px",
+      "lineHeight": "30.8px",
+      "textAlign": "start",
+      "direction": "ltr",
+      "justifyContent": "normal",
+      "display": "flex",
+      "transformOrigin": "0px 24px",
+      "fontFamily": "WorkRefresh, \"Noto Sans Arabic\", Arial, sans-serif",
+      "scroll": [
+       532,
+       48,
+       532,
+       48
+      ]
+     },
+     {
+      "element": "textMain",
+      "className": "part prayer combined single-channel",
+      "box": [
+       1264,
+       898,
+       584,
+       120
+      ],
+      "fontSize": "20px",
+      "lineHeight": "24.4px",
+      "textAlign": "start",
+      "direction": "ltr",
+      "justifyContent": "normal",
+      "display": "grid",
+      "transformOrigin": "0px 60px",
+      "fontFamily": "WorkRefresh, \"Noto Sans Hebrew\", \"Noto Sans Arabic\", Arial, sans-serif",
+      "scroll": [
+       584,
+       133,
+       584,
+       120
+      ]
+     },
+     {
+      "element": "Image",
+      "className": "part logo",
+      "box": [
+       1812,
+       838,
+       44,
+       44
+      ],
+      "fontSize": "16px",
+      "lineHeight": "normal",
+      "textAlign": "start",
+      "direction": "ltr",
+      "justifyContent": "normal",
+      "display": "block",
+      "transformOrigin": "22px 22px",
+      "fontFamily": "WorkRefresh, \"Noto Sans Arabic\", Arial, sans-serif",
+      "scroll": [
+       44,
+       44,
+       44,
+       44
+      ]
+     }
+    ]
+   }
+  },
+  {
+   "id": "long-hebrew-transliteration-shrinks",
+   "pixelSha256": "9dcf3122ec18895be910761f560200c5cf11aee9316fc43796e311e4a30c9e2d",
+   "domSha256": "03c99ddfa78eec94e4eed4d6f219a69d13cf8b797e5125ec680b2469fdf01d4d",
+   "fit": "fit",
+   "fitErrors": [],
+   "warnings": [],
+   "fill": null,
+   "dump": {
+    "className": "overlay corner",
+    "fit": "fit",
+    "before": "none",
+    "parts": [
+     {
+      "element": "baseMain",
+      "className": "part base",
+      "box": [
+       1232,
+       832,
+       640,
+       200
+      ],
+      "fontSize": "16px",
+      "lineHeight": "normal",
+      "textAlign": "start",
+      "direction": "ltr",
+      "justifyContent": "normal",
+      "display": "block",
+      "transformOrigin": "640px 100px",
+      "fontFamily": "WorkRefresh, \"Noto Sans Arabic\", Arial, sans-serif",
+      "scroll": [
+       640,
+       200,
+       640,
+       200
+      ]
+     },
+     {
+      "element": "baseTitle",
+      "className": "part titlebar",
+      "box": [
+       1232,
+       832,
+       640,
+       56
+      ],
+      "fontSize": "16px",
+      "lineHeight": "normal",
+      "textAlign": "start",
+      "direction": "ltr",
+      "justifyContent": "normal",
+      "display": "block",
+      "transformOrigin": "640px 28px",
+      "fontFamily": "WorkRefresh, \"Noto Sans Arabic\", Arial, sans-serif",
+      "scroll": [
+       640,
+       56,
+       640,
+       56
+      ]
+     },
+     {
+      "element": "baseTitleGrad",
+      "className": "part titlebar titlegrad",
+      "box": [
+       1232,
+       832,
+       640,
+       56
+      ],
+      "fontSize": "16px",
+      "lineHeight": "normal",
+      "textAlign": "start",
+      "direction": "ltr",
+      "justifyContent": "normal",
+      "display": "block",
+      "transformOrigin": "640px 28px",
+      "fontFamily": "WorkRefresh, \"Noto Sans Arabic\", Arial, sans-serif",
+      "scroll": [
+       640,
+       56,
+       640,
+       56
+      ]
+     },
+     {
+      "element": "accentLineBottom",
+      "className": "part accent",
+      "box": [
+       1232,
+       1026,
+       640,
+       6
+      ],
+      "fontSize": "16px",
+      "lineHeight": "normal",
+      "textAlign": "start",
+      "direction": "ltr",
+      "justifyContent": "normal",
+      "display": "block",
+      "transformOrigin": "640px 3px",
+      "fontFamily": "WorkRefresh, \"Noto Sans Arabic\", Arial, sans-serif",
+      "scroll": [
+       640,
+       6,
+       640,
+       6
+      ]
+     },
+     {
+      "element": "textTitle",
+      "className": "part title",
+      "box": [
+       1264,
+       836,
+       532,
+       48
+      ],
+      "fontSize": "28px",
+      "lineHeight": "30.8px",
+      "textAlign": "start",
+      "direction": "ltr",
+      "justifyContent": "normal",
+      "display": "flex",
+      "transformOrigin": "0px 24px",
+      "fontFamily": "WorkRefresh, \"Noto Sans Arabic\", Arial, sans-serif",
+      "scroll": [
+       532,
+       48,
+       532,
+       48
+      ]
+     },
+     {
+      "element": "textMainEng",
+      "className": "part prayer english",
+      "box": [
+       1264,
+       962,
+       584,
+       56
+      ],
+      "fontSize": "22px",
+      "lineHeight": "27.28px",
+      "textAlign": "left",
+      "direction": "ltr",
+      "justifyContent": "normal",
+      "display": "block",
+      "transformOrigin": "0px 28px",
+      "fontFamily": "WorkRefresh, \"Noto Sans Arabic\", Arial, sans-serif",
+      "scroll": [
+       584,
+       56,
+       584,
+       56
+      ]
+     },
+     {
+      "element": "textMainheb",
+      "className": "part prayer hebrew",
+      "box": [
+       1264,
+       898,
+       584,
+       58
+      ],
+      "fontSize": "36px",
+      "lineHeight": "44.64px",
+      "textAlign": "right",
+      "direction": "rtl",
+      "justifyContent": "normal",
+      "display": "block",
+      "transformOrigin": "0px 29px",
+      "fontFamily": "\"Noto Sans Hebrew\", \"Noto Sans Arabic\", Arial, sans-serif",
+      "scroll": [
+       584,
+       58,
+       584,
+       58
+      ]
+     },
+     {
+      "element": "Image",
+      "className": "part logo",
+      "box": [
+       1812,
+       838,
+       44,
+       44
+      ],
+      "fontSize": "16px",
+      "lineHeight": "normal",
+      "textAlign": "start",
+      "direction": "ltr",
+      "justifyContent": "normal",
+      "display": "block",
+      "transformOrigin": "22px 22px",
+      "fontFamily": "WorkRefresh, \"Noto Sans Arabic\", Arial, sans-serif",
+      "scroll": [
+       44,
+       44,
+       44,
+       44
+      ]
+     }
+    ]
+   }
+  },
+  {
+   "id": "hebrew-lone-line",
+   "pixelSha256": "ed75654d6f2a1ff6960086f18f9784f5f510270034cea35036eb21a85222c9de",
+   "domSha256": "6d2fe3d87a5000c53b113eeb916abae3bf5cfc4c86ed218fdcb1a825db94dc57",
+   "fit": "fit",
+   "fitErrors": [],
+   "warnings": [],
+   "fill": null,
+   "dump": {
+    "className": "overlay corner",
+    "fit": "fit",
+    "before": "none",
+    "parts": [
+     {
+      "element": "baseMain",
+      "className": "part base",
+      "box": [
+       1232,
+       832,
+       640,
+       200
+      ],
+      "fontSize": "16px",
+      "lineHeight": "normal",
+      "textAlign": "start",
+      "direction": "ltr",
+      "justifyContent": "normal",
+      "display": "block",
+      "transformOrigin": "640px 100px",
+      "fontFamily": "WorkRefresh, \"Noto Sans Arabic\", Arial, sans-serif",
+      "scroll": [
+       640,
+       200,
+       640,
+       200
+      ]
+     },
+     {
+      "element": "baseTitle",
+      "className": "part titlebar",
+      "box": [
+       1232,
+       832,
+       640,
+       56
+      ],
+      "fontSize": "16px",
+      "lineHeight": "normal",
+      "textAlign": "start",
+      "direction": "ltr",
+      "justifyContent": "normal",
+      "display": "block",
+      "transformOrigin": "640px 28px",
+      "fontFamily": "WorkRefresh, \"Noto Sans Arabic\", Arial, sans-serif",
+      "scroll": [
+       640,
+       56,
+       640,
+       56
+      ]
+     },
+     {
+      "element": "baseTitleGrad",
+      "className": "part titlebar titlegrad",
+      "box": [
+       1232,
+       832,
+       640,
+       56
+      ],
+      "fontSize": "16px",
+      "lineHeight": "normal",
+      "textAlign": "start",
+      "direction": "ltr",
+      "justifyContent": "normal",
+      "display": "block",
+      "transformOrigin": "640px 28px",
+      "fontFamily": "WorkRefresh, \"Noto Sans Arabic\", Arial, sans-serif",
+      "scroll": [
+       640,
+       56,
+       640,
+       56
+      ]
+     },
+     {
+      "element": "accentLineBottom",
+      "className": "part accent",
+      "box": [
+       1232,
+       1026,
+       640,
+       6
+      ],
+      "fontSize": "16px",
+      "lineHeight": "normal",
+      "textAlign": "start",
+      "direction": "ltr",
+      "justifyContent": "normal",
+      "display": "block",
+      "transformOrigin": "640px 3px",
+      "fontFamily": "WorkRefresh, \"Noto Sans Arabic\", Arial, sans-serif",
+      "scroll": [
+       640,
+       6,
+       640,
+       6
+      ]
+     },
+     {
+      "element": "textTitle",
+      "className": "part title",
+      "box": [
+       1264,
+       836,
+       532,
+       48
+      ],
+      "fontSize": "28px",
+      "lineHeight": "30.8px",
+      "textAlign": "start",
+      "direction": "ltr",
+      "justifyContent": "normal",
+      "display": "flex",
+      "transformOrigin": "0px 24px",
+      "fontFamily": "WorkRefresh, \"Noto Sans Arabic\", Arial, sans-serif",
+      "scroll": [
+       532,
+       48,
+       532,
+       48
+      ]
+     },
+     {
+      "element": "textMain",
+      "className": "part prayer combined single-channel",
+      "box": [
+       1264,
+       898,
+       584,
+       120
+      ],
+      "fontSize": "36px",
+      "lineHeight": "43.92px",
+      "textAlign": "start",
+      "direction": "ltr",
+      "justifyContent": "normal",
+      "display": "grid",
+      "transformOrigin": "0px 60px",
+      "fontFamily": "WorkRefresh, \"Noto Sans Hebrew\", \"Noto Sans Arabic\", Arial, sans-serif",
+      "scroll": [
+       584,
+       120,
+       584,
+       120
+      ]
+     },
+     {
+      "element": "Image",
+      "className": "part logo",
+      "box": [
+       1812,
+       838,
+       44,
+       44
+      ],
+      "fontSize": "16px",
+      "lineHeight": "normal",
+      "textAlign": "start",
+      "direction": "ltr",
+      "justifyContent": "normal",
+      "display": "block",
+      "transformOrigin": "22px 22px",
+      "fontFamily": "WorkRefresh, \"Noto Sans Arabic\", Arial, sans-serif",
+      "scroll": [
+       44,
+       44,
+       44,
+       44
+      ]
+     }
+    ]
+   }
+  },
+  {
+   "id": "custom-hebrew-over-latin",
+   "pixelSha256": "8c8d29192c588d0ee0fd845715043653e5b12b22c546f6bf776033f68a4b0f13",
+   "domSha256": "6d2fe3d87a5000c53b113eeb916abae3bf5cfc4c86ed218fdcb1a825db94dc57",
+   "fit": "fit",
+   "fitErrors": [],
+   "warnings": [],
+   "fill": null,
+   "dump": {
+    "className": "overlay corner",
+    "fit": "fit",
+    "before": "none",
+    "parts": [
+     {
+      "element": "baseMain",
+      "className": "part base",
+      "box": [
+       1232,
+       832,
+       640,
+       200
+      ],
+      "fontSize": "16px",
+      "lineHeight": "normal",
+      "textAlign": "start",
+      "direction": "ltr",
+      "justifyContent": "normal",
+      "display": "block",
+      "transformOrigin": "640px 100px",
+      "fontFamily": "WorkRefresh, \"Noto Sans Arabic\", Arial, sans-serif",
+      "scroll": [
+       640,
+       200,
+       640,
+       200
+      ]
+     },
+     {
+      "element": "baseTitle",
+      "className": "part titlebar",
+      "box": [
+       1232,
+       832,
+       640,
+       56
+      ],
+      "fontSize": "16px",
+      "lineHeight": "normal",
+      "textAlign": "start",
+      "direction": "ltr",
+      "justifyContent": "normal",
+      "display": "block",
+      "transformOrigin": "640px 28px",
+      "fontFamily": "WorkRefresh, \"Noto Sans Arabic\", Arial, sans-serif",
+      "scroll": [
+       640,
+       56,
+       640,
+       56
+      ]
+     },
+     {
+      "element": "baseTitleGrad",
+      "className": "part titlebar titlegrad",
+      "box": [
+       1232,
+       832,
+       640,
+       56
+      ],
+      "fontSize": "16px",
+      "lineHeight": "normal",
+      "textAlign": "start",
+      "direction": "ltr",
+      "justifyContent": "normal",
+      "display": "block",
+      "transformOrigin": "640px 28px",
+      "fontFamily": "WorkRefresh, \"Noto Sans Arabic\", Arial, sans-serif",
+      "scroll": [
+       640,
+       56,
+       640,
+       56
+      ]
+     },
+     {
+      "element": "accentLineBottom",
+      "className": "part accent",
+      "box": [
+       1232,
+       1026,
+       640,
+       6
+      ],
+      "fontSize": "16px",
+      "lineHeight": "normal",
+      "textAlign": "start",
+      "direction": "ltr",
+      "justifyContent": "normal",
+      "display": "block",
+      "transformOrigin": "640px 3px",
+      "fontFamily": "WorkRefresh, \"Noto Sans Arabic\", Arial, sans-serif",
+      "scroll": [
+       640,
+       6,
+       640,
+       6
+      ]
+     },
+     {
+      "element": "textTitle",
+      "className": "part title",
+      "box": [
+       1264,
+       836,
+       532,
+       48
+      ],
+      "fontSize": "28px",
+      "lineHeight": "30.8px",
+      "textAlign": "start",
+      "direction": "ltr",
+      "justifyContent": "normal",
+      "display": "flex",
+      "transformOrigin": "0px 24px",
+      "fontFamily": "WorkRefresh, \"Noto Sans Arabic\", Arial, sans-serif",
+      "scroll": [
+       532,
+       48,
+       532,
+       48
+      ]
+     },
+     {
+      "element": "textMain",
+      "className": "part prayer combined single-channel",
+      "box": [
+       1264,
+       898,
+       584,
+       120
+      ],
+      "fontSize": "36px",
+      "lineHeight": "43.92px",
+      "textAlign": "start",
+      "direction": "ltr",
+      "justifyContent": "normal",
+      "display": "grid",
+      "transformOrigin": "0px 60px",
+      "fontFamily": "WorkRefresh, \"Noto Sans Hebrew\", \"Noto Sans Arabic\", Arial, sans-serif",
+      "scroll": [
+       584,
+       120,
+       584,
+       120
+      ]
+     },
+     {
+      "element": "Image",
+      "className": "part logo",
+      "box": [
+       1812,
+       838,
+       44,
+       44
+      ],
+      "fontSize": "16px",
+      "lineHeight": "normal",
+      "textAlign": "start",
+      "direction": "ltr",
+      "justifyContent": "normal",
+      "display": "block",
+      "transformOrigin": "22px 22px",
+      "fontFamily": "WorkRefresh, \"Noto Sans Arabic\", Arial, sans-serif",
+      "scroll": [
+       44,
+       44,
+       44,
+       44
+      ]
+     }
+    ]
+   }
+  },
+  {
+   "id": "english-channel-alone",
+   "pixelSha256": "0b8cce7c92521e58cab398375b0d839ee4a675607b05ac3200503680d3819d47",
+   "domSha256": "1bc5e2cad7aa8f04eab2d79e6cf9d99fdc12b6fe61f175ec8247c75f9340377d",
+   "fit": "fit",
+   "fitErrors": [],
+   "warnings": [],
+   "fill": null,
+   "dump": {
+    "className": "overlay corner",
+    "fit": "fit",
+    "before": "none",
+    "parts": [
+     {
+      "element": "baseMain",
+      "className": "part base",
+      "box": [
+       1232,
+       832,
+       640,
+       200
+      ],
+      "fontSize": "16px",
+      "lineHeight": "normal",
+      "textAlign": "start",
+      "direction": "ltr",
+      "justifyContent": "normal",
+      "display": "block",
+      "transformOrigin": "640px 100px",
+      "fontFamily": "WorkRefresh, \"Noto Sans Arabic\", Arial, sans-serif",
+      "scroll": [
+       640,
+       200,
+       640,
+       200
+      ]
+     },
+     {
+      "element": "baseTitle",
+      "className": "part titlebar",
+      "box": [
+       1232,
+       832,
+       640,
+       56
+      ],
+      "fontSize": "16px",
+      "lineHeight": "normal",
+      "textAlign": "start",
+      "direction": "ltr",
+      "justifyContent": "normal",
+      "display": "block",
+      "transformOrigin": "640px 28px",
+      "fontFamily": "WorkRefresh, \"Noto Sans Arabic\", Arial, sans-serif",
+      "scroll": [
+       640,
+       56,
+       640,
+       56
+      ]
+     },
+     {
+      "element": "baseTitleGrad",
+      "className": "part titlebar titlegrad",
+      "box": [
+       1232,
+       832,
+       640,
+       56
+      ],
+      "fontSize": "16px",
+      "lineHeight": "normal",
+      "textAlign": "start",
+      "direction": "ltr",
+      "justifyContent": "normal",
+      "display": "block",
+      "transformOrigin": "640px 28px",
+      "fontFamily": "WorkRefresh, \"Noto Sans Arabic\", Arial, sans-serif",
+      "scroll": [
+       640,
+       56,
+       640,
+       56
+      ]
+     },
+     {
+      "element": "accentLineBottom",
+      "className": "part accent",
+      "box": [
+       1232,
+       1026,
+       640,
+       6
+      ],
+      "fontSize": "16px",
+      "lineHeight": "normal",
+      "textAlign": "start",
+      "direction": "ltr",
+      "justifyContent": "normal",
+      "display": "block",
+      "transformOrigin": "640px 3px",
+      "fontFamily": "WorkRefresh, \"Noto Sans Arabic\", Arial, sans-serif",
+      "scroll": [
+       640,
+       6,
+       640,
+       6
+      ]
+     },
+     {
+      "element": "textTitle",
+      "className": "part title",
+      "box": [
+       1264,
+       836,
+       532,
+       48
+      ],
+      "fontSize": "28px",
+      "lineHeight": "30.8px",
+      "textAlign": "start",
+      "direction": "ltr",
+      "justifyContent": "normal",
+      "display": "flex",
+      "transformOrigin": "0px 24px",
+      "fontFamily": "WorkRefresh, \"Noto Sans Arabic\", Arial, sans-serif",
+      "scroll": [
+       532,
+       48,
+       532,
+       48
+      ]
+     },
+     {
+      "element": "textMainEng",
+      "className": "part prayer english single-channel",
+      "box": [
+       1264,
+       898,
+       584,
+       120
+      ],
+      "fontSize": "36px",
+      "lineHeight": "43.92px",
+      "textAlign": "start",
+      "direction": "ltr",
+      "justifyContent": "normal",
+      "display": "grid",
+      "transformOrigin": "0px 60px",
+      "fontFamily": "WorkRefresh, \"Noto Sans Hebrew\", \"Noto Sans Arabic\", Arial, sans-serif",
+      "scroll": [
+       584,
+       120,
+       584,
+       120
+      ]
+     },
+     {
+      "element": "Image",
+      "className": "part logo",
+      "box": [
+       1812,
+       838,
+       44,
+       44
+      ],
+      "fontSize": "16px",
+      "lineHeight": "normal",
+      "textAlign": "start",
+      "direction": "ltr",
+      "justifyContent": "normal",
+      "display": "block",
+      "transformOrigin": "22px 22px",
+      "fontFamily": "WorkRefresh, \"Noto Sans Arabic\", Arial, sans-serif",
+      "scroll": [
+       44,
+       44,
+       44,
+       44
+      ]
+     }
+    ]
+   }
+  },
+  {
+   "id": "translation-channel-alone",
+   "pixelSha256": "a98bb960e45184379c82265305f3014b6cf07825657477eee7df2b4509a60bd0",
+   "domSha256": "87326ba72247480795d1fe54958340874d81609916ea021d59f2e492e225454a",
+   "fit": "fit",
+   "fitErrors": [],
+   "warnings": [],
+   "fill": null,
+   "dump": {
+    "className": "overlay corner",
+    "fit": "fit",
+    "before": "none",
+    "parts": [
+     {
+      "element": "baseMain",
+      "className": "part base",
+      "box": [
+       1232,
+       832,
+       640,
+       200
+      ],
+      "fontSize": "16px",
+      "lineHeight": "normal",
+      "textAlign": "start",
+      "direction": "ltr",
+      "justifyContent": "normal",
+      "display": "block",
+      "transformOrigin": "640px 100px",
+      "fontFamily": "WorkRefresh, \"Noto Sans Arabic\", Arial, sans-serif",
+      "scroll": [
+       640,
+       200,
+       640,
+       200
+      ]
+     },
+     {
+      "element": "baseTitle",
+      "className": "part titlebar",
+      "box": [
+       1232,
+       832,
+       640,
+       56
+      ],
+      "fontSize": "16px",
+      "lineHeight": "normal",
+      "textAlign": "start",
+      "direction": "ltr",
+      "justifyContent": "normal",
+      "display": "block",
+      "transformOrigin": "640px 28px",
+      "fontFamily": "WorkRefresh, \"Noto Sans Arabic\", Arial, sans-serif",
+      "scroll": [
+       640,
+       56,
+       640,
+       56
+      ]
+     },
+     {
+      "element": "baseTitleGrad",
+      "className": "part titlebar titlegrad",
+      "box": [
+       1232,
+       832,
+       640,
+       56
+      ],
+      "fontSize": "16px",
+      "lineHeight": "normal",
+      "textAlign": "start",
+      "direction": "ltr",
+      "justifyContent": "normal",
+      "display": "block",
+      "transformOrigin": "640px 28px",
+      "fontFamily": "WorkRefresh, \"Noto Sans Arabic\", Arial, sans-serif",
+      "scroll": [
+       640,
+       56,
+       640,
+       56
+      ]
+     },
+     {
+      "element": "accentLineBottom",
+      "className": "part accent",
+      "box": [
+       1232,
+       1026,
+       640,
+       6
+      ],
+      "fontSize": "16px",
+      "lineHeight": "normal",
+      "textAlign": "start",
+      "direction": "ltr",
+      "justifyContent": "normal",
+      "display": "block",
+      "transformOrigin": "640px 3px",
+      "fontFamily": "WorkRefresh, \"Noto Sans Arabic\", Arial, sans-serif",
+      "scroll": [
+       640,
+       6,
+       640,
+       6
+      ]
+     },
+     {
+      "element": "textTitle",
+      "className": "part title",
+      "box": [
+       1264,
+       836,
+       532,
+       48
+      ],
+      "fontSize": "28px",
+      "lineHeight": "30.8px",
+      "textAlign": "start",
+      "direction": "ltr",
+      "justifyContent": "normal",
+      "display": "flex",
+      "transformOrigin": "0px 24px",
+      "fontFamily": "WorkRefresh, \"Noto Sans Arabic\", Arial, sans-serif",
+      "scroll": [
+       532,
+       48,
+       532,
+       48
+      ]
+     },
+     {
+      "element": "textTranslation",
+      "className": "part prayer translation single-channel",
+      "box": [
+       1264,
+       898,
+       584,
+       120
+      ],
+      "fontSize": "36px",
+      "lineHeight": "43.92px",
+      "textAlign": "start",
+      "direction": "ltr",
+      "justifyContent": "normal",
+      "display": "grid",
+      "transformOrigin": "0px 60px",
+      "fontFamily": "WorkRefresh, \"Noto Sans Hebrew\", \"Noto Sans Arabic\", Arial, sans-serif",
+      "scroll": [
+       584,
+       120,
+       584,
+       120
+      ]
+     },
+     {
+      "element": "Image",
+      "className": "part logo",
+      "box": [
+       1812,
+       838,
+       44,
+       44
+      ],
+      "fontSize": "16px",
+      "lineHeight": "normal",
+      "textAlign": "start",
+      "direction": "ltr",
+      "justifyContent": "normal",
+      "display": "block",
+      "transformOrigin": "22px 22px",
+      "fontFamily": "WorkRefresh, \"Noto Sans Arabic\", Arial, sans-serif",
+      "scroll": [
+       44,
+       44,
+       44,
+       44
+      ]
+     }
+    ]
+   }
+  },
+  {
+   "id": "hebrew-channel-alone",
+   "pixelSha256": "528163488008423ff712ce84238e97a1f1367fe67f2ffd14827e8dbd345229cb",
+   "domSha256": "9ef81321dfcfceecd6915f05e9e360f627798c9e20af6901253864214a708d2f",
+   "fit": "fit",
+   "fitErrors": [],
+   "warnings": [],
+   "fill": null,
+   "dump": {
+    "className": "overlay corner",
+    "fit": "fit",
+    "before": "none",
+    "parts": [
+     {
+      "element": "baseMain",
+      "className": "part base",
+      "box": [
+       1232,
+       832,
+       640,
+       200
+      ],
+      "fontSize": "16px",
+      "lineHeight": "normal",
+      "textAlign": "start",
+      "direction": "ltr",
+      "justifyContent": "normal",
+      "display": "block",
+      "transformOrigin": "640px 100px",
+      "fontFamily": "WorkRefresh, \"Noto Sans Arabic\", Arial, sans-serif",
+      "scroll": [
+       640,
+       200,
+       640,
+       200
+      ]
+     },
+     {
+      "element": "baseTitle",
+      "className": "part titlebar",
+      "box": [
+       1232,
+       832,
+       640,
+       56
+      ],
+      "fontSize": "16px",
+      "lineHeight": "normal",
+      "textAlign": "start",
+      "direction": "ltr",
+      "justifyContent": "normal",
+      "display": "block",
+      "transformOrigin": "640px 28px",
+      "fontFamily": "WorkRefresh, \"Noto Sans Arabic\", Arial, sans-serif",
+      "scroll": [
+       640,
+       56,
+       640,
+       56
+      ]
+     },
+     {
+      "element": "baseTitleGrad",
+      "className": "part titlebar titlegrad",
+      "box": [
+       1232,
+       832,
+       640,
+       56
+      ],
+      "fontSize": "16px",
+      "lineHeight": "normal",
+      "textAlign": "start",
+      "direction": "ltr",
+      "justifyContent": "normal",
+      "display": "block",
+      "transformOrigin": "640px 28px",
+      "fontFamily": "WorkRefresh, \"Noto Sans Arabic\", Arial, sans-serif",
+      "scroll": [
+       640,
+       56,
+       640,
+       56
+      ]
+     },
+     {
+      "element": "accentLineBottom",
+      "className": "part accent",
+      "box": [
+       1232,
+       1026,
+       640,
+       6
+      ],
+      "fontSize": "16px",
+      "lineHeight": "normal",
+      "textAlign": "start",
+      "direction": "ltr",
+      "justifyContent": "normal",
+      "display": "block",
+      "transformOrigin": "640px 3px",
+      "fontFamily": "WorkRefresh, \"Noto Sans Arabic\", Arial, sans-serif",
+      "scroll": [
+       640,
+       6,
+       640,
+       6
+      ]
+     },
+     {
+      "element": "textTitle",
+      "className": "part title",
+      "box": [
+       1264,
+       836,
+       532,
+       48
+      ],
+      "fontSize": "28px",
+      "lineHeight": "30.8px",
+      "textAlign": "start",
+      "direction": "ltr",
+      "justifyContent": "normal",
+      "display": "flex",
+      "transformOrigin": "0px 24px",
+      "fontFamily": "WorkRefresh, \"Noto Sans Arabic\", Arial, sans-serif",
+      "scroll": [
+       532,
+       48,
+       532,
+       48
+      ]
+     },
+     {
+      "element": "textMainheb",
+      "className": "part prayer hebrew single-channel",
+      "box": [
+       1264,
+       898,
+       584,
+       120
+      ],
+      "fontSize": "36px",
+      "lineHeight": "43.92px",
+      "textAlign": "start",
+      "direction": "rtl",
+      "justifyContent": "normal",
+      "display": "grid",
+      "transformOrigin": "0px 60px",
+      "fontFamily": "WorkRefresh, \"Noto Sans Hebrew\", \"Noto Sans Arabic\", Arial, sans-serif",
+      "scroll": [
+       584,
+       120,
+       584,
+       120
+      ]
+     },
+     {
+      "element": "Image",
+      "className": "part logo",
+      "box": [
+       1812,
+       838,
+       44,
+       44
+      ],
+      "fontSize": "16px",
+      "lineHeight": "normal",
+      "textAlign": "start",
+      "direction": "ltr",
+      "justifyContent": "normal",
+      "display": "block",
+      "transformOrigin": "22px 22px",
+      "fontFamily": "WorkRefresh, \"Noto Sans Arabic\", Arial, sans-serif",
+      "scroll": [
+       44,
+       44,
+       44,
+       44
+      ]
+     }
+    ]
+   }
+  },
+  {
+   "id": "no-title",
+   "pixelSha256": "bb2a4857f761e68ae2b20691947469cde9d6efeb3ca1b82e41bc1874bbf89b2e",
+   "domSha256": "d8f6f14d6c51e5daa5383d0951310b1e3ea6bcfe64c3a8d48349d3bd2cb92ac1",
+   "fit": "fit",
+   "fitErrors": [],
+   "warnings": [],
+   "fill": null,
+   "dump": {
+    "className": "overlay corner",
+    "fit": "fit",
+    "before": "none",
+    "parts": [
+     {
+      "element": "baseMain",
+      "className": "part base",
+      "box": [
+       1232,
+       832,
+       640,
+       200
+      ],
+      "fontSize": "16px",
+      "lineHeight": "normal",
+      "textAlign": "start",
+      "direction": "ltr",
+      "justifyContent": "normal",
+      "display": "block",
+      "transformOrigin": "640px 100px",
+      "fontFamily": "WorkRefresh, \"Noto Sans Arabic\", Arial, sans-serif",
+      "scroll": [
+       640,
+       200,
+       640,
+       200
+      ]
+     },
+     {
+      "element": "baseTitle",
+      "className": "part titlebar",
+      "box": [
+       1232,
+       832,
+       640,
+       56
+      ],
+      "fontSize": "16px",
+      "lineHeight": "normal",
+      "textAlign": "start",
+      "direction": "ltr",
+      "justifyContent": "normal",
+      "display": "block",
+      "transformOrigin": "640px 28px",
+      "fontFamily": "WorkRefresh, \"Noto Sans Arabic\", Arial, sans-serif",
+      "scroll": [
+       640,
+       56,
+       640,
+       56
+      ]
+     },
+     {
+      "element": "baseTitleGrad",
+      "className": "part titlebar titlegrad",
+      "box": [
+       1232,
+       832,
+       640,
+       56
+      ],
+      "fontSize": "16px",
+      "lineHeight": "normal",
+      "textAlign": "start",
+      "direction": "ltr",
+      "justifyContent": "normal",
+      "display": "block",
+      "transformOrigin": "640px 28px",
+      "fontFamily": "WorkRefresh, \"Noto Sans Arabic\", Arial, sans-serif",
+      "scroll": [
+       640,
+       56,
+       640,
+       56
+      ]
+     },
+     {
+      "element": "accentLineBottom",
+      "className": "part accent",
+      "box": [
+       1232,
+       1026,
+       640,
+       6
+      ],
+      "fontSize": "16px",
+      "lineHeight": "normal",
+      "textAlign": "start",
+      "direction": "ltr",
+      "justifyContent": "normal",
+      "display": "block",
+      "transformOrigin": "640px 3px",
+      "fontFamily": "WorkRefresh, \"Noto Sans Arabic\", Arial, sans-serif",
+      "scroll": [
+       640,
+       6,
+       640,
+       6
+      ]
+     },
+     {
+      "element": "textMainEng",
+      "className": "part prayer english",
+      "box": [
+       1264,
+       962,
+       584,
+       56
+      ],
+      "fontSize": "32px",
+      "lineHeight": "39.68px",
+      "textAlign": "left",
+      "direction": "ltr",
+      "justifyContent": "normal",
+      "display": "block",
+      "transformOrigin": "0px 28px",
+      "fontFamily": "WorkRefresh, \"Noto Sans Arabic\", Arial, sans-serif",
+      "scroll": [
+       584,
+       56,
+       584,
+       56
+      ]
+     },
+     {
+      "element": "textMainheb",
+      "className": "part prayer hebrew",
+      "box": [
+       1264,
+       898,
+       584,
+       58
+      ],
+      "fontSize": "40px",
+      "lineHeight": "49.6px",
+      "textAlign": "right",
+      "direction": "rtl",
+      "justifyContent": "normal",
+      "display": "block",
+      "transformOrigin": "0px 29px",
+      "fontFamily": "\"Noto Sans Hebrew\", \"Noto Sans Arabic\", Arial, sans-serif",
+      "scroll": [
+       584,
+       58,
+       584,
+       58
+      ]
+     },
+     {
+      "element": "Image",
+      "className": "part logo",
+      "box": [
+       1812,
+       838,
+       44,
+       44
+      ],
+      "fontSize": "16px",
+      "lineHeight": "normal",
+      "textAlign": "start",
+      "direction": "ltr",
+      "justifyContent": "normal",
+      "display": "block",
+      "transformOrigin": "22px 22px",
+      "fontFamily": "WorkRefresh, \"Noto Sans Arabic\", Arial, sans-serif",
+      "scroll": [
+       44,
+       44,
+       44,
+       44
+      ]
+     }
+    ]
+   }
+  },
+  {
+   "id": "long-title",
+   "pixelSha256": "cb81788799ae1ee85c9f11daa48c2158525a79a093c503275d3572e86e030f50",
+   "domSha256": "75b3fc0f55ca917740c59540307729cefb154dace80b1762a7633840a4c6f2e5",
+   "fit": "fit",
+   "fitErrors": [],
+   "warnings": [],
+   "fill": null,
+   "dump": {
+    "className": "overlay corner",
+    "fit": "fit",
+    "before": "none",
+    "parts": [
+     {
+      "element": "baseMain",
+      "className": "part base",
+      "box": [
+       1232,
+       832,
+       640,
+       200
+      ],
+      "fontSize": "16px",
+      "lineHeight": "normal",
+      "textAlign": "start",
+      "direction": "ltr",
+      "justifyContent": "normal",
+      "display": "block",
+      "transformOrigin": "640px 100px",
+      "fontFamily": "WorkRefresh, \"Noto Sans Arabic\", Arial, sans-serif",
+      "scroll": [
+       640,
+       200,
+       640,
+       200
+      ]
+     },
+     {
+      "element": "baseTitle",
+      "className": "part titlebar",
+      "box": [
+       1232,
+       832,
+       640,
+       56
+      ],
+      "fontSize": "16px",
+      "lineHeight": "normal",
+      "textAlign": "start",
+      "direction": "ltr",
+      "justifyContent": "normal",
+      "display": "block",
+      "transformOrigin": "640px 28px",
+      "fontFamily": "WorkRefresh, \"Noto Sans Arabic\", Arial, sans-serif",
+      "scroll": [
+       640,
+       56,
+       640,
+       56
+      ]
+     },
+     {
+      "element": "baseTitleGrad",
+      "className": "part titlebar titlegrad",
+      "box": [
+       1232,
+       832,
+       640,
+       56
+      ],
+      "fontSize": "16px",
+      "lineHeight": "normal",
+      "textAlign": "start",
+      "direction": "ltr",
+      "justifyContent": "normal",
+      "display": "block",
+      "transformOrigin": "640px 28px",
+      "fontFamily": "WorkRefresh, \"Noto Sans Arabic\", Arial, sans-serif",
+      "scroll": [
+       640,
+       56,
+       640,
+       56
+      ]
+     },
+     {
+      "element": "accentLineBottom",
+      "className": "part accent",
+      "box": [
+       1232,
+       1026,
+       640,
+       6
+      ],
+      "fontSize": "16px",
+      "lineHeight": "normal",
+      "textAlign": "start",
+      "direction": "ltr",
+      "justifyContent": "normal",
+      "display": "block",
+      "transformOrigin": "640px 3px",
+      "fontFamily": "WorkRefresh, \"Noto Sans Arabic\", Arial, sans-serif",
+      "scroll": [
+       640,
+       6,
+       640,
+       6
+      ]
+     },
+     {
+      "element": "textTitle",
+      "className": "part title",
+      "box": [
+       1264,
+       836,
+       532,
+       48
+      ],
+      "fontSize": "22px",
+      "lineHeight": "24.2px",
+      "textAlign": "start",
+      "direction": "ltr",
+      "justifyContent": "normal",
+      "display": "flex",
+      "transformOrigin": "0px 24px",
+      "fontFamily": "WorkRefresh, \"Noto Sans Arabic\", Arial, sans-serif",
+      "scroll": [
+       532,
+       48,
+       532,
+       48
+      ]
+     },
+     {
+      "element": "textMain",
+      "className": "part prayer combined single-channel",
+      "box": [
+       1264,
+       898,
+       584,
+       120
+      ],
+      "fontSize": "36px",
+      "lineHeight": "43.92px",
+      "textAlign": "start",
+      "direction": "ltr",
+      "justifyContent": "normal",
+      "display": "grid",
+      "transformOrigin": "0px 60px",
+      "fontFamily": "WorkRefresh, \"Noto Sans Hebrew\", \"Noto Sans Arabic\", Arial, sans-serif",
+      "scroll": [
+       584,
+       120,
+       584,
+       120
+      ]
+     },
+     {
+      "element": "Image",
+      "className": "part logo",
+      "box": [
+       1812,
+       838,
+       44,
+       44
+      ],
+      "fontSize": "16px",
+      "lineHeight": "normal",
+      "textAlign": "start",
+      "direction": "ltr",
+      "justifyContent": "normal",
+      "display": "block",
+      "transformOrigin": "22px 22px",
+      "fontFamily": "WorkRefresh, \"Noto Sans Arabic\", Arial, sans-serif",
+      "scroll": [
+       44,
+       44,
+       44,
+       44
+      ]
+     }
+    ]
+   }
+  },
+  {
+   "id": "presentation-overrides",
+   "pixelSha256": "af233aea2b528b6d43d89f375678f40b831ef10909cf7d628636e4b5d463c891",
+   "domSha256": "7250da3b007d820eeef600d1fab603a24989cf21f3e9e786a8d3f597a2d24079",
+   "fit": "fit",
+   "fitErrors": [],
+   "warnings": [],
+   "fill": null,
+   "dump": {
+    "className": "overlay corner",
+    "fit": "fit",
+    "before": "none",
+    "parts": [
+     {
+      "element": "baseMain",
+      "className": "part base",
+      "box": [
+       1232,
+       832,
+       640,
+       200
+      ],
+      "fontSize": "16px",
+      "lineHeight": "normal",
+      "textAlign": "start",
+      "direction": "ltr",
+      "justifyContent": "normal",
+      "display": "block",
+      "transformOrigin": "640px 100px",
+      "fontFamily": "WorkRefresh, \"Noto Sans Arabic\", Arial, sans-serif",
+      "scroll": [
+       640,
+       200,
+       640,
+       200
+      ]
+     },
+     {
+      "element": "baseTitle",
+      "className": "part titlebar",
+      "box": [
+       1232,
+       832,
+       640,
+       56
+      ],
+      "fontSize": "16px",
+      "lineHeight": "normal",
+      "textAlign": "start",
+      "direction": "ltr",
+      "justifyContent": "normal",
+      "display": "block",
+      "transformOrigin": "640px 28px",
+      "fontFamily": "WorkRefresh, \"Noto Sans Arabic\", Arial, sans-serif",
+      "scroll": [
+       640,
+       56,
+       640,
+       56
+      ]
+     },
+     {
+      "element": "baseTitleGrad",
+      "className": "part titlebar titlegrad",
+      "box": [
+       1232,
+       832,
+       640,
+       56
+      ],
+      "fontSize": "16px",
+      "lineHeight": "normal",
+      "textAlign": "start",
+      "direction": "ltr",
+      "justifyContent": "normal",
+      "display": "block",
+      "transformOrigin": "640px 28px",
+      "fontFamily": "WorkRefresh, \"Noto Sans Arabic\", Arial, sans-serif",
+      "scroll": [
+       640,
+       56,
+       640,
+       56
+      ]
+     },
+     {
+      "element": "accentLineBottom",
+      "className": "part accent",
+      "box": [
+       1232,
+       1026,
+       640,
+       6
+      ],
+      "fontSize": "16px",
+      "lineHeight": "normal",
+      "textAlign": "start",
+      "direction": "ltr",
+      "justifyContent": "normal",
+      "display": "block",
+      "transformOrigin": "640px 3px",
+      "fontFamily": "WorkRefresh, \"Noto Sans Arabic\", Arial, sans-serif",
+      "scroll": [
+       640,
+       6,
+       640,
+       6
+      ]
+     },
+     {
+      "element": "textTitle",
+      "className": "part title",
+      "box": [
+       1264,
+       836,
+       532,
+       48
+      ],
+      "fontSize": "24px",
+      "lineHeight": "26.4px",
+      "textAlign": "start",
+      "direction": "ltr",
+      "justifyContent": "normal",
+      "display": "flex",
+      "transformOrigin": "0px 24px",
+      "fontFamily": "WorkRefresh, \"Noto Sans Arabic\", Arial, sans-serif",
+      "scroll": [
+       532,
+       48,
+       532,
+       48
+      ]
+     },
+     {
+      "element": "textMainEng",
+      "className": "part prayer english",
+      "box": [
+       1264,
+       962,
+       584,
+       56
+      ],
+      "fontSize": "26px",
+      "lineHeight": "29.12px",
+      "textAlign": "center",
+      "direction": "ltr",
+      "justifyContent": "normal",
+      "display": "block",
+      "transformOrigin": "0px 28px",
+      "fontFamily": "WorkRefresh, \"Noto Sans Arabic\", Arial, sans-serif",
+      "scroll": [
+       584,
+       56,
+       584,
+       56
+      ]
+     },
+     {
+      "element": "textMainheb",
+      "className": "part prayer hebrew",
+      "box": [
+       1264,
+       898,
+       584,
+       58
+      ],
+      "fontSize": "44px",
+      "lineHeight": "49.28px",
+      "textAlign": "center",
+      "direction": "rtl",
+      "justifyContent": "normal",
+      "display": "block",
+      "transformOrigin": "0px 29px",
+      "fontFamily": "\"Noto Sans Hebrew\", \"Noto Sans Arabic\", Arial, sans-serif",
+      "scroll": [
+       584,
+       58,
+       584,
+       58
+      ]
+     },
+     {
+      "element": "Image",
+      "className": "part logo",
+      "box": [
+       1812,
+       838,
+       44,
+       44
+      ],
+      "fontSize": "16px",
+      "lineHeight": "normal",
+      "textAlign": "start",
+      "direction": "ltr",
+      "justifyContent": "normal",
+      "display": "block",
+      "transformOrigin": "22px 22px",
+      "fontFamily": "WorkRefresh, \"Noto Sans Arabic\", Arial, sans-serif",
+      "scroll": [
+       44,
+       44,
+       44,
+       44
+      ]
+     }
+    ]
+   }
+  },
+  {
+   "id": "phrases-spacious",
+   "pixelSha256": "f16dcdfa62e1673bab63bec87e1273edb826f8df207c203c13cebc932ee8b2bb",
+   "domSha256": "3bd2337b5cdfc202a7b5963c96a1397fddc98c2da9253e9cc9be000f9517af48",
+   "fit": "fit",
+   "fitErrors": [],
+   "warnings": [],
+   "fill": null,
+   "dump": {
+    "className": "overlay corner",
+    "fit": "fit",
+    "before": "none",
+    "parts": [
+     {
+      "element": "baseMain",
+      "className": "part base",
+      "box": [
+       1232,
+       832,
+       640,
+       200
+      ],
+      "fontSize": "16px",
+      "lineHeight": "normal",
+      "textAlign": "start",
+      "direction": "ltr",
+      "justifyContent": "normal",
+      "display": "block",
+      "transformOrigin": "640px 100px",
+      "fontFamily": "WorkRefresh, \"Noto Sans Arabic\", Arial, sans-serif",
+      "scroll": [
+       640,
+       200,
+       640,
+       200
+      ]
+     },
+     {
+      "element": "baseTitle",
+      "className": "part titlebar",
+      "box": [
+       1232,
+       832,
+       640,
+       56
+      ],
+      "fontSize": "16px",
+      "lineHeight": "normal",
+      "textAlign": "start",
+      "direction": "ltr",
+      "justifyContent": "normal",
+      "display": "block",
+      "transformOrigin": "640px 28px",
+      "fontFamily": "WorkRefresh, \"Noto Sans Arabic\", Arial, sans-serif",
+      "scroll": [
+       640,
+       56,
+       640,
+       56
+      ]
+     },
+     {
+      "element": "baseTitleGrad",
+      "className": "part titlebar titlegrad",
+      "box": [
+       1232,
+       832,
+       640,
+       56
+      ],
+      "fontSize": "16px",
+      "lineHeight": "normal",
+      "textAlign": "start",
+      "direction": "ltr",
+      "justifyContent": "normal",
+      "display": "block",
+      "transformOrigin": "640px 28px",
+      "fontFamily": "WorkRefresh, \"Noto Sans Arabic\", Arial, sans-serif",
+      "scroll": [
+       640,
+       56,
+       640,
+       56
+      ]
+     },
+     {
+      "element": "accentLineBottom",
+      "className": "part accent",
+      "box": [
+       1232,
+       1026,
+       640,
+       6
+      ],
+      "fontSize": "16px",
+      "lineHeight": "normal",
+      "textAlign": "start",
+      "direction": "ltr",
+      "justifyContent": "normal",
+      "display": "block",
+      "transformOrigin": "640px 3px",
+      "fontFamily": "WorkRefresh, \"Noto Sans Arabic\", Arial, sans-serif",
+      "scroll": [
+       640,
+       6,
+       640,
+       6
+      ]
+     },
+     {
+      "element": "textTitle",
+      "className": "part title",
+      "box": [
+       1264,
+       836,
+       532,
+       48
+      ],
+      "fontSize": "28px",
+      "lineHeight": "30.8px",
+      "textAlign": "start",
+      "direction": "ltr",
+      "justifyContent": "normal",
+      "display": "flex",
+      "transformOrigin": "0px 24px",
+      "fontFamily": "WorkRefresh, \"Noto Sans Arabic\", Arial, sans-serif",
+      "scroll": [
+       532,
+       48,
+       532,
+       48
+      ]
+     },
+     {
+      "element": "textMain",
+      "className": "part prayer combined single-channel",
+      "box": [
+       1264,
+       898,
+       584,
+       120
+      ],
+      "fontSize": "36px",
+      "lineHeight": "51.12px",
+      "textAlign": "start",
+      "direction": "ltr",
+      "justifyContent": "normal",
+      "display": "grid",
+      "transformOrigin": "0px 60px",
+      "fontFamily": "WorkRefresh, \"Noto Sans Hebrew\", \"Noto Sans Arabic\", Arial, sans-serif",
+      "scroll": [
+       584,
+       120,
+       584,
+       120
+      ]
+     },
+     {
+      "element": "Image",
+      "className": "part logo",
+      "box": [
+       1812,
+       838,
+       44,
+       44
+      ],
+      "fontSize": "16px",
+      "lineHeight": "normal",
+      "textAlign": "start",
+      "direction": "ltr",
+      "justifyContent": "normal",
+      "display": "block",
+      "transformOrigin": "22px 22px",
+      "fontFamily": "WorkRefresh, \"Noto Sans Arabic\", Arial, sans-serif",
+      "scroll": [
+       44,
+       44,
+       44,
+       44
+      ]
+     }
+    ]
+   }
+  }
+ ]
+}
