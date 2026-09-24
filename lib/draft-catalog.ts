@@ -106,6 +106,8 @@ function contentSummary(draft:Draft):DraftCatalogSummary['contentSummary']{
    // English for bilingual selections is derived only from validated translation pairs. It is
    // not a direct field on the selected Hebrew/transliteration block.
    if(base.mode==='bilingual'&&channel==='en')continue;
+   // G9 - an English-only passage in a bilingual selection is English, by design.
+   if(base.mode==='bilingual'&&(block?.kind==='original-en'||block?.kind==='source-en'))continue;
    if(meaningful(channel,block?.[channel]))continue;
    warn(sourceId,channel,`${channel==='he'?'Hebrew':channel==='tr'?'Transliteration':'English'} is not available in the selected source block.`);
   }

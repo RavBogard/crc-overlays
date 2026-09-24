@@ -970,7 +970,7 @@
           "pattern": "^[a-z0-9][a-z0-9._:-]{0,119}$"
          },
          "mode": {
-          "description": "Default: bilingual when every selected block pairs Hebrew and transliteration, original-en when every one is English.",
+          "description": "Default: bilingual when any selected block has Hebrew or transliteration (an English-only block among them shows as its own English row, in order), original-en when every one is English.",
           "type": "string",
           "enum": [
            "bilingual",
@@ -1147,7 +1147,7 @@
           "pattern": "^[a-z0-9][a-z0-9._:-]{0,119}$"
          },
          "mode": {
-          "description": "Default: bilingual when every selected block pairs Hebrew and transliteration, original-en when every one is English.",
+          "description": "Default: bilingual when any selected block has Hebrew or transliteration (an English-only block among them shows as its own English row, in order), original-en when every one is English.",
           "type": "string",
           "enum": [
            "bilingual",

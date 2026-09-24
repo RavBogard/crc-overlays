@@ -21,8 +21,12 @@ export type PanelLayout = LayoutId;
 /** Only the text channels matter here, so any source block shape is accepted. */
 export type PanelBlock = { he?: string; tr?: string; en?: string };
 
-/** The characters a block contributes in one mode: both Hebrew channels, or the English one. */
+/**
+ * The characters a block contributes in one mode: both Hebrew channels, or the English one. An
+ * English-only passage in a bilingual selection (no Hebrew, no transliteration) counts its English.
+ */
 export function blockCharacters(block: PanelBlock, mode: PanelMode) {
+  if (mode === "bilingual" && block.he === undefined && block.tr === undefined) return block.en?.length ?? 0;
   return mode === "bilingual" ? (block.he?.length ?? 0) + (block.tr?.length ?? 0) : (block.en?.length ?? 0);
 }
 
