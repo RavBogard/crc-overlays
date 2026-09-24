@@ -595,7 +595,13 @@ async function defaultDeps(): Promise<DeckConversionDeps> {
     workspace: getPublicWorkspace().id === 'temple-bnai-israel-kalamazoo' ? 'tbi' : 'crc',
     // One store for the deck: a deck seeded or converted here is the one get_deck reads and edits.
     repository: configuredRepository ?? defaultDeckRepository(),
-    cues: async () => (await authoringCatalog()).cues.filter((c) => !c.hidden && !c.aliasOf && !isNamesCueId(c.id)),
+    // Archived drafts can keep an active revision in the live catalog, but the deck validator counts them as
+    // unpublished (deckCatalogCues), so a button bound to one would fail validate_deck. Match only what it accepts.
+    cues: async () => {
+      const [catalog, drafts] = await Promise.all([authoringCatalog(), import('../authoring').then(({ authoringRepository }) => authoringRepository().listDrafts())])
+      const archived = new Set(drafts.filter((d) => d.archivedAt).map((d) => d.id))
+      return catalog.cues.filter((c) => !c.hidden && !c.aliasOf && !isNamesCueId(c.id) && !archived.has(c.id))
+    },
     committedSeed: async () => (await import('./tbi-seed-data.json')).default as unknown as ExportSeedData,
     now: Date.now,
   }

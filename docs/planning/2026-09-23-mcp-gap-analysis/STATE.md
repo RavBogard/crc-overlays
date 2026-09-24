@@ -299,7 +299,19 @@ app/api/catalog/route.ts and lib/sync-live-catalog.ts; L2 and C5 add envelope-on
   warnings); Turbopack `npm run build` ok; companion vitest 153; audit-companion-packages ok; audit-companion-preset
   PASS; golden stills 16/16 identical (next dev --webpack :5193). One rehearsal-relay timing test failed once in the
   full run after the L3 merge and passed 2/2 alone (known load flake).
-- NEXT (resume here): headline acceptance receipt (both workspaces) in rehearsal.
+- Headline acceptance (bd43ec0, receipt HEADLINE-ACCEPTANCE-2026-09-23.md): real MCP handler over in-memory stores,
+  real Chrome fits, the 19 September Ha'azinu setlist read from centralreform.live (answer injected; the server's
+  read token was not used). CRC passed every step first time (75 calls, 14 graphics shipped, 22/22 placed, export link).
+  TBI failed at validate_deck: convert_singular_deck bound 7 buttons to archived-but-still-published graphics that
+  the validator counts as unpublished. Fixed in the conversion (matches only non-archived drafts, the validator's
+  view); TBI re-run as specified passes every step (88 calls, 16 shipped, 21/21 placed, 0 errors, export link).
+- GATE (acceptance): TBI used CRC's setlist (TBI has none on centralreform.live); the harness chose standing pages
+  for graphics the placement grammar would not place (CRC 12 of 14; TBI pages are all named "PAGE", no chains) and
+  took each review row's first candidate — proceeded because these are the calls an agent makes through the MCP;
+  which pages and candidates are right is Michael's and Simone's call. Findings 2-5 in the receipt are open.
+- Plan status: every packet merged; headline acceptance passes on both workspaces locally. What remains is
+  outside Code's authority: Daniel's wording/product answers (Open questions), release authority (relay first,
+  then paired web), applying the nine migrations, and the staffed hardware rehearsal with Michael and Simone.
 - V3 merged (ae37165): nine live tools in lib/mcp/live.ts dispatched to a separate live
   operation (route wires runMcpCommand/snapshot/catalog); deck guard on lastPress.companion; server-side
   panel stepping (lib/panel-navigation.ts); Companion `last_source` variable + `last_source_agent` feedback
@@ -340,6 +352,9 @@ Four read-only audits (MCP surface, layouts/renderer, Companion, live/services/a
 structural read of Simone's export; synthesis and file/line references in GAP-ANALYSIS.md.
 
 ## Open questions
+- Acceptance findings: the placement grammar placed none of CRC's 14 new graphics by itself (no key names the
+  same prayer, or several pages share the slot) — should the MCP pick a standing page from the service's other
+  graphics? TBI's pages all named "PAGE" (Simone to name them?); the setlist's book doesn't narrow search_sources.
 - T3: can the first pass's singular-extract.json be re-pulled? Run it through import_singular_extract (dry run
   first); it may carry control links in notes, which the tool refuses.
 - L4: TBI's coral ring (visible) needs a TBI look; an open output page keeps old branding until reloaded (refresh

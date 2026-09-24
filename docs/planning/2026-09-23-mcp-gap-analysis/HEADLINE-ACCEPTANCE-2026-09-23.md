@@ -8,6 +8,14 @@ at `validate_deck`, so no export link is made. The cause is a product bug (Findi
 read call avoids the bug, and in that variant TBI passes every step. No code, repo or release change was made
 during steps 1-3.
 
+**Re-run after the Finding 1 fix (same day).** The conversion now matches only graphics whose draft is not
+archived, the same view `validate_deck` uses (lib/companion-deck/convert.ts, defaultDeps). TBI re-run as specified,
+real Chrome fit, 88 calls (seed 2, convert 2, prepare 1, readiness 2, get_service 2, search_sources 16,
+create_draft 16, ship_draft 16, resolve_coverage_row 20, sync 4, check 2, get_deck 3, validate 1, export 1):
+conversion bound 192 (matching TBI-CONVERSION-REPORT.md), readiness 1/4/16 → 21/0/0, 16 of 16 ships passed,
+`check_service_on_deck` 21 of 21 placed, `validate_deck` ok (0 errors, 0 warnings, 168 cues bound), and a signed
+full export link was produced. **Both workspaces now pass every step as specified.** Findings 2-5 stand.
+
 ## Setup
 - Setlist: centralreform.live `cd16ef0f-d874-47fc-9085-d85fdcc2054d`, "Shabbat Morning — Parashat Ha'azinu —
   September 19", book `crc-saturday`, 35 tracks. It was read once, earlier, through the centralreform.live MCP
@@ -86,7 +94,7 @@ during steps 1-3.
   expires 15 minutes after it was made (02:35 UTC on 2026-09-24).
 
 ## Findings
-1. **Conversion and validation disagree about "published" (bug, blocks TBI).** An archived draft that still
+1. **Conversion and validation disagreed about "published" (bug; fixed, see the re-run above).** An archived draft that still
    has an active revision stays in the live catalog. The production SQL and the memory store both keep it.
    - `convert_singular_deck` matches against that catalog. It marks 7 of Simone's buttons Covered, and binds
      them, to such graphics (L'cha Dodi 1, Shalom Aleicheim, Hineih Mah Tov, Kedusha Friday Night, SP - Rav
