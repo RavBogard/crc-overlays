@@ -1,5 +1,5 @@
 import {createHash} from 'node:crypto';
-import {AuthoringError,buildCue,cueHash,isRetiredDraft,normalizeGraphicName,previewValidation,type AuthoringCue,type Draft} from './authoring-model';
+import {AuthoringError,buildCue,isRetiredDraft,normalizeGraphicName,previewValidation,type AuthoringCue,type Draft} from './authoring-model';
 import {hygieneToolSchemas,ISSUE_KINDS,type HygieneToolName,type IssueKind} from './catalog-hygiene-schemas';
 import {baselineCatalogForWorkspace} from './workspace-catalog';
 import {missingCueRefusal,notPublishedRefusal} from './retire-rules';
@@ -313,6 +313,22 @@ type RefitItem={draftId:string;expectedVersion?:number};
 type RefitInput={items?:RefitItem[];accentTitleOnly?:boolean;cursor?:string;dryRun?:boolean};
 type RefitResult={index:number;draftId:string;ok:boolean;status:'would_refit'|'pass'|'fail'|'unavailable'|'skipped'|'failed';name?:string;[key:string]:unknown};
 const hasAccentTitle=(draft:Draft)=>Boolean(draft.accentTitle?.trim());
+/**
+ * G11 - whether a draft builds into the live graphic, compared as content, not as `cueHash`. A live
+ * cue read back from Postgres jsonb has its object keys reordered, so its hash never equals the hash of
+ * the same cue as built, and a production bundle's JSON import can differ from Node's in a float's
+ * last bit (0.9500000000000004 for 0.9500000000000003). So keys are sorted and every number is compared
+ * at 12 significant digits. Only this check reads it: cueHash, and every hash stored with a preview or
+ * revision, is unchanged.
+ */
+const roundNumber=(value:number)=>Number.isFinite(value)&&value!==0?Number(value.toPrecision(12)):value;
+function graphicContent(value:unknown):unknown{
+ if(typeof value==='number')return roundNumber(value);
+ if(Array.isArray(value))return value.map(graphicContent);
+ if(value&&typeof value==='object')return Object.fromEntries(Object.keys(value).filter(key=>(value as Record<string,unknown>)[key]!==undefined).sort().map(key=>[key,graphicContent((value as Record<string,unknown>)[key])]));
+ return value;
+}
+export const graphicContentKey=(cue:AuthoringCue)=>JSON.stringify(graphicContent(cue));
 const refitFingerprint=(items:RefitItem[],accentTitleOnly:boolean)=>createHash('sha256').update(JSON.stringify([accentTitleOnly,items.map(item=>[item.draftId,item.expectedVersion??null])])).digest('hex').slice(0,16);
 
 /** The list a call works through: the items named, or every graphic whose live version is its draft, in id order. */
@@ -332,14 +348,14 @@ function refitSkip(draft:Draft|null,item:RefitItem,accentTitleOnly:boolean,live:
  // The draft is measured, so it must build into exactly the live graphic. One imported from the
  // built-in catalog (import_cue) or published by an older build may not, and batch_ship skips it.
  const cue=cueOf(draft);
- if(!cue||cueHash(cue)!==live.get(draft.id))return {code:'differs_from_live',message:`"${draft.name}" is live as a graphic that was not built from this draft as it stands (imported from the built-in catalog, or published by an older build), so re-checking the draft would not be the live graphic's verdict. Check it in the editor's Fit check instead.`};
+ if(!cue||graphicContentKey(cue)!==live.get(draft.id))return {code:'differs_from_live',message:`"${draft.name}" is live as a graphic that was not built from this draft as it stands (imported from the built-in catalog, or published by an older build), so re-checking the draft would not be the live graphic's verdict. Check it in the editor's Fit check instead.`};
  return null;
 }
 
 async function batchRefit(ctx:HygieneContext,input:RefitInput,actor:string){
  const dryRun=input.dryRun??true,accentTitleOnly=input.accentTitleOnly===true,items=await refitList(ctx,input),fingerprint=refitFingerprint(items,accentTitleOnly);
- // The live graphics' cue hashes, read once: what each re-check must match.
- const live=new Map((await ctx.repo.published()).map(cue=>[cue.id,cueHash(cue)]));
+ // The live graphics' content, read once: what each re-check must match (graphicContentKey, G11).
+ const live=new Map((await ctx.repo.published()).map(cue=>[cue.id,graphicContentKey(cue)]));
  if(!items.length)return {dryRun,total:0,results:[],done:true,nextCursor:null,message:`There is nothing to re-check: no published graphic${accentTitleOnly?' with an accent title':''} is live at its current draft version. Nothing was changed.`};
  let start=0;
  if(input.cursor!==undefined){

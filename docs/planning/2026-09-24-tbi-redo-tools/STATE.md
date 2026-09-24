@@ -42,10 +42,14 @@ changes, paired web release, push to main.
 | G8 | batch_retire (≤200, dry run default) + find_catalog_issues batchRetire input | merged; in memory 193 retired in 1 dry run + 1 apply, then batch_ship of 44 copies: 0 duplicate_name |
 | G9 | panels mixing English-only and Hebrew/transliteration blocks (G4 finding) | merged; bilingual selections take English-only blocks as their own rows in block order; real data: 30 mixed panels in 29 sources all build (119/119 panels); no cue or unit hash moved; Omer builds without includeTranslation |
 | G10 | accent title size/weight as branding data + batch_refit | released 9bd67bc; CRC stills identical (12 layout + 16 corner), TBI 1.3/600 and 1.6/700 frames pass with real SemiBold/Bold loaded, batch_refit rehearsal dry run 6 total / 4 would re-check, live 4 pass |
+| G11 | batch_refit skipped every TBI graphic as differs_from_live | fixed: draft and live compared as content (keys sorted, numbers at 12 significant digits), not by rehashing the jsonb-read cue; cueHash and stored hashes unchanged |
 
 ## Evidence
 
 - Released 2026-09-24: G10 live as web 9bd67bc; TBI thread told in its STATE.md.
+- G11 cause (read-only on both production databases, 2026-09-24): batch_refit compared cueHash(built draft) with cueHash(live cue), and the live cue comes back from Postgres jsonb with its keys reordered (shortest first), so no Postgres-stored graphic ever matched; the in-memory rehearsal keeps key order, so it passed. Separately, the deployed bundle's copy of lib/cues.json carries template keyframes one float step from Node's parse (live 0.9500000000000004 and 0.105 vs 0.9500000000000003 and 0.10500000000000001 in every source tree; Postgres returns the stored digits exactly), so a node-run comparison also differed in the last bit.
+- G11 measured with the fixed check over production data (read-only): TBI accentTitleOnly 94 would refit, 3 skipped (Yotzer Or 1, Yotzer Or 2, Modeh Ani (Bottom): live as built-in imports with provenance, not built from their drafts - the kept skip); all published: 197 would refit, 5 skipped the same way, 1 draft that does not build (Oseh Shalom 1c78286d). CRC: 237 would refit, 1 skipped (the built-in "Thank you"), 10 with unpublished changes; a dry run writes nothing, and no cue, hash or render path changed, so CRC's stills cannot move.
+- GATE: numbers compared at 12 significant digits, not exactly - proceeded because the last-bit difference comes from the bundler's JSON parse, not from the graphic, and 12 digits is far below any position or timing the Player can show.
 - Released 2026-09-24: G9 live as web 186aa14. Every packet G1-G9 is live on both workspaces.
 - Released 2026-09-24: G7 and G8 live as web db34734 (RELEASE-STATE.md).
 - Released 2026-09-24: G1-G6 live on both workspaces as web 0c2e895 (RELEASE-STATE.md), tables 38 -> 40.

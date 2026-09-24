@@ -103,3 +103,21 @@ test(`batch_refit: a call measures at most ${BATCH_REFIT_PER_CALL} graphics, or 
  // 15 s, then 30 s: a third (projected 45 s) would pass 40 s, so the call stops after two.
  assert.deepEqual([answered.measured,answered.remaining,answered.done],[2,3,false]);
 });
+
+test('batch_refit (G11): a graphic read back from Postgres, keys reordered and a float off in its last bit, is still its draft',async()=>{
+ const f=wired();
+ const a=await f.shipped('G11 Aleinu','Aleinu','עָלֵינוּ'),b=await f.shipped('G11 Place','Place','תֵּן לָנוּ');
+ const bLive=await f.shipped('G11 Changed live','Changed live','שָׁלוֹם');
+ // jsonb stores object keys shortest first, then by bytes, and a production bundle's JSON import can
+ // land a keyframe one float step away (0.9500000000000004 for 0.9500000000000003).
+ const jsonbOrder=(value:unknown):unknown=>Array.isArray(value)?value.map(jsonbOrder):value&&typeof value==='object'?Object.fromEntries(Object.keys(value).sort((x,y)=>x.length-y.length||(x<y?-1:x>y?1:0)).map(key=>[key,jsonbOrder((value as Record<string,unknown>)[key])])):value;
+ const nudge=(value:unknown):unknown=>typeof value==='number'&&value>0&&value<1&&!Number.isInteger(value*100)?value+Number.EPSILON/2:Array.isArray(value)?value.map(nudge):value&&typeof value==='object'?Object.fromEntries(Object.entries(value).map(([key,item])=>[key,nudge(item)])):value;
+ const stored=await f.repo.published();
+ const readBack=stored.map(cue=>{const copy=jsonbOrder(structuredClone(cue)) as Output;copy.animations=nudge(copy.animations);if(cue.id===bLive.id)copy.texts={...copy.texts,textMain:'Something else'};return copy});
+ assert.notEqual(JSON.stringify(readBack[0]),JSON.stringify(stored[0]),'the read-back differs as text');
+ f.repo.published=async()=>structuredClone(readBack) as never;
+ const dry=await f.ok('batch_refit');
+ const status=Object.fromEntries(dry.results.map((row:Output)=>[row.draftId,[row.status,row.code??null]]));
+ assert.deepEqual(status[a.id],['would_refit',null]);assert.deepEqual(status[b.id],['would_refit',null]);
+ assert.deepEqual(status[bLive.id],['skipped','differs_from_live'],'a live graphic whose words differ from its draft is still skipped');
+});
