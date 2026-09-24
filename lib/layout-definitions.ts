@@ -248,7 +248,72 @@ export async function withResolvedLayouts<T extends {cues:readonly {layoutRef?:L
  return Object.keys(layouts).length?{...catalog,layouts}:catalog;
 }
 
-// The workspace's store. Memory until the Postgres repository is wired with the layout tools (L3):
-// db/layout-definitions.sql is written but not applied, so production holds no data layouts yet.
+/* ------------------------------------------------------------ postgres --- */
+
+/** Postgres "relation does not exist": db/layout-definitions.sql has not been applied to this database yet. */
+const missingTable=(error:unknown)=>(error as {code?:unknown}|null)?.code==='42P01';
+const uniqueViolation=(error:unknown)=>(error as {code?:unknown}|null)?.code==='23505';
+export const LAYOUTS_UNMIGRATED='Layouts as data are not set up in this workspace\'s database yet (db/layout-definitions.sql). Nothing was saved; ask whoever runs the database to apply it.';
+const COLUMNS='id,version,status,document,sha256,created_at AS "createdAt",updated_at AS "updatedAt",created_by AS "createdBy",updated_by AS "updatedBy"';
+const record=(row:unknown):LayoutDefinitionRecord=>{const value=row as LayoutDefinitionRecord;return {...value,version:Number(value.version),createdAt:Number(value.createdAt),updatedAt:Number(value.updatedAt)}};
+/**
+ * db/layout-definitions.sql (packet L3). Each workspace has its own database, so rows carry no
+ * workspace column. Until the migration is applied, reads answer "no data layouts" - every
+ * built-in layout keeps working - and writes refuse in a sentence (the local-sources precedent).
+ */
+/** The slice of pg's Pool the repository uses; tests hand in a fake. */
+export type LayoutPool={query(sql:string,values:unknown[]):Promise<{rows:unknown[]}>;connect():Promise<{query(sql:string,values?:unknown[]):Promise<{rows:unknown[]}>;release():void}>};
+export class PgLayoutDefinitionsRepository implements LayoutDefinitionsRepository{
+ constructor(private pool:()=>Promise<LayoutPool>=async()=>(await import('./database')).db){}
+ private async read(sql:string,values:unknown[]){try{return (await (await this.pool()).query(sql,values)).rows.map(record)}catch(error){if(missingTable(error))return [];throw error}}
+ async list(){return this.read(`SELECT ${COLUMNS} FROM layout_definitions ORDER BY id,version`,[])}
+ async get(id:LayoutId,version:number){return (await this.read(`SELECT ${COLUMNS} FROM layout_definitions WHERE id=$1 AND version=$2`,[id,version]))[0]??null}
+ async saveDraft(id:LayoutId,document:LayoutDocument,expectedVersion:number|null,actor:string,now:number){
+  parseLayoutId(id);const parsed=parseLayoutDocument(document),sha256=layoutDocumentSha256(parsed);
+  const client=await (await this.pool()).connect();
+  try{
+   await client.query('BEGIN');
+   const newest=(await client.query('SELECT version,status FROM layout_definitions WHERE id=$1 ORDER BY version DESC LIMIT 1 FOR UPDATE',[id])).rows[0] as {version:number;status:LayoutStatus}|undefined;
+   if((newest?Number(newest.version):null)!==expectedVersion)throw conflict(id);
+   let row;
+   if(newest?.status==='draft')row=(await client.query(`UPDATE layout_definitions SET document=$3,sha256=$4,updated_at=$5,updated_by=$6 WHERE id=$1 AND version=$2 AND status='draft' RETURNING ${COLUMNS}`,[id,Number(newest.version),parsed,sha256,now,actor])).rows[0];
+   else row=(await client.query(`INSERT INTO layout_definitions(id,version,document,status,sha256,created_at,updated_at,created_by,updated_by) VALUES($1,$2,$3,'draft',$4,$5,$5,$6,$6) RETURNING ${COLUMNS}`,[id,newest?Number(newest.version)+1:1,parsed,sha256,now,actor])).rows[0];
+   if(!row)throw conflict(id);
+   await client.query('COMMIT');
+   return record(row);
+  }catch(error){
+   await client.query('ROLLBACK').catch(()=>{});
+   if(missingTable(error))throw new LayoutDefinitionError('layouts_unavailable',LAYOUTS_UNMIGRATED,503);
+   if(uniqueViolation(error))throw conflict(id);
+   throw error;
+  }finally{client.release()}
+ }
+ async publish(id:LayoutId,version:number,actor:string,now:number){
+  let rows;
+  try{rows=(await (await this.pool()).query(`UPDATE layout_definitions SET status='published',updated_at=$3,updated_by=$4 WHERE id=$1 AND version=$2 AND status='draft' AND version=(SELECT MAX(version) FROM layout_definitions WHERE id=$1) RETURNING ${COLUMNS}`,[id,version,now,actor])).rows}
+  catch(error){if(missingTable(error))throw new LayoutDefinitionError('layouts_unavailable',LAYOUTS_UNMIGRATED,503);throw error}
+  if(!rows[0])throw conflict(id);
+  const row=record(rows[0]);registerPublished(row);return row;
+ }
+}
+
+// The workspace's store: Postgres wherever the authoring store is (a configured database outside
+// rehearsal), memory in local rehearsal and in tests.
 let defaultRepository:LayoutDefinitionsRepository|undefined;
-export function layoutDefinitionsRepository():LayoutDefinitionsRepository{return defaultRepository??=new MemoryLayoutDefinitionsRepository()}
+export function layoutDefinitionsRepository():LayoutDefinitionsRepository{return defaultRepository??=(process.env.CRC_AUTHORING_REHEARSAL!=='1'&&process.env.DATABASE_URL?new PgLayoutDefinitionsRepository():new MemoryLayoutDefinitionsRepository())}
+
+/**
+ * Startup registration (L3). Each server process registers the workspace's published data layouts
+ * before it validates a draft or builds the MCP tool list, so a layout published through the MCP -
+ * or on another instance - is accepted with no code change and no release. Re-read at most every
+ * REGISTRY_REFRESH_MS; a store that cannot be read leaves the registry as it was (built-in layouts
+ * always work) and says so once in the log.
+ */
+export const REGISTRY_REFRESH_MS=30_000;
+let loaded:{at:number;promise:Promise<void>}|undefined;
+export function ensurePublishedLayoutsRegistered(repository:LayoutDefinitionsRepository=layoutDefinitionsRepository(),now=Date.now()):Promise<void>{
+ if(loaded&&now-loaded.at<REGISTRY_REFRESH_MS)return loaded.promise;
+ const promise=registerPublishedLayouts(repository).then(()=>{},error=>{console.warn('layout definitions not registered',error instanceof Error?error.message:String(error))});
+ loaded={at:now,promise};
+ return promise;
+}

@@ -5,6 +5,7 @@ import type { Cue } from "@/lib/player";
 import { overlayBrandingFromWorkspace } from "@/lib/branding";
 import type { PublicWorkspace } from "@/lib/workspace";
 import type { ServerFitArtwork, StageMeasurement, StageMeasureOptions } from "@/lib/server-fit-contract";
+import type { ResolvedLayouts } from "@/lib/layout-registry";
 import { prepareCueMeasurement } from "../measure-cue";
 import styles from "./fit-stage.module.css";
 
@@ -40,7 +41,7 @@ export default function FitStageClient({ workspace }: { workspace: PublicWorkspa
       if (!root) return { fitErrors: ["The graphic did not render."], warnings: [], fill: null, artwork: cue.presentation?.imageAssetId ? "not-loaded" : "none" };
       // The only credential this page ever sees: a signed, minutes-long read link for this cue's
       // one asset (R-B1), handed in with the cue and dropped with it.
-      const prepared = await prepareCueMeasurement(root, cue, branding, { artworkUrl: options.artworkUrl });
+      const prepared = await prepareCueMeasurement(root, cue, branding, { artworkUrl: options.artworkUrl, layouts: options.layouts as ResolvedLayouts | undefined });
       if (options.retainRenderedCue) dispose = prepared.dispose;
       else prepared.dispose();
       return prepared.measurement;

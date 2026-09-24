@@ -1,6 +1,6 @@
 import { waitForRenderedOverlayAssets } from "@/lib/overlay-assets";
 import { BUG_RESERVED_RECT, type BugRect } from "@/lib/bug-layer";
-import { layoutDefinition, type CardDefinition } from "@/lib/layout-registry";
+import { layoutDefinition, type CardDefinition, type ResolvedLayouts } from "@/lib/layout-registry";
 
 const WIDTH = 1920;
 const HEIGHT = 1080;
@@ -69,7 +69,7 @@ export function occupiedRects(root: HTMLElement): OccupiedRect[] {
   return occupied;
 }
 
-export function findFitErrors(root: HTMLElement) {
+export function findFitErrors(root: HTMLElement, layouts?: ResolvedLayouts) {
   const errors: string[] = [];
   const rootBox = root.getBoundingClientRect();
   if (!root.querySelector(".overlay")) return ["The graphic did not render."];
@@ -98,7 +98,7 @@ export function findFitErrors(root: HTMLElement) {
   if (bottomHeight !== null && bottomHeight > BOTTOM_PANEL_MAX_HEIGHT + BOTTOM_PANEL_TOLERANCE)
     errors.push(`Lower third panel is ${Math.ceil(bottomHeight)}px tall; limit is ${BOTTOM_PANEL_MAX_HEIGHT}px. Reflow English paragraphs or split this graphic.`);
   // A card's own height ceiling, when its definition sets one (the corner card's height is fixed, so it sets none).
-  const card = renderedCard(root);
+  const card = renderedCard(root, layouts);
   const ceiling = card?.fit.heightCeiling ?? null;
   const cardBase = ceiling === null ? null : root.querySelector<HTMLElement>(".overlay .base");
   if (ceiling !== null && cardBase && cardBase.getBoundingClientRect().height / scale > ceiling + BOTTOM_PANEL_TOLERANCE)
@@ -145,18 +145,24 @@ function bottomPanelHeight(root: HTMLElement): number | null {
   return (Math.max(body.bottom, titleBox.bottom) - Math.min(body.top, titleBox.top)) / scale;
 }
 
-/** The card definition of the rendered graphic, when it is drawn as a card (the Player sets data-card to its layout id). */
-function renderedCard(root: HTMLElement): CardDefinition | undefined {
+/**
+ * The card definition of the rendered graphic, when it is drawn as a card (the Player sets data-card
+ * to its layout id). A data layout (L3) is known here only from the definitions the cue was
+ * rendered with - the fit stage has no registry entry for it - so those are read first.
+ */
+function renderedCard(root: HTMLElement, layouts?: ResolvedLayouts): CardDefinition | undefined {
   const id = root.querySelector<HTMLElement>(".overlay[data-card]")?.dataset?.card;
-  return id ? layoutDefinition(id)?.card : undefined;
+  if (!id) return undefined;
+  const given = Object.values(layouts ?? {}).filter((item) => item.id === id).sort((a, b) => b.version - a.version)[0];
+  return given?.document.card ?? layoutDefinition(id)?.card;
 }
 
-export function panelFillRatio(root: HTMLElement): number | null {
+export function panelFillRatio(root: HTMLElement, layouts?: ResolvedLayouts): number | null {
   const overlay = root.querySelector<HTMLElement>(".overlay");
   if (!overlay) return null;
   // A card measures its fill against its own definition. The corner card defines none: it is
   // meant to hold a line or two, so it reports no ratio and is never warned sparse (as before).
-  const card = renderedCard(root);
+  const card = renderedCard(root, layouts);
   if (card) {
     if (!card.fit.fill) return null;
     const scale = root.getBoundingClientRect().width / WIDTH || 1;
@@ -178,9 +184,9 @@ export function panelFillRatio(root: HTMLElement): number | null {
   return null;
 }
 
-export function findFitWarnings(root: HTMLElement): string[] {
-  const ratio = panelFillRatio(root);
-  const threshold = renderedCard(root)?.fit.fill?.sparseBelow ?? SPARSE_FILL;
+export function findFitWarnings(root: HTMLElement, layouts?: ResolvedLayouts): string[] {
+  const ratio = panelFillRatio(root, layouts);
+  const threshold = renderedCard(root, layouts)?.fit.fill?.sparseBelow ?? SPARSE_FILL;
   if (ratio !== null && ratio < threshold) return ["Sparse — consider Lower third"];
   return [];
 }
