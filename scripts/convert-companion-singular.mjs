@@ -1221,6 +1221,13 @@ export const TBI_DEFAULTS = {
   definitions: path.join(repoRoot, 'companion/definitions.json'),
 }
 
+/** The module definitions for the version a deck's overlays connection asks for (the shipped ones when absent). */
+export function moduleDefinitionsForDeck(deck) {
+  const asked = deck.connections.find((c) => c.role === 'overlays')?.moduleVersionId
+  const file = asked && path.join(repoRoot, 'companion/definitions', `${asked}.json`)
+  return JSON.parse(fs.readFileSync(file && fs.existsSync(file) ? file : TBI_DEFAULTS.definitions, 'utf8'))
+}
+
 /** A catalog snapshot `{cues:[{id,name,layout,archived?}]}` as published cues for matching (archived ones left out). */
 export function catalogCues(snapshot) {
   return (snapshot.cues ?? []).filter((c) => !c.archived).map((c) => ({ id: c.id, name: c.name, layout: c.layout ?? 'bottom', texts: {}, animations: [], duration: {} }))
@@ -1238,6 +1245,7 @@ export function tbiSeedFromExport(file) {
 export function tbiConversion(seedData, snapshot, definitions) {
   const cues = catalogCues(snapshot)
   const deck = seedTbiDeck(seedData)
+  definitions ??= moduleDefinitionsForDeck(deck)
   const result = convertSingularDeck(deck, { cues })
   const bindable = result.rows.filter((r) => r.status === 'covered' && !r.bound).map((r) => r.id)
   const converted = applyConversion(deck, result, bindable).deck
@@ -1267,8 +1275,7 @@ function deckMain(argv) {
   }
   const seedData = JSON.parse(fs.readFileSync(opt.seed ?? TBI_DEFAULTS.seed, 'utf8'))
   const snapshot = JSON.parse(fs.readFileSync(opt.catalog ?? TBI_DEFAULTS.catalog, 'utf8'))
-  const definitions = JSON.parse(fs.readFileSync(TBI_DEFAULTS.definitions, 'utf8'))
-  const { result, seedCheck, convertedCheck, converted } = tbiConversion(seedData, snapshot, definitions)
+  const { result, seedCheck, convertedCheck, converted } = tbiConversion(seedData, snapshot)
   const errors = (v) => v.findings.filter((f) => f.severity === 'error')
   const describe = (name, v) => `- ${name}: ${v.ok ? 'passes' : `fails (${errors(v).length} errors: ${errors(v).slice(0, 3).map((f) => f.message).join(' ')})`}. ${v.summary.pages} pages with buttons, ${v.summary.buttons} buttons, ${v.summary.cueIdsBound} graphics bound; connections in the export: ${v.exported ? Object.values(v.exported.instances).map((i) => i.label).join(', ') || 'none' : 'n/a'}; ${v.findings.filter((f) => f.severity === 'warning').length} warnings.`
   const rendered = converted.pages.flatMap((p) => p.buttons).filter((b) => b.spec.kind === 'cue').length
