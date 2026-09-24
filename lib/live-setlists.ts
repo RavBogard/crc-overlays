@@ -174,7 +174,10 @@ export async function listRecentSetlists(transport:LiveSetlistTransport,{limit=2
 
 export type MatchDeps={cues:Cue[];liturgyFor:(cue:Cue)=>LiturgyRef;id?:()=>string};
 
-const folioKey=(book:string,folio:number)=>`${book}|${folio}`;
+// T2 - a book matches by its letters and digits alone, so a setlist's "Mishkan T'filah" meets a
+// workspace source's "mishkan-tfilah"; slugs that already matched still match exactly.
+const bookKey=(book:string)=>book.normalize('NFKD').replace(/\p{M}/gu,'').toLowerCase().replace(/[^\p{L}\p{N}]+/gu,'');
+const folioKey=(book:string,folio:number)=>`${bookKey(book)}|${folio}`;
 
 function liturgyMap(deps:MatchDeps):Map<string,Cue[]>{
  const map=new Map<string,Cue[]>();

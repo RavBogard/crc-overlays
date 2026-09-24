@@ -4,6 +4,7 @@ import {rehearsalMode,type RehearsalEnv} from './rehearsal';
 import {baselineCues,editableFromBaseline,sameStructuredValue,sourcePack,sourcePinFor,type AuthoringCue,type AuthoringSource,type Draft,type DraftContent,type EditableDraft,type SharedCueCopySpec} from './authoring-model';
 import type {Cue} from './player';
 import {templateLayoutFor} from './layout-label';
+import {isLocalSourceId} from './local-sources';
 
 export const CRC_WORKSPACE_ID='crc';
 export const TBI_WORKSPACE_ID='temple-bnai-israel-kalamazoo';
@@ -47,6 +48,8 @@ export function buildSharedLibraryPayload(catalog:{cues:Cue[];version:string},dr
   const embedded=(cue as AuthoringCue).authoring?.copySpec;
   const pin=embedded?.sourcePin??sourcePinFor(editable.content);
   const sourceIds=sourceIdsFor(editable.content);
+  // T2 - a graphic built on this workspace's own source never leaves it: neither it nor its source travels.
+  if(sourceIds.some(isLocalSourceId))continue;
   const pinnedSources=embedded?.sourceSnapshots??[];
   for(const id of sourceIds){const source=pinnedSources.find(item=>item.id===id)??sourcePack.sources.find(item=>item.id===id);if(!source)throw new Error(`Published cue ${cue.id} references unavailable source ${id}`);selectedSources.set(id,source)}
   const resolvedSources=sourceIds.map(id=>selectedSources.get(id)!);if(!sameStructuredValue(sourcePinFor(editable.content,resolvedSources,pin.feedSha256),pin))throw new Error(`Published cue ${cue.id} source snapshot no longer matches its approved pin`);

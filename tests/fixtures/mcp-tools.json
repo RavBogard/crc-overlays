@@ -131,6 +131,108 @@
   }
  },
  {
+  "name": "add_local_source",
+  "description": "Enter a reading CRC owns (a prayer-book page, a song setting) once, as a source: blocks of he / tr / en, its attribution and licence text as given, and its printed position {book, page}. It is then found by search_sources (by text, and by book and page), read by get_source and listed by list_book_units, and drafts built from it are source-backed like any other. It stays in this workspace and is never shared.",
+  "inputSchema": {
+   "type": "object",
+   "$schema": "https://json-schema.org/draft/2020-12/schema",
+   "properties": {
+    "name": {
+     "type": "string",
+     "minLength": 1,
+     "maxLength": 120
+    },
+    "book": {
+     "type": "string",
+     "minLength": 1,
+     "maxLength": 100,
+     "description": "The printed book, e.g. Mishkan T'filah."
+    },
+    "page": {
+     "type": "integer",
+     "minimum": 1,
+     "maximum": 9999,
+     "description": "The printed page number."
+    },
+    "section": {
+     "type": "string",
+     "minLength": 1,
+     "maxLength": 120
+    },
+    "service": {
+     "type": "string",
+     "minLength": 1,
+     "maxLength": 120
+    },
+    "attribution": {
+     "type": "string",
+     "minLength": 1,
+     "maxLength": 300,
+     "description": "Who wrote or holds the text, as it should be credited. Stored exactly as given."
+    },
+    "licence": {
+     "type": "string",
+     "minLength": 1,
+     "maxLength": 2000,
+     "description": "Licence or permission text, stored exactly as given; nothing is inferred."
+    },
+    "aliases": {
+     "maxItems": 12,
+     "type": "array",
+     "items": {
+      "type": "string",
+      "minLength": 1,
+      "maxLength": 100
+     }
+    },
+    "blocks": {
+     "minItems": 1,
+     "maxItems": 48,
+     "type": "array",
+     "items": {
+      "type": "object",
+      "properties": {
+       "he": {
+        "type": "string",
+        "minLength": 1,
+        "maxLength": 2000
+       },
+       "tr": {
+        "type": "string",
+        "minLength": 1,
+        "maxLength": 2000
+       },
+       "en": {
+        "type": "string",
+        "minLength": 1,
+        "maxLength": 2000
+       }
+      },
+      "additionalProperties": false,
+      "description": "One passage: he (Hebrew) with tr (its transliteration), optionally en (its English translation); or en alone for an English reading."
+     }
+    },
+    "workspace": {
+     "type": "string",
+     "minLength": 1,
+     "maxLength": 80,
+     "description": "Which congregation this call is for. This connection serves 'crc' (CRC) only."
+    }
+   },
+   "required": [
+    "name",
+    "book",
+    "page",
+    "attribution",
+    "blocks",
+    "workspace"
+   ]
+  },
+  "annotations": {
+   "readOnlyHint": false
+  }
+ },
+ {
   "name": "archive_draft",
   "description": "Archive a standalone draft without changing its published output.",
   "inputSchema": {
@@ -1915,6 +2017,45 @@
   }
  },
  {
+  "name": "list_local_sources",
+  "description": "List the sources CRC entered itself, by book and page: each with its version, attribution, licence, block ids and the drafts that use it (stale when a draft pins an earlier wording). Filter by query, book or page. Read only.",
+  "inputSchema": {
+   "type": "object",
+   "$schema": "https://json-schema.org/draft/2020-12/schema",
+   "properties": {
+    "query": {
+     "type": "string",
+     "minLength": 1,
+     "maxLength": 100
+    },
+    "book": {
+     "type": "string",
+     "minLength": 1,
+     "maxLength": 100
+    },
+    "page": {
+     "type": "integer",
+     "minimum": 1,
+     "maximum": 9999
+    },
+    "limit": {
+     "type": "integer",
+     "minimum": 1,
+     "maximum": 200
+    },
+    "workspace": {
+     "type": "string",
+     "minLength": 1,
+     "maxLength": 80,
+     "description": "Which congregation this call is for. This connection serves 'crc' (CRC) only."
+    }
+   }
+  },
+  "annotations": {
+   "readOnlyHint": true
+  }
+ },
+ {
   "name": "list_revisions",
   "description": "List immutable revisions for a draft.",
   "inputSchema": {
@@ -3489,7 +3630,7 @@
  },
  {
   "name": "search_sources",
-  "description": "Search the authorized CRC source corpus. Returns references, never a public corpus export. Compact by default: no licence or pin blocks. includeBlocks:true adds each block id with its kind and first words, which is everything create_draft needs (no get_source). book and service narrow to one siddur or service (list_source_facets names them). compact:false returns the full legacy summaries.",
+  "description": "Search the authorized CRC source corpus. Returns references, never a public corpus export. Compact by default: no licence or pin blocks. includeBlocks:true adds each block id with its kind and first words, which is everything create_draft needs (no get_source). book and service narrow to one siddur or service (list_source_facets names them); page narrows to units printed on that page. This workspace's own local sources (add_local_source) are searched too and are marked local. compact:false returns the full legacy summaries.",
   "inputSchema": {
    "type": "object",
    "$schema": "https://json-schema.org/draft/2020-12/schema",
@@ -3508,6 +3649,11 @@
      "type": "string",
      "minLength": 1,
      "maxLength": 100
+    },
+    "page": {
+     "type": "integer",
+     "minimum": 1,
+     "maximum": 9999
     },
     "limit": {
      "type": "integer",
@@ -4622,6 +4768,138 @@
     "draftId",
     "expectedVersion",
     "patch",
+    "workspace"
+   ]
+  },
+  "annotations": {
+   "readOnlyHint": false,
+   "idempotentHint": true
+  }
+ },
+ {
+  "name": "update_local_source",
+  "description": "Change a local source. expectedVersion is the version list_local_sources returned; fields left out stay as they are, blocks replaces every block, and null clears section, service or licence. A wording change moves the version, and drafts pinned to the earlier wording show as stale until refreshed (scan_source_changes, or update_draft refreshSourceIds).",
+  "inputSchema": {
+   "type": "object",
+   "$schema": "https://json-schema.org/draft/2020-12/schema",
+   "properties": {
+    "sourceId": {
+     "type": "string",
+     "minLength": 7,
+     "maxLength": 200,
+     "pattern": "^local:"
+    },
+    "expectedVersion": {
+     "type": "integer",
+     "minimum": 1,
+     "maximum": 9007199254740991
+    },
+    "name": {
+     "type": "string",
+     "minLength": 1,
+     "maxLength": 120
+    },
+    "book": {
+     "type": "string",
+     "minLength": 1,
+     "maxLength": 100,
+     "description": "The printed book, e.g. Mishkan T'filah."
+    },
+    "page": {
+     "type": "integer",
+     "minimum": 1,
+     "maximum": 9999,
+     "description": "The printed page number."
+    },
+    "section": {
+     "anyOf": [
+      {
+       "type": "string",
+       "minLength": 1,
+       "maxLength": 120
+      },
+      {
+       "type": "null"
+      }
+     ]
+    },
+    "service": {
+     "anyOf": [
+      {
+       "type": "string",
+       "minLength": 1,
+       "maxLength": 120
+      },
+      {
+       "type": "null"
+      }
+     ]
+    },
+    "attribution": {
+     "type": "string",
+     "minLength": 1,
+     "maxLength": 300,
+     "description": "Who wrote or holds the text, as it should be credited. Stored exactly as given."
+    },
+    "licence": {
+     "anyOf": [
+      {
+       "type": "string",
+       "minLength": 1,
+       "maxLength": 2000,
+       "description": "Licence or permission text, stored exactly as given; nothing is inferred."
+      },
+      {
+       "type": "null"
+      }
+     ]
+    },
+    "aliases": {
+     "maxItems": 12,
+     "type": "array",
+     "items": {
+      "type": "string",
+      "minLength": 1,
+      "maxLength": 100
+     }
+    },
+    "blocks": {
+     "minItems": 1,
+     "maxItems": 48,
+     "type": "array",
+     "items": {
+      "type": "object",
+      "properties": {
+       "he": {
+        "type": "string",
+        "minLength": 1,
+        "maxLength": 2000
+       },
+       "tr": {
+        "type": "string",
+        "minLength": 1,
+        "maxLength": 2000
+       },
+       "en": {
+        "type": "string",
+        "minLength": 1,
+        "maxLength": 2000
+       }
+      },
+      "additionalProperties": false,
+      "description": "One passage: he (Hebrew) with tr (its transliteration), optionally en (its English translation); or en alone for an English reading."
+     }
+    },
+    "workspace": {
+     "type": "string",
+     "minLength": 1,
+     "maxLength": 80,
+     "description": "Which congregation this call is for. This connection serves 'crc' (CRC) only."
+    }
+   },
+   "required": [
+    "sourceId",
+    "expectedVersion",
     "workspace"
    ]
   },
