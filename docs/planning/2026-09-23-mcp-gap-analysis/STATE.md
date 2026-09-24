@@ -127,12 +127,21 @@ app/api/catalog/route.ts and lib/sync-live-catalog.ts; L2 and C5 add envelope-on
   --check against a Turbopack dev server: all 16 identical (Chrome 153.0.8010.53; matched in browser
   session 2 of 3, the known logo-antialiasing flake). Gate: tsc clean, npm test 962+38, renderer 31, lint 0 errors.
 - Corner Hebrew accent-title alignment (packs left under RTL) — visible fix awaits Daniel (open question).
+- S2 merged (94a205d; merge ff54dd9): 17 services tools (MCP now 65 tools; snapshot regenerated as the exact
+  union of A1 and S2, no existing tool changed). lib/service-tools.ts, lib/service-tool-schemas.ts,
+  parseRows/alignToRows in lib/service-rows.ts. Every web /services operation has an MCP equivalent except
+  feedback on /services/log. Gate after merge: tsc clean, npm test 978+38 pass, lint 0 errors.
+- GATE (S2): Needs-review/needs-a-graphic rows default their owner to "Unassigned"; service_readiness has
+  four states (covered, needs-review, needs-a-graphic, not-needed incl. intentional fallback); coverage
+  removal is set_coverage_row{clear:true}; refresh_from_setlist never overwrites a human decision and keeps
+  dropped rows unless removeMissing:true; no-op writes don't bump the version.
 
 ## Evidence
 Four read-only audits (MCP surface, layouts/renderer, Companion, live/services/access) plus a
 structural read of Simone's export; synthesis and file/line references in GAP-ANALYSIS.md.
 
 ## Open questions
+- Should agents record service feedback (/services/log)? S2 left it out of the MCP; needed only for strict parity.
 - Corner card: fix the Hebrew accent title packing left in its lane (the RTL flex-end bug the lower third
   already fixed)? Visible change; L1 kept it for pixel identity.
 - Consent copy written by V2 needs Daniel's review (user-visible, no precedent): checkbox "Live control:
