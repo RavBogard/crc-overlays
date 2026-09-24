@@ -9,12 +9,22 @@
 //
 // The file sits beside package.json, not in companion/: the packaged archive carries only the
 // manifest and HELP.md there, and the TBI derivation refuses any other file.
-import { readFileSync, writeFileSync } from 'node:fs'
+//
+// Every packaged version's definitions are also kept as definitions/<version>.json, because a deck
+// keeps asking for the module version it was built for (CRC's released deck asks for 1.7.0) and is
+// validated against that version's definitions, not the newest: definitionsPathFor(version).
+import { mkdirSync, readFileSync, writeFileSync } from 'node:fs'
 import { dirname, join } from 'node:path'
 import { fileURLToPath, pathToFileURL } from 'node:url'
 
 const moduleRoot = join(dirname(fileURLToPath(import.meta.url)), '..')
 export const DEFINITIONS_PATH = join(moduleRoot, 'definitions.json')
+export const DEFINITIONS_DIR = join(moduleRoot, 'definitions')
+/** The definitions of one packaged module version (definitions/<version>.json). */
+export const definitionsPathFor = (version) => {
+  if (!/^\d{1,10}\.\d{1,10}\.\d{1,10}$/.test(String(version))) throw new Error(`not a module version: ${version}`)
+  return join(DEFINITIONS_DIR, `${version}.json`)
+}
 
 const optionShape = (options) => (options ?? []).map((o) => ({ id: String(o.id), type: String(o.type) }))
 
@@ -60,5 +70,7 @@ if (process.argv[1] && import.meta.url === pathToFileURL(process.argv[1]).href) 
   const { default: InstanceClass } = await import(pathToFileURL(join(moduleRoot, 'dist', 'main.js')).href)
   const definitions = await buildDefinitions(InstanceClass)
   writeFileSync(DEFINITIONS_PATH, formatDefinitions(definitions))
-  console.log(`Wrote definitions.json: ${definitions.moduleId} ${definitions.version}, ${Object.keys(definitions.actions).length} actions, ${Object.keys(definitions.feedbacks).length} feedbacks`)
+  mkdirSync(DEFINITIONS_DIR, { recursive: true })
+  writeFileSync(definitionsPathFor(definitions.version), formatDefinitions(definitions))
+  console.log(`Wrote definitions.json and definitions/${definitions.version}.json: ${definitions.moduleId} ${definitions.version}, ${Object.keys(definitions.actions).length} actions, ${Object.keys(definitions.feedbacks).length} feedbacks`)
 }

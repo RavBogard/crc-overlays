@@ -14,3 +14,15 @@ export const PRESET_SECTION_ID_PREFIX = 'crc_overlay_'
 export const PRESET_SECTION_LABEL_PREFIX = 'CRC Overlay'
 
 export const PRESET_SECTION_CONTROLS = { id: 'crc_overlay_controls', name: 'CRC Overlay Controls' } as const
+
+/** The sections presets are grouped into when the catalog reports each cue's deck role (1.8.0). */
+export const PRESET_SECTIONS = {
+  sets: { id: 'crc_overlay_sets', name: 'CRC Overlay Sets' },
+  prayers: { id: 'crc_overlay_prayers', name: 'CRC Overlay Prayers' },
+  alternates: { id: 'crc_overlay_alternates', name: 'CRC Overlay Alternates' },
+  shortSelections: { id: 'crc_overlay_short_selections', name: 'CRC Overlay Short selections' },
+  announcements: { id: 'crc_overlay_announcements', name: 'CRC Overlay Announcements' },
+  utility: { id: 'crc_overlay_utility', name: 'CRC Overlay Utility graphics' },
+  slots: { id: 'crc_overlay_slots', name: 'CRC Overlay Slots' },
+  other: { id: 'crc_overlay_other', name: 'CRC Overlay Other graphics' },
+} as const

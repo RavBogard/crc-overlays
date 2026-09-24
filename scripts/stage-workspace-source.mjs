@@ -45,6 +45,7 @@ const allowedInstallArtifacts=new Set([
  'public/workspaces/temple-bnai-israel/downloads/tbi-overlays-1.5.0.tgz',
  'public/workspaces/temple-bnai-israel/downloads/tbi-overlays-1.6.0.tgz',
  'public/workspaces/temple-bnai-israel/downloads/tbi-overlays-1.7.0.tgz',
+ 'public/workspaces/temple-bnai-israel/downloads/tbi-overlays-1.8.0.tgz',
  'public/workspaces/temple-bnai-israel/downloads/tbi-morning-page-1.companionconfig',
  'public/workspaces/temple-bnai-israel/downloads/tbi-morning-page-2.companionconfig',
 ]);

@@ -14,7 +14,11 @@ const root = path.resolve(import.meta.dirname, '..')
 const plan = path.join(root, 'docs/planning/2026-09-23-overlay-consistency/companion')
 const manifest = JSON.parse(fs.readFileSync(path.join(plan, 'CUE-MANIFEST.json'), 'utf8')) as CueManifest
 const seedData = JSON.parse(fs.readFileSync(path.join(root, 'lib/companion-deck/crc-seed-data.json'), 'utf8')) as CrcSeedData
-const definitions = JSON.parse(fs.readFileSync(path.join(root, 'companion/definitions.json'), 'utf8')) as ModuleDefinitions
+// A deck is validated against the module version it asks for (companion/definitions/<version>.json),
+// not the newest package: CRC's released deck asks for 1.7.0.
+const crcModuleVersion = seedData.connections.find((c) => c.role === 'overlays')!.moduleVersionId
+const definitions = JSON.parse(fs.readFileSync(path.join(root, 'companion/definitions', `${crcModuleVersion}.json`), 'utf8')) as ModuleDefinitions
+const newest = JSON.parse(fs.readFileSync(path.join(root, 'companion/definitions.json'), 'utf8')) as ModuleDefinitions
 const snapshot = JSON.parse(fs.readFileSync(path.join(plan, 'catalog-snapshot-2026-09-23.json'), 'utf8')) as { drafts: { id: string; name: string; archived: boolean; activeRevision: number }[] }
 
 const everyCue: CueLookups = { isPublished: () => true, isRetired: () => false }
@@ -262,4 +266,14 @@ test('catalogCueLookups: published is an active revision and not archived; retir
   assert.deepEqual(['a', 'b', 'c', 'd', 'e', 'z'].map(lookups.isPublished), [true, false, false, true, true, false])
   assert.deepEqual(['a', 'b', 'c', 'd', 'e', 'z'].map(lookups.isRetired), [false, false, false, true, true, false])
   assert.equal(lookups.name!('a'), 'A')
+})
+
+test('the released deck keeps asking for 1.7.0; moving it to a newer module is its own step', () => {
+  assert.equal(crcModuleVersion, '1.7.0')
+  assert.equal(definitions.version, '1.7.0')
+  // Against the newest package the only complaint is the version the deck asks for: every action and
+  // feedback it uses is still defined, so moving the deck is a change to its Overlays connection alone.
+  if (newest.version !== definitions.version) {
+    assert.deepEqual(codes(validateDeck(crc(), { module: newest, cues: everyCue }).findings), ['module-version'])
+  }
 })

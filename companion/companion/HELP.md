@@ -1,6 +1,6 @@
 # CRC Overlays
 
-Configure the overlay deployment URL, pair this connection, then add buttons from **CRC Overlay Controls** presets.
+Configure the overlay deployment URL, pair this connection, then add buttons from the **CRC Overlay** presets.
 
 ## Pairing
 
@@ -11,7 +11,7 @@ Configure the overlay deployment URL, pair this connection, then add buttons fro
 
 **Control key** remains the older shared credential. When it is set it is used instead of the device token, so an existing connection keeps working untouched. A refused code changes nothing: the previous credential stays in place and the refusal is shown as the connection status.
 
-Cue choices and presets load from the authenticated overlay catalog at connection start. Use **Refresh cue catalog** after new reviewed cues are published. If refresh is unavailable or malformed, the module keeps its last validated cue list.
+Cue choices and presets load from the authenticated overlay catalog at connection start and refresh by themselves: the live connection announces each new catalog, and the module reads it within seconds of a publish. **Refresh cue catalog** is the manual fallback when a publish did not reach this computer. If a refresh is unavailable or malformed, the module keeps its last validated cue list.
 
 A press while the realtime connection is down is **sent anyway**. The command path is an ordinary authenticated web request and does not need the live connection, so a press during a reconnect is no longer dropped. The connection status says so, and the confirmation colour arrives when the connection returns.
 
@@ -65,6 +65,7 @@ Button text can show any of these. The prefix is this connection's name, so `$(o
 | `renderer_status` | Renderer status | `Rendered`, `Requested`, or `Disconnected`. |
 | `bug` | Scan card | `On` or `Off`. `Off` whenever the live state carries no scan card. |
 | `bug_page` | Scan card page | The short page beside the scan card. Blank when there is none. |
+| `last_source` | Last command came from | Who made the newest press: `Agent` (an AI agent), `Companion` or `Console`. Blank until the service reports it. |
 
 ### Slot variables
 
@@ -74,6 +75,10 @@ Each slot publishes one variable, `slot_<key>` — `slot_student_name`, `slot_to
 
 ### Presets
 
-Presets come ready to drop onto a button, in **CRC Overlay Controls**: one per published graphic, coloured by what kind of graphic it is; one per slot, yellow with black text, showing the slot's name over its current value and dimmed while it is empty; and the fixed buttons **Connection and current graphic**, **Current panel**, **Scan card** (a toggle that lights while the card is visible), **Next panel**, **Previous panel**, **Set page**, **Refresh catalog**, **Animate out** and **Clear now**.
+Presets come ready to drop onto a button. **CRC Overlay Controls** holds the fixed buttons: **Connection and current graphic**, **Current panel**, **Last command came from** (purple while the newest press came from an AI agent), **Scan card** (a toggle that lights while the card is visible), **Resting logo**, **Next panel**, **Previous panel**, **Set page**, **Refresh catalog**, **Animate out** and **Clear now**.
+
+The graphics are grouped the way the deck is: **CRC Overlay Sets** (each multipart set as one group, its parts in order), **Prayers**, **Alternates**, **Short selections**, **Announcements**, **Utility graphics**, **Slots** (yellow with black text, showing the slot's name over its current value and dimmed while it is empty) and **Other graphics** (anything the deck does not place yet). Each graphic takes the deck's colour for its role: teal for a set part, burgundy for prayers and alternates, navy for announcements. A deployment that does not report roles shows every preset in **CRC Overlay Controls**, coloured by what kind of graphic it is.
+
+A preset can only hold this module's own actions. Camera moves, vMix, the audio console and other devices are on the deck itself, which comes as an exported Companion config, never as presets.
 
 "Rendered" describes the graphics browser. It is not proof that the video switcher has the graphics source on program. Never copy the masked control key into actions, variables, logs, screenshots, or shared exports.

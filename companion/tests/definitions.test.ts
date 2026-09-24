@@ -2,7 +2,20 @@ import { readFileSync } from 'node:fs'
 import { describe, expect, it } from 'vitest'
 import CrcOverlaysInstance from '../src/main.js'
 // @ts-expect-error plain ES module script without type declarations
-import { buildDefinitions, DEFINITIONS_PATH, formatDefinitions } from '../scripts/write-definitions.mjs'
+import { buildDefinitions, DEFINITIONS_PATH, definitionsPathFor, formatDefinitions } from '../scripts/write-definitions.mjs'
+
+describe('definitions/<version>.json', () => {
+  it('keeps the newest package as a copy of definitions.json, and 1.7.0 for the decks that still ask for it', () => {
+    const read = (file: string) => readFileSync(file, 'utf8').replace(/\r\n/g, '\n')
+    const pathFor = definitionsPathFor as (version: string) => string
+    const current = JSON.parse(read(DEFINITIONS_PATH as string)) as { version: string }
+    expect(read(pathFor(current.version))).toBe(read(DEFINITIONS_PATH as string))
+    const released = JSON.parse(read(pathFor('1.7.0'))) as { version: string; feedbacks: Record<string, unknown> }
+    expect(released.version).toBe('1.7.0')
+    expect(released.feedbacks.last_source_agent).toBeUndefined()
+    expect(() => pathFor('../x')).toThrow()
+  })
+})
 
 describe('definitions.json', () => {
   it('describes the packaged module, and the source still registers all of it (run npm run package to regenerate)', async () => {
