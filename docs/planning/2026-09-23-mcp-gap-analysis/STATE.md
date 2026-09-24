@@ -123,12 +123,18 @@ app/api/catalog/route.ts and lib/sync-live-catalog.ts; L2 and C5 add envelope-on
   integration on the main checkout.
 - GATE: TBI stills not captured (TBI's workspace profile lives in env files the worker may not read) —
   proceeded because corner geometry does not depend on branding; colours only change `--crc-*` values.
+- Integration check of L1 on the main checkout (baa990a): Turbopack `npm run build` ok; golden stills
+  --check against a Turbopack dev server: all 16 identical (Chrome 153.0.8010.53; matched in browser
+  session 2 of 3, the known logo-antialiasing flake). Gate: tsc clean, npm test 962+38, renderer 31, lint 0 errors.
+- Corner Hebrew accent-title alignment (packs left under RTL) — visible fix awaits Daniel (open question).
 
 ## Evidence
 Four read-only audits (MCP surface, layouts/renderer, Companion, live/services/access) plus a
 structural read of Simone's export; synthesis and file/line references in GAP-ANALYSIS.md.
 
 ## Open questions
+- Corner card: fix the Hebrew accent title packing left in its lane (the RTL flex-end bug the lower third
+  already fixed)? Visible change; L1 kept it for pixel identity.
 - Consent copy written by V2 needs Daniel's review (user-visible, no precedent): checkbox "Live control:
   also let this connection show, take out and clear graphics on the <congregation> output, as the console
   does."; Operator without the tick: "Your role here can't author graphics, so this connection can have
