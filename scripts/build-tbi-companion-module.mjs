@@ -120,12 +120,6 @@ function countOf(text, needle) {
   return text.split(needle).length - 1;
 }
 
-function replaceExactly(text, needle, replacement, expected, label) {
-  const found = countOf(text, needle);
-  if (found !== expected) fail(`${label}: expected ${expected} occurrence(s) of ${JSON.stringify(needle)}, found ${found}`);
-  return text.split(needle).join(replacement);
-}
-
 function deriveManifest(body) {
   const text = body.toString('utf8');
   const trailer = text.endsWith('\n') ? '\n' : '';
@@ -172,40 +166,80 @@ const TBI_HOSTS = ['https://overlays.templebnaiisrael.com', 'https://tbi-overlay
 const CRC_BARE = ['overlays.centralreform.org', 'crc-overlays.vercel.app'];
 const TBI_BARE = ['overlays.templebnaiisrael.com', 'tbi-overlays.vercel.app'];
 
+/**
+ * The brand strings of the module's text files, as prefixes: the one place this derivation
+ * names them (the module source keeps its side in companion/src/brand.ts). Every occurrence is
+ * replaced, however many there are, so a new preset section named `crc_overlay_<x>` /
+ * `CRC Overlay <X>` derives without touching this script. A brand string outside these
+ * prefixes is caught by assertNoCrcBrand below. Hosts come first so the shorter entries never
+ * match inside them.
+ */
+export const BRAND_REPLACEMENTS = [
+  ...CRC_HOSTS.map((host, index) => [host, TBI_HOSTS[index]]),
+  ...CRC_BARE.map((host, index) => [host, TBI_BARE[index]]),
+  ['crc_overlay_', 'tbi_overlay_'],
+  ['CRC Overlay', 'TBI Overlay'],
+];
+
+/** Wire-protocol identifiers the server requires; they must survive unchanged. */
+export const PROTOCOL_IDENTIFIERS = ['X-CRC-Catalog-Version', 'crc-overlays-v1'];
+
+/**
+ * What a CRC brand string looks like: `CRC` / `crc` as its own token (so `crc_...`, `crc-...`
+ * and `CRC Sets` all count, while a minified identifier that merely contains the letters does
+ * not), or the congregation's name or domain. Protocol identifiers are masked out first.
+ */
+const CRC_BRAND_PATTERN = /(?<![a-z0-9])crc(?![a-z0-9])|centralreform|central reform/gi;
+
+function applyBrandReplacements(text) {
+  for (const [from, to] of BRAND_REPLACEMENTS) text = text.split(from).join(to);
+  return text;
+}
+
+/** Fails when a CRC brand string is left after derivation: a replacement this script missed. */
+function assertNoCrcBrand(text, label) {
+  let masked = text;
+  for (const id of PROTOCOL_IDENTIFIERS) masked = masked.split(id).join('');
+  const left = [...new Set(Array.from(masked.matchAll(CRC_BRAND_PATTERN), match =>
+    masked.slice(Math.max(0, match.index - 30), match.index + match[0].length + 30).replace(/\s+/g, ' ')))];
+  if (left.length) {
+    fail(`${label} still carries CRC brand string(s) after derivation; add a replacement to BRAND_REPLACEMENTS or use a known prefix: ${left.map(entry => JSON.stringify(entry)).join(', ')}`);
+  }
+}
+
 function deriveHelp(body) {
-  let text = body.toString('utf8');
-  text = text.split('CRC Overlay Controls').join('TBI Overlay Controls');
-  text = text.split('CRC Overlays').join('TBI Overlays');
-  CRC_BARE.forEach((host, index) => { text = text.split(host).join(TBI_BARE[index]); });
-  for (const host of CRC_BARE) if (text.includes(host)) fail(`HELP.md still references the CRC deployment host ${host}`);
+  const text = applyBrandReplacements(body.toString('utf8'));
+  assertNoCrcBrand(text, 'HELP.md');
+  if (!text.includes('TBI Overlays')) fail('HELP.md does not name TBI Overlays after derivation');
   return Buffer.from(text, 'utf8');
 }
 
+/** TBI identifiers main.js must carry after derivation: without them the module is not TBI's. */
+const REQUIRED_TBI_MAIN_JS = ['tbi_overlay_controls', 'TBI Overlay Controls'];
+
 function deriveMainJs(body) {
   const source = body.toString('utf8');
-  // These are wire-protocol identifiers the server requires; they must survive unchanged.
-  const protocolCounts = {
-    'X-CRC-Catalog-Version': countOf(source, 'X-CRC-Catalog-Version'),
-    'crc-overlays-v1': countOf(source, 'crc-overlays-v1'),
-  };
-  if (protocolCounts['X-CRC-Catalog-Version'] < 1 || protocolCounts['crc-overlays-v1'] < 1) {
-    fail('main.js is missing the expected protocol identifiers');
+  const protocolCounts = Object.fromEntries(PROTOCOL_IDENTIFIERS.map(id => [id, countOf(source, id)]));
+  for (const [id, count] of Object.entries(protocolCounts)) {
+    if (count < 1) fail(`main.js is missing the expected protocol identifier ${id}`);
+  }
+  // The default base URL, whichever CRC host this package was built against and however many
+  // times the bundle spells it.
+  if (!CRC_HOSTS.some(host => source.includes(host))) {
+    fail(`main.js base URL: expected a CRC base URL (${CRC_HOSTS.join(' or ')}), found none`);
   }
 
-  let text = source;
-  // Three base URLs, whichever CRC host this package was built against. The count is asserted
-  // over both spellings together so a package cannot quietly lose one.
-  const baseUrls = CRC_HOSTS.reduce((total, host) => total + countOf(text, host), 0);
-  if (baseUrls !== 3) fail(`main.js base URL: expected 3 CRC base URLs across ${CRC_HOSTS.join(' and ')}, found ${baseUrls}`);
-  CRC_HOSTS.forEach((host, index) => { text = text.split(host).join(TBI_HOSTS[index]); });
-  text = replaceExactly(text, 'crc_overlay_controls', 'tbi_overlay_controls', 1, 'main.js preset category id');
-  text = replaceExactly(text, 'CRC Overlay Controls', 'TBI Overlay Controls', 1, 'main.js preset category label');
+  const text = applyBrandReplacements(source);
 
-  for (const [needle, expected] of Object.entries(protocolCounts)) {
-    const found = countOf(text, needle);
-    if (found !== expected) fail(`main.js protocol identifier ${needle} changed: ${expected} before, ${found} after`);
+  for (const [id, expected] of Object.entries(protocolCounts)) {
+    const found = countOf(text, id);
+    if (found !== expected) fail(`main.js protocol identifier ${id} changed: ${expected} before, ${found} after`);
   }
-  for (const host of CRC_BARE) if (text.includes(host)) fail(`main.js still references the CRC deployment host ${host}`);
+  assertNoCrcBrand(text, 'main.js');
+  if (!TBI_HOSTS.some(host => text.includes(host))) fail('main.js carries no TBI base URL after derivation');
+  for (const id of REQUIRED_TBI_MAIN_JS) {
+    if (!text.includes(id)) fail(`main.js is missing ${JSON.stringify(id)} after derivation`);
+  }
   return Buffer.from(text, 'utf8');
 }
 
@@ -235,6 +269,16 @@ export function deriveTbiPackage(crcTgzBuffer) {
 
   derived.sort((a, b) => (a.name < b.name ? -1 : a.name > b.name ? 1 : 0));
   return gzipDeterministic(writeUstar(derived));
+}
+
+/** Archive entries ({name, typeFlag, body}) of a module .tgz, for tests and audits. */
+export function unpackModuleArchive(tgzBuffer) {
+  return readUstar(gunzipSync(tgzBuffer));
+}
+
+/** The deterministic .tgz of the given entries, the same writer the derivation uses. */
+export function packModuleArchive(entries) {
+  return gzipDeterministic(writeUstar(entries));
 }
 
 /** Reads the manifest out of a module archive without touching the filesystem. */

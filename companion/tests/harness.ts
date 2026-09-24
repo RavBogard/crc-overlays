@@ -58,6 +58,7 @@ export interface Harness {
   variables: Array<Record<string, unknown>>
   variableDefinitions: Record<string, { name: string }>
   presets: Record<string, HarnessPreset>
+  presetStructure: unknown
   actions: Record<string, HarnessAction>
   feedbacks: Record<string, HarnessFeedback>
   requests: Array<{ url: string; authorization: string | null; body: unknown }>
@@ -78,6 +79,7 @@ export function harness(options: HarnessOptions = {}): Harness {
   const sockets: FakeSocket[] = []
   let variableDefinitions: Record<string, { name: string }> = {}
   let presets: Record<string, HarnessPreset> = {}
+  let presetStructure: unknown = undefined
   let actions: Record<string, HarnessAction> = {}
   let feedbacks: Record<string, HarnessFeedback> = {}
 
@@ -108,7 +110,7 @@ export function harness(options: HarnessOptions = {}): Harness {
     checkFeedbacks: () => undefined,
     checkAllFeedbacks: () => undefined,
     checkFeedbacksById: () => undefined,
-    setPresetDefinitions: (_structure: unknown, value: Record<string, HarnessPreset>) => { presets = value },
+    setPresetDefinitions: (structure: unknown, value: Record<string, HarnessPreset>) => { presetStructure = structure; presets = value },
     setVariableDefinitions: (value: Record<string, { name: string }>) => { variableDefinitions = value },
     setVariableValues: (values: Record<string, unknown>) => { variables.push(values) },
     getVariableValue: () => undefined,
@@ -127,6 +129,7 @@ export function harness(options: HarnessOptions = {}): Harness {
     instance, saved, statuses, variables, requests, sockets,
     get variableDefinitions() { return variableDefinitions },
     get presets() { return presets },
+    get presetStructure() { return presetStructure },
     get actions() { return actions },
     get feedbacks() { return feedbacks },
   } as Harness
