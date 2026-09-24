@@ -173,6 +173,13 @@ app/api/catalog/route.ts and lib/sync-live-catalog.ts; L2 and C5 add envelope-on
   assistant publications; one library link added in app/author/panels.tsx.
 - A2 notes: first publications can't be undone from the page (retire, A3); recovery backups don't include
   authoring_preview_images.
+- A3 merged (4eef4f2, 3661004): conflicts with A2 (lib/authoring.ts repository methods, publish-invalidating
+  ops) and S2 (lib/service-collections.ts createCollection/updateCollection) resolved by hand, keeping
+  both; S2's `enriched()` now passes the retired map so get_service flags retired bindings; S2's
+  service_readiness already reads a retired graphic as "no longer published" → needs-review. Relay rule
+  (on-air `out` accepted for a cue no longer in the catalog) ships with the next relay release, before
+  the web. Gate after merge: tsc clean, npm test 1016+35, lint 0 errors, relay 83, Turbopack build ok.
+- Owed: a real-browser check of the library's Retired label and Return button (A3 did a server render only).
 
 ## Evidence
 Four read-only audits (MCP surface, layouts/renderer, Companion, live/services/access) plus a
