@@ -24,7 +24,10 @@ import {
 } from './model.ts'
 import {DeckConflictError, MemoryCompanionDeckRepository, type CompanionDeckRepository, type StoredDeck} from './repository.ts'
 import {PgCompanionDeckRepository} from './postgres-repository.ts'
-import {isRetiredDraft, type Draft} from '../authoring-model.ts'
+import {AuthoringError, isRetiredDraft, type Draft} from '../authoring-model.ts'
+import {readImportText, type ImportRepository} from '../imports.ts'
+import type {BuildKeyRepository} from '../build-keys.ts'
+import {DeckPlanError, GRAPHIC_KINDS, deckPlanFromRows, deckPlanFromText, layDeckPlan, type PlanCue, type PlanOutcome, type PlanResolution, type PlanRow} from './deck-plan.ts'
 import {EXPORT_LINK_MS, EXPORT_ROUTE, exportFileName, exportSigningKey, fullExport, signExport} from './export.ts'
 import {buttonText, validateDeck, type Finding, type ModuleDefinitions, type ValidationResult} from './validate.ts'
 import {deckToolSchemas, isDeckTool, type DeckToolName} from './tool-schemas.ts'
@@ -64,6 +67,10 @@ export type DeckToolContext = {
   id?: () => string
   signingKey?: Buffer | null
   origin?: string
+  /** G6: where apply_deck_plan reads a deck-plan import (G1's store). */
+  imports?: ImportRepository | null
+  /** G6: the build keys batch_create_drafts recorded (draft and draft-set keys), which apply_deck_plan resolves. */
+  buildKeys?: BuildKeyRepository | null
 }
 
 export class DeckToolError extends Error {
@@ -146,7 +153,7 @@ export function serviceView(service: {id: string; name: string; service: string;
   return {id: service.id, name: service.name, service: service.service, needed}
 }
 
-type Resolved = Required<Omit<DeckToolContext, 'workspace' | 'signingKey' | 'origin' | 'module'>> & {workspace: DeckWorkspace | null; signingKey: Buffer | null; origin: string | null; module: ModuleDefinitions | null}
+type Resolved = Required<Omit<DeckToolContext, 'workspace' | 'signingKey' | 'origin' | 'module' | 'imports' | 'buildKeys'>> & {workspace: DeckWorkspace | null; signingKey: Buffer | null; origin: string | null; module: ModuleDefinitions | null; imports: ImportRepository | null; buildKeys: BuildKeyRepository | null}
 async function resolve(ctx: DeckToolContext): Promise<Resolved> {
   let workspace = ctx.workspace
   if (workspace === undefined) { const {getPublicWorkspace} = await import('../workspace'); workspace = deckWorkspaceFor(getPublicWorkspace().id) }
@@ -155,7 +162,7 @@ async function resolve(ctx: DeckToolContext): Promise<Resolved> {
   return {
     workspace, origin,
     repository: ctx.repository ?? defaultDeckRepository(), catalog: ctx.catalog ?? defaultCatalog, service: ctx.service ?? defaultService,
-    seeds: {...DEFAULT_SEEDS, ...ctx.seeds}, module: ctx.module ?? null,
+    seeds: {...DEFAULT_SEEDS, ...ctx.seeds}, module: ctx.module ?? null, imports: ctx.imports ?? null, buildKeys: ctx.buildKeys ?? null,
     now: ctx.now ?? Date.now, id: ctx.id ?? randomUUID, signingKey: ctx.signingKey === undefined ? exportSigningKey() : ctx.signingKey,
   }
 }
@@ -784,6 +791,7 @@ export async function deckToolOperation(operation: string, raw: unknown, actor: 
       })
     }
     case 'sync_deck_with_catalog': return sync(r, input as Input<'sync_deck_with_catalog'>, actor)
+    case 'apply_deck_plan': return applyDeckPlan(r, input as Input<'apply_deck_plan'>, actor)
     case 'check_service_on_deck': {
       const {serviceId} = input as Input<'check_service_on_deck'>
       const [stored, cat] = await Promise.all([loadStored(r), catalogMap(r)])
@@ -907,6 +915,138 @@ async function sync(r: Resolved, input: Input<'sync_deck_with_catalog'>, actor: 
     const out = await plan(deck, cat)
     return {dryRun: false, change: `Synced the deck with the catalog: ${out.summary}`, ...out}
   })
+}
+
+/* ------------------------------------------------------------ deck plan (G6) --- */
+
+// Until G1 and G3 land their defaults (defaultImportRepository, defaultBuildKeyRepository), a deployment has
+// no import store and reads build keys from db/build-keys.sql.
+async function planImports(r: Resolved): Promise<ImportRepository> {
+  if (r.imports) return r.imports
+  const mod = (await import('../imports.ts')) as unknown as {defaultImportRepository?: () => ImportRepository}
+  if (mod.defaultImportRepository) return mod.defaultImportRepository()
+  throw refuse('File intake (open_import_dropzone) is not available on this deployment yet, so there is no import to read. Pass the plan as rows instead. Nothing was changed.', 'imports_unavailable', 503)
+}
+async function planBuildKeys(r: Resolved): Promise<BuildKeyRepository> {
+  if (r.buildKeys) return r.buildKeys
+  const mod = (await import('../build-keys.ts')) as unknown as {defaultBuildKeyRepository?: () => BuildKeyRepository; PgBuildKeyRepository: new (workspaceId: string) => BuildKeyRepository}
+  if (mod.defaultBuildKeyRepository) return mod.defaultBuildKeyRepository()
+  const {getPublicWorkspace} = await import('../workspace')
+  return new mod.PgBuildKeyRepository(getPublicWorkspace().id)
+}
+
+async function planRows(r: Resolved, input: Input<'apply_deck_plan'>): Promise<PlanRow[]> {
+  if ((input.importId === undefined) === (input.rows === undefined)) throw refuse('Give the plan as importId (a deck-plan import) or as rows, not both. Nothing was changed.')
+  try {
+    if (input.rows) return deckPlanFromRows(input.rows)
+    const {text} = await readImportText(await planImports(r), input.importId, 'deck-plan', r.now())
+    return deckPlanFromText(text)
+  } catch (error) {
+    if (error instanceof DeckPlanError || error instanceof AuthoringError) throw refuse(error.message, error.code, error.status)
+    throw error
+  }
+}
+
+const planCue = (c: DeckCatalogCue): PlanCue => ({id: c.id, name: c.name, ...(c.title ? {title: c.title} : {}), revision: c.revision, ...(c.set ? {set: c.set} : {})})
+const usable = (c: DeckCatalogCue | undefined): c is DeckCatalogCue => Boolean(c?.published && !c.retired)
+const notUsable = (c: DeckCatalogCue | undefined) => (!c ? 'is not published yet' : c.retired ? 'is retired' : 'is not published')
+
+/**
+ * Each graphic row's cue, by its line: `targets` first, then the key's `draft` build key, then its
+ * `draft-set` (panelIndex picks the part). The cue must be published and not retired.
+ */
+async function resolvePlanTargets(r: Resolved, rows: readonly PlanRow[], cat: Cat, targets: Input<'apply_deck_plan'>['targets']): Promise<Map<number, PlanResolution>> {
+  const out = new Map<number, PlanResolution>()
+  const graphic = rows.filter((x) => GRAPHIC_KINDS.has(x.targetKind))
+  if (!graphic.length) return out
+  let drafts = new Map<string, string>(), sets = new Map<string, string>()
+  if (graphic.some((x) => x.targetKey && !(targets && Object.hasOwn(targets, x.targetKey.trim())))) {
+    const repo = await planBuildKeys(r)
+    const [d, s] = await Promise.all([repo.list('draft'), repo.list('draft-set')])
+    drafts = new Map(d.map((k) => [k.key, k.targetId])); sets = new Map(s.map((k) => [k.key, k.targetId]))
+  }
+  const members = new Map<string, DeckCatalogCue[]>()
+  for (const c of cat.values()) if (c.set) (members.get(c.set.id) ?? members.set(c.set.id, []).get(c.set.id)!).push(c)
+  for (const row of graphic) {
+    const key = row.targetKey?.trim(), panel = row.panelIndex ?? 0
+    const set = (res: PlanResolution) => out.set(row.line, res)
+    if (!key) { set({code: 'no-key', message: 'it names no build key (targetKey). Give the key its graphic was built under.'}); continue }
+    const override = targets && Object.hasOwn(targets, key) ? targets[key] : undefined
+    if (override !== undefined) {
+      const id = typeof override === 'string' ? (panel === 0 ? override : undefined) : override[panel]
+      if (id === undefined) { set({code: 'target-panel-missing', message: `targets gives ${typeof override === 'string' ? 'one cue' : `${override.length} cues`} for ${key}, and this row needs part ${panel + 1}. Add it to targets.`}); continue }
+      const c = cat.get(id)
+      if (!usable(c)) { set({code: 'target-unpublished', message: `targets names ${id} for ${key}, which ${c ? notUsable(c) : 'is not in the catalog'}. Name a published cue.`}); continue }
+      set({cue: planCue(c), via: 'targets'}); continue
+    }
+    const draftId = drafts.get(key)
+    if (draftId) {
+      const c = cat.get(draftId)
+      if (panel > 0) set({code: 'draft-not-set', message: `its key ${key} is one draft (${draftId}), not a set, so it has no part ${panel + 1}. Check panelIndex, or build the key as a set.`})
+      else if (!usable(c)) set({code: 'draft-unpublished', message: `its key ${key} is draft ${draftId}, which ${notUsable(c)}. Publish it (ship_draft or batch_ship), then apply the plan again.`})
+      else set({cue: planCue(c), via: 'draft'})
+      continue
+    }
+    const setId = sets.get(key)
+    if (setId) {
+      const parts = members.get(setId) ?? []
+      const part = parts.find((c) => c.set!.index === panel + 1)
+      if (!usable(part)) set({code: 'set-part-unpublished', message: `its key ${key} is draft set ${setId}, which has no published part ${panel + 1} (${parts.filter(usable).length} of its parts are published). Publish the set, or check panelIndex.`})
+      else set({cue: planCue(part), via: 'draft-set'})
+      continue
+    }
+    set({code: 'unresolved', message: `no graphic has been built under the key ${key} in this workspace (batch_create_drafts records each key). Build and publish it, or name its cue in targets.`})
+  }
+  return out
+}
+
+/** A page the plan needs, on the deck's service template with the template's fixed keys (as create_page makes one). */
+function newPlanPage(r: Resolved, deck: CompanionDeck, n: number, name: string | null): DeckPage {
+  const template = deck.templates.service ? 'service' : Object.keys(deck.templates)[0]
+  const page: DeckPage = {number: n, id: `page-${r.id()}`, name: name ?? `Page ${n}`, template, buttons: []}
+  for (const f of deck.templates[template]?.fixed ?? []) {
+    if (f.role === 'prev' || f.role === 'next') continue
+    const spec = templateSpec(deck, n, f.role)
+    if (spec) page.buttons.push({row: f.row, col: f.col, spec, ...(spec.kind === 'builtin' ? {} : {ids: freshIds(r)})})
+  }
+  return page
+}
+
+const planSummary = (c: PlanOutcome['counts']) =>
+  `${c.placed} placed, ${c.rebound} rebound, ${c.unchanged} unchanged, ${c.keptDevice} device key${c.keptDevice === 1 ? '' : 's'} kept, ${c.emptied} emptied, ${c.dropped} dropped${c.pagesCreated ? `, ${c.pagesCreated} page${c.pagesCreated === 1 ? '' : 's'} created` : ''}; ${c.findings} finding${c.findings === 1 ? '' : 's'} (${c.blocking} blocking).`
+const validationView = (v: ValidationResult) => ({
+  ok: v.ok, errors: v.findings.filter((f) => f.severity === 'error').map(brief), warnings: v.findings.filter((f) => f.severity === 'warning').map(brief), summary: v.summary,
+})
+
+async function applyDeckPlan(r: Resolved, input: Input<'apply_deck_plan'>, actor: string) {
+  const dryRun = input.dryRun !== false
+  if (!dryRun && input.expectedVersion === undefined) throw refuse('Pass expectedVersion (the deck version from get_deck) to apply a plan; a dry run needs none. Nothing was changed.')
+  const rows = await planRows(r, input)
+  const plan = async (deck: CompanionDeck, cat: Cat) => layDeckPlan(deck, rows, await resolvePlanTargets(r, rows, cat, input.targets), {newPage: (d, n, name) => newPlanPage(r, d, n, name), ids: () => freshIds(r)})
+  if (dryRun) {
+    const [stored, cat] = await Promise.all([loadStored(r), catalogMap(r)])
+    const deck = structuredClone(stored.deck)
+    const out = await plan(deck, cat)
+    const after = validation(r, deck, cat)
+    const introduced = introducedErrors(validation(r, stored.deck, cat).findings, after.findings)
+    return {dryRun: true, deckVersion: stored.version, change: `Dry run, nothing saved: ${planSummary(out.counts)}`, ...out, validation: validationView(after),
+      ...(introduced.length ? {wouldBeRefused: introduced.slice(0, 5).map(brief)} : {}),
+      next: out.counts.blocking
+        ? `Settle the ${out.counts.blocking} blocking finding${out.counts.blocking === 1 ? '' : 's'} first (build and publish each missing graphic, or name its cue in targets), then dry-run again. An apply is refused while any remains.`
+        : introduced.length ? 'The would-be deck has validator errors (wouldBeRefused), so an apply would be refused. Settle them first.'
+          : `Run again with dryRun:false and expectedVersion:${stored.version} to apply.`}
+  }
+  const checked: {after?: ValidationResult} = {}
+  const saved = await commit(r, actor, input.expectedVersion!, async (deck, cat) => {
+    const out = await plan(deck, cat)
+    const blocking = out.findings.filter((f) => f.blocking)
+    if (blocking.length) {
+      throw refuse(`The plan has ${blocking.length} row${blocking.length === 1 ? '' : 's'} that can't be applied, so nothing was changed. ${blocking.slice(0, 5).map((f) => cap(f.message)).join(' ')}${blocking.length > 5 ? ` (and ${blocking.length - 5} more)` : ''} Run apply_deck_plan with dryRun:true for the full list.`, 'plan_unresolved', 422)
+    }
+    checked.after = validation(r, deck, cat)
+    return {dryRun: false, change: `Applied the deck plan: ${planSummary(out.counts)}`, ...out}
+  })
+  return {...saved, ...(checked.after ? {validation: validationView(checked.after)} : {})}
 }
 
 /* ---------------------------------------------------------------------- export --- */

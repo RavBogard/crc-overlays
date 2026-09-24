@@ -290,6 +290,167 @@
   }
  },
  {
+  "name": "apply_deck_plan",
+  "description": "Lay a whole deck plan on the CRC deck in one write: one row per button (page,row,col,label,bg,targetKind,targetKey,panelIndex,notes), given as rows or as the importId of a deck-plan import (CSV or a JSON array). A graphic row (local, corpus, slide, crc) binds its cell to the published cue its build key became (a draft key, or a draft-set key with panelIndex picking the part; targets overrides), with the plan's label and #rrggbb colour and the Requested and Rendered lights. Camera (birddog) and OBS keys, Companion's built-in navigation and template keys are kept exactly as they are, and a device key that is not where the plan says is reported. empty clears a graphic key from its cell; dropped is not placed. Any graphic whose key is unbuilt or unpublished refuses the whole apply. Dry run by default: the full change plan, every finding and validate_deck's findings on the would-be deck; with dryRun:false and expectedVersion it is saved once, validated like every deck change.",
+  "inputSchema": {
+   "type": "object",
+   "$schema": "https://json-schema.org/draft/2020-12/schema",
+   "properties": {
+    "importId": {
+     "description": "A deck-plan import from open_import_dropzone: the CSV (page,row,col,label,bg,targetKind,targetKey,panelIndex,notes) or a JSON array of the same rows. Give importId or rows, not both.",
+     "type": "string",
+     "pattern": "^import_[a-f0-9]{32}$"
+    },
+    "rows": {
+     "description": "The plan inline, one object per button with the CSV's columns.",
+     "minItems": 1,
+     "maxItems": 400,
+     "type": "array",
+     "items": {
+      "type": "object",
+      "properties": {
+       "page": {
+        "type": "integer",
+        "minimum": 1,
+        "maximum": 99,
+        "description": "A deck page number (1-99), as get_deck lists them."
+       },
+       "row": {
+        "type": "integer",
+        "minimum": 0,
+        "maximum": 7,
+        "description": "Zero-based row (0 is the top row)."
+       },
+       "col": {
+        "type": "integer",
+        "minimum": 0,
+        "maximum": 15,
+        "description": "Zero-based column (0 is the left column)."
+       },
+       "label": {
+        "type": "string",
+        "maxLength": 80,
+        "description": "The key's text. Empty on a camera or OBS key (kept as it is)."
+       },
+       "bg": {
+        "type": "string",
+        "maxLength": 16,
+        "description": "Background colour as #rrggbb. Empty leaves the role colour."
+       },
+       "targetKind": {
+        "type": "string",
+        "enum": [
+         "local",
+         "corpus",
+         "slide",
+         "crc",
+         "birddog",
+         "obs",
+         "empty",
+         "dropped"
+        ],
+        "description": "local, corpus, slide or crc: a graphic, targetKey naming its build key. birddog or obs: the camera or OBS key already on the deck there, kept as it is. empty: the cell ends empty. dropped: not placed."
+       },
+       "targetKey": {
+        "description": "The graphic's build key (the key batch_create_drafts recorded), or a device key's actions (Birddog:zoom:in).",
+        "anyOf": [
+         {
+          "type": "string",
+          "maxLength": 400
+         },
+         {
+          "type": "null"
+         }
+        ]
+       },
+       "panelIndex": {
+        "description": "For a multipart set, which part (0 is the first). Default 0.",
+        "anyOf": [
+         {
+          "type": "integer",
+          "minimum": 0,
+          "maximum": 47
+         },
+         {
+          "type": "null"
+         }
+        ]
+       },
+       "notes": {
+        "type": "string",
+        "maxLength": 4000
+       },
+       "pageName": {
+        "description": "Rename the page (or name a page the plan creates). Left out, the page keeps its name.",
+        "type": "string",
+        "minLength": 1,
+        "maxLength": 40
+       }
+      },
+      "required": [
+       "page",
+       "row",
+       "col",
+       "label",
+       "bg",
+       "targetKind"
+      ],
+      "additionalProperties": false
+     }
+    },
+    "expectedVersion": {
+     "description": "Required when dryRun is false.",
+     "type": "integer",
+     "minimum": 1,
+     "maximum": 9007199254740991
+    },
+    "dryRun": {
+     "description": "Default true: return the full change plan, every finding and the validator's findings on the would-be deck, and save nothing.",
+     "type": "boolean"
+    },
+    "targets": {
+     "description": "Override or extend how build keys resolve: key -> cue id, or key -> [cue ids by panel, first panel first]. Every cue named must be published.",
+     "type": "object",
+     "propertyNames": {
+      "type": "string",
+      "pattern": "^[a-z0-9][a-z0-9._:-]{0,119}$"
+     },
+     "additionalProperties": {
+      "anyOf": [
+       {
+        "type": "string",
+        "minLength": 1,
+        "maxLength": 160
+       },
+       {
+        "minItems": 1,
+        "maxItems": 48,
+        "type": "array",
+        "items": {
+         "type": "string",
+         "minLength": 1,
+         "maxLength": 160
+        }
+       }
+      ]
+     }
+    },
+    "workspace": {
+     "type": "string",
+     "minLength": 1,
+     "maxLength": 80,
+     "description": "Which congregation this call is for. This connection serves 'crc' (CRC) only."
+    }
+   },
+   "required": [
+    "workspace"
+   ]
+  },
+  "annotations": {
+   "readOnlyHint": false
+  }
+ },
+ {
   "name": "apply_template",
   "description": "(Re)apply a page template: put back any missing fixed key (switcher, recovery, Prev/Home/Next, Bimah Mute) and make Prev/Next follow the chain. A key sitting on a reserved cell is refused unless replace:true.",
   "inputSchema": {
