@@ -25,7 +25,17 @@ test('scope and audience are fixed to authoring MCP resource',()=>{
  assert.throws(()=>exactResource('https://other.example/api/mcp',request),/invalid_target/);
 });
 
-test('authorization scopes advertise optional refresh consent',()=>assert.deepEqual([...AUTHORIZATION_SCOPES],['crc.authoring','offline_access']));
+test('subset scopes normalize to one canonical order, and every stored row is its own normal form',()=>{
+ // What oauth_tokens / oauth_refresh_tokens hold today: tokenVerifier requires normalizeScope(row)===row.
+ for(const stored of ['crc.authoring','crc.authoring offline_access'])assert.equal(normalizeScope(stored),stored);
+ assert.equal(normalizeScope(null),'crc.authoring','a client that names no scope still gets authoring');
+ assert.equal(normalizeScope('crc.live'),'crc.live');
+ assert.equal(normalizeScope('offline_access crc.live'),'crc.live offline_access');
+ assert.equal(normalizeScope('crc.live offline_access crc.authoring'),'crc.authoring crc.live offline_access');
+ for(const value of ['crc.live crc.live','offline_access','crc.live admin','crc.control'])assert.throws(()=>normalizeScope(value),/invalid_scope/);
+});
+
+test('authorization scopes advertise live control and optional refresh consent',()=>assert.deepEqual([...AUTHORIZATION_SCOPES],['crc.authoring','crc.live','offline_access']));
 
 test('PKCE S256 and state redirect preserve an existing callback query',()=>{
  assert.equal(pkceChallenge('0123456789012345678901234567890123456789012'),'_RpfHqw8pAZIomzVUE7sjRmHSM543WVdC4o-Kc4_3C0');

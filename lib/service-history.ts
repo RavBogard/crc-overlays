@@ -11,8 +11,9 @@
  * recorded. The ids themselves never leave this module.
  *
  * What a row may carry is fixed here as well as in the relay: a sequence, a time, the action,
- * the graphic's id, its liturgical position, where the command came from, and the prepared
- * service if one was named. Never a graphic name, never text, never who was at the desk, never
+ * the graphic's id, its liturgical position, where the command came from, the prepared service if
+ * one was named, and the command's own correlation id (ruling 10). Never a graphic name, never
+ * text, never who was at the desk, never
  * renderer presence — "bounded operational history, not permanent personal surveillance".
  * Every row is rebuilt key by key and then walked, in production and not only in tests, so a
  * relay that one day answered with more than it should could still not publish it.
@@ -21,13 +22,13 @@
 import {liturgyForSourceIds} from './liturgy-index';
 import {relayConfigured,relayRequest} from './relay';
 
-export const HISTORY_KEYS=['seq','at','action','cueId','unitId','momentId','book','folio','source','serviceRef'] as const;
+export const HISTORY_KEYS=['seq','at','action','cueId','unitId','momentId','book','folio','source','serviceRef','commandId'] as const;
 export const HISTORY_ACTIONS=['in','out','clear','cut','bug','logo','history_cleared'] as const;
 export const HISTORY_SOURCES=['control','companion','mcp'] as const;
 export const MAX_HISTORY_PAGE=500;
 export type HistoryAction=typeof HISTORY_ACTIONS[number];
 export type HistorySource=typeof HISTORY_SOURCES[number];
-export type ServiceHistoryRow={seq:number;at:number;action:HistoryAction;cueId:string|null;unitId:string|null;momentId:string|null;book:string|null;folio:number|null;source:HistorySource;serviceRef:string|null};
+export type ServiceHistoryRow={seq:number;at:number;action:HistoryAction;cueId:string|null;unitId:string|null;momentId:string|null;book:string|null;folio:number|null;source:HistorySource;serviceRef:string|null;commandId:string|null};
 export type ServiceHistory={workspace:string;rows:ServiceHistoryRow[];nextAfter:number|null;window:{rows:number;days:number}};
 export type HistoryQuery={since?:string|number|null;until?:string|number|null;after?:string|number|null;limit?:string|number|null};
 
@@ -51,6 +52,9 @@ export function historyQuery(query:HistoryQuery):string{
 }
 
 const text=(value:unknown,limit:number)=>typeof value==='string'&&value.length>0&&value.length<=limit?value:null;
+// Ruling 10: the caller's own correlation id, so an agent can find the row its command wrote. It
+// names no member and no connection; anything not shaped like a command id is dropped.
+const commandIdOf=(value:unknown)=>typeof value==='string'&&/^[a-zA-Z0-9_-]{8,80}$/.test(value)?value:null;
 const count=(value:unknown)=>Number.isSafeInteger(value)&&(value as number)>=0?value as number:null;
 /**
  * The pinned source ids of one row, kept verbatim. Like the relay side, this no longer drops
@@ -74,7 +78,7 @@ export function readHistoryRow(value:unknown):ServiceHistoryRow|null{
  return {
   seq,at,action:row.action as HistoryAction,cueId:text(row.cueId,160),
   unitId:reference.unitId,momentId:reference.momentId,book:reference.book,folio:reference.folio,
-  source:row.source as HistorySource,serviceRef:text(row.serviceRef,160),
+  source:row.source as HistorySource,serviceRef:text(row.serviceRef,160),commandId:commandIdOf(row.commandId),
  };
 }
 

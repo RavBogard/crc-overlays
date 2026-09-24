@@ -1,8 +1,14 @@
 import {createHash,randomBytes,timingSafeEqual} from 'node:crypto';
 
 export const AUTHORING_SCOPE='crc.authoring';
+export const LIVE_SCOPE='crc.live';
 export const OFFLINE_ACCESS_SCOPE='offline_access';
-export const AUTHORIZATION_SCOPES=[AUTHORING_SCOPE,OFFLINE_ACCESS_SCOPE] as const;
+// Canonical order: a stored scope string is always these, in this order, so every row written before
+// crc.live existed ('crc.authoring', 'crc.authoring offline_access') is still its own normal form.
+export const AUTHORIZATION_SCOPES=[AUTHORING_SCOPE,LIVE_SCOPE,OFFLINE_ACCESS_SCOPE] as const;
+/** The scopes that reach the MCP resource; offline_access only asks for a refresh token. */
+export const RESOURCE_SCOPES=[AUTHORING_SCOPE,LIVE_SCOPE] as const;
+export type ResourceScope=typeof RESOURCE_SCOPES[number];
 export const MAX_OAUTH_BODY=16_384;
 export const AUTH_REQUEST_TTL_MS=10*60_000;
 export const CODE_TTL_MS=5*60_000;
@@ -46,8 +52,9 @@ export function validPkceVerifier(value:string){return /^[A-Za-z0-9._~-]{43,128}
 export function pkceChallenge(verifier:string){return createHash('sha256').update(verifier).digest('base64url')}
 export function normalizeScope(value:string|null){
  const scopes=(value||AUTHORING_SCOPE).split(/\s+/).filter(Boolean);
- if(new Set(scopes).size!==scopes.length||!scopes.includes(AUTHORING_SCOPE)||scopes.some(scope=>scope!==AUTHORING_SCOPE&&scope!==OFFLINE_ACCESS_SCOPE))throw Error('invalid_scope');
- return scopes.includes(OFFLINE_ACCESS_SCOPE)?`${AUTHORING_SCOPE} ${OFFLINE_ACCESS_SCOPE}`:AUTHORING_SCOPE;
+ // Any subset holding at least one resource scope; offline_access alone grants nothing to ask for.
+ if(new Set(scopes).size!==scopes.length||scopes.some(scope=>!(AUTHORIZATION_SCOPES as readonly string[]).includes(scope))||!scopes.some(scope=>(RESOURCE_SCOPES as readonly string[]).includes(scope)))throw Error('invalid_scope');
+ return AUTHORIZATION_SCOPES.filter(scope=>scopes.includes(scope)).join(' ');
 }
 export function exactResource(value:string|null,request?:Request){const expected=mcpResource(request);if(value&&value!==expected)throw Error('invalid_target');return expected}
 export function safeClientMetadata(value:unknown){
