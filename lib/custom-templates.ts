@@ -26,6 +26,28 @@ export type CustomTemplate = {
   compose(values: Record<string, string>): { name: string; title: string; text: string };
 };
 
+/** The form a template shows, without its compose function: what `list_custom_templates` returns. */
+export function describeCustomTemplate(template: CustomTemplate) {
+  return { id: template.id, label: template.label, description: template.description, layout: template.layout, fields: template.fields.map((field) => ({ ...field })) };
+}
+export function customTemplate(id: string): CustomTemplate | undefined { return CUSTOM_TEMPLATES.find((template) => template.id === id); }
+/**
+ * R-A6 - what is wrong with values an agent sends to `compose_custom_draft`, one sentence per
+ * problem, naming the field and what to do. Empty means the values can be composed.
+ */
+export function customTemplateProblems(template: CustomTemplate, values: Record<string, unknown>): string[] {
+  const known = new Map(template.fields.map((field) => [field.key, field]));
+  const problems: string[] = [];
+  for (const [key, value] of Object.entries(values)) {
+    const field = known.get(key);
+    if (!field) { problems.push(`${template.label} has no field called ${key}; its fields are ${template.fields.map((item) => item.key).join(", ")}.`); continue; }
+    if (typeof value !== "string") problems.push(`${field.label} (${key}) must be text.`);
+    else if (value.trim().length > field.maxLength) problems.push(`${field.label} (${key}) is ${value.trim().length} characters; shorten it to ${field.maxLength} or fewer.`);
+  }
+  if (!problems.length && !template.fields.some((field) => typeof values[field.key] === "string" && (values[field.key] as string).trim())) problems.push(`Fill in at least one field of ${template.label}: ${template.fields.map((item) => item.key).join(", ")}.`);
+  return problems;
+}
+
 /** The editor's own library-name limit, so a composed name never arrives already too long. */
 const NAME_LIMIT = 80;
 

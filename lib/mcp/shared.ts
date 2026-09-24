@@ -1,5 +1,6 @@
 import {z} from 'zod/v4';
 import {layoutIds} from '../layout-registry';
+import {TEXT_SIZE_IDS,type TextSizePreset} from '../template-looks';
 
 export type ToolAnnotations={readOnlyHint?:boolean;idempotentHint?:boolean;destructiveHint?:boolean};
 // Each lib/mcp/<area>.ts module registers its tools through this one function, so validation,
@@ -27,4 +28,7 @@ const variantOverride=z.object({sourceId:z.string().min(1).max(160),blockId:z.st
 const localVariant=z.object({mode:z.literal('local-variant'),label:z.string().min(1).max(80),reason:z.string().min(1).max(500).optional(),base:canonicalContent,overrides:z.array(variantOverride).min(1).max(96)}).strict();
 const custom=z.object({mode:z.literal('custom'),text:z.string().min(1).max(4000)}).strict();
 const content=z.union([canonicalContent,localVariant,custom]);
-export const draftFields=()=>z.object({name:z.string().min(1).max(80),title:z.string().min(1).max(100),accentTitle:z.string().max(60).optional(),layout:layoutId(),templateCueId:z.string().min(1).max(80),content,presentation:presentation.optional()}).strict();
+// R-A6 - optional: left out, the draft takes the layout's look (list_templates `looks`).
+export const templateCueId=z.string().min(1).max(80).describe("A baseline template id from list_templates. Leave it out to use the layout's default look; it contributes motion and timing only.");
+export const textSize=z.enum(TEXT_SIZE_IDS as [TextSizePreset,...TextSizePreset[]]).describe("A named text size: comfortable is the template's own sizes, large is 42/35/34 and compact 34/28/28 (Hebrew/transliteration/title). Explicit font sizes in presentation win.");
+export const draftFields=()=>z.object({name:z.string().min(1).max(80),title:z.string().min(1).max(100),accentTitle:z.string().max(60).optional(),layout:layoutId(),templateCueId:templateCueId.optional(),content,presentation:presentation.optional()}).strict();

@@ -1,10 +1,30 @@
 import {z} from 'zod/v4';
-import {type McpIdentity,type RegisterTool,id} from './shared';
+import {type McpIdentity,type RegisterTool,id,layoutId,version} from './shared';
 
-// Which congregation this is, and what can be authored from: the source corpus and the baseline templates.
+const hash=z.string().regex(/^[a-f0-9]{64}$/,{message:'Pass the 64-character cueHash list_shared_library returned.'});
+const lookMode=z.enum(['bilingual','source-en','original-en','local-variant','custom']);
+
+// Which congregation this is, and what can be authored from: the source corpus, the baseline
+// templates and looks, the published catalog, CRC's shared library and the source-change inbox.
 export function registerCatalogTools(register:RegisterTool,identity:McpIdentity){
  register('get_workspace',`Say which congregation this connection serves (${identity.organizationName}, workspace '${identity.workspaceId}' at ${identity.host}) and whether it is a rehearsal. Call it first when you hold more than one overlays connector; every change here takes this workspace id.`,z.object({}).strict(),{readOnlyHint:true});
- register('search_sources',`Search the authorized ${identity.shortName} source corpus. Returns references, never a public corpus export.`,z.object({query:z.string().min(1).max(100),limit:z.number().int().min(1).max(50).optional()}).strict(),{readOnlyHint:true});
+ register('search_sources',`Search the authorized ${identity.shortName} source corpus. Returns references, never a public corpus export. Compact by default: no licence or pin blocks. includeBlocks:true adds each block id with its kind and first words, which is everything create_draft needs (no get_source). book and service narrow to one siddur or service (list_source_facets names them). compact:false returns the full legacy summaries.`,z.object({query:z.string().min(1).max(100).optional(),book:z.string().min(1).max(100).optional(),service:z.string().min(1).max(100).optional(),limit:z.number().int().min(1).max(50).optional(),includeBlocks:z.boolean().optional(),compact:z.boolean().default(true)}).strict(),{readOnlyHint:true});
  register('get_source','Get one authorized source by ID.',z.object({sourceId:id}).strict(),{readOnlyHint:true});
- register('list_templates','List baseline cue templates and whether each can be imported.',z.object({}).strict(),{readOnlyHint:true});
+ register('list_source_facets','List the books (siddurim) and services the source corpus is organised by, with how many units each holds. Pass a value to search_sources book/service or to list_book_units.',z.object({}).strict(),{readOnlyHint:true});
+ register('list_book_units','List one book as its printed outline: every unit by section, with its folio, block kinds and count. Names only, never the text; search_sources or get_source reads a unit.',z.object({book:z.string().min(1).max(100)}).strict(),{readOnlyHint:true});
+ register('list_templates','List baseline cue templates and whether each can be imported, the default look for each layout (looks: the template create_draft uses when templateCueId is left out), and the named text sizes. mode changes only the look labels.',z.object({mode:lookMode.optional()}).strict(),{readOnlyHint:true});
+ register('list_custom_templates','List the guided forms for graphics that come from no source: speaker, announcement, scripture citation, service start time and corner card, with each field and its length limit. compose_custom_draft fills one.',z.object({}).strict(),{readOnlyHint:true});
+ register('list_catalog',`List every graphic in the ${identity.shortName} catalog - baseline and published - with its draft (if any), origin and what opening it would do (open, import or duplicate). list_drafts hides catalog graphics nobody has opened yet; this does not.`,z.object({query:z.string().min(1).max(100).optional(),layout:layoutId().optional()}).strict(),{readOnlyHint:true});
+ // The shared library (CRC's export, as TBI's editor shelf reads it). Descriptions stay unnamed so a
+ // TBI connection says nothing about CRC (tests/mcp.test.ts); on CRC itself it answers unavailable.
+ register('list_shared_library','List the shared library - graphics the partner congregation shares with this one - and whether each is already here, changed since it was copied, or new. Read only.',z.object({query:z.string().min(1).max(100).optional(),limit:z.number().int().min(1).max(1000).optional(),refresh:z.boolean().optional()}).strict(),{readOnlyHint:true});
+ register('preview_shared_cue','Show one shared-library graphic exactly as its congregation publishes it, with the cueHash customize_shared_cue needs. Copies its artwork into this workspace\'s asset library if it has any; creates no draft.',z.object({cueId:id,refresh:z.boolean().optional()}).strict(),{readOnlyHint:false,idempotentHint:true});
+ register('customize_shared_cue','Copy one shared-library graphic into an unpublished draft here. expectedCueHash is the hash you previewed; if it changed upstream since, nothing is copied and you are asked to preview again.',z.object({cueId:id,expectedCueHash:hash,name:z.string().min(1).max(80).optional()}).strict(),{readOnlyHint:false});
+ register('customize_shared_set','Copy a whole shared-library multipart prayer into one unpublished set here, all parts or none. expectedCueHashes maps every part\'s cue id to the hash you previewed.',z.object({setId:id,expectedCueHashes:z.record(z.string().min(1).max(160),hash)}).strict(),{readOnlyHint:false});
+ register('compare_shared_cue','Say what changed upstream in a shared-library graphic since this draft was copied from it: wording, layout and presentation, line by line. Read only.',z.object({cueId:id,draftId:id}).strict(),{readOnlyHint:true});
+ // The source-change inbox (/api/source-review): upstream siddur edits that reach a graphic here.
+ register('scan_source_changes','Compare every graphic here with the current source corpus and record, in the source-change inbox, each one whose source wording changed upstream. Publishes nothing and changes no draft.',z.object({}).strict(),{readOnlyHint:false,idempotentHint:true});
+ register('list_source_changes','List the source-change inbox: each upstream wording change that reaches a graphic here, and its status. Read only.',z.object({}).strict(),{readOnlyHint:true});
+ register('get_source_change','Get one source change with the old and new source text side by side and the version decide_source_change needs.',z.object({id}).strict(),{readOnlyHint:true});
+ register('decide_source_change','Decide one source change: accept makes an unpublished draft on the new wording (publish it the usual way); defer and reject need a reason. expectedVersion is the version get_source_change returned.',z.object({id,expectedVersion:version.min(1),decision:z.enum(['accept','defer','reject']),reason:z.string().min(1).max(500).optional()}).strict(),{readOnlyHint:false});
 }
