@@ -236,6 +236,19 @@ app/api/catalog/route.ts and lib/sync-live-catalog.ts; L2 and C5 add envelope-on
 - L2 notes for L3: register published layouts at startup when Postgres is wired; console/editor previews and the
   fit stage don't pass `layouts` to the Player yet; output pages older than the release draw a data-layout cue
   without its card.
+- C3 merged (c5effa5): 17 deck tools (MCP now 111), Postgres + memory deck repositories (db/companion-decks.sql
+  not applied: tools refuse "store not set up" until it is), sync_deck_with_catalog grammar, check_service_on_deck,
+  signed 15-minute full export (unchanged seed = released preset, gzip bfc718e1…), /setup download block
+  (copy needs Daniel's review). Integration fix: C3's retired lookup checked `retired===true`, which A3's
+  object never matches; now uses isRetiredDraft via exported deckCatalogCues (test added). Gate: tsc clean,
+  npm test 1105+35, lint 0 errors.
+- GATE (C3): export signing key COMPANION_EXPORT_KEY or a purpose-labelled derivation of RELAY_SECRET/CONTROL_KEY;
+  a write is refused only if an error finding's count rises; sync default scope anchored to the deck's last sync.
+- NEXT (resume here): merge C4 (branch worktree-agent-a20fdbd8aa9a2af26, 5d76e6f; TBI seed + convert_singular_deck
+  + TBI-CONVERSION-REPORT.md; must reconcile registerDeckTools/dispatch with C3 and call setDeckConversionRepository
+  with C3's repository). Then wire C3's deck repository into T4 deck-page grouping and A5's deck checks. C5 is
+  still running. Then L3, L4, T3; then the consolidated browser pass (Retired label, /author/publications,
+  /author/review, /setup) and the headline acceptance receipt.
 - Owed: a real-browser check of the library's Retired label and Return button (A3 did a server render only).
 - V3 merged (ae37165): nine live tools in lib/mcp/live.ts dispatched to a separate live
   operation (route wires runMcpCommand/snapshot/catalog); deck guard on lastPress.companion; server-side
