@@ -44,6 +44,7 @@ changes, paired web release, push to main.
 
 ## Evidence
 
+- Released 2026-09-24: G9 live as web 186aa14. Every packet G1-G9 is live on both workspaces.
 - Released 2026-09-24: G7 and G8 live as web db34734 (RELEASE-STATE.md).
 - Released 2026-09-24: G1-G6 live on both workspaces as web 0c2e895 (RELEASE-STATE.md), tables 38 -> 40.
 

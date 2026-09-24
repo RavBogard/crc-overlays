@@ -4,7 +4,7 @@ What is deployed right now. Update this file on every release — it is the one 
 "what is live", and it is short so it can be read under pressure. The history is in
 `docs/planning/2026-09-deploys/` (25 deploy records, the release chain, the phase build notes).
 
-**Last updated: 2026-09-24** (TBI redo tools G7 Raleway + G8 batch_retire released as web `db34734`; before it G1-G6 as `0c2e895`, two more tables; before it the MCP completeness plan: relays `e512d86`, web `6b76cbd`, ten new tables on both databases, `main` fast-forwarded to production. Before it, paired release `ebd4be4`: group tabs renamed; before it `3636857`, Michael's review — Corner layout, per-graphic row order, inline siddur wording edits with a Wording changes list, right-justified lower-third Hebrew title, honest siddur-picker preview. Evidence below under "Release 3636857".)
+**Last updated: 2026-09-24** (TBI redo tools G9 mixed English/Hebrew panels released as web `186aa14`; before it G7 Raleway + G8 batch_retire as `db34734`; before it G1-G6 as `0c2e895`, two more tables; before it the MCP completeness plan: relays `e512d86`, web `6b76cbd`, ten new tables on both databases, `main` fast-forwarded to production. Before it, paired release `ebd4be4`: group tabs renamed; before it `3636857`, Michael's review — Corner layout, per-graphic row order, inline siddur wording edits with a Wording changes list, right-justified lower-third Hebrew title, honest siddur-picker preview. Evidence below under "Release 3636857".)
 
 ## Web, per workspace
 
@@ -13,13 +13,19 @@ both were released together on 2026-09-23 UTC (2026-09-22 evening Central).
 
 | Workspace | Host | Deployed commit | How it got there |
 |---|---|---|---|
-| CRC | `overlays.centralreform.org` (alt `crc-overlays.vercel.app`) | `db34734` | paired staged release, 2026-09-24, `dpl_ATybVbsGZLEDwz5vMHBD5Gdc5pf7` (the Git integration also builds every push to `main`; `main` is at `db34734`) |
-| TBI | `overlays.templebnaiisrael.com` (alt `tbi-overlays.vercel.app`) | `db34734` | same paired run, 2026-09-24, `dpl_4gqp82Vgs5RC7jsjJq5eoTzZFSJ1` |
+| CRC | `overlays.centralreform.org` (alt `crc-overlays.vercel.app`) | `186aa14` | paired staged release, 2026-09-24, `dpl_4RbF5w3zCqZx7coDF4BNfLwHcVGr` (the Git integration also builds every push to `main`; `main` is at `186aa14`) |
+| TBI | `overlays.templebnaiisrael.com` (alt `tbi-overlays.vercel.app`) | `186aa14` | same paired run, 2026-09-24, `dpl_14VvL3Ui1rScQ587MSJt6WiJAUL6` |
 
 This file is written after the release it describes, so the commit carrying these words is always one
 ahead of the shas in the table. That one commit is documentation: CRC's Git integration builds it by
 itself and TBI is not owed a release for it. Any commit that touches `app/`, `lib/`, `content/`,
 `components/`, `schemas/` or `workspaces/` **is** owed one.
+
+### Release 186aa14: TBI redo tools G9 (2026-09-24 UTC)
+
+- G9: a bilingual graphic may carry English-only passages as their own rows in block order (side panels together or in blocks; lower third English line; card layouts refuse). Only selections refused before reach the new path, so no existing cue changes; pinned cue and unit hashes unchanged.
+- No migration, no relay change. Gates at `186aa14`: `tsc --noEmit`; `npm test` 1229 + 35 pass, 0 fail, 12 skipped; lint; `npm run build`.
+- Verified: CRC `dpl_4RbF5w3zCqZx7coDF4BNfLwHcVGr`, TBI `dpl_14VvL3Ui1rScQ587MSJt6WiJAUL6` Ready; four hosts 200 on `/health`. `main` fast-forwarded to `186aa14`.
 
 ### Release db34734: TBI redo tools G7 and G8 (2026-09-24 UTC)
 
