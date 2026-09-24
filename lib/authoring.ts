@@ -24,6 +24,7 @@ import {liveRelayConfigured} from './rehearsal';
 // of the function trace of every entrypoint that touches the authoring service.
 import {SERVER_RENDERER_PREFIX,type ServerFitArtwork,type ServerFitResult} from './server-fit-contract';
 import {isServiceTool} from './service-tool-schemas';
+import {isHygieneTool} from './catalog-hygiene-schemas';
 
 export type BrowserMeasurement={viewportWidth:number;viewportHeight:number;fontsReady:true;overflow:false;rendererVersion:string;measuredAt:number};
 /**
@@ -355,6 +356,8 @@ export function createAuthoringService(repo:AuthoringRepository,workspace:Author
   }
   // S2 - the prepared-services tools (lib/service-tools.ts), dynamic for the same cycle reason.
   if(isServiceTool(operation)){const [{serviceToolOperation},{ServicesError:ServicesFailure}]=await Promise.all([import('./service-tools'),import('./service-collections')]);try{return await serviceToolOperation(operation,data,who)}catch(error){if(error instanceof ServicesFailure)throw new AuthoringError(error.code,error.message,error.status);throw error}}
+  // A5 - catalog hygiene (lib/catalog-hygiene.ts): every change it makes is one of the operations below, run through execute.
+  if(isHygieneTool(operation)){const {hygieneOperation}=await import('./catalog-hygiene');return hygieneOperation(operation,data,who,{repo,run:execute})}
   // The cue log, read-only, for an assistant asked what a service actually did. Same bound and
   // same shape as `GET /api/history`: graphics, liturgical positions and times - no names, no
   // titles, no text, nobody's identity. An unavailable relay is a sentence, not a stack trace.
@@ -1011,7 +1014,7 @@ export async function authoringOperation(operation:string,input:unknown,actor:st
  const review=Object.hasOwn(SOURCE_REVIEW_OPERATIONS,operation)?SOURCE_REVIEW_OPERATIONS[operation]:undefined;
  if(review){const {sourceReviewOperation}=await import('./source-review');return sourceReviewOperation(review,input,actor)}
  const result=await defaults().operation(operation,input,actor);
- if(['publish_draft','save_slots','rollback_draft','import_cue','retire_cue','restore_cue'].includes(operation)||(operation==='ship_draft'&&(result as {shipped?:unknown}).shipped===true)){
+ if(['publish_draft','save_slots','rollback_draft','import_cue','retire_cue','restore_cue'].includes(operation)||(operation==='ship_draft'&&(result as {shipped?:unknown}).shipped===true)||((operation==='batch_ship'||operation==='supersede_cue')&&(result as {liveCatalogChanged?:unknown}).liveCatalogChanged===true)){
   const {relayConfigured}=await import('./relay');
   if(relayConfigured()){
    try{const {syncLiveCatalog}=await import('./sync-live-catalog');await syncLiveCatalog()}
