@@ -207,6 +207,9 @@ export function renderButton(deck: CompanionDeck, button: DeckButton, where = `r
       }))
       return plain(spec.text, spec.bg, P.white, [], steps)
     }
+    case 'builtin':
+      // Companion exports its own navigation buttons as a bare control type.
+      return { type: spec.control }
   }
 }
 

@@ -75,6 +75,11 @@ export type PageTemplate = {
   chainNav: boolean
   /** Companion's built-in page-up / page-number / page-down buttons are allowed on this page. */
   builtInNav: boolean
+  /**
+   * Camera gestures are allowed on this page, and a gesture's out-move returns the switcher to this
+   * input (and a PTZ out-move to this preset). Absent: no cue key on the page may carry a gesture.
+   */
+  gesture?: { returnInput: string; returnPreset: number }
 }
 
 const RECOVERY = [
@@ -95,7 +100,7 @@ export const PAGE_TEMPLATES: Record<DeckWorkspace, Record<string, PageTemplate>>
     service: {
       id: 'service', description: 'Service page: switcher in c0, recovery in c6, Prev/Home/Next and Bimah Mute in c7.',
       fixed: [...SWITCHER, ...RECOVERY, { row: 0, col: 7, role: 'prev' }, { row: 1, col: 7, role: 'home' }, { row: 2, col: 7, role: 'next' }, { row: 3, col: 7, role: 'bimah-mute' }],
-      chainNav: true, builtInNav: false,
+      chainNav: true, builtInNav: false, gesture: { returnInput: 'center cam 1', returnPreset: 1 },
     },
     carried: {
       id: 'carried', description: 'Device page carried from the booth export; c7 r0–r2 step round the Devices ring.',
@@ -158,6 +163,11 @@ export type ButtonSpec =
   | { kind: 'fragment'; fragment: string; text?: string; bg?: number }
   /** A plain button whose steps are made of device action fragments. */
   | { kind: 'actions'; text: string; bg: number; steps: string[][] }
+  /** Companion's own page-up / page-number / page-down control; only where the page template allows it. */
+  | { kind: 'builtin'; control: BuiltInControl }
+
+export const BUILT_IN_CONTROLS = ['pageup', 'pagenum', 'pagedown'] as const
+export type BuiltInControl = (typeof BUILT_IN_CONTROLS)[number]
 
 export type DeckButton = { row: number; col: number; spec: ButtonSpec; ids?: IdSeed }
 
