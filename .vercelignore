@@ -11,6 +11,9 @@ companion/*
 # the deck tools import the packaged module definitions (lib/companion-deck/tools.ts)
 !companion/definitions.json
 !companion/definitions
+# tests/cue-roles.test.ts imports the palette writer and the released 1.7.0 parser, and Vercel type-checks tests/
+!companion/scripts
+!companion/tests
 # relay ships from relay/ with wrangler, but scripts/rehearsal-relay.ts and its test import relay/src/protocol.ts,
 # and Next type-checks scripts/ and tests/ on Vercel, so the relay source must be uploaded.
 relay/*
