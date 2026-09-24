@@ -32,3 +32,5 @@ const content=z.union([canonicalContent,localVariant,custom]);
 export const templateCueId=z.string().min(1).max(80).describe("A baseline template id from list_templates. Leave it out to use the layout's default look; it contributes motion and timing only.");
 export const textSize=z.enum(TEXT_SIZE_IDS as [TextSizePreset,...TextSizePreset[]]).describe("A named text size: comfortable is the template's own sizes, large is 42/35/34 and compact 34/28/28 (Hebrew/transliteration/title). Explicit font sizes in presentation win.");
 export const draftFields=()=>z.object({name:z.string().min(1).max(80),title:z.string().min(1).max(100),accentTitle:z.string().max(60).optional(),layout:layoutId(),templateCueId:templateCueId.optional(),content,presentation:presentation.optional()}).strict();
+// T1 - opt out of the workspace's house defaults (get_authoring_defaults) for this one call.
+export const applyDefaults=z.boolean().describe("false skips this workspace's house defaults (get_authoring_defaults) for this call. Left out, they apply; a value the call names itself always wins.");

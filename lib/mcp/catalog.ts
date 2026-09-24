@@ -1,5 +1,5 @@
 import {z} from 'zod/v4';
-import {type McpIdentity,type RegisterTool,id,layoutId,version} from './shared';
+import {type McpIdentity,type RegisterTool,applyDefaults,id,layoutId,version} from './shared';
 
 const hash=z.string().regex(/^[a-f0-9]{64}$/,{message:'Pass the 64-character cueHash list_shared_library returned.'});
 const lookMode=z.enum(['bilingual','source-en','original-en','local-variant','custom']);
@@ -19,8 +19,8 @@ export function registerCatalogTools(register:RegisterTool,identity:McpIdentity)
  // TBI connection says nothing about CRC (tests/mcp.test.ts); on CRC itself it answers unavailable.
  register('list_shared_library','List the shared library - graphics the partner congregation shares with this one - and whether each is already here, changed since it was copied, or new. Read only.',z.object({query:z.string().min(1).max(100).optional(),limit:z.number().int().min(1).max(1000).optional(),refresh:z.boolean().optional()}).strict(),{readOnlyHint:true});
  register('preview_shared_cue','Show one shared-library graphic exactly as its congregation publishes it, with the cueHash customize_shared_cue needs. Copies its artwork into this workspace\'s asset library if it has any; creates no draft.',z.object({cueId:id,refresh:z.boolean().optional()}).strict(),{readOnlyHint:false,idempotentHint:true});
- register('customize_shared_cue','Copy one shared-library graphic into an unpublished draft here. expectedCueHash is the hash you previewed; if it changed upstream since, nothing is copied and you are asked to preview again.',z.object({cueId:id,expectedCueHash:hash,name:z.string().min(1).max(80).optional()}).strict(),{readOnlyHint:false});
- register('customize_shared_set','Copy a whole shared-library multipart prayer into one unpublished set here, all parts or none. expectedCueHashes maps every part\'s cue id to the hash you previewed.',z.object({setId:id,expectedCueHashes:z.record(z.string().min(1).max(160),hash)}).strict(),{readOnlyHint:false});
+ register('customize_shared_cue','Copy one shared-library graphic into an unpublished draft here. expectedCueHash is the hash you previewed; if it changed upstream since, nothing is copied and you are asked to preview again.',z.object({cueId:id,expectedCueHash:hash,name:z.string().min(1).max(80).optional(),applyDefaults:applyDefaults.optional()}).strict(),{readOnlyHint:false});
+ register('customize_shared_set','Copy a whole shared-library multipart prayer into one unpublished set here, all parts or none. expectedCueHashes maps every part\'s cue id to the hash you previewed.',z.object({setId:id,expectedCueHashes:z.record(z.string().min(1).max(160),hash),applyDefaults:applyDefaults.optional()}).strict(),{readOnlyHint:false});
  register('compare_shared_cue','Say what changed upstream in a shared-library graphic since this draft was copied from it: wording, layout and presentation, line by line. Read only.',z.object({cueId:id,draftId:id}).strict(),{readOnlyHint:true});
  // The source-change inbox (/api/source-review): upstream siddur edits that reach a graphic here.
  register('scan_source_changes','Compare every graphic here with the current source corpus and record, in the source-change inbox, each one whose source wording changed upstream. Publishes nothing and changes no draft.',z.object({}).strict(),{readOnlyHint:false,idempotentHint:true});

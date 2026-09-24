@@ -1102,6 +1102,10 @@
      ],
      "description": "A named text size: comfortable is the template's own sizes, large is 42/35/34 and compact 34/28/28 (Hebrew/transliteration/title). Explicit font sizes in presentation win."
     },
+    "applyDefaults": {
+     "type": "boolean",
+     "description": "false skips this workspace's house defaults (get_authoring_defaults) for this call. Left out, they apply; a value the call names itself always wins."
+    },
     "workspace": {
      "type": "string",
      "minLength": 1,
@@ -1375,6 +1379,10 @@
      "minLength": 1,
      "maxLength": 200
     },
+    "applyDefaults": {
+     "type": "boolean",
+     "description": "false skips this workspace's house defaults (get_authoring_defaults) for this call. Left out, they apply; a value the call names itself always wins."
+    },
     "workspace": {
      "type": "string",
      "minLength": 1,
@@ -1391,6 +1399,82 @@
   },
   "annotations": {
    "readOnlyHint": false
+  }
+ },
+ {
+  "name": "customize_shared_batch",
+  "description": "Copy up to 50 shared-library graphics into this workspace as unpublished drafts in one call, each as customize_shared_cue (cueId) or customize_shared_set (setId) would: attribution, source pins and the upstream link are kept, and the house defaults apply unless applyDefaults is false (per call or per item). dryRun is the default: it copies nothing and returns, per item, would-create, already-copied or refused with the reason, plus an apply list (items with their cue hashes) to send back with dryRun:false. Each item is its own copy, so one refusal never stops the rest. Resumable: an item already copied from the same upstream version is skipped, so running the same call again finishes what an interrupted one started. Publishes nothing.",
+  "inputSchema": {
+   "type": "object",
+   "$schema": "https://json-schema.org/draft/2020-12/schema",
+   "properties": {
+    "items": {
+     "minItems": 1,
+     "maxItems": 500,
+     "type": "array",
+     "items": {
+      "type": "object",
+      "properties": {
+       "cueId": {
+        "type": "string",
+        "minLength": 1,
+        "maxLength": 200
+       },
+       "setId": {
+        "type": "string",
+        "minLength": 1,
+        "maxLength": 200
+       },
+       "expectedCueHash": {
+        "type": "string",
+        "pattern": "^[a-f0-9]{64}$"
+       },
+       "expectedCueHashes": {
+        "type": "object",
+        "propertyNames": {
+         "type": "string",
+         "minLength": 1,
+         "maxLength": 160
+        },
+        "additionalProperties": {
+         "type": "string",
+         "pattern": "^[a-f0-9]{64}$"
+        }
+       },
+       "name": {
+        "type": "string",
+        "minLength": 1,
+        "maxLength": 80
+       },
+       "applyDefaults": {
+        "type": "boolean"
+       }
+      },
+      "additionalProperties": false
+     }
+    },
+    "applyDefaults": {
+     "type": "boolean"
+    },
+    "dryRun": {
+     "default": true,
+     "type": "boolean"
+    },
+    "workspace": {
+     "type": "string",
+     "minLength": 1,
+     "maxLength": 80,
+     "description": "Which congregation this call is for. This connection serves 'crc' (CRC) only."
+    }
+   },
+   "required": [
+    "items",
+    "workspace"
+   ]
+  },
+  "annotations": {
+   "readOnlyHint": false,
+   "idempotentHint": true
   }
  },
  {
@@ -1413,6 +1497,10 @@
      "type": "string",
      "minLength": 1,
      "maxLength": 80
+    },
+    "applyDefaults": {
+     "type": "boolean",
+     "description": "false skips this workspace's house defaults (get_authoring_defaults) for this call. Left out, they apply; a value the call names itself always wins."
     },
     "workspace": {
      "type": "string",
@@ -1454,6 +1542,10 @@
       "type": "string",
       "pattern": "^[a-f0-9]{64}$"
      }
+    },
+    "applyDefaults": {
+     "type": "boolean",
+     "description": "false skips this workspace's house defaults (get_authoring_defaults) for this call. Left out, they apply; a value the call names itself always wins."
     },
     "workspace": {
      "type": "string",
@@ -1649,6 +1741,25 @@
   "annotations": {
    "readOnlyHint": false,
    "idempotentHint": true
+  }
+ },
+ {
+  "name": "get_authoring_defaults",
+  "description": "Read this workspace's house defaults - text size or font sizes, line spacing, Latin line breaks, panel row order, translation choice, arrangement and the layout rule - with the version update_authoring_defaults needs (0 when none are set) and the tools they apply on. Read only.",
+  "inputSchema": {
+   "type": "object",
+   "$schema": "https://json-schema.org/draft/2020-12/schema",
+   "properties": {
+    "workspace": {
+     "type": "string",
+     "minLength": 1,
+     "maxLength": 80,
+     "description": "Which congregation this call is for. This connection serves 'crc' (CRC) only."
+    }
+   }
+  },
+  "annotations": {
+   "readOnlyHint": true
   }
  },
  {
@@ -4658,6 +4769,186 @@
   },
   "annotations": {
    "readOnlyHint": false
+  }
+ },
+ {
+  "name": "update_authoring_defaults",
+  "description": "Set this workspace's house defaults. New graphics (create_draft, compose_custom_draft, create_source_draft_set) and shared-library copies (customize_shared_cue, customize_shared_set, customize_shared_batch) take them unless the call names its own value or passes applyDefaults:false; existing drafts never change. A field replaces the stored one, null clears it, a field left out stays. textSize is a named size; fontSizes are explicit sizes and win over it. translation include adds the English translation where the source has it, omit leaves it out. layoutRule {maxLowerThirds:2, sequenceLayout:'left'} is the house rule that text needing more than two lower thirds becomes a left panel sequence (applied by create_source_draft_set; a copied set keeps its own shape and is flagged). expectedVersion is the version get_authoring_defaults returned.",
+  "inputSchema": {
+   "type": "object",
+   "$schema": "https://json-schema.org/draft/2020-12/schema",
+   "properties": {
+    "expectedVersion": {
+     "type": "integer",
+     "minimum": 0,
+     "maximum": 9007199254740991
+    },
+    "textSize": {
+     "anyOf": [
+      {
+       "type": "string",
+       "enum": [
+        "comfortable",
+        "large",
+        "compact"
+       ],
+       "description": "A named text size: comfortable is the template's own sizes, large is 42/35/34 and compact 34/28/28 (Hebrew/transliteration/title). Explicit font sizes in presentation win."
+      },
+      {
+       "type": "null"
+      }
+     ]
+    },
+    "fontSizes": {
+     "anyOf": [
+      {
+       "type": "object",
+       "properties": {
+        "hebrewFontSize": {
+         "type": "integer",
+         "minimum": 24,
+         "maximum": 52
+        },
+        "transliterationFontSize": {
+         "type": "integer",
+         "minimum": 20,
+         "maximum": 48
+        },
+        "titleFontSize": {
+         "type": "integer",
+         "minimum": 20,
+         "maximum": 42
+        }
+       },
+       "additionalProperties": false
+      },
+      {
+       "type": "null"
+      }
+     ]
+    },
+    "lineSpacing": {
+     "anyOf": [
+      {
+       "type": "string",
+       "enum": [
+        "compact",
+        "spacious"
+       ]
+      },
+      {
+       "type": "null"
+      }
+     ]
+    },
+    "latinLineBreaks": {
+     "anyOf": [
+      {
+       "type": "string",
+       "enum": [
+        "preserve",
+        "paragraphs",
+        "phrases"
+       ]
+      },
+      {
+       "type": "null"
+      }
+     ]
+    },
+    "rowOrder": {
+     "anyOf": [
+      {
+       "minItems": 3,
+       "maxItems": 3,
+       "type": "array",
+       "items": {
+        "type": "string",
+        "enum": [
+         "he",
+         "tr",
+         "en"
+        ]
+       },
+       "description": "Order the Hebrew (he), transliteration (tr) and translation (en) layers stack in on a left or right panel, in both arrangements. Default he, tr, en, which is stored as absent; a lower third ignores it."
+      },
+      {
+       "type": "null"
+      }
+     ]
+    },
+    "translation": {
+     "anyOf": [
+      {
+       "type": "string",
+       "enum": [
+        "include",
+        "omit"
+       ]
+      },
+      {
+       "type": "null"
+      }
+     ]
+    },
+    "arrangement": {
+     "anyOf": [
+      {
+       "type": "string",
+       "enum": [
+        "together",
+        "blocks"
+       ]
+      },
+      {
+       "type": "null"
+      }
+     ]
+    },
+    "layoutRule": {
+     "anyOf": [
+      {
+       "type": "object",
+       "properties": {
+        "maxLowerThirds": {
+         "type": "integer",
+         "minimum": 1,
+         "maximum": 20
+        },
+        "sequenceLayout": {
+         "default": "left",
+         "type": "string",
+         "enum": [
+          "left",
+          "right"
+         ]
+        }
+       },
+       "required": [
+        "maxLowerThirds"
+       ],
+       "additionalProperties": false
+      },
+      {
+       "type": "null"
+      }
+     ]
+    },
+    "workspace": {
+     "type": "string",
+     "minLength": 1,
+     "maxLength": 80,
+     "description": "Which congregation this call is for. This connection serves 'crc' (CRC) only."
+    }
+   },
+   "required": [
+    "expectedVersion",
+    "workspace"
+   ]
+  },
+  "annotations": {
+   "readOnlyHint": false,
+   "idempotentHint": true
   }
  },
  {
