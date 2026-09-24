@@ -232,7 +232,10 @@ test('navigation rules: jump targets, reachability', () => {
   const tbi = tbiDeck()
   tbi.pages[0].buttons = tbi.pages[0].buttons.filter((b) => b.spec.kind !== 'builtin')
   tbi.pages[1].buttons = tbi.pages[1].buttons.filter((b) => b.spec.kind !== 'builtin')
-  assert.deepEqual(errors(validateDeck(tbi, { module: definitions, cues: everyCue }).findings).map((x) => [x.code, x.page]), [['page-unreachable', 2]])
+  const navless = errors(validateDeck(tbi, { module: definitions, cues: everyCue }).findings)
+  assert.deepEqual(navless.filter((x) => x.code !== 'fixed-cell-missing').map((x) => [x.code, x.page]), [['page-unreachable', 2]])
+  // TBI's page templates (C4) fix the built-in nav column, so each missing nav button is named too.
+  assert.deepEqual(navless.filter((x) => x.code === 'fixed-cell-missing').map((x) => `${x.page}/${x.row}/${x.column}`).sort(), ['1/0/0', '1/1/0', '1/2/0', '2/0/0', '2/1/0', '2/2/0'])
 })
 
 test("upgrade check runs only against the deck's recorded Companion build", () => {

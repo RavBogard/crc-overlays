@@ -306,6 +306,10 @@ function templateSpec(deck: CompanionDeck, n: number, role: FixedRole): ButtonSp
     case 'camera-left': return {kind: 'camera', text: 'Left\ncam 2', input: 'left cam 2', tally: 2}
     case 'camera-right': return {kind: 'camera', text: 'Right\ncam 3', input: 'right cam 3', tally: 3}
     case 'merge': return {kind: 'merge'}
+    // TBI's nav column (C4): Companion's own page up / number / down.
+    case 'page-up': return {kind: 'builtin', control: 'pageup'}
+    case 'page-number': return {kind: 'builtin', control: 'pagenum'}
+    case 'page-down': return {kind: 'builtin', control: 'pagedown'}
     default: throw refuse(`The "${role}" key belongs to a device page carried from the booth's export; such pages cannot be made here.`)
   }
 }
@@ -319,6 +323,9 @@ function servesRole(spec: ButtonSpec, role: FixedRole): boolean {
     case 'bimah-mute': return spec.kind === 'fragment' || spec.kind === 'actions'
     case 'camera-center': case 'camera-left': case 'camera-right': return spec.kind === 'camera'
     case 'merge': return spec.kind === 'merge'
+    case 'page-up': return spec.kind === 'builtin' && spec.control === 'pageup'
+    case 'page-number': return spec.kind === 'builtin' && spec.control === 'pagenum'
+    case 'page-down': return spec.kind === 'builtin' && spec.control === 'pagedown'
   }
 }
 

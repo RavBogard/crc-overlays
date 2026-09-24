@@ -150,7 +150,8 @@ export function renderButton(deck: CompanionDeck, button: DeckButton, where = `r
 
   switch (spec.kind) {
     case 'cue': {
-      const bg = roleColour(P, spec)
+      const bg = spec.bg ?? roleColour(P, spec)
+      const fg = spec.color ?? P.white
       const text = wrapLabel(spec.label)
       const cueFeedbacks = () => [
         feedback(next, 'requested', overlays(), { cue: spec.cueId }, P.requested, P.white),
@@ -160,7 +161,7 @@ export function renderButton(deck: CompanionDeck, button: DeckButton, where = `r
       const g = spec.gesture
       if (!g) {
         const feedbacks = cueFeedbacks()
-        return plain(text, bg, P.white, feedbacks, [[action(next, 'toggle_cue', overlays(), { cue: spec.cueId })]])
+        return plain(text, bg, fg, feedbacks, [[action(next, 'toggle_cue', overlays(), { cue: spec.cueId })]])
       }
       const recall = (conn: string, preset: number | null) => action(next, 'recallPset', connectionByLabel(deck, conn).id, { val: preset }, { upgradeIndex: 6 })
       const wait = () => action(next, 'wait', 'internal', { time: deck.switcher.presetWaitMs })
@@ -175,7 +176,7 @@ export function renderButton(deck: CompanionDeck, button: DeckButton, where = `r
         s2.push(merge(g.out.input))
       }
       const stepFb = feedback(next, 'bank_current_step', 'internal', { step: 2, location: '$(this:location)' }, null, P.stepText)
-      return plain(text, bg, P.white, [stepFb, ...cueFeedbacks()], [s1, s2])
+      return plain(text, bg, fg, [stepFb, ...cueFeedbacks()], [s1, s2])
     }
     case 'jump':
       return plain(spec.text, P.black, P.white, [], [[action(next, 'set_page', 'internal', { page: spec.page, surfaceId: 'self' })]])

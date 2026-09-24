@@ -1127,6 +1127,7 @@ export const SOURCE_REVIEW_OPERATIONS:Readonly<Record<string,'scan'|'list'|'get'
 export async function authoringOperation(operation:string,input:unknown,actor:string){
  const review=Object.hasOwn(SOURCE_REVIEW_OPERATIONS,operation)?SOURCE_REVIEW_OPERATIONS[operation]:undefined;
  if(review){const {sourceReviewOperation}=await import('./source-review');return sourceReviewOperation(review,input,actor)}
+ if(operation==='seed_deck_from_export'||operation==='convert_singular_deck'){const {deckConversionOperation,DeckConversionError}=await import('./companion-deck/convert');try{return await deckConversionOperation(operation,input,actor)}catch(error){if(error instanceof DeckConversionError)throw new AuthoringError(error.code,error.message,error.status);throw error}}
  // C3 - the Companion deck tools (lib/companion-deck/tools.ts): their own store, reached by dynamic import like source review.
  if(isDeckTool(operation)){const {deckToolOperation,DeckToolError}=await import('./companion-deck/tools');try{return await deckToolOperation(operation,input,actor)}catch(error){if(error instanceof DeckToolError)throw new AuthoringError(error.code,error.message,error.status);throw error}}
  const result=await defaults().operation(operation,input,actor);
