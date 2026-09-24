@@ -38,6 +38,8 @@ import {LayoutDefinitionError,ensurePublishedLayoutsRegistered,layoutDefinitions
 import {isLayoutTool,layoutToolOperation} from './layout-tools';
 import type {ResolvedLayouts} from './layout-registry';
 import {parseDraftReference} from './companion-deck/singular-references';
+import {MemoryBuildKeyRepository,defaultBuildKeyRepository,type BuildKeyRepository} from './build-keys';
+import {batchCreateDrafts} from './batch-drafts';
 
 export type BrowserMeasurement={viewportWidth:number;viewportHeight:number;fontsReady:true;overflow:false;rendererVersion:string;measuredAt:number};
 /**
@@ -328,7 +330,7 @@ const defaultServerFitRunner:ServerFitRunner=async(cue,options)=>{
  return measureCueOnServer(cue as unknown as Cue,{origin:canonicalOrigin(),includePreviewImage:options?.includePreviewImage,...(options?.artworkUrl?{artworkUrl:options.artworkUrl}:{}),...(options?.layouts?{layouts:options.layouts}:{})});
 };
 export type AssetStores={assets?:AssetRepository;uploads?:AssetUploadStore};
-export function createAuthoringService(repo:AuthoringRepository,workspace:AuthoringWorkspace={rehearsal:false,storage:'postgres',label:null},shared:SharedLibraryReader=sharedLibraryClient,sharedAssetImporter:SharedAssetImporter=(id,actor)=>importSharedAsset(id,actor),runServerFit:ServerFitRunner=defaultServerFitRunner,localSources:LocalSourceRepository=new MemoryLocalSourceRepository(),defaultsRepo:AuthoringDefaultsRepository=repo instanceof MemoryAuthoringRepository?new MemoryAuthoringDefaultsRepository():new PgAuthoringDefaultsRepository(),assetStores:AssetStores={},layoutRepo:LayoutDefinitionsRepository=layoutDefinitionsRepository()){
+export function createAuthoringService(repo:AuthoringRepository,workspace:AuthoringWorkspace={rehearsal:false,storage:'postgres',label:null},shared:SharedLibraryReader=sharedLibraryClient,sharedAssetImporter:SharedAssetImporter=(id,actor)=>importSharedAsset(id,actor),runServerFit:ServerFitRunner=defaultServerFitRunner,localSources:LocalSourceRepository=new MemoryLocalSourceRepository(),defaultsRepo:AuthoringDefaultsRepository=repo instanceof MemoryAuthoringRepository?new MemoryAuthoringDefaultsRepository():new PgAuthoringDefaultsRepository(),assetStores:AssetStores={},layoutRepo:LayoutDefinitionsRepository=layoutDefinitionsRepository(),buildKeys?:BuildKeyRepository){
  // The Companion deck store follows the authoring store: a service over the in-memory repository
  // (tests, local runs) keeps its deck in memory too; rehearsal and Postgres use the deck tools' default.
  let memoryDeck:import('./companion-deck/repository').CompanionDeckRepository|undefined;
@@ -395,9 +397,14 @@ export function createAuthoringService(repo:AuthoringRepository,workspace:Author
   const {taken}=await libraryNames(draft.id);
   return taken.has(normalizeGraphicName(draft.name))?[{code:'duplicate-name',suggestedName:suggestGraphicName(draft.name,draft.layout,taken)}]:[];
  };
- const execute=async(operation:string,input:unknown,actor:string):Promise<unknown>=>{
+ // G4 - batch_create_drafts records what each of its keys became (lib/build-keys.ts).
+ let keyStore:BuildKeyRepository|undefined;const buildKeyStore=()=>keyStore??=buildKeys??(repo instanceof MemoryAuthoringRepository?new MemoryBuildKeyRepository():defaultBuildKeyRepository());
+ // `internal.dryRun` is batch_create_drafts' dry run: create_draft builds and validates the draft but stores nothing. No tool schema carries it.
+ const execute=async(operation:string,input:unknown,actor:string,internal:{dryRun?:boolean}={}):Promise<unknown>=>{
   const who=string(actor,'actor',80); const data=object(input);
   if(operation==='get_workspace'){keys(data,[]);return {workspace};}
+  // G4 - many drafts from a build plan, each through create_draft or customize_shared_batch below (lib/batch-drafts.ts).
+  if(operation==='batch_create_drafts')return batchCreateDrafts(data,who,{run:execute,drafts:()=>repo.listDrafts(),insertDraftSet:drafts=>repo.insertDraftSet(drafts),buildKeys:buildKeyStore(),workspaceId:currentWorkspaceId(),source:async id=>{const raw=isLocalSourceId(id)?(await localUnits()).find(unit=>unit.id===id):sourcePack.sources.find(item=>item.id===id);return raw?resolveSourceBoundaries(raw):undefined}});
   if(isLocalSourceTool(operation))return localSourceOperation(operation,data,who,{sources:localSources,drafts:()=>repo.listDrafts(),workspaceId:currentWorkspaceId()});
   // D20 — G5 is one tool and nothing else: it delegates to D19's importer on the services
   // side and returns the prepared service it created. The import is dynamic because
@@ -661,7 +668,8 @@ export function createAuthoringService(repo:AuthoringRepository,workspace:Author
    let input=housed?.data??request,parsed:EditableDraft;try{parsed=parseEditable(withDraftDefaults(input),false,locals) as EditableDraft}catch(error){if(!housed?.withoutTranslation||!(error instanceof AuthoringError))throw error;input=housed.withoutTranslation;parsed=parseEditable(withDraftDefaults(input),false,locals) as EditableDraft;report.applied=report.applied.filter(item=>item!=='translation included');report.skipped.push(`translation included: ${error.message}`)}
    const rawContent=object(input.content,'content'),rawBase=rawContent.mode==='local-variant'?object(rawContent.base,'content.base'):rawContent,explicitArrangement=Object.hasOwn(rawBase,'arrangement');const editable=explicitArrangement?parsed:{...parsed,content:withCreateDefaultBilingualBlocks(parsed.content)};const sourceSnapshots=sourceSnapshotsFor(editable.content,locals);const now=Date.now(); const draft:Draft={...editable,id:newDraftId(),version:1,sourcePin:sourcePinFor(editable.content,sourceSnapshots),...(sourceSnapshots.length?{sourceSnapshots}:{}),activeRevision:null,activeDraftVersion:null,createdAt:now,updatedAt:now,createdBy:who,updatedBy:who,...(reference?{reference}:{})};
    const warnings=await duplicateNameWarnings(draft);const provenance=localProvenance(sourceSnapshots);
-   return {draft:await repo.insertDraft(stamped([draft],report,stored?.version)[0]),warnings,...reportField(report),...(provenance.length?{provenance}:{})};
+   const staged=stamped([draft],report,stored?.version)[0];
+   return {draft:internal.dryRun?staged:await repo.insertDraft(staged),warnings,...reportField(report),...(provenance.length?{provenance}:{})};
   }
   if(operation==='create_local_variant'){
    keys(data,['draftId','cueId','label','reason','overrides']);const draftId=optionalString(data.draftId,'draftId'),cueId=optionalString(data.cueId,'cueId');if(Boolean(draftId)===Boolean(cueId))throw new AuthoringError('invalid_input','Provide exactly one of draftId or cueId');let sourceDraft:Draft|undefined,editable:EditableDraft,sourceSnapshots:Draft['sourceSnapshots'];

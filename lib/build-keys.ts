@@ -1,4 +1,5 @@
 import {AuthoringError} from './authoring-model';
+import {currentWorkspaceId} from './local-sources';
 
 /**
  * TBI redo foundation - build keys. A bulk build names each thing it makes by a stable key of its
@@ -37,6 +38,9 @@ export class MemoryBuildKeyRepository implements BuildKeyRepository{
  async list(kind?:BuildKeyKind){return [...this.rows.values()].filter(row=>!kind||row.kind===kind).map(row=>({...row}))}
  async put(record:BuildKeyRecord){const existing=this.rows.get(this.id(record.kind,record.key));const row={...record,createdAt:existing?.createdAt??record.createdAt,createdBy:existing?.createdBy??record.createdBy};this.rows.set(this.id(record.kind,record.key),row);return {...row}}
 }
+
+/** This workspace's build keys in its database. G4 added it for its wiring; G3 needs the same one (merge note: keep one). */
+export function defaultBuildKeyRepository(workspaceId=currentWorkspaceId()):BuildKeyRepository{return new PgBuildKeyRepository(workspaceId)}
 
 const missingTable=(error:unknown)=>(error as {code?:unknown}|null)?.code==='42P01';
 const UNMIGRATED='Build keys are not set up in this workspace\'s database yet (db/build-keys.sql). Nothing was saved; ask whoever runs the database to apply it.';
