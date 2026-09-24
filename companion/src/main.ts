@@ -1,6 +1,7 @@
 import { combineRgb, InstanceBase, InstanceStatus, type CompanionActionDefinitions, type CompanionFeedbackDefinitions, type CompanionPresetDefinitions, type CompanionPresetSection, type InstanceTypes, type SomeCompanionConfigField } from '@companion-module/base'
 import { CatalogStore, categoryColour, cuePresetId, hasCatalogCue, slotCatalogCues, slotPresetId, slotVariableValue, visibleCatalogCues, type CatalogCue } from './catalog.js'
 import { CatalogRefreshCoordinator, deriveFeedback, isNewerSnapshot, logoStatusLabel, OverlayClient, toggleAction, validBugPage, type BugState, type FeedbackState, type LogoState, type OverlaySnapshot, type RealtimeSubscription, type RendererState, type WebSocketFactory } from './client.js'
+import { DEFAULT_BASE_URL, PRESET_SECTION_CONTROLS } from './brand.js'
 import { redeemPairingCode } from './pairing.js'
 import { panelSets, panelTarget } from './panel.js'
 import { connectionLabel, overlayVariables } from './variables.js'
@@ -69,7 +70,7 @@ interface Manifest extends InstanceTypes {
 }
 
 export default class CrcOverlaysInstance extends InstanceBase<Manifest> {
-  #config: Config = { baseUrl: 'https://overlays.centralreform.org', pairingCode: '' }
+  #config: Config = { baseUrl: DEFAULT_BASE_URL, pairingCode: '' }
   #credential = ''
   #controlKey = ''
   #deviceToken = ''
@@ -124,12 +125,12 @@ export default class CrcOverlaysInstance extends InstanceBase<Manifest> {
   }
 
   #baseUrl(config: Config | undefined): string {
-    return String(config?.baseUrl || 'https://overlays.centralreform.org').replace(/\/+$/, '')
+    return String(config?.baseUrl || DEFAULT_BASE_URL).replace(/\/+$/, '')
   }
 
   getConfigFields(): SomeCompanionConfigField[] {
     return [
-      { type: 'textinput', id: 'baseUrl', label: 'Overlay base URL', width: 12, default: 'https://overlays.centralreform.org', regex: '^https?://.+' },
+      { type: 'textinput', id: 'baseUrl', label: 'Overlay base URL', width: 12, default: DEFAULT_BASE_URL, regex: '^https?://.+' },
       { type: 'textinput', id: 'pairingCode', label: 'Pairing code', width: 6, default: '', regex: '^$|^[0-9]{6}$', tooltip: 'Six digits from the setup page. It is cleared once the device token is stored.' },
       { type: 'secret-text', id: 'deviceToken', label: 'Device token', width: 6, tooltip: 'Stored automatically when a pairing code is accepted.' },
       { type: 'secret-text', id: 'controlKey', label: 'Control key', width: 12, tooltip: 'The older shared key. When it is set it is used instead of the device token.' },
@@ -479,7 +480,7 @@ export default class CrcOverlaysInstance extends InstanceBase<Manifest> {
     presets.refresh_catalog = { type: 'simple', name: 'Refresh catalog', style: { text: 'Refresh\ncatalog', size: '14', color: combineRgb(255, 255, 255), bgcolor: CHARCOAL }, steps: [{ down: [{ actionId: 'refresh_catalog', options: {} }], up: [] }], feedbacks: [disconnected] }
     presets.connection_status = { type: 'simple', name: 'Connection and current graphic', style: { text: `$(${label}:connection)\n$(${label}:current_name)`, size: '14', color: combineRgb(255, 255, 255), bgcolor: CHARCOAL }, steps: [{ down: [], up: [] }], feedbacks: [disconnected] }
     presets.current_panel = { type: 'simple', name: 'Current panel', style: { text: `$(${label}:current_panel) of $(${label}:panel_count)`, size: '14', color: combineRgb(255, 255, 255), bgcolor: CHARCOAL }, steps: [{ down: [], up: [] }], feedbacks: [disconnected] }
-    const structure: CompanionPresetSection<Manifest>[] = [{ id: 'crc_overlay_controls', name: 'CRC Overlay Controls', definitions: Object.keys(presets) }]
+    const structure: CompanionPresetSection<Manifest>[] = [{ ...PRESET_SECTION_CONTROLS, definitions: Object.keys(presets) }]
     this.setPresetDefinitions(structure, presets)
   }
 }

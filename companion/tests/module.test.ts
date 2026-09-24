@@ -143,6 +143,16 @@ describe('snapshot tolerance and published variables', () => {
     expect(h.presets.current_panel?.style?.text).toBe('$(overlays:current_panel) of $(overlays:panel_count)')
   })
 
+  // The brand strings live in src/brand.ts; the TBI module is derived from the compiled
+  // module by prefix (scripts/build-tbi-companion-module.mjs). These are the CRC values.
+  it('keeps the CRC default base URL and one Overlay Controls preset section', async () => {
+    const h = start(harness())
+    const baseUrl = h.instance.getConfigFields().find(field => field.id === 'baseUrl') as { default?: string } | undefined
+    expect(baseUrl?.default).toBe('https://overlays.centralreform.org')
+    await h.instance.init(config(), true, secrets({ deviceToken: PAIRED_TOKEN }))
+    expect(h.presetStructure).toEqual([{ id: 'crc_overlay_controls', name: 'CRC Overlay Controls', definitions: Object.keys(h.presets) }])
+  })
+
   it('offers a scan card toggle preset and a next panel preset', async () => {
     const h = start(harness())
     await h.instance.init(config(), true, secrets({ deviceToken: PAIRED_TOKEN }))
