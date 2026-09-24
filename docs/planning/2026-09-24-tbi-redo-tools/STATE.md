@@ -42,7 +42,7 @@ changes, paired web release, push to main.
 | G8 | batch_retire (≤200, dry run default) + find_catalog_issues batchRetire input | merged; in memory 193 retired in 1 dry run + 1 apply, then batch_ship of 44 copies: 0 duplicate_name |
 | G9 | panels mixing English-only and Hebrew/transliteration blocks (G4 finding) | merged; bilingual selections take English-only blocks as their own rows in block order; real data: 30 mixed panels in 29 sources all build (119/119 panels); no cue or unit hash moved; Omer builds without includeTranslation |
 | G10 | accent title size/weight as branding data + batch_refit | released 9bd67bc; CRC stills identical (12 layout + 16 corner), TBI 1.3/600 and 1.6/700 frames pass with real SemiBold/Bold loaded, batch_refit rehearsal dry run 6 total / 4 would re-check, live 4 pass |
-| G11 | batch_refit skipped every TBI graphic as differs_from_live | fixed: draft and live compared as content (keys sorted, numbers at 12 significant digits), not by rehashing the jsonb-read cue; cueHash and stored hashes unchanged |
+| G11 | batch_refit skipped every TBI graphic as differs_from_live | released c965df8: draft and live compared as content (keys sorted, numbers at 12 significant digits), not by rehashing the jsonb-read cue; cueHash and stored hashes unchanged |
 
 ## Evidence
 

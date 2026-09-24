@@ -4,7 +4,7 @@ What is deployed right now. Update this file on every release — it is the one 
 "what is live", and it is short so it can be read under pressure. The history is in
 `docs/planning/2026-09-deploys/` (25 deploy records, the release chain, the phase build notes).
 
-**Last updated: 2026-09-24** (setlist rows matched by liturgy unit id + /setup as each operator's install flow (S1-S3) released as web `608d530`, one migration; before it TBI redo tools G10 accent title typography + batch_refit released as web `9bd67bc`; before it G9 as `186aa14`; before it G7 Raleway + G8 batch_retire as `db34734`; before it G1-G6 as `0c2e895`, two more tables; before it the MCP completeness plan: relays `e512d86`, web `6b76cbd`, ten new tables on both databases, `main` fast-forwarded to production. Before it, paired release `ebd4be4`: group tabs renamed; before it `3636857`, Michael's review — Corner layout, per-graphic row order, inline siddur wording edits with a Wording changes list, right-justified lower-third Hebrew title, honest siddur-picker preview. Evidence below under "Release 3636857".)
+**Last updated: 2026-09-24** (G11 batch_refit compares draft and live graphic as content, released as web `c965df8`; before it setlist rows matched by liturgy unit id + /setup as each operator's install flow (S1-S3) released as web `608d530`, one migration; before it TBI redo tools G10 accent title typography + batch_refit released as web `9bd67bc`; before it G9 as `186aa14`; before it G7 Raleway + G8 batch_retire as `db34734`; before it G1-G6 as `0c2e895`, two more tables; before it the MCP completeness plan: relays `e512d86`, web `6b76cbd`, ten new tables on both databases, `main` fast-forwarded to production. Before it, paired release `ebd4be4`: group tabs renamed; before it `3636857`, Michael's review — Corner layout, per-graphic row order, inline siddur wording edits with a Wording changes list, right-justified lower-third Hebrew title, honest siddur-picker preview. Evidence below under "Release 3636857".)
 
 ## Web, per workspace
 
@@ -13,13 +13,19 @@ both were released together on 2026-09-23 UTC (2026-09-22 evening Central).
 
 | Workspace | Host | Deployed commit | How it got there |
 |---|---|---|---|
-| CRC | `overlays.centralreform.org` (alt `crc-overlays.vercel.app`) | `608d530` | paired staged release, 2026-09-24, `dpl_CEJgLkPEaALHEjz3TTxyz3t3LZSA` (the Git integration also builds every push to `main`; `main` is at `608d530`) |
-| TBI | `overlays.templebnaiisrael.com` (alt `tbi-overlays.vercel.app`) | `608d530` | same paired run, 2026-09-24, `dpl_4q4daBp8uxpGqEKHGsPUbjLFoYGM` |
+| CRC | `overlays.centralreform.org` (alt `crc-overlays.vercel.app`) | `c965df8` | paired staged release, 2026-09-24, `dpl_69gnCA2f7vUG4kzN67EGnsDEXBfQ` (the Git integration also builds every push to `main`; `main` is at `c965df8`) |
+| TBI | `overlays.templebnaiisrael.com` (alt `tbi-overlays.vercel.app`) | `c965df8` | same paired run, 2026-09-24, `dpl_CmjGaTc1Ut4XcXBbQiZ8LogJHJo3` |
 
 This file is written after the release it describes, so the commit carrying these words is always one
 ahead of the shas in the table. That one commit is documentation: CRC's Git integration builds it by
 itself and TBI is not owed a release for it. Any commit that touches `app/`, `lib/`, `content/`,
 `components/`, `schemas/` or `workspaces/` **is** owed one.
+
+### Release c965df8: G11, batch_refit on stored graphics (2026-09-24 UTC)
+
+- batch_refit compared cueHash of the built draft with cueHash of the live cue as Postgres returns it; jsonb reorders keys, so every stored graphic was skipped as differs_from_live. It now compares them as content (keys sorted, numbers at 12 significant digits). cueHash and stored hashes unchanged. Record: `docs/planning/2026-09-24-tbi-redo-tools/STATE.md`.
+- No migration, no relay change. Gates at `c965df8`: `tsc --noEmit`; `npm test` 1266 + 35 pass, 0 fail; lint 0 errors (2 known warnings); `npm run build` (run before the last one-token import removal, re-built by both deployments).
+- Verified: CRC `dpl_69gnCA2f7vUG4kzN67EGnsDEXBfQ`, TBI `dpl_CmjGaTc1Ut4XcXBbQiZ8LogJHJo3` Ready; four hosts `/health` 200 after its redirect; CRC live batch_refit dry run 237 of 238 would refit, 1 skipped (built-in "Thank you"). TBI's dry run is the TBI thread's call (expected 94 / 3 with accentTitleOnly). `main` fast-forwarded to `c965df8`.
 
 ### Release 608d530: setlist unit ids, and /setup S1-S3 (2026-09-24 UTC)
 
