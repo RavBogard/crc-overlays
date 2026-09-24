@@ -233,3 +233,105 @@ test('over the MCP: results start with the workspace, writes need workspace, fra
  assert.doesNotMatch(preview.content[0].text!,/AQID/);
  assert.equal(JSON.parse(preview.content[0].text!).previews[3].previewImage.frame,4);
 });
+
+/* ---------------------------------------------------- G10 typography --- */
+// The Hebrew accent title's size and weight as data. Nothing stored: no variable, no switch, so no
+// G10 rule matches and every graphic draws as before (scripts/layout-golden-stills.mjs holds the pixels).
+test('G10: without stored typography the renderer sets no accent variable and no switch',()=>{
+ for(const branding of [crcBranding,overlayBrandingFromWorkspace(CRC),overlayBrandingFromWorkspace(TBI)]){
+  const box=render(branding);
+  assert.equal('--crc-accent-title-scale' in box.style.properties,false);
+  assert.equal('--crc-accent-title-weight' in box.style.properties,false);
+  assert.equal('accentTypography' in box.dataset,false,'the G10 rules are switched off');
+ }
+ // Stored branding without typography serves the same resolved body as before G10.
+ assert.equal('typography' in resolveBranding(TBI,{version:2,document:{fonts:{latin:'Raleway'}}}),false);
+});
+
+test('G10: stored typography reaches the renderer through the public workspace and switches the rules on',()=>{
+ const resolved=resolveBranding(TBI,{version:4,document:{typography:{accentTitle:{scale:1.3,weight:600}}}});
+ const served=JSON.parse(JSON.stringify(brandedWorkspace(TBI,resolved)));
+ assert.deepEqual(served.branding.typography,{accentTitle:{scale:1.3,weight:600}});
+ const branding=overlayBrandingFromWorkspace(served);
+ assert.deepEqual(branding.typography,{accentTitle:{scale:1.3,weight:600}});
+ const box=render(branding);
+ assert.equal(box.style.properties['--crc-accent-title-scale'],'1.3');
+ assert.equal(box.style.properties['--crc-accent-title-weight'],'600');
+ assert.equal(box.dataset.accentTypography,'');
+ // A malformed value on the wire is dropped rather than drawn.
+ assert.equal(overlayBrandingFromWorkspace({...served,branding:{...served.branding,typography:{accentTitle:{scale:3,weight:600}}}}).typography,undefined);
+});
+
+test('G10: every accent typography rule in overlay.css is behind the data-accent-typography switch',()=>{
+ const rules=css.split(/\r?\n/).filter(line=>line.includes('--crc-accent-title-scale')||line.includes('--crc-accent-title-weight'));
+ assert.ok(rules.length>=5);
+ for(const rule of rules)assert.match(rule,/^\.overlay(\[data-card\])?\[data-accent-typography\]/,rule);
+ for(const layout of ['.left','.right','.bottom'])assert.ok(rules.some(rule=>rule.includes(`[data-accent-typography]${layout} .title-accent`)),layout);
+ assert.ok(rules.some(rule=>rule.startsWith('.overlay[data-card][data-accent-typography] .title-accent')),'cards');
+});
+
+test('G10: parseBrandingDocument takes typography.accentTitle in range and refuses the rest',()=>{
+ assert.deepEqual(parseBrandingDocument({typography:{accentTitle:{scale:1.25,weight:700}}}),{typography:{accentTitle:{scale:1.25,weight:700}}});
+ assert.throws(()=>parseBrandingDocument({typography:{accentTitle:{scale:1.7,weight:600}}}),/1 to 1\.6/);
+ assert.throws(()=>parseBrandingDocument({typography:{accentTitle:{scale:1.2,weight:650}}}),/400, 500, 600, 700/);
+ assert.throws(()=>parseBrandingDocument({typography:{title:{scale:1.2}}}),/It takes accentTitle/);
+});
+
+test('G10: get_branding shows no typography stored on CRC, with the built-in values and the weights its face ships',async()=>{
+ const {run}=context(CRC);
+ const read=await run('get_branding');
+ assert.equal(read.stored,false);
+ const accent=read.typography.accentTitle;
+ assert.equal(accent.set,false);
+ assert.deepEqual([accent.scale,accent.weight],[1,500]);
+ assert.deepEqual(accent.builtIn,{scale:1,weight:500});
+ assert.deepEqual(accent.scaleRange,{min:1,max:1.6});
+ assert.equal(accent.face,'Noto Sans Hebrew');
+ assert.deepEqual(accent.weights,[400,500,600,700],'Noto Sans Hebrew ships all four');
+});
+
+test('G10: update_branding stores the accent title, merges a partial change, and null puts it back',async()=>{
+ const {run,ctx}=context();
+ await assert.rejects(run('update_branding',{expectedVersion:0,typography:{accentTitle:{scale:2}}}),/1 to 1\.6/);
+ await assert.rejects(run('update_branding',{expectedVersion:0,typography:{accentTitle:{weight:800}}}),/400, 500, 600, 700/);
+ await assert.rejects(run('update_branding',{expectedVersion:0,typography:{accentTitle:{}}}),/names nothing to change/);
+ await assert.rejects(run('update_branding',{expectedVersion:0,typography:{headline:{scale:1.2}}}),/It takes accentTitle/);
+ const saved=await run('update_branding',{expectedVersion:0,typography:{accentTitle:{scale:1.3,weight:600}}});
+ assert.equal(saved.version,1);assert.equal(saved.typography.accentTitle.set,true);
+ assert.deepEqual((await ctx.repository.get())!.document,{typography:{accentTitle:{scale:1.3,weight:600}}});
+ const weight=await run('update_branding',{expectedVersion:1,typography:{accentTitle:{weight:700}}});
+ assert.deepEqual([weight.typography.accentTitle.scale,weight.typography.accentTitle.weight],[1.3,700],'a partial change keeps the other value');
+ const scale=await run('update_branding',{expectedVersion:2,typography:{accentTitle:{scale:null}}});
+ assert.deepEqual([scale.typography.accentTitle.scale,scale.typography.accentTitle.weight],[1,700],'null puts one value back');
+ const cleared=await run('update_branding',{expectedVersion:3,typography:{accentTitle:null}});
+ assert.equal(cleared.typography.accentTitle.set,false);
+ assert.deepEqual((await ctx.repository.get())!.document,{},'nothing is stored once both values are back');
+ // Setting both values back to the built-in ones stores nothing either.
+ await run('update_branding',{expectedVersion:4,typography:{accentTitle:{weight:600}}});
+ await run('update_branding',{expectedVersion:5,typography:{accentTitle:{weight:500}}});
+ assert.deepEqual((await ctx.repository.get())!.document,{});
+});
+
+test('G10: a weight the accent title face does not ship is refused, in the same patch or a later font change',async()=>{
+ const {run}=context({...TBI,bookFaces:true});
+ await assert.rejects(run('update_branding',{expectedVersion:0,fonts:{hebrew:'David Libre'},typography:{accentTitle:{weight:600}}}),/drawn in David Libre, which ships weights 400, 500; typography\.accentTitle\.weight 600 is not one of them\. Nothing was changed\./);
+ await run('update_branding',{expectedVersion:0,typography:{accentTitle:{weight:700}}});
+ await assert.rejects(run('update_branding',{expectedVersion:1,fonts:{hebrew:'David Libre'}}),/David Libre, which ships weights 400, 500/);
+ const read=await run('get_branding');
+ assert.deepEqual(read.typography.accentTitle.weights,[400,500,600,700]);
+});
+
+test('G10: preview_branding with a typography change draws graphics that carry an accent title, and saves nothing',async()=>{
+ const {run,fits,ctx}=context();
+ const plain=await run('preview_branding',{});
+ const accented=cues.filter(cue=>cue.texts?.accentTextTitle);
+ const preview=await run('preview_branding',{typography:{accentTitle:{scale:1.3,weight:600}}});
+ assert.equal(preview.changes,2);
+ const drawn=fits.slice(plain.previews.length);
+ assert.ok(drawn.length>0);
+ for(const fit of drawn){
+  assert.deepEqual(fit.branding.typography,{accentTitle:{scale:1.3,weight:600}});
+  if(accented.some(cue=>cue.layout===fit.cue.layout))assert.ok(fit.cue.texts.accentTextTitle,`${fit.cue.layout} carries an accent title`);
+ }
+ assert.equal(await ctx.repository.get(),null,'nothing saved');
+});

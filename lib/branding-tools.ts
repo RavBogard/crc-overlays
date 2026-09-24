@@ -4,7 +4,7 @@
 // page, the console, the editor and the server fit stage - draws with it.
 import type {AssetRepository} from './assets';
 import type {OverlayBranding} from './branding';
-import {BRANDING_ARTWORK_ROLES,BRANDING_ASSET_ID,BRANDING_COLOR_KEYS,BRANDING_COLOR_ROLES,BRANDING_FONT_ROLES,BRANDING_FONT_ROLE_USES,HEX_COLOR,brandingAssetPath,brandingFontChoices,parseBrandingDocument,resolveBranding,type BrandingArtworkRole,type ResolvedBranding,type WorkspaceBrandingDocument} from './branding-palette';
+import {ACCENT_TITLE_DEFAULTS,ACCENT_TITLE_DRAWS,ACCENT_TITLE_SCALE,ACCENT_TITLE_WEIGHTS,BRANDING_ARTWORK_ROLES,BRANDING_ASSET_ID,BRANDING_COLOR_KEYS,BRANDING_COLOR_ROLES,BRANDING_FONT_ROLES,BRANDING_FONT_ROLE_USES,HEX_COLOR,accentTitleFace,accentTitleWeights,brandingAssetPath,brandingFontChoices,parseBrandingDocument,resolveBranding,validAccentScale,validAccentWeight,type AccentTitleTypography,type BrandingArtworkRole,type ResolvedBranding,type WorkspaceBrandingDocument} from './branding-palette';
 import {BrandingError,forgetBrandingMemo,type StoredBranding,type WorkspaceBrandingRepository} from './branding-store';
 import type {Cue} from './player';
 import type {ServerFitResult} from './server-fit-contract';
@@ -37,7 +37,25 @@ const isRecord=(value:unknown):value is Record<string,unknown>=>Boolean(value)&&
 function record(value:unknown){if(!isRecord(value))throw invalid('Arguments must be an object.');return value}
 function only(data:Record<string,unknown>,allowed:string[],operation:string){const extra=Object.keys(data).filter(key=>!allowed.includes(key));if(extra.length)throw invalid(`${operation} does not take ${extra.join(', ')}. It takes ${allowed.join(', ')}.`)}
 
-type Patch={colors?:Record<string,string|null>;fonts?:Record<string,string|null>;artwork?:Record<string,string|null>};
+type AccentPatch={scale?:number|null;weight?:number|null};
+type Patch={colors?:Record<string,string|null>;fonts?:Record<string,string|null>;artwork?:Record<string,string|null>;typography?:{accentTitle?:AccentPatch|null}};
+// G10: typography.accentTitle names only what changes; null (for the whole of it or one value) goes back to the built-in size or weight.
+function typographyPatch(value:unknown):Patch['typography']{
+ if(!isRecord(value))throw invalid('typography must be an object naming accentTitle.');
+ const extra=Object.keys(value).filter(key=>key!=='accentTitle');
+ if(extra.length)throw invalid(`typography has no ${extra.join(', ')}. It takes accentTitle.`);
+ const accent=value.accentTitle;
+ if(accent===undefined)return {};
+ if(accent===null)return {accentTitle:null};
+ if(!isRecord(accent))throw invalid('typography.accentTitle must be an object with scale and/or weight, or null to go back to the built-in accent title.');
+ const unknown=Object.keys(accent).filter(key=>key!=='scale'&&key!=='weight');
+ if(unknown.length)throw invalid(`typography.accentTitle has no ${unknown.join(', ')}. It takes scale and weight.`);
+ const out:AccentPatch={};
+ if(accent.scale!==undefined){if(accent.scale!==null&&!validAccentScale(accent.scale))throw invalid(`typography.accentTitle.scale must be a number from ${ACCENT_TITLE_SCALE.min} to ${ACCENT_TITLE_SCALE.max} (two decimals at most), or null to go back to ${ACCENT_TITLE_DEFAULTS.scale}.`);out.scale=accent.scale as number|null}
+ if(accent.weight!==undefined){if(accent.weight!==null&&!validAccentWeight(accent.weight))throw invalid(`typography.accentTitle.weight must be one of ${ACCENT_TITLE_WEIGHTS.join(', ')}, or null to go back to ${ACCENT_TITLE_DEFAULTS.weight}.`);out.weight=accent.weight as number|null}
+ if(!Object.keys(out).length)throw invalid('typography.accentTitle names nothing to change: give scale and/or weight, or pass null to go back to the built-in accent title.');
+ return {accentTitle:out};
+}
 // A patch names only what changes; null puts that value back to the workspace's built-in one.
 function patchFrom(data:Record<string,unknown>,bookFaces:boolean):Patch{
  const patch:Patch={};
@@ -57,9 +75,13 @@ function patchFrom(data:Record<string,unknown>,bookFaces:boolean):Patch{
  const choices=brandingFontChoices(bookFaces);
  section('fonts',BRANDING_FONT_ROLES,(key,value)=>{if(!choices.includes(value))throw invalid(`fonts.${key} must be one of the installed overlay fonts: ${choices.join(', ')}. A new font is added in code.`)});
  section('artwork',BRANDING_ARTWORK_ROLES,(key,value)=>{if(!BRANDING_ASSET_ID.test(value))throw invalid(`artwork.${key} must be an asset id from list_assets (asset_ followed by 64 hex characters).`)});
+ if(data.typography!==undefined)patch.typography=typographyPatch(data.typography);
  return patch;
 }
-const changeCount=(patch:Patch)=>Object.values(patch).reduce((sum,section)=>sum+Object.keys(section??{}).length,0);
+const changeCount=(patch:Patch)=>{
+ const {typography,...rest}=patch,accent=typography?.accentTitle;
+ return Object.values(rest).reduce((sum,section)=>sum+Object.keys(section??{}).length,0)+(accent===null?1:Object.keys(accent??{}).length);
+};
 
 /** Apply a patch to the stored document; artwork ids are checked against the library and carry its alt text. */
 async function applyPatch(current:WorkspaceBrandingDocument,patch:Patch,assets:AssetRepository,bookFaces:boolean){
@@ -74,13 +96,28 @@ async function applyPatch(current:WorkspaceBrandingDocument,patch:Patch,assets:A
   if(asset.archived)throw new BrandingError('asset_unavailable',`"${asset.name}" is archived, so it can't be used as the ${key}. Restore it in the editor's artwork library or pick another. Nothing was changed.`,409);
   next.artwork[key]={assetId:asset.id,alt:asset.altText};artworkIds.push(asset.id);
  }
- const raw=Object.fromEntries(Object.entries(next).filter(([,section])=>Object.keys(section).length));
+ const raw:Record<string,unknown>=Object.fromEntries(Object.entries(next).filter(([,section])=>Object.keys(section).length));
+ // G10: the accent title's values merge onto what is stored; back at both built-in values, nothing is stored.
+ let accent:AccentTitleTypography|undefined=current.typography?.accentTitle?{...current.typography.accentTitle}:undefined;
+ const accentPatch=patch.typography?.accentTitle;
+ if(accentPatch===null)accent=undefined;
+ else if(accentPatch){
+  const merged={...(accent??ACCENT_TITLE_DEFAULTS)};
+  for(const key of ['scale','weight'] as const)if(accentPatch[key]!==undefined)merged[key]=accentPatch[key]??ACCENT_TITLE_DEFAULTS[key];
+  accent=merged.scale===ACCENT_TITLE_DEFAULTS.scale&&merged.weight===ACCENT_TITLE_DEFAULTS.weight?undefined:merged;
+ }
+ if(accent){
+  // Only a weight the accent title's face really ships: the browser would otherwise fake it.
+  const fonts=raw.fonts as WorkspaceBrandingDocument['fonts'],weights=accentTitleWeights(fonts);
+  if(!weights.includes(accent.weight))throw invalid(`The accent title is drawn in ${accentTitleFace(fonts)}, which ships weights ${weights.join(', ')}; typography.accentTitle.weight ${accent.weight} is not one of them. Nothing was changed.`);
+  raw.typography={accentTitle:accent};
+ }
  return {document:parseBrandingDocument(raw,{bookFaces}),artworkIds};
 }
 
 /** The renderer's branding object for a resolved set; `logo` may be swapped for a signed link. */
 export function overlayBrandingFor(workspace:PublicWorkspace,resolved:ResolvedBranding,logoSrc=resolved.artwork.logo.src??workspace.logo.src):OverlayBranding{
- return {name:workspace.shortName,organizationName:workspace.organizationName,titleColor:resolved.palette.primary,titleShade:resolved.palette.deep,accentColor:resolved.palette.accent,logo:logoSrc,logoAlt:resolved.artwork.logo.alt??workspace.logo.alt,palette:resolved.palette,...(Object.keys(resolved.fonts).length?{fonts:resolved.fonts}:{})};
+ return {name:workspace.shortName,organizationName:workspace.organizationName,titleColor:resolved.palette.primary,titleShade:resolved.palette.deep,accentColor:resolved.palette.accent,logo:logoSrc,logoAlt:resolved.artwork.logo.alt??workspace.logo.alt,palette:resolved.palette,...(Object.keys(resolved.fonts).length?{fonts:resolved.fonts}:{}),...(resolved.typography?.accentTitle?{typography:{accentTitle:{...resolved.typography.accentTitle}}}:{})};
 }
 
 function describe(workspace:PublicWorkspace,stored:StoredBranding|null,resolved:ResolvedBranding){
@@ -89,6 +126,7 @@ function describe(workspace:PublicWorkspace,stored:StoredBranding|null,resolved:
   colors:BRANDING_COLOR_KEYS.map(key=>({key,value:resolved.palette[key],builtIn:defaults[key],set:Boolean(set.colors?.[key]),paints:BRANDING_COLOR_ROLES[key]})),
   fonts:{choices:brandingFontChoices(workspace.bookFaces),roles:BRANDING_FONT_ROLES.map(role=>({role,family:resolved.fonts[role]??null,uses:BRANDING_FONT_ROLE_USES[role]}))},
   artwork:BRANDING_ARTWORK_ROLES.map(role=>({role,...resolved.artwork[role],set:Boolean(set.artwork?.[role])})),
+  typography:{accentTitle:{...(resolved.typography?.accentTitle??ACCENT_TITLE_DEFAULTS),set:Boolean(set.typography?.accentTitle),builtIn:{...ACCENT_TITLE_DEFAULTS},scaleRange:{...ACCENT_TITLE_SCALE},face:accentTitleFace(resolved.fonts),weights:accentTitleWeights(resolved.fonts),draws:ACCENT_TITLE_DRAWS}},
  };
 }
 
@@ -103,7 +141,7 @@ export async function brandingToolOperation(operation:string,input:unknown,actor
    message:stored?'This is the branding every graphic is drawn with. update_branding with this version changes it; preview_branding shows a change first.':`Nothing is stored, so ${workspace.shortName} uses its built-in identity. update_branding with expectedVersion 0 sets the first values; preview_branding shows a change first.`};
  }
  if(operation==='preview_branding'){
-  only(data,['colors','fonts','artwork','cueIds'],operation);
+  only(data,['colors','fonts','artwork','typography','cueIds'],operation);
   const patch=patchFrom(data,bookFaces),stored=await context.repository.get();
   const {document}=await applyPatch(stored?.document??{},patch,context.assets,bookFaces);
   const resolved=resolveBranding(workspace,{version:stored?.version??0,document});
@@ -115,7 +153,11 @@ export async function brandingToolOperation(operation:string,input:unknown,actor
   if(data.cueIds!==undefined){
    if(!Array.isArray(data.cueIds)||!data.cueIds.length||data.cueIds.length>PREVIEW_MAX_CUES||!data.cueIds.every(id=>typeof id==='string'))throw invalid(`cueIds must list 1 to ${PREVIEW_MAX_CUES} graphic ids from list_catalog.`);
    picked=data.cueIds.map(id=>{const cue=catalog.find(item=>item.id===id);if(!cue)throw new BrandingError('not_found',`There is no graphic ${id} in the ${workspace.shortName} catalog. Pick ids from list_catalog.`,404);return cue});
-  }else picked=PREVIEW_LAYOUTS.flatMap(layout=>{const matches=catalog.filter(cue=>cue.layout===layout);const cue=matches.find(item=>!item.presentation?.imageAssetId)??matches[0];return cue?[cue]:[]});
+  }else{
+   // A typography change shows on an accent title, so each layout's pick carries one where the catalog has one.
+   const accentFirst=patch.typography?.accentTitle!==undefined,hasAccent=(cue:Cue)=>Boolean(cue.texts?.accentTextTitle?.trim());
+   picked=PREVIEW_LAYOUTS.flatMap(layout=>{const all=catalog.filter(cue=>cue.layout===layout),accented=accentFirst?all.filter(hasAccent):[],matches=accented.length?accented:all;const cue=matches.find(item=>!item.presentation?.imageAssetId)??matches[0];return cue?[cue]:[]});
+  }
   const started=Date.now(),previews:unknown[]=[];
   for(const cue of picked){
    if(Date.now()-started>PREVIEW_BUDGET_MS){previews.push({cueId:cue.id,name:cue.name,layout:cue.layout,verdict:'skipped',message:'Not drawn: this call ran out of time. Ask for it by id with cueIds.'});continue}
@@ -128,11 +170,11 @@ export async function brandingToolOperation(operation:string,input:unknown,actor
    message:changeCount(patch)?'This is how the change would look. Nothing was saved; update_branding with the same values and this version saves it.':'This is how the saved branding looks now.'};
  }
  if(operation==='update_branding'){
-  only(data,['expectedVersion','colors','fonts','artwork'],operation);
+  only(data,['expectedVersion','colors','fonts','artwork','typography'],operation);
   const expected=data.expectedVersion;
   if(!Number.isInteger(expected)||(expected as number)<0)throw invalid('expectedVersion must be the version get_branding returned (0 when nothing is stored).');
   const patch=patchFrom(data,bookFaces);
-  if(!changeCount(patch))throw invalid('Nothing to change: name at least one of colors, fonts or artwork. Nothing was changed.');
+  if(!changeCount(patch))throw invalid('Nothing to change: name at least one of colors, fonts, artwork or typography. Nothing was changed.');
   const stored=await context.repository.get(),current=stored?.version??0;
   if(current!==expected)throw new BrandingError('version_conflict',`The branding changed since you read it (now version ${current}). Call get_branding and try again. Nothing was changed.`,409);
   const {document,artworkIds}=await applyPatch(stored?.document??{},patch,context.assets,bookFaces);

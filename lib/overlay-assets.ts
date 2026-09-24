@@ -98,9 +98,25 @@ export async function preloadOverlayImage(src: string, label = "Workspace artwor
   });
 }
 
+// G10 - a branded accent title may draw at a weight the default set does not load up front (Noto
+// Sans Hebrew 600 or 700, lib/font-registry.ts). Its own face is loaded here, at the weight and
+// family it computes to, so no frame is measured or shown with a synthesised bold or a fallback.
+// With no branded weight this is the 500 face waitForOverlayFonts already loaded.
+async function waitForAccentTitleFace(root: HTMLElement, deadline: AbortSignal) {
+  if (typeof root.querySelectorAll !== "function" || typeof getComputedStyle !== "function") return;
+  const specs = [...new Set(Array.from(root.querySelectorAll<HTMLElement>(".title-accent"), (element) => {
+    const style = getComputedStyle(element);
+    return `${style.fontWeight} 40px ${style.fontFamily}`;
+  }))];
+  if (!specs.length) return;
+  await bounded(Promise.all(specs.map((spec) => document.fonts.load(spec, HEBREW_SAMPLE))), "Accent title font loading", deadline);
+  for (const spec of specs) if (!document.fonts.check(spec, HEBREW_SAMPLE)) throw Error("The accent title's font is not ready.");
+}
+
 export async function waitForRenderedOverlayAssets(root: HTMLElement, signal?: AbortSignal, faces: 'default' | 'book' = 'default') {
   await withDeadline(signal, async (deadline) => {
     await waitForOverlayFonts(deadline, faces);
+    await waitForAccentTitleFace(root, deadline);
     const logo = root.querySelector<HTMLImageElement>("img.logo");
     if (!logo) throw Error("The workspace logo did not render.");
     if (!logo.complete)

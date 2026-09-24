@@ -14,6 +14,11 @@ export type OverlayFontFace = {family: string; file: string; format?: 'woff2' | 
 export const FONT_FACES: readonly OverlayFontFace[] = [
   {family: 'Noto Sans Hebrew', file: 'NotoSansHebrew-Regular.ttf', format: 'truetype', weight: '400', stylesheet: 'app/overlay.css', licence: 'NotoSansHebrew-OFL.txt', wait: {set: 'default', sample: 'hebrew'}},
   {family: 'Noto Sans Hebrew', file: 'NotoSansHebrew-Medium.ttf', format: 'truetype', weight: '500', stylesheet: 'app/overlay.css', licence: 'NotoSansHebrew-OFL.txt', wait: {set: 'default', sample: 'hebrew'}},
+  // G10: the heavier weights a branded accent title may take (typography.accentTitle.weight), from the
+  // same notofonts hinted TTF set as the two above. Not awaited up front, so a workspace that never
+  // names them never loads them; waitForRenderedOverlayAssets loads the accent title's own face.
+  {family: 'Noto Sans Hebrew', file: 'NotoSansHebrew-SemiBold.ttf', format: 'truetype', weight: '600', stylesheet: 'app/overlay.css', licence: 'NotoSansHebrew-OFL.txt'},
+  {family: 'Noto Sans Hebrew', file: 'NotoSansHebrew-Bold.ttf', format: 'truetype', weight: '700', stylesheet: 'app/overlay.css', licence: 'NotoSansHebrew-OFL.txt'},
   {family: 'WorkRefresh', file: 'QGY_z_wNahGAdqQ43RhVcIgYT2Xz5u32K0nXBi8Jpg.woff2', format: 'woff2', weight: '400', stylesheet: 'app/overlay.css', wait: {set: 'default', sample: 'latin'}},
   {family: 'WorkRefresh', file: 'QGY_z_wNahGAdqQ43RhVcIgYT2Xz5u32K3vXBi8Jpg.woff2', format: 'woff2', weight: '500', stylesheet: 'app/overlay.css', wait: {set: 'default', sample: 'latin'}},
   // Raleway (TBI's Latin face, ruling 6), from @fontsource/raleway 5.3.0 as Google Fonts subsets it:
@@ -43,6 +48,12 @@ export function fontFaceRule(face: OverlayFontFace) {
 // at both weights it serves.
 export function fontWaits(set: 'default' | 'book') {
   return FONT_FACES.flatMap(face => face.wait?.set === set ? face.weight!.split(' ').map(weight => ({family: face.family, weight, sample: face.wait!.sample})) : []);
+}
+
+// The weights a family really ships, from its declared faces ("400 500" serves both): what a branded
+// weight may name, so the browser never synthesises a bold the files do not hold.
+export function familyWeights(family: string): number[] {
+  return [...new Set(FONT_FACES.filter(face => face.family === family && face.weight).flatMap(face => face.weight!.split(' ').map(Number)))].sort((a, b) => a - b);
 }
 
 // Every public/assets file the fonts need at runtime or for their licence, for the TBI staged copy.

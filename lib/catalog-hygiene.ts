@@ -1,5 +1,5 @@
 import {createHash} from 'node:crypto';
-import {AuthoringError,buildCue,isRetiredDraft,normalizeGraphicName,previewValidation,type AuthoringCue,type Draft} from './authoring-model';
+import {AuthoringError,buildCue,cueHash,isRetiredDraft,normalizeGraphicName,previewValidation,type AuthoringCue,type Draft} from './authoring-model';
 import {hygieneToolSchemas,ISSUE_KINDS,type HygieneToolName,type IssueKind} from './catalog-hygiene-schemas';
 import {baselineCatalogForWorkspace} from './workspace-catalog';
 import {missingCueRefusal,notPublishedRefusal} from './retire-rules';
@@ -292,6 +292,104 @@ async function batchRetire(ctx:HygieneContext,input:{items:RetireItem[];dryRun?:
   message:dryRun?`Dry run: ${done} of ${results.length} would be retired${rest}. Nothing was changed. Call again with dryRun:false to retire them.`:`${done} of ${results.length} retired${rest}. Retired graphics are out of the live library, Companion's picker and the relay catalog; one on screen now stays there until it is taken out, and restore_cue brings one back. find_catalog_issues (retired_in_service, retired_on_deck) lists services and deck keys that still use them.`};
 }
 
+/* ---------- batch_refit ---------- */
+
+// G10 - after a branding change (typography.accentTitle, say) the stored fit verdicts of published
+// graphics were measured under the old look, and batch_ship skips them as already published. This
+// re-checks them without changing or publishing anything: per graphic, preview_draft and
+// fit_check_draft with the frame, so a new preview carries the verdict and the frame, bound to the
+// draft version and cue hash the live revision was published at. A graphic with unpublished
+// changes is not the live graphic, so it is left to batch_ship.
+//
+// One server fit takes several seconds (6.5 s cold locally, docs/MCP.md A2) and maxDuration is 60 s,
+// so an apply call measures at most BATCH_REFIT_PER_CALL graphics and starts a new one only while it
+// is projected to finish inside BATCH_REFIT_BUDGET_MS; the rest come back as nextCursor. The stage
+// has answered stage_unavailable after many checks in a row, so an unavailable verdict is retried
+// once for that graphic before it is reported.
+export const BATCH_REFIT_PER_CALL=25;
+export const BATCH_REFIT_BUDGET_MS=40_000;
+export const BATCH_REFIT_ITEM_ESTIMATE_MS=8_000;
+type RefitItem={draftId:string;expectedVersion?:number};
+type RefitInput={items?:RefitItem[];accentTitleOnly?:boolean;cursor?:string;dryRun?:boolean};
+type RefitResult={index:number;draftId:string;ok:boolean;status:'would_refit'|'pass'|'fail'|'unavailable'|'skipped'|'failed';name?:string;[key:string]:unknown};
+const hasAccentTitle=(draft:Draft)=>Boolean(draft.accentTitle?.trim());
+const refitFingerprint=(items:RefitItem[],accentTitleOnly:boolean)=>createHash('sha256').update(JSON.stringify([accentTitleOnly,items.map(item=>[item.draftId,item.expectedVersion??null])])).digest('hex').slice(0,16);
+
+/** The list a call works through: the items named, or every graphic whose live version is its draft, in id order. */
+async function refitList(ctx:HygieneContext,input:RefitInput){
+ if(input.items)return input.items;
+ return (await ctx.repo.listDrafts()).filter(draft=>isPublished(draft)&&draft.activeDraftVersion===draft.version&&(!input.accentTitleOnly||hasAccentTitle(draft))).map(draft=>({draftId:draft.id})).sort((a,b)=>a.draftId<b.draftId?-1:a.draftId>b.draftId?1:0);
+}
+
+/** Why a graphic is not re-checked, or null when it is: the same sentence in a dry run and an apply. */
+function refitSkip(draft:Draft|null,item:RefitItem,accentTitleOnly:boolean,live:Map<string,string>):{code:string;message:string}|null{
+ if(!draft)return {code:'unknown_draft',message:`No draft in this library has the id ${item.draftId}. Check it with list_drafts.`};
+ if(item.expectedVersion!==undefined&&draft.version!==item.expectedVersion)return {code:'version_conflict',message:`"${draft.name}" is at version ${draft.version}, not ${item.expectedVersion}: it changed since you read it. Read it again and retry this item.`};
+ if(isRetiredDraft(draft))return {code:'retired',message:`"${draft.name}" is retired, so it is not in the live library to re-check.`};
+ if(!isPublished(draft))return {code:'not_published',message:`"${draft.name}" has never been published; ship it with batch_ship, which fit-checks it first.`};
+ if(draft.activeDraftVersion!==draft.version)return {code:'unpublished_changes',message:`"${draft.name}" has changes since it was published (draft version ${draft.version}, live version ${draft.activeDraftVersion}), so re-checking the draft would not check the live graphic. Ship it with batch_ship, which fit-checks what it publishes.`};
+ if(accentTitleOnly&&!hasAccentTitle(draft))return {code:'no_accent_title',message:`"${draft.name}" has no accent title.`};
+ // The draft is measured, so it must build into exactly the live graphic. One imported from the
+ // built-in catalog (import_cue) or published by an older build may not, and batch_ship skips it.
+ const cue=cueOf(draft);
+ if(!cue||cueHash(cue)!==live.get(draft.id))return {code:'differs_from_live',message:`"${draft.name}" is live as a graphic that was not built from this draft as it stands (imported from the built-in catalog, or published by an older build), so re-checking the draft would not be the live graphic's verdict. Check it in the editor's Fit check instead.`};
+ return null;
+}
+
+async function batchRefit(ctx:HygieneContext,input:RefitInput,actor:string){
+ const dryRun=input.dryRun??true,accentTitleOnly=input.accentTitleOnly===true,items=await refitList(ctx,input),fingerprint=refitFingerprint(items,accentTitleOnly);
+ // The live graphics' cue hashes, read once: what each re-check must match.
+ const live=new Map((await ctx.repo.published()).map(cue=>[cue.id,cueHash(cue)]));
+ if(!items.length)return {dryRun,total:0,results:[],done:true,nextCursor:null,message:`There is nothing to re-check: no published graphic${accentTitleOnly?' with an accent title':''} is live at its current draft version. Nothing was changed.`};
+ let start=0;
+ if(input.cursor!==undefined){
+  const match=/^(\d+)\.([0-9a-f]{16})$/.exec(input.cursor);
+  if(!match||match[2]!==fingerprint)throw refuse('This cursor belongs to a different list: pass exactly the items (or none) and accentTitleOnly you started with, or leave cursor out to start again. A graphic published or changed since the last call also changes the list. Nothing was changed.','invalid_cursor');
+  start=Number(match[1]);if(start<1||start>=items.length)throw refuse('This cursor is past the end of the list: every graphic has been handled. Leave cursor out to start again. Nothing was changed.','invalid_cursor');
+ }
+ if(dryRun){
+  const drafts=new Map((await ctx.repo.listDrafts()).map(draft=>[draft.id,draft]));
+  const results:RefitResult[]=items.map((item,index)=>{
+   const draft=drafts.get(item.draftId)??null,skip=refitSkip(draft,item,accentTitleOnly,live),base={index,draftId:item.draftId,...(draft?{name:draft.name}:{})};
+   if(skip)return {...base,ok:skip.code!=='unknown_draft'&&skip.code!=='version_conflict',status:skip.code==='unknown_draft'||skip.code==='version_conflict'?'failed':'skipped',code:skip.code,message:skip.message};
+   return {...base,ok:true,status:'would_refit',revision:draft!.activeRevision,message:`"${draft!.name}" would be measured again on the server; the new verdict and frame are stored with it. Nothing is published.`};
+  });
+  const would=results.filter(item=>item.status==='would_refit').length,skipped=results.filter(item=>item.status==='skipped').length,failed=results.filter(item=>item.status==='failed').length;
+  const calls=Math.ceil(would/BATCH_REFIT_PER_CALL);
+  return {dryRun:true,total:items.length,wouldRefit:would,skipped,failed,perCall:BATCH_REFIT_PER_CALL,results,
+   message:`Dry run: ${would} of ${items.length} would be measured again${skipped?`, ${skipped} skipped`:''}${failed?`, ${failed} would fail`:''}. Nothing was changed. Call again with dryRun:false: each call measures up to ${BATCH_REFIT_PER_CALL} (fewer when the checks are slow, about 40 seconds a call), so ${would} take at least ${calls} call${calls===1?'':'s'} with the nextCursor each returns.`};
+ }
+ const clock=ctx.now??Date.now,started=clock(),results:RefitResult[]=[];
+ let slowest=0,measured=0,next:number|null=null;
+ for(let index=start;index<items.length;index++){
+  if(measured>=BATCH_REFIT_PER_CALL||(measured>0&&clock()-started+Math.max(slowest,BATCH_REFIT_ITEM_ESTIMATE_MS)>BATCH_REFIT_BUDGET_MS)){next=index;break}
+  const item=items[index],begun=clock();
+  let base:{index:number;draftId:string;name?:string}={index,draftId:item.draftId};
+  try{
+   const draft=await ctx.repo.getDraft(item.draftId),skip=refitSkip(draft,item,accentTitleOnly,live);
+   if(draft)base={...base,name:draft.name};
+   if(skip){results.push({...base,ok:skip.code!=='unknown_draft'&&skip.code!=='version_conflict',status:skip.code==='unknown_draft'||skip.code==='version_conflict'?'failed':'skipped',code:skip.code,message:skip.message});continue}
+   const revision=(await ctx.repo.revisions(draft!.id)).find(row=>row.revision===draft!.activeRevision);
+   if(!revision){results.push({...base,ok:false,status:'failed',error:{code:'unknown_revision',message:`"${draft!.name}" names live revision ${draft!.activeRevision}, which could not be read. Nothing was changed.`}});continue}
+   measured++;
+   const preview=await ctx.run('preview_draft',{draftId:draft!.id,expectedVersion:draft!.version},actor) as {previewId:string;cueHash:string};
+   const check=()=>ctx.run('fit_check_draft',{draftId:draft!.id,expectedVersion:draft!.version,previewId:preview.previewId,includePreviewImage:true},actor) as Promise<Record<string,unknown>&{verdict:string}>;
+   let fit=await check(),retried=false;
+   if(fit.verdict==='unavailable'){retried=true;fit=await check()}
+   const where={revision:revision.revision,draftVersion:draft!.version,cueHash:preview.cueHash,previewId:preview.previewId,retried};
+   if(fit.verdict==='unavailable'){results.push({...base,ok:false,status:'unavailable',...where,reason:fit.reason,message:`The server browser could not measure "${draft!.name}", twice. Its stored verdict is unchanged; run it again later or open Fit check.`});continue}
+   results.push({...base,ok:true,status:fit.verdict==='pass'?'pass':'fail',...where,fitErrors:fit.fitErrors,warnings:fit.warnings,measuredAt:fit.measuredAt,imageStored:fit.imageStored===true,
+    message:fit.verdict==='pass'?`"${draft!.name}" still fits.`:`"${draft!.name}" no longer fits: ${(fit.fitErrors as string[]).join(' ')} The live graphic is unchanged; fix the draft and ship it, or change the branding back.`});
+  }catch(error){results.push({...base,ok:false,status:'failed',error:failure(error)})}
+  finally{slowest=Math.max(slowest,clock()-begun)}
+ }
+ const count=(status:RefitResult['status'])=>results.filter(item=>item.status===status).length;
+ const handled=(next??items.length)-start,remaining=items.length-(next??items.length),nextCursor=next===null?null:`${next}.${fingerprint}`;
+ const [pass,fail,unavailable,skipped,failed]=[count('pass'),count('fail'),count('unavailable'),count('skipped'),count('failed')];
+ return {dryRun:false,total:items.length,from:start,handled,measured:pass+fail+unavailable,pass,fail,unavailable,skipped,failed,retried:results.filter(item=>item.retried===true).length,remaining,done:next===null,nextCursor,liveCatalogChanged:false,results,
+  message:`${pass+fail+unavailable} measured in this call: ${pass} pass, ${fail} fail${unavailable?`, ${unavailable} could not be measured`:''}${skipped?`; ${skipped} skipped`:''}${failed?`; ${failed} failed`:''}.${remaining?` ${remaining} left: call batch_refit again with the same items and accentTitleOnly and cursor:'${nextCursor}'.`:''} Nothing was published; each new verdict and frame is stored with the graphic's new preview.`};
+}
+
 /* ---------- supersede_cue ---------- */
 
 const swap=(ids:string[],oldId:string,newId:string)=>[...new Set(ids.map(id=>id===oldId?newId:id))];
@@ -357,5 +455,6 @@ export async function hygieneOperation(operation:HygieneToolName,raw:unknown,act
  if(operation==='batch_update')return batchUpdate(ctx,input,actor);
  if(operation==='batch_ship')return batchShip(ctx,input,actor);
  if(operation==='batch_retire')return batchRetire(ctx,input,actor);
+ if(operation==='batch_refit')return batchRefit(ctx,input,actor);
  return supersede(ctx,input,actor);
 }

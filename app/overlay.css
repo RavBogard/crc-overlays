@@ -70,6 +70,9 @@
 @font-face{font-family:WorkRefresh;src:url('/assets/QGY_z_wNahGAdqQ43RhVcIgYT2Xz5u32K3vXBi8Jpg.woff2') format('woff2');font-style:normal;font-weight:500;font-display:block}
 @font-face{font-family:Noto Sans Hebrew;src:url('/assets/NotoSansHebrew-Regular.ttf') format('truetype');font-style:normal;font-weight:400;font-display:block}
 @font-face{font-family:Noto Sans Hebrew;src:url('/assets/NotoSansHebrew-Medium.ttf') format('truetype');font-style:normal;font-weight:500;font-display:block}
+/* The accent title's branded weights (typography.accentTitle.weight): fetched only when a graphic draws with them. */
+@font-face{font-family:Noto Sans Hebrew;src:url('/assets/NotoSansHebrew-SemiBold.ttf') format('truetype');font-style:normal;font-weight:600;font-display:block}
+@font-face{font-family:Noto Sans Hebrew;src:url('/assets/NotoSansHebrew-Bold.ttf') format('truetype');font-style:normal;font-weight:700;font-display:block}
 /* Arabic fallback (Od Yavo Shalom's سلام): the overlay faces carry no Arabic letters, so a renderer without a
    system Arabic font drew empty boxes. unicode-range keeps it off the wire for every other cue. */
 @font-face{font-family:Noto Sans Arabic;src:url('/assets/NotoSansArabic-Regular.ttf') format('truetype');font-style:normal;font-weight:400 500;font-display:block;unicode-range:U+0600-06FF,U+0750-077F,U+08A0-08FF,U+FB50-FDFF,U+FE70-FEFF}
@@ -278,3 +281,20 @@ only its translation is a single channel and takes the full block, as any single
 .overlay[data-card] .english,.overlay[data-card] .translation{top:var(--card-latin-top,auto);bottom:var(--card-latin-bottom,auto);height:var(--card-latin-height);font-size:var(--card-latin-font-size);line-height:var(--card-latin-line-height);direction:var(--card-latin-direction);text-align:var(--card-latin-align)}
 .overlay[data-card] .single-channel{top:var(--card-single-top,auto);bottom:var(--card-single-bottom,auto);height:var(--card-single-height);display:grid;align-content:center;font-size:var(--card-single-font-size);line-height:var(--card-single-line-height);text-align:var(--card-single-align)}
 .overlay[data-card] .prayer.single-channel{font-family:var(--crc-font-latin,WorkRefresh),Noto Sans Hebrew,Noto Sans Arabic,Arial,sans-serif}
+
+/* G10: the accent title's size and weight as branding (typography.accentTitle; lib/branding-palette.ts).
+   The Player marks the box data-accent-typography only when a workspace has stored one, so without it
+   none of these rules match and every graphic draws exactly as before. The scale multiplies each
+   layout's own accent size and the weight replaces the title's 500; each lane grows only inside the
+   title bar it already has, so the English title, the bar and the medallion stay where they are.
+   Side panels: the accent has its own lane under the English title. The left lane grows down into
+   the bar's free 24px (94px down, at most 58px at 1.6); the right accent (34px, already the largest)
+   stops at 48px, its lane growing down to 160px and then up into the gap under the English title,
+   never above 104px (the title ends at 102px), so its vowel marks stay inside the bar.
+   Lower third and cards: the accent shares the title's one line, so it grows only as far as that
+   line holds: 40px in the lower third's 46px lane, and the card's title lane height. */
+.overlay[data-accent-typography] .title-accent{font-weight:var(--crc-accent-title-weight,500)}
+.overlay[data-accent-typography].left .title-accent{font-size:calc(24px * var(--crc-accent-title-scale,1));height:max(48px,calc(36px * var(--crc-accent-title-scale,1)));line-height:max(48px,calc(36px * var(--crc-accent-title-scale,1)))}
+.overlay[data-accent-typography].right .title-accent{--accent-lane:clamp(44px,calc(37.4px * var(--crc-accent-title-scale,1)),56px);font-size:min(calc(34px * var(--crc-accent-title-scale,1)),48px);top:min(108px,calc(160px - var(--accent-lane)));height:var(--accent-lane);line-height:var(--accent-lane)}
+.overlay[data-accent-typography].bottom .title-accent{font-size:min(calc(36px * var(--crc-accent-title-scale,1)),40px);line-height:46px}
+.overlay[data-card][data-accent-typography] .title-accent{font-size:min(calc(var(--card-title-font-size) * var(--crc-accent-title-scale,1)),calc(var(--card-title-height) / var(--card-title-line-height)))}

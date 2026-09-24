@@ -1427,6 +1427,70 @@
   }
  },
  {
+  "name": "batch_refit",
+  "description": "Measure published graphics again in the server browser after a branding change, changing and publishing nothing: per graphic, preview_draft and fit_check_draft with the frame, so a new stored verdict and frame sit with the draft version and cue hash of its live revision. items names the graphics (draftId, optional expectedVersion); leave it out to take every graphic live at its current draft version, and accentTitleOnly narrows to those with a Hebrew accent title. Dry run by default: says, per graphic, would_refit or skipped with why (not published or with unpublished changes - ship those with batch_ship - retired, no accent title, or live as a graphic not built from its draft as it stands, such as one imported from the built-in catalog) and counts them, without opening a browser. With dryRun:false each call measures at most 25 graphics, and fewer when checks are slow (about 40 seconds a call), then returns nextCursor: call again with the same items and accentTitleOnly and that cursor. A graphic the server browser cannot measure is retried once. Per-graphic results say pass, fail (with the fit problems), unavailable, skipped or failed; frames are not returned (fit_check_draft shows one). Puts nothing on screen.",
+  "inputSchema": {
+   "type": "object",
+   "$schema": "https://json-schema.org/draft/2020-12/schema",
+   "properties": {
+    "items": {
+     "description": "The graphics to re-check. Leave out to take every published graphic whose live version is its current draft, in id order.",
+     "minItems": 1,
+     "maxItems": 200,
+     "type": "array",
+     "items": {
+      "type": "object",
+      "properties": {
+       "draftId": {
+        "type": "string",
+        "minLength": 1,
+        "maxLength": 200,
+        "description": "A published graphic: its draft id, which is its cue id."
+       },
+       "expectedVersion": {
+        "type": "integer",
+        "minimum": 1,
+        "maximum": 9007199254740991,
+        "description": "The draft version you last read. A change made elsewhere since then fails this item and leaves the rest running."
+       }
+      },
+      "required": [
+       "draftId"
+      ],
+      "additionalProperties": false
+     }
+    },
+    "accentTitleOnly": {
+     "description": "Only graphics that carry a Hebrew accent title (after an accent title typography change).",
+     "type": "boolean"
+    },
+    "cursor": {
+     "description": "The nextCursor the previous call returned, with the same items and accentTitleOnly.",
+     "type": "string",
+     "minLength": 1,
+     "maxLength": 200
+    },
+    "dryRun": {
+     "description": "Default true: say what would happen and change nothing. Pass false to apply.",
+     "type": "boolean"
+    },
+    "workspace": {
+     "type": "string",
+     "minLength": 1,
+     "maxLength": 80,
+     "description": "Which congregation this call is for. This connection serves 'crc' (CRC) only."
+    }
+   },
+   "required": [
+    "workspace"
+   ]
+  },
+  "annotations": {
+   "readOnlyHint": false,
+   "idempotentHint": true
+  }
+ },
+ {
   "name": "batch_retire",
   "description": "Retire up to 200 published graphics in one call: each item is one retire_cue (the graphic leaves the live library, Companion's picker and the relay catalog, and its name is free for the next ship), with its own expectedVersion. Dry run by default: says, per item, would-retire, already-retired or refused with retire_cue's own reason, and changes nothing. With dryRun:false each item runs retire_cue in turn; a refused item is reported and the rest still run. A part of a multipart set retires alone, as with retire_cue, and the item warns when other published parts are not in the call. Archived-but-published graphics come ready as items in find_catalog_issues' batchRetire. restore_cue brings one back.",
   "inputSchema": {
@@ -4246,7 +4310,7 @@
  },
  {
   "name": "get_branding",
-  "description": "Read the CRC branding every graphic is drawn with: each colour (its value, the built-in value, whether it is set, and what it paints), the latin and hebrew font roles with the faces this workspace can use, and the logo, resting logo and scan card artwork. version is what update_branding takes as expectedVersion (0 when nothing is stored).",
+  "description": "Read the CRC branding every graphic is drawn with: each colour (its value, the built-in value, whether it is set, and what it paints), the latin and hebrew font roles with the faces this workspace can use, the logo, resting logo and scan card artwork, and the Hebrew accent title's size and weight (typography.accentTitle, with the weights its face ships). version is what update_branding takes as expectedVersion (0 when nothing is stored).",
   "inputSchema": {
    "type": "object",
    "$schema": "https://json-schema.org/draft/2020-12/schema",
@@ -6140,7 +6204,7 @@
  },
  {
   "name": "preview_branding",
-  "description": "Show a CRC branding change before saving it: the server browser draws one graphic per layout (bottom, left, right, corner), or up to four named with cueIds, with the change applied and returns the frames. Nothing is saved. With no changes it shows the saved branding.",
+  "description": "Show a CRC branding change before saving it: the server browser draws one graphic per layout (bottom, left, right, corner; for a typography change, one with an accent title where there is one), or up to four named with cueIds, with the change applied and returns the frames. Nothing is saved. With no changes it shows the saved branding.",
   "inputSchema": {
    "type": "object",
    "$schema": "https://json-schema.org/draft/2020-12/schema",
@@ -6345,6 +6409,68 @@
      },
      "additionalProperties": false,
      "description": "Artwork by asset id from list_assets (upload_asset adds one); null goes back to the built-in artwork."
+    },
+    "typography": {
+     "type": "object",
+     "properties": {
+      "accentTitle": {
+       "description": "The Hebrew accent title under or beside the English title; null goes back to the built-in size and weight.",
+       "anyOf": [
+        {
+         "type": "object",
+         "properties": {
+          "scale": {
+           "description": "Multiplies each layout's own accent title size, 1 to 1.6 (built in 1). The side panels grow the accent's lane inside the title bar; the lower third and cards grow it only as far as the title line holds. null goes back to 1.",
+           "anyOf": [
+            {
+             "type": "number",
+             "minimum": 1,
+             "maximum": 1.6
+            },
+            {
+             "type": "null"
+            }
+           ]
+          },
+          "weight": {
+           "description": "The accent title's weight (built in 500); get_branding lists the weights its face ships. null goes back to 500.",
+           "anyOf": [
+            {
+             "anyOf": [
+              {
+               "type": "number",
+               "const": 400
+              },
+              {
+               "type": "number",
+               "const": 500
+              },
+              {
+               "type": "number",
+               "const": 600
+              },
+              {
+               "type": "number",
+               "const": 700
+              }
+             ]
+            },
+            {
+             "type": "null"
+            }
+           ]
+          }
+         },
+         "additionalProperties": false
+        },
+        {
+         "type": "null"
+        }
+       ]
+      }
+     },
+     "additionalProperties": false,
+     "description": "Type sizes and weights as data. Only what changes; null goes back to the built-in value."
     },
     "cueIds": {
      "description": "Up to four graphic ids from list_catalog to draw instead of one per layout.",
@@ -9327,7 +9453,7 @@
  },
  {
   "name": "update_branding",
-  "description": "Change the CRC branding: name only the colours, font roles or artwork that change (null puts one back). expectedVersion is the version get_branding returned. Artwork used here becomes public, like a published graphic's. New previews, the editor and the server fit use it at once; an output page already open keeps the old look until it is reloaded. Try it with preview_branding first.",
+  "description": "Change the CRC branding: name only the colours, font roles, artwork or typography that change (null puts one back). expectedVersion is the version get_branding returned. Artwork used here becomes public, like a published graphic's. New previews, the editor and the server fit use it at once; an output page already open keeps the old look until it is reloaded. Try it with preview_branding first.",
   "inputSchema": {
    "type": "object",
    "$schema": "https://json-schema.org/draft/2020-12/schema",
@@ -9537,6 +9663,68 @@
      },
      "additionalProperties": false,
      "description": "Artwork by asset id from list_assets (upload_asset adds one); null goes back to the built-in artwork."
+    },
+    "typography": {
+     "type": "object",
+     "properties": {
+      "accentTitle": {
+       "description": "The Hebrew accent title under or beside the English title; null goes back to the built-in size and weight.",
+       "anyOf": [
+        {
+         "type": "object",
+         "properties": {
+          "scale": {
+           "description": "Multiplies each layout's own accent title size, 1 to 1.6 (built in 1). The side panels grow the accent's lane inside the title bar; the lower third and cards grow it only as far as the title line holds. null goes back to 1.",
+           "anyOf": [
+            {
+             "type": "number",
+             "minimum": 1,
+             "maximum": 1.6
+            },
+            {
+             "type": "null"
+            }
+           ]
+          },
+          "weight": {
+           "description": "The accent title's weight (built in 500); get_branding lists the weights its face ships. null goes back to 500.",
+           "anyOf": [
+            {
+             "anyOf": [
+              {
+               "type": "number",
+               "const": 400
+              },
+              {
+               "type": "number",
+               "const": 500
+              },
+              {
+               "type": "number",
+               "const": 600
+              },
+              {
+               "type": "number",
+               "const": 700
+              }
+             ]
+            },
+            {
+             "type": "null"
+            }
+           ]
+          }
+         },
+         "additionalProperties": false
+        },
+        {
+         "type": "null"
+        }
+       ]
+      }
+     },
+     "additionalProperties": false,
+     "description": "Type sizes and weights as data. Only what changes; null goes back to the built-in value."
     },
     "workspace": {
      "type": "string",
