@@ -219,6 +219,14 @@ app/api/catalog/route.ts and lib/sync-live-catalog.ts; L2 and C5 add envelope-on
   removing an answered item needs dropAnswers:true.
 - Review page copy (T4) needs Daniel's review: the full string list is in lib/review-board*.ts and
   app/author/review/review-model.ts (COPY).
+- A5 merged (d5a82c3): find_catalog_issues (9 kinds incl. duplicate/near-duplicate names, inherited titles,
+  archived-but-published, retired in services/deck, restored name clash, unpublished changes), batch_update,
+  batch_ship (one ship per item, ≤40 s per call, cursor fingerprinted to the item list), supersede_cue (services,
+  deck keys, then retire). Gate after merge: tsc clean, npm test 1067+35, lint 0 errors; snapshot 94.
+- GATE (A5): batch_ship dry-runs by default (handoff rule: batch ops dry-run by default; stricter wins);
+  unpublished changes compare what is on screen, not versions (retire/restore bump versions); supersede leaves
+  labels unchanged (no silent rewording) and reports them. Deck checks say "No Companion deck is stored" until
+  C3's repository is wired. Noted: after restore, list_drafts/get_draft report `dirty` (A3 version bump).
 - Owed: a real-browser check of the library's Retired label and Return button (A3 did a server render only).
 - V3 merged (ae37165): nine live tools in lib/mcp/live.ts dispatched to a separate live
   operation (route wires runMcpCommand/snapshot/catalog); deck guard on lastPress.companion; server-side
