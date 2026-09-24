@@ -9,6 +9,7 @@ import {registerCatalogTools} from './mcp/catalog';
 import {registerDeckTools} from './mcp/deck';
 import {registerLayoutsTools} from './mcp/layouts';
 import {registerLiveTools} from './mcp/live';
+import {registerReviewTools} from './mcp/review';
 import {registerServicesTools} from './mcp/services';
 import type {McpIdentity,RegisterArea,RegisterTool} from './mcp/shared';
 
@@ -17,7 +18,7 @@ export type {McpIdentity} from './mcp/shared';
 
 /** A tool group and the scope every tool in it needs: an area declares its scope once, here. */
 export type ScopedArea={register:RegisterArea;scope:ResourceScope};
-const AREAS:ScopedArea[]=[{register:registerCatalogTools,scope:AUTHORING_SCOPE},{register:registerAuthoringTools,scope:AUTHORING_SCOPE},{register:registerServicesTools,scope:AUTHORING_SCOPE},{register:registerLiveTools,scope:LIVE_SCOPE},{register:registerLayoutsTools,scope:AUTHORING_SCOPE},{register:registerAssetsTools,scope:AUTHORING_SCOPE},{register:registerBrandingTools,scope:AUTHORING_SCOPE},{register:registerDeckTools,scope:AUTHORING_SCOPE}];
+const AREAS:ScopedArea[]=[{register:registerCatalogTools,scope:AUTHORING_SCOPE},{register:registerAuthoringTools,scope:AUTHORING_SCOPE},{register:registerServicesTools,scope:AUTHORING_SCOPE},{register:registerLiveTools,scope:LIVE_SCOPE},{register:registerLayoutsTools,scope:AUTHORING_SCOPE},{register:registerAssetsTools,scope:AUTHORING_SCOPE},{register:registerBrandingTools,scope:AUTHORING_SCOPE},{register:registerDeckTools,scope:AUTHORING_SCOPE},{register:registerReviewTools,scope:AUTHORING_SCOPE}];
 // Saying which congregation this is needs no grant beyond reaching the server at all.
 const ANY_SCOPE_TOOLS=new Set(['get_workspace']);
 const SCOPE_NAMES:Record<ResourceScope,string>={[AUTHORING_SCOPE]:'authoring',[LIVE_SCOPE]:'live control'};

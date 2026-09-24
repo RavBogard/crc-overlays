@@ -24,6 +24,8 @@ import {liveRelayConfigured} from './rehearsal';
 // of the function trace of every entrypoint that touches the authoring service.
 import {SERVER_RENDERER_PREFIX,type ServerFitArtwork,type ServerFitResult} from './server-fit-contract';
 import {isServiceTool} from './service-tool-schemas';
+// T4 - kept here rather than imported, so lib/review-board.ts loads only when a board is used.
+const REVIEW_BOARD_OPERATIONS=new Set(['create_review_board','get_review_board','update_review_board']);
 
 export type BrowserMeasurement={viewportWidth:number;viewportHeight:number;fontsReady:true;overflow:false;rendererVersion:string;measuredAt:number};
 /**
@@ -341,6 +343,8 @@ export function createAuthoringService(repo:AuthoringRepository,workspace:Author
   }
   // S2 - the prepared-services tools (lib/service-tools.ts), dynamic for the same cycle reason.
   if(isServiceTool(operation)){const [{serviceToolOperation},{ServicesError:ServicesFailure}]=await Promise.all([import('./service-tools'),import('./service-collections')]);try{return await serviceToolOperation(operation,data,who)}catch(error){if(error instanceof ServicesFailure)throw new AuthoringError(error.code,error.message,error.status);throw error}}
+  // T4 - review boards (lib/review-board.ts) read this service's drafts and kept fit frames.
+  if(REVIEW_BOARD_OPERATIONS.has(operation)){const {reviewBoardOperation}=await import('./review-board');return reviewBoardOperation(operation,data,who,{authoring:repo})}
   // The cue log, read-only, for an assistant asked what a service actually did. Same bound and
   // same shape as `GET /api/history`: graphics, liturgical positions and times - no names, no
   // titles, no text, nobody's identity. An unavailable relay is a sentence, not a stack trace.
