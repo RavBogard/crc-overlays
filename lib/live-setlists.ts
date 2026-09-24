@@ -3,6 +3,7 @@ import {searchCues,cueSearchScore,friendlyCueName} from './cue-search';
 import type {Cue} from './player';
 import type {LiturgyRef} from './liturgy-index';
 import type {CollectionEntry,CoverageItem} from './service-collections';
+import type {ServiceRow} from './service-rows';
 
 /**
  * D19 — G1 reads centralreform.live over its MCP HTTP endpoint through an injectable
@@ -34,7 +35,7 @@ export type LiveTrack={id?:unknown;order?:unknown;title?:unknown;type?:unknown;s
 export type LiveSetlist={id?:unknown;name?:unknown;date?:unknown;eventDate?:unknown;tracks?:unknown};
 
 export type UnmatchedRow={trackId:string;title:string;kind:'liturgy'|'song'|'other';reason:string};
-export type SetlistMatch={entries:CollectionEntry[];coverage:CoverageItem[];unmatched:UnmatchedRow[]};
+export type SetlistMatch={entries:CollectionEntry[];coverage:CoverageItem[];rows:ServiceRow[];unmatched:UnmatchedRow[]};
 
 /**
  * Rows that carry no words for the screen. A header is a section label and a note is an
@@ -206,17 +207,21 @@ function titleCandidates(title:string,cues:Cue[]){
  * share a folio never produce a silent pick: the row is `needs-review`, owned by Unassigned,
  * with every candidate named, and its entry is `alternates` so the operator chooses on
  * `/services`. Nothing here publishes anything or issues a live command.
+ *
+ * S1 - it also writes one service row per performance row, in setlist order, linking that
+ * row's coverage item and entry (when it has one) and carrying its track id, its position in
+ * the setlist and the candidate cue ids, so a row with no graphic keeps its place.
  */
 export function matchSetlist(setlist:LiveSetlist,deps:MatchDeps):SetlistMatch{
  const newId=deps.id??randomUUID;
  const byFolio=liturgyMap(deps);
- const entries:CollectionEntry[]=[],coverage:CoverageItem[]=[],unmatched:UnmatchedRow[]=[];
+ const entries:CollectionEntry[]=[],coverage:CoverageItem[]=[],rows:ServiceRow[]=[],unmatched:UnmatchedRow[]=[];
  const tracks=Array.isArray(setlist.tracks)?setlist.tracks as LiveTrack[]:[];
  // `parseEntries` accepts 200 entries and `parseCoverage` 300 rows; a longer service is refused
  // here with a sentence instead of failing deep inside createCollection.
  const performanceRows=tracks.filter(track=>!NON_PERFORMANCE_TRACK_TYPES.has(str(track.type)??'song')).length;
  if(performanceRows>MAX_IMPORT_ROWS)throw new LiveSetlistsError('too_many_rows',`This planned service has ${performanceRows} rows; an import handles at most ${MAX_IMPORT_ROWS}.`);
- for(const track of tracks){
+ for(const [index,track] of tracks.entries()){
   const type=str(track.type)??'song';
   if(NON_PERFORMANCE_TRACK_TYPES.has(type))continue;
   const trackId=typeof track.id==='string'||typeof track.id==='number'?String(track.id):'';
@@ -226,15 +231,20 @@ export function matchSetlist(setlist:LiveSetlist,deps:MatchDeps):SetlistMatch{
   const book=str(ref?.book),folio=typeof ref?.folio==='number'&&Number.isFinite(ref.folio)?ref.folio:null;
   const hasLiturgy=Boolean(book&&folio!==null);
   const kind:UnmatchedRow['kind']=hasLiturgy?'liturgy':type==='song'?'song':'other';
-  const cover=(row:Omit<CoverageItem,'id'|'label'>)=>{coverage.push({id:newId(),label,...row})};
+  let entryId:string|undefined,candidateCueIds:string[]=[];
+  const cover=(row:Omit<CoverageItem,'id'|'label'>)=>{
+   const item:CoverageItem={id:newId(),label,...row};coverage.push(item);
+   rows.push({id:newId(),label,status:item.status,coverageId:item.id,...(entryId?{entryId}:{}),candidateCueIds,setlistPosition:index+1,...(trackId?{trackId}:{})});
+  };
   const flag=(reason:string)=>{unmatched.push({trackId,title,kind,reason:clip(reason,MAX_REASON)})};
   const covered=(cue:Cue,reason:string)=>{
-   entries.push({id:newId(),type:'cue',label,cueIds:[cue.id]});
+   entryId=newId();entries.push({id:entryId,type:'cue',label,cueIds:[cue.id]});
    cover({status:'covered',cueId:cue.id,reason:clip(reason,MAX_REASON)});
   };
   const review=(candidates:Cue[],reason:string)=>{
    const chosen=candidates.slice(0,30);
-   if(chosen.length>=2)entries.push({id:newId(),type:'alternates',label,cueIds:chosen.map(cue=>cue.id)});
+   candidateCueIds=chosen.map(cue=>cue.id);
+   if(chosen.length>=2){entryId=newId();entries.push({id:entryId,type:'alternates',label,cueIds:[...candidateCueIds]})}
    cover({status:'needs-review',owner:'Unassigned',reason:clip(reason,MAX_REASON)});
    flag(reason);
   };
@@ -258,7 +268,7 @@ export function matchSetlist(setlist:LiveSetlist,deps:MatchDeps):SetlistMatch{
   const reason='Song without a matching graphic; add one if the words should be on screen.';
   cover({status:'not-needed',reason});flag(reason);
  }
- return {entries,coverage,unmatched};
+ return {entries,coverage,rows,unmatched};
 }
 
 /* ---------- one setlist, fetched and matched ---------- */
