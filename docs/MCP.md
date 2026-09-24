@@ -1,6 +1,6 @@
 # Overlay authoring MCP
 
-Each congregation's deployment hosts its own authoring endpoint at `/api/mcp` (CRC: `https://overlays.centralreform.org/api/mcp`). It uses the MCP TypeScript SDK's stateless Streamable HTTP handler, OAuth 2.1 authorization code flow with PKCE S256, and the single `crc.authoring` scope. It exposes source, draft, publish and prepared-service operations. It does not expose live overlay control.
+Each congregation's deployment hosts its own authoring endpoint at `/api/mcp` (CRC: `https://overlays.centralreform.org/api/mcp`). It uses the MCP TypeScript SDK's stateless Streamable HTTP handler, OAuth 2.1 authorization code flow with PKCE S256, and two resource scopes: `crc.authoring` and the opt-in `crc.live` (see "Scopes" below). It exposes source, draft, publish and prepared-service operations. No live-control tool is registered yet (Track V3); the scope, the consent line and the per-tool gate are in place for them.
 
 ## Server configuration
 
@@ -19,17 +19,27 @@ OAuth endpoints:
 - `/oauth/token` for authorization-code and refresh-token grants
 - `/oauth/revoke` for access-token revocation or refresh-family revocation
 
-Authorization-server discovery advertises `offline_access` as optional refresh consent. The protected MCP resource still advertises and requires only `crc.authoring`; `offline_access` grants no CRC data or authoring permission. Existing clients that request only `crc.authoring` remain valid. Clients that request both scopes receive both in authorization and refresh token responses.
+Authorization-server discovery advertises `crc.authoring`, `crc.live` and `offline_access` (optional refresh consent). The protected resource advertises `crc.authoring` and `crc.live`; `offline_access` grants no CRC data or permission of its own.
+
+## Scopes
+
+- A request may ask for any subset of `crc.authoring`, `crc.live` and `offline_access` that holds at least one of the first two. A request with no `scope` still means `crc.authoring`. Scopes are stored in one canonical order (`crc.authoring crc.live offline_access`), so every row written before `crc.live` existed (`crc.authoring`, `crc.authoring offline_access`) is unchanged and still validates; existing connections keep working without reconnecting.
+- The grant is what was requested, intersected with what the person consented to and what their role allows. `crc.authoring` needs an Administrator or Editor. `crc.live` needs one of the explicit roles Administrator, Editor or Operator (`owner`/`editor`/`operator`), checked against that list rather than the web's `control` permission, so a role added later does not inherit live control. The token response's `scope` says what was granted.
+- Every request and every refresh re-reads the approving member: a scope their role no longer allows stops at the next request (an Editor moved to Operator keeps live control and loses authoring), a refresh rotates to the narrowed scope, and a grant with no resource scope left is refused as an invalid token.
+- The endpoint accepts a token holding either resource scope. Its 401 challenge still names `scope="crc.authoring"`, as before. Every tool is listed whatever the token holds; each tool group declares the scope it needs (`lib/mcp.ts`: the live group needs `crc.live`, every other group `crc.authoring`; `get_workspace` needs neither), and a call without it is refused before anything runs, in a sentence ending `(insufficient_scope: needs crc.live)`, for example "This CRC connection wasn’t granted live control, so show_graphic can’t run. Nothing was changed. To use it, reconnect the CRC connector and allow live control when you approve." Whether Claude or ChatGPT step up on that refusal is unverified.
+- A connection's live commands go through the same core as `POST /api/command` (`lib/live-command.ts`) with `source:'mcp'`, one relay controller id per token family (stable across refreshes, derived from but never equal to the family hash) and a clock-based sequence. The caller's `commandId` is kept, so a retried call replays rather than pressing twice; `ifRevision`/`ifCue` pass through to the relay, and its `outcome`, `originalOutcome` and `lastPress` are read back (docs/RELAY-RELEASE.md).
 
 Production redirect URIs must use HTTPS. HTTP is accepted only for loopback callbacks such as `http://127.0.0.1:49152/callback`. Registered redirect URIs must match exactly during authorization and code exchange. Authorization codes are one-use and expire after five minutes. Access tokens expire after one hour. Refresh tokens expire after 30 days and rotate on every use; reuse or revocation invalidates every refresh and access token in that family.
 
 ## Consent
 
-The consent page at `/oauth/authorize` names the registered client and its verified return destination and offers **Approve** and **Deny**. Who approves is the workspace session — the same Google or password sign-in as the rest of the site — and that member must be an Administrator or an Editor. There is no key field.
+The consent page at `/oauth/authorize` names the registered client and its verified return destination and offers **Approve** and **Deny**. Who approves is the workspace session — the same Google or password sign-in as the rest of the site — and that member must be an Administrator or an Editor for authoring (an Operator may approve live control only; see below). There is no key field.
 
 The session cookie is `SameSite=Strict`, so the first arrival from an MCP client (a cross-site navigation from claude.ai or a desktop app) carries no session even when the person is signed in. Pressing Approve on that page is a same-site form post, which does carry it: a signed-in author is done in one click. Without a session the request is parked in a ten-minute `HttpOnly` cookie scoped to `/oauth/authorize` and the person is sent to `/access?next=/oauth/authorize`; after signing in, `/access` returns them to the consent page, which now reads "Approving as *Name* (*email*)", and Approve issues the code. An Operator sees "Your role here can’t author graphics. Ask an administrator for Editor access." A return with nothing pending reads "Sign-in didn’t complete. Start the connection again from your MCP client."
 
-The code, the access token and the refresh token all carry the approving member as their actor (`mcp:<client>:member:<id>`). Every MCP request and every refresh re-checks that member: removing them from the workspace, or moving them to Operator, ends their MCP access at the next request. Tokens minted before this change, whose actor names no member, are refused; those clients reconnect through the new consent. The page stores only the opaque request handle in the form and the cookie, and never places a bearer token in a URL. Requests have durable database rate limits and bounded bodies.
+When the client asked for `crc.live`, the form carries one more line, a checkbox that is off until the person ticks it: "Live control: also let this connection show, take out and clear graphics on the CRC output, as the console does." It is offered only to the three live roles (before sign-in the role is unknown, and the post re-checks it). Unticked, the connection gets authoring only. An Operator can approve a live-only connection; an Operator approving a request for both without ticking the line reads "Your role here can’t author graphics, so this connection can have live control only. Tick Live control to allow it, or Deny." A live-only request approved without the tick reads "Nothing was chosen to allow. Tick Live control to connect, or Deny." A request for authoring alone shows the page exactly as before.
+
+The code, the access token and the refresh token all carry the approving member as their actor (`mcp:<client>:member:<id>`). Every MCP request and every refresh re-checks that member: removing them from the workspace ends their MCP access at the next request, and moving them to Operator ends authoring (and live control stays only if it was granted). Tokens minted before this change, whose actor names no member, are refused; those clients reconnect through the new consent. The page stores only the opaque request handle in the form and the cookie, and never places a bearer token in a URL. Requests have durable database rate limits and bounded bodies.
 
 ## Which congregation (`get_workspace`)
 
@@ -105,8 +115,10 @@ node node_modules/tsx/dist/cli.mjs --test tests/oauth.test.ts tests/mcp.test.ts
 
 `get_service_history({since, until, after, limit})` reads this workspace's cue log: one row per
 accepted live command, with the graphic's id, its liturgical position (`unitId`, `momentId`,
-`book`, `folio`), the time, where the command came from, and the prepared service when one is
-known. It is bounded to the last 2,000 commands or 14 days, whichever is smaller, and pages by
+`book`, `folio`), the time, where the command came from (`control`, `companion` or `mcp`; the
+console's own WebMCP tools send `mcp`), the prepared service when one is known, and the command's
+`commandId` (ruling 10: the caller's correlation id, `null` on rows recorded before the relay kept
+it), so an agent can find the row its own command wrote. It is bounded to the last 2,000 commands or 14 days, whichever is smaller, and pages by
 `seq`.
 
 It is read-only in the strongest sense: it puts nothing on screen, changes nothing, and carries no

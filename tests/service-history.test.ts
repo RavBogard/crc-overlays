@@ -69,7 +69,7 @@ const walk=(value:unknown,seen:string[]=[]):string[]=>{
 
 test('an accepted command becomes one row, and the library is joined on the way out',async()=>{
  const relay=await relayWithHistory();
- await send(relay,{action:'in',cue:LIBRARY_CUE,source:'companion'});
+ await send(relay,{action:'in',cue:LIBRARY_CUE,source:'companion',commandId:'companion-press-0001'});
  await send(relay,{action:'out',cue:LIBRARY_CUE});
  await send(relay,{action:'in',cue:CUSTOM_CUE});
  await send(relay,{action:'cut'});
@@ -84,12 +84,12 @@ test('an accepted command becomes one row, and the library is joined on the way 
  assert.ok(EXPECTED.unitId&&EXPECTED.book,'the fixture graphic really is library-backed');
  assert.deepEqual(
   {...rows[0],seq:0,at:0},
-  {seq:0,at:0,action:'in',cueId:LIBRARY_CUE,...EXPECTED,source:'companion',serviceRef:null},
+  {seq:0,at:0,action:'in',cueId:LIBRARY_CUE,...EXPECTED,source:'companion',serviceRef:null,commandId:'companion-press-0001'},
   'the liturgical position is resolved from the pinned sources, and the source of the command is recorded',
  );
  assert.deepEqual(
-  {...rows[2],seq:0,at:0},
-  {seq:0,at:0,action:'in',cueId:CUSTOM_CUE,unitId:null,momentId:null,book:null,folio:null,source:'control',serviceRef:null},
+  {...rows[2],seq:0,at:0,commandId:null},
+  {seq:0,at:0,action:'in',cueId:CUSTOM_CUE,unitId:null,momentId:null,book:null,folio:null,source:'control',serviceRef:null,commandId:null},
   'a graphic with no library source is all nulls, and an unstated source is plain live control',
  );
  assert.equal(rows[3].cueId,null,'cut and clear name no graphic');
@@ -115,7 +115,7 @@ test('no row can carry a name, a title, text, a person or a source pin',async()=
  const body=await readHistory(relay);
  const rows=published(body);
  assert.equal(rows.length,2,'the scan card is an accepted command like any other');
- assert.deepEqual({...rows[1],seq:0,at:0},{seq:0,at:0,action:'bug',cueId:null,unitId:null,momentId:null,book:null,folio:null,source:'control',serviceRef:null},'the scan card records that it happened, never the page it showed');
+ assert.deepEqual({...rows[1],seq:0,at:0,commandId:null},{seq:0,at:0,action:'bug',cueId:null,unitId:null,momentId:null,book:null,folio:null,source:'control',serviceRef:null,commandId:null},'the scan card records that it happened, never the page it showed');
  for(const row of rows){
   assert.deepEqual([...new Set(walk(row))].sort(),[...HISTORY_KEYS].sort(),'exactly the permitted keys');
   const serialized=JSON.stringify(row);
@@ -188,9 +188,12 @@ test('a history that cannot be written never costs the congregation a graphic',a
 
 test('a row is rebuilt key by key on the way out of the relay',()=>{
  const relayRow={seq:4,at:1_800_000_000_000,action:'in',cueId:'cue-a',source:'control',serviceRef:null,sourceIds:[]};
- const expected={seq:4,at:1_800_000_000_000,action:'in',cueId:'cue-a',unitId:null,momentId:null,book:null,folio:null,source:'control',serviceRef:null};
+ const expected={seq:4,at:1_800_000_000_000,action:'in',cueId:'cue-a',unitId:null,momentId:null,book:null,folio:null,source:'control',serviceRef:null,commandId:null};
  assert.deepEqual(readHistoryRow({...relayRow,operator:'daniel@example.test',name:'Barechu'}),expected,'anything the relay should not have said is dropped');
  assert.deepEqual(readHistoryRow({...relayRow,sourceIds:[librarySource.id]}),{...expected,...EXPECTED},'and the join is the only way a position appears');
+ // Ruling 10: the command's correlation id is published; anything not shaped like one is not.
+ assert.equal(readHistoryRow({...relayRow,commandId:'mcp-retry_0001'})?.commandId,'mcp-retry_0001');
+ for(const commandId of ['short','daniel@example.test','x'.repeat(81),42])assert.equal(readHistoryRow({...relayRow,commandId})?.commandId,null);
  assert.equal(readHistoryRow({...relayRow,action:'delete'}),null,'an action outside the vocabulary is not passed through');
  assert.equal(readHistoryRow({...relayRow,source:'stage'}),null);
  assert.equal(readHistoryRow({...relayRow,seq:-1}),null);

@@ -1,4 +1,4 @@
-import {requireBearerAuth} from '@modelcontextprotocol/server';
+import {bearerAuthChallengeResponse,verifyBearerToken} from '@modelcontextprotocol/server';
 import {authoringOperation} from '@/lib/authoring';
 import {createAuthoringMcpHandler} from '@/lib/mcp';
 import {boundedMcpRequest,hasTrustedOrigin,MAX_MCP_BODY} from '@/lib/mcp-http';
@@ -14,8 +14,12 @@ export const runtime='nodejs';
 export const maxDuration=60;
 const handler=createAuthoringMcpHandler(authoringOperation);
 
+// Any resource scope reaches the endpoint (the verifier refuses a token with none left), and each tool
+// checks its own scope in lib/mcp.ts, so a live-only token connects. The challenge still names
+// crc.authoring, exactly as before, so a client connecting with no scope in mind asks for authoring.
+async function gate(request:Request,resourceMetadataUrl:string){const [header]=(request.headers.get('authorization')??'').split(',');try{return await verifyBearerToken(header||undefined,{verifier:tokenVerifier})}catch(error){return bearerAuthChallengeResponse(error,{requiredScopes:[AUTHORING_SCOPE],resourceMetadataUrl})}}
 function protectedResponse(response:Response){const headers=new Headers(response.headers);headers.set('Access-Control-Expose-Headers','Mcp-Session-Id,WWW-Authenticate');headers.set('Cache-Control','no-store');return new Response(response.body,{status:response.status,statusText:response.statusText,headers})}
-async function serve(request:Request){const expectedOrigin=canonicalOrigin(request);if(!hasTrustedOrigin(request))return Response.json({error:'invalid_origin'},{status:403,headers:{'Cache-Control':'no-store'}});if(Number(request.headers.get('content-length')||0)>MAX_MCP_BODY)return Response.json({error:'request_too_large'},{status:413,headers:{'Cache-Control':'no-store'}});const resource=mcpResource(request);const gate=requireBearerAuth({verifier:tokenVerifier,requiredScopes:[AUTHORING_SCOPE],resourceMetadataUrl:`${expectedOrigin}/.well-known/oauth-protected-resource`});const auth=await gate(request);if(auth instanceof Response)return protectedResponse(auth);if(auth.resource?.href!==resource)return protectedResponse(Response.json({error:'invalid_token'},{status:401}));let bounded;try{bounded=await boundedMcpRequest(request)}catch{return Response.json({error:'request_too_large'},{status:413,headers:{'Cache-Control':'no-store'}})}return protectedResponse(await handler.fetch(bounded,{authInfo:auth}))}
+async function serve(request:Request){const expectedOrigin=canonicalOrigin(request);if(!hasTrustedOrigin(request))return Response.json({error:'invalid_origin'},{status:403,headers:{'Cache-Control':'no-store'}});if(Number(request.headers.get('content-length')||0)>MAX_MCP_BODY)return Response.json({error:'request_too_large'},{status:413,headers:{'Cache-Control':'no-store'}});const resource=mcpResource(request);const auth=await gate(request,`${expectedOrigin}/.well-known/oauth-protected-resource`);if(auth instanceof Response)return protectedResponse(auth);if(auth.resource?.href!==resource)return protectedResponse(Response.json({error:'invalid_token'},{status:401}));let bounded;try{bounded=await boundedMcpRequest(request)}catch{return Response.json({error:'request_too_large'},{status:413,headers:{'Cache-Control':'no-store'}})}return protectedResponse(await handler.fetch(bounded,{authInfo:auth}))}
 export async function POST(request:Request){return serve(request)}
 export async function GET(request:Request){return serve(request)}
 export async function DELETE(request:Request){return serve(request)}
