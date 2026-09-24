@@ -56,6 +56,11 @@ const nextConfig: NextConfig = {
     "/api/authoring": [CHROMIUM_TRACE, PLAYWRIGHT_TRACE, ...PACK_DEPENDENCY_TRACE],
     "/api/mcp": [CHROMIUM_TRACE, PLAYWRIGHT_TRACE, ...PACK_DEPENDENCY_TRACE],
   },
+  // TBI redo G1: a dropzone link is a capability (like a signed URL), so its page never sends a
+  // referrer, is never indexed and is never cached.
+  async headers() {
+    return [{source: "/import/:token*", headers: [{key: "Referrer-Policy", value: "no-referrer"}, {key: "X-Robots-Tag", value: "noindex, nofollow"}, {key: "Cache-Control", value: "no-store"}]}];
+  },
 };
 
 export default nextConfig;
