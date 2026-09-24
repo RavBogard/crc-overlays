@@ -1,5 +1,6 @@
 import {createHmac,randomUUID} from 'node:crypto';
 import type {Cue} from './player';
+import type {ResolvedLayouts} from './layout-registry';
 import {REHEARSAL_RELAY,rehearsalMode,rehearsalRelayOrigin} from './rehearsal';
 
 export type RelayRole='control'|'output'|'preview';
@@ -31,4 +32,4 @@ export async function relayRequest(path:string,body?:unknown){
  return fetch(new URL(path,relayOrigin()),{method:body===undefined?'GET':'POST',headers:{Authorization:`Bearer ${secret}`,...(body===undefined?{}:{'Content-Type':'application/json'})},body:body===undefined?undefined:JSON.stringify(body),cache:'no-store',redirect:'error',signal:AbortSignal.timeout(5000)});
 }
 export async function relaySnapshot(){const r=await relayRequest('/state');if(!r.ok)throw Error('Live relay unavailable');return r.json()}
-export async function relayCatalog():Promise<{cues:Cue[];version:string}>{const r=await relayRequest('/catalog');if(!r.ok)throw Error('Live catalog unavailable');const value=await r.json();if(!value||!Array.isArray(value.cues)||typeof value.version!=='string')throw Error('Invalid live catalog');return value}
+export async function relayCatalog():Promise<{cues:Cue[];version:string;layouts?:ResolvedLayouts}>{const r=await relayRequest('/catalog');if(!r.ok)throw Error('Live catalog unavailable');const value=await r.json();if(!value||!Array.isArray(value.cues)||typeof value.version!=='string')throw Error('Invalid live catalog');return value}

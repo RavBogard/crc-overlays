@@ -243,6 +243,25 @@ app/api/catalog/route.ts and lib/sync-live-catalog.ts; L2 and C5 add envelope-on
   already reads; an older web answers no lastPress and the variable stays blank.
 - GATE (V3): server instructions line "Nothing on this connection puts anything on screen" replaced by a
   sentence naming the live tools, target:'live' and the deck guard — agent-facing text, not product copy.
+- L2 (worktree branch, not merged): lib/layout-definitions.ts (validated LayoutDocument, sha256 over canonical
+  JSON, memory repository, motion presets card-scale/fade or tracks, registerPublishedLayouts,
+  resolvedLayoutsFor/withResolvedLayouts); db/layout-definitions.sql written, not applied. Data-layout cues pin
+  `layoutRef{id,version,sha256}` beside `layout` (inside cueHash) and take the definition's motion; built-in
+  cue hashes unchanged (tests/fixtures/cue-hashes.json recorded before the change). Envelope `layouts{"id@version"}`
+  on authoringCatalog, relay approved catalog (new `approved_layouts` row) and `/api/catalog?include=layouts`
+  (the new /output asks for it; the default stays the bare array). Relay change ships before the web.
+- GATE (L2): built-in layouts get no `layoutRef` (pinned by the code release as before) — proceeded because any
+  pin would change every existing published cue's hash. GATE: catalog version stays the hash of the cues —
+  proceeded because each pin names its definition's sha256, and no existing version moves. GATE: a data-layout box
+  has class `overlay` + `data-layout` (the id is not a class) — proceeded because an author id could otherwise
+  match a part rule. GATE: data layouts keep `templateLayout:'bottom'` only so parseEditable accepts a lower-third
+  templateCueId; buildCue ignores that template. GATE: a pin missing from the envelope degrades to the newest
+  version of the same layout given — proceeded because a held graphic rendering in newer geometry beats unstyled.
+  GATE: webpack dev/build used in the worktree (junctioned node_modules); Turbopack build and stills re-run at
+  integration.
+- L2 notes for L3: wire the Postgres repository and call registerPublishedLayouts at load; the editor/console
+  previews and the server fit (fit-stage) do not yet receive `layouts`, so a data-layout draft previews without its
+  card until they pass `options.layouts`; `rebase_to_layout` = republish against the newest published version.
 
 ## Evidence
 Four read-only audits (MCP surface, layouts/renderer, Companion, live/services/access) plus a
