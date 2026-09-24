@@ -19,7 +19,8 @@ import {sourceDisplay} from './source-library';
 import {wordingChanges} from './wording-changes';
 import {sharedCueHash,sharedLibraryClient,type SharedLibraryEntry,type SharedLibraryPayload,type SharedLibrarySnapshot} from './shared-library';
 import {compareUpstream,groupSets,setState,shelfState} from './shared-shelf';
-import {AssetError,cueAssetId,defaultAssetRepository,importSharedAsset,markCueAssetPublished,type AssetRepository} from './assets';
+import {AssetError,cueAssetId,defaultAssetRepository,defaultAssetUploadStore,importSharedAsset,markCueAssetPublished,signedCueArtworkPath,type AssetRepository,type AssetUploadStore} from './assets';
+import {assetToolOperation,isAssetTool} from './asset-tools';
 import {liveRelayConfigured} from './rehearsal';
 // Only the contract, never the browser: lib/server-fit.ts is reached exclusively through the
 // dynamic import in defaultServerFitRunner, so playwright-core and the Chromium pack stay out
@@ -303,18 +304,23 @@ export type SharedAssetImporter=(id:string,actor:string)=>Promise<unknown>;
  * deployment's own /author/fit-stage; the module is imported lazily so neither playwright-core
  * nor the Chromium pack is pulled into a process that never runs a fit check. Tests inject.
  */
-export type ServerFitRunner=(cue:AuthoringCue,options?:{includePreviewImage?:boolean})=>Promise<ServerFitResult>;
+// `artworkUrl` (R-B1) is a signed, minutes-long read link for the cue's one asset, so the stage's
+// browser can load artwork it holds no session for (lib/assets.ts signedAssetReadPath).
+export type ServerFitRunner=(cue:AuthoringCue,options?:{includePreviewImage?:boolean;artworkUrl?:string})=>Promise<ServerFitResult>;
 const defaultServerFitRunner:ServerFitRunner=async(cue,options)=>{
  const [{measureCueOnServer},{canonicalOrigin}]=await Promise.all([import('./server-fit'),import('./oauth-core')]);
  // The origin is the configured public base URL, never the request host: the stage must be
  // the page this deployment serves, and a request host is attacker-controllable.
- return measureCueOnServer(cue as unknown as Cue,{origin:canonicalOrigin(),includePreviewImage:options?.includePreviewImage});
+ return measureCueOnServer(cue as unknown as Cue,{origin:canonicalOrigin(),includePreviewImage:options?.includePreviewImage,...(options?.artworkUrl?{artworkUrl:options.artworkUrl}:{})});
 };
-export function createAuthoringService(repo:AuthoringRepository,workspace:AuthoringWorkspace={rehearsal:false,storage:'postgres',label:null},shared:SharedLibraryReader=sharedLibraryClient,sharedAssetImporter:SharedAssetImporter=(id,actor)=>importSharedAsset(id,actor),serverFit:ServerFitRunner=defaultServerFitRunner,localSources:LocalSourceRepository=new MemoryLocalSourceRepository(),defaultsRepo:AuthoringDefaultsRepository=repo instanceof MemoryAuthoringRepository?new MemoryAuthoringDefaultsRepository():new PgAuthoringDefaultsRepository()){
+export type AssetStores={assets?:AssetRepository;uploads?:AssetUploadStore};
+export function createAuthoringService(repo:AuthoringRepository,workspace:AuthoringWorkspace={rehearsal:false,storage:'postgres',label:null},shared:SharedLibraryReader=sharedLibraryClient,sharedAssetImporter:SharedAssetImporter=(id,actor)=>importSharedAsset(id,actor),runServerFit:ServerFitRunner=defaultServerFitRunner,localSources:LocalSourceRepository=new MemoryLocalSourceRepository(),defaultsRepo:AuthoringDefaultsRepository=repo instanceof MemoryAuthoringRepository?new MemoryAuthoringDefaultsRepository():new PgAuthoringDefaultsRepository(),assetStores:AssetStores={}){
  // T2 - this workspace's own sources, in the corpus shape, ordered as a book prints them. Read only
  // where a call can reach one: a search, a book outline, or content that names a local: id.
  const localUnits=async()=>(await localSources.list()).sort((a,b)=>a.book.localeCompare(b.book)||a.page-b.page||a.name.localeCompare(b.name)).map(localSourceUnit);
  const localsFor=async(value:unknown)=>JSON.stringify(value??null).includes('"local:')?localUnits():[];
+ // Every server fit is handed a signed link to the cue's artwork, when it has any.
+ const serverFit:ServerFitRunner=(cue,options)=>{const artworkUrl=signedCueArtworkPath(cue);return runServerFit(cue,artworkUrl?{...options,artworkUrl}:options)};
  // Every name a person can currently see in the library: the baseline catalog this
  // workspace ships with, live drafts, and published graphics. The catalog a viewer
  // actually sees is baseline + published (lib/server.ts authoringCatalog), so uniqueness
@@ -387,6 +393,9 @@ export function createAuthoringService(repo:AuthoringRepository,workspace:Author
   }
   // S2 - the prepared-services tools (lib/service-tools.ts), dynamic for the same cycle reason.
   if(isServiceTool(operation)){const [{serviceToolOperation},{ServicesError:ServicesFailure}]=await Promise.all([import('./service-tools'),import('./service-collections')]);try{return await serviceToolOperation(operation,data,who)}catch(error){if(error instanceof ServicesFailure)throw new AuthoringError(error.code,error.message,error.status);throw error}}
+  // R-B1 - the artwork library (lib/asset-tools.ts). A published cue counts only while its draft
+  // is not archived, the same catalog libraryNames measures.
+  if(isAssetTool(operation)){try{return await assetToolOperation(operation,data,who,{assets:assetStores.assets??defaultAssetRepository(),uploads:assetStores.uploads??defaultAssetUploadStore(),drafts:()=>repo.listDrafts(),published:async()=>{const [drafts,published]=await Promise.all([repo.listDrafts(),repo.published()]);const archived=new Set(drafts.filter(draft=>draft.archivedAt).map(draft=>draft.id));return published.filter(cue=>!archived.has(cue.id))}})}catch(error){if(error instanceof AssetError)throw new AuthoringError(error.code,error.message,error.status);throw error}}
   // The cue log, read-only, for an assistant asked what a service actually did. Same bound and
   // same shape as `GET /api/history`: graphics, liturgical positions and times - no names, no
   // titles, no text, nobody's identity. An unavailable relay is a sentence, not a stack trace.

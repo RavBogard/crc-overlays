@@ -290,6 +290,39 @@
   }
  },
  {
+  "name": "archive_asset",
+  "description": "Archive one image so it is no longer offered for new graphics. Refused, changing nothing, while a published graphic uses it; the refusal names those graphics. Unpublished drafts that use it are named in the result and will not publish until it is restored in the editor or replaced. expectedVersion is the version list_assets returned.",
+  "inputSchema": {
+   "type": "object",
+   "$schema": "https://json-schema.org/draft/2020-12/schema",
+   "properties": {
+    "assetId": {
+     "type": "string",
+     "pattern": "^asset_[a-f0-9]{64}$"
+    },
+    "expectedVersion": {
+     "type": "integer",
+     "minimum": 1,
+     "maximum": 9007199254740991
+    },
+    "workspace": {
+     "type": "string",
+     "minLength": 1,
+     "maxLength": 80,
+     "description": "Which congregation this call is for. This connection serves 'crc' (CRC) only."
+    }
+   },
+   "required": [
+    "assetId",
+    "expectedVersion",
+    "workspace"
+   ]
+  },
+  "annotations": {
+   "readOnlyHint": false
+  }
+ },
+ {
   "name": "archive_draft",
   "description": "Archive a standalone draft without changing its published output.",
   "inputSchema": {
@@ -2107,6 +2140,33 @@
    "type": "object",
    "$schema": "https://json-schema.org/draft/2020-12/schema",
    "properties": {
+    "workspace": {
+     "type": "string",
+     "minLength": 1,
+     "maxLength": 80,
+     "description": "Which congregation this call is for. This connection serves 'crc' (CRC) only."
+    }
+   }
+  },
+  "annotations": {
+   "readOnlyHint": true
+  }
+ },
+ {
+  "name": "list_assets",
+  "description": "List the CRC artwork library: id, name, type, size, dimensions, version, whether it is archived or published, and which drafts use it (usedBy). Archived artwork is left out unless includeArchived:true; query narrows by name or alt text.",
+  "inputSchema": {
+   "type": "object",
+   "$schema": "https://json-schema.org/draft/2020-12/schema",
+   "properties": {
+    "includeArchived": {
+     "type": "boolean"
+    },
+    "query": {
+     "type": "string",
+     "minLength": 1,
+     "maxLength": 100
+    },
     "workspace": {
      "type": "string",
      "minLength": 1,
@@ -5867,6 +5927,68 @@
   "annotations": {
    "readOnlyHint": false,
    "idempotentHint": true
+  }
+ },
+ {
+  "name": "upload_asset",
+  "description": "Add an image to the CRC artwork library in chunks: step 'begin' {name, altText, totalBytes} returns an uploadId; step 'append' {uploadId, chunkIndex from 0, dataBase64} sends the bytes in order, each chunk at most 192 KB before base64; step 'commit' {uploadId} checks and stores it. The rules are the editor's: a non-animated PNG, JPEG or WebP, at most 512 KB and 4096 px per side. The id is the image's sha256, so the same image uploaded twice is one asset. Attach it with update_draft patch.presentation.imageAssetId; ship_draft then shows it in the frame.",
+  "inputSchema": {
+   "type": "object",
+   "$schema": "https://json-schema.org/draft/2020-12/schema",
+   "properties": {
+    "step": {
+     "type": "string",
+     "enum": [
+      "begin",
+      "append",
+      "commit"
+     ]
+    },
+    "name": {
+     "type": "string",
+     "minLength": 1,
+     "maxLength": 160
+    },
+    "altText": {
+     "description": "What the image shows, for anyone who cannot see it.",
+     "type": "string",
+     "minLength": 1,
+     "maxLength": 240
+    },
+    "totalBytes": {
+     "description": "The image size in bytes before base64.",
+     "type": "integer",
+     "minimum": 1,
+     "maximum": 524288
+    },
+    "uploadId": {
+     "type": "string",
+     "pattern": "^upload_[a-f0-9]{32}$"
+    },
+    "chunkIndex": {
+     "type": "integer",
+     "minimum": 0,
+     "maximum": 1000
+    },
+    "dataBase64": {
+     "type": "string",
+     "minLength": 4,
+     "maxLength": 262144
+    },
+    "workspace": {
+     "type": "string",
+     "minLength": 1,
+     "maxLength": 80,
+     "description": "Which congregation this call is for. This connection serves 'crc' (CRC) only."
+    }
+   },
+   "required": [
+    "step",
+    "workspace"
+   ]
+  },
+  "annotations": {
+   "readOnlyHint": false
   }
  }
 ]

@@ -9,6 +9,15 @@ export function overlayAssetUrl(cue: { presentation?: { imageAssetId?: string } 
   return id && /^asset_[a-f0-9]{64}$/.test(id) ? `/api/assets/${encodeURIComponent(id)}/${audience}` : undefined;
 }
 
+// R-B1 - the server fit stage holds no session, so it is handed a signed read link for the cue's
+// artwork (lib/assets.ts signedAssetReadPath). It is used only when it is a same-origin signed
+// link for this cue's own asset; anything else falls back to the private preview route.
+export function stageArtworkUrl(cue: { presentation?: { imageAssetId?: string } }, signed?: string) {
+  const id = cue.presentation?.imageAssetId;
+  if (id && signed && /^asset_[a-f0-9]{64}$/.test(id) && new RegExp(`^/api/assets/${id}/signed\\?exp=\\d{1,12}&sig=[A-Za-z0-9_-]{43}$`).test(signed)) return signed;
+  return overlayAssetUrl(cue, "preview");
+}
+
 // One deadline is shared by every stage of a single wait, so the worst case is the
 // total budget rather than the budget multiplied by the number of serial stages.
 function overlayDeadline(budgetMs = OVERLAY_ASSET_TIMEOUT_MS) {
