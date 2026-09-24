@@ -22,9 +22,10 @@ import { DeckConflictError, type CompanionDeckRepository, type StoredDeck } from
 import { ExportSeedError, SINGULAR_MODULE, seedDeckFromExportBytes, seedTbiDeck, type ExportSeedData, type SeedSummary } from './tbi-seed.ts'
 import { prepare, rankCues, type Prepared } from './singular-match.ts'
 import {
-  REFERENCE_STORE_MISSING, SINGULAR_EXTRACT, SingularReferenceConflictError, findCredential, isMissingTable, referenceFor, referenceIndex, referenceKey,
+  REFERENCE_STORE_MISSING, SINGULAR_EXTRACT, SingularReferenceConflictError, findCredential, isMissingTable, normaliseSingularExtract, referenceFor, referenceIndex, referenceKey,
   referenceRecords, type DraftReference, type SingularReference, type SingularReferenceApp, type SingularReferenceRepository,
 } from './singular-references.ts'
+import type { ImportRepository } from '../imports.ts'
 
 type Obj = Record<string, unknown>
 
@@ -584,6 +585,8 @@ export type DeckConversionDeps = {
   references?: SingularReferenceRepository | null
   /** Whether an asset id names artwork in this workspace's library. Left out, imageAssetId is checked for its shape only. */
   assetExists?: (id: string) => Promise<boolean>
+  /** G1: where dropped files are kept, for import_singular_extract {importId}. Left out, importId is refused. */
+  imports?: ImportRepository | null
 }
 
 let configuredRepository: CompanionDeckRepository | null = null
@@ -594,6 +597,7 @@ async function defaultDeps(): Promise<DeckConversionDeps> {
   const [{ getPublicWorkspace }, { authoringCatalog }, { isNamesCueId }, { defaultDeckRepository }, { defaultSingularReferenceRepository }] = await Promise.all([import('../workspace'), import('../server'), import('../names-list'), import('./tools.ts'), import('./singular-references.ts')])
   return {
     references: defaultSingularReferenceRepository(),
+    imports: (await import('../imports')).defaultImportRepository(),
     assetExists: async (id) => { const { defaultAssetRepository } = await import('../assets'); return Boolean(await defaultAssetRepository().get(id)) },
     workspace: getPublicWorkspace().id === 'temple-bnai-israel-kalamazoo' ? 'tbi' : 'crc',
     // One store for the deck: a deck seeded or converted here is the one get_deck reads and edits.
@@ -774,13 +778,34 @@ async function importExtractOperation(data: Obj, actor: string, deps: DeckConver
   // Singular control links that carry a token.
   const hit = findCredential(data, 'input')
   if (hit) refuse('credential_in_extract', `Nothing was imported: the extract carries something that looks like a credential (at ${hit}). Remove every Singular control link, token, key and password from it, then import it again.`)
-  allowedKeys(data, ['extract', 'dryRun', 'expectedVersion'])
-  const parsed = SINGULAR_EXTRACT.safeParse(data.extract)
+  allowedKeys(data, ['extract', 'importId', 'dryRun', 'expectedVersion'])
+  // G1: the extract may come from a dropped file (importId) instead of inline, in either shape.
+  if ((data.extract === undefined) === (data.importId === undefined)) refuse('invalid_input', 'Pass either extract (the JSON inline) or importId (from open_import_dropzone), not both and not neither. Nothing was imported.')
+  let raw: unknown = data.extract, from: { importId: string; sha256: string | null; bytes: number | null } | undefined
+  if (data.importId !== undefined) {
+    const repository = deps.imports ?? refuse('imports_unavailable', 'Dropped files are not set up on this deployment. Pass the extract inline instead. Nothing was imported.', 503)
+    try {
+      const { readImportJson } = await import('../imports')
+      const { record, value } = await readImportJson(repository, data.importId, 'singular-extract', deps.now())
+      raw = value; from = { importId: record.id, sha256: record.sha256, bytes: record.totalBytes }
+    } catch (e) {
+      const known = e as { code?: unknown; status?: unknown }
+      if (typeof known.code === 'string' && typeof known.status === 'number') refuse(known.code, (e as Error).message, known.status)
+      throw e
+    }
+    const inFile = findCredential(raw, 'file')
+    if (inFile) refuse('credential_in_extract', `Nothing was imported: the dropped extract carries something that looks like a credential (at ${inFile}). Remove every Singular control link, token, key and password from it, then drop it again.`)
+  }
+  const where = from ? 'file' : 'extract'
+  const normalised = normaliseSingularExtract(raw)
+  if (!normalised.ok) refuse('invalid_extract', `Nothing was imported: the extract is in neither expected shape. In the flat shape ({subcompositions:[{id, name, parentApp, layer, fields}]}) the first problem is at ${[where, ...normalised.issue.path.map(String)].join('.')}: ${normalised.issue.message}.`)
+  const parsed = SINGULAR_EXTRACT.safeParse((normalised as { extract: unknown }).extract)
   if (!parsed.success) {
     const issue = parsed.error.issues[0]
-    refuse('invalid_extract', `Nothing was imported: the extract is not in the expected shape ({apps:[{label, subcompositions:[{id, name, layer, fields}]}]}); the first problem is at ${['extract', ...issue.path.map(String)].join('.')}: ${issue.message}.`)
+    refuse('invalid_extract', `Nothing was imported: the extract is not in the expected shape ({apps:[{label, subcompositions:[{id, name, layer, fields}]}]}); the first problem is at ${[where, ...issue.path.map(String)].join('.')}: ${issue.message}.`)
   }
   const extract = parsed.data!
+  const shape = (normalised as { shape: 'nested' | 'flat' }).shape
   const labels = extract.apps.map((a) => a.label)
   const repeated = labels.filter((l, i) => labels.indexOf(l) !== i)
   if (repeated.length) refuse('invalid_extract', `Nothing was imported: the app ${repeated[0]} appears twice in the extract. Send each app once.`)
@@ -813,7 +838,7 @@ async function importExtractOperation(data: Obj, actor: string, deps: DeckConver
   const who = workspaceName(deps.workspace)
   if (dryRun) {
     return {
-      dryRun: true, apps: summary, keptApps: kept, stored: existing ? { version: existing.version, apps: existing.document.apps.map((a) => a.label) } : null,
+      dryRun: true, apps: summary, total: summary.reduce((n, a) => n + a.compositions, 0), shape, ...(from ? { from } : {}), keptApps: kept, stored: existing ? { version: existing.version, apps: existing.document.apps.map((a) => a.label) } : null,
       next: existing
         ? `Nothing was stored. To store these apps (replacing any of the same label; other apps are kept), call again with dryRun:false and expectedVersion:${existing.version}. Then run convert_singular_deck.`
         : `Nothing was stored. To store this as the ${who} Singular reference material, call again with dryRun:false. Then run convert_singular_deck.`,
@@ -830,7 +855,7 @@ async function importExtractOperation(data: Obj, actor: string, deps: DeckConver
     throw e
   }
   return {
-    dryRun: false, apps: summary, keptApps: kept, stored: { version: stored.version, apps: stored.document.apps.map((a) => a.label) },
+    dryRun: false, apps: summary, total: summary.reduce((n, a) => n + a.compositions, 0), shape, ...(from ? { from } : {}), keptApps: kept, stored: { version: stored.version, apps: stored.document.apps.map((a) => a.label) },
     next: 'Run convert_singular_deck: each row now shows what its button showed on Singular, and matching compares that text as well as the name.',
   }
 }

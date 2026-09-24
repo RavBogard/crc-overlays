@@ -1155,6 +1155,8 @@ export async function authoringOperation(operation:string,input:unknown,actor:st
 // L3 - this process knows the workspace's published data layouts before it validates a draft.
  await ensurePublishedLayoutsRegistered();
  if(review){const {sourceReviewOperation}=await import('./source-review');return sourceReviewOperation(review,input,actor)}
+ // TBI redo G1 - dropzones for files an agent reads by importId (lib/import-tools.ts), dynamic like the deck.
+ if(operation==='open_import_dropzone'||operation==='get_import'||operation==='list_imports'){const {importToolOperation,defaultImportToolDeps}=await import('./import-tools');return importToolOperation(operation,input,actor,await defaultImportToolDeps())}
  if(operation==='seed_deck_from_export'||operation==='convert_singular_deck'||operation==='import_singular_extract'){const {deckConversionOperation,DeckConversionError}=await import('./companion-deck/convert');try{return await deckConversionOperation(operation,input,actor)}catch(error){if(error instanceof DeckConversionError)throw new AuthoringError(error.code,error.message,error.status);throw error}}
  // C3 - the Companion deck tools (lib/companion-deck/tools.ts): their own store, reached by dynamic import like source review.
  // L4 - workspace branding (lib/branding-tools.ts): its own store, reached by dynamic import like the deck.

@@ -44,6 +44,60 @@ export const SINGULAR_EXTRACT = z.object({
 }).strict()
 export type SingularExtract = z.infer<typeof SINGULAR_EXTRACT>
 
+/**
+ * G1 - the flat shape the recovered 24 September TBI extract uses: every composition in one top-level
+ * `subcompositions[]`, each naming its app in `parentApp`, with `apps[]` describing the apps. It is
+ * normalised into SINGULAR_EXTRACT (grouped by parentApp), so both shapes meet the same limits.
+ */
+const flatField = z.object({ index: z.number().int().optional(), title: z.string().max(200).optional(), type: z.string().max(60).optional(), value: z.unknown().optional() }).strict()
+const flatComposition = singularExtractComposition.extend({
+  parentApp: z.string().min(1).max(80).describe('The label of the app this composition belongs to.'),
+  path: z.string().max(400).optional(),
+  fieldSignature: z.string().max(400).optional(),
+  fields: z.record(z.string().regex(/^[A-Za-z0-9_-]{1,60}$/), flatField).default({}),
+}).strict()
+const flatApp = z.object({
+  label: z.string().min(1).max(80), name: z.string().max(200).optional(), id: z.string().max(120).optional(),
+  rootName: z.string().max(200).optional(), compositionRefId: z.union([z.number(), z.string().max(120)]).optional(), topLevelSubs: z.number().int().nonnegative().optional(),
+}).strict()
+/** `{apps?:[{label, rootName?, compositionRefId?}], subcompositions:[{id, name, parentApp, layer, fields}]}`. */
+export const SINGULAR_EXTRACT_FLAT = z.object({
+  source: z.string().max(400).optional(),
+  extractedAt: z.string().max(40).optional(),
+  apps: z.array(flatApp).max(12).optional(),
+  subcompositions: z.array(flatComposition).min(1).max(7200),
+}).strict()
+export const isFlatSingularExtract = (value: unknown) => !!value && typeof value === 'object' && !Array.isArray(value) && Array.isArray((value as { subcompositions?: unknown }).subcompositions)
+
+/**
+ * Either shape as the nested one, grouped by parentApp in the order apps[] lists them (then first
+ * appearance). Only app, name, layer, template, fields' title/type/value, notes and imageAssetId are
+ * carried; path, fieldSignature and field index are dropped. The result is checked with
+ * SINGULAR_EXTRACT by the caller, so the per-app and app-count limits are the inline path's.
+ */
+export function normaliseSingularExtract(value: unknown): { ok: true; extract: unknown; shape: 'nested' | 'flat' } | { ok: false; issue: z.ZodError['issues'][number] } {
+  if (!isFlatSingularExtract(value)) return { ok: true, extract: value, shape: 'nested' }
+  const parsed = SINGULAR_EXTRACT_FLAT.safeParse(value)
+  if (!parsed.success) return { ok: false, issue: parsed.error.issues[0] }
+  const flat = parsed.data
+  const order = [...(flat.apps ?? []).map((a) => a.label), ...flat.subcompositions.map((c) => c.parentApp)].filter((l, i, all) => all.indexOf(l) === i)
+  const described = new Map((flat.apps ?? []).map((a) => [a.label, a]))
+  const apps = order.map((label) => {
+    const app = described.get(label)
+    const name = app?.name ?? app?.rootName
+    const id = app?.id ?? (app?.compositionRefId === undefined ? undefined : String(app.compositionRefId))
+    const subcompositions = flat.subcompositions.filter((c) => c.parentApp === label).map((c) => ({
+      id: c.id, name: c.name, layer: c.layer,
+      ...(c.template !== undefined ? { template: c.template } : {}),
+      fields: Object.fromEntries(Object.entries(c.fields).map(([fieldId, f]) => [fieldId, { ...(f.title !== undefined ? { title: f.title } : {}), ...(f.type !== undefined ? { type: f.type } : {}), ...('value' in f ? { value: f.value } : {}) }])),
+      ...(c.notes !== undefined ? { notes: c.notes } : {}),
+      ...(c.imageAssetId ? { imageAssetId: c.imageAssetId } : {}),
+    }))
+    return { label, ...(name ? { name } : {}), ...(id ? { id } : {}), subcompositions }
+  }).filter((a) => a.subcompositions.length)
+  return { ok: true, extract: { apps, ...(flat.extractedAt ? { extractedAt: flat.extractedAt } : {}) }, shape: 'flat' }
+}
+
 /* ------------------------------------------------------------- credentials --- */
 
 const CREDENTIAL_KEY = /token|secret|passw|passphrase|api[-_]?key|authorization|credential|cookie|session[-_]?id|private[-_]?key|bearer/i
@@ -70,6 +124,9 @@ export function findCredential(value: unknown, path = 'extract'): string | null 
   }
   return null
 }
+
+/** Whether a line of plain text (a CSV row) carries something credential-like: a control link, bearer token, key parameter or password. */
+export const textLooksLikeCredential = (text: string) => CREDENTIAL_TEXT.some((re) => re.test(text))
 
 /* ----------------------------------------------------------------- records --- */
 

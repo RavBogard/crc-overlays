@@ -3539,6 +3539,32 @@
   }
  },
  {
+  "name": "get_import",
+  "description": "Say what has arrived on a dropzone: status (waiting, receiving, ready or refused), file name, type, size, sha256, the refusal sentence if it was refused, and a summary by kind (compositions per app for a Singular extract, item and key counts for local sources, rows and columns for a deck plan, type and pixel size for an image). Never returns the file itself.",
+  "inputSchema": {
+   "type": "object",
+   "$schema": "https://json-schema.org/draft/2020-12/schema",
+   "properties": {
+    "importId": {
+     "type": "string",
+     "pattern": "^import_[a-f0-9]{32}$"
+    },
+    "workspace": {
+     "type": "string",
+     "minLength": 1,
+     "maxLength": 80,
+     "description": "Which congregation this call is for. This connection serves 'crc' (CRC) only."
+    }
+   },
+   "required": [
+    "importId"
+   ]
+  },
+  "annotations": {
+   "readOnlyHint": true
+  }
+ },
+ {
   "name": "get_layout",
   "description": "Read one layout in full: a data layout's card definition (geometry, fit, motion) at its newest version or the version named, every version with its status, how many published graphics pin each version (pinnedGraphics), and the static check. A built-in layout is shown read only, with its card when it has one (corner). Read only.",
   "inputSchema": {
@@ -3811,133 +3837,302 @@
  },
  {
   "name": "import_singular_extract",
-  "description": "Store a Singular.live extract as CRC reference material: for each composition only its app, name, layer and text (title, accent title and text), and optionally a picture of the old slide (imageAssetId from upload_asset). convert_singular_deck then shows each button's old text beside the proposed graphic, matches by what the composition showed as well as its name, and flags buttons whose composition no longer exists in an imported app. The extract is the first pass's shape: {apps:[{label (the Companion connection label, e.g. kab), name, id, subcompositions:[{id, name, layer, template, fields:{<fieldId>:{title, type, value}}, notes}]}]}. Anything that looks like a credential (a Singular control link, token, key or password) is refused and nothing is stored. Apps named replace the stored apps of the same label; others are kept. Dry run by default; a stored extract needs its expectedVersion.",
+  "description": "Store a Singular.live extract as CRC reference material: for each composition only its app, name, layer and text (title, accent title and text), and optionally a picture of the old slide (imageAssetId from upload_asset). convert_singular_deck then shows each button's old text beside the proposed graphic, matches by what the composition showed as well as its name, and flags buttons whose composition no longer exists in an imported app. Pass the extract inline, or importId for a file dropped on open_import_dropzone kind 'singular-extract'. Either shape is read: the first pass's {apps:[{label (the Companion connection label, e.g. kab), name, id, subcompositions:[{id, name, layer, template, fields:{<fieldId>:{title, type, value}}, notes}]}]}, or the flat {apps:[{label, rootName}], subcompositions:[{id, name, parentApp, layer, fields}]}, grouped by parentApp. Anything that looks like a credential (a Singular control link, token, key or password) is refused and nothing is stored. Apps named replace the stored apps of the same label; others are kept. Dry run by default; a stored extract needs its expectedVersion.",
   "inputSchema": {
    "type": "object",
    "$schema": "https://json-schema.org/draft/2020-12/schema",
    "properties": {
     "extract": {
-     "type": "object",
-     "properties": {
-      "apps": {
-       "minItems": 1,
-       "maxItems": 12,
-       "type": "array",
-       "items": {
-        "type": "object",
-        "properties": {
-         "label": {
-          "type": "string",
-          "minLength": 1,
-          "maxLength": 80,
-          "description": "The Companion connection label that fires this app, e.g. 'kab'."
-         },
-         "name": {
-          "type": "string",
-          "maxLength": 200
-         },
-         "id": {
-          "type": "string",
-          "maxLength": 120
-         },
-         "subcompositions": {
-          "minItems": 1,
-          "maxItems": 600,
-          "type": "array",
-          "items": {
-           "type": "object",
-           "properties": {
-            "id": {
-             "type": "string",
-             "minLength": 1,
-             "maxLength": 120
-            },
-            "name": {
-             "type": "string",
-             "minLength": 1,
-             "maxLength": 200
-            },
-            "parentApp": {
-             "type": "string",
-             "maxLength": 200
-            },
-            "template": {
-             "anyOf": [
-              {
+     "anyOf": [
+      {
+       "type": "object",
+       "properties": {
+        "apps": {
+         "minItems": 1,
+         "maxItems": 12,
+         "type": "array",
+         "items": {
+          "type": "object",
+          "properties": {
+           "label": {
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 80,
+            "description": "The Companion connection label that fires this app, e.g. 'kab'."
+           },
+           "name": {
+            "type": "string",
+            "maxLength": 200
+           },
+           "id": {
+            "type": "string",
+            "maxLength": 120
+           },
+           "subcompositions": {
+            "minItems": 1,
+            "maxItems": 600,
+            "type": "array",
+            "items": {
+             "type": "object",
+             "properties": {
+              "id": {
                "type": "string",
+               "minLength": 1,
                "maxLength": 120
               },
-              {
-               "type": "null"
-              }
-             ]
-            },
-            "layer": {
-             "anyOf": [
-              {
+              "name": {
                "type": "string",
-               "maxLength": 80
+               "minLength": 1,
+               "maxLength": 200
               },
-              {
-               "type": "null"
+              "parentApp": {
+               "type": "string",
+               "maxLength": 200
+              },
+              "template": {
+               "anyOf": [
+                {
+                 "type": "string",
+                 "maxLength": 120
+                },
+                {
+                 "type": "null"
+                }
+               ]
+              },
+              "layer": {
+               "anyOf": [
+                {
+                 "type": "string",
+                 "maxLength": 80
+                },
+                {
+                 "type": "null"
+                }
+               ]
+              },
+              "fields": {
+               "default": {},
+               "type": "object",
+               "propertyNames": {
+                "type": "string",
+                "pattern": "^[A-Za-z0-9_-]{1,60}$"
+               },
+               "additionalProperties": {
+                "type": "object",
+                "properties": {
+                 "title": {
+                  "type": "string",
+                  "maxLength": 200
+                 },
+                 "type": {
+                  "type": "string",
+                  "maxLength": 60
+                 },
+                 "value": {}
+                },
+                "additionalProperties": false
+               }
+              },
+              "notes": {},
+              "imageAssetId": {
+               "description": "Optional: a picture of the old slide, uploaded with upload_asset, shown beside the proposed graphic.",
+               "type": "string",
+               "pattern": "^asset_[a-f0-9]{64}$"
               }
-             ]
-            },
-            "fields": {
-             "default": {},
-             "type": "object",
-             "propertyNames": {
-              "type": "string",
-              "pattern": "^[A-Za-z0-9_-]{1,60}$"
              },
-             "additionalProperties": {
-              "type": "object",
-              "properties": {
-               "title": {
-                "type": "string",
-                "maxLength": 200
-               },
-               "type": {
-                "type": "string",
-                "maxLength": 60
-               },
-               "value": {}
-              },
-              "additionalProperties": false
-             }
-            },
-            "notes": {},
-            "imageAssetId": {
-             "description": "Optional: a picture of the old slide, uploaded with upload_asset, shown beside the proposed graphic.",
-             "type": "string",
-             "pattern": "^asset_[a-f0-9]{64}$"
+             "required": [
+              "id",
+              "name",
+              "layer"
+             ],
+             "additionalProperties": false
             }
-           },
-           "required": [
-            "id",
-            "name",
-            "layer"
-           ],
-           "additionalProperties": false
-          }
+           }
+          },
+          "required": [
+           "label",
+           "subcompositions"
+          ],
+          "additionalProperties": false
          }
         },
-        "required": [
-         "label",
-         "subcompositions"
-        ],
-        "additionalProperties": false
-       }
+        "extractedAt": {
+         "type": "string",
+         "maxLength": 40
+        }
+       },
+       "required": [
+        "apps"
+       ],
+       "additionalProperties": false
       },
-      "extractedAt": {
-       "type": "string",
-       "maxLength": 40
+      {
+       "type": "object",
+       "properties": {
+        "source": {
+         "type": "string",
+         "maxLength": 400
+        },
+        "extractedAt": {
+         "type": "string",
+         "maxLength": 40
+        },
+        "apps": {
+         "maxItems": 12,
+         "type": "array",
+         "items": {
+          "type": "object",
+          "properties": {
+           "label": {
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 80
+           },
+           "name": {
+            "type": "string",
+            "maxLength": 200
+           },
+           "id": {
+            "type": "string",
+            "maxLength": 120
+           },
+           "rootName": {
+            "type": "string",
+            "maxLength": 200
+           },
+           "compositionRefId": {
+            "anyOf": [
+             {
+              "type": "number"
+             },
+             {
+              "type": "string",
+              "maxLength": 120
+             }
+            ]
+           },
+           "topLevelSubs": {
+            "type": "integer",
+            "minimum": 0,
+            "maximum": 9007199254740991
+           }
+          },
+          "required": [
+           "label"
+          ],
+          "additionalProperties": false
+         }
+        },
+        "subcompositions": {
+         "minItems": 1,
+         "maxItems": 7200,
+         "type": "array",
+         "items": {
+          "type": "object",
+          "properties": {
+           "id": {
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 120
+           },
+           "name": {
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 200
+           },
+           "parentApp": {
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 80,
+            "description": "The label of the app this composition belongs to."
+           },
+           "template": {
+            "anyOf": [
+             {
+              "type": "string",
+              "maxLength": 120
+             },
+             {
+              "type": "null"
+             }
+            ]
+           },
+           "layer": {
+            "anyOf": [
+             {
+              "type": "string",
+              "maxLength": 80
+             },
+             {
+              "type": "null"
+             }
+            ]
+           },
+           "fields": {
+            "default": {},
+            "type": "object",
+            "propertyNames": {
+             "type": "string",
+             "pattern": "^[A-Za-z0-9_-]{1,60}$"
+            },
+            "additionalProperties": {
+             "type": "object",
+             "properties": {
+              "index": {
+               "type": "integer",
+               "minimum": -9007199254740991,
+               "maximum": 9007199254740991
+              },
+              "title": {
+               "type": "string",
+               "maxLength": 200
+              },
+              "type": {
+               "type": "string",
+               "maxLength": 60
+              },
+              "value": {}
+             },
+             "additionalProperties": false
+            }
+           },
+           "notes": {},
+           "imageAssetId": {
+            "description": "Optional: a picture of the old slide, uploaded with upload_asset, shown beside the proposed graphic.",
+            "type": "string",
+            "pattern": "^asset_[a-f0-9]{64}$"
+           },
+           "path": {
+            "type": "string",
+            "maxLength": 400
+           },
+           "fieldSignature": {
+            "type": "string",
+            "maxLength": 400
+           }
+          },
+          "required": [
+           "id",
+           "name",
+           "parentApp",
+           "layer"
+          ],
+          "additionalProperties": false
+         }
+        }
+       },
+       "required": [
+        "subcompositions"
+       ],
+       "additionalProperties": false
       }
-     },
-     "required": [
-      "apps"
-     ],
-     "additionalProperties": false
+     ]
+    },
+    "importId": {
+     "description": "A ready singular-extract import (get_import), instead of extract.",
+     "type": "string",
+     "pattern": "^import_[a-f0-9]{32}$"
     },
     "dryRun": {
      "default": true,
@@ -3957,7 +4152,6 @@
     }
    },
    "required": [
-    "extract",
     "workspace"
    ]
   },
@@ -4193,6 +4387,25 @@
     "includeArchived": {
      "type": "boolean"
     },
+    "workspace": {
+     "type": "string",
+     "minLength": 1,
+     "maxLength": 80,
+     "description": "Which congregation this call is for. This connection serves 'crc' (CRC) only."
+    }
+   }
+  },
+  "annotations": {
+   "readOnlyHint": true
+  }
+ },
+ {
+  "name": "list_imports",
+  "description": "List CRC's kept imports, newest first: id, kind, status, file name, size and expiry. No content.",
+  "inputSchema": {
+   "type": "object",
+   "$schema": "https://json-schema.org/draft/2020-12/schema",
+   "properties": {
     "workspace": {
      "type": "string",
      "minLength": 1,
@@ -4692,6 +4905,43 @@
    },
    "required": [
     "target",
+    "workspace"
+   ]
+  },
+  "annotations": {
+   "readOnlyHint": false
+  }
+ },
+ {
+  "name": "open_import_dropzone",
+  "description": "Open a dropzone: a web link, valid for 30 minutes and needing no sign-in, where a person drops one file for CRC. kind says what it is for: singular-extract (the Singular extract JSON, for import_singular_extract), local-sources (the local sources JSON), asset (a PNG, JPEG or WebP image) or deck-plan (the deck plan CSV or JSON). JSON and CSV may be up to 2 MB, an image 5 MB. The file is checked when it arrives (type by content, nothing that looks like a credential) and kept 7 days. Returns the importId and the link; share the link only with the person who has the file. At most 10 links wait at once.",
+  "inputSchema": {
+   "type": "object",
+   "$schema": "https://json-schema.org/draft/2020-12/schema",
+   "properties": {
+    "kind": {
+     "type": "string",
+     "enum": [
+      "singular-extract",
+      "local-sources",
+      "asset",
+      "deck-plan"
+     ]
+    },
+    "note": {
+     "description": "A short line shown on the page, such as which file to drop.",
+     "type": "string",
+     "maxLength": 200
+    },
+    "workspace": {
+     "type": "string",
+     "minLength": 1,
+     "maxLength": 80,
+     "description": "Which congregation this call is for. This connection serves 'crc' (CRC) only."
+    }
+   },
+   "required": [
+    "kind",
     "workspace"
    ]
   },
