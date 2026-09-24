@@ -129,14 +129,15 @@ test('one refused item never stops the rest, and each refusal says what to do',a
  assert.match(reasons[1].reason,/There is no source library:nowhere here\. search_sources/);
  assert.match(reasons[2].reason,/No local source has the key "never-imported" here\. Import it with import_local_sources first/);
  assert.match(reasons[3].reason,/names block 9, but "Synthetic Evening Reading" has blocks 0 to 3/);
- assert.match(reasons[4].reason,/mixes English-only and paired Hebrew and transliteration blocks, and one graphic shows one kind\. Split them into separate panels/);
+ // G9 - an English reading beside its Hebrew is one bilingual graphic now, not a refusal.
+ assert.equal(reasons[4].status,'created',JSON.stringify(reasons[4]));
  assert.match(reasons[5].reason,/works for a local source only/);
  assert.match(reasons[6].reason,/No shared-library graphic has the id no-such-graphic/);
  assert.match(reasons[7].reason,/needs exactly one of cueId \(one graphic\) or setId/);
  assert.equal(reasons[8].status,'created');
  assert.match(reasons[9].reason,/repeats item 8's key "good-slide"/);
  assert.ok(made.output.items.filter((item:Output)=>item.status==='refused').every((item:Output)=>/Nothing was (created|changed)/.test(item.reason)),'every refusal says nothing was made');
- assert.deepEqual(made.output.counts,{created:1,exists:0,refused:8});assert.equal((await repo.listDrafts()).length,1);
+ assert.deepEqual(made.output.counts,{created:2,exists:0,refused:7});assert.equal((await repo.listDrafts()).length,2);
 });
 
 test('a block id may name the next unit by its own prefix, and the draft takes one group per source',async()=>{

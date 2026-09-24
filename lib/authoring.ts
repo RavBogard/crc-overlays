@@ -7,7 +7,7 @@ import {planDraftStyle,type DraftStyleOptions,type DraftStylePlan} from './autho
 import {DEFAULTS_APPLY_ON,DEFAULT_FIELDS,mergeDefaultsPatch,sequenceLayoutFor,withCreateDefaultBilingualBlocks,withHouseCreateDefaults,withHouseDefaults,type AuthoringDefaults,type DefaultsReport} from './authoring-defaults';
 import {MemoryAuthoringDefaultsRepository,PgAuthoringDefaultsRepository,defaultsConflict,type AuthoringDefaultsRepository} from './authoring-defaults-store';
 import {parseSharedBatchItems,planSharedBatch,type SharedBatchItem} from './shared-batch';
-import {LAYER_ORDER,isRetiredDraft,parseRowOrder} from './authoring-model';
+import {LAYER_ORDER,englishOnly,isRetiredDraft,parseRowOrder} from './authoring-model';
 import {layoutLabel,templateLayoutFor} from './layout-label';
 import {TEXT_SIZE_IDS,TEXT_SIZE_PRESETS,templateLooks,withTextSize,type TemplateLookMode,type TextSizePreset} from './template-looks';
 import {CUSTOM_TEMPLATES,customTemplate,customTemplateProblems,describeCustomTemplate} from './custom-templates';
@@ -243,6 +243,8 @@ function splitDraftSetSegments(content:CanonicalContent,snapshots:Draft['sourceS
  if(!content.includeTranslation)return {sourceId,source,segments:selected.map(block=>[block]),mode:content.mode,includeTranslation:false};
  const translations=source.blocks.filter(block=>block.kind==='translation-en');const segments:SourceBlock[][]=[];
  for(let offset=0;offset<selected.length;){
+  // G9 - an English-only passage is its own segment and needs no translation.
+  if(englishOnly(selected[offset])){segments.push([selected[offset]]);offset++;continue}
   const match=translations.find(block=>block.pairedBlockIds?.[0]===selected[offset].id),ids=match?.pairedBlockIds;
   if(!ids?.length||ids.length>PANEL_BLOCK_LIMIT||selected.slice(offset,offset+ids.length).length!==ids.length||ids.some((id,index)=>selected[offset+index]?.id!==id))throw new AuthoringError('partial_translation','The selected draft does not contain complete ordered translation pairs',409);
   segments.push(selected.slice(offset,offset+ids.length));offset+=ids.length;
@@ -253,7 +255,9 @@ function splitDraftSetSegments(content:CanonicalContent,snapshots:Draft['sourceS
 function splitDraftContent(content:DraftContent,sourceId:string,blocks:SourceBlock[],source:SearchSource):DraftContent{
  const variant=content.mode==='local-variant'?content:null,base=(variant?.base??content) as CanonicalContent;
  const blockIds=blocks.map(block=>block.id),groups=base.mode==='bilingual'?[{sourceId,blockIds}]:blockIds.map(blockId=>({sourceId,blockIds:[blockId]}));
- const pageBase:CanonicalContent=base.mode==='bilingual'?{mode:'bilingual',hebrewGroups:groups,transliterationGroups:structuredClone(groups),...(base.includeTranslation?{includeTranslation:true}:{}),...(base.layers?{layers:structuredClone(base.layers)}:{}),...(base.arrangement?{arrangement:base.arrangement}:{}),...(base.rowOrder?{rowOrder:[...base.rowOrder]}:{})}:{mode:base.mode,englishGroups:groups};
+ // G9 - a page of a bilingual draft that holds only its English-only passages is an English graphic.
+ const englishKind=base.mode==='bilingual'&&blocks.every(englishOnly)&&new Set(blocks.map(block=>block.kind)).size===1?blocks[0].kind as 'original-en'|'source-en':null;
+ const pageBase:CanonicalContent=englishKind?{mode:englishKind,englishGroups:blockIds.map(blockId=>({sourceId,blockIds:[blockId]}))}:base.mode==='bilingual'?{mode:'bilingual',hebrewGroups:groups,transliterationGroups:structuredClone(groups),...(base.includeTranslation?{includeTranslation:true}:{}),...(base.layers?{layers:structuredClone(base.layers)}:{}),...(base.arrangement?{arrangement:base.arrangement}:{}),...(base.rowOrder?{rowOrder:[...base.rowOrder]}:{})}:{mode:base.mode,englishGroups:groups};
  if(!variant)return pageBase;
  const selected=new Set(blockIds);if(base.mode==='bilingual'&&base.includeTranslation)for(const block of blocks){const translation=source.blocks.find(candidate=>candidate.kind==='translation-en'&&candidate.pairedBlockIds?.[0]===block.id);if(translation)selected.add(translation.id)}const overrides=variant.overrides.filter(override=>override.sourceId===sourceId&&selected.has(override.blockId));
  return overrides.length?{mode:'local-variant',label:variant.label,...(variant.reason?{reason:variant.reason}:{}),base:pageBase,overrides:structuredClone(overrides)}:pageBase;

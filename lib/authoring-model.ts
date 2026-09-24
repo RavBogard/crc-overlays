@@ -168,6 +168,17 @@ export function resolveSourceBoundaries(value:AuthoringSource):AuthoringSource{
  return {...value,blocks:[...value.blocks,...derived]};
 }
 function source(id:string,snapshots:AuthoringSource[]=[]){return resolveSourceBoundaries(rawSource(id,snapshots))}
+/**
+ * G9 - an English passage that is not a translation (original-en, or a source's own source-en)
+ * may stand in a bilingual selection beside Hebrew and transliteration blocks, in block order: an
+ * English reading followed by its Hebrew chatimah. It adds nothing to the Hebrew or transliteration
+ * channel and always shows, as an English row of its own; the translation layer governs only the
+ * translations of the Hebrew blocks. A selection with no such passage renders exactly as before.
+ */
+export const englishOnly=(block:SourceBlock|undefined)=>block?.kind==='original-en'||block?.kind==='source-en';
+function selectedBlock(sourceId:string,blockId:string,snapshots:AuthoringSource[]=[]){return source(sourceId,snapshots).blocks.find(block=>block.id===blockId)}
+/** Whether a bilingual selection holds an English-only passage (G9). */
+export function hasEnglishOnly(content:Pick<BilingualContent,'hebrewGroups'>,snapshots:AuthoringSource[]=[]){return content.hebrewGroups.some(group=>group.blockIds.some(blockId=>englishOnly(selectedBlock(group.sourceId,blockId,snapshots))))}
 function parseGroups(value:unknown,label:string,kind:SourceBlock['kind'],snapshots:AuthoringSource[]=[]){
  if(!Array.isArray(value)||value.length<1||value.length>24)throw new AuthoringError('invalid_input',`${label} must contain 1-24 groups`);
  return value.map((raw,index)=>{
@@ -180,7 +191,7 @@ function parseGroups(value:unknown,label:string,kind:SourceBlock['kind'],snapsho
   for(const blockId of blockIds){
    const block=selected.blocks.find(candidate=>candidate.id===blockId);
    if(!block)throw new AuthoringError('unknown_block',`Block ${blockId} does not belong to ${sourceId}`,400);
-   const matches=kind==='source-en'?(block.kind==='source-en'||(block.kind==='bilingual'&&Boolean(block.en))):block.kind===kind;
+   const matches=kind==='source-en'?(block.kind==='source-en'||(block.kind==='bilingual'&&Boolean(block.en))):kind==='bilingual'?block.kind==='bilingual'||englishOnly(block):block.kind===kind;
    if(!matches)throw new AuthoringError('invalid_channel',`Block ${blockId} is not ${kind}`);
   }
   return {sourceId,blockIds};
@@ -198,6 +209,8 @@ export function parseContent(value:unknown,snapshots:AuthoringSource[]=[]):Draft
   const transliterationSequence=sequence(transliterationGroups);
   if(new Set(hebrewSequence).size!==hebrewSequence.length||new Set(transliterationSequence).size!==transliterationSequence.length)throw new AuthoringError('repeated_source_block','A source block may be selected only once per language');
   if(JSON.stringify(hebrewSequence)!==JSON.stringify(transliterationSequence))throw new AuthoringError('mismatched_source_coverage','Hebrew and transliteration must select the same ordered source blocks');
+  // G9 - English-only passages ride beside Hebrew; English alone is an English graphic.
+  if(!hebrewGroups.some(group=>group.blockIds.some(blockId=>!englishOnly(selectedBlock(group.sourceId,blockId,snapshots)))))throw new AuthoringError('english_only_selection','Every selected block is English only. Use mode original-en (or source-en for a source\'s own English) for an English graphic.');
   if(input.includeTranslation!==undefined&&typeof input.includeTranslation!=='boolean')throw new AuthoringError('invalid_input','includeTranslation must be boolean');
   let layers:TextLayer[]=input.includeTranslation?['he','tr','en']:['he','tr'];
   if(input.layers!==undefined){
@@ -254,7 +267,10 @@ function translationRuns(pairs:Array<{sourceId:string;blockId:string}>,snapshots
  const result:Array<{sourceId:string;block:SourceBlock;pairIds:string[]}>=[];
  for(let offset=0;offset<pairs.length;){
   const first=pairs[offset];
-  const matches=source(first.sourceId,snapshots).blocks.filter(block=>block.kind==='translation-en'&&block.pairedBlockIds?.[0]===first.blockId);
+  const blocks=source(first.sourceId,snapshots).blocks;
+  // G9 - an English-only passage is its own English: it is shown as it stands, never translated.
+  if(englishOnly(blocks.find(block=>block.id===first.blockId))){offset++;continue}
+  const matches=blocks.filter(block=>block.kind==='translation-en'&&block.pairedBlockIds?.[0]===first.blockId);
   if(matches.length!==1)throw new AuthoringError('missing_translation','Select complete blessings with authorized English translations');
   const block=matches[0], pairIds=block.pairedBlockIds!;
   if(!block.en||!pairIds.length||pairIds.some((id,index)=>pairs[offset+index]?.sourceId!==first.sourceId||pairs[offset+index]?.blockId!==id))throw new AuthoringError('partial_translation','English requires complete, ordered blessing pairs');
@@ -312,6 +328,7 @@ function renderGroup(group:SourceGroup,channel:'he'|'tr'|'en',snapshots:Authorin
   const block=selected.blocks.find(candidate=>candidate.id===id);
   const value=overrides.find(item=>item.sourceId===group.sourceId&&item.blockId===id&&item.channel===channel)?.localText??block?.[channel];
   if(channel==='he'&&value===undefined&&transliterationOnly(block))return [];
+  if(channel!=='en'&&value===undefined&&englishOnly(block))return [];
   if(typeof value!=='string'||!value)throw new AuthoringError('missing_source_channel',`Source block ${id} lacks ${channel}`);
   return [value];
  }).join(' ');
@@ -355,6 +372,42 @@ function englishRunTexts(content:BilingualContent,snapshots:AuthoringSource[]=[]
 }
 
 /**
+ * G9 - the English a bilingual selection shows, in block order: every English-only passage and,
+ * when the translation layer is lit, every translation run at its first block.
+ */
+function englishInOrder(content:BilingualContent,snapshots:AuthoringSource[]=[],overrides:LocalVariantOverride[]=[],withTranslation=true){
+ const english=(sourceId:string,block:SourceBlock)=>overrides.find(item=>item.sourceId===sourceId&&item.blockId===block.id&&item.channel==='en')?.localText??block.en!;
+ const runs=withTranslation?translationSelections(content,snapshots):[];
+ return content.hebrewGroups.flatMap(group=>group.blockIds.flatMap(blockId=>{
+  const block=selectedBlock(group.sourceId,blockId,snapshots);
+  if(englishOnly(block))return [{sourceId:group.sourceId,pairIds:[blockId],englishOnly:true,text:english(group.sourceId,block!)}];
+  const run=runs.find(item=>item.sourceId===group.sourceId&&item.pairIds[0]===blockId);
+  return run?[{sourceId:run.sourceId,pairIds:run.pairIds,englishOnly:false,text:english(run.sourceId,run.block)}]:[];
+ }));
+}
+/**
+ * G9 - a bilingual selection cut where English-only passages begin and end: each English run is
+ * its blocks, each Hebrew run is a bilingual selection of its own (Hebrew and transliteration
+ * groups cut at the same places, so they still cover the same blocks). A selection with no
+ * English-only passage is one run, the content itself.
+ */
+function englishOnlyRuns(content:BilingualContent,snapshots:AuthoringSource[]=[]):Array<{english:true;blocks:{sourceId:string;block:SourceBlock}[]}|{english:false;content:BilingualContent}>{
+ if(!hasEnglishOnly(content,snapshots))return [{english:false,content}];
+ const cut=(groups:SourceGroup[])=>{
+  const runs:{english:boolean;groups:SourceGroup[];blocks:{sourceId:string;block:SourceBlock}[]}[]=[];
+  for(const group of groups){let current:SourceGroup|null=null;for(const blockId of group.blockIds){
+   const block=selectedBlock(group.sourceId,blockId,snapshots)!,english=englishOnly(block);
+   let run=runs.at(-1);if(!run||run.english!==english){run={english,groups:[],blocks:[]};runs.push(run);current=null}
+   if(!current){current={sourceId:group.sourceId,blockIds:[]};run.groups.push(current)}
+   current.blockIds.push(blockId);run.blocks.push({sourceId:group.sourceId,block});
+  }}
+  return runs;
+ };
+ const hebrew=cut(content.hebrewGroups),transliteration=cut(content.transliterationGroups);
+ return hebrew.map((run,index)=>run.english?{english:true as const,blocks:run.blocks}:{english:false as const,content:{...content,hebrewGroups:run.groups,transliterationGroups:transliteration[index].groups}});
+}
+
+/**
  * C6. A panel graphic is a list of rows, and the two arrangements are two ways of cutting the
  * same passages into rows: **Together** gives each passage its own row carrying every lit layer;
  * **In blocks** gives each slide one row per lit layer, so the whole slide's Hebrew stands
@@ -372,13 +425,24 @@ function composeContentRows(draft:Draft,content:BilingualContent,overrides:Local
   // Blocks means contiguous language paragraphs, not a Hebrew/transliteration pair for every
   // selection group. Real boundaries remain visible as paragraphs; no source selection changes.
   // The rows follow the graphic's row order; the default is Hebrew, transliteration, translation.
-  const block:Record<TextLayer,()=>{he:string;tr:string;en:string}>={
-   he:()=>({he:joinGroupParagraphs(content.hebrewGroups,'he',snapshots,overrides),tr:'',en:''}),
-   tr:()=>({he:'',tr:joinGroupParagraphs(content.transliterationGroups,'tr',snapshots,overrides),en:''}),
-   en:()=>({he:'',tr:'',en:englishRunTexts(content,snapshots,overrides).map(run=>run.text).join('\n\n')}),
-  };
-  for(const layer of textRowOrder(content))if(layers.includes(layer)){const row=block[layer]();if(row.he||row.tr||row.en)rows.push(row)}
+  // G9 - an English-only passage stands as one English row where it falls; the Hebrew on either
+  // side of it is arranged in blocks on its own.
+  for(const part of englishOnlyRuns(content,snapshots)){
+   if(part.english){rows.push({he:'',tr:'',en:part.blocks.map(({sourceId,block})=>english(sourceId,block)).join('\n\n')});continue}
+   const run=part.content;
+   const block:Record<TextLayer,()=>{he:string;tr:string;en:string}>={
+    he:()=>({he:joinGroupParagraphs(run.hebrewGroups,'he',snapshots,overrides),tr:'',en:''}),
+    tr:()=>({he:'',tr:joinGroupParagraphs(run.transliterationGroups,'tr',snapshots,overrides),en:''}),
+    en:()=>({he:'',tr:'',en:englishRunTexts(run,snapshots,overrides).map(item=>item.text).join('\n\n')}),
+   };
+   for(const layer of textRowOrder(content))if(layers.includes(layer)){const row=block[layer]();if(row.he||row.tr||row.en)rows.push(row)}
+  }
   return rows;
+ }
+ // G9 - Together, an English-only passage is a row of its own English, in block order.
+ if(hasEnglishOnly(content,snapshots)){
+  if(layers.includes('en'))return englishInOrder(content,snapshots,overrides).map(item=>item.englishOnly?{he:'',tr:'',en:item.text}:{he:text(item.sourceId,item.pairIds,'he'),tr:text(item.sourceId,item.pairIds,'tr'),en:item.text});
+  return content.hebrewGroups.flatMap(group=>group.blockIds.map(blockId=>{const block=selectedBlock(group.sourceId,blockId,snapshots);return englishOnly(block)?{he:'',tr:'',en:english(group.sourceId,block!)}:{he:text(group.sourceId,[blockId],'he'),tr:text(group.sourceId,[blockId],'tr'),en:''}}));
  }
  if(layers.includes('en'))return translationSelections(content,snapshots).map(({sourceId,block,pairIds})=>({he:text(sourceId,pairIds,'he'),tr:text(sourceId,pairIds,'tr'),en:english(sourceId,block)}));
  return content.hebrewGroups.flatMap(group=>group.blockIds.map(blockId=>({he:text(group.sourceId,[blockId],'he'),tr:text(group.sourceId,[blockId],'tr'),en:''})));
@@ -393,17 +457,22 @@ export function buildCue(draft:Draft):AuthoringCue{
  // A corner card holds a line or two: Hebrew and its transliteration, or one English line. It
  // has no room for a third, translated layer, and dropping a lit layer silently would not do.
  if(layoutDefinition(draft.layout)?.capabilities.translation===false&&content.mode==='bilingual'&&textLayers(content).includes('en'))throw new AuthoringError('corner_translation_unsupported','A corner card shows Hebrew and transliteration only. Turn off Translation, or use a lower third or a panel.',409);
+ // G9 - an English-only passage beside Hebrew is a panel row or a lower third's English line; no other card has a place for it.
+ const englishPassage=content.mode==='bilingual'&&hasEnglishOnly(content,draft.sourceSnapshots);
+ if(englishPassage&&draft.layout!=='left'&&draft.layout!=='right'&&draft.layout!=='bottom')throw new AuthoringError('english_passage_unsupported','This graphic has an English passage beside its Hebrew, which only a side panel or a lower third can show. Use layout left, right or bottom.',409);
  const texts:Record<string,string>={textTitle:draft.title};
  if(draft.accentTitle)texts.accentTextTitle=draft.accentTitle;
  const groups=content.mode==='bilingual'?[...content.hebrewGroups,...content.transliterationGroups]:content.mode==='original-en'||content.mode==='source-en'?content.englishGroups:[];
  const layers=content.mode==='bilingual'?textLayers(content):[];
  if(content.mode==='bilingual'){
   if(layers.includes('he')){const hebrew=content.hebrewGroups.map(group=>renderGroup(group,'he',draft.sourceSnapshots,overrides)).filter(Boolean).join('\n');if(hebrew)texts.textMainheb=hebrew}
-  if(layers.includes('tr'))texts.textMainEng=content.transliterationGroups.map(group=>renderGroup(group,'tr',draft.sourceSnapshots,overrides)).join('\n');
+  if(layers.includes('tr')){const transliteration=content.transliterationGroups.map(group=>renderGroup(group,'tr',draft.sourceSnapshots,overrides));texts.textMainEng=(englishPassage?transliteration.filter(Boolean):transliteration).join('\n')}
   // A lower third is two columns and cannot be arranged, so its translation is a third
   // line beneath them rather than a row in a list. Ruled available, not default (Daniel,
   // 2026-09-14): the chip is dark unless an author lights it.
-  if(layers.includes('en')&&draft.layout==='bottom')texts.textTranslation=englishRunTexts(content,draft.sourceSnapshots,overrides).map(item=>item.text).join(' ');
+  // G9 - on a lower third an English-only passage joins that line, in block order.
+  if(englishPassage&&draft.layout==='bottom')texts.textTranslation=englishInOrder(content,draft.sourceSnapshots,overrides,layers.includes('en')).map(item=>item.text).join(' ');
+  else if(layers.includes('en')&&draft.layout==='bottom')texts.textTranslation=englishRunTexts(content,draft.sourceSnapshots,overrides).map(item=>item.text).join(' ');
  }else if(content.mode==='original-en'||content.mode==='source-en')texts.textMain=content.englishGroups.map(group=>renderGroup(group,'en',draft.sourceSnapshots,overrides)).join('\n');
  // An empty custom text writes no main layer at all, so the renderer draws the title bar and
  // nothing else. `textParts` already skips a falsy channel; leaving the key out keeps the
@@ -457,7 +526,7 @@ function selectedPairs(content:DraftContent,snapshots:AuthoringSource[]=[]){
  return pairs;
 }
 export function sourceReferences(content:DraftContent,snapshots:AuthoringSource[]=[]){return selectedPairs(content,snapshots)}
-export function draftSetSelections(content:DraftContent,snapshots:AuthoringSource[]=[]):DraftSetSelection[]{if(content.mode==='local-variant')return draftSetSelections(content.base,snapshots);if(content.mode==='custom')return [];if(content.mode==='bilingual'){const base=content.hebrewGroups.flatMap(group=>group.blockIds.map(blockId=>({sourceId:group.sourceId,blockId,channels:['he','tr'] as VariantChannel[]})));if(!content.includeTranslation)return base;const baseKeys=new Set(base.map(item=>JSON.stringify([item.sourceId,item.blockId])));return [...base,...selectedPairs(content,snapshots).filter(item=>!baseKeys.has(JSON.stringify([item.sourceId,item.blockId]))).map(item=>({...item,channels:['en'] as VariantChannel[]}))]}return content.englishGroups.flatMap(group=>group.blockIds.map(blockId=>({sourceId:group.sourceId,blockId,channels:['en'] as VariantChannel[]})))}
+export function draftSetSelections(content:DraftContent,snapshots:AuthoringSource[]=[]):DraftSetSelection[]{if(content.mode==='local-variant')return draftSetSelections(content.base,snapshots);if(content.mode==='custom')return [];if(content.mode==='bilingual'){const base=content.hebrewGroups.flatMap(group=>group.blockIds.map(blockId=>({sourceId:group.sourceId,blockId,channels:(englishOnly(selectedBlock(group.sourceId,blockId,snapshots))?['en']:['he','tr']) as VariantChannel[]})));if(!content.includeTranslation)return base;const baseKeys=new Set(base.map(item=>JSON.stringify([item.sourceId,item.blockId])));return [...base,...selectedPairs(content,snapshots).filter(item=>!baseKeys.has(JSON.stringify([item.sourceId,item.blockId]))).map(item=>({...item,channels:['en'] as VariantChannel[]}))]}return content.englishGroups.flatMap(group=>group.blockIds.map(blockId=>({sourceId:group.sourceId,blockId,channels:['en'] as VariantChannel[]})))}
 export function sourceSnapshotsFor(content:DraftContent,snapshots:AuthoringSource[]=[]){return [...new Set(selectedPairs(content,snapshots).map(pair=>pair.sourceId))].sort().map(id=>structuredClone(rawSource(id,snapshots)))}
 export function sourceBlockFor(sourceId:string,blockId:string,snapshots:AuthoringSource[]=[]){const block=source(sourceId,snapshots).blocks.find(item=>item.id===blockId);if(!block)throw new AuthoringError('unknown_block',`Block ${blockId} does not belong to ${sourceId}`,400);return block}
 export function sourcePinFor(content:DraftContent,snapshots:AuthoringSource[]=[],feedSha256=sourcePack.authority.feedSha256):SourcePin{
