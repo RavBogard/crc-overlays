@@ -19,6 +19,26 @@ export type TemplateLookSummary = { id: string; layout: TemplateLookLayout; impo
 export type TemplateLook = { id: string; layout: TemplateLookLayout; label: string };
 
 
+/**
+ * R-A6 - the editor's named text sizes (app/author/look-drawer.tsx densityOptions), so an agent
+ * asks for "large" instead of knowing 42/35/34. Comfortable is the template's own sizes, stored
+ * as absent. tests/mcp-a1.test.ts holds the two lists equal.
+ */
+export const TEXT_SIZE_PRESETS = {
+  comfortable: { label: "Comfortable", sizes: {} },
+  large: { label: "Large print", sizes: { hebrewFontSize: 42, transliterationFontSize: 35, titleFontSize: 34 } },
+  compact: { label: "Compact", sizes: { hebrewFontSize: 34, transliterationFontSize: 28, titleFontSize: 28 } },
+} as const;
+export type TextSizePreset = keyof typeof TEXT_SIZE_PRESETS;
+export const TEXT_SIZE_IDS = Object.keys(TEXT_SIZE_PRESETS) as TextSizePreset[];
+type TextSizes = { hebrewFontSize?: number; transliterationFontSize?: number; titleFontSize?: number };
+/** The presentation with a preset's three sizes in place of whatever sizes it had; nothing else moves. */
+export function withTextSize<T extends TextSizes>(presentation: T, preset: TextSizePreset): T {
+  const { hebrewFontSize, transliterationFontSize, titleFontSize, ...rest } = presentation;
+  void hebrewFontSize; void transliterationFontSize; void titleFontSize;
+  return { ...rest, ...TEXT_SIZE_PRESETS[preset].sizes } as T;
+}
+
 /** What this look puts on screen, in the operator's words. Never a cue name. */
 export function lookDescriptor(mode: TemplateLookMode, layout: TemplateLookLayout): string {
   if (mode === "custom") return layoutDefinition(layout)?.capabilities.oneBlockPerSlide ? "one line" : "custom text";

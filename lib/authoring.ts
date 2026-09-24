@@ -7,6 +7,8 @@ import {planDraftStyle,type DraftStyleOptions,type DraftStylePlan} from './autho
 import {withCreateDefaultBilingualBlocks} from './authoring-defaults';
 import {LAYER_ORDER,parseRowOrder} from './authoring-model';
 import {layoutLabel,templateLayoutFor} from './layout-label';
+import {TEXT_SIZE_IDS,TEXT_SIZE_PRESETS,templateLooks,withTextSize,type TemplateLookMode,type TextSizePreset} from './template-looks';
+import {CUSTOM_TEMPLATES,customTemplate,customTemplateProblems,describeCustomTemplate} from './custom-templates';
 // One source of truth for how much liturgy one panel holds, shared with the editor so a
 // selection warning and a server split can never disagree.
 import {PANEL_BLOCK_LIMIT,blockCharacters,panelCharacterBudget} from './panel-budget';
@@ -89,6 +91,29 @@ const unitNoteLikeOnly=(source:SearchSource)=>source.blocks.every(block=>block.k
 /** The printed section a unit belongs to: library metadata first, then a legacy section label. */
 const sourceSection=(source:SearchSource)=>{const index=typeof source.metadata?.sectionIndex==='number'?source.metadata.sectionIndex:null;const metadataTitle=typeof source.metadata?.sectionTitle==='string'?source.metadata.sectionTitle.trim():'';const legacyTitle=typeof source.section==='string'?source.section.trim():'';return {index,title:metadataTitle||legacyTitle||null}};
 const searchRank=(source:SearchSource,query:string)=>{if(!query)return 0;const name=normalized(source.name),opening=normalized((source.openingWords??[]).join(' ')),body=normalized(source.blocks.flatMap(block=>[block.he,block.tr,block.en]).join(' ')),metadata=normalized([source.id,source.section,...(source.aliases??[]),sourceBook(source).value,sourceBook(source).label,source.service].join(' '));if(name===query)return 0;if(name.startsWith(query))return 1;if(name.includes(query))return 2;if(opening.includes(query))return 3;if(body.includes(query))return 4;if(metadata.includes(query))return 5;return null};
+/** Browsable sources matching a normalized query, book and service, best rank first, then corpus order. */
+const matchSources=(query:string,book:string,service:string)=>browsableSources.map((raw,index)=>{const source=raw as SearchSource,rank=searchRank(source,query);return {source,index,rank}}).filter(item=>item.rank!==null&&(!book||[sourceBook(item.source).value,sourceBook(item.source).label].some(value=>normalized(value)===book))&&(!service||[sourceService(item.source).value,sourceService(item.source).label].some(value=>normalized(value)===service))).sort((a,b)=>a.rank!-b.rank!||a.index-b.index);
+const SEARCH_EXCERPT=60;
+const searchExcerpt=(value:string|undefined)=>{const flat=(value??'').replace(/\s+/g,' ').trim();return flat.length>SEARCH_EXCERPT?`${flat.slice(0,SEARCH_EXCERPT-1).trimEnd()}…`:flat};
+/**
+ * The MCP shape of a search: who a source is and what it can make, never its licence text or pins
+ * (one feed pin stays, so a result still says which corpus it came from). With blocks, each
+ * selectable block - derived slices included - with its first words; a translation block names
+ * the blocks it translates, which includeTranslation pulls in on its own.
+ */
+function compactSourceSearch(query:string,book:string,service:string,limit:number,includeBlocks:boolean){
+ const matches=matchSources(query,book,service),sources:unknown[]=[];
+ for(const {source:raw} of matches){
+  if(sources.length>=limit)break;
+  const source=includeBlocks?resolveSourceBoundaries(raw) as SearchSource:raw,blocks=source.blocks;
+  const sourceEnglish=(block:SourceBlock)=>block.kind==='source-en'||(block.kind==='bilingual'&&Boolean(block.en));
+  const candidate={id:source.id,name:source.name,section:source.section??null,bookValue:sourceBook(source).value,bookLabel:sourceBook(source).label,service:source.service??null,folio:sourceDisplay(source).folio,blockCount:blocks.length,kinds:[...new Set(blocks.map(block=>block.kind))],coverage:{bilingual:blocks.filter(block=>block.kind==='bilingual').length,originalEnglish:blocks.filter(block=>block.kind==='original-en').length,sourceEnglish:blocks.filter(sourceEnglish).length,translation:blocks.filter(block=>block.kind==='translation-en').length},
+   ...(includeBlocks?{blocks:blocks.map(block=>({id:block.id,kind:block.kind,text:searchExcerpt(block.tr||block.en||block.he),...(block.pairedBlockIds?{translates:block.pairedBlockIds}:{}),...(block.automatic===false?{automatic:false}:{}),...(block.noteLike?{noteLike:true}:{})}))}:{})};
+  if(jsonBytes({sources:[...sources,candidate]})>MAX_SOURCE_RESPONSE_BYTES)break;
+  sources.push(candidate);
+ }
+ return {feedSha256:sourcePack.authority.feedSha256,sources,total:matches.length,truncated:sources.length<matches.length,...(includeBlocks?{}:{blocks:'Pass includeBlocks:true for block ids.'})};
+}
 const splitStableId=(draftId:string,draftVersion:number,part:string)=>{const hash=createHash('sha256').update(`crc-authoring-split-v1\u0000${draftId}\u0000${draftVersion}\u0000${part}`).digest('hex');return `${hash.slice(0,8)}-${hash.slice(8,12)}-5${hash.slice(13,16)}-${(parseInt(hash.slice(16,18),16)&0x3f|0x80).toString(16)}${hash.slice(18,20)}-${hash.slice(20,32)}`};
 const markedAttribution=(block:SourceBlock)=>/^~\s*\S/.test(block.en??'');
 function sourceSetSegments(source:SearchSource,mode:'bilingual'|'original-en'|'source-en',includeTranslation:boolean){
@@ -207,6 +232,30 @@ const baselineSourceCueId=(cueId:string)=>{for(const [source,destination] of sta
 const workspaceCatalogCue=(cueId:string)=>baselineCatalogForWorkspace().find(cue=>cue.id===cueId)??baselineCues.find(cue=>cue.id===cueId);
 /** CRC's editable model for the graphic behind this workspace's id, under this workspace's name. */
 const editableFromWorkspaceBaseline=(cueId:string):EditableDraft=>{const editable=editableFromBaseline(baselineSourceCueId(cueId));const cue=workspaceCatalogCue(cueId);return cue?{...editable,name:cue.name}:editable};
+/** The `list_templates` rows: this workspace's visible baselines, and whether each imports as content. */
+const templateSummaries=()=>baselineCatalogForWorkspace().filter(cue=>!cue.hidden).map(cue=>{let importable=true;try{editableFromBaseline(baselineSourceCueId(cue.id))}catch{importable=false}return {id:cue.id,name:cue.name,layout:cue.layout as Layout,importable}});
+// R-A6 - a draft names a look, not a prayer. With no templateCueId the layout's look tile (the one
+// the editor offers first) supplies it, so an agent never has to call list_templates to create.
+const LOOK_MODES=new Set<string>(['bilingual','source-en','original-en','local-variant','custom']);
+function lookTemplateCueId(layout:Layout,mode:unknown){
+ const look=templateLooks(templateSummaries(),(typeof mode==='string'&&LOOK_MODES.has(mode)?mode:'bilingual') as TemplateLookMode).find(item=>item.layout===layout);
+ if(!look)throw new AuthoringError('unknown_template',`No template is available for the ${layoutLabel(layout)} layout here. Call list_templates and pass one of its ids as templateCueId.`,409);
+ return baselineSourceCueId(look.id);
+}
+const textSizeOf=(value:unknown)=>{if(value===undefined)return undefined;if(typeof value!=='string'||!(TEXT_SIZE_IDS as string[]).includes(value))throw new AuthoringError('invalid_input',`textSize must be ${TEXT_SIZE_IDS.join(', ')}`);return value as TextSizePreset};
+/**
+ * The create-time conveniences, resolved before the strict draft parser sees the input: a missing
+ * templateCueId becomes the layout's look, a workspace template id becomes the CRC baseline it
+ * copies (the parser knows only those), and a named text size becomes the three font sizes -
+ * under any size the caller set explicitly.
+ */
+function withDraftDefaults(data:Record<string,unknown>){
+ const {textSize:rawSize,...draft}=data;const textSize=textSizeOf(rawSize);
+ if(draft.templateCueId===undefined&&isLayoutId(draft.layout)){const content=draft.content as {mode?:unknown}|undefined;draft.templateCueId=lookTemplateCueId(draft.layout,content?.mode)}
+ else if(typeof draft.templateCueId==='string')draft.templateCueId=baselineSourceCueId(draft.templateCueId);
+ if(textSize){const explicit=draft.presentation&&typeof draft.presentation==='object'&&!Array.isArray(draft.presentation)?draft.presentation as Record<string,unknown>:{};draft.presentation={...withTextSize({...explicit},textSize),...Object.fromEntries(Object.entries(explicit).filter(([key])=>key.endsWith('FontSize')))}}
+ return draft;
+}
 
 export type AuthoringWorkspace={rehearsal:boolean;storage:'memory'|'postgres';label:string|null};
 type SharedLibraryReader={get(force?:boolean):Promise<SharedLibrarySnapshot>};
@@ -347,25 +396,40 @@ export function createAuthoringService(repo:AuthoringRepository,workspace:Author
    return result;
   }
   if(operation==='search_sources'){
-   keys(data,['query','book','service','limit']);const query=normalized(optionalString(data.query,'query',100));const book=normalized(optionalString(data.book,'book',100));const service=normalized(optionalString(data.service,'service',100));const limit=data.limit===undefined?20:integer(data.limit,'limit',1,50);
-   const matches=browsableSources.map((raw,index)=>{const source=raw as SearchSource,rank=searchRank(source,query);return {source,index,rank}}).filter(item=>item.rank!==null&&(!book||[sourceBook(item.source).value,sourceBook(item.source).label].some(value=>normalized(value)===book))&&(!service||[sourceService(item.source).value,sourceService(item.source).label].some(value=>normalized(value)===service))).sort((a,b)=>a.rank!-b.rank!||a.index-b.index);const summaries=[];for(const {source} of matches){const {blocks,...summary}=source;if(summaries.length>=limit)break;const sourceEnglish=(block:SourceBlock)=>block.kind==='source-en'||(block.kind==='bilingual'&&Boolean(block.en));const coverage={bilingual:blocks.filter(block=>block.kind==='bilingual').length,originalEnglish:blocks.filter(block=>block.kind==='original-en').length,sourceEnglish:blocks.filter(sourceEnglish).length,automaticSourceEnglish:blocks.filter(block=>sourceEnglish(block)&&block.automatic!==false).length,noteLikeEnglish:blocks.filter(block=>block.noteLike===true).length};const candidate={...summary,bookValue:sourceBook(source).value,bookLabel:sourceBook(source).label,display:sourceDisplay(source),blockCount:blocks.length,kinds:[...new Set(blocks.map(b=>b.kind))],coverage};if(jsonBytes({authority:sourcePack.authority,sources:[...summaries,candidate]})>MAX_SOURCE_RESPONSE_BYTES)break;summaries.push(candidate)}return {authority:sourcePack.authority,sources:summaries,truncated:summaries.length<matches.length};
+   keys(data,['query','book','service','limit','compact','includeBlocks']);const query=normalized(optionalString(data.query,'query',100));const book=normalized(optionalString(data.book,'book',100));const service=normalized(optionalString(data.service,'service',100));const limit=data.limit===undefined?20:integer(data.limit,'limit',1,50);
+   // R-A5 - compact drops the licence and pin blocks (repeated per source, most of a result) and
+   // includeBlocks lists each selectable block id with its first words, so create_draft needs no get_source.
+   if(optionalBoolean(data.compact,'compact')===true||optionalBoolean(data.includeBlocks,'includeBlocks')===true)return compactSourceSearch(query,book,service,limit,data.includeBlocks===true);
+   const matches=matchSources(query,book,service);const summaries=[];for(const {source} of matches){const {blocks,...summary}=source;if(summaries.length>=limit)break;const sourceEnglish=(block:SourceBlock)=>block.kind==='source-en'||(block.kind==='bilingual'&&Boolean(block.en));const coverage={bilingual:blocks.filter(block=>block.kind==='bilingual').length,originalEnglish:blocks.filter(block=>block.kind==='original-en').length,sourceEnglish:blocks.filter(sourceEnglish).length,automaticSourceEnglish:blocks.filter(block=>sourceEnglish(block)&&block.automatic!==false).length,noteLikeEnglish:blocks.filter(block=>block.noteLike===true).length};const candidate={...summary,bookValue:sourceBook(source).value,bookLabel:sourceBook(source).label,display:sourceDisplay(source),blockCount:blocks.length,kinds:[...new Set(blocks.map(b=>b.kind))],coverage};if(jsonBytes({authority:sourcePack.authority,sources:[...summaries,candidate]})>MAX_SOURCE_RESPONSE_BYTES)break;summaries.push(candidate)}return {authority:sourcePack.authority,sources:summaries,truncated:summaries.length<matches.length};
   }
   if(operation==='get_source'){keys(data,['sourceId']);const id=string(data.sourceId,'sourceId');const canonical=sourcePack.sources.find(s=>s.id===id);if(!canonical)throw new AuthoringError('unknown_source','Unknown authoring source',404);const source=resolveSourceBoundaries(canonical);const result={authority:sourcePack.authority,source,display:sourceDisplay(source)};if(jsonBytes(result)>MAX_SOURCE_RESPONSE_BYTES)throw new AuthoringError('source_too_large','This source is too large for direct browser authoring',413);return result;}
   // Both listings enumerate this workspace's own catalog - baselineCatalogForWorkspace(), the
   // same seam lib/server.ts mergePublishedCatalog reads for the live catalog - so a TBI editor
   // never sees a CRC id. Origin detection still needs the CRC source id, so baselineSourceCueId
   // translates a workspace id back before asking editableFromBaseline; on CRC that is a no-op.
-  if(operation==='list_templates'){keys(data,[]);return {templates:baselineCatalogForWorkspace().filter(cue=>!cue.hidden).map(cue=>{let importable=true;try{editableFromBaseline(baselineSourceCueId(cue.id))}catch{importable=false}return {id:cue.id,name:cue.name,layout:cue.layout,importable}})};}
+  // R-A6 - `looks` is the editor's tile per layout, the template create_draft picks when none is
+  // named; `textSizes` are the editor's named sizes. `templates` stays for existing callers.
+  if(operation==='list_templates'){keys(data,['mode']);if(data.mode!==undefined&&!LOOK_MODES.has(String(data.mode)))throw new AuthoringError('invalid_input','mode must be bilingual, source-en, original-en, local-variant, or custom');const templates=templateSummaries(),mode=(data.mode??'bilingual') as TemplateLookMode;return {templates,looks:templateLooks(templates,mode).map(look=>({layout:look.layout,templateCueId:look.id,label:look.label,default:true})),textSizes:TEXT_SIZE_IDS.map(id=>({id,label:TEXT_SIZE_PRESETS[id].label,...TEXT_SIZE_PRESETS[id].sizes}))};}
+  if(operation==='list_custom_templates'){keys(data,[]);return {templates:CUSTOM_TEMPLATES.map(describeCustomTemplate)};}
+  // R-A6 - a speaker card, announcement, citation, start time or corner card from its guided
+  // form: the values compose into the same custom-text draft the editor's form makes.
+  if(operation==='compose_custom_draft'){
+   keys(data,['templateId','values','layout','name','templateCueId','textSize','presentation']);const templateId=string(data.templateId,'templateId',40);const template=customTemplate(templateId);if(!template)throw new AuthoringError('unknown_custom_template',`There is no custom template called ${templateId}. Call list_custom_templates for the ${CUSTOM_TEMPLATES.length} that exist.`,404);
+   const values=object(data.values,'values');const problems=customTemplateProblems(template,values);if(problems.length)throw new AuthoringError('invalid_input',problems.join(' '));
+   const composed=template.compose(Object.fromEntries(Object.entries(values).map(([key,value])=>[key,String(value)])));if(!composed.text.trim())throw new AuthoringError('invalid_input',`${template.label} would show only its heading. Fill in the rest of its fields (${template.fields.map(field=>field.key).join(', ')}).`);
+   return execute('create_draft',{name:optionalString(data.name,'name',80)??composed.name,title:composed.title,layout:data.layout??template.layout,...(data.templateCueId!==undefined?{templateCueId:data.templateCueId}:{}),...(data.textSize!==undefined?{textSize:data.textSize}:{}),content:{mode:'custom',text:composed.text},presentation:data.presentation??{}},who);
+  }
   if(operation==='list_catalog'){
-   keys(data,[]);const [allDrafts,published]=await Promise.all([repo.listDrafts(),repo.published()]);const archivedIds=new Set(allDrafts.filter(draft=>draft.archivedAt).map(draft=>draft.id));const drafts=allDrafts.filter(draft=>!draft.archivedAt);const active=new Map(baselineCatalogForWorkspace().filter(cue=>!archivedIds.has(cue.id)).map(cue=>[cue.id,cue]));for(const cue of published)if(!archivedIds.has(cue.id))active.set(cue.id,cue);const byId=new Map(drafts.map(draft=>[draft.id,draft]));
-   return {cues:[...active.values()].map(cue=>{const draft=byId.get(cue.id);let origin:'canonical'|'variant'|'local'|'legacy'='legacy';const authoredOrigin=(cue as AuthoringCue).authoring?.origin;if(authoredOrigin)origin=authoredOrigin;if(origin==='legacy')try{editableFromBaseline(baselineSourceCueId(cue.id));origin='canonical'}catch{}const editAction=draft?'open':origin==='canonical'?'import':'duplicate';return {id:cue.id,name:cue.name,title:cue.texts.textTitle,layout:cue.layout,hidden:Boolean(cue.hidden),origin,draftId:draft?.id??null,draftVersion:draft?.version??null,activeRevision:draft?.activeRevision??null,canEdit:true,editAction,canDuplicate:true}})};
+   keys(data,['query','layout']);const catalogQuery=normalized(optionalString(data.query,'query',100));const catalogLayout=data.layout;if(catalogLayout!==undefined&&!isLayoutId(catalogLayout))throw new AuthoringError('invalid_input',`layout must be ${layoutChoices()}`);const [allDrafts,published]=await Promise.all([repo.listDrafts(),repo.published()]);const archivedIds=new Set(allDrafts.filter(draft=>draft.archivedAt).map(draft=>draft.id));const drafts=allDrafts.filter(draft=>!draft.archivedAt);const active=new Map(baselineCatalogForWorkspace().filter(cue=>!archivedIds.has(cue.id)).map(cue=>[cue.id,cue]));for(const cue of published)if(!archivedIds.has(cue.id))active.set(cue.id,cue);const byId=new Map(drafts.map(draft=>[draft.id,draft]));
+   return {cues:[...active.values()].filter(cue=>(!catalogLayout||cue.layout===catalogLayout)&&(!catalogQuery||normalized([cue.id,cue.name,cue.texts.textTitle].join(' ')).includes(catalogQuery))).map(cue=>{const draft=byId.get(cue.id);let origin:'canonical'|'variant'|'local'|'legacy'='legacy';const authoredOrigin=(cue as AuthoringCue).authoring?.origin;if(authoredOrigin)origin=authoredOrigin;if(origin==='legacy')try{editableFromBaseline(baselineSourceCueId(cue.id));origin='canonical'}catch{}const editAction=draft?'open':origin==='canonical'?'import':'duplicate';return {id:cue.id,name:cue.name,title:cue.texts.textTitle,layout:cue.layout,hidden:Boolean(cue.hidden),origin,draftId:draft?.id??null,draftVersion:draft?.version??null,activeRevision:draft?.activeRevision??null,canEdit:true,editAction,canDuplicate:true}})};
   }
   if(operation==='list_drafts'){
-   keys(data,['compact','query','service','book','layout','limit','cursor']);
-   const compactFields=['query','service','book','layout','limit','cursor'].some(field=>data[field]!==undefined);
+   keys(data,['compact','query','service','book','layout','limit','cursor','includeArchived']);
+   const compactFields=['query','service','book','layout','limit','cursor','includeArchived'].some(field=>data[field]!==undefined);
    if(data.compact!==undefined&&typeof data.compact!=='boolean')throw new AuthoringError('invalid_input','compact must be boolean');
-   if(data.compact===false&&compactFields)throw new AuthoringError('invalid_input','filters require compact results');
-   const drafts=(await repo.listDrafts()).filter(draft=>!draft.archivedAt);
+   if(data.compact===false&&compactFields)throw new AuthoringError('invalid_input','filters require compact results; drop compact:false, or drop the filters to read every full record');
+   const includeArchived=optionalBoolean(data.includeArchived,'includeArchived')===true;
+   const drafts=(await repo.listDrafts()).filter(draft=>includeArchived||!draft.archivedAt);
    if(data.compact!==true&&!compactFields)return {drafts};
    const layout=data.layout;if(layout!==undefined&&!isLayoutId(layout))throw new AuthoringError('invalid_input',`layout must be ${layoutChoices()}`);
    const input:DraftCatalogInput={query:optionalString(data.query,'query',100),service:optionalString(data.service,'service',100),book:optionalString(data.book,'book',100),layout,limit:data.limit===undefined?undefined:integer(data.limit,'limit',1,50),cursor:optionalString(data.cursor,'cursor',200)};
@@ -374,7 +438,14 @@ export function createAuthoringService(repo:AuthoringRepository,workspace:Author
   if(operation==='list_archived_drafts'){keys(data,[]);return {drafts:(await repo.listDrafts()).filter(draft=>Boolean(draft.archivedAt))};}
   // Wording changes: every edited siddur line in this workspace, archived drafts flagged, with the exact source text beside it. Read only (lib/wording-changes.ts).
   if(operation==='list_wording_changes'){keys(data,[]);const changes=wordingChanges(await repo.listDrafts());return {changes,count:changes.length};}
-  if(operation==='get_draft'){keys(data,['draftId']);const draft=await requiredDraft(repo,string(data.draftId,'draftId'));return {draft};}
+  // R-A5 - `rendered` says what the graphic reads on screen, built as a preview would build it but
+  // stored nowhere, without the source snapshots and pins that make the full record ~9 KB.
+  if(operation==='get_draft'){
+   keys(data,['draftId','view']);const draft=await requiredDraft(repo,string(data.draftId,'draftId'));if(data.view===undefined||data.view==='full')return {draft};
+   if(data.view!=='rendered')throw new AuthoringError('invalid_input','view must be full or rendered');
+   const cue=buildCue(draft);const published=draft.activeRevision!==null;
+   return {draft:{id:draft.id,version:draft.version,name:draft.name,title:draft.title,layout:draft.layout,templateCueId:draft.templateCueId,mode:draft.content.mode,presentation:draft.presentation,activeRevision:draft.activeRevision,activeVersion:draft.activeDraftVersion,published,dirty:published&&draft.activeDraftVersion!==draft.version,archived:Boolean(draft.archivedAt),set:draft.draftSetId?{id:draft.draftSetId,index:draft.setIndex??0,count:draft.setCount??0}:null},rendered:{texts:Object.fromEntries(Object.entries(cue.texts).filter(([,value])=>typeof value==='string'&&value.trim())),...(cue.contentRows?{contentRows:cue.contentRows}:{}),...(cue.rowOrder?{rowOrder:cue.rowOrder}:{})},validation:previewValidation(cue),fullRecord:"get_draft{view:'full'}"};
+  }
   if(operation==='archive_draft'||operation==='restore_draft'){keys(data,['draftId','expectedVersion']);const id=string(data.draftId,'draftId'),expected=integer(data.expectedVersion,'expectedVersion',1);const current=await requiredDraft(repo,id);if(current.version!==expected)throw conflict();if(current.draftSetId)throw new AuthoringError('set_member_archive','Archive or restore multipart graphics as a complete set',409);if(operation==='archive_draft'&&current.archivedAt)return {draft:current};if(operation==='restore_draft'&&!current.archivedAt)return {draft:current};const draft=await repo.setArchived(id,expected,operation==='archive_draft',who);if(!draft)throw conflict();return {draft};}
   if(operation==='archive_draft_set'||operation==='restore_draft_set'){keys(data,['setId','expectedDraftIds']);const setId=string(data.setId,'setId');if(!Array.isArray(data.expectedDraftIds)||!data.expectedDraftIds.length||data.expectedDraftIds.length>200)throw new AuthoringError('invalid_input','expectedDraftIds must contain 1-200 draft IDs');const expectedDraftIds=data.expectedDraftIds.map((id,index)=>string(id,`expectedDraftIds[${index}]`,160));const drafts=await repo.setDraftSetArchived(setId,expectedDraftIds,operation==='archive_draft_set',who);return {set:{id:setId,count:drafts.length,draftIds:drafts.map(draft=>draft.id)},drafts};}
   if(operation==='create_source_draft_set'){
@@ -384,7 +455,7 @@ export function createAuthoringService(repo:AuthoringRepository,workspace:Author
    if(data.includeTranslation!==undefined&&typeof data.includeTranslation!=='boolean')throw new AuthoringError('invalid_input','includeTranslation must be boolean');
    const includeTranslation=data.includeTranslation===true;if(mode!=='bilingual'&&includeTranslation)throw new AuthoringError('invalid_input','includeTranslation is available only for bilingual sources');
    if(!isLayoutId(data.layout))throw new AuthoringError('invalid_input',`layout must be ${layoutChoices()}`);const layout:Layout=data.layout;
-   const templateCueId=baselineSourceCueId(string(data.templateCueId,'templateCueId',80));const template=baselineCues.find(cue=>cue.id===templateCueId);if(!template)throw new AuthoringError('unknown_template','Unknown baseline cue template',404);if(template.layout!==templateLayoutFor(layout))throw new AuthoringError('template_layout_mismatch','Template cue layout must match the draft layout');
+   const templateCueId=data.templateCueId===undefined?lookTemplateCueId(layout,mode):baselineSourceCueId(string(data.templateCueId,'templateCueId',80));const template=baselineCues.find(cue=>cue.id===templateCueId);if(!template)throw new AuthoringError('unknown_template','Unknown baseline cue template',404);if(template.layout!==templateLayoutFor(layout))throw new AuthoringError('template_layout_mismatch','Template cue layout must match the draft layout');
    const pages=sourceSetPages(source,mode,includeTranslation,layout);const setId=randomUUID();const count=pages.length;const width=Math.max(2,String(count).length);const now=Date.now();
    let drafts=pages.map((page,index)=>{
     const groups=mode==='bilingual'?[{sourceId,blockIds:page.map(block=>block.id)}]:page.map(block=>({sourceId,blockIds:[block.id]}));
@@ -409,7 +480,7 @@ export function createAuthoringService(repo:AuthoringRepository,workspace:Author
   const draftSetManifest={version:1 as const,selections:drafts.flatMap(draft=>draftSetSelections(draft.content,draft.sourceSnapshots))};drafts=drafts.map(draft=>({...draft,draftSetManifest:structuredClone(draftSetManifest)}));try{const inserted=await repo.insertDraftSet(drafts);return {drafts:inserted,set:{id:setId,name:original.name,count,draftIds:inserted.map(draft=>draft.id)},splitFrom:origin,reused:false}}catch(error){const recovered=await existingSplit();if(recovered)return recovered;throw error}
  }
  if(operation==='create_draft'){
-   const rawContent=object(data.content,'content'),rawBase=rawContent.mode==='local-variant'?object(rawContent.base,'content.base'):rawContent,explicitArrangement=Object.hasOwn(rawBase,'arrangement');const parsed=parseEditable(data) as EditableDraft;const editable=explicitArrangement?parsed:{...parsed,content:withCreateDefaultBilingualBlocks(parsed.content)};const sourceSnapshots=sourceSnapshotsFor(editable.content);const now=Date.now(); const draft:Draft={...editable,id:newDraftId(),version:1,sourcePin:sourcePinFor(editable.content,sourceSnapshots),...(sourceSnapshots.length?{sourceSnapshots}:{}),activeRevision:null,activeDraftVersion:null,createdAt:now,updatedAt:now,createdBy:who,updatedBy:who};
+   const rawContent=object(data.content,'content'),rawBase=rawContent.mode==='local-variant'?object(rawContent.base,'content.base'):rawContent,explicitArrangement=Object.hasOwn(rawBase,'arrangement');const parsed=parseEditable(withDraftDefaults(data)) as EditableDraft;const editable=explicitArrangement?parsed:{...parsed,content:withCreateDefaultBilingualBlocks(parsed.content)};const sourceSnapshots=sourceSnapshotsFor(editable.content);const now=Date.now(); const draft:Draft={...editable,id:newDraftId(),version:1,sourcePin:sourcePinFor(editable.content,sourceSnapshots),...(sourceSnapshots.length?{sourceSnapshots}:{}),activeRevision:null,activeDraftVersion:null,createdAt:now,updatedAt:now,createdBy:who,updatedBy:who};
    const warnings=await duplicateNameWarnings(draft);
    return {draft:await repo.insertDraft(draft),warnings};
   }
@@ -428,9 +499,11 @@ export function createAuthoringService(repo:AuthoringRepository,workspace:Author
    keys(data,['setId']);const setId=string(data.setId,'setId'),drafts=(await repo.listDrafts()).filter(draft=>draft.draftSetId===setId).sort((a,b)=>(a.setIndex??0)-(b.setIndex??0));if(!drafts.length)throw new AuthoringError('unknown_draft_set','Draft set not found',404);const manifest=drafts.find(draft=>draft.draftSetManifest)?.draftSetManifest;if(!manifest)return {set:{id:setId,count:drafts.length,draftIds:drafts.map(draft=>draft.id)},status:'unknown',message:'This historical multipart draft predates retained source-selection manifests. Completeness cannot be verified automatically.',issues:[]};const expected=manifest.selections,current=drafts.flatMap(draft=>draftSetSelections(draft.content,draft.sourceSnapshots)),key=(item:DraftSetSelection)=>JSON.stringify([item.sourceId,item.blockId,item.channels]),counts=(items:DraftSetSelection[])=>{const result=new Map<string,number>();for(const item of items)result.set(key(item),(result.get(key(item))??0)+1);return result},expectedCounts=counts(expected),currentCounts=counts(current);const missing=expected.filter((item,index)=>expected.findIndex(candidate=>key(candidate)===key(item))===index&&(currentCounts.get(key(item))??0)<(expectedCounts.get(key(item))??0)),duplicated=current.filter((item,index)=>current.findIndex(candidate=>key(candidate)===key(item))===index&&(currentCounts.get(key(item))??0)>(expectedCounts.get(key(item))??0)),unknown=current.filter(item=>!expectedCounts.has(key(item)));const expectedKnown=expected.map(key),currentKnown=current.filter(item=>expectedCounts.has(key(item))).map(key),outOfOrder=!missing.length&&!duplicated.length&&!unknown.length&&JSON.stringify(currentKnown)!==JSON.stringify(expectedKnown);const issues=[...(missing.length?[{kind:'missing',selections:missing}]:[]),...(duplicated.length?[{kind:'duplicated',selections:duplicated}]:[]),...(unknown.length?[{kind:'unknown',selections:unknown}]:[]),...(outOfOrder?[{kind:'out-of-order',selections:current}]:[])];return {set:{id:setId,count:drafts.length,draftIds:drafts.map(draft=>draft.id)},status:issues.length?'needs-review':'complete',message:issues.length?'Review multipart source coverage before publication.':'Every expected source block and language channel appears exactly once in the approved order.',expected,current,issues};
   }
   if(operation==='duplicate_draft'){
-   keys(data,['draftId','cueId','name']);const draftId=optionalString(data.draftId,'draftId');const cueId=optionalString(data.cueId,'cueId');if(Boolean(draftId)===Boolean(cueId))throw new AuthoringError('invalid_input','Provide exactly one of draftId or cueId');
+   keys(data,['draftId','cueId','name','expectedVersion']);const draftId=optionalString(data.draftId,'draftId');const cueId=optionalString(data.cueId,'cueId');if(Boolean(draftId)===Boolean(cueId))throw new AuthoringError('invalid_input','Provide exactly one of draftId or cueId');
+   // Optional: pins the version being copied, so a copy is never taken of an edit the caller has not seen.
+   const expectedSourceVersion=data.expectedVersion===undefined?undefined:integer(data.expectedVersion,'expectedVersion',1);if(expectedSourceVersion!==undefined&&!draftId)throw new AuthoringError('invalid_input','expectedVersion goes with draftId; a catalog cue has no draft version');
    let editable:EditableDraft;let sourceKind:'draft'|'cue';let sourceId:string;let sourceSnapshots:Draft['sourceSnapshots'];let sharedFrom:Draft['sharedFrom'];let pinnedFeedSha256:string|undefined;
-   if(draftId){const sourceDraft=await requiredDraft(repo,draftId);assertSourcePin(sourceDraft);editable=editableOnly(sourceDraft);sourceSnapshots=structuredClone(sourceDraft.sourceSnapshots);sharedFrom=structuredClone(sourceDraft.sharedFrom);pinnedFeedSha256=sourceDraft.sourcePin.feedSha256;sourceKind='draft';sourceId=draftId}
+   if(draftId){const sourceDraft=await requiredDraft(repo,draftId);if(expectedSourceVersion!==undefined&&sourceDraft.version!==expectedSourceVersion)throw conflict();assertSourcePin(sourceDraft);editable=editableOnly(sourceDraft);sourceSnapshots=structuredClone(sourceDraft.sourceSnapshots);sharedFrom=structuredClone(sourceDraft.sharedFrom);pinnedFeedSha256=sourceDraft.sourcePin.feedSha256;sourceKind='draft';sourceId=draftId}
    else{sourceId=cueId!;sourceKind='cue';const authored=await repo.getDraft(sourceId);if(authored){assertSourcePin(authored);editable=editableOnly(authored);sourceSnapshots=structuredClone(authored.sourceSnapshots);pinnedFeedSha256=authored.sourcePin.feedSha256}else{editable=editableFromCatalogCue(sourceId);sourceSnapshots=sourceSnapshotsFor(editable.content)}}
    const requestedName=optionalString(data.name,'name',80);const copyName=requestedName??copyLabel(editable.name);const now=Date.now();const duplicate:Draft={...structuredClone(editable),name:copyName,id:newDraftId(),version:1,sourcePin:sourcePinFor(editable.content,sourceSnapshots,pinnedFeedSha256),activeRevision:null,activeDraftVersion:null,createdAt:now,updatedAt:now,createdBy:who,updatedBy:who,...(sourceSnapshots?{sourceSnapshots}:{}),...(sharedFrom?{sharedFrom}:{})};
    return {draft:await repo.insertDraft(duplicate),duplicatedFrom:{kind:sourceKind,id:sourceId}};
@@ -458,7 +531,9 @@ export function createAuthoringService(repo:AuthoringRepository,workspace:Author
    return {draft:{id:updated.draft.id,version:updated.draft.version,activeVersion:updated.draft.activeDraftVersion},dryRun:false,applied:true,...compact};
   }
   if(operation==='update_draft'){
-   keys(data,['draftId','expectedVersion','patch','refreshSourceIds']);const id=string(data.draftId,'draftId');const expected=integer(data.expectedVersion,'expectedVersion',1);const current=await requiredDraft(repo,id);if(current.version!==expected)throw conflict();
+   keys(data,['draftId','expectedVersion','patch','refreshSourceIds','textSize']);const id=string(data.draftId,'draftId');const expected=integer(data.expectedVersion,'expectedVersion',1);const current=await requiredDraft(repo,id);if(current.version!==expected)throw conflict();
+   // A named text size applies to the presentation the patch leaves in place, under any size the patch names.
+   const textSize=textSizeOf(data.textSize);if(textSize){const patch=data.patch===undefined?{}:object(data.patch,'patch'),explicit=patch.presentation===undefined?null:object(patch.presentation,'patch.presentation');data.patch={...patch,presentation:{...withTextSize({...(explicit??current.presentation)},textSize),...Object.fromEntries(Object.entries(explicit??{}).filter(([key])=>key.endsWith('FontSize')))}}}
    // A stale pin blocks every edit except the explicit rebase it asks for (gap D): a refresh that
    // names each stale source it keeps, or drops it from the selection. The new pin is rebuilt below.
    const requestedRefresh=data.refreshSourceIds===undefined?[]:sourceRefreshIds(data.refreshSourceIds);const stalePinSources=staleSourceIds(current);if(!requestedRefresh.length)assertSourcePin(current);if(requestedRefresh.length&&(!data.patch||typeof data.patch!=='object'||Array.isArray(data.patch)||!Object.hasOwn(data.patch,'content')))throw new AuthoringError('source_refresh_requires_content','refreshSourceIds requires a content selection in patch',400);
@@ -473,8 +548,15 @@ export function createAuthoringService(repo:AuthoringRepository,workspace:Author
    keys(data,['draftId','expectedVersion']);const draft=await versionedDraft(repo,string(data.draftId,'draftId'),integer(data.expectedVersion,'expectedVersion',1));assertSourcePin(draft);const cue=buildCue(draft);const validation=previewValidation(cue);const preview:PreviewRecord={id:randomUUID(),draftId:draft.id,draftVersion:draft.version,cueHash:cueHash(cue),cue,validation,review:null,createdAt:Date.now(),createdBy:who};await repo.insertPreview(preview);
    return {previewId:preview.id,draftVersion:draft.version,cue,cueHash:preview.cueHash,validation,previewPath:`/author?draft=${encodeURIComponent(draft.id)}`,fitContract:{viewport:{width:1920,height:1080},fontsReadyRequired:true,noOverflowRequired:true,browserReported:true,humanReviewRequired:true}};
   }
+  // A look at content before any draft exists. With includePreviewImage the same server browser
+  // fit_check_draft uses measures it and returns the frame; the verdict is stored nowhere, so it
+  // can never stand in for the review a publish needs.
   if(operation==='preview_content'){
-   return ephemeralCue(parseEditable(data) as EditableDraft,who);
+   const {includePreviewImage:rawImage,...draft}=data;const includePreviewImage=optionalBoolean(rawImage,'includePreviewImage')===true;
+   const preview=ephemeralCue(parseEditable(withDraftDefaults(draft)) as EditableDraft,who);if(!includePreviewImage)return preview;
+   const result=await serverFit(preview.cue,{includePreviewImage:true});
+   if(result.verdict==='unavailable')return {...preview,fitCheck:{verdict:'unavailable',reason:result.reason,message:FIT_CHECK_UNAVAILABLE}};
+   return {...preview,fitCheck:{verdict:result.verdict,fitErrors:result.fitErrors,warnings:result.warnings,fill:result.fill,artwork:result.artwork,measuredAt:result.measuredAt,rendererVersion:result.rendererVersion,stored:false},previewImage:result.previewImage??null,...(result.previewImageUnavailable?{previewImageUnavailable:result.previewImageUnavailable}:{})};
   }
   // Looking at a baseline graphic is not importing it: the cue is rebuilt from the same
   // baseline mapping `import_cue` would use, and a baseline the model refuses to manage
@@ -520,14 +602,26 @@ export function createAuthoringService(repo:AuthoringRepository,workspace:Author
   //
   // Every value is checked before anything is published, so a typo in the last field cannot
   // leave half the service published and half not.
+  // What save_slots reads and writes: every slot (or one service type's), its graphic, what it
+  // says now and the draft version expectedVersions can pin. Nothing here writes.
+  if(operation==='list_slots'){
+   keys(data,['serviceType']);const {SERVICE_TYPES,SLOTS,slotsForServiceType}=await import('./slots');const {slotCueRegister}=await import('./slot-catalog');
+   const serviceType=optionalString(data.serviceType,'serviceType',80);if(serviceType&&!SERVICE_TYPES.some(type=>type.id===serviceType))throw new AuthoringError('unknown_service_type',`There is no service type called ${serviceType}; they are ${SERVICE_TYPES.map(type=>type.id).join(', ')}.`,404);
+   const register=slotCueRegister();
+   const slots=await Promise.all((serviceType?slotsForServiceType(serviceType):SLOTS).map(async definition=>{const cueId=register.get(definition.key)??null;const draft=cueId?await repo.getDraft(cueId):null;return {key:definition.key,name:definition.name,kind:definition.kind,labels:definition.labels,cueId,minted:Boolean(draft),text:draft?.content.mode==='custom'?draft.content.text:'',version:draft?.version??null,published:Boolean(draft&&draft.activeRevision!==null)}}));
+   return {serviceTypes:SERVICE_TYPES.map(type=>({id:type.id,name:type.name,slotKeys:[...type.slotKeys]})),...(serviceType?{serviceType}:{}),slots};
+  }
   if(operation==='save_slots'){
-   keys(data,['serviceType','values']);
+   keys(data,['serviceType','values','expectedVersions']);
    const {SERVICE_TYPES,slotDefinition,slotTextProblems}=await import('./slots');
    const {slotCueRegister}=await import('./slot-catalog');
    const serviceType=string(data.serviceType,'serviceType',80);
    if(!SERVICE_TYPES.some(type=>type.id===serviceType))throw new AuthoringError('unknown_service_type','That service type does not exist',404);
    const values=object(data.values,'values');
    const register=slotCueRegister();
+   // Optional, per slot: the draft version list_slots reported. Any mismatch refuses the whole
+   // Save before anything publishes, so a caller never overwrites text somebody else just typed.
+   if(data.expectedVersions!==undefined){const expected=object(data.expectedVersions,'expectedVersions');for(const [key,version] of Object.entries(expected)){if(!Object.hasOwn(values,key))throw new AuthoringError('invalid_input',`expectedVersions names ${key}, which values does not save; drop it or add a value for it.`);const pinned=integer(version,`expectedVersions.${key}`,1);const cueId=register.get(key);const current=cueId?await repo.getDraft(cueId):null;if(current&&current.version!==pinned)throw new AuthoringError('version_conflict',`${slotDefinition(key)?.name??key} changed since you read it (now version ${current.version}). Call list_slots and save again. Nothing was published.`,409)}}
    const wanted=Object.entries(values).map(([key,value])=>{
     const definition=slotDefinition(key);
     if(!definition)throw new AuthoringError('unknown_slot',`There is no slot called ${key}`,404);
@@ -764,7 +858,12 @@ let defaultService:ReturnType<typeof createAuthoringService>|undefined;
 let defaultRepository:AuthoringRepository|undefined;
 export function authoringRepository(){if(defaultRepository)return defaultRepository;const workspace=authoringRepositoryMode(process.env);return defaultRepository=workspace.storage==='memory'?new MemoryAuthoringRepository(defaultAssetRepository()):new PgAuthoringRepository()}
 const defaults=()=>{if(defaultService)return defaultService;const workspace=authoringRepositoryMode(process.env);return defaultService=createAuthoringService(authoringRepository(),workspace)};
+// The web's source-review inbox (/api/source-review) under MCP names. It is its own service over
+// the same drafts table, reached by dynamic import because lib/source-review.ts imports this file.
+export const SOURCE_REVIEW_OPERATIONS:Readonly<Record<string,'scan'|'list'|'get'|'decide'>>={scan_source_changes:'scan',list_source_changes:'list',get_source_change:'get',decide_source_change:'decide'};
 export async function authoringOperation(operation:string,input:unknown,actor:string){
+ const review=Object.hasOwn(SOURCE_REVIEW_OPERATIONS,operation)?SOURCE_REVIEW_OPERATIONS[operation]:undefined;
+ if(review){const {sourceReviewOperation}=await import('./source-review');return sourceReviewOperation(review,input,actor)}
  const result=await defaults().operation(operation,input,actor);
  if(['publish_draft','save_slots','rollback_draft','import_cue'].includes(operation)){
   const {relayConfigured}=await import('./relay');

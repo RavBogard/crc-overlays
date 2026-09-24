@@ -75,8 +75,116 @@
   }
  },
  {
+  "name": "compare_shared_cue",
+  "description": "Say what changed upstream in a shared-library graphic since this draft was copied from it: wording, layout and presentation, line by line. Read only.",
+  "inputSchema": {
+   "type": "object",
+   "$schema": "https://json-schema.org/draft/2020-12/schema",
+   "properties": {
+    "cueId": {
+     "type": "string",
+     "minLength": 1,
+     "maxLength": 200
+    },
+    "draftId": {
+     "type": "string",
+     "minLength": 1,
+     "maxLength": 200
+    },
+    "workspace": {
+     "type": "string",
+     "minLength": 1,
+     "maxLength": 80,
+     "description": "Which congregation this call is for. This connection serves 'crc' (CRC) only."
+    }
+   },
+   "required": [
+    "cueId",
+    "draftId"
+   ]
+  },
+  "annotations": {
+   "readOnlyHint": true
+  }
+ },
+ {
+  "name": "compose_custom_draft",
+  "description": "Create an unpublished custom-text draft from one list_custom_templates form: values maps its field keys to text. layout defaults to the form's own; templateCueId to that layout's look.",
+  "inputSchema": {
+   "type": "object",
+   "$schema": "https://json-schema.org/draft/2020-12/schema",
+   "properties": {
+    "templateId": {
+     "type": "string",
+     "enum": [
+      "speaker",
+      "announcement",
+      "citation",
+      "service-begins",
+      "corner"
+     ]
+    },
+    "values": {
+     "type": "object",
+     "propertyNames": {
+      "type": "string",
+      "minLength": 1,
+      "maxLength": 40
+     },
+     "additionalProperties": {
+      "type": "string",
+      "maxLength": 300
+     }
+    },
+    "layout": {
+     "type": "string",
+     "enum": [
+      "left",
+      "bottom",
+      "right",
+      "corner"
+     ]
+    },
+    "name": {
+     "type": "string",
+     "minLength": 1,
+     "maxLength": 80
+    },
+    "templateCueId": {
+     "type": "string",
+     "minLength": 1,
+     "maxLength": 80,
+     "description": "A baseline template id from list_templates. Leave it out to use the layout's default look; it contributes motion and timing only."
+    },
+    "textSize": {
+     "type": "string",
+     "enum": [
+      "comfortable",
+      "large",
+      "compact"
+     ],
+     "description": "A named text size: comfortable is the template's own sizes, large is 42/35/34 and compact 34/28/28 (Hebrew/transliteration/title). Explicit font sizes in presentation win."
+    },
+    "workspace": {
+     "type": "string",
+     "minLength": 1,
+     "maxLength": 80,
+     "description": "Which congregation this call is for. This connection serves 'crc' (CRC) only."
+    }
+   },
+   "required": [
+    "templateId",
+    "values",
+    "workspace"
+   ]
+  },
+  "annotations": {
+   "readOnlyHint": false
+  }
+ },
+ {
   "name": "create_draft",
-  "description": "Create a source-reference draft with a new stable ID. The corner layout is a small card for a line or two in the bottom-right corner; it takes a lower-third (bottom) template.",
+  "description": "Create a source-reference draft with a new stable ID from search_sources block ids (includeBlocks:true), or content mode custom for free text. templateCueId is optional: left out, the layout's default look is used. textSize names a text size. The corner layout is a small card for a line or two in the bottom-right corner; it takes a lower-third (bottom) template.",
   "inputSchema": {
    "type": "object",
    "$schema": "https://json-schema.org/draft/2020-12/schema",
@@ -107,7 +215,8 @@
     "templateCueId": {
      "type": "string",
      "minLength": 1,
-     "maxLength": 80
+     "maxLength": 80,
+     "description": "A baseline template id from list_templates. Leave it out to use the layout's default look; it contributes motion and timing only."
     },
     "content": {
      "anyOf": [
@@ -659,6 +768,15 @@
      },
      "additionalProperties": false
     },
+    "textSize": {
+     "type": "string",
+     "enum": [
+      "comfortable",
+      "large",
+      "compact"
+     ],
+     "description": "A named text size: comfortable is the template's own sizes, large is 42/35/34 and compact 34/28/28 (Hebrew/transliteration/title). Explicit font sizes in presentation win."
+    },
     "workspace": {
      "type": "string",
      "minLength": 1,
@@ -670,7 +788,6 @@
     "name",
     "title",
     "layout",
-    "templateCueId",
     "content",
     "workspace"
    ]
@@ -765,7 +882,7 @@
  },
  {
   "name": "create_source_draft_set",
-  "description": "Create an unpublished ordered set from every automatic block in one maintained source.",
+  "description": "Create an unpublished ordered set from every automatic block in one maintained source. templateCueId is optional: left out, the layout's default look is used.",
   "inputSchema": {
    "type": "object",
    "$schema": "https://json-schema.org/draft/2020-12/schema",
@@ -811,7 +928,175 @@
     "sourceId",
     "mode",
     "layout",
-    "templateCueId",
+    "workspace"
+   ]
+  },
+  "annotations": {
+   "readOnlyHint": false
+  }
+ },
+ {
+  "name": "customize_shared_cue",
+  "description": "Copy one shared-library graphic into an unpublished draft here. expectedCueHash is the hash you previewed; if it changed upstream since, nothing is copied and you are asked to preview again.",
+  "inputSchema": {
+   "type": "object",
+   "$schema": "https://json-schema.org/draft/2020-12/schema",
+   "properties": {
+    "cueId": {
+     "type": "string",
+     "minLength": 1,
+     "maxLength": 200
+    },
+    "expectedCueHash": {
+     "type": "string",
+     "pattern": "^[a-f0-9]{64}$"
+    },
+    "name": {
+     "type": "string",
+     "minLength": 1,
+     "maxLength": 80
+    },
+    "workspace": {
+     "type": "string",
+     "minLength": 1,
+     "maxLength": 80,
+     "description": "Which congregation this call is for. This connection serves 'crc' (CRC) only."
+    }
+   },
+   "required": [
+    "cueId",
+    "expectedCueHash",
+    "workspace"
+   ]
+  },
+  "annotations": {
+   "readOnlyHint": false
+  }
+ },
+ {
+  "name": "customize_shared_set",
+  "description": "Copy a whole shared-library multipart prayer into one unpublished set here, all parts or none. expectedCueHashes maps every part's cue id to the hash you previewed.",
+  "inputSchema": {
+   "type": "object",
+   "$schema": "https://json-schema.org/draft/2020-12/schema",
+   "properties": {
+    "setId": {
+     "type": "string",
+     "minLength": 1,
+     "maxLength": 200
+    },
+    "expectedCueHashes": {
+     "type": "object",
+     "propertyNames": {
+      "type": "string",
+      "minLength": 1,
+      "maxLength": 160
+     },
+     "additionalProperties": {
+      "type": "string",
+      "pattern": "^[a-f0-9]{64}$"
+     }
+    },
+    "workspace": {
+     "type": "string",
+     "minLength": 1,
+     "maxLength": 80,
+     "description": "Which congregation this call is for. This connection serves 'crc' (CRC) only."
+    }
+   },
+   "required": [
+    "setId",
+    "expectedCueHashes",
+    "workspace"
+   ]
+  },
+  "annotations": {
+   "readOnlyHint": false
+  }
+ },
+ {
+  "name": "decide_source_change",
+  "description": "Decide one source change: accept makes an unpublished draft on the new wording (publish it the usual way); defer and reject need a reason. expectedVersion is the version get_source_change returned.",
+  "inputSchema": {
+   "type": "object",
+   "$schema": "https://json-schema.org/draft/2020-12/schema",
+   "properties": {
+    "id": {
+     "type": "string",
+     "minLength": 1,
+     "maxLength": 200
+    },
+    "expectedVersion": {
+     "type": "integer",
+     "minimum": 1,
+     "maximum": 9007199254740991
+    },
+    "decision": {
+     "type": "string",
+     "enum": [
+      "accept",
+      "defer",
+      "reject"
+     ]
+    },
+    "reason": {
+     "type": "string",
+     "minLength": 1,
+     "maxLength": 500
+    },
+    "workspace": {
+     "type": "string",
+     "minLength": 1,
+     "maxLength": 80,
+     "description": "Which congregation this call is for. This connection serves 'crc' (CRC) only."
+    }
+   },
+   "required": [
+    "id",
+    "expectedVersion",
+    "decision",
+    "workspace"
+   ]
+  },
+  "annotations": {
+   "readOnlyHint": false
+  }
+ },
+ {
+  "name": "duplicate_draft",
+  "description": "Copy one draft (draftId) or catalog graphic (cueId) into a new unpublished standalone draft, named \"Copy of ...\" unless name is given. expectedVersion, with draftId, refuses the copy if the draft changed since you read it.",
+  "inputSchema": {
+   "type": "object",
+   "$schema": "https://json-schema.org/draft/2020-12/schema",
+   "properties": {
+    "draftId": {
+     "type": "string",
+     "minLength": 1,
+     "maxLength": 200
+    },
+    "cueId": {
+     "type": "string",
+     "minLength": 1,
+     "maxLength": 200
+    },
+    "name": {
+     "type": "string",
+     "minLength": 1,
+     "maxLength": 80
+    },
+    "expectedVersion": {
+     "type": "integer",
+     "minimum": 1,
+     "maximum": 9007199254740991
+    },
+    "workspace": {
+     "type": "string",
+     "minLength": 1,
+     "maxLength": 80,
+     "description": "Which congregation this call is for. This connection serves 'crc' (CRC) only."
+    }
+   },
+   "required": [
     "workspace"
    ]
   },
@@ -910,7 +1195,7 @@
  },
  {
   "name": "get_draft",
-  "description": "Get one draft and its current version.",
+  "description": "Get one draft and its current version. view:'rendered' returns what the graphic reads on screen (texts, rows, validation) with its version, set and publish state, and none of the source snapshots; the default view:'full' is the complete record.",
   "inputSchema": {
    "type": "object",
    "$schema": "https://json-schema.org/draft/2020-12/schema",
@@ -919,6 +1204,13 @@
      "type": "string",
      "minLength": 1,
      "maxLength": 200
+    },
+    "view": {
+     "type": "string",
+     "enum": [
+      "full",
+      "rendered"
+     ]
     },
     "workspace": {
      "type": "string",
@@ -997,6 +1289,33 @@
   }
  },
  {
+  "name": "get_source_change",
+  "description": "Get one source change with the old and new source text side by side and the version decide_source_change needs.",
+  "inputSchema": {
+   "type": "object",
+   "$schema": "https://json-schema.org/draft/2020-12/schema",
+   "properties": {
+    "id": {
+     "type": "string",
+     "minLength": 1,
+     "maxLength": 200
+    },
+    "workspace": {
+     "type": "string",
+     "minLength": 1,
+     "maxLength": 80,
+     "description": "Which congregation this call is for. This connection serves 'crc' (CRC) only."
+    }
+   },
+   "required": [
+    "id"
+   ]
+  },
+  "annotations": {
+   "readOnlyHint": true
+  }
+ },
+ {
   "name": "get_workspace",
   "description": "Say which congregation this connection serves (Central Reform Congregation, workspace 'crc' at overlays.centralreform.org) and whether it is a rehearsal. Call it first when you hold more than one overlays connector; every change here takes this workspace id.",
   "inputSchema": {
@@ -1064,13 +1383,93 @@
   }
  },
  {
+  "name": "list_book_units",
+  "description": "List one book as its printed outline: every unit by section, with its folio, block kinds and count. Names only, never the text; search_sources or get_source reads a unit.",
+  "inputSchema": {
+   "type": "object",
+   "$schema": "https://json-schema.org/draft/2020-12/schema",
+   "properties": {
+    "book": {
+     "type": "string",
+     "minLength": 1,
+     "maxLength": 100
+    },
+    "workspace": {
+     "type": "string",
+     "minLength": 1,
+     "maxLength": 80,
+     "description": "Which congregation this call is for. This connection serves 'crc' (CRC) only."
+    }
+   },
+   "required": [
+    "book"
+   ]
+  },
+  "annotations": {
+   "readOnlyHint": true
+  }
+ },
+ {
+  "name": "list_catalog",
+  "description": "List every graphic in the CRC catalog - baseline and published - with its draft (if any), origin and what opening it would do (open, import or duplicate). list_drafts hides catalog graphics nobody has opened yet; this does not.",
+  "inputSchema": {
+   "type": "object",
+   "$schema": "https://json-schema.org/draft/2020-12/schema",
+   "properties": {
+    "query": {
+     "type": "string",
+     "minLength": 1,
+     "maxLength": 100
+    },
+    "layout": {
+     "type": "string",
+     "enum": [
+      "left",
+      "bottom",
+      "right",
+      "corner"
+     ]
+    },
+    "workspace": {
+     "type": "string",
+     "minLength": 1,
+     "maxLength": 80,
+     "description": "Which congregation this call is for. This connection serves 'crc' (CRC) only."
+    }
+   }
+  },
+  "annotations": {
+   "readOnlyHint": true
+  }
+ },
+ {
+  "name": "list_custom_templates",
+  "description": "List the guided forms for graphics that come from no source: speaker, announcement, scripture citation, service start time and corner card, with each field and its length limit. compose_custom_draft fills one.",
+  "inputSchema": {
+   "type": "object",
+   "$schema": "https://json-schema.org/draft/2020-12/schema",
+   "properties": {
+    "workspace": {
+     "type": "string",
+     "minLength": 1,
+     "maxLength": 80,
+     "description": "Which congregation this call is for. This connection serves 'crc' (CRC) only."
+    }
+   }
+  },
+  "annotations": {
+   "readOnlyHint": true
+  }
+ },
+ {
   "name": "list_drafts",
-  "description": "List authoring drafts. With compact, query, service, book, layout, limit, or cursor, returns bounded summaries without source text.",
+  "description": "List authoring drafts as bounded summaries, sorted by name and then set order: each row has its set (id, index, count), published, dirty (the draft has changes the live graphic lacks), archived, and an excerpt of what it reads. Filter by query, service, book or layout; page with limit and the nextCursor it returns; includeArchived adds archived drafts. compact:false returns every full record instead (large; no filters).",
   "inputSchema": {
    "type": "object",
    "$schema": "https://json-schema.org/draft/2020-12/schema",
    "properties": {
     "compact": {
+     "default": true,
      "type": "boolean"
     },
     "query": {
@@ -1106,6 +1505,9 @@
      "type": "string",
      "minLength": 1,
      "maxLength": 200
+    },
+    "includeArchived": {
+     "type": "boolean"
     },
     "workspace": {
      "type": "string",
@@ -1147,12 +1549,116 @@
   }
  },
  {
-  "name": "list_templates",
-  "description": "List baseline cue templates and whether each can be imported.",
+  "name": "list_shared_library",
+  "description": "List the shared library - graphics the partner congregation shares with this one - and whether each is already here, changed since it was copied, or new. Read only.",
   "inputSchema": {
    "type": "object",
    "$schema": "https://json-schema.org/draft/2020-12/schema",
    "properties": {
+    "query": {
+     "type": "string",
+     "minLength": 1,
+     "maxLength": 100
+    },
+    "limit": {
+     "type": "integer",
+     "minimum": 1,
+     "maximum": 1000
+    },
+    "refresh": {
+     "type": "boolean"
+    },
+    "workspace": {
+     "type": "string",
+     "minLength": 1,
+     "maxLength": 80,
+     "description": "Which congregation this call is for. This connection serves 'crc' (CRC) only."
+    }
+   }
+  },
+  "annotations": {
+   "readOnlyHint": true
+  }
+ },
+ {
+  "name": "list_slots",
+  "description": "List the weekly slots (names and readings typed before a service) - or one service type's - with each slot's graphic, current text and draft version. Read only.",
+  "inputSchema": {
+   "type": "object",
+   "$schema": "https://json-schema.org/draft/2020-12/schema",
+   "properties": {
+    "serviceType": {
+     "type": "string",
+     "minLength": 1,
+     "maxLength": 80
+    },
+    "workspace": {
+     "type": "string",
+     "minLength": 1,
+     "maxLength": 80,
+     "description": "Which congregation this call is for. This connection serves 'crc' (CRC) only."
+    }
+   }
+  },
+  "annotations": {
+   "readOnlyHint": true
+  }
+ },
+ {
+  "name": "list_source_changes",
+  "description": "List the source-change inbox: each upstream wording change that reaches a graphic here, and its status. Read only.",
+  "inputSchema": {
+   "type": "object",
+   "$schema": "https://json-schema.org/draft/2020-12/schema",
+   "properties": {
+    "workspace": {
+     "type": "string",
+     "minLength": 1,
+     "maxLength": 80,
+     "description": "Which congregation this call is for. This connection serves 'crc' (CRC) only."
+    }
+   }
+  },
+  "annotations": {
+   "readOnlyHint": true
+  }
+ },
+ {
+  "name": "list_source_facets",
+  "description": "List the books (siddurim) and services the source corpus is organised by, with how many units each holds. Pass a value to search_sources book/service or to list_book_units.",
+  "inputSchema": {
+   "type": "object",
+   "$schema": "https://json-schema.org/draft/2020-12/schema",
+   "properties": {
+    "workspace": {
+     "type": "string",
+     "minLength": 1,
+     "maxLength": 80,
+     "description": "Which congregation this call is for. This connection serves 'crc' (CRC) only."
+    }
+   }
+  },
+  "annotations": {
+   "readOnlyHint": true
+  }
+ },
+ {
+  "name": "list_templates",
+  "description": "List baseline cue templates and whether each can be imported, the default look for each layout (looks: the template create_draft uses when templateCueId is left out), and the named text sizes. mode changes only the look labels.",
+  "inputSchema": {
+   "type": "object",
+   "$schema": "https://json-schema.org/draft/2020-12/schema",
+   "properties": {
+    "mode": {
+     "type": "string",
+     "enum": [
+      "bilingual",
+      "source-en",
+      "original-en",
+      "local-variant",
+      "custom"
+     ]
+    },
     "workspace": {
      "type": "string",
      "minLength": 1,
@@ -1223,6 +1729,622 @@
   }
  },
  {
+  "name": "preview_content",
+  "description": "Show what content would look like on screen before any draft exists: the same fields as create_draft, nothing stored. includePreviewImage:true measures it in the server browser and returns the frame as an image; that verdict is not stored and cannot stand in for review_draft.",
+  "inputSchema": {
+   "type": "object",
+   "$schema": "https://json-schema.org/draft/2020-12/schema",
+   "properties": {
+    "name": {
+     "type": "string",
+     "minLength": 1,
+     "maxLength": 80
+    },
+    "title": {
+     "type": "string",
+     "minLength": 1,
+     "maxLength": 100
+    },
+    "accentTitle": {
+     "type": "string",
+     "maxLength": 60
+    },
+    "layout": {
+     "type": "string",
+     "enum": [
+      "left",
+      "bottom",
+      "right",
+      "corner"
+     ]
+    },
+    "templateCueId": {
+     "type": "string",
+     "minLength": 1,
+     "maxLength": 80,
+     "description": "A baseline template id from list_templates. Leave it out to use the layout's default look; it contributes motion and timing only."
+    },
+    "content": {
+     "anyOf": [
+      {
+       "oneOf": [
+        {
+         "type": "object",
+         "properties": {
+          "mode": {
+           "type": "string",
+           "const": "bilingual"
+          },
+          "hebrewGroups": {
+           "minItems": 1,
+           "maxItems": 24,
+           "type": "array",
+           "items": {
+            "type": "object",
+            "properties": {
+             "sourceId": {
+              "type": "string",
+              "minLength": 1,
+              "maxLength": 160
+             },
+             "blockIds": {
+              "minItems": 1,
+              "maxItems": 48,
+              "type": "array",
+              "items": {
+               "type": "string",
+               "minLength": 1,
+               "maxLength": 220
+              }
+             }
+            },
+            "required": [
+             "sourceId",
+             "blockIds"
+            ],
+            "additionalProperties": false
+           }
+          },
+          "transliterationGroups": {
+           "minItems": 1,
+           "maxItems": 24,
+           "type": "array",
+           "items": {
+            "type": "object",
+            "properties": {
+             "sourceId": {
+              "type": "string",
+              "minLength": 1,
+              "maxLength": 160
+             },
+             "blockIds": {
+              "minItems": 1,
+              "maxItems": 48,
+              "type": "array",
+              "items": {
+               "type": "string",
+               "minLength": 1,
+               "maxLength": 220
+              }
+             }
+            },
+            "required": [
+             "sourceId",
+             "blockIds"
+            ],
+            "additionalProperties": false
+           }
+          },
+          "includeTranslation": {
+           "type": "boolean"
+          },
+          "layers": {
+           "minItems": 1,
+           "maxItems": 3,
+           "type": "array",
+           "items": {
+            "type": "string",
+            "enum": [
+             "he",
+             "tr",
+             "en"
+            ]
+           }
+          },
+          "arrangement": {
+           "type": "string",
+           "enum": [
+            "together",
+            "blocks"
+           ]
+          },
+          "rowOrder": {
+           "minItems": 3,
+           "maxItems": 3,
+           "type": "array",
+           "items": {
+            "type": "string",
+            "enum": [
+             "he",
+             "tr",
+             "en"
+            ]
+           },
+           "description": "Order the Hebrew (he), transliteration (tr) and translation (en) layers stack in on a left or right panel, in both arrangements. Default he, tr, en, which is stored as absent; a lower third ignores it."
+          }
+         },
+         "required": [
+          "mode",
+          "hebrewGroups",
+          "transliterationGroups"
+         ],
+         "additionalProperties": false
+        },
+        {
+         "type": "object",
+         "properties": {
+          "mode": {
+           "type": "string",
+           "const": "original-en"
+          },
+          "englishGroups": {
+           "minItems": 1,
+           "maxItems": 24,
+           "type": "array",
+           "items": {
+            "type": "object",
+            "properties": {
+             "sourceId": {
+              "type": "string",
+              "minLength": 1,
+              "maxLength": 160
+             },
+             "blockIds": {
+              "minItems": 1,
+              "maxItems": 48,
+              "type": "array",
+              "items": {
+               "type": "string",
+               "minLength": 1,
+               "maxLength": 220
+              }
+             }
+            },
+            "required": [
+             "sourceId",
+             "blockIds"
+            ],
+            "additionalProperties": false
+           }
+          }
+         },
+         "required": [
+          "mode",
+          "englishGroups"
+         ],
+         "additionalProperties": false
+        },
+        {
+         "type": "object",
+         "properties": {
+          "mode": {
+           "type": "string",
+           "const": "source-en"
+          },
+          "englishGroups": {
+           "minItems": 1,
+           "maxItems": 24,
+           "type": "array",
+           "items": {
+            "type": "object",
+            "properties": {
+             "sourceId": {
+              "type": "string",
+              "minLength": 1,
+              "maxLength": 160
+             },
+             "blockIds": {
+              "minItems": 1,
+              "maxItems": 48,
+              "type": "array",
+              "items": {
+               "type": "string",
+               "minLength": 1,
+               "maxLength": 220
+              }
+             }
+            },
+            "required": [
+             "sourceId",
+             "blockIds"
+            ],
+            "additionalProperties": false
+           }
+          }
+         },
+         "required": [
+          "mode",
+          "englishGroups"
+         ],
+         "additionalProperties": false
+        }
+       ]
+      },
+      {
+       "type": "object",
+       "properties": {
+        "mode": {
+         "type": "string",
+         "const": "local-variant"
+        },
+        "label": {
+         "type": "string",
+         "minLength": 1,
+         "maxLength": 80
+        },
+        "reason": {
+         "type": "string",
+         "minLength": 1,
+         "maxLength": 500
+        },
+        "base": {
+         "oneOf": [
+          {
+           "type": "object",
+           "properties": {
+            "mode": {
+             "type": "string",
+             "const": "bilingual"
+            },
+            "hebrewGroups": {
+             "minItems": 1,
+             "maxItems": 24,
+             "type": "array",
+             "items": {
+              "type": "object",
+              "properties": {
+               "sourceId": {
+                "type": "string",
+                "minLength": 1,
+                "maxLength": 160
+               },
+               "blockIds": {
+                "minItems": 1,
+                "maxItems": 48,
+                "type": "array",
+                "items": {
+                 "type": "string",
+                 "minLength": 1,
+                 "maxLength": 220
+                }
+               }
+              },
+              "required": [
+               "sourceId",
+               "blockIds"
+              ],
+              "additionalProperties": false
+             }
+            },
+            "transliterationGroups": {
+             "minItems": 1,
+             "maxItems": 24,
+             "type": "array",
+             "items": {
+              "type": "object",
+              "properties": {
+               "sourceId": {
+                "type": "string",
+                "minLength": 1,
+                "maxLength": 160
+               },
+               "blockIds": {
+                "minItems": 1,
+                "maxItems": 48,
+                "type": "array",
+                "items": {
+                 "type": "string",
+                 "minLength": 1,
+                 "maxLength": 220
+                }
+               }
+              },
+              "required": [
+               "sourceId",
+               "blockIds"
+              ],
+              "additionalProperties": false
+             }
+            },
+            "includeTranslation": {
+             "type": "boolean"
+            },
+            "layers": {
+             "minItems": 1,
+             "maxItems": 3,
+             "type": "array",
+             "items": {
+              "type": "string",
+              "enum": [
+               "he",
+               "tr",
+               "en"
+              ]
+             }
+            },
+            "arrangement": {
+             "type": "string",
+             "enum": [
+              "together",
+              "blocks"
+             ]
+            },
+            "rowOrder": {
+             "minItems": 3,
+             "maxItems": 3,
+             "type": "array",
+             "items": {
+              "type": "string",
+              "enum": [
+               "he",
+               "tr",
+               "en"
+              ]
+             },
+             "description": "Order the Hebrew (he), transliteration (tr) and translation (en) layers stack in on a left or right panel, in both arrangements. Default he, tr, en, which is stored as absent; a lower third ignores it."
+            }
+           },
+           "required": [
+            "mode",
+            "hebrewGroups",
+            "transliterationGroups"
+           ],
+           "additionalProperties": false
+          },
+          {
+           "type": "object",
+           "properties": {
+            "mode": {
+             "type": "string",
+             "const": "original-en"
+            },
+            "englishGroups": {
+             "minItems": 1,
+             "maxItems": 24,
+             "type": "array",
+             "items": {
+              "type": "object",
+              "properties": {
+               "sourceId": {
+                "type": "string",
+                "minLength": 1,
+                "maxLength": 160
+               },
+               "blockIds": {
+                "minItems": 1,
+                "maxItems": 48,
+                "type": "array",
+                "items": {
+                 "type": "string",
+                 "minLength": 1,
+                 "maxLength": 220
+                }
+               }
+              },
+              "required": [
+               "sourceId",
+               "blockIds"
+              ],
+              "additionalProperties": false
+             }
+            }
+           },
+           "required": [
+            "mode",
+            "englishGroups"
+           ],
+           "additionalProperties": false
+          },
+          {
+           "type": "object",
+           "properties": {
+            "mode": {
+             "type": "string",
+             "const": "source-en"
+            },
+            "englishGroups": {
+             "minItems": 1,
+             "maxItems": 24,
+             "type": "array",
+             "items": {
+              "type": "object",
+              "properties": {
+               "sourceId": {
+                "type": "string",
+                "minLength": 1,
+                "maxLength": 160
+               },
+               "blockIds": {
+                "minItems": 1,
+                "maxItems": 48,
+                "type": "array",
+                "items": {
+                 "type": "string",
+                 "minLength": 1,
+                 "maxLength": 220
+                }
+               }
+              },
+              "required": [
+               "sourceId",
+               "blockIds"
+              ],
+              "additionalProperties": false
+             }
+            }
+           },
+           "required": [
+            "mode",
+            "englishGroups"
+           ],
+           "additionalProperties": false
+          }
+         ]
+        },
+        "overrides": {
+         "minItems": 1,
+         "maxItems": 96,
+         "type": "array",
+         "items": {
+          "type": "object",
+          "properties": {
+           "sourceId": {
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 160
+           },
+           "blockId": {
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 220
+           },
+           "channel": {
+            "type": "string",
+            "enum": [
+             "he",
+             "tr",
+             "en"
+            ]
+           },
+           "sourceText": {
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 4000
+           },
+           "localText": {
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 4000
+           }
+          },
+          "required": [
+           "sourceId",
+           "blockId",
+           "channel",
+           "sourceText",
+           "localText"
+          ],
+          "additionalProperties": false
+         }
+        }
+       },
+       "required": [
+        "mode",
+        "label",
+        "base",
+        "overrides"
+       ],
+       "additionalProperties": false
+      },
+      {
+       "type": "object",
+       "properties": {
+        "mode": {
+         "type": "string",
+         "const": "custom"
+        },
+        "text": {
+         "type": "string",
+         "minLength": 1,
+         "maxLength": 4000
+        }
+       },
+       "required": [
+        "mode",
+        "text"
+       ],
+       "additionalProperties": false
+      }
+     ]
+    },
+    "presentation": {
+     "type": "object",
+     "properties": {
+      "hebrewFontSize": {
+       "type": "integer",
+       "minimum": 24,
+       "maximum": 52
+      },
+      "transliterationFontSize": {
+       "type": "integer",
+       "minimum": 20,
+       "maximum": 48
+      },
+      "titleFontSize": {
+       "type": "integer",
+       "minimum": 20,
+       "maximum": 42
+      },
+      "alignment": {
+       "type": "string",
+       "enum": [
+        "start",
+        "center"
+       ]
+      },
+      "lineSpacing": {
+       "type": "string",
+       "enum": [
+        "compact",
+        "spacious"
+       ]
+      },
+      "latinLineBreaks": {
+       "type": "string",
+       "enum": [
+        "preserve",
+        "paragraphs",
+        "phrases"
+       ]
+      },
+      "imageAssetId": {
+       "type": "string",
+       "pattern": "^asset_[a-f0-9]{64}$"
+      }
+     },
+     "additionalProperties": false
+    },
+    "textSize": {
+     "type": "string",
+     "enum": [
+      "comfortable",
+      "large",
+      "compact"
+     ],
+     "description": "A named text size: comfortable is the template's own sizes, large is 42/35/34 and compact 34/28/28 (Hebrew/transliteration/title). Explicit font sizes in presentation win."
+    },
+    "includePreviewImage": {
+     "type": "boolean"
+    },
+    "workspace": {
+     "type": "string",
+     "minLength": 1,
+     "maxLength": 80,
+     "description": "Which congregation this call is for. This connection serves 'crc' (CRC) only."
+    }
+   },
+   "required": [
+    "name",
+    "title",
+    "layout",
+    "content"
+   ]
+  },
+  "annotations": {
+   "readOnlyHint": true
+  }
+ },
+ {
   "name": "preview_draft",
   "description": "Create a version-bound preview and return its authenticated preview path and fit contract. A human must review it in the web UI before publishing.",
   "inputSchema": {
@@ -1249,6 +2371,38 @@
    "required": [
     "draftId",
     "expectedVersion",
+    "workspace"
+   ]
+  },
+  "annotations": {
+   "readOnlyHint": false,
+   "idempotentHint": true
+  }
+ },
+ {
+  "name": "preview_shared_cue",
+  "description": "Show one shared-library graphic exactly as its congregation publishes it, with the cueHash customize_shared_cue needs. Copies its artwork into this workspace's asset library if it has any; creates no draft.",
+  "inputSchema": {
+   "type": "object",
+   "$schema": "https://json-schema.org/draft/2020-12/schema",
+   "properties": {
+    "cueId": {
+     "type": "string",
+     "minLength": 1,
+     "maxLength": 200
+    },
+    "refresh": {
+     "type": "boolean"
+    },
+    "workspace": {
+     "type": "string",
+     "minLength": 1,
+     "maxLength": 80,
+     "description": "Which congregation this call is for. This connection serves 'crc' (CRC) only."
+    }
+   },
+   "required": [
+    "cueId",
     "workspace"
    ]
   },
@@ -1538,21 +2692,41 @@
   }
  },
  {
-  "name": "search_sources",
-  "description": "Search the authorized CRC source corpus. Returns references, never a public corpus export.",
+  "name": "save_slots",
+  "description": "Save slot text for one service type in one call, as the web \"This service\" page does: every changed slot is republished under its standing approval, unchanged ones are left alone, and one overlong value refuses the whole Save. expectedVersions (slot key to the version list_slots returned) refuses the Save if a slot changed since you read it. Publishes to the catalog; puts nothing on screen.",
   "inputSchema": {
    "type": "object",
    "$schema": "https://json-schema.org/draft/2020-12/schema",
    "properties": {
-    "query": {
+    "serviceType": {
      "type": "string",
      "minLength": 1,
-     "maxLength": 100
+     "maxLength": 80
     },
-    "limit": {
-     "type": "integer",
-     "minimum": 1,
-     "maximum": 50
+    "values": {
+     "type": "object",
+     "propertyNames": {
+      "type": "string",
+      "minLength": 1,
+      "maxLength": 80
+     },
+     "additionalProperties": {
+      "type": "string",
+      "maxLength": 4000
+     }
+    },
+    "expectedVersions": {
+     "type": "object",
+     "propertyNames": {
+      "type": "string",
+      "minLength": 1,
+      "maxLength": 80
+     },
+     "additionalProperties": {
+      "type": "integer",
+      "minimum": 1,
+      "maximum": 9007199254740991
+     }
     },
     "workspace": {
      "type": "string",
@@ -1562,8 +2736,80 @@
     }
    },
    "required": [
-    "query"
+    "serviceType",
+    "values",
+    "workspace"
    ]
+  },
+  "annotations": {
+   "readOnlyHint": false,
+   "idempotentHint": true
+  }
+ },
+ {
+  "name": "scan_source_changes",
+  "description": "Compare every graphic here with the current source corpus and record, in the source-change inbox, each one whose source wording changed upstream. Publishes nothing and changes no draft.",
+  "inputSchema": {
+   "type": "object",
+   "$schema": "https://json-schema.org/draft/2020-12/schema",
+   "properties": {
+    "workspace": {
+     "type": "string",
+     "minLength": 1,
+     "maxLength": 80,
+     "description": "Which congregation this call is for. This connection serves 'crc' (CRC) only."
+    }
+   },
+   "required": [
+    "workspace"
+   ]
+  },
+  "annotations": {
+   "readOnlyHint": false,
+   "idempotentHint": true
+  }
+ },
+ {
+  "name": "search_sources",
+  "description": "Search the authorized CRC source corpus. Returns references, never a public corpus export. Compact by default: no licence or pin blocks. includeBlocks:true adds each block id with its kind and first words, which is everything create_draft needs (no get_source). book and service narrow to one siddur or service (list_source_facets names them). compact:false returns the full legacy summaries.",
+  "inputSchema": {
+   "type": "object",
+   "$schema": "https://json-schema.org/draft/2020-12/schema",
+   "properties": {
+    "query": {
+     "type": "string",
+     "minLength": 1,
+     "maxLength": 100
+    },
+    "book": {
+     "type": "string",
+     "minLength": 1,
+     "maxLength": 100
+    },
+    "service": {
+     "type": "string",
+     "minLength": 1,
+     "maxLength": 100
+    },
+    "limit": {
+     "type": "integer",
+     "minimum": 1,
+     "maximum": 50
+    },
+    "includeBlocks": {
+     "type": "boolean"
+    },
+    "compact": {
+     "default": true,
+     "type": "boolean"
+    },
+    "workspace": {
+     "type": "string",
+     "minLength": 1,
+     "maxLength": 80,
+     "description": "Which congregation this call is for. This connection serves 'crc' (CRC) only."
+    }
+   }
   },
   "annotations": {
    "readOnlyHint": true
@@ -1685,7 +2931,7 @@
  },
  {
   "name": "update_draft",
-  "description": "Update a draft using optimistic version matching.",
+  "description": "Update a draft using optimistic version matching. textSize sets a named text size on the presentation the patch leaves in place.",
   "inputSchema": {
    "type": "object",
    "$schema": "https://json-schema.org/draft/2020-12/schema",
@@ -1729,7 +2975,8 @@
       "templateCueId": {
        "type": "string",
        "minLength": 1,
-       "maxLength": 80
+       "maxLength": 80,
+       "description": "A baseline template id from list_templates. Leave it out to use the layout's default look; it contributes motion and timing only."
       },
       "content": {
        "anyOf": [
@@ -2293,6 +3540,15 @@
       "minLength": 1,
       "maxLength": 200
      }
+    },
+    "textSize": {
+     "type": "string",
+     "enum": [
+      "comfortable",
+      "large",
+      "compact"
+     ],
+     "description": "A named text size: comfortable is the template's own sizes, large is 42/35/34 and compact 34/28/28 (Hebrew/transliteration/title). Explicit font sizes in presentation win."
     },
     "workspace": {
      "type": "string",

@@ -1,4 +1,4 @@
-import {resolveSourceBoundaries,sourcePack,textLayers,type Draft,type DraftContent,type Layout,type Presentation,type TextLayer} from './authoring-model';
+import {AuthoringError,resolveSourceBoundaries,sourcePack,textLayers,type Draft,type DraftContent,type Layout,type Presentation,type TextLayer} from './authoring-model';
 
 export type DraftCatalogInput={
  query?:string;
@@ -33,6 +33,13 @@ export type DraftCatalogSummary={
  // Other titles in this catalog carrying the same accent title (niqqud-insensitive): a prompt to
  // check an inherited label, never proof that either one is wrong.
  flags:{smallFont:boolean;alternatingGrouping:boolean;accentTitleSharedWith:string[]};
+ // R-A5 - enough to choose a row without opening it: its place in a set, whether what is live
+ // differs from the draft, and the first words it reads (custom text included).
+ set:{id:string;index:number;count:number}|null;
+ published:boolean;
+ dirty:boolean;
+ archived:boolean;
+ excerpt:string;
 };
 
 const normalized=(value:unknown)=>String(value??'').normalize('NFKD').replace(/[\u0591-\u05c7\p{M}]/gu,'').toLocaleLowerCase().replace(/[^\p{L}\p{N}]+/gu,' ').trim();
@@ -120,8 +127,26 @@ function summary(draft:Draft):DraftCatalogSummary{
  // These are the editor's established Compact sizes. This is an authoring cue to inspect,
  // not a measurement or a visual-pass claim.
  const smallFont=(presentation.hebrewFontSize!==undefined&&presentation.hebrewFontSize<34)||(presentation.transliterationFontSize!==undefined&&presentation.transliterationFontSize<28)||(presentation.titleFontSize!==undefined&&presentation.titleFontSize<28);
- return {id:draft.id,name:draft.name,title:draft.title,version:draft.version,activeVersion:draft.activeDraftVersion,activeRevision:draft.activeRevision,layout:draft.layout,templateCueId:draft.templateCueId,presentation,arrangement,sourceBooks,sourceServices,contentSummary:contentSummary(draft),accentTitle:draft.accentTitle||null,flags:{smallFont,alternatingGrouping:arrangement==='together'&&draft.layout!=='bottom'&&selectedBlocks>1&&visibleLanguages>1,accentTitleSharedWith:[]}};
+ const published=draft.activeRevision!==null;
+ return {id:draft.id,name:draft.name,title:draft.title,version:draft.version,activeVersion:draft.activeDraftVersion,activeRevision:draft.activeRevision,layout:draft.layout,templateCueId:draft.templateCueId,presentation,arrangement,sourceBooks,sourceServices,contentSummary:contentSummary(draft),accentTitle:draft.accentTitle||null,flags:{smallFont,alternatingGrouping:arrangement==='together'&&draft.layout!=='bottom'&&selectedBlocks>1&&visibleLanguages>1,accentTitleSharedWith:[]},set:draft.draftSetId?{id:draft.draftSetId,index:draft.setIndex??0,count:draft.setCount??0}:null,published,dirty:published&&draft.activeDraftVersion!==draft.version,archived:Boolean(draft.archivedAt),excerpt:excerpt(draft)};
 }
+
+const EXCERPT_LENGTH=80;
+const clip=(value:string)=>{const flat=value.replace(/\s+/g,' ').trim();return flat.length>EXCERPT_LENGTH?`${flat.slice(0,EXCERPT_LENGTH-1).trimEnd()}…`:flat};
+/** The first words a graphic reads: custom text as typed, else its first selected block (a local wording edit wins), transliteration or English before Hebrew. */
+function excerpt(draft:Draft){
+ if(draft.content.mode==='custom')return clip(draft.content.text);
+ const first=selections(draft.content)[0];if(!first)return '';
+ const source=sourceMetadata(draft).find(item=>item.id===first.sourceId)??canonicalSources.get(first.sourceId);
+ const block=source?.blocks.find(candidate=>candidate.id===first.blockId);if(!block)return '';
+ const overrides=draft.content.mode==='local-variant'?draft.content.overrides.filter(item=>item.sourceId===first.sourceId&&item.blockId===first.blockId):[];
+ for(const channel of ['tr','en','he'] as const){const text=overrides.find(item=>item.channel===channel)?.localText??block[channel];if(meaningful(channel,text))return clip(text as string)}
+ return '';
+}
+// Set members share a name before their " — 01 of 03" suffix, so they sort together and by their
+// current set order, which a reorder changes without renaming them.
+const SET_SUFFIX=/\s+—\s+\d+\s+of\s+\d+$/u;
+const sortName=(row:DraftCatalogSummary)=>row.set?row.name.replace(SET_SUFFIX,''):row.name;
 
 function withSharedAccentTitles(rows:DraftCatalogSummary[]){
  const titlesByAccent=new Map<string,Map<string,string>>();
@@ -144,9 +169,12 @@ export function compactDraftCatalog(drafts:Draft[],input:DraftCatalogInput){
   if(input.layout&&row.layout!==input.layout)return false;
   if(service&&!row.sourceServices.some(value=>normalized(value)===service))return false;
   if(book&&!row.sourceBooks.some(value=>normalized(value.value)===book||normalized(value.label)===book))return false;
-  return !query||normalized([row.id,row.name,row.title,row.templateCueId,row.layout,row.arrangement??'',...row.sourceServices,...row.sourceBooks.flatMap(value=>[value.value,value.label])].join(' ')).includes(query);
- }).sort((a,b)=>a.id.localeCompare(b.id));
- const after=input.cursor?rows.filter(row=>row.id.localeCompare(input.cursor!)>0):rows;
+  return !query||normalized([row.id,row.name,row.title,row.templateCueId,row.layout,row.arrangement??'',row.excerpt,...row.sourceServices,...row.sourceBooks.flatMap(value=>[value.value,value.label])].join(' ')).includes(query);
+ }).sort((a,b)=>sortName(a).localeCompare(sortName(b),undefined,{numeric:true,sensitivity:'base'})||(a.set?.index??0)-(b.set?.index??0)||a.id.localeCompare(b.id));
+ // The cursor is the last id returned; the next page starts after that row in name order.
+ const position=input.cursor?rows.findIndex(row=>row.id===input.cursor):-1;
+ if(input.cursor&&position<0)throw new AuthoringError('invalid_input','That cursor no longer names a listed draft. List again without cursor to start from the first page.');
+ const after=input.cursor?rows.slice(position+1):rows;
  const limit=input.limit??25, draftsPage=after.slice(0,limit);
  return {drafts:draftsPage,total:rows.length,nextCursor:after.length>draftsPage.length?draftsPage.at(-1)!.id:null};
 }
