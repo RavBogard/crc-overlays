@@ -199,6 +199,16 @@ app/api/catalog/route.ts and lib/sync-live-catalog.ts; L2 and C5 add envelope-on
   cues now report a liturgical position; migration not in migrate-authoring.mjs (C1 precedent).
   Follow-ups: service coverage rows can't name a local source id directly; update_local_source doesn't refuse
   a duplicate name on the same page.
+- A6 merged (ab21287): upload_asset (begin/append/commit, 192 KB chunks, staged in workspace_asset_uploads —
+  db/assets.sql, not applied), list_assets (with usedBy), archive_asset (refused while published cues use it);
+  signed 5-minute per-asset artwork link (/api/assets/<id>/signed, HMAC keyed from RELAY_SECRET under its own
+  label) handed to every server fit, so artwork cues fit with artwork:'loaded' (real Chrome: 1.6 s ship with
+  artwork; unsigned control failed "Fonts or artwork did not load in time"). createAuthoringService: 6 localSources,
+  7 defaultsRepo, 8 assetStores. Gate: tsc clean, npm test 1050(+1 timing flake in server-fit, passes 3/3
+  alone)+35, lint 0 errors, Turbopack build ok; snapshot 87 = 3-way union.
+- GATE (A6): signing key derived from RELAY_SECRET (no new env var); one upload_asset tool with a step field;
+  5-minute expiry and 192 KB chunks chosen by the worker. Noted: before A6 every artwork graphic failed the
+  server fit (still true on a deployment without RELAY_SECRET); signed URLs appear in request logs (expire in 5 min).
 - Owed: a real-browser check of the library's Retired label and Return button (A3 did a server render only).
 - V3 merged (ae37165): nine live tools in lib/mcp/live.ts dispatched to a separate live
   operation (route wires runMcpCommand/snapshot/catalog); deck guard on lastPress.companion; server-side
