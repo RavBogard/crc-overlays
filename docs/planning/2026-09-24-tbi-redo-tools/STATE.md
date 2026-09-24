@@ -41,6 +41,7 @@ changes, paired web release, push to main.
 | G7 | Raleway in the font registry (addendum) | merged; get_branding lists Raleway, preview_branding draws lower third + left panel in it (real Chrome), CRC golden stills 16/16 identical |
 | G8 | batch_retire (≤200, dry run default) + find_catalog_issues batchRetire input | merged; in memory 193 retired in 1 dry run + 1 apply, then batch_ship of 44 copies: 0 duplicate_name |
 | G9 | panels mixing English-only and Hebrew/transliteration blocks (G4 finding) | merged; bilingual selections take English-only blocks as their own rows in block order; real data: 30 mixed panels in 29 sources all build (119/119 panels); no cue or unit hash moved; Omer builds without includeTranslation |
+| G10 | accent title size/weight as branding data + re-fit published graphics (order: docs/planning/2026-09-23-tbi-redo/HANDOFF-CODE-2026-09-24-G10-accent-title.md) | worker running |
 
 ## Evidence
 
