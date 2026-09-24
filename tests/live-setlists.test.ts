@@ -65,6 +65,41 @@ test('a folio two published graphics share is never picked silently: needs-revie
  assert.deepEqual(unmatched.map(row=>({trackId:row.trackId,kind:row.kind})),[{trackId:'t-mi-chamocha',kind:'liturgy'}]);
 });
 
+test('a Ha’azinu-shaped setlist matches by liturgyRef.unitId, not by the booklet page',()=>{
+ // The rows as centralreform.live sends them since 0ac23889: the booklet and its printed page, which
+ // never equal a feed cue's {book, folio}, plus the feed unit id the cue reports too.
+ const setlist:LiveSetlist={id:'cd16ef0f-shape',name:'Shabbat Morning',eventDate:'2026-09-19',tracks:[
+  {id:'t-header',type:'header',title:'Opening',liturgyRef:null},
+  {id:'t-barechu',type:'prayer',title:'Bar’chu Walkdown',liturgyRef:{book:'crc-saturday',unitId:'opening.barechu@legacy-shabbat-evening',folio:51},momentId:'barechu'},
+  {id:'t-mi-chamocha',type:'prayer',title:'Mi Chamocha',liturgyRef:{book:'crc-saturday',unitId:'geulah.mi-chamocha@legacy-shabbat-evening',folio:77}},
+  {id:'t-note',type:'note',title:'Cantor sits',liturgyRef:null},
+  {id:'t-stale',type:'prayer',title:'Oseh Shalom',liturgyRef:{book:'crc-saturday',unitId:'opening.barechu@legacy-shabbat-evening',folio:51,stale:true}},
+  {id:'t-stale-unknown',type:'prayer',title:'Adon Olam',liturgyRef:{book:'crc-saturday',folio:90,stale:true}},
+  {id:'t-no-id',type:'prayer',title:'Shma',liturgyRef:{book:'crc-saturday',unitId:'shma.not-published@legacy-shabbat-morning',folio:64}},
+ ]} as LiveSetlist;
+ const {entries,coverage,rows,unmatched}=matchSetlist(setlist,deps());
+ // Header and note rows carry no words for the screen: no entry, coverage or service row.
+ assert.deepEqual(rows.map(row=>row.trackId),['t-barechu','t-mi-chamocha','t-stale','t-stale-unknown','t-no-id']);
+ assert.equal(coverage.length,5);
+ const [barechu,miChamocha,stale,staleUnknown,noId]=coverage;
+ // By id: covered, though the page is the booklet's and the title is not the graphic's name.
+ assert.equal(barechu.status,'covered');assert.equal(barechu.cueId,'cue-barechu');
+ assert.match(barechu.reason??'',/opening\.barechu@legacy-shabbat-evening/);
+ // A unit two graphics carry goes to review with both named, as alternates.
+ assert.equal(miChamocha.status,'needs-review');assert.equal(miChamocha.cueId,undefined);
+ for(const id of ['cue-mi-chamocha-klepper','cue-mi-chamocha-friedman'])assert.ok(miChamocha.reason?.includes(nameOf(id)!),`${id} is named`);
+ assert.deepEqual(entries.find(entry=>entry.label==='Mi Chamocha')?.cueIds.sort(),['cue-mi-chamocha-friedman','cue-mi-chamocha-klepper']);
+ assert.equal(entries.find(entry=>entry.label==='Mi Chamocha')?.type,'alternates');
+ // A stale row has no liturgy: its unit id is ignored, it matches by title, and the reason says why.
+ assert.equal(stale.status,'covered');assert.equal(stale.cueId,'cue-oseh-shalom');
+ assert.match(stale.reason??'',/could not find this row.s page after the service changed books/);
+ assert.match(staleUnknown.reason??'',/could not find this row.s page/);
+ assert.equal(unmatched.find(row=>row.trackId==='t-stale-unknown')?.kind,'other','a stale row is not reported as a liturgy row');
+ // An id no published graphic carries falls through to the title search, and says what it looked for.
+ assert.equal(noId.status,'covered');assert.equal(noId.cueId,'cue-shma');
+ assert.match(noId.reason??'',/No graphic carries shma\.not-published@legacy-shabbat-morning or page 64 of crc-saturday; matched "Shma" by name/);
+});
+
 test('every label and reason the matcher writes fits what createCollection accepts',()=>{
  for(const name of ['covered.json','song-unmatched.json','ambiguous-folio.json']){
   const {entries,coverage}=matchSetlist(fixture<LiveSetlist>(name),deps());
@@ -86,6 +121,15 @@ test('an empty environment is unconfigured, and so is a base URL that is not an 
  assert.deepEqual(liveSetlistsAvailability({CRC_LIVE_BASE_URL:'http://live.example',CRC_LIVE_READ_TOKEN:'t'}),{available:false,reason:'unconfigured'});
  assert.deepEqual(liveSetlistsAvailability({CRC_LIVE_BASE_URL:'not a url',CRC_LIVE_READ_TOKEN:'t'}),{available:false,reason:'unconfigured'});
  assert.deepEqual(liveSetlistsAvailability({CRC_LIVE_BASE_URL:'https://live.example',CRC_LIVE_READ_TOKEN:'t'}),{available:true,reason:'ok'});
+ assert.deepEqual(liveSetlistsAvailability({CRC_LIVE_BASE_URL:'https://live.example',CRC_LIVE_READ_TOKEN:'t',WORKSPACE_ID:'CRC'}),{available:true,reason:'ok'});
+});
+
+test('only the CRC workspace reads centralreform.live: TBI stays unconfigured even with the variables copied',()=>{
+ const copied={CRC_LIVE_BASE_URL:'https://live.example',CRC_LIVE_READ_TOKEN:'t',WORKSPACE_ID:'temple-bnai-israel-kalamazoo'};
+ assert.deepEqual(liveSetlistsAvailability(copied),{available:false,reason:'unconfigured'});
+ let fetched=0;
+ assert.throws(()=>createLiveTransport(copied,(async()=>{fetched++;throw new Error('never')}) as typeof fetch),/not set up for this congregation/);
+ assert.equal(fetched,0);
 });
 
 /* ---------- the operation, unconfigured ---------- */

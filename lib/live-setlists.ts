@@ -73,7 +73,15 @@ const str=(value:unknown):string|null=>typeof value==='string'&&value?value:null
 
 /* ---------- availability and the default transport ---------- */
 
-export type LiveSetlistsEnv={CRC_LIVE_BASE_URL?:string|undefined;CRC_LIVE_READ_TOKEN?:string|undefined;[key:string]:string|undefined};
+export type LiveSetlistsEnv={CRC_LIVE_BASE_URL?:string|undefined;CRC_LIVE_READ_TOKEN?:string|undefined;WORKSPACE_ID?:string|undefined;[key:string]:string|undefined};
+
+/**
+ * centralreform.live has one org, CRC, and none is planned for TBI (RULINGS-INTEGRATION Idea 13); a
+ * crc bearer cannot read another org's setlists. So only the CRC deployment (WORKSPACE_ID unset or
+ * `crc`) ever uses the credential: on any other workspace the import is unconfigured even if the two
+ * variables were copied there by mistake, and the refusal stays a sentence.
+ */
+const isCrcWorkspace=(env:LiveSetlistsEnv)=>(env.WORKSPACE_ID?.trim().toLowerCase()||'crc')==='crc';
 
 function httpsOrigin(value:string|undefined):URL|null{
  if(!value)return null;
@@ -82,7 +90,7 @@ function httpsOrigin(value:string|undefined):URL|null{
 
 export function liveSetlistsAvailability(env:LiveSetlistsEnv=process.env):{available:boolean;reason:'ok'|'unconfigured'}{
  const base=httpsOrigin(env.CRC_LIVE_BASE_URL),token=(env.CRC_LIVE_READ_TOKEN??'').trim();
- return base&&token?{available:true,reason:'ok'}:{available:false,reason:'unconfigured'};
+ return base&&token&&isCrcWorkspace(env)?{available:true,reason:'ok'}:{available:false,reason:'unconfigured'};
 }
 
 /** 256 KB. A setlist is a few dozen rows; anything larger is not an answer we asked for. */
@@ -137,7 +145,7 @@ function toolPayload(message:Record<string,unknown>):unknown{
  */
 export function createLiveTransport(env:LiveSetlistsEnv=process.env,fetchImpl:typeof fetch=globalThis.fetch):LiveSetlistTransport{
  const base=httpsOrigin(env.CRC_LIVE_BASE_URL),token=(env.CRC_LIVE_READ_TOKEN??'').trim();
- if(!base||!token)throw new LiveSetlistsError('unconfigured','Importing from centralreform.live is not set up for this congregation.');
+ if(!base||!token||!isCrcWorkspace(env))throw new LiveSetlistsError('unconfigured','Importing from centralreform.live is not set up for this congregation.');
  const endpoint=new URL('/api/mcp',base).toString();
  let id=0;
  return async(tool,args)=>{
@@ -179,15 +187,23 @@ export type MatchDeps={cues:Cue[];liturgyFor:(cue:Cue)=>LiturgyRef;id?:()=>strin
 const bookKey=(book:string)=>book.normalize('NFKD').replace(/\p{M}/gu,'').toLowerCase().replace(/[^\p{L}\p{N}]+/gu,'');
 const folioKey=(book:string,folio:number)=>`${bookKey(book)}|${folio}`;
 
-function liturgyMap(deps:MatchDeps):Map<string,Cue[]>{
- const map=new Map<string,Cue[]>();
+/**
+ * The published graphics by liturgy position: `byUnit` on the cue's `LiturgyRef.unitId`, `byFolio` on
+ * its `{book, folio}`. centralreform.live rows carry the same `unitId` (the legacy feed's unit id, set
+ * only when that unit prints on the row's own page), so the id is the match. A row's `{book, folio}` is
+ * the booklet and the page it prints, which a feed cue's `{book, folio}` never equals for CRC; the folio
+ * key stays for local sources (T2), whose book and page are the printed ones.
+ */
+function liturgyMaps(deps:MatchDeps):{byUnit:Map<string,Cue[]>;byFolio:Map<string,Cue[]>}{
+ const byUnit=new Map<string,Cue[]>(),byFolio=new Map<string,Cue[]>();
+ const add=(map:Map<string,Cue[]>,key:string,cue:Cue)=>{const bucket=map.get(key);if(bucket)bucket.push(cue);else map.set(key,[cue])};
  for(const cue of deps.cues){
   const ref=deps.liturgyFor(cue);
-  if(!ref||typeof ref.book!=='string'||!ref.book||typeof ref.folio!=='number'||!Number.isFinite(ref.folio))continue;
-  const key=folioKey(ref.book,ref.folio);
-  const bucket=map.get(key);if(bucket)bucket.push(cue);else map.set(key,[cue]);
+  if(!ref)continue;
+  if(typeof ref.unitId==='string'&&ref.unitId)add(byUnit,ref.unitId,cue);
+  if(typeof ref.book==='string'&&ref.book&&typeof ref.folio==='number'&&Number.isFinite(ref.folio))add(byFolio,folioKey(ref.book,ref.folio),cue);
  }
- return map;
+ return {byUnit,byFolio};
 }
 
 function names(cues:Cue[]):string{
@@ -206,18 +222,23 @@ function titleCandidates(title:string,cues:Cue[]){
 }
 
 /**
- * A setlist becomes entries plus one coverage row per performance row. Two graphics that
- * share a folio never produce a silent pick: the row is `needs-review`, owned by Unassigned,
+ * A setlist becomes entries plus one coverage row per performance row, matched by the row's
+ * `liturgyRef.unitId` first, then its `{book, folio}`, then its title. Two graphics that share a
+ * unit or a folio never produce a silent pick: the row is `needs-review`, owned by Unassigned,
  * with every candidate named, and its entry is `alternates` so the operator chooses on
  * `/services`. Nothing here publishes anything or issues a live command.
  *
  * S1 - it also writes one service row per performance row, in setlist order, linking that
  * row's coverage item and entry (when it has one) and carrying its track id, its position in
  * the setlist and the candidate cue ids, so a row with no graphic keeps its place.
+ *
+ * A row whose `liturgyRef.stale` is true (centralreform.live could not re-find its page after the
+ * service switched books) is treated as having no liturgy: it is matched by title, and its reason
+ * says why.
  */
 export function matchSetlist(setlist:LiveSetlist,deps:MatchDeps):SetlistMatch{
  const newId=deps.id??randomUUID;
- const byFolio=liturgyMap(deps);
+ const {byUnit,byFolio}=liturgyMaps(deps);
  const entries:CollectionEntry[]=[],coverage:CoverageItem[]=[],rows:ServiceRow[]=[],unmatched:UnmatchedRow[]=[];
  const tracks=Array.isArray(setlist.tracks)?setlist.tracks as LiveTrack[]:[];
  // `parseEntries` accepts 200 entries and `parseCoverage` 300 rows; a longer service is refused
@@ -230,9 +251,10 @@ export function matchSetlist(setlist:LiveSetlist,deps:MatchDeps):SetlistMatch{
   const trackId=typeof track.id==='string'||typeof track.id==='number'?String(track.id):'';
   const title=str(track.title)?.trim()||'(untitled row)';
   const label=clip(title,MAX_LABEL);
-  const ref=(track.liturgyRef&&typeof track.liturgyRef==='object'&&!Array.isArray(track.liturgyRef))?track.liturgyRef as {book?:unknown;folio?:unknown}:null;
-  const book=str(ref?.book),folio=typeof ref?.folio==='number'&&Number.isFinite(ref.folio)?ref.folio:null;
-  const hasLiturgy=Boolean(book&&folio!==null);
+  const raw=(track.liturgyRef&&typeof track.liturgyRef==='object'&&!Array.isArray(track.liturgyRef))?track.liturgyRef as {book?:unknown;folio?:unknown;unitId?:unknown;stale?:unknown}:null;
+  const stale=raw?.stale===true,ref=stale?null:raw;
+  const unitId=str(ref?.unitId),book=str(ref?.book),folio=typeof ref?.folio==='number'&&Number.isFinite(ref.folio)?ref.folio:null;
+  const hasPage=Boolean(book&&folio!==null),hasLiturgy=Boolean(unitId)||hasPage;
   const kind:UnmatchedRow['kind']=hasLiturgy?'liturgy':type==='song'?'song':'other';
   let entryId:string|undefined,candidateCueIds:string[]=[];
   const cover=(row:Omit<CoverageItem,'id'|'label'>)=>{
@@ -253,22 +275,31 @@ export function matchSetlist(setlist:LiveSetlist,deps:MatchDeps):SetlistMatch{
   };
 
   if(hasLiturgy){
-   const sharing=byFolio.get(folioKey(book!,folio!))??[];
-   if(sharing.length===1){covered(sharing[0],`Matched page ${folio} of ${book} in the published library.`);continue}
-   if(sharing.length>=2){review(sharing,`Two graphics match this page. Choose one before relying on this row. Candidates: ${names(sharing)}.`);continue}
+   if(unitId){
+    const carrying=byUnit.get(unitId)??[];
+    if(carrying.length===1){covered(carrying[0],`Matched ${unitId} in the published library.`);continue}
+    if(carrying.length>=2){review(carrying,`Several graphics carry ${unitId}. Choose one before relying on this row. Candidates: ${names(carrying)}.`);continue}
+   }
+   if(hasPage){
+    const sharing=byFolio.get(folioKey(book!,folio!))??[];
+    if(sharing.length===1){covered(sharing[0],`Matched page ${folio} of ${book} in the published library.`);continue}
+    if(sharing.length>=2){review(sharing,`Two graphics match this page. Choose one before relying on this row. Candidates: ${names(sharing)}.`);continue}
+   }
+   const missing=`No graphic carries ${[unitId,hasPage?`page ${folio} of ${book}`:null].filter(Boolean).join(' or ')}`;
    const {clear,plausible}=titleCandidates(title,deps.cues);
-   if(clear){covered(clear,`No graphic carries page ${folio} of ${book}; matched "${friendlyCueName(clear.name)}" by name.`);continue}
-   if(plausible.length>=2){review(plausible,`No graphic carries page ${folio} of ${book}, and several could be this row. Candidates: ${names(plausible)}.`);continue}
-   if(plausible.length===1){review(plausible,`No graphic carries page ${folio} of ${book}. Closest published graphic: ${names(plausible)}.`);continue}
+   if(clear){covered(clear,`${missing}; matched "${friendlyCueName(clear.name)}" by name.`);continue}
+   if(plausible.length>=2){review(plausible,`${missing}, and several could be this row. Candidates: ${names(plausible)}.`);continue}
+   if(plausible.length===1){review(plausible,`${missing}. Closest published graphic: ${names(plausible)}.`);continue}
    const reason='No published graphic matches this setlist row.';
    cover({status:'needs-cue',owner:'Unassigned',reason});flag(reason);continue;
   }
 
+  const lost=stale?'centralreform.live could not find this row’s page after the service changed books, so it was matched by name. ':'';
   const {clear,plausible}=titleCandidates(title,deps.cues);
-  if(clear){covered(clear,`Matched the published graphic "${friendlyCueName(clear.name)}" by name.`);continue}
-  if(plausible.length>=2){review(plausible,`Several graphics could be this row. Candidates: ${names(plausible)}.`);continue}
-  if(plausible.length===1){review(plausible,`Closest published graphic: ${names(plausible)}. Confirm it before relying on this row.`);continue}
-  const reason='Song without a matching graphic; add one if the words should be on screen.';
+  if(clear){covered(clear,`${lost}Matched the published graphic "${friendlyCueName(clear.name)}" by name.`);continue}
+  if(plausible.length>=2){review(plausible,`${lost}Several graphics could be this row. Candidates: ${names(plausible)}.`);continue}
+  if(plausible.length===1){review(plausible,`${lost}Closest published graphic: ${names(plausible)}. Confirm it before relying on this row.`);continue}
+  const reason=`${lost}Song without a matching graphic; add one if the words should be on screen.`;
   cover({status:'not-needed',reason});flag(reason);
  }
  return {entries,coverage,rows,unmatched};

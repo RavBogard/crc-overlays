@@ -258,13 +258,15 @@ Existing agent scripts that asserted a measurement must now call `fit_check_draf
 
 ## Preparing a service from centralreform.live (`prepare_service_from_setlist`)
 
-`prepare_service_from_setlist({setlistId, name?, service?})` builds a prepared service on `/services` from a planned service on centralreform.live. Each setlist row is matched to a published graphic — by liturgy page (`{book, folio}`) where the row carries one, otherwise by the console's forgiving title search — and the result is an ordinary service collection with a coverage row per row of the setlist: *Covered*, *Needs review*, *Needs a graphic*, or *Not needed*. Rows that could not be settled come back in `unmatched` with the reason for each.
+`prepare_service_from_setlist({setlistId, name?, service?})` builds a prepared service on `/services` from a planned service on centralreform.live. Each setlist row is matched to a published graphic — first by the row's `liturgyRef.unitId` against the graphic's own liturgy unit, then by liturgy page (`{book, folio}`), otherwise by the console's forgiving title search — and the result is an ordinary service collection with a coverage row per row of the setlist: *Covered*, *Needs review*, *Needs a graphic*, or *Not needed*. Rows that could not be settled come back in `unmatched` with the reason for each.
 
-Where two published graphics share the same liturgy page, the tool never picks one: the row is *Needs review*, owned by "Unassigned", with both graphics named, and the entry holds both as alternates for a person to choose between.
+centralreform.live's `liturgyRef.book` is the booklet (`crc-friday`, `crc-saturday`) and its `folio` the page the booklet prints, which a corpus graphic's book and page never equal, so for CRC the unit id is the match and the page key serves local sources, whose book and page are the printed ones. A unit id no published graphic carries falls through to the title search, and the reason names what was looked for. A row marked `liturgyRef.stale` (centralreform.live could not re-find its page after the service changed books) is treated as having no liturgy: it is matched by title, and its reason says so.
+
+Where two published graphics share the same liturgy unit or page, the tool never picks one: the row is *Needs review*, owned by "Unassigned", with both graphics named, and the entry holds both as alternates for a person to choose between.
 
 **It never publishes anything, never changes a published graphic, and never puts anything on screen.** It writes exactly one thing: a new prepared service you can open and edit on `/services`.
 
-Requires an authoring member. On a congregation without the centralreform.live credential it returns a plain refusal — `{"ok": false, "reason": "unconfigured", "message": "Importing from centralreform.live is not set up for this congregation."}` — not an error. The credential and its two variables are described in `docs/WORKSPACE-DEPLOYMENT.md`; the same import is offered on `/services` as **Import from centralreform.live**.
+Requires an authoring member. Only the CRC deployment reads centralreform.live (it has no TBI org). On any other workspace, or without the credential, it returns a plain refusal — `{"ok": false, "reason": "unconfigured", "message": "Importing from centralreform.live is not set up for this congregation."}` — not an error. The credential and its two variables are described in `docs/WORKSPACE-DEPLOYMENT.md`; the same import is offered on `/services` as **Import from centralreform.live**.
 
 ## Editing prepared services (S2)
 

@@ -191,7 +191,9 @@ test('import_setlist stores rows and origin, keeps setlist order, and the web se
   // What the page renders is what the pre-S1 importer produced for the same setlist.
   const before=preImported();
   assert.deepEqual(collection.entries.map(({type,label,cueIds})=>({type,label,cueIds})),before.entries.map(({type,label,cueIds})=>({type,label,cueIds})));
-  assert.deepEqual(collection.coverage.map(({label,status,cueId,owner,reason})=>({label,status,cueId,owner,reason})),before.coverage.map(({label,status,cueId,owner,reason})=>({label,status,cueId,owner,reason})));
+  assert.deepEqual(collection.coverage.map(({label,status,cueId,owner})=>({label,status,cueId,owner})),before.coverage.map(({label,status,cueId,owner})=>({label,status,cueId,owner})));
+  // The same decisions; since the unit-id match a liturgy row's reason names the unit it matched on.
+  assert.deepEqual(collection.coverage.map(row=>row.reason),before.coverage.map(row=>row.reason==='Matched page 12 of shabbat-evening in the published library.'?'Matched opening.barechu@legacy-shabbat-evening in the published library.':row.reason?.replace('Two graphics match this page.','Several graphics carry geulah.mi-chamocha@legacy-shabbat-evening.')));
   assert.deepEqual(result.unmatched.map(row=>row.trackId),['t-zog-nit','t-hashkiveinu','t-mi-chamocha']);
   // Stored as written; reading it back changes nothing.
   const stored=repository.collections.get(collection.id)!;
