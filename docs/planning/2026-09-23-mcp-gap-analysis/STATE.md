@@ -147,12 +147,26 @@ app/api/catalog/route.ts and lib/sync-live-catalog.ts; L2 and C5 add envelope-on
   snapshot-era superseded cue names as retired.
 - C2 notes for C3: seedCrcDeck shares the manifest's gesture objects by reference (clone in the seed);
   booth connection labels (Q4) are still the only unguarded wrong-camera path.
+- A2 merged (6ed5862): ship_draft (preview → server fit with image → attested review → publish, or stops
+  with stoppedAt duplicate_name|validation|fit_failed|fit_unavailable and publishes nothing);
+  publish_draft confirmDuplicateName; receipts record approvedBy agent|person + member (humanApproved:true
+  still accepted); fit frames kept in authoring_preview_images (db/authoring.sql, not applied, ≤750 KB,
+  best effort); list_recent_publications; /author/publications page with one-click rollback. Instructions
+  now lead with ship_draft. Timing (Windows, local Chrome): fit 0.8-1.1 s; ship_draft 6.5 s first call
+  after dev start, 1.0-1.3 s after; Vercel cold start not measured. Gate: tsc clean, npm test 1002+35,
+  lint 0 errors, Turbopack build ok.
+- GATE (A2): fit_check_draft now keeps its image when includePreviewImage:true (R-A2); the page defaults to
+  assistant publications; one library link added in app/author/panels.tsx.
+- A2 notes: first publications can't be undone from the page (retire, A3); recovery backups don't include
+  authoring_preview_images.
 
 ## Evidence
 Four read-only audits (MCP surface, layouts/renderer, Companion, live/services/access) plus a
 structural read of Simone's export; synthesis and file/line references in GAP-ANALYSIS.md.
 
 ## Open questions
+- Recent publications page copy (A2) needs Daniel's review: "Published by an assistant connected by …",
+  "Go back to the previous version", "In use now".
 - Should agents record service feedback (/services/log)? S2 left it out of the MCP; needed only for strict parity.
 - Corner card: fix the Hebrew accent title packing left in its lane (the RTL flex-end bug the lower third
   already fixed)? Visible change; L1 kept it for pixel identity.
