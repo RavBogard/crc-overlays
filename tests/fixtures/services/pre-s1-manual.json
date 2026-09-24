@@ -1,0 +1,24 @@
+{
+  "note": "A prepared service in the shape stored before S1, built by hand on /services: entries and coverage were edited independently and only some labels agree. Hand-written test data, not a copy of any stored document.",
+  "document": {
+    "id": "svc-pre-s1-manual",
+    "name": "Friday night",
+    "service": "Shabbat Evening",
+    "version": 7,
+    "archived": false,
+    "entries": [
+      {"id": "e-welcome", "type": "cue", "label": "Welcome", "cueIds": ["cue-shma"]},
+      {"id": "e-barechu", "type": "cue", "label": "Barechu", "cueIds": ["cue-barechu"]},
+      {"id": "e-closing", "type": "multipart", "label": "Closing sequence", "cueIds": ["cue-oseh-shalom", "cue-barechu"]}
+    ],
+    "coverage": [
+      {"id": "c-candles", "label": "Candle lighting", "status": "intentional-fallback", "owner": "Michael", "reason": "Read from the bimah; no graphic."},
+      {"id": "c-barechu", "label": "Barechu", "status": "covered", "cueId": "cue-barechu"},
+      {"id": "c-kiddush", "label": "Kiddush", "status": "needs-cue", "sourceId": "source:kiddush", "owner": "Daniel", "reason": "Make a side panel from the siddur."}
+    ],
+    "createdAt": 500,
+    "updatedAt": 900,
+    "createdBy": "member:owner",
+    "updatedBy": "member:editor"
+  }
+}

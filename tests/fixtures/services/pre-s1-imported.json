@@ -1,0 +1,27 @@
+{
+  "note": "A prepared service in the shape stored before S1 (no rows, no origin): what the D19 importer wrote for setlists/mixed-order.json. Entries exist only for rows with a graphic or a choice; each shares its coverage row's label. Hand-written test data, not a copy of any stored document.",
+  "document": {
+    "id": "svc-pre-s1-imported",
+    "name": "Shabbat Evening — graphics, gaps and a choice",
+    "service": "Friday, October 2",
+    "version": 3,
+    "archived": false,
+    "entries": [
+      {"id": "e-barechu", "type": "cue", "label": "Barechu", "cueIds": ["cue-barechu"]},
+      {"id": "e-mi-chamocha", "type": "alternates", "label": "Mi Chamocha", "cueIds": ["cue-mi-chamocha-klepper", "cue-mi-chamocha-friedman"]},
+      {"id": "e-oseh-shalom", "type": "cue", "label": "Oseh Shalom", "cueIds": ["cue-oseh-shalom"]}
+    ],
+    "coverage": [
+      {"id": "c-zog-nit", "label": "Zog Nit Keyn Mol", "status": "not-needed", "reason": "Song without a matching graphic; add one if the words should be on screen."},
+      {"id": "c-barechu", "label": "Barechu", "status": "covered", "cueId": "cue-barechu", "reason": "Matched page 12 of shabbat-evening in the published library."},
+      {"id": "c-hashkiveinu", "label": "Hashkiveinu", "status": "needs-cue", "owner": "Unassigned", "reason": "No published graphic matches this setlist row."},
+      {"id": "c-mi-chamocha", "label": "Mi Chamocha", "status": "needs-review", "owner": "Unassigned", "reason": "Two graphics match this page. Choose one before relying on this row. Candidates: Mi Chamocha (Klepper), Mi Chamocha (Friedman)."},
+      {"id": "c-oseh-shalom", "label": "Oseh Shalom", "status": "covered", "cueId": "cue-oseh-shalom", "reason": "Matched the published graphic \"Oseh Shalom\" by name."}
+    ],
+    "names": {"title": "Mi Shebeirach", "perPanel": 8, "layout": "left", "rows": [{"he": "רבקה", "en": "Rebecca"}, {"he": "", "en": "Ada"}], "updatedAt": 2, "updatedBy": "test"},
+    "createdAt": 1000,
+    "updatedAt": 1200,
+    "createdBy": "member:editor",
+    "updatedBy": "member:editor"
+  }
+}

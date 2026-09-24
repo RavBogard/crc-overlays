@@ -1,0 +1,17 @@
+{
+  "id": "setlist-mixed-order",
+  "name": "Shabbat Evening — graphics, gaps and a choice",
+  "date": "2026-10-02T00:00:00.000Z",
+  "eventDate": "2026-10-02T23:30:00.000Z",
+  "version": 3,
+  "lastModifiedAt": "2026-09-23T12:00:00.000Z",
+  "tracks": [
+    {"id": "t-header", "order": 0, "title": "Evening Service", "type": "header", "liturgyRef": null},
+    {"id": "t-zog-nit", "order": 1, "title": "Zog Nit Keyn Mol", "type": "song", "songId": "song-zog", "liturgyRef": null},
+    {"id": "t-barechu", "order": 2, "title": "Barechu", "type": "prayer", "liturgyRef": {"book": "shabbat-evening", "unitId": "opening.barechu@legacy-shabbat-evening", "folio": 12}},
+    {"id": "t-hashkiveinu", "order": 3, "title": "Hashkiveinu", "type": "prayer", "liturgyRef": {"book": "shabbat-evening", "unitId": "shma.hashkiveinu@legacy-shabbat-evening", "folio": 40}},
+    {"id": "t-mi-chamocha", "order": 4, "title": "Mi Chamocha", "type": "prayer", "liturgyRef": {"book": "shabbat-evening", "unitId": "geulah.mi-chamocha@legacy-shabbat-evening", "folio": 34}},
+    {"id": "t-note", "order": 5, "title": "Band vamps under the announcements", "type": "note", "liturgyRef": null},
+    {"id": "t-oseh-shalom", "order": 6, "title": "Oseh Shalom", "type": "song", "songId": "song-oseh", "liturgyRef": null}
+  ]
+}
