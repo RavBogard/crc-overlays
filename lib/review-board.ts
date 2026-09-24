@@ -185,7 +185,7 @@ async function requireBoard(ctx:ReviewBoardContext,id:unknown){
 type Frame={previewId:string;width:number;height:number;mimeType:string};
 export type ItemState={
  key:string;draftId:string;name:string;layout:string|null;groupLabel:string;
- available:boolean;archived:boolean;currentRevision:number|null;
+ available:boolean;archived:boolean;unpublished:boolean;currentRevision:number|null;
  image:Frame|null;reference:ReviewReference|null;
  decision:ReviewDecisionValue|null;note:string;decidedAt:number|null;decidedBy:string|null;decidedRevision:number|null;
  updated:boolean;earlier:{decision:ReviewDecisionValue|null;note:string;revision:number|null;decidedAt:number;decidedBy:string}|null;
@@ -214,7 +214,7 @@ export async function boardState(ctx:ReviewBoardContext,board:ReviewBoard):Promi
   const updated=Boolean(answer&&answer.revision!==current&&(answer.decision!==null||answer.note));
   const earlierFrom=updated?answer!:answer?.previous??null;
   return {key:item.key,draftId:item.draftId,name:draft?.name??'A graphic that has been deleted',layout:draft?.layout??null,groupLabel:item.groupLabel,
-   available:Boolean(draft&&!draft.archivedAt&&current!==null),archived:Boolean(draft?.archivedAt),currentRevision:current,
+   available:Boolean(draft&&!draft.archivedAt&&current!==null),archived:Boolean(draft?.archivedAt),unpublished:Boolean(draft&&!draft.archivedAt&&current===null),currentRevision:current,
    image:frames.get(item.draftId)??null,reference,
    decision:updated?null:answer?.decision??null,note:updated?'':answer?.note??'',decidedAt:updated?null:answer?.decidedAt??null,decidedBy:updated?null:answer?.decidedBy??null,decidedRevision:updated?null:answer?.revision??null,
    updated,earlier:updated&&earlierFrom?{decision:earlierFrom.decision,note:earlierFrom.note,revision:earlierFrom.revision,decidedAt:earlierFrom.decidedAt,decidedBy:earlierFrom.decidedBy}:null};
@@ -232,7 +232,7 @@ function agentItem(item:ItemState){
  return {draftId:item.draftId,name:item.name,...(item.groupLabel?{group:item.groupLabel}:{}),decision:item.decision,...(item.note?{note:item.note}:{}),
   ...(item.decidedAt!==null?{decidedAt:item.decidedAt,decidedBy:item.decidedBy,decidedRevision:item.decidedRevision}:{}),
   currentRevision:item.currentRevision,hasPicture:Boolean(item.image),hasReference:Boolean(item.reference),
-  ...(item.updated?{updated:true}:{}),...(item.earlier?{earlier:item.earlier}:{}),...(!item.available?{available:false,...(item.archived?{archived:true}:{})}:{})};
+  ...(item.updated?{updated:true}:{}),...(item.earlier?{earlier:item.earlier}:{}),...(!item.available?{available:false,...(item.archived?{archived:true}:{}),...(item.unpublished?{unpublished:true}:{})}:{})};
 }
 const FILTERS=['all','needs-change','undecided','approved','updated'] as const;
 type Filter=(typeof FILTERS)[number];

@@ -151,7 +151,7 @@ export default function ReviewClient({ boardId }: { boardId: string }) {
                   </header>
                   {item.updated && <p className={styles.hint}>{COPY.updatedHint}</p>}
                   {item.earlier && <p className={styles.earlier}>{earlierLine(item.earlier)}</p>}
-                  {!item.available && <p className={styles.hint}>{item.archived ? COPY.archived : COPY.gone}</p>}
+                  {!item.available && <p className={styles.hint}>{item.archived ? COPY.archived : item.unpublished ? COPY.unpublished : COPY.gone}</p>}
                   <div className={styles.choices} role="group" aria-label={item.name}>
                     <button type="button" aria-pressed={item.decision === "approve"} className={`${styles.choice} ${styles.approve}`} onClick={() => choose(item, "approve")}>{COPY.approve}</button>
                     <button type="button" aria-pressed={item.decision === "needs-change"} className={`${styles.choice} ${styles.change}`} onClick={() => choose(item, "needs-change")}>{COPY.needsChange}</button>

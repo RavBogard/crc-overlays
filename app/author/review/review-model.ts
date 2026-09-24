@@ -23,6 +23,7 @@ export const COPY = {
   updatedHint: 'This graphic was changed after you answered. Please look again.',
   gone: 'This graphic is no longer in the library.',
   archived: 'This graphic has been archived.',
+  unpublished: 'This graphic is not published yet.',
   filterLabel: 'Show',
   showAll: 'All',
   showUndecided: 'Not answered yet',

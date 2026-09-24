@@ -140,7 +140,8 @@ test('an unpublished draft is shown without a picture and the agent is warned',a
  const created=await call('create_review_board',{title:'Drafts',draftIds:[draft.output.draft.id]});
  assert.equal(created.isError,false,created.text);assert.match(created.output.warnings[0],/not published yet/);
  const [item]=(await page(created.output.boardId)).body.items;
- assert.deepEqual([item.image,item.available],[null,false]);
+ // Unpublished, not gone: the page says "not published yet" rather than "no longer in the library".
+ assert.deepEqual([item.image,item.available,item.unpublished,item.archived],[null,false,true,false]);
  assert.equal((await call('create_review_board',{title:'Bad',draftIds:['draft_missing']})).isError,true);
 });
 

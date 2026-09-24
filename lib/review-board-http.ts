@@ -16,14 +16,14 @@ const PREVIEW_ID=/^[A-Za-z0-9_-]{1,200}$/;
 const person=(member:AccessMember|null)=>member&&!member.id.startsWith('device:')&&!member.id.startsWith('legacy-')?member:null;
 export const imagePath=(boardId:string,previewId:string)=>`/api/review-boards?board=${encodeURIComponent(boardId)}&image=${encodeURIComponent(previewId)}`;
 
-export type PageItem={key:string;name:string;group:string;available:boolean;archived:boolean;revision:number|null;image:{url:string;width:number;height:number}|null;reference:{text:string;imageUrl:string|null}|null;decision:ItemState['decision'];note:string;answeredBy:string|null;answeredAt:number|null;updated:boolean;earlier:{decision:ItemState['decision'];note:string;answeredBy:string|null}|null};
+export type PageItem={key:string;name:string;group:string;available:boolean;archived:boolean;unpublished:boolean;revision:number|null;image:{url:string;width:number;height:number}|null;reference:{text:string;imageUrl:string|null}|null;decision:ItemState['decision'];note:string;answeredBy:string|null;answeredAt:number|null;updated:boolean;earlier:{decision:ItemState['decision'];note:string;answeredBy:string|null}|null};
 export type PageBoard={title:string;grouping:string;counts:ReturnType<typeof boardCounts>;items:PageItem[]};
 
 async function pageItems(boardId:string,items:ItemState[],deps:ReviewBoardHttpDeps):Promise<PageItem[]>{
  const names=new Map<string,string|null>();
  for(const id of new Set(items.flatMap(item=>[item.decidedBy,item.earlier?.decidedBy].filter((value):value is string=>Boolean(value)))))names.set(id,await deps.memberName(id).catch(()=>null));
  const name=(id:string|null|undefined)=>id?names.get(id)??null:null;
- return items.map(item=>({key:item.key,name:item.name,group:item.groupLabel,available:item.available,archived:item.archived,revision:item.currentRevision,
+ return items.map(item=>({key:item.key,name:item.name,group:item.groupLabel,available:item.available,archived:item.archived,unpublished:item.unpublished,revision:item.currentRevision,
   image:item.image?{url:imagePath(boardId,item.image.previewId),width:item.image.width,height:item.image.height}:null,
   reference:item.reference?{text:item.reference.text,imageUrl:item.reference.imageAssetId?`/api/assets/${encodeURIComponent(item.reference.imageAssetId)}/preview`:null}:null,
   decision:item.decision,note:item.note,answeredBy:name(item.decidedBy),answeredAt:item.decidedAt,updated:item.updated,
