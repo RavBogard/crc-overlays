@@ -4,7 +4,7 @@
 //
 //   node scripts/audit-companion-preset.mjs [--deck <deck.json>] [--manifest <CUE-MANIFEST.json>]
 //        [--seed <crc-seed-data.json>] [--snapshot <catalog-snapshot.json>] [--definitions <definitions.json>]
-//        [--preset <file.companionconfig>] [--upgrade-bundle <upgrade-bundle.mjs>] [--json]
+//        [--preset <file.companionconfig>] [--upgrade-bundle <upgrade-bundle.mjs>] [--style <style.json>] [--json]
 //
 // With no --deck it audits CRC's seed deck (CUE-MANIFEST.json + crc-seed-data.json). Module definitions
 // come from companion/definitions/<version>.json for the module version the deck's Overlays connection
@@ -12,7 +12,10 @@
 // from the catalog snapshot. --preset also checks
 // that file is byte-for-byte what the deck renders. Companion's own import upgrade runs only when the
 // (gitignored, local) upgrade bundle exists for the deck's recorded build. Michael's raw export is not
-// read. Nothing here proves anything about hardware.
+// read. The operator's style check (QC check 1: every multi-panel graphic has one key per panel, placed
+// and labelled by that operator's rules) runs inside validateDeck against lib/companion-deck/styles/
+// <workspace>.json, or the file --style names; a missing or duplicated panel key fails the audit. Nothing
+// here proves anything about hardware.
 import fs from 'node:fs'
 import path from 'node:path'
 import { pathToFileURL } from 'node:url'
@@ -20,6 +23,7 @@ import { DEFAULTS as BUILD_DEFAULTS, readGz } from './build-companion-preset.mjs
 import { seedCrcDeck } from '../lib/companion-deck/seed.ts'
 import { encodeCompanionConfig } from '../lib/companion-deck/render.ts'
 import { catalogCueLookups, validateDeck } from '../lib/companion-deck/validate.ts'
+import { parseDeckStyle } from '../lib/companion-deck/style.ts'
 import { definitionsPathFor } from '../companion/scripts/write-definitions.mjs'
 
 const root = path.resolve(import.meta.dirname, '..')
@@ -33,6 +37,8 @@ export const AUDIT_DEFAULTS = {
   definitions: null,
   preset: null,
   'upgrade-bundle': path.join(root, 'work/companion-conversion/2026-09-22/tools/upgrade-bundle.mjs'),
+  /** null: the deck workspace's own style (lib/companion-deck/styles/<workspace>.json). */
+  style: null,
 }
 /** The Companion release the local upgrade bundle was extracted from (Michael's booth). */
 export const UPGRADE_BUNDLE_RELEASE = '5.0.3'
@@ -62,7 +68,8 @@ export async function audit(opts = {}) {
     const { upgradeImport } = await import(pathToFileURL(o['upgrade-bundle']).href)
     upgrade = { release: UPGRADE_BUNDLE_RELEASE, upgradeImport }
   }
-  const result = validateDeck(deck, { module: readJson(o.definitions ?? deckDefinitionsPath(deck)), cues, upgrade })
+  const style = o.style ? parseDeckStyle(readJson(o.style)) : undefined
+  const result = validateDeck(deck, { module: readJson(o.definitions ?? deckDefinitionsPath(deck)), cues, upgrade, style })
   if (o.preset && result.exported) {
     const rendered = encodeCompanionConfig(result.exported)
     const same = fs.readFileSync(o.preset).equals(rendered) || JSON.stringify(readGz(o.preset)) === JSON.stringify(result.exported)

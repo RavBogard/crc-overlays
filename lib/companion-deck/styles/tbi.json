@@ -1,0 +1,48 @@
+{
+  "workspace": "tbi",
+  "operator": "Simone (TBI booth)",
+  "about": "TBI's deck style: Simone's pages, positions and colours (her TBIComputer export of 2026-09-14), with CRC's panel counts stacked down each column (TBI redo ruling 5). Every rule here is true of her seeded deck and of the approved deck plan (work/tbi-redo/build-prep/deck-plan.csv); placement and label rules are what most of her sets follow, and the few of her own keys that do not are reported as warnings, never refused.",
+  "sources": [
+    "docs/planning/2026-09-23-tbi-redo/STATE.md rulings 5, 24 and 29 (her pages, positions and colours; CRC panel counts stacked down each column; Avot may continue from column 6 into column 7; \"Mourn Kadd 1\", \"Mourn Kadd 2\")",
+    "work/tbi-redo/build-prep/deck-plan.csv and colour-map.json (every key: page, cell, label, colour, target, panel)",
+    "lib/companion-deck/tbi-seed-data.json (her pages and built-in navigation)"
+  ],
+  "pages": [
+    { "from": 1, "to": 1, "role": "slides-cameras", "template": "service", "purpose": "JLicense, Visual T'filah and Donate slides in c1; the BirdDog camera pad in c2-c7" },
+    { "from": 2, "to": 6, "role": "service", "template": "service", "purpose": "Friday evening in service order: Kabbalat Shabbat (2), Bar'chu to the Amidah (3), the Amidah (4), Aleinu to the close (5), songs and readings (6)" },
+    { "from": 8, "to": 8, "role": "occasional", "template": "service", "purpose": "Occasional graphics (JLicense, Omer, national songs, Pride) and the OBS scene keys" },
+    { "from": 95, "to": 99, "role": "service", "template": "service", "purpose": "High Holy Days" }
+  ],
+  "columns": {
+    "order": "Her own order, as her deck had it: roughly the service from left to right, one prayer to a column. Not checked beyond the set rules.",
+    "graphics": [1, 2, 3, 4, 5, 6, 7],
+    "fixed": [
+      { "col": 0, "keys": "Companion's built-in page up, page number and page down in r0-r2 on every page (r3 may hold a graphic)" }
+    ]
+  },
+  "growth": {
+    "direction": "down",
+    "continue": "next-column-top",
+    "rule": "One key per panel, down the column; when the column is full below the last panel, the set continues at the top of the next column (Avot on page 3: r3c6 -> r0c7)."
+  },
+  "labels": {
+    "rule": "Her label for the prayer, then the panel number (\"Mourn Kadd 1\", \"Mourn Kadd 2\"; sometimes \"pt 1\").",
+    "panel": ["(^|\\s)(pt\\.?\\s*|part\\s*)?{i}\\s*$"],
+    "suggest": { "strip": "\\s*{i}\\s*$", "template": "{base} {i}" },
+    "examples": ["Mourn Kadd 1", "Mourn Kadd 2", "Lecha Dodi 3", "148 pt 2", "Aleinu 4"]
+  },
+  "colours": {
+    "rule": "one-per-set",
+    "meaning": "Her colour is the prayer's, not a role: every panel of a set on a page has one colour.",
+    "palette": {
+      "tbi-deep": "#183646", "tbi-blue": "#2b5672", "blue": "#2962ff", "sky": "#29b6f6", "indigo": "#3949ab", "periwinkle": "#9fa8ff",
+      "purple": "#7b1fa2", "violet": "#b05cff", "magenta": "#d81b90", "pink": "#f06bd0", "coral": "#e55c5e", "orange": "#fb8c00",
+      "yellow": "#ffd600", "green": "#2e7d32", "lime": "#76d650", "teal": "#00897b", "cyan": "#4dd0e1", "olive": "#8d7b4a", "slate": "#546e7a"
+    }
+  },
+  "keyTypes": [
+    "Graphics: one-step Toggle cue keys in her colours, with Requested and Rendered lights, anywhere outside c0 r0-r2.",
+    "BirdDog camera keys (page 1) and OBS scene keys (page 8), carried from her export unchanged.",
+    "Companion's built-in page up / number / down in c0 r0-r2 of every page; no Prev/Next chains, no switcher, no camera gesture."
+  ]
+}

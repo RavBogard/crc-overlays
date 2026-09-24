@@ -7,6 +7,10 @@
 // retired, through injected lookups). Pure: no filesystem, network or clock. The optional upgrade check
 // runs Companion's own import upgrade when the caller supplies it for the deck's recorded build.
 //
+// The operator's style (style.ts, styles/<workspace>.json) is checked too: every multi-panel graphic has one
+// key per panel, placed and labelled by that operator's rules. A seeded placeholder (a Singular button not
+// yet bound to a cue) is an error, so no export leaves with a key that does nothing.
+//
 // Findings are `{severity, page, row, column, code, message}`. Row and column are zero-based, as in
 // Companion's own "page/row/column" button locations. Messages are plain sentences for an operator.
 import {
@@ -14,6 +18,7 @@ import {
   type ButtonSpec, type CompanionDeck, type DeckButton, type DeckPage, type DeckWorkspace, type FixedRole, type PageTemplate,
 } from './model.ts'
 import { renderButton, renderDeck, type CompanionExport } from './render.ts'
+import { DECK_STYLES, checkDeckStyle, type CueSetLookup, type DeckStyle } from './style.ts'
 
 /* ------------------------------------------------------------------ types --- */
 
@@ -32,6 +37,8 @@ export type FindingCode =
   | 'gesture-not-allowed' | 'gesture-incomplete' | 'gesture-return' | 'cue-shape' | 'cue-action-outside-cue-key'
   | 'cue-unpublished' | 'cue-retired'
   | 'upgrade-skipped' | 'upgrade-changes-controls'
+  | 'placeholder-unbound'
+  | 'style-panel-missing' | 'style-panel-duplicate' | 'style-placement' | 'style-label' | 'style-colour'
 
 export type Finding = { severity: Severity; page: number | null; row: number | null; column: number | null; code: FindingCode; message: string }
 
@@ -50,6 +57,8 @@ export type CueLookups = {
   isRetired(cueId: string): boolean
   /** Optional: the cue's name, for messages. */
   name?(cueId: string): string | undefined
+  /** Optional: the cue's draft set (1-based part, part count); the style check takes the panel count from it. */
+  set?(cueId: string): CueSetLookup | undefined
 }
 
 /** Companion's own import upgrade for one release (the vendored or local upgrade bundle). */
@@ -64,6 +73,8 @@ export type ValidateOptions = {
   boothConnections?: { label: string; moduleId: string }[]
   /** Module definitions the deck design leaves off the deck. */
   excludedModuleDefinitions?: readonly string[]
+  /** The operator's style to check sets against. Default: the deck workspace's (DECK_STYLES); null skips the check. */
+  style?: DeckStyle | null
 }
 
 export type ValidationResult = {
@@ -84,6 +95,8 @@ export const DEFAULT_EXCLUDED_DEFINITIONS = ['next_panel', 'previous_panel', 'se
 const CUE_ACTIONS = new Set(['toggle_cue', 'show_cue', 'animate_out'])
 const CREDENTIAL_TEXT = /password|passwd|secret|token/i
 const NAV_ROLES = new Set<FixedRole>(['prev', 'next', 'home', 'ring-prev', 'ring-home', 'ring-next'])
+/** A seeded Singular button not yet bound to a cue: her label and colours, no action (tbi-seed.ts). */
+export const PLACEHOLDER_SOURCE = /Singular graphic, not yet converted/
 const MODULE_ROLE_ACTION: Partial<Record<FixedRole, string>> = { 'animate-out': 'animate_clear', 'clear-now': 'clear_now', 'logo-toggle': 'logo_toggle' }
 
 /** Lookups over catalog draft rows (a snapshot, or the live catalog): published means an active revision and not archived. */
@@ -227,7 +240,7 @@ export function validateDeck(deck: CompanionDeck, options: ValidateOptions): Val
   const templateOf = (page: DeckPage): PageTemplate | undefined => deck.templates[page.template]
   const rendered = new Map<string, Obj>() // "page/row/col" → control
   const renderedPages: Record<string, { controls: Record<string, Record<string, Obj>> }> = {}
-  let renderFailures = 0
+  let renderFailures = 0, placeholders = 0
 
   for (const page of [...pageByNumber.values()].sort((a, b) => a.number - b.number)) {
     const template = templateOf(page)
@@ -268,6 +281,10 @@ export function validateDeck(deck: CompanionDeck, options: ValidateOptions): Val
         }
       }
       if (spec.kind === 'fragment') fragmentLabels(spec.fragment)
+      if (spec.kind === 'fragment' && PLACEHOLDER_SOURCE.test(deck.fragments[spec.fragment]?.source ?? '')) {
+        placeholders++
+        add('error', 'placeholder-unbound', where(page, b), `${cellName(page, b)} is a placeholder for a graphic that is not bound to a cue yet, so pressing it does nothing. Bind it to its published cue (apply_deck_plan or convert_singular_deck), or remove it.`)
+      }
       if (spec.kind === 'actions') spec.steps.flat().forEach(fragmentLabels)
       if (spec.kind === 'camera') fragmentLabels('camera-tally')
       if (spec.kind === 'builtin' && template && !template.builtInNav) {
@@ -455,7 +472,11 @@ export function validateDeck(deck: CompanionDeck, options: ValidateOptions): Val
     }
   }
 
-  /* 8. Every page with buttons is reachable from Home (page 1). */
+  /* 8. The operator's style: every multi-panel graphic has one key per panel, placed and labelled their way. */
+  const style = options.style === undefined ? DECK_STYLES[deck.workspace] : options.style
+  const styled = style ? checkDeckStyle(deck, style, options.cues, add) : null
+
+  /* 9. Every page with buttons is reachable from Home (page 1). */
   const hasBuiltIn = (n: number) => pageByNumber.get(n)?.buttons.some((b) => b.spec.kind === 'builtin' && b.spec.control !== 'pagenum')
   const seen = new Set([1]), queue = [1]
   let stepsEverywhere = false
@@ -474,7 +495,7 @@ export function validateDeck(deck: CompanionDeck, options: ValidateOptions): Val
   if (!pageByNumber.has(1)) add('error', 'page-unreachable', { page: 1 }, 'The deck has no page 1 (Home).')
   for (const p of used) if (!seen.has(p)) add('error', 'page-unreachable', { page: p }, `${pageTitle(p)} cannot be reached from Home by any page jump.`)
 
-  /* 9. The whole export: triggers, credentials, Companion's own upgrade. */
+  /* 10. The whole export: triggers, credentials, Companion's own upgrade. */
   let exported: CompanionExport | null = null
   let upgrade = 'skipped (a button did not render)'
   if (renderFailures === 0) {
@@ -516,6 +537,8 @@ export function validateDeck(deck: CompanionDeck, options: ValidateOptions): Val
     buttons,
     cueKeys: `${cueKeys} (${cueKeys - gestures} one-step, ${gestures} camera gestures)`,
     cueIdsBound: boundCues.size,
+    placeholders,
+    style: styled ? `${style!.workspace}: ${styled.sets} multi-panel sets, ${styled.panels} panel keys` : 'not checked',
     connections: exported ? Object.keys(exported.instances).length : deck.connections.length,
     chains: deck.chains.map((c) => `${c[0]}→${c.at(-1)}`).join(', ') || 'none',
     moduleDefinitionsUsed: [...moduleUse].sort().join(', '),

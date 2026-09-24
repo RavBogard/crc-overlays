@@ -65,8 +65,12 @@ test("TBI seed keeps Simone's pages, positions and colours, her BirdDog and OBS 
 test('the TBI seed renders to a full export that passes C2 with built-in nav, and no Singular connection', () => {
   const deck = tbi()
   const result = validateDeck(deck, { module: definitions, cues: lookups })
-  assert.deepEqual(result.findings.filter((f) => f.severity === 'error'), [])
-  assert.ok(result.ok)
+  // Every Singular graphic key is an inert placeholder until it is bound, and each is an error (no export leaves with a key that does nothing); nothing else fails.
+  const placeholders = deck.pages.flatMap((p) => p.buttons.filter((b) => b.spec.kind === 'fragment' && /not yet converted/.test(deck.fragments[b.spec.fragment]?.source ?? '')))
+  assert.ok(placeholders.length > 0)
+  assert.deepEqual(result.findings.filter((f) => f.severity === 'error' && f.code !== 'placeholder-unbound'), [])
+  assert.equal(result.findings.filter((f) => f.code === 'placeholder-unbound').length, placeholders.length)
+  assert.equal(result.summary.placeholders, placeholders.length)
   const exported = renderDeck(deck)
   assert.equal(exported.companionBuild, deck.companion.build)
   assert.equal(Object.keys(exported.pages).length, 99)
@@ -185,7 +189,9 @@ test("every Covered button of Simone's deck bound: the export passes C2 and ever
   const result = convertSingularDeck(deck, { cues: catalog })
   const ids = result.rows.filter((r) => r.status === 'covered').map((r) => r.id)
   const { deck: converted } = applyConversion(deck, result, ids)
-  assert.deepEqual(errors(converted), [])
+  // What is not Covered stays a placeholder, and only those fail.
+  assert.deepEqual(errors(converted).filter((f) => f.code !== 'placeholder-unbound'), [])
+  assert.equal(errors(converted).length, result.rows.filter((r) => r.status !== 'covered').length)
   const exported = renderDeck(converted)
   assert.deepEqual(Object.values(exported.instances).map((i) => i.label).sort(), ['Birddog', 'TBI_Overlays', 'obs'])
   let keys = 0

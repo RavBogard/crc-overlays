@@ -223,7 +223,9 @@ test('every placed graphic key carries the Requested and Rendered lights, colour
     row(3, 0, 2, 'New cell', '#000099', 'local', 'song-shir-chadash-silver', 0),
   ] })
   assert.deepEqual(out.findings.map((x: { code: string; blocking: boolean }) => [x.code, x.blocking]), [['colour-hides-light', false]])
-  assert.deepEqual([out.validation.ok, out.validation.errors], [true, []])
+  // The seed's other buttons are still unbound placeholders (an error each, so no export leaves with them); nothing else fails.
+  assert.deepEqual(out.validation.errors.filter((e: { code: string }) => e.code !== 'placeholder-unbound'), [])
+  assert.ok(out.validation.errors.length > 0 && !out.validation.ok)
   assert.equal(out.validation.summary.workspace, 'tbi')
   const deck = (await f.stored()).deck, exported = renderDeck(deck)
   let keys = 0
@@ -256,7 +258,8 @@ test('a page the plan needs is created on the service template with the built-in
     { ...row(50, 0, 1, 'Shir', '#ff80ff', 'local', 'song-shir-chadash-silver', 0), pageName: 'Extra' },
     { ...row(2, 0, 1, 'Shir Chadash - Silver', '#ff80ff', 'local', 'song-shir-chadash-silver', 0), pageName: 'Friday' },
   ] })
-  assert.deepEqual([out.counts.pagesCreated, out.counts.pagesRenamed, out.validation.ok], [1, 1, true])
+  assert.deepEqual([out.counts.pagesCreated, out.counts.pagesRenamed], [1, 1])
+  assert.deepEqual(out.validation.errors.filter((e: { code: string }) => e.code !== 'placeholder-unbound'), [], 'only the unbound placeholders of the seed fail')
   const page = (await f.stored()).deck.pages.find((p) => p.number === 50)!
   assert.deepEqual([page.name, page.template], ['Extra', 'service'])
   assert.deepEqual(page.buttons.filter((b) => b.spec.kind === 'builtin').map((b) => `${b.row}/${b.col}`), ['0/0', '1/0', '2/0'])
