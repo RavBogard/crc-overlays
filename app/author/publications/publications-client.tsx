@@ -108,7 +108,7 @@ export default function PublicationsClient() {
           </label>
           <label className={styles.toggle}><input type="checkbox" checked={assistantOnly} onChange={(event) => { setError(""); setAssistantOnly(event.target.checked); }} /> Only what an assistant published</label>
         </div>}
-        {signedIn && rows === null && !error && <p className={styles.summary}>Loading recent publications…</p>}
+        {(!resolved || signedIn) && rows === null && !error && <p className={styles.summary}>Loading recent publications…</p>}
         {rows !== null && <>
           <p className={styles.summary}>{rows.length === 1 ? "1 publication" : `${rows.length} publications`} in the {rangeLabel}.</p>
           {!rows.length && <p className={styles.empty}>{assistantOnly ? `Nothing was published by an assistant in the ${rangeLabel}.` : `Nothing was published in the ${rangeLabel}.`}</p>}
