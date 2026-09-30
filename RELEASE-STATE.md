@@ -4,22 +4,28 @@ What is deployed right now. Update this file on every release — it is the one 
 "what is live", and it is short so it can be read under pressure. The history is in
 `docs/planning/2026-09-deploys/` (25 deploy records, the release chain, the phase build notes).
 
-**Last updated: 2026-09-24** (G11 batch_refit compares draft and live graphic as content, released as web `c965df8`; before it setlist rows matched by liturgy unit id + /setup as each operator's install flow (S1-S3) released as web `608d530`, one migration; before it TBI redo tools G10 accent title typography + batch_refit released as web `9bd67bc`; before it G9 as `186aa14`; before it G7 Raleway + G8 batch_retire as `db34734`; before it G1-G6 as `0c2e895`, two more tables; before it the MCP completeness plan: relays `e512d86`, web `6b76cbd`, ten new tables on both databases, `main` fast-forwarded to production. Before it, paired release `ebd4be4`: group tabs renamed; before it `3636857`, Michael's review — Corner layout, per-graphic row order, inline siddur wording edits with a Wording changes list, right-justified lower-third Hebrew title, honest siddur-picker preview. Evidence below under "Release 3636857".)
+**Last updated: 2026-09-30 UTC (2026-09-29 Central).** Michael's notes implementation released as web `2f4c765` to both workspaces. Details: `docs/planning/2026-09-29-michael-notes/STATE.md`.
 
 ## Web, per workspace
 
-Two congregations, one codebase, one deployment each. **Both are on the same commit today**, and
-both were released together on 2026-09-23 UTC (2026-09-22 evening Central).
+Two congregations, one codebase, one deployment each. Both are on exact commit
+`2f4c765e380e205900e83a9ba289cd939cf7fc39`, released together on 2026-09-30 UTC.
 
 | Workspace | Host | Deployed commit | How it got there |
 |---|---|---|---|
-| CRC | `overlays.centralreform.org` (alt `crc-overlays.vercel.app`) | `c965df8` | paired staged release, 2026-09-24, `dpl_69gnCA2f7vUG4kzN67EGnsDEXBfQ` (the Git integration also builds every push to `main`; `main` is at `c965df8`) |
-| TBI | `overlays.templebnaiisrael.com` (alt `tbi-overlays.vercel.app`) | `c965df8` | same paired run, 2026-09-24, `dpl_CmjGaTc1Ut4XcXBbQiZ8LogJHJo3` |
+| CRC | `overlays.centralreform.org` (alt `crc-overlays.vercel.app`) | `2f4c765` | paired CLI release `dpl_FRhhQoc5DzxfLdJTCXh99a7wnbGP`, followed by same-SHA Git build `dpl_APpKj2cTF6eHU485xNSs9noUQ9SH` now serving production |
+| TBI | `overlays.templebnaiisrael.com` (alt `tbi-overlays.vercel.app`) | `2f4c765` | paired staged release `dpl_8VsmVtmvq8QTMBep5V4pgPFJpent` |
 
-This file is written after the release it describes, so the commit carrying these words is always one
-ahead of the shas in the table. That one commit is documentation: CRC's Git integration builds it by
-itself and TBI is not owed a release for it. Any commit that touches `app/`, `lib/`, `content/`,
-`components/`, `schemas/` or `workspaces/` **is** owed one.
+Remote `main` is at the deployed product SHA. This subsequent release-record update is
+on `google-signin`; it does not require another production deployment. Any commit that
+touches `app/`, `lib/`, `content/`, `components/`, `schemas/` or `workspaces/` is owed one.
+
+### Release 2f4c765: typography, wording and explicit grouping (2026-09-30 UTC)
+
+- Daniel authorized deployment after local verification. Independent typography controls, optional serif Hebrew/classic title styling and alignment, Large Print without silent shrinking, manual breaks/keep-together, Birchot English editing, and separate controls for visual groups and slide pages. Existing defaults and source prayer wording preserved.
+- Gates: TypeScript, 1,281 TypeScript + 35 MJS tests pass (12 existing skips), lint zero errors (two existing warnings), build, diff check. Twelve baseline layout stills pixel-identical; focused editor and renderer browser checks pass.
+- Both deployments Ready with exact SHA verified through deployment metadata. Production renderer acceptance passed on both custom domains; all four hosts returned HTTP 200 from `/health` after redirect.
+- No database migrations, prayer source changes, or relay release. Release logs and production browser evidence under ignored `work/michael-notes/`.
 
 ### Release c965df8: G11, batch_refit on stored graphics (2026-09-24 UTC)
 

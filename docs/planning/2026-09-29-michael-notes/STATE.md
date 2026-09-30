@@ -1,9 +1,9 @@
 # Michael's overlay notes: proposed plan
 
-Status: local implementation complete and verified. Daniel authorized production deployment on 2026-09-29; paired release in progress.
+Status: deployed and verified on CRC and TBI, 2026-09-30 UTC (2026-09-29 Central), with Daniel's explicit deployment authorization.
 Input: `C:/Users/dsbog/Downloads/Overlay changes needed.md` (including two embedded screenshots). Treat Michael's instructions as proposals, not Daniel's approved requirements.
 
-## Current evidence
+## Initial evidence (before implementation)
 
 - Active checkout: crc-overlays-vercel, branch google-signin, HEAD 9e55d20. Pre-existing untracked .playwright-mcp and three planning directories preserved.
 - RELEASE-STATE.md records both production workspaces at c965df8. Production deployment authorized by Daniel after local verification.
@@ -27,7 +27,7 @@ Large Print acceptance: never silently reduce rendered size; if larger text cann
 
 ## Execution and verification
 
-Astra owns contracts, acceptance criteria, and integration. Two GPT-6 Sol workers implement wording/grouping and typography/rendering in bounded packets with explicit file ownership. Root implemented the Look controls and browser acceptance checks. Existing work is preserved; no deployment or production data changes.
+Astra owns contracts, acceptance criteria, and integration. Two GPT-6 Sol workers implement wording/grouping and typography/rendering in bounded packets with explicit file ownership. Root implemented the Look controls and browser acceptance checks. Existing work is preserved; implementation introduced no production data changes. Deployment evidence follows below.
 
 ### Implementation evidence so far
 
@@ -50,6 +50,15 @@ Astra owns contracts, acceptance criteria, and integration. Two GPT-6 Sol worker
 - `scripts/check-michael-notes.mjs`: real renderer acceptance across roles/fonts/spacing, manual breaks/protected hyphens, watermark clipping/fit, alignment, Large Print no shrink and overflow, including single-channel layouts.
 - Evidence and screenshots: `work/michael-notes/` (ignored scratch artifacts). Existing graphics without optional fields retain their baseline appearance. No source prayer wording or production data changed; no migrations or relay work needed.
 
-Focused behavior tests and browser checks during each packet; tsc, npm test, lint, build at integration. Verify save/reopen, editor/preview/render/fit agreement, nikkud, long phrases, both panel directions, and unchanged existing graphics. Production release is separate.
+Focused behavior tests and browser checks during each packet; tsc, npm test, lint, build at integration. Verify save/reopen, editor/preview/render/fit agreement, nikkud, long phrases, both panel directions, and unchanged existing graphics. Production release was subsequently authorized and completed.
 
-Next: deploy the verified commit to CRC and TBI, verify both deployment identities, and update RELEASE-STATE.md. The optional abbreviated Shalom Aleichem arrangement was not created without a wording decision; manual editing and grouping tools support making a local version. Hardware/viewing-distance acceptance remains an operator check, not claimed by these browser tests.
+Release complete; no remaining implementation or deployment action. The optional abbreviated Shalom Aleichem arrangement was not created without a wording decision; manual editing and grouping tools support making a local version. Hardware/viewing-distance acceptance remains an operator check, not claimed by these browser tests.
+
+
+### Production release
+
+- Exact product SHA: `2f4c765e380e205900e83a9ba289cd939cf7fc39`, pushed to remote main and google-signin.
+- Paired deployment script succeeded from clean managed checkout `C:/Users/dsbog/.codex/worktrees/overlays-michael-release/crc-overlays`.
+- CRC paired CLI deployment `dpl_FRhhQoc5DzxfLdJTCXh99a7wnbGP`; subsequent same-SHA Git deployment `dpl_APpKj2cTF6eHU485xNSs9noUQ9SH` serves production. TBI `dpl_8VsmVtmvq8QTMBep5V4pgPFJpent`. Both Ready; metadata SHA verified.
+- `scripts/check-michael-notes.mjs` passed against both custom production domains. Four custom/alternate host health requests returned 200 after redirect.
+- Release record and logs copied into ignored `work/michael-notes/`. RELEASE-STATE.md records the current release. This documentation update is pushed only to google-signin, keeping main at the exact product release.
