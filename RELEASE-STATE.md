@@ -4,19 +4,25 @@ What is deployed right now. Update this file on every release — it is the one 
 "what is live", and it is short so it can be read under pressure. The history is in
 `docs/planning/2026-09-deploys/` (25 deploy records, the release chain, the phase build notes).
 
-**Last updated: 2026-09-30 UTC / Central.** Michael's follow-up fixes, defaults, folders and sorting released as web `d970220` to both workspaces. Settings-only rollout completed for 453 active graphics. Details: `docs/planning/2026-09-30-michael-followup/STATE.md`.
+**Last updated: 2026-09-30 UTC / Central.** Michael's Companion download restored and CRC Setup's lower-third test pick corrected; web `d21d00a` released to both workspaces. The preceding follow-up settings rollout remains in place. Details: `docs/planning/2026-09-30-michael-companion/STATE.md`.
 
 ## Web, per workspace
 
-Both workspaces run exact product commit `d97022052c95ab4b99c70ffbae105f3f41cfa305`.
+Both workspaces run exact product commit `d21d00a69b6872fd5579469ad0dcc67d9faf3fe9`.
 
 | Workspace | Host | Deployed commit | How it got there |
 |---|---|---|---|
-| CRC | `overlays.centralreform.org` (alt `crc-overlays.vercel.app`) | `d970220` | paired CLI `dpl_6DZ3wFtRYkg6Pn7LSqJqS93m42gt`, then same-SHA Git build `dpl_BwtxTGrJqdDC8bkEs8qL6gXYKXuu` now serving production |
-| TBI | `overlays.templebnaiisrael.com` (alt `tbi-overlays.vercel.app`) | `d970220` | paired staged release `dpl_EQom3N5GKts7wqkdoLUSXikkb1p6` |
+| CRC | `overlays.centralreform.org` (alt `crc-overlays.vercel.app`) | `d21d00a` | paired CLI `dpl_q9phevqy8G2TV6dnBD98fNquRBnC`, then same-SHA Git build `dpl_3rzoGiFbRPu3NmwrLhpCcnV6Cht6` now serving production |
+| TBI | `overlays.templebnaiisrael.com` (alt `tbi-overlays.vercel.app`) | `d21d00a` | paired staged release `dpl_DRJKNPW2hiKYGxx3s7sEZqWQvHVU` |
 
 Remote `main` is at the product SHA. The subsequent release-record commit is on
 `google-signin` and does not require another production deployment.
+
+### Release d21d00a: Michael Companion setup (2026-09-30)
+
+- Restored CRC's personal deck download by configuring the nine equipment connections from Michael's private backup. Existing Owner access includes Michael. Corrected Setup's Fri 1 test pick to the catalog's `bottom` layout.
+- Rebuilt Michael's private preset; actual isolated Companion 5.0.5 import preserves all 1,460 buttons, six triggers, six custom variables and 3,513 non-internal actions/feedbacks. No physical equipment commands sent. On-site booth acceptance remains Michael's next step.
+- Gates: TypeScript, 1,293 TypeScript + 35 MJS tests pass (13 optional environment/platform/fixture skips), lint zero errors/two existing warnings, package audit, build and diff check. Both production deployments Ready at the exact SHA; four hosts health 200. Browser confirms successful download and all three Setup test picks. No migrations or relay release.
 
 ### Release d970220: Michael follow-up (2026-09-30)
 
