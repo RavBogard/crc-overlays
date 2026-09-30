@@ -4,21 +4,27 @@ What is deployed right now. Update this file on every release — it is the one 
 "what is live", and it is short so it can be read under pressure. The history is in
 `docs/planning/2026-09-deploys/` (25 deploy records, the release chain, the phase build notes).
 
-**Last updated: 2026-09-30 UTC (2026-09-29 Central).** Michael's notes implementation released as web `2f4c765` to both workspaces. Details: `docs/planning/2026-09-29-michael-notes/STATE.md`.
+**Last updated: 2026-09-30 UTC / Central.** Michael's follow-up fixes, defaults, folders and sorting released as web `d970220` to both workspaces. Settings-only rollout completed for 453 active graphics. Details: `docs/planning/2026-09-30-michael-followup/STATE.md`.
 
 ## Web, per workspace
 
-Two congregations, one codebase, one deployment each. Both are on exact commit
-`2f4c765e380e205900e83a9ba289cd939cf7fc39`, released together on 2026-09-30 UTC.
+Both workspaces run exact product commit `d97022052c95ab4b99c70ffbae105f3f41cfa305`.
 
 | Workspace | Host | Deployed commit | How it got there |
 |---|---|---|---|
-| CRC | `overlays.centralreform.org` (alt `crc-overlays.vercel.app`) | `2f4c765` | paired CLI release `dpl_FRhhQoc5DzxfLdJTCXh99a7wnbGP`, followed by same-SHA Git build `dpl_APpKj2cTF6eHU485xNSs9noUQ9SH` now serving production |
-| TBI | `overlays.templebnaiisrael.com` (alt `tbi-overlays.vercel.app`) | `2f4c765` | paired staged release `dpl_8VsmVtmvq8QTMBep5V4pgPFJpent` |
+| CRC | `overlays.centralreform.org` (alt `crc-overlays.vercel.app`) | `d970220` | paired CLI `dpl_6DZ3wFtRYkg6Pn7LSqJqS93m42gt`, then same-SHA Git build `dpl_BwtxTGrJqdDC8bkEs8qL6gXYKXuu` now serving production |
+| TBI | `overlays.templebnaiisrael.com` (alt `tbi-overlays.vercel.app`) | `d970220` | paired staged release `dpl_EQom3N5GKts7wqkdoLUSXikkb1p6` |
 
-Remote `main` is at the deployed product SHA. This subsequent release-record update is
-on `google-signin`; it does not require another production deployment. Any commit that
-touches `app/`, `lib/`, `content/`, `components/`, `schemas/` or `workspaces/` is owed one.
+Remote `main` is at the product SHA. The subsequent release-record commit is on
+`google-signin` and does not require another production deployment.
+
+### Release d970220: Michael follow-up (2026-09-30)
+
+- Daniel authorized pushing/deploying the verified result. Fixes manual hard breaks, immediate title sizing, explicit corner title size, and watermark/logo overlap. New graphics start top-aligned with protected hyphens, Noto Sans Hebrew body and Frank Ruhl Libre watermark. Adds persistent workspace folders and alphabetical/newest/oldest sorting.
+- Applied only `db/library-folders.sql` on each production public schema. No graphic data changed during that additive migration; no relay software release.
+- Settings rollout: CRC 240 active drafts (239 published), TBI 213 active graphics (all published, including seven imported built-ins). Backups and undo records are in ignored `work/michael-followup/*-release-plan.json*`. Exact draft/live snapshot checks passed. All 260 inactive records unchanged; text, manual breaks, groups, translations and unrelated presentation fields preserved.
+- Live catalogs synchronized and verified using existing alias resolution: CRC 239 published records, including four historical hidden aliases; TBI 213. Catalog versions CRC `c9fda3c3dd82b233`, TBI `3e4f9a4af25a3921`.
+- Gates: 1,294 TypeScript + 35 MJS tests pass, 12 existing skips; TypeScript, build, diff check pass; lint zero errors/two existing warnings. Production renderer acceptance passes on both custom domains; four hosts health 200 and unauthenticated folders 401. Deployment metadata confirms both exact SHAs.
 
 ### Release 2f4c765: typography, wording and explicit grouping (2026-09-30 UTC)
 
@@ -311,6 +317,7 @@ relay rollback target; the new relay serves the old web unchanged.
 
 ## Environment deltas
 
+- CRC only (2026-09-30): `COMPANION_CONNECTION_VALUES` now carries Michael's nine backup-derived equipment connections. CRC Setup's personal deck download is available to its signed-in Owners. Configuration release and real Companion 5.0.5 import evidence: `docs/planning/2026-09-30-michael-companion/STATE.md`.
 - Both: `PUBLIC_BASE_URL` is the congregation's own custom domain, `PUBLIC_ALTERNATE_ORIGINS` its
   Vercel hostname. CRC swapped 2026-09-15; TBI 2026-09-14. All four hosts answer.
 - CRC only: `CRC_LIVE_BASE_URL`, `CRC_LIVE_READ_TOKEN` (setlist import from centralreform.live),
