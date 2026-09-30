@@ -175,6 +175,7 @@ class FakeElement{
  style:{fontSize:string;visibility?:string;properties:Record<string,string>;setProperty(name:string,value:string):void}={fontSize:'',properties:{},setProperty(name,value){this.properties[name]=value}};
  constructor(tag:string){this.tagName=tag}
  get classes(){return this.className.split(/\s+/).filter(Boolean)}
+ get classList(){return {contains:(name:string)=>this.classes.includes(name)}}
  get clientWidth(){return 1000}get clientHeight(){return 1000}get scrollWidth(){return 10}get scrollHeight(){return 10}
  appendChild(child:FakeElement){this.children.push(child);return child}
  replaceChildren(...children:FakeElement[]){this.children=children}

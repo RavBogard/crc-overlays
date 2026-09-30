@@ -26,8 +26,10 @@ test('a graphic with no wording edits keeps its exact canonical content',()=>{
  assert.deepEqual(typedBack,[]);
  const reverted=revertWordingEdit(setWordingEdit([],field(plain,0,'he'),'x'),field(plain,0,'he'));
  assert.deepEqual(editableFromForm({...plain,variantOverrides:reverted}).content,content);
- // Whitespace alone never makes an edit either.
- assert.deepEqual(editableFromForm({...plain,variantOverrides:[{sourceId:SOURCE_ID,blockId:block(0).id,channel:'he',sourceText:block(0).he!,localText:` ${block(0).he!} `}]}).content,content);
+ // Deliberate formatting is exact wording; edge whitespace must not be silently trimmed.
+ const spaced=editableFromForm({...plain,variantOverrides:[{sourceId:SOURCE_ID,blockId:block(0).id,channel:'he',sourceText:block(0).he!,localText:` ${block(0).he!} `}]}).content as LocalVariantContent;
+ assert.equal(spaced.mode,'local-variant');
+ assert.equal(spaced.overrides[0].localText,` ${block(0).he!} `);
 });
 
 test('one wording edit saves local-variant content over the canonical selection',()=>{

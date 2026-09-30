@@ -9,6 +9,7 @@ import {buildSharedLibraryPayload,type SharedLibrarySnapshot} from '../lib/share
 import {MemorySourceReviewRepository,createSourceReviewService} from '../lib/source-review';
 import {useSlotCueRegister} from '../lib/slot-catalog';
 import {TEXT_SIZE_PRESETS,templateLooks} from '../lib/template-looks';
+import {NEW_OVERLAY_PRESENTATION_DEFAULTS} from '../lib/authoring-defaults';
 
 // Packet A1 (R-A4, R-A5, R-A6): every tool here runs through the real MCP handler into the real
 // in-memory authoring service, so a schema and the operation it names cannot drift apart.
@@ -94,12 +95,12 @@ test('create_draft takes a text size under explicit sizes, and update_draft appl
  const {call}=wired();
  const created=await call('create_draft',{name:'Welcome',title:'Welcome',layout:'bottom',textSize:'large',presentation:{titleFontSize:30,alignment:'center'},content:{mode:'custom',text:'Welcome to Shabbat'}});
  assert.equal(created.isError,false,created.text);
- assert.deepEqual(created.output.draft.presentation,{alignment:'center',...TEXT_SIZE_PRESETS.large.sizes,largePrint:true});
+ assert.deepEqual(created.output.draft.presentation,{...NEW_OVERLAY_PRESENTATION_DEFAULTS,alignment:'center',...TEXT_SIZE_PRESETS.large.sizes,largePrint:true});
  const updated=await call('update_draft',{draftId:created.output.draft.id,expectedVersion:1,textSize:'compact',patch:{}});
  assert.equal(updated.isError,false,updated.text);
- assert.deepEqual(updated.output.draft.presentation,{alignment:'center',...TEXT_SIZE_PRESETS.compact.sizes});
+ assert.deepEqual(updated.output.draft.presentation,{...NEW_OVERLAY_PRESENTATION_DEFAULTS,alignment:'center',...TEXT_SIZE_PRESETS.compact.sizes});
  const reset=await call('update_draft',{draftId:created.output.draft.id,expectedVersion:2,textSize:'comfortable',patch:{}});
- assert.deepEqual(reset.output.draft.presentation,{alignment:'center'});
+ assert.deepEqual(reset.output.draft.presentation,{...NEW_OVERLAY_PRESENTATION_DEFAULTS,alignment:'center'});
  const refused=await call('create_draft',{name:'Welcome',title:'Welcome',layout:'bottom',textSize:'huge',content:{mode:'custom',text:'x'}});
  assert.equal(refused.isError,true);
 });

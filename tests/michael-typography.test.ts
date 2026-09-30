@@ -27,3 +27,10 @@ test('display-only wrapping protects pointed Hebrew and Latin compounds without 
  assert.equal(legacyTitleDisplay('הִנֵּה מַה טּוֹב'), 'הנה מה טוב');
  assert.equal(text,'טוֹבְ-לָנוּ שלום־עלינו\nwell-being together\u00a0now');
 });
+
+test('authored hard break remains a new line through every Latin display mode',()=>{
+ const cueText='First soft line\ncontinued\u2028Next deliberate line';
+ assert.equal(displayPresentationText(cueText,'textMainEng',{latinLineBreaks:'preserve'}),'First soft line\ncontinued\nNext deliberate line');
+ assert.equal(displayPresentationText(cueText,'textMainEng',{latinLineBreaks:'paragraphs'}),'First soft line continued\nNext deliberate line');
+ assert.equal(displayPresentationText(cueText,'textMainEng',{latinLineBreaks:'phrases'}),'First soft line · continued\nNext deliberate line');
+});

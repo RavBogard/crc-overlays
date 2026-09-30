@@ -9,6 +9,7 @@ import {MemoryLocalSourceRepository} from '../lib/local-sources';
 import {buildSharedLibraryPayload,type SharedLibraryPayload,type SharedLibrarySnapshot} from '../lib/shared-library';
 import {hygieneToolSchemas} from '../lib/catalog-hygiene-schemas';
 import {TEXT_SIZE_PRESETS} from '../lib/template-looks';
+import {NEW_OVERLAY_PRESENTATION_DEFAULTS} from '../lib/authoring-defaults';
 
 // Packet G4: batch_create_drafts through the real MCP handler into the real in-memory authoring
 // service, with memory build keys and local sources and a stubbed shared library. Every text here
@@ -172,7 +173,7 @@ test('house defaults apply exactly as on create_draft, and applyDefaults:false s
  const plain=await call('batch_create_drafts',{items:[{type:'slide',key:'plain-slide',title:'Plain',text:'No house look.',layout:'bottom'},{type:'slide',key:'own-size',title:'Own',text:'Its own size.',layout:'bottom',textSize:'compact',applyDefaults:true}],applyDefaults:false,dryRun:false});
  assert.equal(plain.isError,false,plain.text);const [bare,own]=plain.output.items;
  const stored=new Map((await repo.listDrafts()).map(draft=>[draft.id,draft]));
- assert.deepEqual(stored.get(bare.draftId)!.presentation,{},'the call-wide opt-out skips them');assert.equal(bare.houseDefaults,undefined);
+ assert.deepEqual(stored.get(bare.draftId)!.presentation,NEW_OVERLAY_PRESENTATION_DEFAULTS,'the call-wide opt-out skips house overrides but keeps product defaults');assert.equal(bare.houseDefaults,undefined);
  assert.equal(stored.get(own.draftId)!.presentation.hebrewFontSize,TEXT_SIZE_PRESETS.compact.sizes.hebrewFontSize,'an item\'s own value wins');assert.equal(stored.get(own.draftId)!.presentation.lineSpacing,'spacious','and an item can opt back in');
 });
 

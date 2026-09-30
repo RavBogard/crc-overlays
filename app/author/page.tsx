@@ -44,7 +44,7 @@ import { CustomTextEditor, DetailsEditor } from "./custom-editor";
 import "./author.css";
 import SharedShelf, { expectedCueHashes, groupSharedEntries, matchesShelfQuery, shelfBadgeCount, type SharedComparison, type SharedShelfCard } from "./shared-shelf";
 import { SourceReviewPanel, useSourceReview } from "./source-review";
-import { itemName, sourceReviewName, variantCandidates, variantKey, type DraftSetReview, type EditorKind, type LibraryItem, type LibraryTab } from "./library-model";
+import { organizedLibraryItems, sourceReviewName, variantCandidates, variantKey, type DraftSetReview, type EditorKind, type LibraryItem, type LibraryTab } from "./library-model";
 import {
   AccessCard, ArchivedPanel, DuplicateNameDialog, EditorTitle, HistoryDrawer, LibrarySidebar,
   PreviewColumn, PublishDock, RecoveryBanner, SetOverview, SlideStrip, VariantCreator, VariantEditor, WelcomePanel,
@@ -55,6 +55,7 @@ import { useWorkspaceAssets } from "./use-workspace-assets";
 import { useFitReview } from "./use-fit-review";
 import { togglePassage } from "./passage-selection";
 import { useToasts } from "./use-toasts";
+import { useLibraryFolders } from "./use-library-folders";
 
 export default function AuthorPage() {
   const [key, setKey] = useState("");
@@ -67,6 +68,7 @@ export default function AuthorPage() {
   const [catalog, setCatalog] = useState<CatalogCue[]>([]);
   const [libraryTab, setLibraryTab] = useState<LibraryTab>("published");
   const [libraryQuery, setLibraryQuery] = useState("");
+  const libraryFolders = useLibraryFolders(key, workspace?.id);
   const sourceReview = useSourceReview();
   const loadSourceReview = sourceReview.load;
   const [draft, setDraft] = useState<Draft | null>(null);
@@ -98,7 +100,7 @@ export default function AuthorPage() {
   const {
     exactPreview, setExactPreview, fitErrors, fitWarnings, previewWarnings, setPreviewWarnings, assetsReady,
     previewError, setPreviewError,
-    viewportRef, outputRef, previewSequence, resetReview, showCue, clearStage, playOut,
+    viewportRef, outputRef, previewSequence, reviewSequence, resetReview, showCue, clearStage, playOut,
   } = useFitReview(workspace, workingPreview, editorKind);
   const {
     sourceQuery, setSourceQuery, sourceResults, sourceTruncated, sourceFacets, setSourceFacets,
@@ -290,15 +292,15 @@ export default function AuthorPage() {
   // returns the rail to the library rather than leaving an empty filter lit.
   const activeLibraryTab: LibraryTab = libraryTab === "sources" && !sourceReview.records.length ? "published" : libraryTab;
   const visibleSourceReviews = sourceReview.records.filter((record) => sourceReviewName(record).toLocaleLowerCase().includes(libraryQuery.trim().toLocaleLowerCase()));
-  const visibleLibrary = (activeLibraryTab === "published" ? publishedItems : activeLibraryTab === "archived" ? archivedItems : draftItems).filter((item) => itemName(item).toLocaleLowerCase().includes(libraryQuery.trim().toLocaleLowerCase()));
+  const visibleLibrary = organizedLibraryItems(activeLibraryTab === "published" ? publishedItems : activeLibraryTab === "archived" ? archivedItems : draftItems, drafts, libraryFolders.assignments, libraryFolders.folderFilter, libraryQuery, libraryFolders.sort);
   const sharedCards = groupSharedEntries(sharedLibrary.cues);
   const visibleShared = sharedCards.filter((card) => matchesShelfQuery(card, libraryQuery));
   const eligibleBlocks = blocksForMode(source, form.mode);
   const selectedIds = new Set(form.groups[activeGroup]?.blockIds || []);
   const selectedBlocks = eligibleBlocks.filter((block) => selectedIds.has(block.id));
   const showPanels = shouldShowPanels(form.groups, selectedBlocks, form.mode, form.layout);
-  const previewCue = formReady(form) ? exactPreview?.cue || workingPreview?.cue || null : null;
   const reviewCurrent = !!draft && !dirty && exactPreview?.draftVersion === draft.version;
+  const previewCue = formReady(form) ? (reviewCurrent ? exactPreview?.cue : null) || workingPreview?.cue || null : null;
   const fitBlocked = reviewCurrent && fitErrors.length > 0;
   const selectedDensity = form.presentation.largePrint ? "large" : densityOptions.find((option) => JSON.stringify(option.value) === JSON.stringify({
     ...(form.presentation.hebrewFontSize !== undefined ? { hebrewFontSize: form.presentation.hebrewFontSize } : {}),
@@ -691,18 +693,21 @@ export default function AuthorPage() {
      Publish is one click from a saved draft. Requested once per saved version. */
   const previewedVersion = useRef<string>("");
   const loadExactPreview = useCallback(async (target: Draft) => {
-    const stamp = `${target.id}:${target.version}`;
+    const stamp = `${target.id}:${target.version}:${reviewSequence.current}`;
     if (previewedVersion.current === stamp) return;
     previewedVersion.current = stamp;
+    const reviewRequest = reviewSequence.current;
     try {
       const response = await authoringCall<PreviewResult>(key, "preview_draft", { draftId: target.id, expectedVersion: target.version });
+      if (reviewRequest !== reviewSequence.current) return;
       setExactPreview(response); setPreviewWarnings(response.validation?.warnings || []);
       await showCue(response.cue);
     } catch (value) {
+      if (reviewRequest !== reviewSequence.current) return;
       previewedVersion.current = "";
       setPreviewError(value instanceof Error ? value.message : "The saved version could not be previewed.");
     }
-  }, [key, setExactPreview, setPreviewError, setPreviewWarnings, showCue]);
+  }, [key, reviewSequence, setExactPreview, setPreviewError, setPreviewWarnings, showCue]);
   useEffect(() => { if (key && draft && !dirty) void loadExactPreview(draft); }, [key, draft, dirty, loadExactPreview]);
 
   async function publishReviewedVersion(confirmDuplicateName = false) {
@@ -797,6 +802,8 @@ export default function AuthorPage() {
           allDrafts={drafts}
           apiKey={key} workspace={workspace} refreshAfterPublish={async () => { await refreshLists(key); }}
           libraryTab={activeLibraryTab} setLibraryTab={chooseLibraryTab} libraryQuery={libraryQuery} setLibraryQuery={setLibraryQuery}
+          folders={libraryFolders.folders} assignments={libraryFolders.assignments} folderFilter={libraryFolders.folderFilter} setFolderFilter={libraryFolders.setFolderFilter} sort={libraryFolders.sort} changeSort={libraryFolders.changeSort} folderBusy={libraryFolders.busy} folderError={libraryFolders.error}
+          createFolder={(name) => libraryFolders.changeFolder({operation: "create", name})} renameFolder={(folderId, name) => libraryFolders.changeFolder({operation: "rename", folderId, name})} deleteFolder={(folderId) => libraryFolders.changeFolder({operation: "delete", folderId})} moveToFolder={(cueId, folderId) => libraryFolders.changeFolder({operation: "move", cueId, folderId})}
           role={role}
           sourceItems={visibleSourceReviews} sourceCount={sourceReview.records.length} sourceSelectedId={sourceReview.selected?.id || null}
           openSourceReview={(id) => void sourceReview.inspect(id)}
@@ -881,7 +888,7 @@ export default function AuthorPage() {
               </div>
 
               <PreviewColumn
-                setViewport={(node) => { viewportRef.current = node; }} setOutput={(node) => { outputRef.current = node; }} previewCue={previewCue} exact={!!exactPreview}
+                setViewport={(node) => { viewportRef.current = node; }} setOutput={(node) => { outputRef.current = node; }} previewCue={previewCue} exact={reviewCurrent}
                 fitErrors={fitErrors} warnings={[...previewWarnings, ...fitWarnings]} assetsReady={assetsReady} previewError={previewError} bookFaces={Boolean(workspace?.bookFaces)}
                 play={() => { if (previewCue) void showCue(previewCue, true); }}
                 out={playOut}

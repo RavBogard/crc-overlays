@@ -11,6 +11,31 @@ export type VariantCandidate = { sourceId: string; blockId: string; channel: Var
 
 export const formatTime = (value?: number) => value ? new Date(value).toLocaleString([], { dateStyle: "medium", timeStyle: "short" }) : "";
 export const itemName = (item: LibraryItem) => item.kind === "draft" ? item.draft.name : item.cue.name;
+export const itemId = (item: LibraryItem) => item.kind === "draft" ? item.draft.id : item.cue.id;
+export type LibrarySort = "az" | "newest" | "oldest";
+export type FolderFilter = "all" | "unfiled" | string;
+const nameOrder = new Intl.Collator("en", { sensitivity: "base", numeric: true });
+
+/** Built-in catalog entries have no creation time; they always follow dated drafts. */
+export function organizedLibraryItems(items: LibraryItem[], drafts: Draft[], assignments: Record<string, string>, folder: FolderFilter, query: string, sort: LibrarySort): LibraryItem[] {
+  const draftDates = new Map(drafts.map((draft) => [draft.id, draft.createdAt]));
+  const createdAt = (item: LibraryItem) => item.kind === "draft" ? item.draft.createdAt : item.cue.draftId ? draftDates.get(item.cue.draftId) : undefined;
+  const search = query.trim().toLocaleLowerCase();
+  return items.filter((item) => {
+    const assigned = assignments[itemId(item)];
+    return (!search || itemName(item).toLocaleLowerCase().includes(search)) && (folder === "all" || (folder === "unfiled" ? !assigned : assigned === folder));
+  }).sort((a, b) => {
+    if (sort !== "az") {
+      const left = createdAt(a), right = createdAt(b);
+      if (left !== undefined && right === undefined) return -1;
+      if (left === undefined && right !== undefined) return 1;
+      if (left !== undefined && right !== undefined && left !== right) return sort === "newest" ? right - left : left - right;
+    }
+    const byName = nameOrder.compare(itemName(a), itemName(b));
+    if (byName) return byName;
+    return itemId(a) < itemId(b) ? -1 : itemId(a) > itemId(b) ? 1 : 0;
+  });
+}
 export const sourceReviewName = (record: SourceReviewSummary) => `${record.sourceName} ${record.affected.draftName}`;
 export const variantKey = (item: Pick<VariantCandidate, "sourceId" | "blockId" | "channel">) => `${item.sourceId}\u0000${item.blockId}\u0000${item.channel}`;
 

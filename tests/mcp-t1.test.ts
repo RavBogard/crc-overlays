@@ -7,6 +7,8 @@ import {baselineCues,buildCue,editableFromBaseline,newDraftId,sourcePack,sourceP
 import {buildSharedLibraryPayload,type SharedLibraryPayload,type SharedLibrarySnapshot} from '../lib/shared-library';
 import {PgAuthoringDefaultsRepository} from '../lib/authoring-defaults-store';
 import {TEXT_SIZE_PRESETS} from '../lib/template-looks';
+import {NEW_OVERLAY_PRESENTATION_DEFAULTS} from '../lib/authoring-defaults';
+import {emptyForm} from '../app/author/editor-state';
 
 // Packet T1: house defaults and the batch copy, driven through the real MCP handler on a TBI
 // configuration, into the real in-memory authoring service, with a stubbed shared-library snapshot.
@@ -141,18 +143,46 @@ test('create_draft takes the house defaults unless the call names its own value 
  await call('update_authoring_defaults',{expectedVersion:0,textSize:'large',lineSpacing:'spacious'});
  const custom={name:'Welcome',title:'Welcome',layout:'bottom',content:{mode:'custom',text:'Welcome to Shabbat'}};
  const housed=await call('create_draft',custom);
- assert.equal(housed.isError,false,housed.text);assert.deepEqual(housed.output.draft.presentation,{...TEXT_SIZE_PRESETS.large.sizes,largePrint:true,lineSpacing:'spacious'});assert.deepEqual(housed.output.houseDefaults.applied,['text size large','line spacing spacious']);
+ assert.equal(housed.isError,false,housed.text);assert.deepEqual(housed.output.draft.presentation,{...TEXT_SIZE_PRESETS.large.sizes,...NEW_OVERLAY_PRESENTATION_DEFAULTS,largePrint:true,lineSpacing:'spacious'});assert.deepEqual(housed.output.houseDefaults.applied,['text size large','line spacing spacious']);
  assert.equal(housed.output.draft.houseDefaultsVersion,1,'the draft records which defaults shaped it');
  const own=await call('create_draft',{...custom,name:'Welcome 2',textSize:'compact'});
  assert.equal(own.output.draft.presentation.hebrewFontSize,TEXT_SIZE_PRESETS.compact.sizes.hebrewFontSize,'the call\'s own size wins');assert.equal(own.output.draft.presentation.lineSpacing,'spacious');
  const explicit=await call('create_draft',{...custom,name:'Welcome 3',presentation:{hebrewFontSize:30}});
- assert.deepEqual(explicit.output.draft.presentation,{hebrewFontSize:30,lineSpacing:'spacious'},'an explicit font size keeps the caller\'s typography');
+ assert.deepEqual(explicit.output.draft.presentation,{...NEW_OVERLAY_PRESENTATION_DEFAULTS,hebrewFontSize:30,lineSpacing:'spacious'},'an explicit font size keeps the caller\'s typography');
  const plain=await call('create_draft',{...custom,name:'Welcome 4',applyDefaults:false});
- assert.deepEqual(plain.output.draft.presentation,{});assert.equal(plain.output.houseDefaults,undefined);assert.equal(plain.output.draft.houseDefaultsVersion,undefined);
+ assert.deepEqual(plain.output.draft.presentation,NEW_OVERLAY_PRESENTATION_DEFAULTS);assert.equal(plain.output.houseDefaults,undefined);assert.equal(plain.output.draft.houseDefaultsVersion,undefined);
  const cleared=await call('update_authoring_defaults',{expectedVersion:1,textSize:null,lineSpacing:null});
  assert.deepEqual(cleared.output.defaults,{});assert.deepEqual(cleared.output.changed,['textSize','lineSpacing']);
  const noop=await call('update_authoring_defaults',{expectedVersion:2,textSize:null});
  assert.equal(noop.output.version,2,'a write that changes nothing keeps the version');
+});
+
+test('new-overlay presentation defaults cover editor, preview, custom, source set and shared copy while explicit choices win',async()=>{
+ const payload=buildSharedLibraryPayload({cues:baselineCues,version:'crc-catalog'}),{call}=tbiFixture(payload);
+ assert.deepEqual(emptyForm.presentation,NEW_OVERLAY_PRESENTATION_DEFAULTS);
+ const custom={name:'Welcome',title:'Welcome',layout:'bottom',content:{mode:'custom',text:'Welcome to Shabbat'}};
+ const preview=await call('preview_content',custom);
+ assert.equal(preview.isError,false,preview.text);
+ assert.deepEqual(preview.output.cue.presentation,NEW_OVERLAY_PRESENTATION_DEFAULTS);
+ const explicit=await call('create_draft',{...custom,presentation:{verticalAlignment:'bottom',legacyTitleWatermark:false,keepHyphenatedWords:false,hebrewFontFamily:'david-libre'}});
+ assert.equal(explicit.isError,false,explicit.text);
+ assert.deepEqual(explicit.output.draft.presentation,{verticalAlignment:'bottom',legacyTitleWatermark:false,keepHyphenatedWords:false,hebrewFontFamily:'david-libre'});
+ const guided=await call('compose_custom_draft',{templateId:'speaker',values:{name:'Rabbi Miriam Cohen',role:'Guest speaker'},presentation:{keepHyphenatedWords:false}});
+ assert.equal(guided.isError,false,guided.text);
+ assert.deepEqual(guided.output.draft.presentation,{...NEW_OVERLAY_PRESENTATION_DEFAULTS,keepHyphenatedWords:false});
+ const sourceSet=await call('create_source_draft_set',{sourceId:KOL_NIDRE,mode:'bilingual',layout:'left',applyDefaults:false});
+ assert.equal(sourceSet.isError,false,sourceSet.text);
+ for(const draft of sourceSet.output.drafts as Draft[])assert.deepEqual(draft.presentation,NEW_OVERLAY_PRESENTATION_DEFAULTS);
+ const entry=payload.cues.find(item=>item.id===BARECHU)!;
+ const shared=await call('customize_shared_cue',{cueId:BARECHU,expectedCueHash:entry.cueHash,applyDefaults:false});
+ assert.equal(shared.isError,false,shared.text);
+ assert.deepEqual(shared.output.draft.presentation,{...NEW_OVERLAY_PRESENTATION_DEFAULTS,...entry.copySpec.presentation});
+ await call('update_authoring_defaults',{expectedVersion:0,verticalAlignment:'center',legacyTitleWatermark:false,keepHyphenatedWords:false,hebrewFontFamily:'frank-ruhl-libre'});
+ const house=await call('create_draft',{...custom,name:'House choice'});
+ assert.equal(house.isError,false,house.text);
+ assert.deepEqual(house.output.draft.presentation,{verticalAlignment:'center',legacyTitleWatermark:false,keepHyphenatedWords:false,hebrewFontFamily:'frank-ruhl-libre'});
+ const opted=await call('create_draft',{...custom,name:'Standard choice',applyDefaults:false});
+ assert.deepEqual(opted.output.draft.presentation,NEW_OVERLAY_PRESENTATION_DEFAULTS);
 });
 
 test('a translation default the source cannot honour is skipped in words, not refused',async()=>{

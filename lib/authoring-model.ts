@@ -129,6 +129,11 @@ function text(value:unknown,label:string,max:number,optional=false){
  if(typeof value!=='string'||!value.trim()||value.length>max)throw new AuthoringError('invalid_input',`${label} must be 1-${max} characters`);
  return value.trim();
 }
+/** Local wording is exact text. Whitespace at a block edge can carry an intentional line break. */
+function verbatimText(value:unknown,label:string,max:number){
+ if(typeof value!=='string'||!value.trim()||value.length>max)throw new AuthoringError('invalid_input',`${label} must be 1-${max} characters`);
+ return value;
+}
 function integer(value:unknown,label:string,min:number,max:number){
  if(!Number.isInteger(value)||(value as number)<min||(value as number)>max)throw new AuthoringError('invalid_input',`${label} must be an integer from ${min} to ${max}`);
  return value as number;
@@ -250,7 +255,7 @@ export function parseContent(value:unknown,snapshots:AuthoringSource[]=[]):Draft
   if(base.mode==='custom'||base.mode==='local-variant')throw new AuthoringError('invalid_variant_base','A local variant must retain a canonical source selection');
   if(!Array.isArray(input.overrides)||input.overrides.length<1||input.overrides.length>96)throw new AuthoringError('invalid_input','content.overrides must contain 1-96 deviations');
   const selected=new Set(selectedPairs(base,snapshots).map(pair=>JSON.stringify([pair.sourceId,pair.blockId])));const seen=new Set<string>();
-  const overrides=input.overrides.map((raw,index)=>{const item=record(raw,`content.overrides[${index}]`);onlyKeys(item,['sourceId','blockId','channel','sourceText','localText'],`content.overrides[${index}]`);const sourceId=text(item.sourceId,`content.overrides[${index}].sourceId`,160)!,blockId=text(item.blockId,`content.overrides[${index}].blockId`,220)!,channel=String(item.channel) as VariantChannel;if(!['he','tr','en'].includes(channel))throw new AuthoringError('invalid_input',`content.overrides[${index}].channel must be he, tr, or en`);if(!selected.has(JSON.stringify([sourceId,blockId])))throw new AuthoringError('invalid_variant_target','A local deviation must target a selected canonical source block');const key=JSON.stringify([sourceId,blockId,channel]);if(seen.has(key))throw new AuthoringError('repeated_variant_override','A source channel may be overridden only once');seen.add(key);const canonical=source(sourceId,snapshots).blocks.find(block=>block.id===blockId)?.[channel];if(typeof canonical!=='string'||!canonical)throw new AuthoringError('missing_source_channel',`Source block ${blockId} lacks ${channel}`);const sourceText=text(item.sourceText,`content.overrides[${index}].sourceText`,4000)!,localText=text(item.localText,`content.overrides[${index}].localText`,4000)!;if(sourceText!==canonical)throw new AuthoringError('variant_source_changed','The recorded source text no longer matches its pinned source');return {sourceId,blockId,channel,sourceText,localText}});
+  const overrides=input.overrides.map((raw,index)=>{const item=record(raw,`content.overrides[${index}]`);onlyKeys(item,['sourceId','blockId','channel','sourceText','localText'],`content.overrides[${index}]`);const sourceId=text(item.sourceId,`content.overrides[${index}].sourceId`,160)!,blockId=text(item.blockId,`content.overrides[${index}].blockId`,220)!,channel=String(item.channel) as VariantChannel;if(!['he','tr','en'].includes(channel))throw new AuthoringError('invalid_input',`content.overrides[${index}].channel must be he, tr, or en`);if(!selected.has(JSON.stringify([sourceId,blockId])))throw new AuthoringError('invalid_variant_target','A local deviation must target a selected canonical source block');const key=JSON.stringify([sourceId,blockId,channel]);if(seen.has(key))throw new AuthoringError('repeated_variant_override','A source channel may be overridden only once');seen.add(key);const canonical=source(sourceId,snapshots).blocks.find(block=>block.id===blockId)?.[channel];if(typeof canonical!=='string'||!canonical)throw new AuthoringError('missing_source_channel',`Source block ${blockId} lacks ${channel}`);const sourceText=verbatimText(item.sourceText,`content.overrides[${index}].sourceText`,4000),localText=verbatimText(item.localText,`content.overrides[${index}].localText`,4000);if(sourceText!==canonical)throw new AuthoringError('variant_source_changed','The recorded source text no longer matches its pinned source');return {sourceId,blockId,channel,sourceText,localText}});
   return {mode:'local-variant',label:text(input.label,'content.label',80)!,reason:text(input.reason,'content.reason',500,true),base,overrides};
  }
  if(input.mode==='custom'){
@@ -342,7 +347,7 @@ function renderGroup(group:SourceGroup,channel:'he'|'tr'|'en',snapshots:Authorin
   if(channel!=='en'&&value===undefined&&englishOnly(block))return [];
   if(typeof value!=='string'||!value)throw new AuthoringError('missing_source_channel',`Source block ${id} lacks ${channel}`);
   return [value];
- }).join(' ');
+ }).reduce((joined,value)=>joined?`${joined}${joined.endsWith('\u2028')?'':' '}${value}`:value,'');
 }
 
 /**
@@ -474,7 +479,10 @@ export function buildCue(draft:Draft):AuthoringCue{
  const template=baselineCues.find(cue=>cue.id===draft.templateCueId);
  if(!template)throw new AuthoringError('unknown_template','Draft template is unavailable',409);
  if(template.layout!==templateLayoutFor(draft.layout))throw new AuthoringError('template_layout_mismatch','Template cue layout must match the draft layout');
- const content=draft.content.mode==='local-variant'?draft.content.base:draft.content;const overrides=draft.content.mode==='local-variant'?draft.content.overrides:[];
+ const content=draft.content.mode==='local-variant'?draft.content.base:draft.content;
+ // A local line break is authored as a literal newline. Mark it only in the built cue so
+ // Latin paragraph/phrase reflow can distinguish it from source line wrapping.
+ const overrides=draft.content.mode==='local-variant'?draft.content.overrides.map(item=>item.channel==='he'?item:{...item,localText:item.localText.replace(/\r\n?|\n/g,'\u2028')}):[];
  // A corner card holds a line or two: Hebrew and its transliteration, or one English line. It
  // has no room for a third, translated layer, and dropping a lit layer silently would not do.
  if(layoutDefinition(draft.layout)?.capabilities.translation===false&&content.mode==='bilingual'&&textLayers(content).includes('en'))throw new AuthoringError('corner_translation_unsupported','A corner card shows Hebrew and transliteration only. Turn off Translation, or use a lower third or a panel.',409);

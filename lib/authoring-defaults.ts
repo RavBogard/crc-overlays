@@ -1,5 +1,7 @@
 import {AuthoringError,LAYER_ORDER,type DraftContent,type EditableDraft,type Presentation,type TextArrangement,type TextLayer} from './authoring-model';
 import {TEXT_SIZE_IDS,largePrintSizes,withTextSize,type TextSizePreset} from './template-looks';
+import {NEW_OVERLAY_PRESENTATION_DEFAULTS} from './overlay-presentation-defaults';
+export {NEW_OVERLAY_PRESENTATION_DEFAULTS} from './overlay-presentation-defaults';
 
 /**
  * Creation-only default for a submitted canonical selection. Call it only when the raw request
@@ -26,13 +28,17 @@ export type AuthoringDefaults={
  fontSizes?:FontSizes;
  lineSpacing?:'compact'|'spacious';
  latinLineBreaks?:'preserve'|'paragraphs'|'phrases';
+ verticalAlignment?:Presentation['verticalAlignment'];
+ legacyTitleWatermark?:boolean;
+ keepHyphenatedWords?:boolean;
+ hebrewFontFamily?:Presentation['hebrewFontFamily'];
  rowOrder?:TextLayer[];
  translation?:'include'|'omit';
  arrangement?:TextArrangement;
  layoutRule?:LayoutRule;
 };
 export type StoredAuthoringDefaults={version:number;defaults:AuthoringDefaults;updatedAt:number;updatedBy:string};
-export const DEFAULT_FIELDS=['textSize','fontSizes','lineSpacing','latinLineBreaks','rowOrder','translation','arrangement','layoutRule'] as const;
+export const DEFAULT_FIELDS=['textSize','fontSizes','lineSpacing','latinLineBreaks','verticalAlignment','legacyTitleWatermark','keepHyphenatedWords','hebrewFontFamily','rowOrder','translation','arrangement','layoutRule'] as const;
 type DefaultField=(typeof DEFAULT_FIELDS)[number];
 /** Where the defaults take effect, as get_authoring_defaults reports it. */
 export const DEFAULTS_APPLY_ON=['create_draft','compose_custom_draft','create_source_draft_set','customize_shared_cue','customize_shared_set','customize_shared_batch'] as const;
@@ -41,6 +47,16 @@ const FONT_LIMITS:Record<keyof FontSizes,[number,number]>={hebrewFontSize:[24,52
 const invalid=(message:string)=>new AuthoringError('invalid_input',message);
 const isRecord=(value:unknown):value is Record<string,unknown>=>Boolean(value)&&typeof value==='object'&&!Array.isArray(value);
 const oneOf=<T extends string>(value:unknown,allowed:readonly T[],field:string):T=>{if(typeof value!=='string'||!allowed.includes(value as T))throw invalid(`${field} must be ${allowed.join(', ')}`);return value as T};
+export const withNewOverlayPresentationDefaults=(presentation:Presentation):Presentation=>({...NEW_OVERLAY_PRESENTATION_DEFAULTS,...presentation});
+const CREATION_PRESENTATION_FIELDS=Object.keys(NEW_OVERLAY_PRESENTATION_DEFAULTS) as Array<keyof typeof NEW_OVERLAY_PRESENTATION_DEFAULTS>;
+function applyCreationPresentationDefaults(presentation:Presentation,defaults:AuthoringDefaults,applied:string[]):Presentation{
+ const next={...presentation};
+ for(const field of CREATION_PRESENTATION_FIELDS){
+  const value=defaults[field];
+  if(value!==undefined&&next[field]===undefined){Object.assign(next,{[field]:value});applied.push(`${field} ${String(value)}`)}
+ }
+ return withNewOverlayPresentationDefaults(next);
+}
 
 function parseField(field:DefaultField,value:unknown):unknown{
  switch(field){
@@ -58,6 +74,9 @@ function parseField(field:DefaultField,value:unknown):unknown{
   }
   case 'lineSpacing':return oneOf(value,['compact','spacious'] as const,'lineSpacing');
   case 'latinLineBreaks':return oneOf(value,['preserve','paragraphs','phrases'] as const,'latinLineBreaks');
+  case 'verticalAlignment':return oneOf(value,['top','center','bottom'] as const,'verticalAlignment');
+  case 'hebrewFontFamily':return oneOf(value,['noto-sans','david-libre','frank-ruhl-libre'] as const,'hebrewFontFamily');
+  case 'legacyTitleWatermark':case 'keepHyphenatedWords':if(typeof value!=='boolean')throw invalid(`${field} must be true or false`);return value;
   case 'rowOrder':{if(!Array.isArray(value)||value.length!==3||new Set(value).size!==3||!value.every(item=>item==='he'||item==='tr'||item==='en'))throw invalid('rowOrder must list he, tr and en exactly once each');return [...value]}
   case 'translation':return oneOf(value,['include','omit'] as const,'translation');
   case 'arrangement':return oneOf(value,['together','blocks'] as const,'arrangement');
@@ -114,7 +133,7 @@ export function withHouseCreateDefaults(data:Record<string,unknown>,defaults:Aut
  }
  if(defaults.lineSpacing&&presentation.lineSpacing===undefined){presentation.lineSpacing=defaults.lineSpacing;applied.push(`line spacing ${defaults.lineSpacing}`)}
  if(defaults.latinLineBreaks&&presentation.latinLineBreaks===undefined){presentation.latinLineBreaks=defaults.latinLineBreaks;applied.push(`Latin line breaks ${defaults.latinLineBreaks}`)}
- if(Object.keys(presentation).length||next.presentation!==undefined)next.presentation=presentation;
+ next.presentation=applyCreationPresentationDefaults(presentation as Presentation,defaults,applied);
  const content=isRecord(next.content)?next.content:null,base=content?.mode==='local-variant'&&isRecord(content.base)?content.base:content;
  let withoutTranslation:Record<string,unknown>|null=null;
  if(base?.mode==='bilingual'){
@@ -138,6 +157,7 @@ export function withHouseDefaults(editable:EditableDraft,defaults:AuthoringDefau
  if(defaults.textSize||defaults.fontSizes){const next=typography(presentation,defaults);if(JSON.stringify(next)!==JSON.stringify(presentation)){presentation=next;applied.push(defaults.textSize?`text size ${defaults.textSize}`:'font sizes')}}
  if(defaults.lineSpacing&&presentation.lineSpacing!==defaults.lineSpacing){presentation.lineSpacing=defaults.lineSpacing;applied.push(`line spacing ${defaults.lineSpacing}`)}
  if(defaults.latinLineBreaks&&(presentation.latinLineBreaks??'preserve')!==defaults.latinLineBreaks){presentation.latinLineBreaks=defaults.latinLineBreaks;applied.push(`Latin line breaks ${defaults.latinLineBreaks}`)}
+ presentation=applyCreationPresentationDefaults(presentation,defaults,applied);
  let content=structuredClone(editable.content);
  const base=content.mode==='local-variant'?content.base:content;
  if(base.mode==='bilingual'){

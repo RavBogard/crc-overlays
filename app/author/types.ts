@@ -82,6 +82,7 @@ export type Draft = {
   archivedBy?: string;
   // MCP plan A3: set while the graphic is retired (activeRevision is then null).
   retired?: { revision: number; draftVersion: number; retiredAt: number; retiredBy: string };
+  createdAt?: number;
   updatedAt: number;
 };
 export type SourceBlock = {

@@ -83,7 +83,7 @@ export function activeWordingEdits(form: Pick<DraftForm, "mode" | "layers" | "gr
   const seen = new Set<string>();
   return (form.variantOverrides as WordingEdit[]).flatMap((item) => {
     const key = wordingKey(item);
-    if (seen.has(key) || item.localText.trim() === item.sourceText.trim()) return [];
+    if (seen.has(key) || item.localText === item.sourceText) return [];
     const kept = form.mode === "bilingual"
       ? item.channel === "en"
         ? (item.blockId === item.passageId || !item.passageId ? isSelected(item.sourceId, item.blockId) : form.layers.includes("en") && (item.pairedBlockIds?.length
@@ -93,7 +93,7 @@ export function activeWordingEdits(form: Pick<DraftForm, "mode" | "layers" | "gr
       : item.channel === "en" && isSelected(item.sourceId, item.blockId);
     if (!kept) return [];
     seen.add(key);
-    return [{ sourceId: item.sourceId, blockId: item.blockId, channel: item.channel, sourceText: item.sourceText, localText: item.localText.trim() }];
+    return [{ sourceId: item.sourceId, blockId: item.blockId, channel: item.channel, sourceText: item.sourceText, localText: item.localText }];
   });
 }
 
@@ -113,7 +113,7 @@ export function withWordingEdits(form: Pick<DraftForm, "mode" | "layers" | "grou
 /** A blank edit cannot be saved (the server refuses empty local text); Revert restores the siddur. */
 export function wordingEditsReady(form: Pick<DraftForm, "mode" | "layers" | "groups" | "variantOverrides">) {
   const edits = activeWordingEdits(form);
-  return edits.length <= MAX_WORDING_EDITS && edits.every((item) => item.localText.length > 0);
+  return edits.length <= MAX_WORDING_EDITS && edits.every((item) => item.localText.trim().length > 0);
 }
 
 /** English edits load with the passage that anchors them, found in the draft's source snapshots. */

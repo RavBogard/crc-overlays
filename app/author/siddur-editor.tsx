@@ -285,7 +285,7 @@ function WordingFields(props: { fields: WordingField[]; passageNumber: number; m
   return <div className="wording-fields">{props.fields.map((field) => {
     const edit = findWordingEdit(props.edits, field);
     const value = edit ? edit.localText : field.sourceText;
-    const changed = Boolean(edit) && value.trim() !== field.sourceText.trim();
+    const changed = Boolean(edit) && value !== field.sourceText;
     const hebrew = field.channel === "he";
     const name = field.channel === "en" && props.mode !== "bilingual" ? "English" : WORDING_CHANNEL[field.channel];
     return <WordingFieldEditor key={wordingKey(field)} field={field} passageNumber={props.passageNumber} name={name} value={value} changed={changed} edit={Boolean(edit)} edits={props.edits} change={props.change} insertBreak={props.insertBreak} hebrew={hebrew} />;

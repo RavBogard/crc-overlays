@@ -1,6 +1,7 @@
 import { exceedsOnePanel, type PanelBlock, type PanelLayout } from "@/lib/panel-budget";
 import type { ContentMode, Draft, DraftForm, Source, SourceDisplay, SourceGroup, TextArrangement, TextLayer } from "./types";
 import { loadWordingEdits, wordingEditsReady, withWordingEdits } from "./wording-edits";
+import { NEW_OVERLAY_PRESENTATION_DEFAULTS } from "@/lib/overlay-presentation-defaults";
 
 export const LAYER_ORDER: readonly TextLayer[] = ["he", "tr", "en"];
 export const LAYER_NAMES: Record<TextLayer, string> = { he: "Hebrew", tr: "Transliteration", en: "Translation" };
@@ -77,7 +78,7 @@ export const emptyForm: DraftForm = {
   variantLabel: "",
   variantReason: "",
   variantOverrides: [],
-  presentation: {},
+  presentation: { ...NEW_OVERLAY_PRESENTATION_DEFAULTS },
 };
 
 /**

@@ -314,9 +314,11 @@ only its translation is a single channel and takes the full block, as any single
 
 .overlay[data-legacy-title-watermark] .title-accent{display:none}
 .overlay[data-legacy-title-watermark] .title:not(.title-accent){z-index:1}
-.overlay[data-legacy-title-watermark].left .title:not(.title-accent){top:112px;height:48px}
-.overlay[data-legacy-title-watermark].right .title:not(.title-accent){top:112px;height:48px}
-.title-watermark{position:absolute;pointer-events:none;overflow:hidden;contain:paint;white-space:nowrap;direction:rtl;text-align:right;color:var(--crc-accent-title,#8fe7e2);opacity:.14;font-family:'David Libre','Frank Ruhl Libre',serif;font-size:105px;font-weight:400;line-height:1.1}
+.left .title:not(.title-accent),.right .title:not(.title-accent){font-size:34px}
+.overlay[data-legacy-title-watermark].left .title:not(.title-accent){top:58px;height:102px}
+.overlay[data-legacy-title-watermark].right .title:not(.title-accent){top:58px;height:102px}
+.overlay.left:not(:has(.title-accent)) .title,.overlay.right:not(:has(.title-accent)) .title{top:58px;height:102px}
+.title-watermark{position:absolute;pointer-events:none;overflow:hidden;contain:paint;white-space:nowrap;direction:rtl;text-align:right;color:var(--crc-accent-title,#8fe7e2);opacity:.14;font-family:'Frank Ruhl Libre',serif;font-size:105px;font-weight:400;line-height:1.1}
 .left .title-watermark{left:16px;top:24px;width:640px;height:142px}
 .right .title-watermark{right:16px;top:24px;width:640px;height:142px}
 .bottom .title-watermark{left:20px;bottom:calc(var(--bottom-text-height) + 40px);width:1880px;height:50px}

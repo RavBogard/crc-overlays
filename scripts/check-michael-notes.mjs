@@ -56,6 +56,14 @@ try {
     await page.screenshot({ path: `${output}/${family}.png` });
     results.push({ family, ...result });
   }
+  for (const mode of ['preserve', 'paragraphs', 'phrases']) {
+    const hardBreak = await render(cue('left', { latinLineBreaks: mode }, { contentRows: [{ he: 'שָׁלוֹם עֲלֵיכֶם', tr: 'Shalom aleichem...\u2028Next deliberate line', en: '' }] }));
+    const text = hardBreak.measured.find((r) => r.className.includes('row-transliteration')).text;
+    assert.equal(text, 'Shalom aleichem...\nNext deliberate line', `${mode} authored hard break must display as LF`);
+    const lineRects = await page.evaluate(() => { const el = document.querySelector('.row-transliteration'), range = document.createRange(); range.selectNodeContents(el); return [...range.getClientRects()].length; });
+    assert.ok(lineRects >= 2, `${mode} authored hard break must draw on two lines`);
+    results.push({ hardBreakMode: mode, text, lineRects });
+  }
   for (const layout of ['bottom', 'corner', 'left', 'right']) {
     const plain = cue(layout, {}, { contentRows: undefined, texts: { textTitle: 'Welcome', textMain: 'Welcome to our service.' } });
     const normal = await render(plain);
@@ -74,6 +82,32 @@ try {
     assert.ok(body.fontFamily.includes('David Libre'), `${layout} Hebrew-only custom role font`);
     results.push({ hebrewSingleChannel: layout, ...pureHebrew });
   }
+  for (const layout of ['bottom', 'left', 'right', 'corner']) {
+    const titleCue = cue(layout, { legacyTitleWatermark: true, hebrewFontFamily: 'david-libre', titleFontSize: 42 }, { contentRows: undefined, texts: { textTitle: 'Shalom Aleichem', accentTextTitle: 'שָׁלוֹם עֲלֵיכֶם', textMain: 'A short reading' } });
+    const title = await render(titleCue);
+    const mainTitle = title.measured.find((r) => r.className.includes('title') && !r.className.includes('watermark'));
+    assert.equal(mainTitle.fontSize, 42, `${layout} explicit title size must render without silent shrink`);
+    const decoration = await page.evaluate(() => {
+      const watermark = document.querySelector('.title-watermark'), logo = document.querySelector('.overlay .logo');
+      const a = watermark.getBoundingClientRect(), b = logo.getBoundingClientRect();
+      return { fontFamily: getComputedStyle(watermark).fontFamily, overlap: a.left < b.right && a.right > b.left && a.top < b.bottom && a.bottom > b.top, watermark: { left: a.left, right: a.right }, logo: { left: b.left, right: b.right } };
+    });
+    assert.ok(decoration.fontFamily.includes('Frank Ruhl Libre'), `${layout} classic watermark must use Frank Ruhl Libre`);
+    assert.equal(decoration.overlap, false, `${layout} watermark must clear logo: ${JSON.stringify(decoration)}`);
+    results.push({ titleLayout: layout, title, decoration });
+  }
+  for (const layout of ['left', 'right']) {
+    const defaultTitle = await render(cue(layout, {}, { contentRows: undefined, texts: { textTitle: 'Welcome', textMain: 'A short reading' } }));
+    assert.equal(defaultTitle.measured.find((r) => r.className.includes('title')).fontSize, 34, `${layout} modest title default`);
+    for (const accentTextTitle of ['', 'הַבְדָּלָה']) {
+      const longTitle = await render(cue(layout, { legacyTitleWatermark: true }, { contentRows: undefined, texts: { textTitle: 'Havdalah - Wine Blessing', accentTextTitle, textMain: 'A short reading' } }));
+      assert.deepEqual(longTitle.fit.fitErrors, [], `${layout} long title must fit with or without a Hebrew accent`);
+    }
+  }
+  const longCorner = await render(cue('corner', { titleFontSize: 42 }, { contentRows: undefined, texts: { textTitle: 'A Very Long Shalom Aleichem Title', textMain: 'A short reading' } }));
+  assert.equal(longCorner.measured.find((r) => r.className.includes('title')).fontSize, 42, 'corner explicit title must retain its requested size');
+  assert.ok(longCorner.fit.fitErrors.some((error) => error.includes('textTitle')), 'corner reports title overflow rather than shrinking');
+  results.push({ longCorner });
   for (const layout of ['left', 'right']) {
     const positions = [];
     for (const verticalAlignment of ['top', 'center', 'bottom']) {

@@ -66,6 +66,17 @@
 .source-search input { min-width: 0; width: 100%; padding: 10px 0; border: 0; outline: 0; background: transparent; color: var(--text); }
 .library-list { display: grid; align-content: start; gap: 5px; margin-top: 10px; overflow-y: auto; scrollbar-color: #3b544d transparent; }
 .library-card { position: relative; display: grid; grid-template-columns: minmax(0, 1fr) auto; align-items: center; border: 1px solid transparent; border-radius: 9px; }
+.library-card-folder { grid-column: 1 / -1; grid-row: 2; min-width: 0; width: calc(100% - 16px); margin: 0 8px 7px; padding: 5px 7px; border: 1px solid var(--line); border-radius: 6px; background: #101b18; color: var(--muted); font-size: 11px; }
+.library-card .library-card-main { grid-column: 1; grid-row: 1; }
+.library-card .card-actions, .library-card.archived-card > .card-action { grid-column: 2; grid-row: 1; }
+.library-organization { display: grid; gap: 7px; margin-top: 9px; padding: 9px; border: 1px solid var(--line); border-radius: 8px; background: #101a18; }
+.library-organization-row { display: flex; align-items: flex-end; gap: 4px; }
+.library-organization-row label, .library-sort { min-width: 0; flex: 1; display: grid; gap: 3px; color: var(--muted); font-size: 11px; }
+.library-organization select, .library-folder-edit input { min-width: 0; width: 100%; padding: 6px; border: 1px solid var(--line-strong); border-radius: 6px; background: #0b1412; color: var(--text); font-size: 12px; }
+.library-organization-row button { width: 29px; height: 29px; flex: 0 0 29px; padding: 0; }
+.library-folder-edit { display: flex; gap: 4px; }
+.library-folder-edit button { padding: 5px 7px; font-size: 11px; }
+.library-folder-error { margin: 0; color: var(--danger); font-size: 11px; line-height: 1.4; }
 .library-card:hover { background: #14211f; }
 .library-card.active { background: #1a302a; border-color: #3c685c; }
 .library-card .library-card-main { min-width: 0; justify-content: flex-start; padding: 9px 7px; border: 0; background: transparent; text-align: left; }

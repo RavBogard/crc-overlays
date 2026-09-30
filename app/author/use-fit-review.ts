@@ -26,9 +26,11 @@ export function useFitReview(workspace: PublicWorkspace | null, workingPreview: 
   const outputRef = useRef<HTMLDivElement>(null);
   const playerRef = useRef<Player | null>(null);
   const previewSequence = useRef(0);
+  const reviewSequence = useRef(0);
   const animationRevision = useRef(0);
 
   const resetReview = useCallback(() => {
+    reviewSequence.current++;
     setExactPreview(null);
     setFitErrors([]);
     setFitWarnings([]);
@@ -101,6 +103,6 @@ export function useFitReview(workspace: PublicWorkspace | null, workingPreview: 
   return {
     exactPreview, setExactPreview, fitErrors, fitWarnings, previewWarnings, setPreviewWarnings, assetsReady,
     previewError, setPreviewError,
-    viewportRef, outputRef, previewSequence, resetReview, showCue, clearStage, playOut,
+    viewportRef, outputRef, previewSequence, reviewSequence, resetReview, showCue, clearStage, playOut,
   };
 }

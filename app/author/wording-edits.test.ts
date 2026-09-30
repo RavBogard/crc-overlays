@@ -3,7 +3,7 @@ import test from "node:test";
 import { editableFromForm, emptyForm, formFromDraft } from "./editor-state.ts";
 import { blocksForMode } from "./editor-state.ts";
 import { resolveSourceBoundaries, sourcePack } from "@/lib/authoring-model";
-import { activeWordingEdits, passageWordingFields, setWordingEdit, translationFor } from "./wording-edits.ts";
+import { activeWordingEdits, passageWordingFields, setWordingEdit, translationFor, wordingEditsReady } from "./wording-edits.ts";
 import type { Draft, Source } from "./types.ts";
 
 const source: Source = {
@@ -75,4 +75,14 @@ test("separate groups survives editor save and reopen without changing old draft
   assert.deepEqual(editableFromForm(reopened).content, grouped);
   const historical = editableFromForm(form).content;
   assert.equal("preserveGroups" in historical, false);
+});
+
+test("a break at the end of a local line remains an active exact wording edit", () => {
+  const field = passageWordingFields(form, source, source.blocks[0]).find((item) => item.channel === "tr")!;
+  const localText = `${field.sourceText}…\n`;
+  const changed = { ...form, variantOverrides: setWordingEdit([], field, localText) };
+  assert.equal(wordingEditsReady(changed), true);
+  assert.equal(activeWordingEdits(changed)[0].localText, localText);
+  assert.equal(editableFromForm(changed).content.mode, "local-variant");
+  assert.equal(wordingEditsReady({ ...form, variantOverrides: setWordingEdit([], field, "\n") }), false);
 });

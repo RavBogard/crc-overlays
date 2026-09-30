@@ -132,6 +132,7 @@ class FakeElement{
  style:{fontSize:string;visibility?:string;properties:Record<string,string>;setProperty(name:string,value:string):void}={fontSize:'',properties:{},setProperty(name,value){this.properties[name]=value}};
  constructor(tag:string){this.tagName=tag}
  get classes(){return this.className.split(/\s+/).filter(Boolean)}
+ get classList(){return {contains:(name:string)=>this.classes.includes(name)}}
  get base(){return this.classes.includes('title')?TITLE.fontSize:this.classes.includes('single-channel')?BODY.single.fontSize:this.classes.includes('hebrew')?BODY.hebrew.fontSize:BODY.latin.fontSize}
  get font(){return this.style.fontSize?parseFloat(this.style.fontSize):this.base}
  get metrics(){const key=['single-channel','title','hebrew','english'].find(name=>this.classes.includes(name));return key?BOX[key]:{width:1920,height:1080}}
@@ -189,6 +190,13 @@ test('a corner line too long for its box shrinks to fit, and re-fits idempotentl
 test('text that cannot fit even at the floor is reported as overflow',()=>{
  const {box}=renderCorner({textTitle:'Too long',textMain:'word '.repeat(200)});
  assert.equal(box.querySelector('.single-channel')!.font,CORNER_FONT_FLOOR);
+ assert.equal(box.dataset.fit,'overflow');
+});
+
+test('an explicit corner title size is never silently reduced by card fitting',()=>{
+ const cue={...cornerCue({textTitle:'A deliberately long title that cannot fit inside the corner card header',textMain:'Amen'}),presentation:{titleFontSize:42}};
+ const box=new Player(new FakeElement('div') as unknown as HTMLElement,[cue]).render(cue) as unknown as FakeElement;
+ assert.equal(box.querySelector('.title')!.style.fontSize,'42px');
  assert.equal(box.dataset.fit,'overflow');
 });
 

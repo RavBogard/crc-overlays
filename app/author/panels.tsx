@@ -13,6 +13,9 @@ import { BulkPublish } from "./bulk-publish";
 import { EditorCard } from "./editor-card";
 import { auditDraftSet, draftReadableText, draftThumbnailCopy, libraryEmptyMessage, type RecoveryCopy } from "./editor-state";
 import { formatTime, itemName, variantCandidates, variantKey, type DraftSetReview, type LibraryItem, type LibraryTab, type VariantCandidate } from "./library-model";
+import { itemId, type LibrarySort } from "./library-model";
+import { LibraryFolderControls } from "./library-folder-controls";
+import type { LibraryFolder } from "./use-library-folders";
 import type { SharedShelfCard } from "./shared-shelf";
 import type { SourceReviewSummary } from "./source-review";
 import type { Draft, DraftForm, PublishedRevision, VariantChannel } from "./types";
@@ -29,6 +32,8 @@ export function LibrarySidebar(props: {
   allDrafts: Draft[];
   apiKey: string; workspace: PublicWorkspace | null; refreshAfterPublish: () => Promise<void>;
   libraryTab: LibraryTab; setLibraryTab: (tab: LibraryTab) => void; libraryQuery: string; setLibraryQuery: (query: string) => void;
+  folders: LibraryFolder[]; assignments: Record<string, string>; folderFilter: string; setFolderFilter: (value: string) => void; sort: LibrarySort; changeSort: (value: LibrarySort) => void; folderBusy: boolean; folderError: string;
+  createFolder: (name: string) => Promise<boolean>; renameFolder: (folderId: string, name: string) => Promise<boolean>; deleteFolder: (folderId: string) => Promise<boolean>; moveToFolder: (cueId: string, folderId: string | null) => Promise<boolean>;
   sharedEnabled: boolean; sharedLabel: string; sharedItems: SharedShelfCard[]; sharedBadge: number; sharedSelectedId: string | null; selectShared: (id: string) => void;
   activeDraftId: string | null; beginSiddur: () => void; beginCustom: () => void;
   openItem: (item: LibraryItem) => void; duplicateItem: (item: LibraryItem) => void; archiveItem: (item: LibraryItem) => void; restoreItem: (item: Draft) => void; restoreRetired: (item: Draft) => void;
@@ -40,6 +45,9 @@ export function LibrarySidebar(props: {
   // U5 - the one "published, visible" number, the same helper the console footer and health use.
   const publishedCount = publishedVisibleCount(props.publishedItems.flatMap((item) => item.kind === "catalog" ? [item.cue] : []));
   const hasQuery = Boolean(props.libraryQuery.trim());
+  const folderSelect = (item: LibraryItem) => <select className="library-card-folder" aria-label={`Folder for ${itemName(item)}`} title={`Folder for ${itemName(item)}`} value={props.assignments[itemId(item)] || ""} disabled={props.folderBusy} onChange={(event) => void props.moveToFolder(itemId(item), event.target.value || null)}>
+    <option value="">Unfiled</option>{props.folders.map((folder) => <option key={folder.id} value={folder.id}>{folder.name}</option>)}
+  </select>;
   return <aside className="library-sidebar">
     <div className="create-stack"><button className="siddur-button" onClick={props.beginSiddur}><BookOpenText size={19} /><span><strong>Add from siddur</strong><small>Find a prayer or reading</small></span></button><button className="secondary-create" onClick={props.beginCustom}><FilePlus2 size={17} /> New custom graphic</button></div>
     <div className={`library-tabs tabs-${tabCount}`} role="tablist" aria-label="Library">
@@ -54,6 +62,7 @@ export function LibrarySidebar(props: {
       <label className="library-search"><Search size={16} /><input aria-label={searchLabel(props.libraryTab)} value={props.libraryQuery} onChange={(event) => props.setLibraryQuery(event.target.value)} placeholder={searchLabel(props.libraryTab)} /></label>
       <RailOverflow items={[{ key: "check-sources", label: "Check sources", icon: props.checkingSources ? <LoaderCircle className="spin" size={16} /> : <RefreshCw size={16} />, disabled: props.checkingSources, run: props.checkSources }]} />
     </div>
+    {props.libraryTab !== "shared" && props.libraryTab !== "sources" && <LibraryFolderControls folders={props.folders} folderFilter={props.folderFilter} setFolderFilter={props.setFolderFilter} sort={props.sort} changeSort={props.changeSort} busy={props.folderBusy} error={props.folderError} create={props.createFolder} rename={props.renameFolder} remove={props.deleteFolder} />}
     <div className="library-list">
       {props.libraryTab === "sources" ? props.sourceItems.map((record) => <article key={record.id} className={`library-card review-card ${props.sourceSelectedId === record.id ? "active" : ""}`}>
         <button className="library-card-main" onClick={() => props.openSourceReview(record.id)}>
@@ -68,10 +77,10 @@ export function LibrarySidebar(props: {
         const subtitle = retired ? "Retired" : item.kind === "draft" ? item.draft.content.mode === "local-variant" ? `Local variant · version ${item.draft.version}` : item.draft.activeRevision ? `Published · changes in version ${item.draft.version}` : `Draft version ${item.draft.version}` : `${item.cue.origin === "canonical" ? "Siddur" : item.cue.origin === "variant" ? "Local variant" : "Custom"} · ${layoutLabel(layout)}`;
         const authoredDraft = item.kind === "catalog" && item.cue.draftId ? props.allDrafts.find((candidate) => candidate.id === item.cue.draftId) : undefined;
         const copy = item.kind === "draft" ? draftThumbnailCopy(item.draft) : authoredDraft ? draftThumbnailCopy(authoredDraft) : { title: item.cue.title, body: "", accent: undefined };
-        if (props.libraryTab === "archived" && item.kind === "draft") return <article key={`archived-${id}`} className="library-card archived-card"><button className="library-card-main" onClick={() => props.restoreItem(item.draft)}><GraphicThumbnail layout={layout} {...copy} /><span><strong>{item.draft.draftSetId ? item.draft.title : itemName(item)}</strong><small>{item.draft.draftSetId ? `${item.draft.setCount || "Multiple"} slides · ` : ""}Archived {formatTime(item.draft.archivedAt)}</small></span></button><button className="icon-button card-action" aria-label={`Restore ${item.draft.draftSetId ? item.draft.title : itemName(item)}`} title="Restore" onClick={() => props.restoreItem(item.draft)}><ArchiveRestore size={14} /></button></article>;
+        if (props.libraryTab === "archived" && item.kind === "draft") return <article key={`archived-${id}`} className="library-card archived-card"><button className="library-card-main" onClick={() => props.restoreItem(item.draft)}><GraphicThumbnail layout={layout} {...copy} /><span><strong>{item.draft.draftSetId ? item.draft.title : itemName(item)}</strong><small>{item.draft.draftSetId ? `${item.draft.setCount || "Multiple"} slides · ` : ""}Archived {formatTime(item.draft.archivedAt)}</small></span></button>{folderSelect(item)}<button className="icon-button card-action" aria-label={`Restore ${item.draft.draftSetId ? item.draft.title : itemName(item)}`} title="Restore" onClick={() => props.restoreItem(item.draft)}><ArchiveRestore size={14} /></button></article>;
         const archiveDraft = item.kind === "draft" ? item.draft : authoredDraft;
         const canArchive = item.kind === "draft" || Boolean(item.cue.draftId && archiveDraft);
-        return <article key={`${item.kind}-${id}`} className={`library-card ${active ? "active" : ""}`}><button className="library-card-main" onClick={() => props.openItem(item)}><GraphicThumbnail layout={layout} {...copy} /><span><strong>{itemName(item)}</strong><small title={retired ? "Retired · out of the live library" : subtitle}>{subtitle}</small></span></button><span className="card-actions"><button className="icon-button card-action" aria-label={`Duplicate ${itemName(item)}`} title="Duplicate" onClick={() => props.duplicateItem(item)}><Copy size={14} /></button>{retired && item.kind === "draft" && <button className="icon-button card-action" aria-label={`Return ${itemName(item)} to the live library`} title="Return to the live library" onClick={() => props.restoreRetired(item.draft)}><ArchiveRestore size={14} /></button>}{canArchive && <button className="icon-button card-action" aria-label={`Archive ${itemName(item)}`} title="Archive" onClick={() => props.archiveItem(item)}><Archive size={14} /></button>}</span></article>;
+        return <article key={`${item.kind}-${id}`} className={`library-card ${active ? "active" : ""}`}><button className="library-card-main" onClick={() => props.openItem(item)}><GraphicThumbnail layout={layout} {...copy} /><span><strong>{itemName(item)}</strong><small title={retired ? "Retired · out of the live library" : subtitle}>{subtitle}</small></span></button>{folderSelect(item)}<span className="card-actions"><button className="icon-button card-action" aria-label={`Duplicate ${itemName(item)}`} title="Duplicate" onClick={() => props.duplicateItem(item)}><Copy size={14} /></button>{retired && item.kind === "draft" && <button className="icon-button card-action" aria-label={`Return ${itemName(item)} to the live library`} title="Return to the live library" onClick={() => props.restoreRetired(item.draft)}><ArchiveRestore size={14} /></button>}{canArchive && <button className="icon-button card-action" aria-label={`Archive ${itemName(item)}`} title="Archive" onClick={() => props.archiveItem(item)}><Archive size={14} /></button>}</span></article>;
       })}
       {/* The publish path (2026-09-14, part 2): an import lands its drafts here, and this is
           where the person looking at them can put the whole batch on air in one click. */}
