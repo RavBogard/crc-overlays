@@ -149,7 +149,7 @@ const CRC:SetupFlow={
   {key:'test',kicker:'Stream Deck',title:'Test',verify:'press',text:[
    'Press these. Each press shows below as it arrives, with whether it rendered.',
   ],blocks:[{kind:'press-test',picks:[
-   {what:'A Fri 1 lower third',layout:'lower-third',pageName:'Fri 1'},
+   {what:'A Fri 1 lower third',layout:'bottom',pageName:'Fri 1'},
    {what:'A panel chain: panel 1, then the next key down',sequence:true},
    {what:'A slot graphic',slot:true},
   ],byEye:['One camera loop: the cameras cycle.','Bimah Mute (row 4, column 8 of any service page): the X32 channels mute.'],
