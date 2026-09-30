@@ -1,7 +1,7 @@
 import {isLayoutId,layoutChoices,layoutDefinition} from './layout-registry';
 import {createHash,randomUUID} from 'node:crypto';
 import type {Cue} from './player';
-import {AuthoringError,assertSourcePin,staleSourceIds,baselineCues,buildCue,cueHash,draftSetSelections,editableFromBaseline,newDraftId,normalizeGraphicName,parseEditable,previewValidation,resolveSourceBoundaries,sameStructuredValue,sourceBlockFor,sourcePack,sourcePinFor,sourceReferences,sourceSnapshotsFor,type AuthoringCue,type BilingualContent,type CanonicalContent,type Draft,type DraftContent,type DraftSetSelection,type EditableDraft,type Layout,type LocalVariantContent,type LocalVariantOverride,type VariantChannel,type SourceBlock,type SharedCueUpstream} from './authoring-model';
+import {AuthoringError,assertSourcePin,staleSourceIds,baselineCues,buildCue,cueHash,draftSetSelections,editableFromBaseline,newDraftId,normalizeGraphicName,parseEditable,previewValidation,resolveSourceBoundaries,sameStructuredValue,sourceBlockFor,sourcePack,sourcePinFor,sourceReferences,sourceSnapshotsFor,type AuthoringCue,type BilingualContent,type CanonicalContent,type Draft,type DraftContent,type DraftSetSelection,type EditableDraft,type Layout,type LocalVariantContent,type LocalVariantOverride,type Presentation,type VariantChannel,type SourceBlock,type SharedCueUpstream} from './authoring-model';
 import {compactDraftCatalog,type DraftCatalogInput} from './draft-catalog';
 import {planDraftStyle,type DraftStyleOptions,type DraftStylePlan} from './authoring-style';
 import {DEFAULTS_APPLY_ON,DEFAULT_FIELDS,mergeDefaultsPatch,sequenceLayoutFor,withCreateDefaultBilingualBlocks,withHouseCreateDefaults,withHouseDefaults,type AuthoringDefaults,type DefaultsReport} from './authoring-defaults';
@@ -9,13 +9,14 @@ import {MemoryAuthoringDefaultsRepository,PgAuthoringDefaultsRepository,defaults
 import {parseSharedBatchItems,planSharedBatch,type SharedBatchItem} from './shared-batch';
 import {LAYER_ORDER,englishOnly,isRetiredDraft,parseRowOrder} from './authoring-model';
 import {layoutLabel,templateLayoutFor} from './layout-label';
-import {TEXT_SIZE_IDS,TEXT_SIZE_PRESETS,templateLooks,withTextSize,type TemplateLookMode,type TextSizePreset} from './template-looks';
+import {TEXT_SIZE_IDS,TEXT_SIZE_PRESETS,largePrintSizes,templateLooks,withTextSize,type TemplateLookMode,type TextSizePreset} from './template-looks';
 import {CUSTOM_TEMPLATES,customTemplate,customTemplateProblems,describeCustomTemplate} from './custom-templates';
 // One source of truth for how much liturgy one panel holds, shared with the editor so a
 // selection warning and a server split can never disagree.
 import {PANEL_BLOCK_LIMIT,blockCharacters,panelCharacterBudget} from './panel-budget';
 import {baselineCatalogForWorkspace,starterSourceMap} from './workspace-catalog';
 import {sourceDisplay} from './source-library';
+import {explicitSplitPages} from './split-page-groups';
 import {wordingChanges} from './wording-changes';
 import {sharedCueHash,sharedLibraryClient,type SharedLibraryEntry,type SharedLibraryPayload,type SharedLibrarySnapshot} from './shared-library';
 import {compareUpstream,groupSets,setState,shelfState} from './shared-shelf';
@@ -252,12 +253,12 @@ function splitDraftSetSegments(content:CanonicalContent,snapshots:Draft['sourceS
  return {sourceId,source,segments,mode:content.mode,includeTranslation:true};
 }
 
-function splitDraftContent(content:DraftContent,sourceId:string,blocks:SourceBlock[],source:SearchSource):DraftContent{
+function splitDraftContent(content:DraftContent,sourceId:string,blocks:SourceBlock[],source:SearchSource,explicitGroups?:{sourceId:string;blockIds:string[]}[]):DraftContent{
  const variant=content.mode==='local-variant'?content:null,base=(variant?.base??content) as CanonicalContent;
- const blockIds=blocks.map(block=>block.id),groups=base.mode==='bilingual'?[{sourceId,blockIds}]:blockIds.map(blockId=>({sourceId,blockIds:[blockId]}));
+ const blockIds=blocks.map(block=>block.id),groups=explicitGroups?.map(group=>({sourceId:group.sourceId,blockIds:[...group.blockIds]}))??(base.mode==='bilingual'?[{sourceId,blockIds}]:blockIds.map(blockId=>({sourceId,blockIds:[blockId]})));
  // G9 - a page of a bilingual draft that holds only its English-only passages is an English graphic.
  const englishKind=base.mode==='bilingual'&&blocks.every(englishOnly)&&new Set(blocks.map(block=>block.kind)).size===1?blocks[0].kind as 'original-en'|'source-en':null;
- const pageBase:CanonicalContent=englishKind?{mode:englishKind,englishGroups:blockIds.map(blockId=>({sourceId,blockIds:[blockId]}))}:base.mode==='bilingual'?{mode:'bilingual',hebrewGroups:groups,transliterationGroups:structuredClone(groups),...(base.includeTranslation?{includeTranslation:true}:{}),...(base.layers?{layers:structuredClone(base.layers)}:{}),...(base.arrangement?{arrangement:base.arrangement}:{}),...(base.rowOrder?{rowOrder:[...base.rowOrder]}:{})}:{mode:base.mode,englishGroups:groups};
+ const pageBase:CanonicalContent=englishKind?{mode:englishKind,englishGroups:groups}:base.mode==='bilingual'?{mode:'bilingual',hebrewGroups:groups,transliterationGroups:structuredClone(groups),...(base.includeTranslation?{includeTranslation:true}:{}),...(base.layers?{layers:structuredClone(base.layers)}:{}),...(base.arrangement?{arrangement:base.arrangement}:{}),...(base.rowOrder?{rowOrder:[...base.rowOrder]}:{}),...(base.preserveGroups?{preserveGroups:true as const}:{})}:{mode:base.mode,englishGroups:groups};
  if(!variant)return pageBase;
  const selected=new Set(blockIds);if(base.mode==='bilingual'&&base.includeTranslation)for(const block of blocks){const translation=source.blocks.find(candidate=>candidate.kind==='translation-en'&&candidate.pairedBlockIds?.[0]===block.id);if(translation)selected.add(translation.id)}const overrides=variant.overrides.filter(override=>override.sourceId===sourceId&&selected.has(override.blockId));
  return overrides.length?{mode:'local-variant',label:variant.label,...(variant.reason?{reason:variant.reason}:{}),base:pageBase,overrides:structuredClone(overrides)}:pageBase;
@@ -313,7 +314,7 @@ function withDraftDefaults(data:Record<string,unknown>){
  const {textSize:rawSize,...draft}=data;const textSize=textSizeOf(rawSize);
  if(draft.templateCueId===undefined&&isLayoutId(draft.layout)){const content=draft.content as {mode?:unknown}|undefined;draft.templateCueId=lookTemplateCueId(draft.layout,content?.mode)}
  else if(typeof draft.templateCueId==='string')draft.templateCueId=baselineSourceCueId(draft.templateCueId);
- if(textSize){const explicit=draft.presentation&&typeof draft.presentation==='object'&&!Array.isArray(draft.presentation)?draft.presentation as Record<string,unknown>:{};draft.presentation={...withTextSize({...explicit},textSize),...Object.fromEntries(Object.entries(explicit).filter(([key])=>key.endsWith('FontSize')))}}
+ if(textSize){const explicit=draft.presentation&&typeof draft.presentation==='object'&&!Array.isArray(draft.presentation)?draft.presentation as Record<string,unknown>:{};const merged={...withTextSize({...explicit},textSize),...Object.fromEntries(Object.entries(explicit).filter(([key])=>key.endsWith('FontSize')))};draft.presentation=textSize==='large'?largePrintSizes(merged as Presentation):merged}
  return draft;
 }
 
@@ -659,15 +660,19 @@ export function createAuthoringService(repo:AuthoringRepository,workspace:Author
   const inserted=await repo.insertDraftSet(stamped(drafts,report,stored?.version));return {drafts:inserted,set:{id:setId,name:source.name,count,draftIds:inserted.map(draft=>draft.id)},...reportField(report)};
  }
  if(operation==='split_draft_into_set'){
-  keys(data,['draftId','expectedVersion']);const draftId=string(data.draftId,'draftId'),expectedVersion=integer(data.expectedVersion,'expectedVersion',1);const original=await requiredDraft(repo,draftId);
+  keys(data,['draftId','expectedVersion','pages']);const draftId=string(data.draftId,'draftId'),expectedVersion=integer(data.expectedVersion,'expectedVersion',1);const original=await requiredDraft(repo,draftId);
   if(original.version!==expectedVersion)throw conflict();if(original.archivedAt)throw new AuthoringError('draft_archived','Restore this draft before splitting it',409);if(original.draftSetId)throw new AuthoringError('already_multipart','This draft is already a multipart set member',409);
-  const origin={draftId,draftVersion:expectedVersion};const existingSplit=async()=>{const existing=(await repo.listDrafts()).filter(draft=>draft.splitFrom?.draftId===draftId&&draft.splitFrom.draftVersion===expectedVersion&&!draft.archivedAt).sort((a,b)=>(a.setIndex??0)-(b.setIndex??0));if(!existing.length)return null;const setId=existing[0].draftSetId;if(setId&&existing.every(draft=>draft.draftSetId===setId)&&existing.length===existing[0].setCount&&existing.every((draft,index)=>draft.setIndex===index+1))return {drafts:existing,set:{id:setId,name:original.name,count:existing.length,draftIds:existing.map(draft=>draft.id)},splitFrom:origin,reused:true as const};throw new AuthoringError('split_retry_incomplete','A prior split attempt is incomplete; inspect the multipart drafts before retrying',409)};const priorSplit=await existingSplit();if(priorSplit)return priorSplit;
   if(original.content.mode==='custom')throw new AuthoringError('split_source_required','Only source-backed drafts can be split into a source-preserving set',409);
-  const base=original.content.mode==='local-variant'?original.content.base:original.content;const {sourceId,source,segments,mode,includeTranslation}=splitDraftSetSegments(base,original.sourceSnapshots);assertSourcePin(original);const pages=sourceSetPagesFromSegments(source,segments,mode,includeTranslation,original.layout);
-  if(pages.length<2)throw new AuthoringError('split_not_needed','The selected draft already fits in one source-preserving page',409);
-  const setId=splitStableId(draftId,expectedVersion,'set'),count=pages.length,width=Math.max(2,String(count).length),now=Date.now();let drafts=pages.map((page,index)=>{
-   const content=splitDraftContent(original.content,sourceId,page,source),editable=parseEditable({name:`${original.name} — ${String(index+1).padStart(width,'0')} of ${String(count).padStart(width,'0')}`,title:original.title,...(original.accentTitle!==undefined?{accentTitle:original.accentTitle}:{}),layout:original.layout,templateCueId:original.templateCueId,content,presentation:structuredClone(original.presentation)},false,original.sourceSnapshots) as EditableDraft;
-   const sourceSnapshots=structuredClone(original.sourceSnapshots);return {...editable,id:splitStableId(draftId,expectedVersion,`draft-${index+1}`),version:1,sourcePin:sourcePinFor(editable.content,sourceSnapshots,original.sourcePin.feedSha256),sourceSnapshots,activeRevision:null,activeDraftVersion:null,createdAt:now,updatedAt:now,createdBy:who,updatedBy:who,draftSetId:setId,setIndex:index+1,setCount:count,splitFrom:origin} satisfies Draft;
+  const base=original.content.mode==='local-variant'?original.content.base:original.content;const {sourceId,source,segments,mode,includeTranslation}=splitDraftSetSegments(base,original.sourceSnapshots);assertSourcePin(original);
+  const explicit=data.pages!==undefined?explicitSplitPages(data.pages,segments,sourceId):null;
+  const plannedPages=explicit??sourceSetPagesFromSegments(source,segments,mode,includeTranslation,original.layout).map(blocks=>({blocks,groups:undefined}));
+  if(plannedPages.length<2)throw new AuthoringError('split_not_needed','The selected draft already fits in one source-preserving page',409);
+  const planKey=explicit?createHash('sha256').update(JSON.stringify(explicit.map(page=>page.groups))).digest('hex').slice(0,20):null;
+  const setId=splitStableId(draftId,expectedVersion,planKey?`set-${planKey}`:'set'),origin={draftId,draftVersion:expectedVersion};
+  const existingSplit=async()=>{const existing=(await repo.listDrafts()).filter(draft=>draft.splitFrom?.draftId===draftId&&draft.splitFrom.draftVersion===expectedVersion&&!draft.archivedAt).sort((a,b)=>(a.setIndex??0)-(b.setIndex??0));if(!existing.length)return null;if(existing.some(draft=>draft.draftSetId!==setId))throw new AuthoringError('split_plan_conflict','This draft version was already split with different slide boundaries. Open that set or save a new draft version before splitting again.',409);if(existing.length===existing[0].setCount&&existing.every((draft,index)=>draft.setIndex===index+1))return {drafts:existing,set:{id:setId,name:original.name,count:existing.length,draftIds:existing.map(draft=>draft.id)},splitFrom:origin,reused:true as const};throw new AuthoringError('split_retry_incomplete','A prior split attempt is incomplete; inspect the multipart drafts before retrying',409)};const priorSplit=await existingSplit();if(priorSplit)return priorSplit;
+  const count=plannedPages.length,width=Math.max(2,String(count).length),now=Date.now();let drafts=plannedPages.map((page,index)=>{
+   const content=splitDraftContent(original.content,sourceId,page.blocks,source,page.groups),editable=parseEditable({name:`${original.name} — ${String(index+1).padStart(width,'0')} of ${String(count).padStart(width,'0')}`,title:original.title,...(original.accentTitle!==undefined?{accentTitle:original.accentTitle}:{}),layout:original.layout,templateCueId:original.templateCueId,content,presentation:structuredClone(original.presentation)},false,original.sourceSnapshots) as EditableDraft;
+   const sourceSnapshots=structuredClone(original.sourceSnapshots);return {...editable,id:splitStableId(draftId,expectedVersion,planKey?`draft-${planKey}-${index+1}`:`draft-${index+1}`),version:1,sourcePin:sourcePinFor(editable.content,sourceSnapshots,original.sourcePin.feedSha256),sourceSnapshots,activeRevision:null,activeDraftVersion:null,createdAt:now,updatedAt:now,createdBy:who,updatedBy:who,draftSetId:setId,setIndex:index+1,setCount:count,splitFrom:origin} satisfies Draft;
   });
   const draftSetManifest={version:1 as const,selections:drafts.flatMap(draft=>draftSetSelections(draft.content,draft.sourceSnapshots))};drafts=drafts.map(draft=>({...draft,draftSetManifest:structuredClone(draftSetManifest)}));try{const inserted=await repo.insertDraftSet(drafts);return {drafts:inserted,set:{id:setId,name:original.name,count,draftIds:inserted.map(draft=>draft.id)},splitFrom:origin,reused:false}}catch(error){const recovered=await existingSplit();if(recovered)return recovered;throw error}
  }
@@ -732,7 +737,7 @@ export function createAuthoringService(repo:AuthoringRepository,workspace:Author
   if(operation==='update_draft'){
    keys(data,['draftId','expectedVersion','patch','refreshSourceIds','textSize']);const id=string(data.draftId,'draftId');const expected=integer(data.expectedVersion,'expectedVersion',1);const current=await requiredDraft(repo,id);if(current.version!==expected)throw conflict();
    // A named text size applies to the presentation the patch leaves in place, under any size the patch names.
-   const textSize=textSizeOf(data.textSize);if(textSize){const patch=data.patch===undefined?{}:object(data.patch,'patch'),explicit=patch.presentation===undefined?null:object(patch.presentation,'patch.presentation');data.patch={...patch,presentation:{...withTextSize({...(explicit??current.presentation)},textSize),...Object.fromEntries(Object.entries(explicit??{}).filter(([key])=>key.endsWith('FontSize')))}}}
+   const textSize=textSizeOf(data.textSize);if(textSize){const patch=data.patch===undefined?{}:object(data.patch,'patch'),explicit=patch.presentation===undefined?null:object(patch.presentation,'patch.presentation');const merged={...withTextSize({...(explicit??current.presentation)},textSize),...Object.fromEntries(Object.entries(explicit??{}).filter(([key])=>key.endsWith('FontSize')))};data.patch={...patch,presentation:textSize==='large'?largePrintSizes(merged as Presentation):merged}}
    // A workspace template id names the CRC baseline it copies, as it does on create_draft (withDraftDefaults).
    if(data.patch&&typeof data.patch==='object'&&!Array.isArray(data.patch)&&typeof (data.patch as Record<string,unknown>).templateCueId==='string')data.patch={...data.patch,templateCueId:baselineSourceCueId((data.patch as Record<string,unknown>).templateCueId as string)};
    // A stale pin blocks every edit except the explicit rebase it asks for (gap D): a refresh that

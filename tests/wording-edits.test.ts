@@ -56,9 +56,9 @@ test('edits for passages no longer selected, or layers no longer shown, are drop
 
 test('an English edit is keyed to the translation block and survives a round trip through the server',async()=>{
  const withEnglish=form({layers:['he','tr','en'],groups:[{sourceId:SOURCE_ID,blockIds:[block(0).id,block(1).id]}]});
- const english=field(withEnglish,0,'en');
- assert.equal(english.blockId,block(2).id);assert.equal(english.passageId,block(0).id);
- assert.equal(passageWordingFields(withEnglish,source,block(1)).some(item=>item.channel==='en'),false,'English belongs to the passage its blessing starts at');
+ const english=field(withEnglish,1,'en');
+ assert.equal(english.blockId,block(2).id);assert.equal(english.passageId,block(1).id);
+ assert.equal(passageWordingFields(withEnglish,source,block(0)).some(item=>item.channel==='en'),false,'English appears once after the final passage of its blessing');
  const edited={...withEnglish,variantOverrides:[...setWordingEdit([],english,'Blessed are You, our God.'),...setWordingEdit([],field(withEnglish,1,'he'),'עברית')]};
  const content=editableFromForm(edited).content as LocalVariantContent;
  assert.deepEqual(content.overrides.map(item=>[item.blockId,item.channel]),[[block(2).id,'en'],[block(1).id,'he']]);
@@ -77,7 +77,7 @@ test('an English edit is keyed to the translation block and survives a round tri
  assert.equal(reopened.mode,'bilingual');
  assert.deepEqual(reopened.groups,[{sourceId:SOURCE_ID,blockIds:[block(0).id,block(1).id]}]);
  assert.deepEqual(reopened.layers,['he','tr','en']);
- assert.equal(reopened.variantOverrides.find(item=>item.channel==='en')?.passageId,block(0).id);
+ assert.equal(reopened.variantOverrides.find(item=>item.channel==='en')?.passageId,block(1).id);
  assert.deepEqual(editableFromForm(reopened).content,JSON.parse(JSON.stringify(created.content)));
  // Reverting every edit returns it to plain canonical content.
  const plainAgain=editableFromForm({...reopened,variantOverrides:[]}).content;

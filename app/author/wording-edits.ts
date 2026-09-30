@@ -18,29 +18,36 @@ export const MAX_WORDING_EDITS = 96;
  * An edit as the form holds it. `passageId` is the selected passage an English edit belongs to:
  * English is keyed by its translation block, which is never itself a selected passage.
  */
-export type WordingEdit = LocalVariantOverride & { passageId?: string };
+export type WordingEdit = LocalVariantOverride & { passageId?: string; pairedBlockIds?: string[] };
 /** One editable line of a selected passage. */
-export type WordingField = { sourceId: string; blockId: string; passageId: string; channel: VariantChannel; sourceText: string };
+export type WordingField = { sourceId: string; blockId: string; passageId: string; channel: VariantChannel; sourceText: string; pairedBlockIds?: string[] };
 
 export function wordingKey(item: Pick<LocalVariantOverride, "sourceId" | "blockId" | "channel">) {
   return `${item.sourceId}\u0000${item.blockId}\u0000${item.channel}`;
 }
 
-/** The authorized English whose run starts at this passage, when the source carries one. */
+/** The authorized English covering this passage, when the source carries one. */
 export function translationFor(source: Pick<Source, "blocks">, blockId: string): SourceBlock | undefined {
-  return source.blocks.find((block) => block.kind === "translation-en" && block.pairedBlockIds?.[0] === blockId && Boolean(block.en));
+  return source.blocks.find((block) => block.kind === "translation-en" && block.pairedBlockIds?.includes(blockId) && Boolean(block.en));
 }
 
 /** The lines this graphic shows for one passage, each with its exact siddur text. */
-export function passageWordingFields(form: Pick<DraftForm, "mode" | "layers">, source: Pick<Source, "id" | "blocks">, block: SourceBlock): WordingField[] {
-  const field = (channel: VariantChannel, target: SourceBlock): WordingField[] => {
+export function passageWordingFields(form: Pick<DraftForm, "mode" | "layers" | "groups">, source: Pick<Source, "id" | "blocks">, block: SourceBlock): WordingField[] {
+  const field = (channel: VariantChannel, target: SourceBlock, pairedBlockIds?: string[]): WordingField[] => {
     const sourceText = target[channel];
-    return typeof sourceText === "string" && sourceText ? [{ sourceId: source.id, blockId: target.id, passageId: block.id, channel, sourceText }] : [];
+    return typeof sourceText === "string" && sourceText ? [{ sourceId: source.id, blockId: target.id, passageId: block.id, channel, sourceText, ...(pairedBlockIds ? { pairedBlockIds } : {}) }] : [];
   };
   if (form.mode === "bilingual") {
+    // G9 English-only passages are selected inside bilingual graphics and render on their own
+    // row even when the translation layer is off. Their canonical block is directly editable.
+    if (block.kind === "source-en" || block.kind === "original-en") return field("en", block);
     const fields = [...(form.layers.includes("he") ? field("he", block) : []), ...(form.layers.includes("tr") ? field("tr", block) : [])];
     const translation = form.layers.includes("en") ? translationFor(source, block.id) : undefined;
-    return translation ? [...fields, ...field("en", translation)] : fields;
+    const paired = translation?.pairedBlockIds;
+    // One translation spans a run of Hebrew passages. Put its one editor after the last
+    // passage, where the English appears, and only when the complete run is selected.
+    const complete = Boolean(paired?.length) && form.groups.some((group) => group.sourceId === source.id && paired!.every((id) => group.blockIds.includes(id)));
+    return translation && paired?.at(-1) === block.id && complete ? [...fields, ...field("en", translation, paired)] : fields;
   }
   if (form.mode === "source-en" || form.mode === "original-en") return field("en", block);
   return [];
@@ -56,7 +63,7 @@ export function setWordingEdit(edits: readonly WordingEdit[], field: WordingFiel
   const key = wordingKey(field);
   const others = edits.filter((item) => wordingKey(item) !== key);
   if (localText === field.sourceText) return others;
-  return [...others, { sourceId: field.sourceId, blockId: field.blockId, channel: field.channel, sourceText: field.sourceText, localText, ...(field.passageId !== field.blockId ? { passageId: field.passageId } : {}) }];
+  return [...others, { sourceId: field.sourceId, blockId: field.blockId, channel: field.channel, sourceText: field.sourceText, localText, ...(field.passageId !== field.blockId ? { passageId: field.passageId } : {}), ...(field.pairedBlockIds ? { pairedBlockIds: [...field.pairedBlockIds] } : {}) }];
 }
 
 export function revertWordingEdit(edits: readonly WordingEdit[], field: Pick<WordingField, "sourceId" | "blockId" | "channel">): WordingEdit[] {
@@ -79,7 +86,9 @@ export function activeWordingEdits(form: Pick<DraftForm, "mode" | "layers" | "gr
     if (seen.has(key) || item.localText.trim() === item.sourceText.trim()) return [];
     const kept = form.mode === "bilingual"
       ? item.channel === "en"
-        ? form.layers.includes("en") && (!item.passageId || isSelected(item.sourceId, item.passageId))
+        ? (item.blockId === item.passageId || !item.passageId ? isSelected(item.sourceId, item.blockId) : form.layers.includes("en") && (item.pairedBlockIds?.length
+          ? form.groups.some((group) => group.sourceId === item.sourceId && item.pairedBlockIds!.every((id) => group.blockIds.includes(id)))
+          : isSelected(item.sourceId, item.passageId)))
         : form.layers.includes(item.channel) && isSelected(item.sourceId, item.blockId)
       : item.channel === "en" && isSelected(item.sourceId, item.blockId);
     if (!kept) return [];
@@ -112,7 +121,8 @@ export function loadWordingEdits(overrides: readonly LocalVariantOverride[], sna
   return overrides.map((item) => {
     if (item.channel !== "en") return { ...item };
     const block = snapshots.find((source) => source.id === item.sourceId)?.blocks.find((candidate) => candidate.id === item.blockId);
-    const passageId = block?.kind === "translation-en" ? block.pairedBlockIds?.[0] : undefined;
-    return passageId ? { ...item, passageId } : { ...item };
+    const pairedBlockIds = block?.kind === "translation-en" ? block.pairedBlockIds : undefined;
+    const passageId = pairedBlockIds?.at(-1);
+    return passageId ? { ...item, passageId, pairedBlockIds: [...pairedBlockIds!] } : { ...item };
   });
 }

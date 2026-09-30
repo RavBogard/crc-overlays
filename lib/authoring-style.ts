@@ -53,8 +53,8 @@ function withArrangement(content:DraftContent, arrangement:TextArrangement):Draf
 }
 
 function comfortable(presentation:Presentation):Presentation{
-  const {hebrewFontSize,transliterationFontSize,titleFontSize,lineSpacing,...preserved}=presentation;
-  void hebrewFontSize;void transliterationFontSize;void titleFontSize;void lineSpacing;
+  const {hebrewFontSize,transliterationFontSize,translationFontSize,titleFontSize,largePrint,lineSpacing,...preserved}=presentation;
+  void hebrewFontSize;void transliterationFontSize;void translationFontSize;void titleFontSize;void largePrint;void lineSpacing;
   return preserved;
 }
 

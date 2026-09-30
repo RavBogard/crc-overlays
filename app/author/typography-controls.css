@@ -1,0 +1,11 @@
+.typography-controls { display: grid; gap: 12px; margin-top: 14px; }
+.typography-controls fieldset { min-width: 0; margin: 0; padding: 10px; border: 1px solid #334b45; border-radius: 8px; }
+.typography-controls legend, .typography-controls summary { color: #dce8e3; font-size: 12px; font-weight: 650; }
+.typography-controls summary { cursor: pointer; padding: 6px 0; }
+.typography-controls label { display: grid; gap: 5px; color: #b5c9c1; font-size: 11px; }
+.typography-controls select, .typography-controls input[type="number"] { min-width: 0; width: 100%; padding: 7px; color: #edf4f0; background: #0a1511; border: 1px solid #41594f; border-radius: 5px; }
+.typography-controls .typography-checkbox { display: flex; align-items: center; gap: 7px; margin-top: 12px; }
+.typography-controls .typography-checkbox input { width: auto; }
+.typography-role { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 9px; }
+.typography-controls details fieldset + fieldset { margin-top: 9px; }
+@media (max-width: 500px) { .typography-role { grid-template-columns: 1fr; } }

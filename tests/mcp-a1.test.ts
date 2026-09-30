@@ -85,7 +85,7 @@ test('list_templates returns a look per layout and the named text sizes; the siz
  assert.deepEqual(listed.output.textSizes.map((size:{id:string})=>size.id),['comfortable','large','compact']);
  // The look drawer's own density buttons, read from its source so the two can never disagree.
  const drawer=readFileSync(new URL('../app/author/look-drawer.tsx',import.meta.url),'utf8');
- for(const [id,preset] of Object.entries(TEXT_SIZE_PRESETS)){const line=drawer.split('\n').find(text=>text.includes(`id: "${id}"`))!;assert.ok(line,`${id} is an editor density`);for(const [key,value] of Object.entries(preset.sizes))assert.match(line,new RegExp(`${key}: ${value}\\b`))}
+ for(const id of Object.keys(TEXT_SIZE_PRESETS)){const line=drawer.split('\n').find(text=>text.includes(`id: "${id}"`))!;assert.ok(line,`${id} is an editor density`);assert.match(line,id==='comfortable'?/value: \{\}/:new RegExp(`TEXT_SIZE_PRESETS\\.${id}\\.sizes`))}
  const custom=await call('list_templates',{mode:'custom'},undefined);
  assert.match(custom.output.looks.find((look:{layout:string})=>look.layout==='corner').label,/one line/);
 });
@@ -94,10 +94,10 @@ test('create_draft takes a text size under explicit sizes, and update_draft appl
  const {call}=wired();
  const created=await call('create_draft',{name:'Welcome',title:'Welcome',layout:'bottom',textSize:'large',presentation:{titleFontSize:30,alignment:'center'},content:{mode:'custom',text:'Welcome to Shabbat'}});
  assert.equal(created.isError,false,created.text);
- assert.deepEqual(created.output.draft.presentation,{alignment:'center',hebrewFontSize:42,transliterationFontSize:35,titleFontSize:30});
+ assert.deepEqual(created.output.draft.presentation,{alignment:'center',...TEXT_SIZE_PRESETS.large.sizes,largePrint:true});
  const updated=await call('update_draft',{draftId:created.output.draft.id,expectedVersion:1,textSize:'compact',patch:{}});
  assert.equal(updated.isError,false,updated.text);
- assert.deepEqual(updated.output.draft.presentation,{alignment:'center',hebrewFontSize:34,transliterationFontSize:28,titleFontSize:28});
+ assert.deepEqual(updated.output.draft.presentation,{alignment:'center',...TEXT_SIZE_PRESETS.compact.sizes});
  const reset=await call('update_draft',{draftId:created.output.draft.id,expectedVersion:2,textSize:'comfortable',patch:{}});
  assert.deepEqual(reset.output.draft.presentation,{alignment:'center'});
  const refused=await call('create_draft',{name:'Welcome',title:'Welcome',layout:'bottom',textSize:'huge',content:{mode:'custom',text:'x'}});
@@ -191,7 +191,7 @@ test('list_custom_templates and compose_custom_draft make a guided custom draft,
  const speaker=await call('compose_custom_draft',{templateId:'speaker',values:{name:'Rabbi Miriam Cohen',role:'Guest speaker'},textSize:'large'});
  assert.equal(speaker.isError,false,speaker.text);
  assert.deepEqual([speaker.output.draft.name,speaker.output.draft.title,speaker.output.draft.layout,speaker.output.draft.content],['Speaker · Rabbi Miriam Cohen','Rabbi Miriam Cohen','bottom',{mode:'custom',text:'Guest speaker'}]);
- assert.equal(speaker.output.draft.templateCueId,lookFor('bottom').id);assert.equal(speaker.output.draft.presentation.hebrewFontSize,42);
+ assert.equal(speaker.output.draft.templateCueId,lookFor('bottom').id);assert.equal(speaker.output.draft.presentation.hebrewFontSize,TEXT_SIZE_PRESETS.large.sizes.hebrewFontSize);
  const corner=await call('compose_custom_draft',{templateId:'corner',values:{hebrew:'וְאִמְרוּ אָמֵן',line:'Vaimru Amen'}});
  assert.equal(corner.output.draft.layout,'corner');assert.equal(corner.output.draft.content.text,'וְאִמְרוּ אָמֵן\nVaimru Amen');
  const unknownField=await call('compose_custom_draft',{templateId:'speaker',values:{title:'Dr'}});

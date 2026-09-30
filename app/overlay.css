@@ -298,3 +298,26 @@ only its translation is a single channel and takes the full block, as any single
 .overlay[data-accent-typography].right .title-accent{--accent-lane:clamp(44px,calc(37.4px * var(--crc-accent-title-scale,1)),56px);font-size:min(calc(34px * var(--crc-accent-title-scale,1)),48px);top:min(108px,calc(160px - var(--accent-lane)));height:var(--accent-lane);line-height:var(--accent-lane)}
 .overlay[data-accent-typography].bottom .title-accent{font-size:min(calc(36px * var(--crc-accent-title-scale,1)),40px);line-height:46px}
 .overlay[data-card][data-accent-typography] .title-accent{font-size:min(calc(var(--card-title-font-size) * var(--crc-accent-title-scale,1)),calc(var(--card-title-height) / var(--card-title-line-height)))}
+
+/* Optional presentation controls. These selectors are inert for saved graphics without fields. */
+.overlay[data-vertical-alignment="top"] .panel-rows{justify-content:flex-start}
+.overlay[data-vertical-alignment="bottom"] .panel-rows{justify-content:flex-end}
+.overlay[data-vertical-alignment="bottom"] .panel-rows[data-fit="overflow"]{justify-content:flex-start}
+.overlay[data-vertical-alignment="top"] .prayer.single-channel{align-items:flex-start}
+.overlay[data-vertical-alignment="bottom"] .prayer.single-channel{align-items:flex-end}
+.overlay[data-vertical-alignment="top"][data-card] .prayer.single-channel{align-content:start}
+.overlay[data-vertical-alignment="bottom"][data-card] .prayer.single-channel{align-content:end}
+.overlay[data-vertical-alignment="top"].bottom .prayer{align-items:flex-start}
+.overlay[data-vertical-alignment="bottom"].bottom .prayer{align-items:flex-end}
+.overlay[data-vertical-alignment="top"].bottom .prayer.single-channel{align-items:flex-start}
+.overlay[data-vertical-alignment="bottom"].bottom .prayer.single-channel{align-items:flex-end}
+
+.overlay[data-legacy-title-watermark] .title-accent{display:none}
+.overlay[data-legacy-title-watermark] .title:not(.title-accent){z-index:1}
+.overlay[data-legacy-title-watermark].left .title:not(.title-accent){top:112px;height:48px}
+.overlay[data-legacy-title-watermark].right .title:not(.title-accent){top:112px;height:48px}
+.title-watermark{position:absolute;pointer-events:none;overflow:hidden;contain:paint;white-space:nowrap;direction:rtl;text-align:right;color:var(--crc-accent-title,#8fe7e2);opacity:.14;font-family:'David Libre','Frank Ruhl Libre',serif;font-size:105px;font-weight:400;line-height:1.1}
+.left .title-watermark{left:16px;top:24px;width:640px;height:142px}
+.right .title-watermark{right:16px;top:24px;width:640px;height:142px}
+.bottom .title-watermark{left:20px;bottom:calc(var(--bottom-text-height) + 40px);width:1880px;height:50px}
+.overlay[data-card] .title-watermark{left:var(--card-strip-left,auto);right:var(--card-strip-right,auto);top:var(--card-strip-top,auto);bottom:var(--card-strip-bottom,auto);width:var(--card-strip-width);height:var(--card-strip-height)}

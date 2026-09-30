@@ -10,7 +10,7 @@ export const LAYER_NAMES: Record<TextLayer, string> = { he: "Hebrew", tr: "Trans
  * translation flag already implied, so a graphic authored before this change reads back exactly
  * as it was written: Hebrew and transliteration, together, plus translation when it had it.
  */
-export function layersOf(content: Draft["content"]): { layers: TextLayer[]; arrangement: TextArrangement; rowOrder?: TextLayer[] } {
+export function layersOf(content: Draft["content"]): { layers: TextLayer[]; arrangement: TextArrangement; rowOrder?: TextLayer[]; preserveGroups?: boolean } {
   const base = content.mode === "local-variant" ? content.base : content;
   if (base.mode !== "bilingual") return { layers: ["he", "tr"], arrangement: "together" };
   const layers = base.layers?.length
@@ -22,6 +22,7 @@ export function layersOf(content: Draft["content"]): { layers: TextLayer[]; arra
     layers,
     arrangement: base.arrangement === "blocks" ? "blocks" : "together",
     ...(isRowOrder(base.rowOrder) && !sameOrder(base.rowOrder, LAYER_ORDER) ? { rowOrder: [...base.rowOrder] } : {}),
+    ...(base.preserveGroups ? { preserveGroups: true } : {}),
   };
 }
 
@@ -180,6 +181,7 @@ export function editableFromForm(form: DraftForm) {
           hebrewGroups: groups,
           transliterationGroups: structuredClone(groups),
           ...layerContentFields(form),
+          ...(form.preserveGroups ? { preserveGroups: true as const } : {}),
         })
       : form.mode === "original-en" || form.mode === "source-en"
         ? withWordingEdits(form, { mode: form.mode, englishGroups: groups })
@@ -238,7 +240,9 @@ export function blocksForMode(source: Source | null, mode: ContentMode) {
   if (!source || mode === "custom" || mode === "local-variant") return [];
   return source.blocks.filter((block) => mode === "source-en"
     ? block.kind === "source-en" || (block.kind === "bilingual" && Boolean(block.en))
-    : block.kind === mode);
+    : mode === "bilingual"
+      ? block.kind === "bilingual" || block.kind === "source-en" || block.kind === "original-en"
+      : block.kind === mode);
 }
 
 /**

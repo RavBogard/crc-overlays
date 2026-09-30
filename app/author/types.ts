@@ -8,9 +8,24 @@ export type SourceEnglishRole = "translation" | "interpretation" | "translation-
 export type Presentation = {
   hebrewFontSize?: number;
   transliterationFontSize?: number;
+  translationFontSize?: number;
   titleFontSize?: number;
+  hebrewLineHeight?: number;
+  transliterationLineHeight?: number;
+  translationLineHeight?: number;
+  titleLineHeight?: number;
+  hebrewLetterSpacing?: number;
+  transliterationLetterSpacing?: number;
+  translationLetterSpacing?: number;
+  titleLetterSpacing?: number;
+  hebrewFontFamily?: "noto-sans" | "david-libre" | "frank-ruhl-libre";
+  verticalAlignment?: "top" | "center" | "bottom";
+  legacyTitleWatermark?: boolean;
+  keepHyphenatedWords?: boolean;
+  largePrint?: boolean;
   alignment?: "start" | "center";
   lineSpacing?: "compact" | "spacious";
+  latinLineBreaks?: "preserve" | "paragraphs" | "phrases";
   imageAssetId?: string;
 };
 export type SourceGroup = { sourceId: string; blockIds: string[] };
@@ -31,6 +46,7 @@ export type CanonicalDraftContent =
       arrangement?: TextArrangement;
       /** Side-panel stacking order; absent means Hebrew, transliteration, translation. */
       rowOrder?: TextLayer[];
+      preserveGroups?: true;
     }
   | { mode: "source-en" | "original-en"; englishGroups: SourceGroup[] };
 export type VariantChannel = "he" | "tr" | "en";
@@ -208,6 +224,7 @@ export type DraftForm = {
   arrangement: TextArrangement;
   /** Side-panel stacking order; absent means the default Hebrew, transliteration, translation. */
   rowOrder?: TextLayer[];
+  preserveGroups?: boolean;
   name: string;
   title: string;
   accentTitle: string;

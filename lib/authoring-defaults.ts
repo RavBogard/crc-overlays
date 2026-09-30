@@ -1,5 +1,5 @@
 import {AuthoringError,LAYER_ORDER,type DraftContent,type EditableDraft,type Presentation,type TextArrangement,type TextLayer} from './authoring-model';
-import {TEXT_SIZE_IDS,withTextSize,type TextSizePreset} from './template-looks';
+import {TEXT_SIZE_IDS,largePrintSizes,withTextSize,type TextSizePreset} from './template-looks';
 
 /**
  * Creation-only default for a submitted canonical selection. Call it only when the raw request
@@ -18,7 +18,7 @@ export function withCreateDefaultBilingualBlocks(content:DraftContent):DraftCont
 // They apply when a graphic is made (create_draft, compose_custom_draft, create_source_draft_set)
 // and when one is copied from the shared library (customize_shared_cue, _set, _batch). Nothing
 // already stored changes when they change. With none stored every path behaves exactly as before.
-export type FontSizes={hebrewFontSize?:number;transliterationFontSize?:number;titleFontSize?:number};
+export type FontSizes={hebrewFontSize?:number;transliterationFontSize?:number;translationFontSize?:number;titleFontSize?:number};
 /** "More than two lower thirds becomes a left sequence": a lower-third set longer than maxLowerThirds is made on sequenceLayout instead. */
 export type LayoutRule={maxLowerThirds:number;sequenceLayout:'left'|'right'};
 export type AuthoringDefaults={
@@ -37,7 +37,7 @@ type DefaultField=(typeof DEFAULT_FIELDS)[number];
 /** Where the defaults take effect, as get_authoring_defaults reports it. */
 export const DEFAULTS_APPLY_ON=['create_draft','compose_custom_draft','create_source_draft_set','customize_shared_cue','customize_shared_set','customize_shared_batch'] as const;
 
-const FONT_LIMITS:Record<keyof FontSizes,[number,number]>={hebrewFontSize:[24,52],transliterationFontSize:[20,48],titleFontSize:[20,42]};
+const FONT_LIMITS:Record<keyof FontSizes,[number,number]>={hebrewFontSize:[24,52],transliterationFontSize:[20,48],translationFontSize:[20,48],titleFontSize:[20,42]};
 const invalid=(message:string)=>new AuthoringError('invalid_input',message);
 const isRecord=(value:unknown):value is Record<string,unknown>=>Boolean(value)&&typeof value==='object'&&!Array.isArray(value);
 const oneOf=<T extends string>(value:unknown,allowed:readonly T[],field:string):T=>{if(typeof value!=='string'||!allowed.includes(value as T))throw invalid(`${field} must be ${allowed.join(', ')}`);return value as T};
@@ -46,10 +46,10 @@ function parseField(field:DefaultField,value:unknown):unknown{
  switch(field){
   case 'textSize':return oneOf(value,TEXT_SIZE_IDS,'textSize');
   case 'fontSizes':{
-   if(!isRecord(value))throw invalid('fontSizes must be an object of hebrewFontSize, transliterationFontSize and titleFontSize');
+   if(!isRecord(value))throw invalid('fontSizes must be an object of hebrewFontSize, transliterationFontSize, translationFontSize and titleFontSize');
    const sizes:FontSizes={};
    for(const [key,size] of Object.entries(value)){
-    const limits=FONT_LIMITS[key as keyof FontSizes];if(!limits)throw invalid(`fontSizes has no ${key}; use hebrewFontSize, transliterationFontSize or titleFontSize`);
+    const limits=FONT_LIMITS[key as keyof FontSizes];if(!limits)throw invalid(`fontSizes has no ${key}; use hebrewFontSize, transliterationFontSize, translationFontSize or titleFontSize`);
     if(!Number.isInteger(size)||(size as number)<limits[0]||(size as number)>limits[1])throw invalid(`fontSizes.${key} must be a whole number from ${limits[0]} to ${limits[1]}`);
     sizes[key as keyof FontSizes]=size as number;
    }
@@ -92,6 +92,7 @@ function typography(presentation:Presentation,defaults:AuthoringDefaults):Presen
  let next={...presentation};
  if(defaults.textSize)next=withTextSize(next,defaults.textSize);
  if(defaults.fontSizes)next={...next,...defaults.fontSizes};
+ if(defaults.textSize==='large')next=largePrintSizes(next);
  return next;
 }
 const layerLabel:Record<TextLayer,string>={he:'Hebrew',tr:'transliteration',en:'translation'};
@@ -109,6 +110,7 @@ export function withHouseCreateDefaults(data:Record<string,unknown>,defaults:Aut
  if((defaults.textSize||defaults.fontSizes)&&next.textSize===undefined&&!hasExplicitSize(presentation)){
   if(defaults.textSize){next.textSize=defaults.textSize;applied.push(`text size ${defaults.textSize}`)}
   if(defaults.fontSizes){Object.assign(presentation,defaults.fontSizes);applied.push('font sizes')}
+  if(defaults.textSize==='large')Object.assign(presentation,largePrintSizes(presentation));
  }
  if(defaults.lineSpacing&&presentation.lineSpacing===undefined){presentation.lineSpacing=defaults.lineSpacing;applied.push(`line spacing ${defaults.lineSpacing}`)}
  if(defaults.latinLineBreaks&&presentation.latinLineBreaks===undefined){presentation.latinLineBreaks=defaults.latinLineBreaks;applied.push(`Latin line breaks ${defaults.latinLineBreaks}`)}

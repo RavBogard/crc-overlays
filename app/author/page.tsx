@@ -122,7 +122,7 @@ export default function AuthorPage() {
     setForm((current) => {
       undoStack.current = [...undoStack.current.slice(-59), structuredClone(current)];
       redoStack.current = [];
-      return { ...current, ...patch };
+      return { ...current, ...patch, ...(patch.layout && patch.layout !== "left" && patch.layout !== "right" ? { preserveGroups: false } : {}) };
     });
     setHistoryAvailability({ canUndo: true, canRedo: false });
     setDirty(true);
@@ -300,9 +300,10 @@ export default function AuthorPage() {
   const previewCue = formReady(form) ? exactPreview?.cue || workingPreview?.cue || null : null;
   const reviewCurrent = !!draft && !dirty && exactPreview?.draftVersion === draft.version;
   const fitBlocked = reviewCurrent && fitErrors.length > 0;
-  const selectedDensity = densityOptions.find((option) => JSON.stringify(option.value) === JSON.stringify({
+  const selectedDensity = form.presentation.largePrint ? "large" : densityOptions.find((option) => JSON.stringify(option.value) === JSON.stringify({
     ...(form.presentation.hebrewFontSize !== undefined ? { hebrewFontSize: form.presentation.hebrewFontSize } : {}),
     ...(form.presentation.transliterationFontSize !== undefined ? { transliterationFontSize: form.presentation.transliterationFontSize } : {}),
+    ...(form.presentation.translationFontSize !== undefined ? { translationFontSize: form.presentation.translationFontSize } : {}),
     ...(form.presentation.titleFontSize !== undefined ? { titleFontSize: form.presentation.titleFontSize } : {}),
   }))?.id || "custom";
   const draftSet = draft?.draftSetId ? drafts.filter((item) => item.draftSetId === draft.draftSetId).sort((a, b) => (a.setIndex || 0) - (b.setIndex || 0)) : [];
@@ -565,6 +566,37 @@ export default function AuthorPage() {
       setLibraryTab("drafts");
       await openDraft(key, response.drafts[0].id);
       setMessage(`Created ${response.set.count} unpublished slides for “${response.set.name}”. Review and publish each slide when it is ready.`);
+    } catch (value) { fail(value); }
+    finally { setBusy(""); }
+  }
+
+  async function createSlidesFromGroups() {
+    if (!formReady(form)) return setError("Add a name, title, template, and content before creating slides.");
+    const populated = form.groups.filter((group) => group.blockIds.length);
+    if (populated.length < 2) return setError("Add passages to at least two groups first.");
+    if (new Set(populated.map((group) => group.sourceId)).size !== 1) return setError("Slides from groups need passages from one source.");
+    const pages = populated.map((group) => [{ sourceId: group.sourceId, blockIds: [...group.blockIds] }]);
+    setBusy("make-group-set"); setError("");
+    try {
+      // Split the exact form on screen. Save it first so wording, typography, and the group
+      // assignment all have the same version and source pin as the resulting slides.
+      let original = draft;
+      if (!original || dirty) {
+        const response = original
+          ? await authoringCall<{ draft: Draft }>(key, "update_draft", { draftId: original.id, expectedVersion: original.version, patch: editableFromForm(form) })
+          : await authoringCall<{ draft: Draft }>(key, "create_draft", editableFromForm(form));
+        original = response.draft;
+        localStorage.removeItem(recoveryKey(draft?.id || null));
+        applyLoadedDraft(original);
+        setDrafts((items) => [original!, ...items.filter((item) => item.id !== original!.id)]);
+        history.replaceState(null, "", routeForDraft(original.id));
+      }
+      const response = await authoringCall<{ drafts: Draft[]; set: { id: string; name: string; count: number; draftIds: string[] } }>(key, "split_draft_into_set", { draftId: original.id, expectedVersion: original.version, pages });
+      const ids = new Set(response.drafts.map((item) => item.id));
+      setDrafts((items) => [...response.drafts, ...items.filter((item) => !ids.has(item.id))]);
+      setLibraryTab("drafts");
+      await openDraft(key, response.drafts[0].id);
+      setMessage(`Created ${response.set.count} unpublished slides from the selected groups. Review each slide before publishing.`);
     } catch (value) { fail(value); }
     finally { setBusy(""); }
   }
@@ -833,6 +865,7 @@ export default function AuthorPage() {
                     setActiveGroup={(index) => { setActiveGroup(index); const group = form.groups[index]; if (group && group.sourceId !== source?.id) { const snapshot = draft?.sourceSnapshots?.find((item) => item.id === group.sourceId); if (snapshot) setSource(snapshot); else void loadSource(key, group.sourceId); } }}
                     chooseWholePrayer={chooseWholePrayer} toggleBlock={toggleBlock} addPanel={addPanel}
                     makeSlidesFromWholePrayer={() => void makeSlidesFromWholePrayer()}
+                    createSlidesFromGroups={() => void createSlidesFromGroups()}
                     removePanel={() => { const groups = form.groups.filter((_, index) => index !== activeGroup); changeForm({ groups }); setActiveGroup(Math.max(0, activeGroup - 1)); }}
                     changeMode={(mode) => changeForm({ mode, groups: [], includeTranslation: false, layers: ["he", "tr"], arrangement: "together" })}
                     changeForm={changeForm} busy={busy} controlKey={key} showPanels={showPanels} fitErrors={fitErrors}

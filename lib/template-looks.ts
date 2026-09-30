@@ -26,16 +26,29 @@ export type TemplateLook = { id: string; layout: TemplateLookLayout; label: stri
  */
 export const TEXT_SIZE_PRESETS = {
   comfortable: { label: "Comfortable", sizes: {} },
-  large: { label: "Large print", sizes: { hebrewFontSize: 42, transliterationFontSize: 35, titleFontSize: 34 } },
-  compact: { label: "Compact", sizes: { hebrewFontSize: 34, transliterationFontSize: 28, titleFontSize: 28 } },
+  large: { label: "Large print", sizes: { hebrewFontSize: 49, transliterationFontSize: 41, translationFontSize: 41, titleFontSize: 41 } },
+  compact: { label: "Compact", sizes: { hebrewFontSize: 34, transliterationFontSize: 28, translationFontSize: 24, titleFontSize: 28 } },
 } as const;
 export type TextSizePreset = keyof typeof TEXT_SIZE_PRESETS;
 export const TEXT_SIZE_IDS = Object.keys(TEXT_SIZE_PRESETS) as TextSizePreset[];
-type TextSizes = { hebrewFontSize?: number; transliterationFontSize?: number; titleFontSize?: number };
-/** The presentation with a preset's three sizes in place of whatever sizes it had; nothing else moves. */
+type TextSizes = { hebrewFontSize?: number; transliterationFontSize?: number; translationFontSize?: number; titleFontSize?: number; largePrint?: boolean };
+/** Large print is a floor for each channel, including translation, never a downsize. */
+export function largePrintSizes<T extends TextSizes>(presentation: T): T {
+  const preset = TEXT_SIZE_PRESETS.large.sizes;
+  return {
+    ...presentation,
+    hebrewFontSize: Math.max(presentation.hebrewFontSize ?? 0, preset.hebrewFontSize),
+    transliterationFontSize: Math.max(presentation.transliterationFontSize ?? 0, preset.transliterationFontSize),
+    titleFontSize: Math.max(presentation.titleFontSize ?? 0, preset.titleFontSize),
+    translationFontSize: Math.max(presentation.translationFontSize ?? 0, preset.translationFontSize),
+    largePrint: true,
+  } as T;
+}
+/** The presentation with a named density; large print preserves larger authored sizes. */
 export function withTextSize<T extends TextSizes>(presentation: T, preset: TextSizePreset): T {
-  const { hebrewFontSize, transliterationFontSize, titleFontSize, ...rest } = presentation;
-  void hebrewFontSize; void transliterationFontSize; void titleFontSize;
+  if (preset === "large") return largePrintSizes(presentation);
+  const { hebrewFontSize, transliterationFontSize, translationFontSize, titleFontSize, largePrint, ...rest } = presentation;
+  void hebrewFontSize; void transliterationFontSize; void translationFontSize; void titleFontSize; void largePrint;
   return { ...rest, ...TEXT_SIZE_PRESETS[preset].sizes } as T;
 }
 

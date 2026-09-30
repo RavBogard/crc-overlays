@@ -906,7 +906,7 @@
            "large",
            "compact"
           ],
-          "description": "A named text size: comfortable is the template's own sizes, large is 42/35/34 and compact 34/28/28 (Hebrew/transliteration/title). Explicit font sizes in presentation win."
+          "description": "A named text size: comfortable uses the template's sizes; large is a floor of 49/41/41/41 for Hebrew/transliteration/translation/title; compact uses 34/28/24/28. Larger explicit font sizes are preserved."
          },
          "presentation": {
           "type": "object",
@@ -921,10 +921,80 @@
             "minimum": 20,
             "maximum": 48
            },
+           "translationFontSize": {
+            "type": "integer",
+            "minimum": 20,
+            "maximum": 48
+           },
            "titleFontSize": {
             "type": "integer",
             "minimum": 20,
             "maximum": 42
+           },
+           "hebrewLineHeight": {
+            "type": "number",
+            "minimum": 0.9,
+            "maximum": 2
+           },
+           "transliterationLineHeight": {
+            "type": "number",
+            "minimum": 0.9,
+            "maximum": 2
+           },
+           "translationLineHeight": {
+            "type": "number",
+            "minimum": 0.9,
+            "maximum": 2
+           },
+           "titleLineHeight": {
+            "type": "number",
+            "minimum": 0.9,
+            "maximum": 2
+           },
+           "hebrewLetterSpacing": {
+            "type": "number",
+            "minimum": -2,
+            "maximum": 8
+           },
+           "transliterationLetterSpacing": {
+            "type": "number",
+            "minimum": -2,
+            "maximum": 8
+           },
+           "translationLetterSpacing": {
+            "type": "number",
+            "minimum": -2,
+            "maximum": 8
+           },
+           "titleLetterSpacing": {
+            "type": "number",
+            "minimum": -2,
+            "maximum": 8
+           },
+           "hebrewFontFamily": {
+            "type": "string",
+            "enum": [
+             "noto-sans",
+             "david-libre",
+             "frank-ruhl-libre"
+            ]
+           },
+           "verticalAlignment": {
+            "type": "string",
+            "enum": [
+             "top",
+             "center",
+             "bottom"
+            ]
+           },
+           "legacyTitleWatermark": {
+            "type": "boolean"
+           },
+           "keepHyphenatedWords": {
+            "type": "boolean"
+           },
+           "largePrint": {
+            "type": "boolean"
            },
            "alignment": {
             "type": "string",
@@ -1083,7 +1153,7 @@
            "large",
            "compact"
           ],
-          "description": "A named text size: comfortable is the template's own sizes, large is 42/35/34 and compact 34/28/28 (Hebrew/transliteration/title). Explicit font sizes in presentation win."
+          "description": "A named text size: comfortable uses the template's sizes; large is a floor of 49/41/41/41 for Hebrew/transliteration/translation/title; compact uses 34/28/24/28. Larger explicit font sizes are preserved."
          },
          "presentation": {
           "type": "object",
@@ -1098,10 +1168,80 @@
             "minimum": 20,
             "maximum": 48
            },
+           "translationFontSize": {
+            "type": "integer",
+            "minimum": 20,
+            "maximum": 48
+           },
            "titleFontSize": {
             "type": "integer",
             "minimum": 20,
             "maximum": 42
+           },
+           "hebrewLineHeight": {
+            "type": "number",
+            "minimum": 0.9,
+            "maximum": 2
+           },
+           "transliterationLineHeight": {
+            "type": "number",
+            "minimum": 0.9,
+            "maximum": 2
+           },
+           "translationLineHeight": {
+            "type": "number",
+            "minimum": 0.9,
+            "maximum": 2
+           },
+           "titleLineHeight": {
+            "type": "number",
+            "minimum": 0.9,
+            "maximum": 2
+           },
+           "hebrewLetterSpacing": {
+            "type": "number",
+            "minimum": -2,
+            "maximum": 8
+           },
+           "transliterationLetterSpacing": {
+            "type": "number",
+            "minimum": -2,
+            "maximum": 8
+           },
+           "translationLetterSpacing": {
+            "type": "number",
+            "minimum": -2,
+            "maximum": 8
+           },
+           "titleLetterSpacing": {
+            "type": "number",
+            "minimum": -2,
+            "maximum": 8
+           },
+           "hebrewFontFamily": {
+            "type": "string",
+            "enum": [
+             "noto-sans",
+             "david-libre",
+             "frank-ruhl-libre"
+            ]
+           },
+           "verticalAlignment": {
+            "type": "string",
+            "enum": [
+             "top",
+             "center",
+             "bottom"
+            ]
+           },
+           "legacyTitleWatermark": {
+            "type": "boolean"
+           },
+           "keepHyphenatedWords": {
+            "type": "boolean"
+           },
+           "largePrint": {
+            "type": "boolean"
            },
            "alignment": {
             "type": "string",
@@ -1273,7 +1413,7 @@
            "large",
            "compact"
           ],
-          "description": "A named text size: comfortable is the template's own sizes, large is 42/35/34 and compact 34/28/28 (Hebrew/transliteration/title). Explicit font sizes in presentation win."
+          "description": "A named text size: comfortable uses the template's sizes; large is a floor of 49/41/41/41 for Hebrew/transliteration/translation/title; compact uses 34/28/24/28. Larger explicit font sizes are preserved."
          },
          "presentation": {
           "type": "object",
@@ -1288,10 +1428,80 @@
             "minimum": 20,
             "maximum": 48
            },
+           "translationFontSize": {
+            "type": "integer",
+            "minimum": 20,
+            "maximum": 48
+           },
            "titleFontSize": {
             "type": "integer",
             "minimum": 20,
             "maximum": 42
+           },
+           "hebrewLineHeight": {
+            "type": "number",
+            "minimum": 0.9,
+            "maximum": 2
+           },
+           "transliterationLineHeight": {
+            "type": "number",
+            "minimum": 0.9,
+            "maximum": 2
+           },
+           "translationLineHeight": {
+            "type": "number",
+            "minimum": 0.9,
+            "maximum": 2
+           },
+           "titleLineHeight": {
+            "type": "number",
+            "minimum": 0.9,
+            "maximum": 2
+           },
+           "hebrewLetterSpacing": {
+            "type": "number",
+            "minimum": -2,
+            "maximum": 8
+           },
+           "transliterationLetterSpacing": {
+            "type": "number",
+            "minimum": -2,
+            "maximum": 8
+           },
+           "translationLetterSpacing": {
+            "type": "number",
+            "minimum": -2,
+            "maximum": 8
+           },
+           "titleLetterSpacing": {
+            "type": "number",
+            "minimum": -2,
+            "maximum": 8
+           },
+           "hebrewFontFamily": {
+            "type": "string",
+            "enum": [
+             "noto-sans",
+             "david-libre",
+             "frank-ruhl-libre"
+            ]
+           },
+           "verticalAlignment": {
+            "type": "string",
+            "enum": [
+             "top",
+             "center",
+             "bottom"
+            ]
+           },
+           "legacyTitleWatermark": {
+            "type": "boolean"
+           },
+           "keepHyphenatedWords": {
+            "type": "boolean"
+           },
+           "largePrint": {
+            "type": "boolean"
            },
            "alignment": {
             "type": "string",
@@ -2074,7 +2284,7 @@
       "large",
       "compact"
      ],
-     "description": "A named text size: comfortable is the template's own sizes, large is 42/35/34 and compact 34/28/28 (Hebrew/transliteration/title). Explicit font sizes in presentation win."
+     "description": "A named text size: comfortable uses the template's sizes; large is a floor of 49/41/41/41 for Hebrew/transliteration/translation/title; compact uses 34/28/24/28. Larger explicit font sizes are preserved."
     },
     "workspace": {
      "type": "string",
@@ -2303,6 +2513,9 @@
             ]
            },
            "description": "Order the Hebrew (he), transliteration (tr) and translation (en) layers stack in on a left or right panel, in both arrangements. Default he, tr, en, which is stored as absent; a lower third ignores it."
+          },
+          "preserveGroups": {
+           "type": "boolean"
           }
          },
          "required": [
@@ -2524,6 +2737,9 @@
               ]
              },
              "description": "Order the Hebrew (he), transliteration (tr) and translation (en) layers stack in on a left or right panel, in both arrangements. Default he, tr, en, which is stored as absent; a lower third ignores it."
+            },
+            "preserveGroups": {
+             "type": "boolean"
             }
            },
            "required": [
@@ -2712,10 +2928,80 @@
        "minimum": 20,
        "maximum": 48
       },
+      "translationFontSize": {
+       "type": "integer",
+       "minimum": 20,
+       "maximum": 48
+      },
       "titleFontSize": {
        "type": "integer",
        "minimum": 20,
        "maximum": 42
+      },
+      "hebrewLineHeight": {
+       "type": "number",
+       "minimum": 0.9,
+       "maximum": 2
+      },
+      "transliterationLineHeight": {
+       "type": "number",
+       "minimum": 0.9,
+       "maximum": 2
+      },
+      "translationLineHeight": {
+       "type": "number",
+       "minimum": 0.9,
+       "maximum": 2
+      },
+      "titleLineHeight": {
+       "type": "number",
+       "minimum": 0.9,
+       "maximum": 2
+      },
+      "hebrewLetterSpacing": {
+       "type": "number",
+       "minimum": -2,
+       "maximum": 8
+      },
+      "transliterationLetterSpacing": {
+       "type": "number",
+       "minimum": -2,
+       "maximum": 8
+      },
+      "translationLetterSpacing": {
+       "type": "number",
+       "minimum": -2,
+       "maximum": 8
+      },
+      "titleLetterSpacing": {
+       "type": "number",
+       "minimum": -2,
+       "maximum": 8
+      },
+      "hebrewFontFamily": {
+       "type": "string",
+       "enum": [
+        "noto-sans",
+        "david-libre",
+        "frank-ruhl-libre"
+       ]
+      },
+      "verticalAlignment": {
+       "type": "string",
+       "enum": [
+        "top",
+        "center",
+        "bottom"
+       ]
+      },
+      "legacyTitleWatermark": {
+       "type": "boolean"
+      },
+      "keepHyphenatedWords": {
+       "type": "boolean"
+      },
+      "largePrint": {
+       "type": "boolean"
       },
       "alignment": {
        "type": "string",
@@ -2753,7 +3039,7 @@
       "large",
       "compact"
      ],
-     "description": "A named text size: comfortable is the template's own sizes, large is 42/35/34 and compact 34/28/28 (Hebrew/transliteration/title). Explicit font sizes in presentation win."
+     "description": "A named text size: comfortable uses the template's sizes; large is a floor of 49/41/41/41 for Hebrew/transliteration/translation/title; compact uses 34/28/24/28. Larger explicit font sizes are preserved."
     },
     "applyDefaults": {
      "type": "boolean",
@@ -6638,6 +6924,9 @@
             ]
            },
            "description": "Order the Hebrew (he), transliteration (tr) and translation (en) layers stack in on a left or right panel, in both arrangements. Default he, tr, en, which is stored as absent; a lower third ignores it."
+          },
+          "preserveGroups": {
+           "type": "boolean"
           }
          },
          "required": [
@@ -6859,6 +7148,9 @@
               ]
              },
              "description": "Order the Hebrew (he), transliteration (tr) and translation (en) layers stack in on a left or right panel, in both arrangements. Default he, tr, en, which is stored as absent; a lower third ignores it."
+            },
+            "preserveGroups": {
+             "type": "boolean"
             }
            },
            "required": [
@@ -7047,10 +7339,80 @@
        "minimum": 20,
        "maximum": 48
       },
+      "translationFontSize": {
+       "type": "integer",
+       "minimum": 20,
+       "maximum": 48
+      },
       "titleFontSize": {
        "type": "integer",
        "minimum": 20,
        "maximum": 42
+      },
+      "hebrewLineHeight": {
+       "type": "number",
+       "minimum": 0.9,
+       "maximum": 2
+      },
+      "transliterationLineHeight": {
+       "type": "number",
+       "minimum": 0.9,
+       "maximum": 2
+      },
+      "translationLineHeight": {
+       "type": "number",
+       "minimum": 0.9,
+       "maximum": 2
+      },
+      "titleLineHeight": {
+       "type": "number",
+       "minimum": 0.9,
+       "maximum": 2
+      },
+      "hebrewLetterSpacing": {
+       "type": "number",
+       "minimum": -2,
+       "maximum": 8
+      },
+      "transliterationLetterSpacing": {
+       "type": "number",
+       "minimum": -2,
+       "maximum": 8
+      },
+      "translationLetterSpacing": {
+       "type": "number",
+       "minimum": -2,
+       "maximum": 8
+      },
+      "titleLetterSpacing": {
+       "type": "number",
+       "minimum": -2,
+       "maximum": 8
+      },
+      "hebrewFontFamily": {
+       "type": "string",
+       "enum": [
+        "noto-sans",
+        "david-libre",
+        "frank-ruhl-libre"
+       ]
+      },
+      "verticalAlignment": {
+       "type": "string",
+       "enum": [
+        "top",
+        "center",
+        "bottom"
+       ]
+      },
+      "legacyTitleWatermark": {
+       "type": "boolean"
+      },
+      "keepHyphenatedWords": {
+       "type": "boolean"
+      },
+      "largePrint": {
+       "type": "boolean"
       },
       "alignment": {
        "type": "string",
@@ -7088,7 +7450,7 @@
       "large",
       "compact"
      ],
-     "description": "A named text size: comfortable is the template's own sizes, large is 42/35/34 and compact 34/28/28 (Hebrew/transliteration/title). Explicit font sizes in presentation win."
+     "description": "A named text size: comfortable uses the template's sizes; large is a floor of 49/41/41/41 for Hebrew/transliteration/translation/title; compact uses 34/28/24/28. Larger explicit font sizes are preserved."
     },
     "includePreviewImage": {
      "type": "boolean"
@@ -8890,7 +9252,7 @@
  },
  {
   "name": "split_draft_into_set",
-  "description": "Split one existing source-backed draft at its current selected pinned blocks, preserving its presentation and source variants in an ordered unpublished set.",
+  "description": "Split one existing source-backed draft into an ordered unpublished set, preserving selected pinned blocks, presentation, and source variants. Omit pages for automatic boundaries; pass pages as an ordered list of slides, each containing one or more complete passage groups, to use explicit boundaries. A retry must use the same page plan.",
   "inputSchema": {
    "type": "object",
    "$schema": "https://json-schema.org/draft/2020-12/schema",
@@ -8904,6 +9266,41 @@
      "type": "integer",
      "minimum": 1,
      "maximum": 9007199254740991
+    },
+    "pages": {
+     "minItems": 2,
+     "maxItems": 96,
+     "type": "array",
+     "items": {
+      "minItems": 1,
+      "maxItems": 96,
+      "type": "array",
+      "items": {
+       "type": "object",
+       "properties": {
+        "sourceId": {
+         "type": "string",
+         "minLength": 1,
+         "maxLength": 200
+        },
+        "blockIds": {
+         "minItems": 1,
+         "maxItems": 96,
+         "type": "array",
+         "items": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 200
+         }
+        }
+       },
+       "required": [
+        "sourceId",
+        "blockIds"
+       ],
+       "additionalProperties": false
+      }
+     }
     },
     "workspace": {
      "type": "string",
@@ -9273,7 +9670,7 @@
  },
  {
   "name": "update_authoring_defaults",
-  "description": "Set this workspace's house defaults. New graphics (create_draft, compose_custom_draft, create_source_draft_set) and shared-library copies (customize_shared_cue, customize_shared_set, customize_shared_batch) take them unless the call names its own value or passes applyDefaults:false; existing drafts never change. A field replaces the stored one, null clears it, a field left out stays. textSize is a named size; fontSizes are explicit sizes and win over it. translation include adds the English translation where the source has it, omit leaves it out. layoutRule {maxLowerThirds:2, sequenceLayout:'left'} is the house rule that text needing more than two lower thirds becomes a left panel sequence (applied by create_source_draft_set; a copied set keeps its own shape and is flagged). expectedVersion is the version get_authoring_defaults returned.",
+  "description": "Set this workspace's house defaults. New graphics (create_draft, compose_custom_draft, create_source_draft_set) and shared-library copies (customize_shared_cue, customize_shared_set, customize_shared_batch) take them unless the call names its own value or passes applyDefaults:false; existing drafts never change. A field replaces the stored one, null clears it, a field left out stays. textSize is a named size; fontSizes are explicit sizes, with large-print floors preserved. translation include adds the English translation where the source has it, omit leaves it out. layoutRule {maxLowerThirds:2, sequenceLayout:'left'} is the house rule that text needing more than two lower thirds becomes a left panel sequence (applied by create_source_draft_set; a copied set keeps its own shape and is flagged). expectedVersion is the version get_authoring_defaults returned.",
   "inputSchema": {
    "type": "object",
    "$schema": "https://json-schema.org/draft/2020-12/schema",
@@ -9292,7 +9689,7 @@
         "large",
         "compact"
        ],
-       "description": "A named text size: comfortable is the template's own sizes, large is 42/35/34 and compact 34/28/28 (Hebrew/transliteration/title). Explicit font sizes in presentation win."
+       "description": "A named text size: comfortable uses the template's sizes; large is a floor of 49/41/41/41 for Hebrew/transliteration/translation/title; compact uses 34/28/24/28. Larger explicit font sizes are preserved."
       },
       {
        "type": "null"
@@ -9310,6 +9707,11 @@
          "maximum": 52
         },
         "transliterationFontSize": {
+         "type": "integer",
+         "minimum": 20,
+         "maximum": 48
+        },
+        "translationFontSize": {
          "type": "integer",
          "minimum": 20,
          "maximum": 48
@@ -9898,6 +10300,9 @@
               ]
              },
              "description": "Order the Hebrew (he), transliteration (tr) and translation (en) layers stack in on a left or right panel, in both arrangements. Default he, tr, en, which is stored as absent; a lower third ignores it."
+            },
+            "preserveGroups": {
+             "type": "boolean"
             }
            },
            "required": [
@@ -10119,6 +10524,9 @@
                 ]
                },
                "description": "Order the Hebrew (he), transliteration (tr) and translation (en) layers stack in on a left or right panel, in both arrangements. Default he, tr, en, which is stored as absent; a lower third ignores it."
+              },
+              "preserveGroups": {
+               "type": "boolean"
               }
              },
              "required": [
@@ -10307,10 +10715,80 @@
          "minimum": 20,
          "maximum": 48
         },
+        "translationFontSize": {
+         "type": "integer",
+         "minimum": 20,
+         "maximum": 48
+        },
         "titleFontSize": {
          "type": "integer",
          "minimum": 20,
          "maximum": 42
+        },
+        "hebrewLineHeight": {
+         "type": "number",
+         "minimum": 0.9,
+         "maximum": 2
+        },
+        "transliterationLineHeight": {
+         "type": "number",
+         "minimum": 0.9,
+         "maximum": 2
+        },
+        "translationLineHeight": {
+         "type": "number",
+         "minimum": 0.9,
+         "maximum": 2
+        },
+        "titleLineHeight": {
+         "type": "number",
+         "minimum": 0.9,
+         "maximum": 2
+        },
+        "hebrewLetterSpacing": {
+         "type": "number",
+         "minimum": -2,
+         "maximum": 8
+        },
+        "transliterationLetterSpacing": {
+         "type": "number",
+         "minimum": -2,
+         "maximum": 8
+        },
+        "translationLetterSpacing": {
+         "type": "number",
+         "minimum": -2,
+         "maximum": 8
+        },
+        "titleLetterSpacing": {
+         "type": "number",
+         "minimum": -2,
+         "maximum": 8
+        },
+        "hebrewFontFamily": {
+         "type": "string",
+         "enum": [
+          "noto-sans",
+          "david-libre",
+          "frank-ruhl-libre"
+         ]
+        },
+        "verticalAlignment": {
+         "type": "string",
+         "enum": [
+          "top",
+          "center",
+          "bottom"
+         ]
+        },
+        "legacyTitleWatermark": {
+         "type": "boolean"
+        },
+        "keepHyphenatedWords": {
+         "type": "boolean"
+        },
+        "largePrint": {
+         "type": "boolean"
         },
         "alignment": {
          "type": "string",
@@ -10361,7 +10839,7 @@
       "large",
       "compact"
      ],
-     "description": "A named text size: comfortable is the template's own sizes, large is 42/35/34 and compact 34/28/28 (Hebrew/transliteration/title). Explicit font sizes in presentation win."
+     "description": "A named text size: comfortable uses the template's sizes; large is a floor of 49/41/41/41 for Hebrew/transliteration/translation/title; compact uses 34/28/24/28. Larger explicit font sizes are preserved."
     },
     "workspace": {
      "type": "string",

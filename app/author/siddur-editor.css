@@ -102,3 +102,22 @@
 .layer-order{display:flex;align-items:center;gap:6px;padding-left:16px;border-left:1px solid var(--line,#d5dee5);font-size:13px}
 .layer-order select{min-height:32px}
 .layer-fit{display:flex;align-items:center;gap:6px;margin:0;flex-basis:100%;font-size:12.5px;color:#9a4b2e}
+
+/* Make the wording action visible beside the selected passage, including at narrow widths. */
+.author-page .passage-row.selected > label { padding-right: 98px; }
+.author-page .passage-edit-toggle { width: 88px; min-height: 29px; display: inline-flex; gap: 5px; justify-content: center; padding: 3px 6px; font-size: 10px; font-weight: 650; white-space: nowrap; }
+.author-page .passage-edit-toggle:focus-visible,
+.author-page .wording-actions button:focus-visible { outline: 2px solid #dfc879; outline-offset: 2px; }
+.author-page .wording-actions { display: flex; flex-wrap: wrap; gap: 6px; }
+.author-page .wording-actions button { padding: 4px 7px; border: 1px solid #51665f; border-radius: 5px; background: #14241f; color: #d8e9e3; font-size: 10px; cursor: pointer; }
+.author-page .wording-actions button:disabled { opacity: .48; cursor: not-allowed; }
+.author-page .wording-actions-hint { color: #aebfb8; font-size: 10px; line-height: 1.4; }
+.author-page .passage-grouping { display: grid; gap: 7px; margin: 5px 0 10px; }
+.author-page .passage-grouping .grouping-toggle { justify-self: start; padding: 5px 9px; border: 1px solid #4b665c; border-radius: 6px; background: #14241f; color: #d4e9df; font-size: 11px; font-weight: 650; }
+.author-page .passage-grouping .grouping-toggle[aria-expanded="true"] { border-color: #8a7433; color: #dfc879; }
+.author-page .passage-grouping p { margin: 0; color: var(--quiet); font-size: 10px; line-height: 1.45; }
+.author-page .passage-grouping .grouping-actions { display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: 8px; }
+.author-page .passage-grouping .grouping-actions .primary-button { display: inline-flex; align-items: center; gap: 5px; }
+.author-page .grouping-preserve { display: flex; flex-wrap: wrap; align-items: center; gap: 6px; color: #d4e9df; font-size: 11px; }
+.author-page .grouping-preserve input { accent-color: var(--mint-deep); }
+.author-page .grouping-preserve small { flex-basis: 100%; margin-left: 20px; color: var(--quiet); font-size: 10px; }

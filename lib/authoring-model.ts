@@ -11,7 +11,7 @@ const sourceMapJson=require('../content/legacy-crc-shabbat-morning.sources.json'
 const baselineCueJson=require('./cues.json');
 
 export type Layout=LayoutId;
-export type Presentation={hebrewFontSize?:number;transliterationFontSize?:number;titleFontSize?:number;alignment?:'start'|'center';lineSpacing?:'compact'|'spacious';imageAssetId?:string;latinLineBreaks?:'preserve'|'paragraphs'|'phrases'};
+export type Presentation={hebrewFontSize?:number;transliterationFontSize?:number;translationFontSize?:number;titleFontSize?:number;hebrewLineHeight?:number;transliterationLineHeight?:number;translationLineHeight?:number;titleLineHeight?:number;hebrewLetterSpacing?:number;transliterationLetterSpacing?:number;translationLetterSpacing?:number;titleLetterSpacing?:number;hebrewFontFamily?:'noto-sans'|'david-libre'|'frank-ruhl-libre';verticalAlignment?:'top'|'center'|'bottom';legacyTitleWatermark?:boolean;keepHyphenatedWords?:boolean;largePrint?:boolean;alignment?:'start'|'center';lineSpacing?:'compact'|'spacious';imageAssetId?:string;latinLineBreaks?:'preserve'|'paragraphs'|'phrases'};
 export type SourceGroup={sourceId:string;blockIds:string[]};
 /**
  * C6: which text layers a graphic shows, and how they are arranged. `layers` and `arrangement`
@@ -21,7 +21,7 @@ export type SourceGroup={sourceId:string;blockIds:string[]};
 export type TextLayer='he'|'tr'|'en';
 export type TextArrangement='together'|'blocks';
 export const LAYER_ORDER=['he','tr','en'] as const;
-export type BilingualContent={mode:'bilingual';hebrewGroups:SourceGroup[];transliterationGroups:SourceGroup[];includeTranslation?:boolean;layers?:TextLayer[];arrangement?:TextArrangement;rowOrder?:TextLayer[]};
+export type BilingualContent={mode:'bilingual';hebrewGroups:SourceGroup[];transliterationGroups:SourceGroup[];includeTranslation?:boolean;layers?:TextLayer[];arrangement?:TextArrangement;rowOrder?:TextLayer[];preserveGroups?:true};
 export function textLayers(content:BilingualContent):TextLayer[]{
  if(content.layers?.length)return LAYER_ORDER.filter(layer=>content.layers!.includes(layer));
  return content.includeTranslation?['he','tr','en']:['he','tr'];
@@ -201,7 +201,7 @@ function parseGroups(value:unknown,label:string,kind:SourceBlock['kind'],snapsho
 export function parseContent(value:unknown,snapshots:AuthoringSource[]=[]):DraftContent{
  const input=record(value,'content');
  if(input.mode==='bilingual'){
-  onlyKeys(input,['mode','hebrewGroups','transliterationGroups','includeTranslation','layers','arrangement','rowOrder'],'content');
+  onlyKeys(input,['mode','hebrewGroups','transliterationGroups','includeTranslation','layers','arrangement','rowOrder','preserveGroups'],'content');
   const hebrewGroups=parseGroups(input.hebrewGroups,'content.hebrewGroups','bilingual',snapshots);
   const transliterationGroups=parseGroups(input.transliterationGroups,'content.transliterationGroups','bilingual',snapshots);
   const sequence=(groups:SourceGroup[])=>groups.flatMap(group=>group.blockIds.map(blockId=>`${group.sourceId}\u0000${blockId}`));
@@ -209,6 +209,8 @@ export function parseContent(value:unknown,snapshots:AuthoringSource[]=[]):Draft
   const transliterationSequence=sequence(transliterationGroups);
   if(new Set(hebrewSequence).size!==hebrewSequence.length||new Set(transliterationSequence).size!==transliterationSequence.length)throw new AuthoringError('repeated_source_block','A source block may be selected only once per language');
   if(JSON.stringify(hebrewSequence)!==JSON.stringify(transliterationSequence))throw new AuthoringError('mismatched_source_coverage','Hebrew and transliteration must select the same ordered source blocks');
+  if(input.preserveGroups!==undefined&&typeof input.preserveGroups!=='boolean')throw new AuthoringError('invalid_input','preserveGroups must be boolean');
+  if(input.preserveGroups===true&&JSON.stringify(hebrewGroups)!==JSON.stringify(transliterationGroups))throw new AuthoringError('mismatched_group_boundaries','Hebrew and transliteration must use the same passage groups when groups are shown separately');
   // G9 - English-only passages ride beside Hebrew; English alone is an English graphic.
   if(!hebrewGroups.some(group=>group.blockIds.some(blockId=>!englishOnly(selectedBlock(group.sourceId,blockId,snapshots)))))throw new AuthoringError('english_only_selection','Every selected block is English only. Use mode original-en (or source-en for a source\'s own English) for an English graphic.');
   if(input.includeTranslation!==undefined&&typeof input.includeTranslation!=='boolean')throw new AuthoringError('invalid_input','includeTranslation must be boolean');
@@ -221,8 +223,11 @@ export function parseContent(value:unknown,snapshots:AuthoringSource[]=[]):Draft
    if(!layers.length)throw new AuthoringError('empty_layers','A graphic shows at least one text layer');
   }
   if(input.arrangement!==undefined&&input.arrangement!=='together'&&input.arrangement!=='blocks')throw new AuthoringError('invalid_input','arrangement must be together or blocks');
-  const content:BilingualContent={mode:'bilingual',hebrewGroups,transliterationGroups,...layerFields(layers,input.arrangement==='blocks'?'blocks':'together',parseRowOrder(input.rowOrder,'content.rowOrder'))};
+  const content:BilingualContent={mode:'bilingual',hebrewGroups,transliterationGroups,...layerFields(layers,input.arrangement==='blocks'?'blocks':'together',parseRowOrder(input.rowOrder,'content.rowOrder')),...(input.preserveGroups===true?{preserveGroups:true as const}:{})};
   if(layers.includes('en'))translationSelections(content,snapshots);
+  if(content.preserveGroups&&layers.includes('en'))for(const {sourceId,pairIds} of translationSelections(content,snapshots)){
+   if(!hebrewGroups.some(group=>group.sourceId===sourceId&&pairIds.every(id=>group.blockIds.includes(id))))throw new AuthoringError('group_splits_translation','Keep every paired Hebrew and English blessing in one group when showing groups separately');
+  }
   return content;
  }
  if(input.mode==='original-en'){
@@ -298,11 +303,17 @@ export function parseEditable(value:unknown,partial=false,snapshots:AuthoringSou
  if(!partial||input.content!==undefined)result.content=parseContent(input.content,snapshots);
  if(!partial||input.presentation!==undefined){
   const p=record(input.presentation??{},'presentation');
-  onlyKeys(p,['hebrewFontSize','transliterationFontSize','titleFontSize','alignment','lineSpacing','imageAssetId','latinLineBreaks'],'presentation');
+  onlyKeys(p,['hebrewFontSize','transliterationFontSize','translationFontSize','titleFontSize','hebrewLineHeight','transliterationLineHeight','translationLineHeight','titleLineHeight','hebrewLetterSpacing','transliterationLetterSpacing','translationLetterSpacing','titleLetterSpacing','hebrewFontFamily','verticalAlignment','legacyTitleWatermark','keepHyphenatedWords','largePrint','alignment','lineSpacing','imageAssetId','latinLineBreaks'],'presentation');
   const presentation:Presentation={};
   if(p.hebrewFontSize!==undefined)presentation.hebrewFontSize=integer(p.hebrewFontSize,'hebrewFontSize',24,52);
   if(p.transliterationFontSize!==undefined)presentation.transliterationFontSize=integer(p.transliterationFontSize,'transliterationFontSize',20,48);
+  if(p.translationFontSize!==undefined)presentation.translationFontSize=integer(p.translationFontSize,'translationFontSize',20,48);
   if(p.titleFontSize!==undefined)presentation.titleFontSize=integer(p.titleFontSize,'titleFontSize',20,42);
+  for(const key of ['hebrewLineHeight','transliterationLineHeight','translationLineHeight','titleLineHeight'] as const)if(p[key]!==undefined){if(typeof p[key]!=='number'||!Number.isFinite(p[key])||p[key]<0.9||p[key]>2)throw new AuthoringError('invalid_input',`${key} must be a number from 0.9 to 2`);presentation[key]=p[key]}
+  for(const key of ['hebrewLetterSpacing','transliterationLetterSpacing','translationLetterSpacing','titleLetterSpacing'] as const)if(p[key]!==undefined){if(typeof p[key]!=='number'||!Number.isFinite(p[key])||p[key]<-2||p[key]>8)throw new AuthoringError('invalid_input',`${key} must be a number from -2 to 8`);presentation[key]=p[key]}
+  if(p.hebrewFontFamily!==undefined){if(p.hebrewFontFamily!=='noto-sans'&&p.hebrewFontFamily!=='david-libre'&&p.hebrewFontFamily!=='frank-ruhl-libre')throw new AuthoringError('invalid_input','hebrewFontFamily must be noto-sans, david-libre, or frank-ruhl-libre');presentation.hebrewFontFamily=p.hebrewFontFamily}
+  if(p.verticalAlignment!==undefined){if(p.verticalAlignment!=='top'&&p.verticalAlignment!=='center'&&p.verticalAlignment!=='bottom')throw new AuthoringError('invalid_input','verticalAlignment must be top, center, or bottom');presentation.verticalAlignment=p.verticalAlignment}
+  for(const key of ['legacyTitleWatermark','keepHyphenatedWords','largePrint'] as const)if(p[key]!==undefined){if(typeof p[key]!=='boolean')throw new AuthoringError('invalid_input',`${key} must be boolean`);presentation[key]=p[key]}
   if(p.alignment!==undefined){if(p.alignment!=='start'&&p.alignment!=='center')throw new AuthoringError('invalid_input','alignment must be start or center');presentation.alignment=p.alignment}
   if(p.lineSpacing!==undefined){if(p.lineSpacing!=='compact'&&p.lineSpacing!=='spacious')throw new AuthoringError('invalid_input','lineSpacing must be compact or spacious');presentation.lineSpacing=p.lineSpacing}
   if(p.imageAssetId!==undefined){if(typeof p.imageAssetId!=='string'||!/^asset_[a-f0-9]{64}$/.test(p.imageAssetId))throw new AuthoringError('invalid_input','imageAssetId must identify a workspace asset');presentation.imageAssetId=p.imageAssetId}
@@ -417,6 +428,16 @@ function englishOnlyRuns(content:BilingualContent,snapshots:AuthoringSource[]=[]
  */
 function composeContentRows(draft:Draft,content:BilingualContent,overrides:LocalVariantOverride[],layers:TextLayer[]):Array<{he:string;tr:string;en:string}>{
  if(draft.layout!=='left'&&draft.layout!=='right')return [];
+ if(content.preserveGroups)return content.hebrewGroups.flatMap((group,index)=>{
+  const within:BilingualContent={...content,preserveGroups:undefined,hebrewGroups:[group],transliterationGroups:[content.transliterationGroups[index]!]};
+  if(textArrangement(content)==='blocks')return composeContentRows(draft,within,overrides,layers);
+  const row={
+   he:layers.includes('he')?renderGroup(group,'he',draft.sourceSnapshots,overrides):'',
+   tr:layers.includes('tr')?renderGroup(group,'tr',draft.sourceSnapshots,overrides):'',
+   en:englishInOrder(within,draft.sourceSnapshots,overrides,layers.includes('en')).map(item=>item.text).join('\n'),
+  };
+  return row.he||row.tr||row.en?[row]:[];
+ });
  const snapshots=draft.sourceSnapshots;
  const text=(sourceId:string,blockIds:string[],channel:'he'|'tr')=>layers.includes(channel)?renderGroup({sourceId,blockIds},channel,snapshots,overrides):'';
  const english=(sourceId:string,block:SourceBlock)=>overrides.find(item=>item.sourceId===sourceId&&item.blockId===block.id&&item.channel==='en')?.localText??block.en!;
@@ -457,6 +478,7 @@ export function buildCue(draft:Draft):AuthoringCue{
  // A corner card holds a line or two: Hebrew and its transliteration, or one English line. It
  // has no room for a third, translated layer, and dropping a lit layer silently would not do.
  if(layoutDefinition(draft.layout)?.capabilities.translation===false&&content.mode==='bilingual'&&textLayers(content).includes('en'))throw new AuthoringError('corner_translation_unsupported','A corner card shows Hebrew and transliteration only. Turn off Translation, or use a lower third or a panel.',409);
+ if(content.mode==='bilingual'&&content.preserveGroups&&draft.layout!=='left'&&draft.layout!=='right')throw new AuthoringError('group_layout_unsupported','Separate passage groups within one graphic need a left or right panel.',409);
  // G9 - an English-only passage beside Hebrew is a panel row or a lower third's English line; no other card has a place for it.
  const englishPassage=content.mode==='bilingual'&&hasEnglishOnly(content,draft.sourceSnapshots);
  if(englishPassage&&draft.layout!=='left'&&draft.layout!=='right'&&draft.layout!=='bottom')throw new AuthoringError('english_passage_unsupported','This graphic has an English passage beside its Hebrew, which only a side panel or a lower third can show. Use layout left, right or bottom.',409);

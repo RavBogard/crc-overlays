@@ -141,7 +141,7 @@ test('create_draft takes the house defaults unless the call names its own value 
  await call('update_authoring_defaults',{expectedVersion:0,textSize:'large',lineSpacing:'spacious'});
  const custom={name:'Welcome',title:'Welcome',layout:'bottom',content:{mode:'custom',text:'Welcome to Shabbat'}};
  const housed=await call('create_draft',custom);
- assert.equal(housed.isError,false,housed.text);assert.deepEqual(housed.output.draft.presentation,{...TEXT_SIZE_PRESETS.large.sizes,lineSpacing:'spacious'});assert.deepEqual(housed.output.houseDefaults.applied,['text size large','line spacing spacious']);
+ assert.equal(housed.isError,false,housed.text);assert.deepEqual(housed.output.draft.presentation,{...TEXT_SIZE_PRESETS.large.sizes,largePrint:true,lineSpacing:'spacious'});assert.deepEqual(housed.output.houseDefaults.applied,['text size large','line spacing spacious']);
  assert.equal(housed.output.draft.houseDefaultsVersion,1,'the draft records which defaults shaped it');
  const own=await call('create_draft',{...custom,name:'Welcome 2',textSize:'compact'});
  assert.equal(own.output.draft.presentation.hebrewFontSize,TEXT_SIZE_PRESETS.compact.sizes.hebrewFontSize,'the call\'s own size wins');assert.equal(own.output.draft.presentation.lineSpacing,'spacious');

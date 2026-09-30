@@ -3,7 +3,7 @@ import assert from 'node:assert/strict';
 import {readFileSync} from 'node:fs';
 import {fileURLToPath} from 'node:url';
 import {acceptsRevision,effectFrames,incomingStillDesired,measuredBottomTextHeight,textParts,tracksFor,type AnimationTrack} from '../lib/player-motion.ts';
-import {Player,constrainedBottomTextHeight,panelRowChannels,panelRowGap,panelStackGeometry,presentationTextStyles,reflowLatinParagraphs,reflowLatinRuns,displayPresentationText,usesPanelRows,type ContentRow,type Cue} from '../lib/player.ts';
+import {Player,constrainedBottomTextHeight,panelRowChannels,panelRowGap,panelStackGeometry,presentationTextStyles,reflowLatinParagraphs,reflowLatinRuns,displayPresentationText,legacyTitleDisplay,usesPanelRows,type ContentRow,type Cue} from '../lib/player.ts';
 import {OVERLAY_ASSET_TIMEOUT_MS,waitForRenderedOverlayAssets} from '../lib/overlay-assets.ts';
 import {branding} from '../lib/branding.ts';
 
@@ -396,4 +396,20 @@ test('phrase separators never appear at a leading or trailing newline',()=>{
  assert.equal(displayPresentationText('Before\nעברית\nAfter\nMore\n','textMain',phrases),'Before\nעברית\nAfter · More\n','mixed bodies keep their line structure; the edge gains no separator');
  assert.equal(displayPresentationText('English\nText\n','textMainEng',{latinLineBreaks:'paragraphs'}),'English Text');
  assert.equal(displayPresentationText('Kept\nas is\n','textMainEng',{latinLineBreaks:'preserve'}),'Kept\nas is\n','preserve mode leaves text untouched');
+});
+
+test('optional display guards preserve authored breaks and canonical text',()=>{
+ const original='טוֹבְ-לָנוּ וְשָׁלוֹם־עָלֵינוּ\nna-im together\u00a0now';
+ const displayed=displayPresentationText(original,'textMainEng',{latinLineBreaks:'preserve',keepHyphenatedWords:true});
+ assert.equal(displayed,'טוֹבְ‑לָנוּ וְשָׁלוֹם\u2060־\u2060עָלֵינוּ\nna‑im together\u00a0now');
+ assert.equal(original,'טוֹבְ-לָנוּ וְשָׁלוֹם־עָלֵינוּ\nna-im together\u00a0now');
+ assert.equal(legacyTitleDisplay('הִנֵּה מַה טּוֹב'),'הנה מה טוב');
+});
+
+test('side-panel vertical alignment moves the measured stack without changing its gap',()=>{
+ const top=panelStackGeometry(200,250,184,840,18,88,'top');
+ const center=panelStackGeometry(200,250,184,840,18,88,'center');
+ const bottom=panelStackGeometry(200,250,184,840,18,88,'bottom');
+ assert.ok(top.hebrewTop<center.hebrewTop&&center.hebrewTop<bottom.hebrewTop);
+ assert.equal(top.gap,center.gap);assert.equal(center.gap,bottom.gap);
 });

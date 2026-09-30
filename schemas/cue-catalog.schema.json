@@ -38,7 +38,25 @@
         "properties": {
           "hebrewFontSize": { "type": "integer", "minimum": 24, "maximum": 52 },
           "transliterationFontSize": { "type": "integer", "minimum": 20, "maximum": 48 },
-          "titleFontSize": { "type": "integer", "minimum": 20, "maximum": 42 }
+          "translationFontSize": { "type": "integer", "minimum": 20, "maximum": 48 },
+          "titleFontSize": { "type": "integer", "minimum": 20, "maximum": 42 },
+          "hebrewLineHeight": { "type": "number", "minimum": 0.9, "maximum": 2 },
+          "transliterationLineHeight": { "type": "number", "minimum": 0.9, "maximum": 2 },
+          "translationLineHeight": { "type": "number", "minimum": 0.9, "maximum": 2 },
+          "titleLineHeight": { "type": "number", "minimum": 0.9, "maximum": 2 },
+          "hebrewLetterSpacing": { "type": "number", "minimum": -2, "maximum": 8 },
+          "transliterationLetterSpacing": { "type": "number", "minimum": -2, "maximum": 8 },
+          "translationLetterSpacing": { "type": "number", "minimum": -2, "maximum": 8 },
+          "titleLetterSpacing": { "type": "number", "minimum": -2, "maximum": 8 },
+          "hebrewFontFamily": { "enum": ["noto-sans", "david-libre", "frank-ruhl-libre"] },
+          "verticalAlignment": { "enum": ["top", "center", "bottom"] },
+          "legacyTitleWatermark": { "type": "boolean" },
+          "keepHyphenatedWords": { "type": "boolean" },
+          "largePrint": { "type": "boolean" },
+          "alignment": { "enum": ["start", "center"] },
+          "lineSpacing": { "enum": ["compact", "spacious"] },
+          "latinLineBreaks": { "enum": ["preserve", "paragraphs", "phrases"] },
+          "imageAssetId": { "type": "string", "pattern": "^asset_[a-f0-9]{64}$" }
         }
       },
       "contentRows": {
