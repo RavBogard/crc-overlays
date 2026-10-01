@@ -204,9 +204,9 @@ test('the graphics URL is sealed, shown again on the next visit, and gone once r
 
 test('the deck summary names its version, keys and labels, and picks the test keys by page and position', async () => {
   const ctx = context(), {stored, validation} = await validatedDeck(ctx)
-  const cues = new Map(snapshot.drafts.map((d) => [d.id, {name: d.name, layout: 'left-panel'}]))
+  const cues = new Map(snapshot.drafts.map((d) => [d.id, {name: d.name, layout: 'left'}]))
   const lowerThird = stored.deck.pages.find((p) => p.name === 'Fri 1')!.buttons.find((b) => b.spec.kind === 'cue')!
-  if (lowerThird.spec.kind === 'cue') cues.set(lowerThird.spec.cueId, {name: 'Welcome', layout: 'lower-third'})
+  if (lowerThird.spec.kind === 'cue') cues.set(lowerThird.spec.cueId, {name: 'Welcome', layout: 'bottom'})
   const summary = setupDeckSummary(stored, validation, crc, cues, new Set(['Welcome']))
   assert.equal(summary.ready, validation.findings.every((f) => f.severity !== 'error'))
   assert.equal(summary.deck.keys, 1460)
