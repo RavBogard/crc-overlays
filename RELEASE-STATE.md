@@ -4,19 +4,25 @@ What is deployed right now. Update this file on every release — it is the one 
 "what is live", and it is short so it can be read under pressure. The history is in
 `docs/planning/2026-09-deploys/` (25 deploy records, the release chain, the phase build notes).
 
-**Last updated: 2026-09-30 UTC / Central.** Michael's Companion download restored and CRC Setup's lower-third test pick corrected; web `d21d00a` released to both workspaces. The preceding follow-up settings rollout remains in place. Details: `docs/planning/2026-09-30-michael-companion/STATE.md`.
+**Last updated: 2026-09-30 UTC / Central.** The bottom-right resting logo now rotates clockwise once per minute; web `e0c19a8` released to both workspaces. Michael's Companion/Setup fixes and the preceding settings rollout remain in place. Details: `docs/planning/2026-09-30-logo-rotation/STATE.md`.
 
 ## Web, per workspace
 
-Both workspaces run exact product commit `d21d00a69b6872fd5579469ad0dcc67d9faf3fe9`.
+Both workspaces run exact product commit `e0c19a88e24224b9021cdfaf36fc170cc6e1c3e4`.
 
 | Workspace | Host | Deployed commit | How it got there |
 |---|---|---|---|
-| CRC | `overlays.centralreform.org` (alt `crc-overlays.vercel.app`) | `d21d00a` | paired CLI `dpl_q9phevqy8G2TV6dnBD98fNquRBnC`, then same-SHA Git build `dpl_3rzoGiFbRPu3NmwrLhpCcnV6Cht6` now serving production |
-| TBI | `overlays.templebnaiisrael.com` (alt `tbi-overlays.vercel.app`) | `d21d00a` | paired staged release `dpl_DRJKNPW2hiKYGxx3s7sEZqWQvHVU` |
+| CRC | `overlays.centralreform.org` (alt `crc-overlays.vercel.app`) | `e0c19a8` | paired CLI `dpl_BcF9XLdt1xtvAMJyEwi6bHZy33Dt`; main pushed at the same SHA |
+| TBI | `overlays.templebnaiisrael.com` (alt `tbi-overlays.vercel.app`) | `e0c19a8` | paired staged release `dpl_2tJVYLHP7Sgi1xAAanWop1rBrZJM` |
 
 Remote `main` is at the product SHA. The subsequent release-record commit is on
 `google-signin` and does not require another production deployment.
+
+### Release e0c19a8: resting logo rotation (2026-09-30)
+
+- The separate bottom-right resting logo makes one smooth clockwise turn every 60 seconds. Its placement, scaling and visibility rules are preserved. Reduced-motion preference keeps it stationary.
+- Integrated the already deployed Setup correction from `d21d00a` before releasing. No data, migrations or relay changes.
+- TypeScript, 1,294 TypeScript + 35 MJS tests, 28 focused logo/Setup tests, lint (two existing warnings) and production build pass. Browser checks confirm the quarter/half/full-turn positions, stage scaling, hide behavior and reduced motion. Both live sites confirm 60-second linear infinite clockwise animation; both deployment SHAs verified Ready and four hosts health 200.
 
 ### Release d21d00a: Michael Companion setup (2026-09-30)
 
