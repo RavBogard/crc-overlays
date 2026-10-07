@@ -4,19 +4,25 @@ What is deployed right now. Update this file on every release — it is the one 
 "what is live", and it is short so it can be read under pressure. The history is in
 `docs/planning/2026-09-deploys/` (25 deploy records, the release chain, the phase build notes).
 
-**Last updated: 2026-09-30 UTC / Central.** The bottom-right resting logo now rotates clockwise once per minute; web `e0c19a8` released to both workspaces. Michael's Companion/Setup fixes and the preceding settings rollout remain in place. Details: `docs/planning/2026-09-30-logo-rotation/STATE.md`.
+**Last updated: 2026-10-07 Central.** The overlay batch and generated siddur update are consolidated on main. The paired release is identified by annotated Git tag `overlays-2026-10-07` (resolve it with `git rev-parse overlays-2026-10-07^{commit}` for the exact source SHA). Details: `docs/planning/2026-10-07-overlay-batch/STATE.md`.
 
 ## Web, per workspace
 
-Both workspaces run exact product commit `e0c19a88e24224b9021cdfaf36fc170cc6e1c3e4`.
-
-| Workspace | Host | Deployed commit | How it got there |
+| Workspace | Host | Release | How it gets there |
 |---|---|---|---|
-| CRC | `overlays.centralreform.org` (alt `crc-overlays.vercel.app`) | `e0c19a8` | paired CLI `dpl_BcF9XLdt1xtvAMJyEwi6bHZy33Dt`; main pushed at the same SHA |
-| TBI | `overlays.templebnaiisrael.com` (alt `tbi-overlays.vercel.app`) | `e0c19a8` | paired staged release `dpl_2tJVYLHP7Sgi1xAAanWop1rBrZJM` |
+| CRC | `overlays.centralreform.org` (alt `crc-overlays.vercel.app`) | `overlays-2026-10-07` | main and paired production CLI |
+| TBI | `overlays.templebnaiisrael.com` (alt `tbi-overlays.vercel.app`) | `overlays-2026-10-07` | paired staged production CLI |
 
-Remote `main` is at the product SHA. The subsequent release-record commit is on
-`google-signin` and does not require another production deployment.
+Both workspaces use the exact tag SHA. Deployment IDs, Ready status and SHA checks are recorded under ignored `work/overlay-batch-release/verified.json` in the release checkout, with the paired receipt in `work/deploy-staging/releases/<SHA>/release.json`.
+
+### Release overlays-2026-10-07: overlay batch
+
+- Fixes bottom text alignment/top alignment, Hebrew title vowel clearance and exits, language ordering across layouts, and consistent 42px side titles independent of density.
+- Bottom columns size to content and offer stacking; watermark appears only on side panels; corner logo/header are larger. Left-to-left transitions retain panel/background. Editor titlebar remains visible while scrolling.
+- Publishing overlapping blocks asks for Publish/Cancel confirmation for the saved version, including bulk publishing. Other fit failures remain blocking.
+- Includes PR #8's two generated source revisions. Source-review flow remains intact; no published graphics are rewritten by this merge.
+- Gates passed: TypeScript; 1,300 TS tests and 35 script tests (13 optional skips in the clean release checkout); lint with two existing warnings; production build and diff check. Local browser acceptance is recorded in the batch state. The release also fixes the injected-clock mismatch in three rehearsal test fixtures, without changing relay behavior. No migrations, relay release or Companion source changes. Physical booth acceptance remains separate.
+- All current remote work is integrated. Older local task branches are preserved; 35 have equivalent patches already integrated, and six retain older divergent versions of existing work.
 
 ### Release e0c19a8: resting logo rotation (2026-09-30)
 
