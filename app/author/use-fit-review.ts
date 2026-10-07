@@ -51,7 +51,7 @@ export function useFitReview(workspace: PublicWorkspace | null, workingPreview: 
     setFitErrors([]);
     setFitWarnings([]);
     if (animate) player.set({ cue: cue.id, revision: ++animationRevision.current, mode: "animate" });
-    else player.render(cue, overlayAssetUrl(cue, "preview"));
+    else { player.render(cue, overlayAssetUrl(cue, "preview")); player.current = cue; }
     // T3 - the book-face stage waits on the book faces, so the fit measured here is the one that ships.
     try {
       await waitForRenderedOverlayAssets(root, undefined, workspace.bookFaces ? "book" : "default");

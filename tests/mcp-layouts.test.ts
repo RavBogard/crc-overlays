@@ -144,7 +144,7 @@ test('validate_layout names overlapping channels and a floor above a font size, 
  const checked=await call('validate_layout',{layoutId:'crowded'},null);
  assert.equal(checked.output.valid,false);
  assert.deepEqual(checked.output.checks.filter((item:Output)=>!item.ok).map((item:Output)=>item.check),['no-overlap','floor']);
- assert.match(checked.output.errors[0],/^The Hebrew channel \(x 32-616, y 66-124\) overlaps the transliteration channel/);
+ assert.match(checked.output.errors[0],/^The Hebrew channel \(x 32-616, y 90-148\) overlaps the transliteration channel/);
  assert.match(checked.output.errors.join(' '),/title\.fontSize is 28, below fit\.floor 30/);
  const refused=await call('publish_layout',{layoutId:'crowded',expectedVersion:1});
  assert.deepEqual([refused.output.published,refused.output.stoppedAt],[false,'validation']);

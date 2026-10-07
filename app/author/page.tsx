@@ -56,8 +56,12 @@ import { useFitReview } from "./use-fit-review";
 import { togglePassage } from "./passage-selection";
 import { useToasts } from "./use-toasts";
 import { useLibraryFolders } from "./use-library-folders";
+import { publishFitIssues } from "./preview";
+import { FitIssueDialog } from "./fit-issue-dialog";
 
 export default function AuthorPage() {
+  const [fitIssuePrompt, setFitIssuePrompt] = useState<{ stamp: string; issues: string[] } | null>(null);
+  const approvedFitStamp = useRef("");
   const [key, setKey] = useState("");
   const [role, setRole] = useState<AccessRole | undefined>(undefined);
   const [workspaceLabel, setWorkspaceLabel] = useState<string | null>(null);
@@ -301,7 +305,7 @@ export default function AuthorPage() {
   const showPanels = shouldShowPanels(form.groups, selectedBlocks, form.mode, form.layout);
   const reviewCurrent = !!draft && !dirty && exactPreview?.draftVersion === draft.version;
   const previewCue = formReady(form) ? (reviewCurrent ? exactPreview?.cue : null) || workingPreview?.cue || null : null;
-  const fitBlocked = reviewCurrent && fitErrors.length > 0;
+  const fitBlocked = reviewCurrent && publishFitIssues(fitErrors).blocking.length > 0;
   const selectedDensity = form.presentation.largePrint ? "large" : densityOptions.find((option) => JSON.stringify(option.value) === JSON.stringify({
     ...(form.presentation.hebrewFontSize !== undefined ? { hebrewFontSize: form.presentation.hebrewFontSize } : {}),
     ...(form.presentation.transliterationFontSize !== undefined ? { transliterationFontSize: form.presentation.transliterationFontSize } : {}),
@@ -710,8 +714,17 @@ export default function AuthorPage() {
   }, [key, reviewSequence, setExactPreview, setPreviewError, setPreviewWarnings, showCue]);
   useEffect(() => { if (key && draft && !dirty) void loadExactPreview(draft); }, [key, draft, dirty, loadExactPreview]);
 
-  async function publishReviewedVersion(confirmDuplicateName = false) {
-    if (!draft || dirty || fitErrors.length) return;
+  async function publishReviewedVersion(confirmDuplicateName = false, confirmFitIssues = false) {
+    if (!draft || dirty || !assetsReady || previewError) return;
+    const issues = publishFitIssues(fitErrors);
+    if (issues.blocking.length) return;
+    const stamp = JSON.stringify([draft.id, draft.version, issues.confirmations]);
+    if (confirmFitIssues && fitIssuePrompt?.stamp === stamp) approvedFitStamp.current = stamp;
+    if (issues.confirmations.length && approvedFitStamp.current !== stamp) {
+      setFitIssuePrompt({ stamp, issues: issues.confirmations });
+      return;
+    }
+    setFitIssuePrompt(null);
     setBusy("publish"); setError("");
     const browserMeasurement: BrowserMeasurement = { viewportWidth: 1920, viewportHeight: 1080, fontsReady: true, overflow: false, rendererVersion: "crc-author-preview-v2", measuredAt: Date.now() };
     try {
@@ -919,6 +932,7 @@ export default function AuthorPage() {
         )}
       </div>
 
+      {fitIssuePrompt && reviewCurrent && fitIssuePrompt.stamp === JSON.stringify([draft?.id, draft?.version, publishFitIssues(fitErrors).confirmations]) && <FitIssueDialog issues={fitIssuePrompt.issues} cancel={() => setFitIssuePrompt(null)} confirm={() => void publishReviewedVersion(false, true)} />}
       <div className="notice-stack" aria-live="polite">
         {message && <p className="notice success">{message}<button aria-label="Dismiss" onClick={() => setMessage("")}>×</button></p>}
         {error && <p role="alert" className="notice error">{error}<button aria-label="Dismiss" onClick={() => setError("")}>×</button></p>}

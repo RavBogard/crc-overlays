@@ -55,12 +55,12 @@ test('Together keeps its rows and orders the layers inside each one',()=>{
  assert.deepEqual(panelRowChannels({he:'a',tr:'',en:'c'},['tr','en','he']).map(item=>item.classes),['row-translation','row-hebrew']);
 });
 
-test('a lower third ignores the row order',()=>{
+test('a lower third carries order for optional stacking without changing its wording',()=>{
  const {editable,content}=translated();
  const bottom=baselineCues.find(cue=>cue.layout==='bottom'&&cue.texts.textMainheb)!;
  const withOrder=buildCue(draftOf({...editable,layout:'bottom',templateCueId:bottom.id,content:parseContent({...content,rowOrder:['tr','he','en']})},TRANSLATED));
  const without=buildCue(draftOf({...editable,layout:'bottom',templateCueId:bottom.id},TRANSLATED));
- assert.equal(withOrder.rowOrder,undefined);
+ assert.deepEqual(withOrder.rowOrder,['tr','he','en']);
  assert.deepEqual(withOrder.texts,without.texts,'the same two columns and translation line');
  assert.equal(withOrder.contentRows,undefined);
 });

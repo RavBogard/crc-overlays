@@ -60,6 +60,9 @@ class FakeElement{
  tagName:string;className='';dataset:Record<string,string>={};textContent='';children:FakeElement[]=[];src='';alt='';
  style:{fontSize:string;height:string;visibility?:string;properties:Record<string,string>;setProperty(name:string,value:string):void}={fontSize:'',height:'',properties:{},setProperty(name,value){this.properties[name]=value}};
  constructor(tag:string){this.tagName=tag}
+ cloneNode(){const copy=new FakeElement(this.tagName);copy.className=this.className;copy.textContent=this.textContent;return copy}
+ get offsetWidth(){return 100}
+ remove(){}
  get classes(){return this.className.split(/\s+/).filter(Boolean)}
  get clientWidth(){return 1920}get clientHeight(){return 1080}get scrollWidth(){return 10}get scrollHeight(){return 10}
  appendChild(child:FakeElement){this.children.push(child);return child}

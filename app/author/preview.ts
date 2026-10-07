@@ -13,6 +13,14 @@ const HEIGHT = 1080;
 // absorbs that font-metric overhang without masking real fit/overlap errors.
 export const FONT_METRIC_TOLERANCE = 6;
 
+/** Visual overlaps can be accepted by the editor; overflow and unavailable assets cannot. */
+export function publishFitIssues(issues: readonly string[]) {
+  return {
+    confirmations: issues.filter((issue) => issue.includes(" overlaps ")),
+    blocking: issues.filter((issue) => !issue.includes(" overlaps ")),
+  };
+}
+
 function overflowTolerance(element: HTMLElement): number {
   // The tolerance is for Noto Sans Hebrew's glyph metrics. A single-channel English
   // panel has a real, fixed text box, so even a small scroll overflow there clips

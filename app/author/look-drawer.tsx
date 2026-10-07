@@ -9,7 +9,8 @@ import type { Cue } from "@/lib/player";
 import type { PublicWorkspace } from "@/lib/workspace";
 import { EditorCard } from "./editor-card";
 import { TypographyControls } from "./typography-controls";
-import type { DraftForm, Layout, TemplateSummary } from "./types";
+import { formRowOrder, LAYER_NAMES, ROW_ORDERS } from "./editor-state";
+import type { DraftForm, Layout, TemplateSummary, TextLayer } from "./types";
 
 export type WorkspaceAsset = { id: string; name: string; altText: string; mimeType: string; bytes: number; width: number; height: number; version: number; archived: boolean; published: boolean; privatePreviewUrl: string; publicUrl?: string };
 
@@ -46,7 +47,18 @@ export function LookDrawer({ form, templates, selectedDensity, changeForm, works
     <div className="look-drawer-body">
       <div className="look-tiles" role="group" aria-label="Graphic look">{looks.map((look) => <button key={look.layout} type="button" aria-pressed={form.layout === look.layout} className={form.layout === look.layout ? "selected" : ""} onClick={() => changeForm({ layout: look.layout, templateCueId: look.id })}><GraphicMiniature cue={tileCue(look.layout)} workspace={workspace} faces={faces} label={look.label} /><span className="look-tile-label"><strong>{look.label}</strong></span>{form.layout === look.layout && <Check size={15} />}</button>)}</div>
       <div className="appearance-controls"><fieldset><legend>Text density</legend><div>{densityOptions.map((option) => <button key={option.id} type="button" aria-pressed={selectedDensity === option.id} className={selectedDensity === option.id ? "active" : ""} onClick={() => changeForm({ presentation: withTextSize(form.presentation, option.id) })}>{option.label}</button>)}</div></fieldset><fieldset><legend>Alignment</legend><div><button type="button" aria-pressed={!form.presentation.alignment} className={!form.presentation.alignment ? "active" : ""} onClick={() => clearField("alignment")}>Template default</button><button type="button" aria-pressed={form.presentation.alignment === "start"} className={form.presentation.alignment === "start" ? "active" : ""} onClick={() => setPresentation({ alignment: "start" })}>Logical start</button><button type="button" aria-pressed={form.presentation.alignment === "center"} className={form.presentation.alignment === "center" ? "active" : ""} onClick={() => setPresentation({ alignment: "center" })}>Centered</button></div><p className="control-note">Logical start keeps Hebrew reading from the right and Latin text from the left.</p></fieldset><fieldset><legend>Line spacing</legend><div><button type="button" aria-pressed={!form.presentation.lineSpacing} className={!form.presentation.lineSpacing ? "active" : ""} onClick={() => clearField("lineSpacing")}>Template default</button><button type="button" aria-pressed={form.presentation.lineSpacing === "compact"} className={form.presentation.lineSpacing === "compact" ? "active" : ""} onClick={() => setPresentation({ lineSpacing: "compact" })}>Compact</button><button type="button" aria-pressed={form.presentation.lineSpacing === "spacious"} className={form.presentation.lineSpacing === "spacious" ? "active" : ""} onClick={() => setPresentation({ lineSpacing: "spacious" })}>Spacious</button></div></fieldset></div>
-      <TypographyControls presentation={form.presentation} change={(presentation) => changeForm({ presentation })} />
+      {form.layout === "bottom" && <fieldset className="bottom-arrangement"><legend>Bottom panel arrangement</legend><div>
+        <button type="button" aria-pressed={form.presentation.bottomLayout !== "stacked"} onClick={() => setPresentation({ bottomLayout: "columns" })}>Side by side</button>
+        <button type="button" aria-pressed={form.presentation.bottomLayout === "stacked"} onClick={() => setPresentation({ bottomLayout: "stacked" })}>Stacked</button>
+      </div></fieldset>}
+      {form.mode === "local-variant" && form.variantBase?.mode === "bilingual" && <label className="layer-order"><span>Order</span>
+        <select aria-label="Layer order, top to bottom" value={formRowOrder(form).join(",")} onChange={(event) => {
+          if (form.variantBase?.mode !== "bilingual") return;
+          const rowOrder = event.target.value.split(",") as TextLayer[];
+          changeForm({ rowOrder, variantBase: { ...form.variantBase, rowOrder }, ...(form.layout === "bottom" ? { presentation: { ...form.presentation, bottomLayout: "stacked" } } : {}) });
+        }}>{ROW_ORDERS.map((order) => <option key={order.join(",")} value={order.join(",")}>{order.map((layer) => LAYER_NAMES[layer]).join(" · ")}</option>)}</select>
+      </label>}
+      <TypographyControls presentation={form.presentation} sidePanel={form.layout === "left" || form.layout === "right"} change={(presentation) => changeForm({ presentation })} />
       <ArtworkPicker workspace={workspace} assets={assets} selectedId={form.presentation.imageAssetId} error={assetError} busy={busy} select={(id) => id ? setPresentation({ imageAssetId: id }) : clearField("imageAssetId")} uploadAsset={uploadAsset} setAssetArchived={setAssetArchived} showArchived={showArchivedAssets} setShowArchived={setShowArchivedAssets} />
       <button type="button" className="reset-appearance" onClick={() => changeForm({ presentation: {} })}><RotateCcw size={15} /> Reset visual settings to template</button>
     </div>

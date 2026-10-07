@@ -72,7 +72,8 @@ test('Publish is one click from a saved draft, with no Review step before it', (
   assert.ok(editor.includes('`Published version ${response.revision.draftVersion}.`'), 'and the toast afterwards names the version');
 });
 
-test('a fit problem still blocks publication', () => {
-  assert.ok(editor.includes('if (!draft || dirty || fitErrors.length) return;'), 'the action refuses');
+test('overflow still blocks publication, while overlaps require confirmation', () => {
+  assert.ok(editor.includes('if (issues.blocking.length) return;'), 'overflow refuses the action');
+  assert.ok(editor.includes('setFitIssuePrompt({ stamp, issues: issues.confirmations })'), 'overlap opens the confirmation');
   assert.ok(editor.includes('Fix fit issues to publish'), 'and the dock says why');
 });

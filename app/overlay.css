@@ -314,7 +314,7 @@ only its translation is a single channel and takes the full block, as any single
 
 .overlay[data-legacy-title-watermark] .title-accent{display:none}
 .overlay[data-legacy-title-watermark] .title:not(.title-accent){z-index:1}
-.left .title:not(.title-accent),.right .title:not(.title-accent){font-size:34px}
+.left .title:not(.title-accent),.right .title:not(.title-accent){font-size:42px}
 .overlay[data-legacy-title-watermark].left .title:not(.title-accent){top:58px;height:102px}
 .overlay[data-legacy-title-watermark].right .title:not(.title-accent){top:58px;height:102px}
 .overlay.left:not(:has(.title-accent)) .title,.overlay.right:not(:has(.title-accent)) .title{top:58px;height:102px}
@@ -323,3 +323,19 @@ only its translation is a single channel and takes the full block, as any single
 .right .title-watermark{right:16px;top:24px;width:640px;height:142px}
 .bottom .title-watermark{left:20px;bottom:calc(var(--bottom-text-height) + 40px);width:1880px;height:50px}
 .overlay[data-card] .title-watermark{left:var(--card-strip-left,auto);right:var(--card-strip-right,auto);top:var(--card-strip-top,auto);bottom:var(--card-strip-bottom,auto);width:var(--card-strip-width);height:var(--card-strip-height)}
+
+/* Text alignment acts on lines, without a flex text item retaining its old position. */
+.bottom .prayer{display:block}
+.bottom .title{line-height:1.5;overflow:visible}
+.bottom .title-accent,.overlay[data-accent-typography].bottom .title-accent{height:58px;line-height:1.5;bottom:calc(var(--bottom-text-height) + 36px);overflow:visible}
+.left .title-accent,.right .title-accent,.overlay[data-accent-typography].left .title-accent,.overlay[data-accent-typography].right .title-accent{font-size:42px;top:102px;height:60px;line-height:1.35}
+
+/* Lower-third body: content widths share a compact gap; stacking follows authored layer order. */
+.bottom-body{position:absolute;left:250px;bottom:28px;width:1610px;display:grid;grid-template-columns:1fr 1fr;column-gap:32px;row-gap:14px;align-items:start;justify-content:start}
+.bottom .bottom-body .prayer{position:relative;inset:auto;width:auto;height:auto;display:block;margin:0}
+.bottom-body[data-layout="columns"] .english:not(.single-channel){grid-column:1;grid-row:1}
+.bottom-body[data-layout="columns"] .hebrew:not(.single-channel){grid-column:2;grid-row:1}
+.bottom-body[data-layout="columns"] .translation{grid-column:1 / -1;grid-row:2}
+.bottom-body[data-layout="columns"] .single-channel{grid-column:1 / -1;grid-row:1}
+.bottom-body[data-layout="stacked"]{grid-template-columns:1fr}
+.bottom .bottom-body .translation:not(.single-channel){font-size:30px;line-height:1.22;color:color-mix(in srgb,var(--crc-ink,#123) 78%,transparent)}

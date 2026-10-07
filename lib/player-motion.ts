@@ -15,7 +15,10 @@ export const GROUPS:Record<string,string[]>={
 
 export function tracksFor(element:string,direction:AnimationDirection,tracks:AnimationTrack[]){
  const names=new Set([element,...(GROUPS[element]||[])]);
- return tracks.filter(track=>track.direction===direction&&names.has(track.element)&&track.effect?.effect!=='none');
+ const matched=tracks.filter(track=>track.direction===direction&&names.has(track.element)&&track.effect?.effect!=='none');
+ // Imported templates often name only the Latin title. Both title languages share its motion.
+ if(!matched.length&&element==='accentTextTitle')return tracksFor('textTitle',direction,tracks);
+ return matched;
 }
 
 export function acceptsRevision(next:PlayerState,current:PlayerState){return next.revision>current.revision}

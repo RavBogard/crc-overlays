@@ -141,14 +141,14 @@ export function resolveCueLayout(cue:{layout:string;layoutRef?:LayoutRef},resolv
  * transliteration; a lone channel (custom text, one English line) is centred in the whole body.
  */
 export const CORNER_CARD:CardDefinition={
- frame:{anchor:'bottom-right',insetX:48,insetY:48,width:640,height:200},
- surface:{radius:18,stripHeight:56,ruleHeight:6},
- logo:{x:580,y:6,size:44},
- title:{x:32,y:4,width:532,height:48,fontSize:28,lineHeight:1.1,accentWidth:220,accentGap:12},
+ frame:{anchor:'bottom-right',insetX:48,insetY:48,width:640,height:224},
+ surface:{radius:18,stripHeight:80,ruleHeight:6},
+ logo:{x:556,y:4,size:72},
+ title:{x:32,y:4,width:508,height:72,fontSize:28,lineHeight:1.1,accentWidth:220,accentGap:12},
  body:{x:32,width:584,
-  hebrew:{y:66,height:58,fontSize:40,lineHeight:1.24,direction:'rtl',align:'start'},
-  latin:{y:130,height:56,fontSize:32,lineHeight:1.24,align:'start'},
-  single:{y:66,height:120,fontSize:36,lineHeight:1.22,align:'natural'}},
+  hebrew:{y:90,height:58,fontSize:40,lineHeight:1.24,direction:'rtl',align:'start'},
+  latin:{y:154,height:56,fontSize:32,lineHeight:1.24,align:'start'},
+  single:{y:90,height:120,fontSize:36,lineHeight:1.22,align:'natural'}},
  fit:{strategy:'shrink-to-floor',floor:20,maxSteps:40,glyphTolerance:6,fill:null,heightCeiling:null},
 };
 

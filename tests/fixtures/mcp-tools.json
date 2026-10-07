@@ -979,6 +979,13 @@
              "frank-ruhl-libre"
             ]
            },
+           "bottomLayout": {
+            "type": "string",
+            "enum": [
+             "columns",
+             "stacked"
+            ]
+           },
            "verticalAlignment": {
             "type": "string",
             "enum": [
@@ -1070,7 +1077,7 @@
             "en"
            ]
           },
-          "description": "Order the Hebrew (he), transliteration (tr) and translation (en) layers stack in on a left or right panel, in both arrangements. Default he, tr, en, which is stored as absent; a lower third ignores it."
+          "description": "Order the Hebrew (he), transliteration (tr) and translation (en) layers stack in on a left or right panel, in both arrangements. Default he, tr, en, which is stored as absent; also sets the order of stacked bottom panels and corner cards."
          },
          "blockIds": {
           "minItems": 1,
@@ -1226,6 +1233,13 @@
              "frank-ruhl-libre"
             ]
            },
+           "bottomLayout": {
+            "type": "string",
+            "enum": [
+             "columns",
+             "stacked"
+            ]
+           },
            "verticalAlignment": {
             "type": "string",
             "enum": [
@@ -1317,7 +1331,7 @@
             "en"
            ]
           },
-          "description": "Order the Hebrew (he), transliteration (tr) and translation (en) layers stack in on a left or right panel, in both arrangements. Default he, tr, en, which is stored as absent; a lower third ignores it."
+          "description": "Order the Hebrew (he), transliteration (tr) and translation (en) layers stack in on a left or right panel, in both arrangements. Default he, tr, en, which is stored as absent; also sets the order of stacked bottom panels and corner cards."
          },
          "panels": {
           "minItems": 1,
@@ -1484,6 +1498,13 @@
              "noto-sans",
              "david-libre",
              "frank-ruhl-libre"
+            ]
+           },
+           "bottomLayout": {
+            "type": "string",
+            "enum": [
+             "columns",
+             "stacked"
             ]
            },
            "verticalAlignment": {
@@ -1921,7 +1942,7 @@
             "en"
            ]
           },
-          "description": "Order the Hebrew (he), transliteration (tr) and translation (en) layers stack in on a left or right panel, in both arrangements. Default he, tr, en, which is stored as absent; a lower third ignores it."
+          "description": "Order the Hebrew (he), transliteration (tr) and translation (en) layers stack in on a left or right panel, in both arrangements. Default he, tr, en, which is stored as absent; also sets the order of stacked bottom panels and corner cards."
          },
          "comfortableTypography": {
           "type": "boolean"
@@ -2357,6 +2378,13 @@
         "frank-ruhl-libre"
        ]
       },
+      "bottomLayout": {
+       "type": "string",
+       "enum": [
+        "columns",
+        "stacked"
+       ]
+      },
       "verticalAlignment": {
        "type": "string",
        "enum": [
@@ -2629,7 +2657,7 @@
              "en"
             ]
            },
-           "description": "Order the Hebrew (he), transliteration (tr) and translation (en) layers stack in on a left or right panel, in both arrangements. Default he, tr, en, which is stored as absent; a lower third ignores it."
+           "description": "Order the Hebrew (he), transliteration (tr) and translation (en) layers stack in on a left or right panel, in both arrangements. Default he, tr, en, which is stored as absent; also sets the order of stacked bottom panels and corner cards."
           },
           "preserveGroups": {
            "type": "boolean"
@@ -2853,7 +2881,7 @@
                "en"
               ]
              },
-             "description": "Order the Hebrew (he), transliteration (tr) and translation (en) layers stack in on a left or right panel, in both arrangements. Default he, tr, en, which is stored as absent; a lower third ignores it."
+             "description": "Order the Hebrew (he), transliteration (tr) and translation (en) layers stack in on a left or right panel, in both arrangements. Default he, tr, en, which is stored as absent; also sets the order of stacked bottom panels and corner cards."
             },
             "preserveGroups": {
              "type": "boolean"
@@ -3101,6 +3129,13 @@
         "noto-sans",
         "david-libre",
         "frank-ruhl-libre"
+       ]
+      },
+      "bottomLayout": {
+       "type": "string",
+       "enum": [
+        "columns",
+        "stacked"
        ]
       },
       "verticalAlignment": {
@@ -7040,7 +7075,7 @@
              "en"
             ]
            },
-           "description": "Order the Hebrew (he), transliteration (tr) and translation (en) layers stack in on a left or right panel, in both arrangements. Default he, tr, en, which is stored as absent; a lower third ignores it."
+           "description": "Order the Hebrew (he), transliteration (tr) and translation (en) layers stack in on a left or right panel, in both arrangements. Default he, tr, en, which is stored as absent; also sets the order of stacked bottom panels and corner cards."
           },
           "preserveGroups": {
            "type": "boolean"
@@ -7264,7 +7299,7 @@
                "en"
               ]
              },
-             "description": "Order the Hebrew (he), transliteration (tr) and translation (en) layers stack in on a left or right panel, in both arrangements. Default he, tr, en, which is stored as absent; a lower third ignores it."
+             "description": "Order the Hebrew (he), transliteration (tr) and translation (en) layers stack in on a left or right panel, in both arrangements. Default he, tr, en, which is stored as absent; also sets the order of stacked bottom panels and corner cards."
             },
             "preserveGroups": {
              "type": "boolean"
@@ -7512,6 +7547,13 @@
         "noto-sans",
         "david-libre",
         "frank-ruhl-libre"
+       ]
+      },
+      "bottomLayout": {
+       "type": "string",
+       "enum": [
+        "columns",
+        "stacked"
        ]
       },
       "verticalAlignment": {
@@ -9482,7 +9524,7 @@
        "en"
       ]
      },
-     "description": "Order the Hebrew (he), transliteration (tr) and translation (en) layers stack in on a left or right panel, in both arrangements. Default he, tr, en, which is stored as absent; a lower third ignores it."
+     "description": "Order the Hebrew (he), transliteration (tr) and translation (en) layers stack in on a left or right panel, in both arrangements. Default he, tr, en, which is stored as absent; also sets the order of stacked bottom panels and corner cards."
     },
     "comfortableTypography": {
      "type": "boolean"
@@ -9931,7 +9973,7 @@
          "en"
         ]
        },
-       "description": "Order the Hebrew (he), transliteration (tr) and translation (en) layers stack in on a left or right panel, in both arrangements. Default he, tr, en, which is stored as absent; a lower third ignores it."
+       "description": "Order the Hebrew (he), transliteration (tr) and translation (en) layers stack in on a left or right panel, in both arrangements. Default he, tr, en, which is stored as absent; also sets the order of stacked bottom panels and corner cards."
       },
       {
        "type": "null"
@@ -10458,7 +10500,7 @@
                "en"
               ]
              },
-             "description": "Order the Hebrew (he), transliteration (tr) and translation (en) layers stack in on a left or right panel, in both arrangements. Default he, tr, en, which is stored as absent; a lower third ignores it."
+             "description": "Order the Hebrew (he), transliteration (tr) and translation (en) layers stack in on a left or right panel, in both arrangements. Default he, tr, en, which is stored as absent; also sets the order of stacked bottom panels and corner cards."
             },
             "preserveGroups": {
              "type": "boolean"
@@ -10682,7 +10724,7 @@
                  "en"
                 ]
                },
-               "description": "Order the Hebrew (he), transliteration (tr) and translation (en) layers stack in on a left or right panel, in both arrangements. Default he, tr, en, which is stored as absent; a lower third ignores it."
+               "description": "Order the Hebrew (he), transliteration (tr) and translation (en) layers stack in on a left or right panel, in both arrangements. Default he, tr, en, which is stored as absent; also sets the order of stacked bottom panels and corner cards."
               },
               "preserveGroups": {
                "type": "boolean"
@@ -10930,6 +10972,13 @@
           "noto-sans",
           "david-libre",
           "frank-ruhl-libre"
+         ]
+        },
+        "bottomLayout": {
+         "type": "string",
+         "enum": [
+          "columns",
+          "stacked"
          ]
         },
         "verticalAlignment": {

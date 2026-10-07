@@ -194,13 +194,13 @@ function TextLayerControls(props: { form: DraftForm; source: Source; changeForm:
     {lit.length > 1 && <div className="layer-arrangement" role="group" aria-label="Arrangement">
       {([["together", "Together"], ["blocks", "In blocks"]] as const).map(([value, label]) =>
         <button key={value} type="button" className={props.form.arrangement === value ? "chip on" : "chip"} aria-pressed={props.form.arrangement === value}
-          disabled={!panel} title={panel ? "" : "A lower third keeps its two columns side by side."}
+          disabled={!panel} title={panel ? "" : "Together and In blocks are available on side panels."}
           onClick={() => props.changeForm({ arrangement: value })}>{label}</button>)}
     </div>}
-    {lit.length > 1 && <label className="layer-order" title={panel ? "The order the layers stack in, top to bottom." : "A lower third keeps its two columns side by side."}>
+    {lit.length > 1 && <label className="layer-order" title="The order the layers stack in, top to bottom.">
       <span>Order</span>
-      <select aria-label="Layer order, top to bottom" value={order} disabled={!panel}
-        onChange={(event) => props.changeForm({ rowOrder: event.target.value.split(",") as TextLayer[] })}>
+      <select aria-label="Layer order, top to bottom" value={order}
+        onChange={(event) => props.changeForm({ rowOrder: event.target.value.split(",") as TextLayer[], ...(props.form.layout === "bottom" ? { presentation: { ...props.form.presentation, bottomLayout: "stacked" } } : {}) })}>
         {ROW_ORDERS.map((value) => <option key={value.join(",")} value={value.join(",")}>{orderLabel(value)}</option>)}
       </select>
     </label>}

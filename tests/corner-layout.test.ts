@@ -46,7 +46,7 @@ test('the corner layout is a card anchored bottom-right, and only the corner is'
 
 test('the corner card sits flush in the bottom-right corner at the logo and scan-card inset',()=>{
  const base=rect('base');
- assert.deepEqual(base,{left:1232,right:1872,top:832,bottom:1032});
+ assert.deepEqual(base,{left:1232,right:1872,top:808,bottom:1032});
  assert.equal(base.right,RESTING_LOGO_RECT.right,'same right inset as the resting logo');
  assert.equal(base.bottom,RESTING_LOGO_RECT.bottom,'same bottom inset as the resting logo');
  assert.equal(base.right,BUG_RESERVED_RECT.right);
@@ -56,7 +56,7 @@ test('the corner card sits flush in the bottom-right corner at the logo and scan
 
 test('every corner part and text box lies inside the card',()=>{
  const base=rect('base'),strip=rect('strip'),logo=rect('logo'),title=rect('title');
- assert.deepEqual(strip,{left:1232,right:1872,top:832,bottom:888},'the title strip is the top 56px');
+ assert.deepEqual(strip,{left:1232,right:1872,top:808,bottom:888},'the title strip contains the enlarged logo');
  assert.deepEqual(rect('rule'),{left:1232,right:1872,top:1026,bottom:1032},'the accent rule is the bottom 6px');
  for(const [name,box] of [['strip',strip],['rule',rect('rule')],['logo',logo],['title',title]] as const)assert.ok(inside(box,base),`${name} is inside the card`);
  const hebrew=rect('body','hebrew'),latin=rect('body','latin'),single=rect('body','single');

@@ -5,7 +5,7 @@ import {CORNER_CARD,cardStyle,resolveCueLayout,type CardDefinition,type LayoutRe
 import {acceptsRevision,effectFrames,easingFor,incomingStillDesired,measuredBottomTextHeight,textParts,tracksFor,type AnimationDirection,type AnimationTrack,type PlayerState} from './player-motion.ts';
 export type CueTemplate={family?:'lower-third'|'panel-left'|'panel-right';version?:string;translatePx?:number};
 export type ContentRow={he:string;tr:string;en:string};
-export type CuePresentation={hebrewFontSize?:number;transliterationFontSize?:number;translationFontSize?:number;titleFontSize?:number;hebrewLineHeight?:number;transliterationLineHeight?:number;translationLineHeight?:number;titleLineHeight?:number;hebrewLetterSpacing?:number;transliterationLetterSpacing?:number;translationLetterSpacing?:number;titleLetterSpacing?:number;hebrewFontFamily?:'noto-sans'|'david-libre'|'frank-ruhl-libre';verticalAlignment?:'top'|'center'|'bottom';legacyTitleWatermark?:boolean;keepHyphenatedWords?:boolean;largePrint?:boolean;alignment?:'start'|'center';lineSpacing?:'compact'|'spacious';imageAssetId?:string;latinLineBreaks?:'preserve'|'paragraphs'|'phrases'};
+export type CuePresentation={hebrewFontSize?:number;transliterationFontSize?:number;translationFontSize?:number;titleFontSize?:number;hebrewLineHeight?:number;transliterationLineHeight?:number;translationLineHeight?:number;titleLineHeight?:number;hebrewLetterSpacing?:number;transliterationLetterSpacing?:number;translationLetterSpacing?:number;titleLetterSpacing?:number;hebrewFontFamily?:'noto-sans'|'david-libre'|'frank-ruhl-libre';bottomLayout?:'columns'|'stacked';verticalAlignment?:'top'|'center'|'bottom';legacyTitleWatermark?:boolean;keepHyphenatedWords?:boolean;largePrint?:boolean;alignment?:'start'|'center';lineSpacing?:'compact'|'spacious';imageAssetId?:string;latinLineBreaks?:'preserve'|'paragraphs'|'phrases'};
 export type Cue={id:string;name:string;layout:string;texts:Record<string,string>;animations:AnimationTrack[];duration:Record<string,number>;presentation?:CuePresentation;template?:CueTemplate;contentRows?:ContentRow[];rowOrder?:Array<keyof ContentRow>;hidden?:boolean;aliasOf?:string;layoutRef?:LayoutRef};
 /** `layouts`: the catalog envelope's pinned data-layout definitions (lib/layout-registry.ts resolveCueLayout); read on every render, so a caller may keep adding to the same object. */
 export type PlayerOptions={resolveAssetUrl?:(cue:Cue)=>string|undefined|Promise<string|undefined>;waitForAssets?:(root:HTMLElement)=>Promise<void>;layouts?:ResolvedLayouts};
@@ -65,7 +65,41 @@ function fitPanelRows(box:HTMLElement,cue:Cue){
 // already grows with its text; the translation's own height and the gap above it are published
 // as their own variables so the columns sit above it rather than behind it.
 export function constrainedBottomTextHeight(measuredHeight:number,overflow:number){return Math.max(0,Math.ceil(measuredHeight))+Math.max(0,Math.ceil(overflow))}
-function fitBottomText(box:HTMLElement){const prayers=Array.from(box.querySelectorAll<HTMLElement>('.prayer'));prayers.forEach(el=>el.style.height='auto');const translation=box.querySelector<HTMLElement>('.prayer.translation:not(.single-channel)');const gap=translation?14:0;const translationHeight=translation?Math.max(0,Math.ceil(translation.scrollHeight)):0;let height=measuredBottomTextHeight(prayers.filter(el=>el!==translation).map(el=>el.scrollHeight))+translationHeight+gap;box.style.setProperty('--bottom-translation-height',`${translationHeight}px`);box.style.setProperty('--bottom-translation-gap',`${gap}px`);prayers.forEach(el=>el.style.height='');for(let attempt=0;attempt<3;attempt++){box.style.setProperty('--bottom-text-height',`${height}px`);const overflow=Math.max(0,...prayers.map(el=>el.scrollHeight-el.clientHeight));if(!overflow)break;height=constrainedBottomTextHeight(height,overflow)}}
+/** Allocate only the width the two texts need, sharing available room when either must wrap. */
+export function bottomColumnWidths(latin:number,hebrew:number,available=1578){
+ const needs=[Math.max(80,Math.ceil(latin)),Math.max(80,Math.ceil(hebrew))];
+ if(needs[0]+needs[1]<=available)return needs;
+ const first=Math.max(80,Math.min(available-80,Math.round(available*needs[0]/(needs[0]+needs[1]))));
+ return [first,available-first];
+}
+function fitBottomBody(box:HTMLElement,cue:Cue){
+ const body=box.querySelector<HTMLElement>('.bottom-body');if(!body)return;
+ const prayers=Array.from(body.querySelectorAll<HTMLElement>('.prayer'));
+ body.style.justifyContent=cue.presentation?.alignment==='center'?'center':'start';
+ const order=cue.rowOrder??['he','tr','en'];
+ const layer=(el:HTMLElement)=>el.classList.contains('hebrew')?'he':el.classList.contains('translation')?'en':'tr';
+ if(cue.presentation?.bottomLayout==='stacked'){
+  prayers.sort((a,b)=>order.indexOf(layer(a))-order.indexOf(layer(b))).forEach(el=>body.appendChild(el));
+ }else{
+  const latin=body.querySelector<HTMLElement>('.english:not(.single-channel)'),hebrew=body.querySelector<HTMLElement>('.hebrew:not(.single-channel)');
+  if(latin&&hebrew){
+   const intrinsic=(el:HTMLElement)=>{const probe=el.cloneNode(true) as HTMLElement;probe.style.cssText=el.style.cssText;probe.style.position='absolute';probe.style.width='max-content';probe.style.whiteSpace='pre';probe.style.visibility='hidden';body.appendChild(probe);const width=probe.offsetWidth;probe.remove();return width};
+   const widths=bottomColumnWidths(intrinsic(latin),intrinsic(hebrew));body.style.gridTemplateColumns=widths.map(width=>`${width}px`).join(' ');
+  }else body.style.gridTemplateColumns='1fr';
+ }
+ box.style.setProperty('--bottom-text-height',`${measuredBottomTextHeight([body.scrollHeight])}px`);
+}
+/** Respect authored order on fixed cards and legacy two-block panels as well as structured rows. */
+function fitChannelOrder(box:HTMLElement,cue:Cue){
+ if(!cue.rowOrder||cue.layout==='bottom'||usesPanelRows(cue))return;
+ const channels=Array.from(box.querySelectorAll<HTMLElement>('.prayer:not(.single-channel)'));
+ if(channels.length<2)return;
+ const layer=(el:HTMLElement)=>el.classList.contains('hebrew')?'he':el.classList.contains('translation')?'en':'tr';
+ const positioned=channels.map(el=>({el,top:el.offsetTop,height:el.offsetHeight})).sort((a,b)=>a.top-b.top);
+ const gap=Math.max(0,positioned[1].top-positioned[0].top-positioned[0].height);
+ let top=positioned[0].top;
+ positioned.sort((a,b)=>cue.rowOrder!.indexOf(layer(a.el))-cue.rowOrder!.indexOf(layer(b.el))).forEach(({el,height})=>{el.style.top=`${top}px`;el.style.bottom='auto';top+=height+gap});
+}
 // A card's boxes are fixed by its definition (lib/layout-registry.ts), so its fit strategy decides
 // what a line too long for its box does. `shrink-to-floor` (the corner card's) steps it down a
 // pixel at a time to a readable floor rather than spilling out of the card. Hebrew keeps the fit
@@ -79,7 +113,7 @@ function applyPresentationTypography(box:HTMLElement,presentation:CuePresentatio
   {selector:'.hebrew,.row-hebrew',size:presentation.hebrewFontSize,line:presentation.hebrewLineHeight,spacing:presentation.hebrewLetterSpacing},
   {selector:'.english,.row-transliteration',size:presentation.transliterationFontSize,line:presentation.transliterationLineHeight,spacing:presentation.transliterationLetterSpacing},
   {selector:'.translation,.row-translation',size:presentation.translationFontSize,line:presentation.translationLineHeight,spacing:presentation.translationLetterSpacing},
-  {selector:'.title',size:presentation.titleFontSize,line:presentation.titleLineHeight,spacing:presentation.titleLetterSpacing},
+  {selector:'.title',size:box.classList?.contains('left')||box.classList?.contains('right')?undefined:presentation.titleFontSize,line:presentation.titleLineHeight,spacing:presentation.titleLetterSpacing},
  ];
  const combined=box.querySelector<HTMLElement>('.combined');const pureHebrew=Boolean(combined&&/[\u0590-\u05ff]/.test(combined.textContent??'')&&!/[A-Za-z]/.test(combined.textContent??''));if(combined){const role=pureHebrew&&(presentation.hebrewFontSize!==undefined||presentation.hebrewLineHeight!==undefined||presentation.hebrewLetterSpacing!==undefined||presentation.hebrewFontFamily!==undefined)?roles[0]:!pureHebrew&&(presentation.translationFontSize!==undefined||presentation.translationLineHeight!==undefined||presentation.translationLetterSpacing!==undefined)?roles[2]:roles[1];roles.push({...role,selector:'.combined'})}
  for(const {selector,size,line,spacing} of roles)box.querySelectorAll<HTMLElement>(selector).forEach(el=>{if(typeof size==='number'&&Number.isFinite(size)&&size>=20&&size<=72)el.style.fontSize=`${size}px`;if(typeof line==='number'&&Number.isFinite(line))el.style.lineHeight=String(line);if(typeof spacing==='number'&&Number.isFinite(spacing))el.style.letterSpacing=`${spacing}px`});
@@ -122,30 +156,63 @@ export class Player{
   * nothing about what a compositor is doing with the frame.
   */
  get occupied(){return this.desired.cue!==null||this.current!==null||this.root.childElementCount>0}
- render(c:Cue,imageAssetUrl?:string){const noHebrewPanel=(c.layout==='left'||c.layout==='right')&&Boolean(c.texts.textMainEng&&c.texts.textTranslation&&!c.texts.textMainheb);const box=document.createElement('div');box.className=`overlay ${c.layout}${noHebrewPanel?' panel-translation-stack':''}`;const definition=resolveCueLayout(c,this.options.layouts);/* A data layout's id is an author's word: it is not a class, so it can never match a rule meant for a built-in layout or a part. */if(c.layoutRef){box.className='overlay';box.dataset.layout=c.layout}if(definition?.contained)box.dataset.contain='';if(definition?.card){box.dataset.card=c.layout;for(const [name,value] of Object.entries(cardStyle(definition.card)))box.style.setProperty(name,value)}/* L4: every branding colour and font role, as the CSS variables app/overlay.css reads. */for(const [name,value] of Object.entries(brandingCssVariables(this.branding)))box.style.setProperty(name,value);/* G10: the accent title's stored size and weight switch on their rules; none stored, none match. */if(hasAccentTypography(this.branding))box.dataset.accentTypography='';if(c.presentation?.largePrint)box.dataset.largePrint='true';if(c.presentation?.verticalAlignment)box.dataset.verticalAlignment=c.presentation.verticalAlignment;if(c.presentation?.legacyTitleWatermark&&c.texts.accentTextTitle)box.dataset.legacyTitleWatermark='true';
+ render(c:Cue,imageAssetUrl?:string,retained?:HTMLElement){const noHebrewPanel=(c.layout==='left'||c.layout==='right')&&Boolean(c.texts.textMainEng&&c.texts.textTranslation&&!c.texts.textMainheb);let box:HTMLElement=document.createElement('div');box.className=`overlay ${c.layout}${noHebrewPanel?' panel-translation-stack':''}`;const definition=resolveCueLayout(c,this.options.layouts);/* A data layout's id is an author's word: it is not a class, so it can never match a rule meant for a built-in layout or a part. */if(c.layoutRef){box.className='overlay';box.dataset.layout=c.layout}if(definition?.contained)box.dataset.contain='';if(definition?.card){box.dataset.card=c.layout;for(const [name,value] of Object.entries(cardStyle(definition.card)))box.style.setProperty(name,value)}/* L4: every branding colour and font role, as the CSS variables app/overlay.css reads. */for(const [name,value] of Object.entries(brandingCssVariables(this.branding)))box.style.setProperty(name,value);/* G10: the accent title's stored size and weight switch on their rules; none stored, none match. */if(hasAccentTypography(this.branding))box.dataset.accentTypography='';if(c.presentation?.largePrint)box.dataset.largePrint='true';if(c.presentation?.verticalAlignment)box.dataset.verticalAlignment=c.presentation.verticalAlignment;if((c.layout==='left'||c.layout==='right')&&c.presentation?.legacyTitleWatermark&&c.texts.accentTextTitle)box.dataset.legacyTitleWatermark='true';
 const add=(classes:string,text:string,name:string)=>{const el=document.createElement(classes==='logo'?'img':'div');el.className=`part ${classes}`;el.dataset.element=name;if(el instanceof HTMLImageElement){el.src=this.branding.logo;el.alt=this.branding.logoAlt}else el.textContent=text;box.appendChild(el);return el};
 add('base','','baseMain');add('titlebar','','baseTitle');const grad=add('titlebar titlegrad','','baseTitleGrad');grad.style.setProperty('background',`linear-gradient(90deg,${this.branding.titleShade},${this.branding.titleColor})`,'important');add('accent','','accentLineBottom');
-if(c.presentation?.legacyTitleWatermark&&c.texts.accentTextTitle){const watermark=document.createElement('div');watermark.className='title-watermark';watermark.textContent=legacyTitleDisplay(c.texts.accentTextTitle);watermark.setAttribute('aria-hidden','true');box.appendChild(watermark)}
-if(c.texts.textTitle)add('title',c.texts.textTitle,'textTitle');if(c.texts.accentTextTitle&&!c.presentation?.legacyTitleWatermark)add('title title-accent',c.texts.accentTextTitle,'accentTextTitle');if(usesPanelRows(c)){const rows=document.createElement('div');rows.className='part panel-rows';rows.dataset.rowCount=String(c.contentRows!.length);for(const [index,content] of c.contentRows!.entries()){const row=document.createElement('div');row.className='content-row';row.dataset.row=String(index+1);for(const item of panelRowChannels(content,c.rowOrder)){const channel=document.createElement('div');channel.className=`prayer ${item.classes}`;channel.textContent=displayPresentationText(item.text,item.element,c.presentation);channel.dataset.element=item.element;channel.dataset.animationElement=item.animationElement;row.appendChild(channel)}rows.appendChild(row)}box.appendChild(rows)}else for(const part of textParts(c.texts))add(part.classes,displayPresentationText(part.text,part.element,c.presentation),part.element);const logo=add('logo','','Image');if(logo instanceof HTMLImageElement&&imageAssetUrl)logo.src=imageAssetUrl;this.root.replaceChildren(box);if(c.presentation){const styles=presentationTextStyles(c.presentation);box.querySelectorAll<HTMLElement>('.prayer').forEach(element=>{if(styles.textAlign)element.style.textAlign=styles.textAlign;if(styles.lineHeight)element.style.lineHeight=styles.lineHeight});applyPresentationTypography(box,c.presentation)}this.applyFit(box,c);return box}
+if((c.layout==='left'||c.layout==='right')&&c.presentation?.legacyTitleWatermark&&c.texts.accentTextTitle){const watermark=document.createElement('div');watermark.className='part title-watermark';watermark.dataset.element='accentTextTitle';watermark.textContent=legacyTitleDisplay(c.texts.accentTextTitle);watermark.setAttribute('aria-hidden','true');box.appendChild(watermark)}
+if(c.texts.textTitle)add('title',c.texts.textTitle,'textTitle');if(c.texts.accentTextTitle&&!((c.layout==='left'||c.layout==='right')&&c.presentation?.legacyTitleWatermark))add('title title-accent',c.texts.accentTextTitle,'accentTextTitle');if(usesPanelRows(c)){const rows=document.createElement('div');rows.className='part panel-rows';rows.dataset.rowCount=String(c.contentRows!.length);for(const [index,content] of c.contentRows!.entries()){const row=document.createElement('div');row.className='content-row';row.dataset.row=String(index+1);for(const item of panelRowChannels(content,c.rowOrder)){const channel=document.createElement('div');channel.className=`prayer ${item.classes}`;channel.textContent=displayPresentationText(item.text,item.element,c.presentation);channel.dataset.element=item.element;channel.dataset.animationElement=item.animationElement;row.appendChild(channel)}rows.appendChild(row)}box.appendChild(rows)}else {const body=c.layout==='bottom'?document.createElement('div'):null;if(body){body.className='bottom-body';body.dataset.layout=c.presentation?.bottomLayout||'columns';box.appendChild(body)}for(const part of textParts(c.texts)){const el=add(part.classes,displayPresentationText(part.text,part.element,c.presentation),part.element);body?.appendChild(el)}}const logo=add('logo','','Image');if(logo instanceof HTMLImageElement&&imageAssetUrl)logo.src=imageAssetUrl;if(retained){
+ const chrome=['baseMain','baseTitle','baseTitleGrad','accentLineBottom','Image'];
+ for(const name of chrome){const existing=retained.querySelector<HTMLElement>(`[data-element="${name}"]`),replacement=box.querySelector<HTMLElement>(`[data-element="${name}"]`);if(existing&&replacement){if(existing instanceof HTMLImageElement&&replacement instanceof HTMLImageElement)existing.src=replacement.src;replacement.replaceWith(existing)}}
+ retained.className=box.className;retained.style.cssText=box.style.cssText;for(const key of Object.keys(retained.dataset))delete retained.dataset[key];Object.assign(retained.dataset,box.dataset);retained.replaceChildren(...Array.from(box.childNodes));box=retained;
+ }else this.root.replaceChildren(box);if(c.presentation){const styles=presentationTextStyles(c.presentation);box.querySelectorAll<HTMLElement>('.prayer').forEach(element=>{if(styles.textAlign)element.style.textAlign=styles.textAlign;if(styles.lineHeight)element.style.lineHeight=styles.lineHeight});applyPresentationTypography(box,c.presentation)}this.applyFit(box,c);return box}
  // Idempotent: safe to call again once fonts and artwork have settled, and every call
  // measures from the same baseline, so the final sizes never depend on the call count.
- applyFit(box:HTMLElement,cue:Cue):void{resetFitBaseline(box,cue);if((cue.layout==='left'||cue.layout==='right')&&!usesPanelRows(cue))fitPanelCopy(box,cue);if(cue.layout==='bottom')fitBottomText(box);const card=resolveCueLayout(cue,this.options.layouts)?.card;if(card)CARD_FIT[card.fit.strategy](box,card,cue);if(usesPanelRows(cue))fitPanelRows(box,cue);keepWatermarkClearOfLogo(box)}
+ applyFit(box:HTMLElement,cue:Cue):void{box.querySelectorAll<HTMLElement>('.prayer').forEach(el=>{el.style.top='';el.style.bottom=''});resetFitBaseline(box,cue);if((cue.layout==='left'||cue.layout==='right')&&!usesPanelRows(cue))fitPanelCopy(box,cue);if(cue.layout==='bottom')fitBottomBody(box,cue);const card=resolveCueLayout(cue,this.options.layouts)?.card;if(card)CARD_FIT[card.fit.strategy](box,card,cue);if(usesPanelRows(cue))fitPanelRows(box,cue);fitChannelOrder(box,cue);keepWatermarkClearOfLogo(box)}
  // Artwork that fails or times out falls back to the congregation branding logo so the
  // text cue still goes to air; font and layout failures still surface to the caller.
  async settleAssets(box:HTMLElement,imageAssetUrl?:string){const wait=this.options.waitForAssets??waitForRenderedOverlayAssets;try{await wait(box);return}catch(error){const logo=box.querySelector<HTMLImageElement>('img.logo');if(!imageAssetUrl||!logo||logo.src===this.branding.logo||(logo.complete&&Boolean(logo.naturalWidth)))throw error;logo.src=this.branding.logo;await wait(box)}}
- async animate(box:HTMLElement,c:Cue,direction:AnimationDirection){const duration=c.duration[direction]||.5;const translatePx=c.template?.translatePx||48;const elements=Array.from(box.querySelectorAll<HTMLElement>('[data-element]'));const finished=elements.flatMap(el=>tracksFor(el.dataset.animationElement||el.dataset.element||'',direction,c.animations).map(track=>{const range=track.keyframes?.length===2?track.keyframes:[0,duration];return el.animate(effectFrames(track.effect,direction,translatePx),{duration:Math.max(1,(range[1]-range[0])*1000),delay:range[0]*1000,fill:'both',easing:easingFor(track.effect)}).finished}));
-  // Every In animation holds its first keyframe (fill:'both' covers the delay phase), so the
-  // box drain() hid can be revealed without ever showing a frame at its resting state. On
-  // 'Out', and for a still that was rendered rather than drained, this is a no-op.
-  box.style.visibility='';
-  await Promise.all(finished)}
- async drain(){if(this.busy)return;this.busy=true;const g=this.generation;try{while(g===this.generation){if((this.current?.id??null)===this.desired.cue){this.revision=this.desired.revision;this.phase='settled';break}this.phase='transition';if(this.current&&this.root.firstElementChild){await this.animate(this.root.firstElementChild as HTMLElement,this.current,'Out');if(g!==this.generation)return;this.root.replaceChildren();this.current=null}if(this.desired.cue){const cue=this.cues.find(c=>c.id===this.desired.cue);if(!cue)throw Error('Unknown cue');const imageAssetUrl=await this.options.resolveAssetUrl?.(cue);if(g!==this.generation)return;const box=this.render(cue,imageAssetUrl);
-  /* Hidden here, not in render(): a sequenced transition must not paint the incoming graphic at
-     its resting position while the assets settle and the text is fitted, but render() on its own
-     is how every still preview is drawn — the console's Preview, the editor, the fit check — and
-     those never animate, so a box hidden by render() would never be revealed. Same task as the
-     insertion, so no frame can be painted between the two. */
-  box.style.visibility='hidden';await this.settleAssets(box,imageAssetUrl);if(g!==this.generation)return;this.applyFit(box,cue);await this.animate(box,cue,'In');if(g!==this.generation)return;if(!incomingStillDesired(cue.id,this.desired)){this.root.replaceChildren();continue}this.current=cue}}}catch{if(g===this.generation)this.phase='error'}finally{if(g===this.generation)this.busy=false}}
+ async animate(box:HTMLElement,c:Cue,direction:AnimationDirection,textOnly=false){
+  const duration=c.duration[direction]||.5,translatePx=c.template?.translatePx||48;
+  const elements=Array.from(box.querySelectorAll<HTMLElement>('[data-element]')).filter(el=>!textOnly||el.matches('.title,.title-watermark,.prayer'));
+  const finished=elements.flatMap(el=>{
+   const name=el.dataset.animationElement||el.dataset.element||'';
+   let tracks=tracksFor(name,direction,c.animations);
+   if(!tracks.length&&(textOnly||el.matches('.title,.title-watermark')))tracks=[{element:name,direction,effect:{effect:'fade'},keyframes:[0,.25]}];
+   el.style.visibility='';
+   return tracks.map(track=>{const range=track.keyframes?.length===2?track.keyframes:[0,duration];const frames=effectFrames(track.effect,direction,translatePx);if(el.classList.contains('title-watermark'))for(const frame of frames)if(frame.opacity!==undefined)frame.opacity=Number(frame.opacity)*.14;return el.animate(frames,{duration:Math.max(1,(range[1]-range[0])*1000),delay:range[0]*1000,fill:'both',easing:easingFor(track.effect)}).finished});
+  });
+  box.style.visibility='';await Promise.all(finished);
+ }
+ async drain(){
+  if(this.busy)return;this.busy=true;const g=this.generation;
+  try{while(g===this.generation){
+   if((this.current?.id??null)===this.desired.cue){this.revision=this.desired.revision;this.phase='settled';break}
+   this.phase='transition';let retained:HTMLElement|undefined;
+   if(this.current&&this.root.firstElementChild){
+    const old=this.root.firstElementChild as HTMLElement;
+    const next=this.cues.find(c=>c.id===this.desired.cue);
+    const wordsOnly=this.current.layout==='left'&&!this.current.layoutRef&&next?.layout==='left'&&!next.layoutRef;
+    await this.animate(old,this.current,'Out',wordsOnly);if(g!==this.generation)return;
+    const latest=this.cues.find(c=>c.id===this.desired.cue);
+    if(wordsOnly&&latest?.layout==='left'&&!latest.layoutRef)retained=old;
+    else{if(wordsOnly){await this.animate(old,this.current,'Out');if(g!==this.generation)return}this.root.replaceChildren();this.current=null}
+   }
+   if(this.desired.cue){
+    const cue=this.cues.find(c=>c.id===this.desired.cue);if(!cue)throw Error('Unknown cue');
+    const imageAssetUrl=await this.options.resolveAssetUrl?.(cue);if(g!==this.generation)return;
+    // A command may arrive during artwork lookup. Resolve the newest cue before replacing text.
+    if(!incomingStillDesired(cue.id,this.desired)){continue}
+    if(retained&&cue.layout!=='left')retained=undefined;
+    const box=this.render(cue,imageAssetUrl,retained);
+    if(retained)box.querySelectorAll<HTMLElement>('.title,.title-watermark,.prayer').forEach(el=>el.style.visibility='hidden');
+    else box.style.visibility='hidden';
+    await this.settleAssets(box,imageAssetUrl);if(g!==this.generation)return;
+    this.applyFit(box,cue);await this.animate(box,cue,'In',Boolean(retained));if(g!==this.generation)return;
+    this.current=cue;
+   }
+  }}catch{if(g===this.generation)this.phase='error'}finally{if(g===this.generation)this.busy=false}
+ }
+
 }
 
 

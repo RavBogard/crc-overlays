@@ -11,7 +11,7 @@ const ROLES = [
   { label: "Titles", size: "titleFontSize", height: "titleLineHeight", spacing: "titleLetterSpacing", min: 20, max: 42 },
 ] as const;
 
-export function TypographyControls({ presentation, change }: { presentation: Presentation; change: (value: Presentation) => void }) {
+export function TypographyControls({ presentation, sidePanel = false, change }: { presentation: Presentation; sidePanel?: boolean; change: (value: Presentation) => void }) {
   function set(field: keyof Presentation, value: unknown) {
     const next = { ...presentation };
     if (value === undefined || value === "") delete next[field];
@@ -29,14 +29,14 @@ export function TypographyControls({ presentation, change }: { presentation: Pre
       <label>Hebrew font<select value={presentation.hebrewFontFamily || ""} onChange={(event) => set("hebrewFontFamily", event.target.value)}>
         <option value="">Template default</option><option value="noto-sans">Noto Sans Hebrew</option><option value="david-libre">David Libre — serif</option><option value="frank-ruhl-libre">Frank Ruhl Libre — serif</option>
       </select></label>
-      <label className="typography-checkbox"><input type="checkbox" checked={presentation.legacyTitleWatermark === true} onChange={(event) => set("legacyTitleWatermark", event.target.checked)} /> Faint Hebrew watermark behind title</label>
-      <p className="control-note">Uses the Hebrew accent title without vowels. The saved wording stays intact.</p>
-      <button type="button" onClick={() => change({ ...presentation, hebrewFontFamily: "david-libre", verticalAlignment: "top", legacyTitleWatermark: true })}>Apply classic panel style</button>
+      {sidePanel && <label className="typography-checkbox"><input type="checkbox" checked={presentation.legacyTitleWatermark === true} onChange={(event) => set("legacyTitleWatermark", event.target.checked)} /> Faint Hebrew watermark behind title</label>}
+      {sidePanel && <><p className="control-note">Uses the Hebrew accent title without vowels. The saved wording stays intact.</p>
+      <button type="button" onClick={() => change({ ...presentation, hebrewFontFamily: "david-libre", verticalAlignment: "top", legacyTitleWatermark: true })}>Apply classic panel style</button></>}
     </fieldset>
     <details><summary>Individual text settings</summary>
       <p className="control-note">Blank values follow the template. These controls override shared line spacing for each text role.</p>
       {ROLES.map((role) => <fieldset key={role.size}><legend>{role.label}</legend><div className="typography-role">
-        <label>Size (px)<NumberSetting label={`${role.label} font size`} min={role.min} max={role.max} step={1} value={presentation[role.size]} change={(value) => set(role.size, value)} /></label>
+        {sidePanel && role.size === "titleFontSize" ? <p className="control-note">Standard side-panel title: 42px, independent of text density.</p> : <label>Size (px)<NumberSetting label={`${role.label} font size`} min={role.min} max={role.max} step={1} value={presentation[role.size]} change={(value) => set(role.size, value)} /></label>}
         <label>Line height<NumberSetting label={`${role.label} line height`} min={0.9} max={2} step={0.05} value={presentation[role.height]} change={(value) => set(role.height, value)} /></label>
         <label>Letter spacing (px)<NumberSetting label={`${role.label} letter spacing`} min={-2} max={8} step={0.25} value={presentation[role.spacing]} change={(value) => set(role.spacing, value)} /></label>
       </div></fieldset>)}

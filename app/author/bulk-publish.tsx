@@ -1,20 +1,22 @@
 "use client";
 
-import { useRef, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { LoaderCircle, UploadCloud } from "lucide-react";
 import { overlayBrandingFromWorkspace } from "@/lib/branding";
 import type { PublicWorkspace } from "@/lib/workspace";
 import { AuthoringApiError, authoringCall } from "./api";
 import { measureCue } from "./measure-cue";
+import { publishFitIssues } from "./preview";
+import { FitIssueDialog } from "./fit-issue-dialog";
 import type { BrowserMeasurement, Draft, PreviewResult, PublishedRevision, ReviewReceipt } from "./types";
 
 // The publish path (handoff 2026-09-14, part 2). An import leaves a hundred-odd drafts standing,
 // every one of which then needs preview, measure, review and publish by hand. This does that run
-// in one click: the click is the approval, so there is no dialog and no per-draft confirmation.
+// in one run. Overlapping language blocks ask for confirmation before that draft publishes.
 //
 // Every draft is measured here, in this browser, at 1920x1080 by the shared sequence
 // (app/author/measure-cue.ts) - the same lines the headless server stage runs. A draft whose
-// measurement reports fit problems is never reviewed and never published: it stays a draft and
+// measurement reports other fit problems is never reviewed and never published: it stays a draft and
 // is listed with what is wrong with it. The run does not stop at the first failure.
 //
 // Drafts go one at a time on purpose: authoringCall gives each request 12 s, and a parallel fan
@@ -40,6 +42,14 @@ export function BulkPublish({ apiKey, drafts, workspace, onFinished }: {
   const [running, setRunning] = useState(false);
   const [results, setResults] = useState<BulkResult[]>([]);
   const candidates = bulkCandidates(drafts);
+  const [fitPrompt, setFitPrompt] = useState<string[] | null>(null);
+  const resolveFitPrompt = useRef<((approved: boolean) => void) | null>(null);
+  useEffect(() => () => { resolveFitPrompt.current?.(false); }, []);
+  function answerFitPrompt(approved: boolean) {
+    resolveFitPrompt.current?.(approved);
+    resolveFitPrompt.current = null;
+    setFitPrompt(null);
+  }
 
   async function publishOne(draft: Draft, branding: ReturnType<typeof overlayBrandingFromWorkspace>): Promise<BulkResult> {
     const name = draft.name || draft.title;
@@ -48,7 +58,12 @@ export function BulkPublish({ apiKey, drafts, workspace, onFinished }: {
     const preview = await authoringCall<PreviewResult>(apiKey, "preview_draft", { draftId: draft.id, expectedVersion: draft.version });
     if (!preview.validation?.valid) return { id: draft.id, name, status: "skipped", detail: (preview.validation?.errors || []).join(" - ") || "The draft did not validate." };
     const measurement = await measureCue(stage, preview.cue, branding);
-    if (measurement.fitErrors.length) return { id: draft.id, name, status: "skipped", detail: measurement.fitErrors.join(" - ") };
+    const issues = publishFitIssues(measurement.fitErrors);
+    if (issues.blocking.length) return { id: draft.id, name, status: "skipped", detail: issues.blocking.join(" - ") };
+    if (issues.confirmations.length) {
+      const approved = await new Promise<boolean>((resolve) => { resolveFitPrompt.current = resolve; setFitPrompt(issues.confirmations); });
+      if (!approved) return { id: draft.id, name, status: "skipped", detail: "Publication cancelled after overlap review." };
+    }
     const browserMeasurement: BrowserMeasurement = { viewportWidth: 1920, viewportHeight: 1080, fontsReady: true, overflow: false, rendererVersion: RENDERER_VERSION, measuredAt: Date.now() };
     await authoringCall<ReviewReceipt>(apiKey, "review_draft", { draftId: draft.id, expectedVersion: draft.version, previewId: preview.previewId, browserMeasurement, humanApproved: true });
     const publish = (extra: object = {}) => authoringCall<{ revision: PublishedRevision; draft?: Draft; renamedFrom?: string }>(
@@ -89,6 +104,7 @@ export function BulkPublish({ apiKey, drafts, workspace, onFinished }: {
   if (!candidates.length && !results.length) return null;
   const published = results.filter((item) => item.status === "published").length;
   return <section className="bulk-publish" aria-label="Publish reviewed drafts">
+    {fitPrompt && <FitIssueDialog issues={fitPrompt} cancel={() => answerFitPrompt(false)} confirm={() => answerFitPrompt(true)} />}
     {candidates.length > 0 && <button className="bulk-publish-button" onClick={() => void run()} disabled={running}>
       {running ? <LoaderCircle className="spin" size={16} /> : <UploadCloud size={16} />}
       {running ? `Publishing ${Math.min(results.length + 1, candidates.length)} of ${candidates.length}…` : `Publish ${candidates.length} reviewed draft${candidates.length === 1 ? "" : "s"}`}

@@ -20,6 +20,7 @@ export type Presentation = {
   titleLetterSpacing?: number;
   hebrewFontFamily?: "noto-sans" | "david-libre" | "frank-ruhl-libre";
   verticalAlignment?: "top" | "center" | "bottom";
+  bottomLayout?: "columns" | "stacked";
   legacyTitleWatermark?: boolean;
   keepHyphenatedWords?: boolean;
   largePrint?: boolean;
