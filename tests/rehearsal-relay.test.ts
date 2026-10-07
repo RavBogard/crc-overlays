@@ -152,7 +152,7 @@ test('a control socket cannot acknowledge',async()=>{
 test('an output socket that goes stale is closed with 4408',async()=>{
  let clock=Date.now();
  const relay=await initializedRelay(()=>clock);
- const output=connect(relay,'output');
+ const output=connect(relay,'output',relayTicket('output',clock));
  assert.equal(await output.opened,'open');
  const id=hello(output.socket);
  output.socket.send(JSON.stringify({type:'ack',id,revision:0,cue:null,phase:'settled'}));
@@ -484,9 +484,9 @@ test('a malformed hello version is reported as null rather than closing the sock
 test('a controller that goes stale is closed with 4408 at exactly the stale deadline and leaves presence',async()=>{
  let clock=Date.now();
  const relay=await initializedRelay(()=>clock);
- const watcher=connect(relay,'control');
+ const watcher=connect(relay,'control',relayTicket('control',clock));
  assert.equal(await watcher.opened,'open');
- const companion=connect(relay,'control');
+ const companion=connect(relay,'control',relayTicket('control',clock));
  assert.equal(await companion.opened,'open');
  const id=controlHello(companion.socket,'companion','1.4.0');
  await watcher.recorder.next(frame=>frame.type==='presence'&&(frame.controllers as Frame[]).some(entry=>entry.id===id));
@@ -867,10 +867,10 @@ test('ifCue holds only while that graphic, or nothing for null, is pinned',async
 });
 
 test('press time per controller class is on /state and /command, never in a socket frame',async()=>{
- // Starts at wall time because the socket ticket is minted from the real clock.
+ // Mint the socket ticket from the same clock the simulated relay verifies.
  let clock=Date.now();
  const relay=await initializedRelay(()=>clock);
- const {socket,recorder:listener,opened}=connect(relay,'control');
+ const {socket,recorder:listener,opened}=connect(relay,'control',relayTicket('control',clock));
  assert.equal(await opened,'open');
  await listener.next(frame=>frame.type==='snapshot');
  assert.deepEqual((await (await request(relay,'/state')).json()).lastPress,{control:null,companion:null,mcp:null});
