@@ -5,7 +5,7 @@ import { useMemo, useState } from "react";
 import { layoutLabel } from "@/lib/layout-label";
 import { templateLooks, withTextSize, TEXT_SIZE_PRESETS } from "@/lib/template-looks";
 import GraphicMiniature, { sampleMiniatureCue } from "@/components/graphic-miniature";
-import type { Cue } from "@/lib/player";
+import { BOTTOM_COLUMNS, BOTTOM_DEFAULT_SPLIT, type Cue } from "@/lib/player";
 import type { PublicWorkspace } from "@/lib/workspace";
 import { EditorCard } from "./editor-card";
 import { TypographyControls } from "./typography-controls";
@@ -50,12 +50,14 @@ export function LookDrawer({ form, templates, selectedDensity, changeForm, works
       {form.layout === "bottom" && <fieldset className="bottom-arrangement"><legend>Bottom panel arrangement</legend><div>
         <button type="button" aria-pressed={form.presentation.bottomLayout !== "stacked"} onClick={() => setPresentation({ bottomLayout: "columns" })}>Side by side</button>
         <button type="button" aria-pressed={form.presentation.bottomLayout === "stacked"} onClick={() => setPresentation({ bottomLayout: "stacked" })}>Stacked</button>
-      </div></fieldset>}
+      </div>
+      {form.presentation.bottomLayout !== "stacked" && <BottomDivider split={form.presentation.bottomSplit} change={(bottomSplit) => setPresentation({ bottomSplit })} reset={() => clearField("bottomSplit")} />}
+      </fieldset>}
       {form.mode === "local-variant" && form.variantBase?.mode === "bilingual" && <label className="layer-order"><span>Order</span>
         <select aria-label="Layer order, top to bottom" value={formRowOrder(form).join(",")} onChange={(event) => {
           if (form.variantBase?.mode !== "bilingual") return;
           const rowOrder = event.target.value.split(",") as TextLayer[];
-          changeForm({ rowOrder, variantBase: { ...form.variantBase, rowOrder }, ...(form.layout === "bottom" ? { presentation: { ...form.presentation, bottomLayout: "stacked" } } : {}) });
+          changeForm({ rowOrder, variantBase: { ...form.variantBase, rowOrder } });
         }}>{ROW_ORDERS.map((order) => <option key={order.join(",")} value={order.join(",")}>{order.map((layer) => LAYER_NAMES[layer]).join(" · ")}</option>)}</select>
       </label>}
       <TypographyControls presentation={form.presentation} sidePanel={form.layout === "left" || form.layout === "right"} change={(presentation) => changeForm({ presentation })} />
@@ -69,4 +71,16 @@ function ArtworkPicker({ workspace, assets, selectedId, error, busy, select, upl
   const [file, setFile] = useState<File | null>(null), [name, setName] = useState(""), [altText, setAltText] = useState(""), [uploadError, setUploadError] = useState("");
   // eslint-disable-next-line @next/next/no-img-element -- Asset thumbnails use authenticated, no-store URLs and must not pass through Next's public image optimizer.
   return <div className="artwork-picker"><div className="artwork-heading"><span><strong>Upper-right artwork</strong><small>Replaces the congregation logo only. Images stay inside the approved region.</small></span><button type="button" className="artwork-archived-toggle" aria-pressed={showArchived} onClick={() => setShowArchived(!showArchived)}>{showArchived ? "Hide archived" : "Show archived"}</button></div><div className="artwork-grid"><button className={!selectedId ? "selected" : ""} onClick={() => select()}>{workspace?.logo.src ? <img src={workspace.logo.src} alt="" /> : <span className="artwork-placeholder" />}<span><strong>Congregation logo</strong><small>Template default</small></span>{!selectedId && <Check size={15} />}</button>{assets.map((asset) => <div key={asset.id} className={`artwork-tile${selectedId === asset.id ? " selected" : ""}${asset.archived ? " archived" : ""}`}><button className="artwork-choice" onClick={() => select(asset.id)} disabled={asset.archived}><img src={asset.privatePreviewUrl} alt="" /><span><strong>{asset.name}</strong><small>{asset.archived ? "Archived · " : ""}{asset.width} × {asset.height} · {Math.ceil(asset.bytes / 1024)} KB</small></span>{selectedId === asset.id && <Check size={15} />}</button><button className="icon-button artwork-action" aria-label={`${asset.archived ? "Restore" : "Archive"} ${asset.name}`} title={asset.archived ? "Restore" : "Archive"} disabled={busy === "archive-asset" || busy === "restore-asset"} onClick={() => setAssetArchived(asset, !asset.archived)}>{asset.archived ? <ArchiveRestore size={14} /> : <Archive size={14} />}</button></div>)}</div>{error && <p className="asset-error">{error}</p>}<details className="asset-upload"><summary>Upload approved artwork</summary><p>PNG, JPEG, or WebP · up to 512 KB and 4096 pixels. Still images only.</p><div className="asset-upload-fields"><label>Image<input type="file" accept="image/png,image/jpeg,image/webp" onChange={(event) => { const next = event.target.files?.[0] || null; setFile(next); if (next && !name) setName(next.name.replace(/\.[^.]+$/, "")); }} /></label><label>Name<input value={name} maxLength={80} onChange={(event) => setName(event.target.value)} /></label><label>Accessible description<input value={altText} maxLength={180} onChange={(event) => setAltText(event.target.value)} placeholder="Describe the image itself" /></label><button className="primary-button" disabled={!file || !name.trim() || !altText.trim() || busy === "upload-asset"} onClick={() => { if (!file) return; setUploadError(""); void uploadAsset(file, name, altText).then(() => { setFile(null); setName(""); setAltText(""); }).catch((value) => setUploadError(value instanceof Error ? value.message : "Artwork upload failed.")); }}>{busy === "upload-asset" ? <LoaderCircle className="spin" size={16} /> : <FilePlus2 size={16} />} Upload and select</button></div>{uploadError && <p className="asset-error">{uploadError}</p>}</details></div>;
+}
+
+/** Lower third, side by side: where the border between the transliteration and Hebrew columns sits. */
+function BottomDivider({ split, change, reset }: { split?: number; change: (value: number) => void; reset: () => void }) {
+  const value = split ?? BOTTOM_DEFAULT_SPLIT;
+  return <div className="bottom-divider">
+    <label htmlFor="bottom-divider">Divider between transliteration and Hebrew</label>
+    <input id="bottom-divider" type="range" min={BOTTOM_COLUMNS.minSplit} max={BOTTOM_COLUMNS.maxSplit} step={1} value={value}
+      aria-valuetext={`Transliteration ${value}%, Hebrew ${100 - value}%`} onChange={(event) => change(Number(event.target.value))} />
+    <p className="control-note"><span>Transliteration {value}% · Hebrew {100 - value}%</span>
+      {split !== undefined && <button type="button" onClick={reset}>Original position</button>}</p>
+  </div>;
 }

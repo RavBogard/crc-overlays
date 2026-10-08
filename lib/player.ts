@@ -5,7 +5,7 @@ import {CORNER_CARD,cardStyle,resolveCueLayout,type CardDefinition,type LayoutRe
 import {acceptsRevision,effectFrames,easingFor,incomingStillDesired,measuredBottomTextHeight,textParts,tracksFor,type AnimationDirection,type AnimationTrack,type PlayerState} from './player-motion.ts';
 export type CueTemplate={family?:'lower-third'|'panel-left'|'panel-right';version?:string;translatePx?:number};
 export type ContentRow={he:string;tr:string;en:string};
-export type CuePresentation={hebrewFontSize?:number;transliterationFontSize?:number;translationFontSize?:number;titleFontSize?:number;hebrewLineHeight?:number;transliterationLineHeight?:number;translationLineHeight?:number;titleLineHeight?:number;hebrewLetterSpacing?:number;transliterationLetterSpacing?:number;translationLetterSpacing?:number;titleLetterSpacing?:number;hebrewFontFamily?:'noto-sans'|'david-libre'|'frank-ruhl-libre';bottomLayout?:'columns'|'stacked';verticalAlignment?:'top'|'center'|'bottom';legacyTitleWatermark?:boolean;keepHyphenatedWords?:boolean;largePrint?:boolean;alignment?:'start'|'center';lineSpacing?:'compact'|'spacious';imageAssetId?:string;latinLineBreaks?:'preserve'|'paragraphs'|'phrases'};
+export type CuePresentation={hebrewFontSize?:number;transliterationFontSize?:number;translationFontSize?:number;titleFontSize?:number;hebrewLineHeight?:number;transliterationLineHeight?:number;translationLineHeight?:number;titleLineHeight?:number;hebrewLetterSpacing?:number;transliterationLetterSpacing?:number;translationLetterSpacing?:number;titleLetterSpacing?:number;hebrewFontFamily?:'noto-sans'|'david-libre'|'frank-ruhl-libre';bottomLayout?:'columns'|'stacked';bottomSplit?:number;verticalAlignment?:'top'|'center'|'bottom';legacyTitleWatermark?:boolean;keepHyphenatedWords?:boolean;largePrint?:boolean;alignment?:'start'|'center';lineSpacing?:'compact'|'spacious';imageAssetId?:string;latinLineBreaks?:'preserve'|'paragraphs'|'phrases'};
 export type Cue={id:string;name:string;layout:string;texts:Record<string,string>;animations:AnimationTrack[];duration:Record<string,number>;presentation?:CuePresentation;template?:CueTemplate;contentRows?:ContentRow[];rowOrder?:Array<keyof ContentRow>;hidden?:boolean;aliasOf?:string;layoutRef?:LayoutRef};
 /** `layouts`: the catalog envelope's pinned data-layout definitions (lib/layout-registry.ts resolveCueLayout); read on every render, so a caller may keep adding to the same object. */
 export type PlayerOptions={resolveAssetUrl?:(cue:Cue)=>string|undefined|Promise<string|undefined>;waitForAssets?:(root:HTMLElement)=>Promise<void>;layouts?:ResolvedLayouts};
@@ -65,29 +65,66 @@ function fitPanelRows(box:HTMLElement,cue:Cue){
 // already grows with its text; the translation's own height and the gap above it are published
 // as their own variables so the columns sit above it rather than behind it.
 export function constrainedBottomTextHeight(measuredHeight:number,overflow:number){return Math.max(0,Math.ceil(measuredHeight))+Math.max(0,Math.ceil(overflow))}
-/** Allocate only the width the two texts need, sharing available room when either must wrap. */
-export function bottomColumnWidths(latin:number,hebrew:number,available=1578){
- const needs=[Math.max(80,Math.ceil(latin)),Math.max(80,Math.ceil(hebrew))];
- if(needs[0]+needs[1]<=available)return needs;
- const first=Math.max(80,Math.min(available-80,Math.round(available*needs[0]/(needs[0]+needs[1]))));
- return [first,available-first];
+/** The lower third's original side-by-side columns: transliteration 730px and Hebrew 850px across
+ * the 1610px lane, 30px apart. `bottomSplit` moves the divider: the percentage of the two columns'
+ * shared width that the transliteration takes (20-80). Absent, the columns are the original ones. */
+export const BOTTOM_COLUMNS={lane:1610,gap:30,latin:730,hebrew:850,minSplit:20,maxSplit:80} as const;
+export function bottomColumnWidths(split?:number):[number,number]{
+ const {lane,gap,latin,hebrew,minSplit,maxSplit}=BOTTOM_COLUMNS;
+ if(typeof split!=='number'||!Number.isFinite(split))return [latin,hebrew];
+ const shared=lane-gap,first=Math.round(shared*Math.min(maxSplit,Math.max(minSplit,split))/100);
+ return [first,shared-first];
+}
+/** The divider's default position, as a percentage, for the editor's slider. */
+export const BOTTOM_DEFAULT_SPLIT=Math.round(BOTTOM_COLUMNS.latin/(BOTTOM_COLUMNS.lane-BOTTOM_COLUMNS.gap)*100);
+type BottomLayer='he'|'tr'|'en';
+/** Grid rows for a lower third. Stacked: one row per language in order. Side by side: the
+ * transliteration and Hebrew share a row, and the translation sits above it only when the order
+ * puts it ahead of both. */
+export function bottomRows(order:readonly BottomLayer[]|undefined,stacked:boolean,present:readonly BottomLayer[]):Partial<Record<BottomLayer,number>>{
+ const fallback:readonly BottomLayer[]=['he','tr','en'];
+ const sequence=(order&&order.length===3?order:fallback).filter(layer=>present.includes(layer));
+ if(stacked)return Object.fromEntries(sequence.map((layer,index)=>[layer,index+1]));
+ const translationFirst=sequence[0]==='en'&&sequence.length>1;
+ const rows:Partial<Record<BottomLayer,number>>={};
+ for(const layer of sequence)rows[layer]=layer==='en'?(translationFirst?1:2):(translationFirst?2:1);
+ return rows;
 }
 function fitBottomBody(box:HTMLElement,cue:Cue){
  const body=box.querySelector<HTMLElement>('.bottom-body');if(!body)return;
- const prayers=Array.from(body.querySelectorAll<HTMLElement>('.prayer'));
- body.style.justifyContent=cue.presentation?.alignment==='center'?'center':'start';
- const order=cue.rowOrder??['he','tr','en'];
- const layer=(el:HTMLElement)=>el.classList.contains('hebrew')?'he':el.classList.contains('translation')?'en':'tr';
- if(cue.presentation?.bottomLayout==='stacked'){
-  prayers.sort((a,b)=>order.indexOf(layer(a))-order.indexOf(layer(b))).forEach(el=>body.appendChild(el));
- }else{
-  const latin=body.querySelector<HTMLElement>('.english:not(.single-channel)'),hebrew=body.querySelector<HTMLElement>('.hebrew:not(.single-channel)');
-  if(latin&&hebrew){
-   const intrinsic=(el:HTMLElement)=>{const probe=el.cloneNode(true) as HTMLElement;probe.style.cssText=el.style.cssText;probe.style.position='absolute';probe.style.width='max-content';probe.style.whiteSpace='pre';probe.style.visibility='hidden';body.appendChild(probe);const width=probe.offsetWidth;probe.remove();return width};
-   const widths=bottomColumnWidths(intrinsic(latin),intrinsic(hebrew));body.style.gridTemplateColumns=widths.map(width=>`${width}px`).join(' ');
-  }else body.style.gridTemplateColumns='1fr';
- }
- box.style.setProperty('--bottom-text-height',`${measuredBottomTextHeight([body.scrollHeight])}px`);
+ const stacked=cue.presentation?.bottomLayout==='stacked';body.dataset.layout=stacked?'stacked':'columns';
+ const layer=(el:HTMLElement):BottomLayer=>el.dataset.element==='textMainheb'?'he':el.dataset.element==='textTranslation'?'en':'tr';
+ const prayers=Array.from(body.querySelectorAll<HTMLElement>('.prayer:not(.single-channel)'));
+ const rows=bottomRows(cue.rowOrder,stacked,prayers.map(layer));
+ for(const el of prayers){el.style.gridRow=String(rows[layer(el)]??1);if(stacked)el.style.textAlign=cue.presentation?.alignment==='center'?'center':'left'}
+ body.style.gridTemplateColumns=stacked?'':bottomColumnWidths(cue.presentation?.bottomSplit).map(width=>`${width}px`).join(' ');
+ body.style.height='auto';
+ // A Hebrew line's vowels can reach below its box. The body's scroll height already holds the last
+ // row's; an earlier row's pushes the rows under it down, as the separate boxes always did.
+ const all=Array.from(body.querySelectorAll<HTMLElement>('.prayer')),lastRow=Math.max(0,...all.map(el=>el.offsetTop));
+ const earlier=Math.max(0,...all.filter(el=>el.offsetTop<lastRow).map(el=>el.scrollHeight-el.clientHeight));
+ box.style.setProperty('--bottom-text-height',`${measuredBottomTextHeight([body.scrollHeight+earlier])}px`);
+ body.style.height='';
+}
+/** Place the lower third's Hebrew title so its ink - letters and every vowel above or below them -
+ * sits inside the title strip, centred; a title whose ink is taller than the strip steps down in
+ * size until it fits. Measured from the glyphs themselves, since a line box does not contain nikkud. */
+function fitBottomAccentTitle(box:HTMLElement){
+ const title=box.querySelector<HTMLElement>('.title-accent'),strip=box.querySelector<HTMLElement>('.titlebar:not(.titlegrad)');
+ if(!title||!strip||typeof document==='undefined')return;
+ const canvas=document.createElement('canvas') as HTMLCanvasElement,context=typeof canvas.getContext==='function'?canvas.getContext('2d'):null;if(!context)return;
+ const style=getComputedStyle(title),text=(title.textContent||'').trim();if(!text)return;
+ const stripHeight=strip.offsetHeight,room=Math.max(0,stripHeight-6);
+ let size=parseFloat(style.fontSize)||36;
+ const ink=(px:number)=>{context.font=`${style.fontStyle} ${style.fontWeight} ${px}px ${style.fontFamily}`;context.direction='rtl';const m=context.measureText(text);return {above:m.actualBoundingBoxAscent,below:m.actualBoundingBoxDescent,ascent:m.fontBoundingBoxAscent,descent:m.fontBoundingBoxDescent}};
+ let m=ink(size);if(![m.above,m.below,m.ascent,m.descent].every(Number.isFinite))return;
+ for(let step=0;step<40&&m.above+m.below>room&&size>16;step++){size-=1;m=ink(size)}
+ if(size!==parseFloat(style.fontSize))title.style.fontSize=`${size}px`;
+ // One line box exactly as tall as the font's own extent: its baseline sits `ascent` below the top.
+ const line=Math.ceil(m.ascent+m.descent);
+ title.style.lineHeight=`${line}px`;title.style.height=`${line}px`;
+ const inkTop=strip.offsetTop+(stripHeight-(m.above+m.below))/2;
+ title.style.top=`${Math.round(inkTop-(m.ascent-m.above))}px`;title.style.bottom='auto';
 }
 /** Respect authored order on fixed cards and legacy two-block panels as well as structured rows. */
 function fitChannelOrder(box:HTMLElement,cue:Cue){
@@ -162,24 +199,32 @@ add('base','','baseMain');add('titlebar','','baseTitle');const grad=add('titleba
 if((c.layout==='left'||c.layout==='right')&&c.presentation?.legacyTitleWatermark&&c.texts.accentTextTitle){const watermark=document.createElement('div');watermark.className='part title-watermark';watermark.dataset.element='accentTextTitle';watermark.textContent=legacyTitleDisplay(c.texts.accentTextTitle);watermark.setAttribute('aria-hidden','true');box.appendChild(watermark)}
 if(c.texts.textTitle)add('title',c.texts.textTitle,'textTitle');if(c.texts.accentTextTitle&&!((c.layout==='left'||c.layout==='right')&&c.presentation?.legacyTitleWatermark))add('title title-accent',c.texts.accentTextTitle,'accentTextTitle');if(usesPanelRows(c)){const rows=document.createElement('div');rows.className='part panel-rows';rows.dataset.rowCount=String(c.contentRows!.length);for(const [index,content] of c.contentRows!.entries()){const row=document.createElement('div');row.className='content-row';row.dataset.row=String(index+1);for(const item of panelRowChannels(content,c.rowOrder)){const channel=document.createElement('div');channel.className=`prayer ${item.classes}`;channel.textContent=displayPresentationText(item.text,item.element,c.presentation);channel.dataset.element=item.element;channel.dataset.animationElement=item.animationElement;row.appendChild(channel)}rows.appendChild(row)}box.appendChild(rows)}else {const body=c.layout==='bottom'?document.createElement('div'):null;if(body){body.className='bottom-body';body.dataset.layout=c.presentation?.bottomLayout||'columns';box.appendChild(body)}for(const part of textParts(c.texts)){const el=add(part.classes,displayPresentationText(part.text,part.element,c.presentation),part.element);body?.appendChild(el)}}const logo=add('logo','','Image');if(logo instanceof HTMLImageElement&&imageAssetUrl)logo.src=imageAssetUrl;if(retained){
  const chrome=['baseMain','baseTitle','baseTitleGrad','accentLineBottom','Image'];
- for(const name of chrome){const existing=retained.querySelector<HTMLElement>(`[data-element="${name}"]`),replacement=box.querySelector<HTMLElement>(`[data-element="${name}"]`);if(existing&&replacement){if(existing instanceof HTMLImageElement&&replacement instanceof HTMLImageElement)existing.src=replacement.src;replacement.replaceWith(existing)}}
+ for(const name of chrome){const existing=retained.querySelector<HTMLElement>(`[data-element="${name}"]`),replacement=box.querySelector<HTMLElement>(`[data-element="${name}"]`);if(existing&&replacement){/* The same artwork stays as it is: reassigning its src would reload it mid-change. */if(existing instanceof HTMLImageElement&&replacement instanceof HTMLImageElement&&existing.src!==replacement.src)existing.src=replacement.src;replacement.replaceWith(existing)}}
  retained.className=box.className;retained.style.cssText=box.style.cssText;for(const key of Object.keys(retained.dataset))delete retained.dataset[key];Object.assign(retained.dataset,box.dataset);retained.replaceChildren(...Array.from(box.childNodes));box=retained;
  }else this.root.replaceChildren(box);if(c.presentation){const styles=presentationTextStyles(c.presentation);box.querySelectorAll<HTMLElement>('.prayer').forEach(element=>{if(styles.textAlign)element.style.textAlign=styles.textAlign;if(styles.lineHeight)element.style.lineHeight=styles.lineHeight});applyPresentationTypography(box,c.presentation)}this.applyFit(box,c);return box}
  // Idempotent: safe to call again once fonts and artwork have settled, and every call
  // measures from the same baseline, so the final sizes never depend on the call count.
- applyFit(box:HTMLElement,cue:Cue):void{box.querySelectorAll<HTMLElement>('.prayer').forEach(el=>{el.style.top='';el.style.bottom=''});resetFitBaseline(box,cue);if((cue.layout==='left'||cue.layout==='right')&&!usesPanelRows(cue))fitPanelCopy(box,cue);if(cue.layout==='bottom')fitBottomBody(box,cue);const card=resolveCueLayout(cue,this.options.layouts)?.card;if(card)CARD_FIT[card.fit.strategy](box,card,cue);if(usesPanelRows(cue))fitPanelRows(box,cue);fitChannelOrder(box,cue);keepWatermarkClearOfLogo(box)}
+ applyFit(box:HTMLElement,cue:Cue):void{box.querySelectorAll<HTMLElement>('.prayer').forEach(el=>{el.style.top='';el.style.bottom=''});if(cue.layout==='bottom')box.querySelectorAll<HTMLElement>('.title-accent').forEach(el=>{el.style.top='';el.style.bottom='';el.style.height='';el.style.lineHeight=''});resetFitBaseline(box,cue);if((cue.layout==='left'||cue.layout==='right')&&!usesPanelRows(cue))fitPanelCopy(box,cue);if(cue.layout==='bottom'){fitBottomBody(box,cue);fitBottomAccentTitle(box)}const card=resolveCueLayout(cue,this.options.layouts)?.card;if(card)CARD_FIT[card.fit.strategy](box,card,cue);if(usesPanelRows(cue))fitPanelRows(box,cue);fitChannelOrder(box,cue);keepWatermarkClearOfLogo(box)}
  // Artwork that fails or times out falls back to the congregation branding logo so the
  // text cue still goes to air; font and layout failures still surface to the caller.
  async settleAssets(box:HTMLElement,imageAssetUrl?:string){const wait=this.options.waitForAssets??waitForRenderedOverlayAssets;try{await wait(box);return}catch(error){const logo=box.querySelector<HTMLImageElement>('img.logo');if(!imageAssetUrl||!logo||logo.src===this.branding.logo||(logo.complete&&Boolean(logo.naturalWidth)))throw error;logo.src=this.branding.logo;await wait(box)}}
  async animate(box:HTMLElement,c:Cue,direction:AnimationDirection,textOnly=false){
   const duration=c.duration[direction]||.5,translatePx=c.template?.translatePx||48;
   const elements=Array.from(box.querySelectorAll<HTMLElement>('[data-element]')).filter(el=>!textOnly||el.matches('.title,.title-watermark,.prayer'));
-  const finished=elements.flatMap(el=>{
+  const planned=elements.map(el=>{
    const name=el.dataset.animationElement||el.dataset.element||'';
    let tracks=tracksFor(name,direction,c.animations);
    if(!tracks.length&&(textOnly||el.matches('.title,.title-watermark')))tracks=[{element:name,direction,effect:{effect:'fade'},keyframes:[0,.25]}];
+   return {el,tracks};
+  });
+  // A words-only change keeps the panel on screen, so the time the whole graphic's tracks give the
+  // panel before its words move is dead air: the words' own timing starts at zero.
+  const rangeOf=(track:AnimationTrack)=>track.keyframes?.length===2?track.keyframes:[0,duration];
+  const lead=textOnly?Math.min(...planned.flatMap(({tracks})=>tracks.map(track=>rangeOf(track)[0]))):0;
+  const shift=Number.isFinite(lead)?lead:0;
+  const finished=planned.flatMap(({el,tracks})=>{
    el.style.visibility='';
-   return tracks.map(track=>{const range=track.keyframes?.length===2?track.keyframes:[0,duration];const frames=effectFrames(track.effect,direction,translatePx);if(el.classList.contains('title-watermark'))for(const frame of frames)if(frame.opacity!==undefined)frame.opacity=Number(frame.opacity)*.14;return el.animate(frames,{duration:Math.max(1,(range[1]-range[0])*1000),delay:range[0]*1000,fill:'both',easing:easingFor(track.effect)}).finished});
+   return tracks.map(track=>{const [start,end]=rangeOf(track),range=[start-shift,end-shift];const frames=effectFrames(track.effect,direction,translatePx);if(el.classList.contains('title-watermark'))for(const frame of frames)if(frame.opacity!==undefined)frame.opacity=Number(frame.opacity)*.14;return el.animate(frames,{duration:Math.max(1,(range[1]-range[0])*1000),delay:range[0]*1000,fill:'both',easing:easingFor(track.effect)}).finished});
   });
   box.style.visibility='';await Promise.all(finished);
  }

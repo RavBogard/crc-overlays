@@ -651,3 +651,14 @@
 .fit-issue-dialog::backdrop{background:rgb(0 0 0 / .65)}
 .fit-issue-dialog>p{line-height:1.5}
 .fit-issue-dialog>footer{display:flex;justify-content:flex-end;gap:12px}
+
+.bottom-arrangement { min-width: 0; margin: 13px 0 0; padding: 0; border: 0; }
+.bottom-arrangement legend { margin-bottom: 6px; color: var(--muted); font-size: 11px; }
+.bottom-arrangement > div:first-of-type { display: grid; grid-template-columns: 1fr 1fr; gap: 4px; }
+.bottom-arrangement button { min-width: 0; padding: 7px 5px; background: transparent; font-size: 10px; }
+.bottom-arrangement button[aria-pressed="true"] { border-color: #609985; background: #27483f; color: #c8eee1; }
+.bottom-divider { display: grid; gap: 4px; margin-top: 10px; }
+.bottom-divider label { color: var(--muted); font-size: 11px; }
+.bottom-divider input { width: 100%; accent-color: #5fb99e; }
+.bottom-divider .control-note { display: flex; align-items: center; justify-content: space-between; gap: 8px; margin: 0; color: var(--quiet); font-size: 10px; }
+.bottom-divider .control-note button { padding: 4px 8px; }

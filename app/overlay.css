@@ -326,16 +326,21 @@ only its translation is a single channel and takes the full block, as any single
 
 /* Text alignment acts on lines, without a flex text item retaining its old position. */
 .bottom .prayer{display:block}
-.bottom .title{line-height:1.5;overflow:visible}
-.bottom .title-accent,.overlay[data-accent-typography].bottom .title-accent{height:58px;line-height:1.5;bottom:calc(var(--bottom-text-height) + 36px);overflow:visible}
 .left .title-accent,.right .title-accent,.overlay[data-accent-typography].left .title-accent,.overlay[data-accent-typography].right .title-accent{font-size:42px;top:102px;height:60px;line-height:1.35}
+/* The lower third's Hebrew title: fitBottomAccentTitle() (lib/player.ts) places its ink, vowels
+   included, inside the title strip, so nothing it draws may be clipped. */
+.bottom .title-accent{overflow:visible}
 
-/* Lower-third body: content widths share a compact gap; stacking follows authored layer order. */
-.bottom-body{position:absolute;left:250px;bottom:28px;width:1610px;display:grid;grid-template-columns:1fr 1fr;column-gap:32px;row-gap:14px;align-items:start;justify-content:start}
-.bottom .bottom-body .prayer{position:relative;inset:auto;width:auto;height:auto;display:block;margin:0}
-.bottom-body[data-layout="columns"] .english:not(.single-channel){grid-column:1;grid-row:1}
-.bottom-body[data-layout="columns"] .hebrew:not(.single-channel){grid-column:2;grid-row:1}
-.bottom-body[data-layout="columns"] .translation{grid-column:1 / -1;grid-row:2}
-.bottom-body[data-layout="columns"] .single-channel{grid-column:1 / -1;grid-row:1}
-.bottom-body[data-layout="stacked"]{grid-template-columns:1fr}
+/* Lower-third body. Side by side keeps the original columns (transliteration 730px, Hebrew 850px,
+   30px apart; the divider moves with presentation.bottomSplit) and the translation spans both, below
+   them or above them by language order. Stacked is one left-aligned column of tight rows in
+   language order, each row wrapping as it needs; sizes are the same as side by side. */
+.bottom-body{position:absolute;left:250px;bottom:28px;width:1610px;height:var(--bottom-text-height);display:grid;grid-template-columns:730px 850px;column-gap:30px;row-gap:14px;align-items:start;align-content:start}
+.bottom .bottom-body .prayer{position:relative;inset:auto;width:auto;height:auto;display:block;margin:0;min-width:0}
+.bottom-body[data-layout="columns"] .english:not(.single-channel){grid-column:1}
+.bottom-body[data-layout="columns"] .hebrew:not(.single-channel){grid-column:2}
+.bottom-body[data-layout="columns"] .translation,.bottom-body .single-channel{grid-column:1 / -1}
 .bottom .bottom-body .translation:not(.single-channel){font-size:30px;line-height:1.22;color:color-mix(in srgb,var(--crc-ink,#123) 78%,transparent)}
+.bottom-body[data-layout="stacked"]{grid-template-columns:minmax(0,1fr);row-gap:4px}
+.bottom .bottom-body[data-layout="stacked"] .prayer{grid-column:1;text-align:left}
+.bottom .bottom-body[data-layout="stacked"] .translation:not(.single-channel){font-size:35px;line-height:1.24}

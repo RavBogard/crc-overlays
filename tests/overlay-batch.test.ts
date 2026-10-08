@@ -1,6 +1,6 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
-import { Player, bottomColumnWidths, type Cue } from '../lib/player.ts';
+import { Player, BOTTOM_DEFAULT_SPLIT, bottomColumnWidths, bottomRows, type Cue } from '../lib/player.ts';
 import { tracksFor, type AnimationTrack } from '../lib/player-motion.ts';
 import { publishFitIssues } from '../app/author/preview.ts';
 import { buildCue, editableFromBaseline, parseEditable, sourcePinFor, type Draft } from '../lib/authoring-model.ts';
@@ -13,12 +13,27 @@ test('Hebrew title inherits Latin title entrance and exit, preserving explicit H
   assert.deepEqual(tracksFor('accentTextTitle','Out',[...tracks,explicit]),[explicit]);
 });
 
-test('bottom columns hug short content and allocate limited space without favouring Hebrew', () => {
-  assert.deepEqual(bottomColumnWidths(510,220),[510,220]);
-  const widths=bottomColumnWidths(2000,800);
-  assert.equal(widths[0]+widths[1],1578);
-  assert.ok(widths[0]>widths[1]);
-  assert.deepEqual(bottomColumnWidths(0,0),[80,80]);
+test('bottom columns keep the original geometry and move only with an authored divider', () => {
+  assert.deepEqual(bottomColumnWidths(),[730,850]);
+  assert.equal(BOTTOM_DEFAULT_SPLIT,46);
+  assert.deepEqual(bottomColumnWidths(60),[948,632]);
+  assert.deepEqual(bottomColumnWidths(5),[316,1264],'clamped to 20%');
+  assert.deepEqual(bottomColumnWidths(95),[1264,316],'clamped to 80%');
+});
+
+test('bottom rows: side by side keeps two columns with English above or below; stacked follows order', () => {
+  const all=['he','tr','en'] as const;
+  assert.deepEqual(bottomRows(undefined,false,all),{he:1,tr:1,en:2});
+  assert.deepEqual(bottomRows(['en','he','tr'],false,all),{en:1,he:2,tr:2});
+  assert.deepEqual(bottomRows(['he','en','tr'],false,all),{he:1,en:2,tr:1},'English between the two stays below the columns');
+  assert.deepEqual(bottomRows(undefined,true,all),{he:1,tr:2,en:3},'stacking keeps the default order, Hebrew first');
+  assert.deepEqual(bottomRows(['tr','en','he'],true,all),{tr:1,en:2,he:3});
+  assert.deepEqual(bottomRows(['en','he','tr'],true,['he','tr']),{he:1,tr:2});
+});
+
+test('bottom divider is validated as a whole percentage from 20 to 80', () => {
+  assert.deepEqual(parseEditable({presentation:{bottomSplit:62}},true).presentation,{bottomSplit:62});
+  for(const bad of [19,81,50.5,'50'])assert.throws(()=>parseEditable({presentation:{bottomSplit:bad}},true));
 });
 
 test('publish confirmation covers overlaps while retaining actual fit failures', () => {
@@ -77,4 +92,18 @@ test('a hide command during artwork resolution cannot leave an abandoned panel o
   fixture.player.options.resolveAssetUrl=async()=>{fixture.player.desired={cue:null,revision:2,mode:'animate'};return undefined;};
   await fixture.player.drain();
   assert.equal(fixture.player.current,null);assert.equal(fixture.clears(),1);assert.equal(fixture.player.phase,'settled');
+});
+
+test('a words-only change starts the words at once, without the panel lead-in of the full graphic',async()=>{
+  const delays:number[]=[];
+  const el={dataset:{element:'textMainEng'},style:{visibility:''},classList:{contains:()=>false},matches:()=>true,animate:(_frames:unknown,options:{delay:number})=>{delays.push(options.delay);return {finished:Promise.resolve()}}};
+  const box={querySelectorAll:()=>[el],style:{visibility:''}} as unknown as HTMLElement;
+  const cue:Cue={id:'a',name:'A',layout:'left',texts:{textMainEng:'x'},duration:{In:1},animations:[
+    {element:'textMainEng',direction:'In',effect:{effect:'fade'},keyframes:[.4,.9]},
+    {element:'textMainEng',direction:'In',effect:{effect:'fade'},keyframes:[.6,.9]}]};
+  const player=new Player({replaceChildren(){}} as unknown as HTMLElement,[cue]);
+  await player.animate(box,cue,'In',true);
+  assert.deepEqual(delays.map(d=>Math.round(d)),[0,200]);
+  delays.length=0;await player.animate(box,cue,'In');
+  assert.deepEqual(delays.map(d=>Math.round(d)),[400,600],'the full graphic keeps its timing');
 });

@@ -21,6 +21,8 @@ export type Presentation = {
   hebrewFontFamily?: "noto-sans" | "david-libre" | "frank-ruhl-libre";
   verticalAlignment?: "top" | "center" | "bottom";
   bottomLayout?: "columns" | "stacked";
+  /** Lower third, side by side: the transliteration column's share of the two columns, 20-80%. */
+  bottomSplit?: number;
   legacyTitleWatermark?: boolean;
   keepHyphenatedWords?: boolean;
   largePrint?: boolean;

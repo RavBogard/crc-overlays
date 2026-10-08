@@ -986,6 +986,12 @@
              "stacked"
             ]
            },
+           "bottomSplit": {
+            "description": "Lower third, side by side: where the divider between the transliteration and Hebrew columns sits, as the percentage of their shared width given to the transliteration (20-80). Absent keeps the original columns (about 46%).",
+            "type": "integer",
+            "minimum": 20,
+            "maximum": 80
+           },
            "verticalAlignment": {
             "type": "string",
             "enum": [
@@ -1077,7 +1083,7 @@
             "en"
            ]
           },
-          "description": "Order the Hebrew (he), transliteration (tr) and translation (en) layers stack in on a left or right panel, in both arrangements. Default he, tr, en, which is stored as absent; also sets the order of stacked bottom panels and corner cards."
+          "description": "Order the Hebrew (he), transliteration (tr) and translation (en) layers stack in on a left or right panel, in both arrangements. Default he, tr, en, which is stored as absent; also sets the order of stacked bottom panels and corner cards. A side-by-side lower third keeps transliteration and Hebrew as two columns, with the translation above them when en comes first and below them otherwise."
          },
          "blockIds": {
           "minItems": 1,
@@ -1240,6 +1246,12 @@
              "stacked"
             ]
            },
+           "bottomSplit": {
+            "description": "Lower third, side by side: where the divider between the transliteration and Hebrew columns sits, as the percentage of their shared width given to the transliteration (20-80). Absent keeps the original columns (about 46%).",
+            "type": "integer",
+            "minimum": 20,
+            "maximum": 80
+           },
            "verticalAlignment": {
             "type": "string",
             "enum": [
@@ -1331,7 +1343,7 @@
             "en"
            ]
           },
-          "description": "Order the Hebrew (he), transliteration (tr) and translation (en) layers stack in on a left or right panel, in both arrangements. Default he, tr, en, which is stored as absent; also sets the order of stacked bottom panels and corner cards."
+          "description": "Order the Hebrew (he), transliteration (tr) and translation (en) layers stack in on a left or right panel, in both arrangements. Default he, tr, en, which is stored as absent; also sets the order of stacked bottom panels and corner cards. A side-by-side lower third keeps transliteration and Hebrew as two columns, with the translation above them when en comes first and below them otherwise."
          },
          "panels": {
           "minItems": 1,
@@ -1506,6 +1518,12 @@
              "columns",
              "stacked"
             ]
+           },
+           "bottomSplit": {
+            "description": "Lower third, side by side: where the divider between the transliteration and Hebrew columns sits, as the percentage of their shared width given to the transliteration (20-80). Absent keeps the original columns (about 46%).",
+            "type": "integer",
+            "minimum": 20,
+            "maximum": 80
            },
            "verticalAlignment": {
             "type": "string",
@@ -1942,7 +1960,7 @@
             "en"
            ]
           },
-          "description": "Order the Hebrew (he), transliteration (tr) and translation (en) layers stack in on a left or right panel, in both arrangements. Default he, tr, en, which is stored as absent; also sets the order of stacked bottom panels and corner cards."
+          "description": "Order the Hebrew (he), transliteration (tr) and translation (en) layers stack in on a left or right panel, in both arrangements. Default he, tr, en, which is stored as absent; also sets the order of stacked bottom panels and corner cards. A side-by-side lower third keeps transliteration and Hebrew as two columns, with the translation above them when en comes first and below them otherwise."
          },
          "comfortableTypography": {
           "type": "boolean"
@@ -2385,6 +2403,12 @@
         "stacked"
        ]
       },
+      "bottomSplit": {
+       "description": "Lower third, side by side: where the divider between the transliteration and Hebrew columns sits, as the percentage of their shared width given to the transliteration (20-80). Absent keeps the original columns (about 46%).",
+       "type": "integer",
+       "minimum": 20,
+       "maximum": 80
+      },
       "verticalAlignment": {
        "type": "string",
        "enum": [
@@ -2657,7 +2681,7 @@
              "en"
             ]
            },
-           "description": "Order the Hebrew (he), transliteration (tr) and translation (en) layers stack in on a left or right panel, in both arrangements. Default he, tr, en, which is stored as absent; also sets the order of stacked bottom panels and corner cards."
+           "description": "Order the Hebrew (he), transliteration (tr) and translation (en) layers stack in on a left or right panel, in both arrangements. Default he, tr, en, which is stored as absent; also sets the order of stacked bottom panels and corner cards. A side-by-side lower third keeps transliteration and Hebrew as two columns, with the translation above them when en comes first and below them otherwise."
           },
           "preserveGroups": {
            "type": "boolean"
@@ -2881,7 +2905,7 @@
                "en"
               ]
              },
-             "description": "Order the Hebrew (he), transliteration (tr) and translation (en) layers stack in on a left or right panel, in both arrangements. Default he, tr, en, which is stored as absent; also sets the order of stacked bottom panels and corner cards."
+             "description": "Order the Hebrew (he), transliteration (tr) and translation (en) layers stack in on a left or right panel, in both arrangements. Default he, tr, en, which is stored as absent; also sets the order of stacked bottom panels and corner cards. A side-by-side lower third keeps transliteration and Hebrew as two columns, with the translation above them when en comes first and below them otherwise."
             },
             "preserveGroups": {
              "type": "boolean"
@@ -3137,6 +3161,12 @@
         "columns",
         "stacked"
        ]
+      },
+      "bottomSplit": {
+       "description": "Lower third, side by side: where the divider between the transliteration and Hebrew columns sits, as the percentage of their shared width given to the transliteration (20-80). Absent keeps the original columns (about 46%).",
+       "type": "integer",
+       "minimum": 20,
+       "maximum": 80
       },
       "verticalAlignment": {
        "type": "string",
@@ -7075,7 +7105,7 @@
              "en"
             ]
            },
-           "description": "Order the Hebrew (he), transliteration (tr) and translation (en) layers stack in on a left or right panel, in both arrangements. Default he, tr, en, which is stored as absent; also sets the order of stacked bottom panels and corner cards."
+           "description": "Order the Hebrew (he), transliteration (tr) and translation (en) layers stack in on a left or right panel, in both arrangements. Default he, tr, en, which is stored as absent; also sets the order of stacked bottom panels and corner cards. A side-by-side lower third keeps transliteration and Hebrew as two columns, with the translation above them when en comes first and below them otherwise."
           },
           "preserveGroups": {
            "type": "boolean"
@@ -7299,7 +7329,7 @@
                "en"
               ]
              },
-             "description": "Order the Hebrew (he), transliteration (tr) and translation (en) layers stack in on a left or right panel, in both arrangements. Default he, tr, en, which is stored as absent; also sets the order of stacked bottom panels and corner cards."
+             "description": "Order the Hebrew (he), transliteration (tr) and translation (en) layers stack in on a left or right panel, in both arrangements. Default he, tr, en, which is stored as absent; also sets the order of stacked bottom panels and corner cards. A side-by-side lower third keeps transliteration and Hebrew as two columns, with the translation above them when en comes first and below them otherwise."
             },
             "preserveGroups": {
              "type": "boolean"
@@ -7555,6 +7585,12 @@
         "columns",
         "stacked"
        ]
+      },
+      "bottomSplit": {
+       "description": "Lower third, side by side: where the divider between the transliteration and Hebrew columns sits, as the percentage of their shared width given to the transliteration (20-80). Absent keeps the original columns (about 46%).",
+       "type": "integer",
+       "minimum": 20,
+       "maximum": 80
       },
       "verticalAlignment": {
        "type": "string",
@@ -9524,7 +9560,7 @@
        "en"
       ]
      },
-     "description": "Order the Hebrew (he), transliteration (tr) and translation (en) layers stack in on a left or right panel, in both arrangements. Default he, tr, en, which is stored as absent; also sets the order of stacked bottom panels and corner cards."
+     "description": "Order the Hebrew (he), transliteration (tr) and translation (en) layers stack in on a left or right panel, in both arrangements. Default he, tr, en, which is stored as absent; also sets the order of stacked bottom panels and corner cards. A side-by-side lower third keeps transliteration and Hebrew as two columns, with the translation above them when en comes first and below them otherwise."
     },
     "comfortableTypography": {
      "type": "boolean"
@@ -9973,7 +10009,7 @@
          "en"
         ]
        },
-       "description": "Order the Hebrew (he), transliteration (tr) and translation (en) layers stack in on a left or right panel, in both arrangements. Default he, tr, en, which is stored as absent; also sets the order of stacked bottom panels and corner cards."
+       "description": "Order the Hebrew (he), transliteration (tr) and translation (en) layers stack in on a left or right panel, in both arrangements. Default he, tr, en, which is stored as absent; also sets the order of stacked bottom panels and corner cards. A side-by-side lower third keeps transliteration and Hebrew as two columns, with the translation above them when en comes first and below them otherwise."
       },
       {
        "type": "null"
@@ -10500,7 +10536,7 @@
                "en"
               ]
              },
-             "description": "Order the Hebrew (he), transliteration (tr) and translation (en) layers stack in on a left or right panel, in both arrangements. Default he, tr, en, which is stored as absent; also sets the order of stacked bottom panels and corner cards."
+             "description": "Order the Hebrew (he), transliteration (tr) and translation (en) layers stack in on a left or right panel, in both arrangements. Default he, tr, en, which is stored as absent; also sets the order of stacked bottom panels and corner cards. A side-by-side lower third keeps transliteration and Hebrew as two columns, with the translation above them when en comes first and below them otherwise."
             },
             "preserveGroups": {
              "type": "boolean"
@@ -10724,7 +10760,7 @@
                  "en"
                 ]
                },
-               "description": "Order the Hebrew (he), transliteration (tr) and translation (en) layers stack in on a left or right panel, in both arrangements. Default he, tr, en, which is stored as absent; also sets the order of stacked bottom panels and corner cards."
+               "description": "Order the Hebrew (he), transliteration (tr) and translation (en) layers stack in on a left or right panel, in both arrangements. Default he, tr, en, which is stored as absent; also sets the order of stacked bottom panels and corner cards. A side-by-side lower third keeps transliteration and Hebrew as two columns, with the translation above them when en comes first and below them otherwise."
               },
               "preserveGroups": {
                "type": "boolean"
@@ -10980,6 +11016,12 @@
           "columns",
           "stacked"
          ]
+        },
+        "bottomSplit": {
+         "description": "Lower third, side by side: where the divider between the transliteration and Hebrew columns sits, as the percentage of their shared width given to the transliteration (20-80). Absent keeps the original columns (about 46%).",
+         "type": "integer",
+         "minimum": 20,
+         "maximum": 80
         },
         "verticalAlignment": {
          "type": "string",

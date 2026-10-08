@@ -200,7 +200,7 @@ function TextLayerControls(props: { form: DraftForm; source: Source; changeForm:
     {lit.length > 1 && <label className="layer-order" title="The order the layers stack in, top to bottom.">
       <span>Order</span>
       <select aria-label="Layer order, top to bottom" value={order}
-        onChange={(event) => props.changeForm({ rowOrder: event.target.value.split(",") as TextLayer[], ...(props.form.layout === "bottom" ? { presentation: { ...props.form.presentation, bottomLayout: "stacked" } } : {}) })}>
+        onChange={(event) => props.changeForm({ rowOrder: event.target.value.split(",") as TextLayer[] })}>
         {ROW_ORDERS.map((value) => <option key={value.join(",")} value={value.join(",")}>{orderLabel(value)}</option>)}
       </select>
     </label>}

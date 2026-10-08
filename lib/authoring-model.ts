@@ -11,7 +11,7 @@ const sourceMapJson=require('../content/legacy-crc-shabbat-morning.sources.json'
 const baselineCueJson=require('./cues.json');
 
 export type Layout=LayoutId;
-export type Presentation={hebrewFontSize?:number;transliterationFontSize?:number;translationFontSize?:number;titleFontSize?:number;hebrewLineHeight?:number;transliterationLineHeight?:number;translationLineHeight?:number;titleLineHeight?:number;hebrewLetterSpacing?:number;transliterationLetterSpacing?:number;translationLetterSpacing?:number;titleLetterSpacing?:number;hebrewFontFamily?:'noto-sans'|'david-libre'|'frank-ruhl-libre';bottomLayout?:'columns'|'stacked';verticalAlignment?:'top'|'center'|'bottom';legacyTitleWatermark?:boolean;keepHyphenatedWords?:boolean;largePrint?:boolean;alignment?:'start'|'center';lineSpacing?:'compact'|'spacious';imageAssetId?:string;latinLineBreaks?:'preserve'|'paragraphs'|'phrases'};
+export type Presentation={hebrewFontSize?:number;transliterationFontSize?:number;translationFontSize?:number;titleFontSize?:number;hebrewLineHeight?:number;transliterationLineHeight?:number;translationLineHeight?:number;titleLineHeight?:number;hebrewLetterSpacing?:number;transliterationLetterSpacing?:number;translationLetterSpacing?:number;titleLetterSpacing?:number;hebrewFontFamily?:'noto-sans'|'david-libre'|'frank-ruhl-libre';bottomLayout?:'columns'|'stacked';bottomSplit?:number;verticalAlignment?:'top'|'center'|'bottom';legacyTitleWatermark?:boolean;keepHyphenatedWords?:boolean;largePrint?:boolean;alignment?:'start'|'center';lineSpacing?:'compact'|'spacious';imageAssetId?:string;latinLineBreaks?:'preserve'|'paragraphs'|'phrases'};
 export type SourceGroup={sourceId:string;blockIds:string[]};
 /**
  * C6: which text layers a graphic shows, and how they are arranged. `layers` and `arrangement`
@@ -308,7 +308,7 @@ export function parseEditable(value:unknown,partial=false,snapshots:AuthoringSou
  if(!partial||input.content!==undefined)result.content=parseContent(input.content,snapshots);
  if(!partial||input.presentation!==undefined){
   const p=record(input.presentation??{},'presentation');
-  onlyKeys(p,['hebrewFontSize','transliterationFontSize','translationFontSize','titleFontSize','hebrewLineHeight','transliterationLineHeight','translationLineHeight','titleLineHeight','hebrewLetterSpacing','transliterationLetterSpacing','translationLetterSpacing','titleLetterSpacing','hebrewFontFamily','bottomLayout','verticalAlignment','legacyTitleWatermark','keepHyphenatedWords','largePrint','alignment','lineSpacing','imageAssetId','latinLineBreaks'],'presentation');
+  onlyKeys(p,['hebrewFontSize','transliterationFontSize','translationFontSize','titleFontSize','hebrewLineHeight','transliterationLineHeight','translationLineHeight','titleLineHeight','hebrewLetterSpacing','transliterationLetterSpacing','translationLetterSpacing','titleLetterSpacing','hebrewFontFamily','bottomLayout','bottomSplit','verticalAlignment','legacyTitleWatermark','keepHyphenatedWords','largePrint','alignment','lineSpacing','imageAssetId','latinLineBreaks'],'presentation');
   const presentation:Presentation={};
   if(p.hebrewFontSize!==undefined)presentation.hebrewFontSize=integer(p.hebrewFontSize,'hebrewFontSize',24,52);
   if(p.transliterationFontSize!==undefined)presentation.transliterationFontSize=integer(p.transliterationFontSize,'transliterationFontSize',20,48);
@@ -318,6 +318,7 @@ export function parseEditable(value:unknown,partial=false,snapshots:AuthoringSou
   for(const key of ['hebrewLetterSpacing','transliterationLetterSpacing','translationLetterSpacing','titleLetterSpacing'] as const)if(p[key]!==undefined){if(typeof p[key]!=='number'||!Number.isFinite(p[key])||p[key]<-2||p[key]>8)throw new AuthoringError('invalid_input',`${key} must be a number from -2 to 8`);presentation[key]=p[key]}
   if(p.hebrewFontFamily!==undefined){if(p.hebrewFontFamily!=='noto-sans'&&p.hebrewFontFamily!=='david-libre'&&p.hebrewFontFamily!=='frank-ruhl-libre')throw new AuthoringError('invalid_input','hebrewFontFamily must be noto-sans, david-libre, or frank-ruhl-libre');presentation.hebrewFontFamily=p.hebrewFontFamily}
   if(p.bottomLayout!==undefined){if(p.bottomLayout!=='columns'&&p.bottomLayout!=='stacked')throw new AuthoringError('invalid_input','bottomLayout must be columns or stacked');presentation.bottomLayout=p.bottomLayout}
+  if(p.bottomSplit!==undefined)presentation.bottomSplit=integer(p.bottomSplit,'bottomSplit',20,80);
   if(p.verticalAlignment!==undefined){if(p.verticalAlignment!=='top'&&p.verticalAlignment!=='center'&&p.verticalAlignment!=='bottom')throw new AuthoringError('invalid_input','verticalAlignment must be top, center, or bottom');presentation.verticalAlignment=p.verticalAlignment}
   for(const key of ['legacyTitleWatermark','keepHyphenatedWords','largePrint'] as const)if(p[key]!==undefined){if(typeof p[key]!=='boolean')throw new AuthoringError('invalid_input',`${key} must be boolean`);presentation[key]=p[key]}
   if(p.alignment!==undefined){if(p.alignment!=='start'&&p.alignment!=='center')throw new AuthoringError('invalid_input','alignment must be start or center');presentation.alignment=p.alignment}
