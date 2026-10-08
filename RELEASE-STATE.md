@@ -4,16 +4,26 @@ What is deployed right now. Update this file on every release — it is the one 
 "what is live", and it is short so it can be read under pressure. The history is in
 `docs/planning/2026-09-deploys/` (25 deploy records, the release chain, the phase build notes).
 
-**Last updated: 2026-10-07 Central.** The overlay batch and generated siddur update are consolidated on main. The paired release is identified by annotated Git tag `overlays-2026-10-07` (resolve it with `git rev-parse overlays-2026-10-07^{commit}` for the exact source SHA). Details: `docs/planning/2026-10-07-overlay-batch/STATE.md`.
+**Last updated: 2026-10-08 Central.** Overlay round 2 is on main and live on both workspaces. The paired release is identified by annotated Git tag `overlays-2026-10-08`. Resolve the exact source SHA with `git rev-parse overlays-2026-10-08^{commit}`; it is `0481a93`. Details: `docs/planning/2026-10-08-overlay-round2/STATE.md`.
 
 ## Web, per workspace
 
 | Workspace | Host | Release | How it gets there |
 |---|---|---|---|
-| CRC | `overlays.centralreform.org` (alt `crc-overlays.vercel.app`) | `overlays-2026-10-07` | main and paired production CLI |
-| TBI | `overlays.templebnaiisrael.com` (alt `tbi-overlays.vercel.app`) | `overlays-2026-10-07` | paired staged production CLI |
+| CRC | `overlays.centralreform.org` (alt `crc-overlays.vercel.app`) | `overlays-2026-10-08` | main and paired production CLI |
+| TBI | `overlays.templebnaiisrael.com` (alt `tbi-overlays.vercel.app`) | `overlays-2026-10-08` | paired staged production CLI |
 
 Both workspaces use the exact tag SHA. Deployment IDs, Ready status and SHA checks are recorded under ignored `work/overlay-batch-release/verified.json` in the release checkout, with the paired receipt in `work/deploy-staging/releases/<SHA>/release.json`.
+
+### Release overlays-2026-10-08: overlay round 2
+
+- Daniel asked for this release on Oct 8.
+- Lower-third columns are back to the pre-Oct-7 geometry. A per-graphic divider (`presentation.bottomSplit`, 20–80%) is set by a slider in the Look card.
+- Stacked was rebuilt as tight rows: Latin rows left, Hebrew right, following the saved order. Changing the order no longer forces stacking.
+- Side by side can put the translation on top. The lower third's Hebrew title is fitted by its glyph ink, so nikkud show. Left-to-left word changes have no lead-in pause.
+- Gates: TypeScript; 1,304 TS + 35 MJS tests (12 existing skips); lint 0 errors (2 existing warnings); build; diff check. Renderer comparison against `ca3af00^` and the rehearsal editor are covered in the state note.
+- Deployed with `scripts/deploy-workspaces.mjs` from the clean worktree `C:/Users/dsbog/crc-overlays-release-0481a93`. That worktree needed a copy of the git-ignored `next-env.d.ts` for staging. CRC: `4VAgpEV97t7ZLTzMNrrL3CrNd9oX`; TBI: `9sQZgeVxawwzBF7htFp1W3nAMJ61`.
+- All four hosts return `/health` 200 and serve the new overlay CSS. No migrations, relay or Companion changes, and no published graphics were changed. Booth acceptance remains separate.
 
 ### Release overlays-2026-10-07: overlay batch
 
