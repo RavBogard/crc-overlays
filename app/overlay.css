@@ -333,8 +333,8 @@ only its translation is a single channel and takes the full block, as any single
 
 /* Lower-third body. Side by side keeps the original columns (transliteration 730px, Hebrew 850px,
    30px apart; the divider moves with presentation.bottomSplit) and the translation spans both, below
-   them or above them by language order. Stacked is one left-aligned column of tight rows in
-   language order, each row wrapping as it needs; sizes are the same as side by side. */
+   them or above them by language order. Stacked is one column of tight rows in language order (Latin
+   left-aligned, Hebrew right-aligned), each row wrapping as it needs; sizes are the same as side by side. */
 .bottom-body{position:absolute;left:250px;bottom:28px;width:1610px;height:var(--bottom-text-height);display:grid;grid-template-columns:730px 850px;column-gap:30px;row-gap:14px;align-items:start;align-content:start}
 .bottom .bottom-body .prayer{position:relative;inset:auto;width:auto;height:auto;display:block;margin:0;min-width:0}
 .bottom-body[data-layout="columns"] .english:not(.single-channel){grid-column:1}
@@ -343,4 +343,5 @@ only its translation is a single channel and takes the full block, as any single
 .bottom .bottom-body .translation:not(.single-channel){font-size:30px;line-height:1.22;color:color-mix(in srgb,var(--crc-ink,#123) 78%,transparent)}
 .bottom-body[data-layout="stacked"]{grid-template-columns:minmax(0,1fr);row-gap:4px}
 .bottom .bottom-body[data-layout="stacked"] .prayer{grid-column:1;text-align:left}
+.bottom .bottom-body[data-layout="stacked"] .hebrew{text-align:right}
 .bottom .bottom-body[data-layout="stacked"] .translation:not(.single-channel){font-size:35px;line-height:1.24}

@@ -96,7 +96,7 @@ function fitBottomBody(box:HTMLElement,cue:Cue){
  const layer=(el:HTMLElement):BottomLayer=>el.dataset.element==='textMainheb'?'he':el.dataset.element==='textTranslation'?'en':'tr';
  const prayers=Array.from(body.querySelectorAll<HTMLElement>('.prayer:not(.single-channel)'));
  const rows=bottomRows(cue.rowOrder,stacked,prayers.map(layer));
- for(const el of prayers){el.style.gridRow=String(rows[layer(el)]??1);if(stacked)el.style.textAlign=cue.presentation?.alignment==='center'?'center':'left'}
+ for(const el of prayers){el.style.gridRow=String(rows[layer(el)]??1);if(stacked)el.style.textAlign=cue.presentation?.alignment==='center'?'center':layer(el)==='he'?'right':'left'}
  body.style.gridTemplateColumns=stacked?'':bottomColumnWidths(cue.presentation?.bottomSplit).map(width=>`${width}px`).join(' ');
  body.style.height='auto';
  // A Hebrew line's vowels can reach below its box. The body's scroll height already holds the last
