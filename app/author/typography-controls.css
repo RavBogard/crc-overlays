@@ -8,4 +8,6 @@
 .typography-controls .typography-checkbox input { width: auto; }
 .typography-role { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 9px; }
 .typography-controls details fieldset + fieldset { margin-top: 9px; }
+.typography-controls .line-pitch { color: #8ea69d; font-size: 10px; }
+.typography-controls .match-hebrew { margin-top: 8px; padding: 6px 9px; font-size: 11px; }
 @media (max-width: 500px) { .typography-role { grid-template-columns: 1fr; } }
