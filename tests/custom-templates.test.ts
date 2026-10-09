@@ -37,7 +37,7 @@ test('service begins at is a fixed title over a static time', () => {
 
 test('every template composes inside the draft limits, even at maximum input', () => {
   for (const template of CUSTOM_TEMPLATES) {
-    assert.ok(['bottom', 'left', 'right', 'corner'].includes(template.layout), `${template.id} has a real layout`);
+    assert.ok(['bottom', 'left', 'right', 'corner', 'nameplate'].includes(template.layout), `${template.id} has a real layout`);
     assert.ok(template.fields.length > 0, `${template.id} has fields`);
     const maxed = Object.fromEntries(template.fields.map(field => [field.key, 'W'.repeat(field.maxLength)]));
     const composed = template.compose(maxed);
@@ -47,4 +47,16 @@ test('every template composes inside the draft limits, even at maximum input', (
     const empty = template.compose({});
     assert.ok(empty.title.length <= 100 && empty.text.length <= 4000 && empty.name.length <= 80);
   }
+});
+
+test('a name plate is a heading over the name, then the Hebrew name and its transliteration on one line', () => {
+  const nameplate = byId('nameplate');
+  assert.equal(nameplate.layout, 'nameplate');
+  assert.deepEqual(nameplate.compose({heading: 'Bar Mitzvah of', name: 'Gavin Stein', hebrewName: 'בֶּנְיָה פְּרֶעֵל', transliteration: "Benyah P're-eil"}), {
+    name: 'Name plate · Gavin Stein',
+    title: 'Bar Mitzvah of',
+    text: "Gavin Stein\nבֶּנְיָה פְּרֶעֵל | Benyah P're-eil",
+  });
+  assert.equal(nameplate.compose({name: 'Rabbi Miriam Cohen'}).text, 'Rabbi Miriam Cohen', 'no divider without a Hebrew name');
+  assert.equal(nameplate.compose({name: 'Gavin Stein', transliteration: "Benyah P're-eil"}).text, "Gavin Stein\nBenyah P're-eil");
 });

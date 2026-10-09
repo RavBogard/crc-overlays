@@ -1,7 +1,7 @@
 /**
  * Layouts as data (MCP plan L2, R-L3 and R-L5; STATE ruling 7). A data layout is a card stored per
  * workspace in `layout_definitions` (db/layout-definitions.sql) as one immutable document per
- * published version. The built-in four (lower third, both panels, corner) stay code in
+ * published version. The built-in layouts (lower third, both panels, corner, name plate) stay code in
  * lib/layout-registry.ts and never appear here.
  *
  * Versioning: editing a published version N writes a draft N+1; editing that draft rewrites it in
@@ -72,8 +72,9 @@ function card(value:unknown):CardDefinition{
  const t=object(input.title,'card.title',['x','y','width','height','fontSize','lineHeight','accentWidth','accentGap']);
  const title={x:number(t.x,'card.title.x',0,frame.width),y:number(t.y,'card.title.y',0,frame.height),width:number(t.width,'card.title.width',1,frame.width),height:number(t.height,'card.title.height',1,frame.height),fontSize:number(t.fontSize,'card.title.fontSize',20,120),lineHeight:number(t.lineHeight,'card.title.lineHeight',.8,2.5,false),accentWidth:number(t.accentWidth,'card.title.accentWidth',0,frame.width),accentGap:number(t.accentGap,'card.title.accentGap',0,frame.width)};
  if(title.accentWidth+title.accentGap>=title.width)fail('card.title.accentWidth and accentGap must leave room for the title');
- const b=object(input.body,'card.body',['x','width','hebrew','latin','single']);
- const body={x:number(b.x,'card.body.x',0,frame.width),width:number(b.width,'card.body.width',1,frame.width),hebrew:channel(b.hebrew,'card.body.hebrew',true),latin:channel(b.latin,'card.body.latin',true),single:channel(b.single,'card.body.single',false) as Omit<CardChannel,'direction'>};
+ const b=object(input.body,'card.body',['x','width','hebrew','latin','single'],['lead']);
+ const body:CardDefinition['body']={x:number(b.x,'card.body.x',0,frame.width),width:number(b.width,'card.body.width',1,frame.width),hebrew:channel(b.hebrew,'card.body.hebrew',true),latin:channel(b.latin,'card.body.latin',true),single:channel(b.single,'card.body.single',false) as Omit<CardChannel,'direction'>};
+ if(b.lead!==undefined){const lead=object(b.lead,'card.body.lead',['fontSize','lineHeight']);body.lead={fontSize:number(lead.fontSize,'card.body.lead.fontSize',20,120),lineHeight:number(lead.lineHeight,'card.body.lead.lineHeight',.8,2.5,false)}}
  const within=(label:string,x:number,width:number,y:number,height:number)=>{if(x+width>frame.width||y+height>frame.height)fail(`${label} must lie inside the card`)};
  within('card.logo',logo.x,logo.size,logo.y,logo.size);within('card.title',title.x,title.width,title.y,title.height);
  for(const [name,item] of [['hebrew',body.hebrew],['latin',body.latin],['single',body.single]] as const)within(`card.body.${name}`,body.x,body.width,item.y,item.height);

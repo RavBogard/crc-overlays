@@ -281,6 +281,12 @@ only its translation is a single channel and takes the full block, as any single
 .overlay[data-card] .english,.overlay[data-card] .translation{top:var(--card-latin-top,auto);bottom:var(--card-latin-bottom,auto);height:var(--card-latin-height);font-size:var(--card-latin-font-size);line-height:var(--card-latin-line-height);direction:var(--card-latin-direction);text-align:var(--card-latin-align)}
 .overlay[data-card] .single-channel{top:var(--card-single-top,auto);bottom:var(--card-single-bottom,auto);height:var(--card-single-height);display:grid;align-content:center;font-size:var(--card-single-font-size);line-height:var(--card-single-line-height);text-align:var(--card-single-align)}
 .overlay[data-card] .prayer.single-channel{font-family:var(--crc-font-latin,WorkRefresh),Noto Sans Hebrew,Noto Sans Arabic,Arial,sans-serif}
+/* A card that leads with a name (body.lead, the name plate): each written line is its own
+   left-to-right line, so a Hebrew name followed by "| Benyah" keeps the order it was typed in, and
+   the first line - the name - is set larger, as a multiple of the channel's size so a fit shrink
+   carries it down too. */
+.overlay[data-card] .prayer[data-lead] .card-line{direction:ltr;unicode-bidi:isolate;white-space:pre-wrap}
+.overlay[data-card] .prayer[data-lead] .card-line-lead{font-size:calc(1em * var(--card-lead-scale,1));line-height:var(--card-lead-line-height);font-weight:600}
 
 /* G10: the accent title's size and weight as branding (typography.accentTitle; lib/branding-palette.ts).
    The Player marks the box data-accent-typography only when a workspace has stored one, so without it

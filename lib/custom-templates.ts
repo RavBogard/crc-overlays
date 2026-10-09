@@ -18,7 +18,7 @@ export type CustomTemplateLayout = LayoutId;
 export type CustomTemplateField = { key: string; label: string; placeholder: string; maxLength: number; dir?: "rtl" };
 
 export type CustomTemplate = {
-  id: "speaker" | "announcement" | "citation" | "service-begins" | "corner";
+  id: "speaker" | "announcement" | "citation" | "service-begins" | "corner" | "nameplate";
   label: string;
   description: string;
   layout: CustomTemplateLayout;
@@ -141,6 +141,29 @@ export const CUSTOM_TEMPLATES: readonly CustomTemplate[] = [
         name: libraryName(this.label, line || hebrew),
         title: read(values, "heading") || "Response",
         text: [hebrew, line].filter(Boolean).join("\n"),
+      };
+    },
+  },
+  {
+    // Who is on the bimah: "Bar Mitzvah of" in the strip, the name large beneath it, then the
+    // Hebrew name and its transliteration on one line, Hebrew first, as the old name plates read.
+    id: "nameplate",
+    label: "Name plate",
+    description: "A name with what they are here for, and their Hebrew name: a b'nai mitzvah, a speaker, an honoree.",
+    layout: "nameplate",
+    fields: [
+      { key: "heading", label: "Heading", placeholder: "Bar Mitzvah of", maxLength: 60 },
+      { key: "name", label: "Name", placeholder: "Gavin Stein", maxLength: 60 },
+      { key: "hebrewName", label: "Hebrew name", placeholder: "בֶּנְיָה פְּרֶעֵל", maxLength: 60, dir: "rtl" },
+      { key: "transliteration", label: "Hebrew name in English letters", placeholder: "Benyah P're-eil", maxLength: 60 },
+    ],
+    compose(values) {
+      const name = read(values, "name");
+      const detail = [read(values, "hebrewName"), read(values, "transliteration")].filter(Boolean).join(" | ");
+      return {
+        name: libraryName(this.label, name || detail),
+        title: read(values, "heading"),
+        text: [name, detail].filter(Boolean).join("\n"),
       };
     },
   },

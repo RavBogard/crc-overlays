@@ -52,7 +52,7 @@ test('acceptance: an agent creates a top-right Response card and publishes a gra
   const listed=await call('list_layouts',{},null);
   assert.equal(listed.isError,false,listed.text);
   assert.equal(listed.output.workspaceId,'crc');
-  assert.deepEqual(listed.output.layouts.map((item:Output)=>[item.id,item.kind]),[['bottom','built-in'],['left','built-in'],['right','built-in'],['corner','built-in']]);
+  assert.deepEqual(listed.output.layouts.map((item:Output)=>[item.id,item.kind]),[['bottom','built-in'],['left','built-in'],['right','built-in'],['corner','built-in'],['nameplate','built-in']]);
   assert.equal((await draftLayouts()).includes('response'),false);
 
   // Clone the corner card and pin it top-right.

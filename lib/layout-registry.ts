@@ -41,7 +41,13 @@ export type CardDefinition={
   * over its transliteration or translation (`latin`); a lone channel takes `single`, which keeps any
   * direction its script's channel set.
   */
- body:{x:number;width:number;hebrew:CardChannel;latin:CardChannel;single:Omit<CardChannel,'direction'>};
+ body:{x:number;width:number;hebrew:CardChannel;latin:CardChannel;single:Omit<CardChannel,'direction'>;
+  /**
+   * Set only on a card that leads with a name (the name plate). The lone channel is then set line
+   * by line: the first line at this size, each later line at `single`'s, every line left to right
+   * as written, so "בֶּנְיָה | Benyah" keeps its Hebrew first. Omitted: one block in its natural direction.
+   */
+  lead?:{fontSize:number;lineHeight:number}};
  fit:{
   /** `shrink-to-floor`: each title and body box that does not fit steps down a pixel at a time to `floor`. */
   strategy:'shrink-to-floor';
@@ -151,6 +157,25 @@ export const CORNER_CARD:CardDefinition={
   single:{y:90,height:120,fontSize:36,lineHeight:1.22,align:'natural'}},
  fit:{strategy:'shrink-to-floor',floor:20,maxSteps:40,glyphTolerance:6,fill:null,heightCeiling:null},
 };
+/**
+ * The name plate: who is on the bimah - "Bar Mitzvah of" over the name, and beneath it a Hebrew
+ * name with its transliteration. It is the corner card's surface and strip, pinned bottom-left
+ * where the resting logo and scan card never sit, and wide enough for a full name.
+ * Card x 48..928, y 808..1032. Title strip y 808..888 with the logo at its right end; the heading is 40px (the corner's is 28px) so it reads from the back. Body x 80..896,
+ * y 896..1022: the name at 52px, then the detail lines at 36px, all left-aligned.
+ */
+export const NAMEPLATE_CARD:CardDefinition={
+ frame:{anchor:'bottom-left',insetX:48,insetY:48,width:880,height:224},
+ surface:{radius:18,stripHeight:80,ruleHeight:6},
+ logo:{x:796,y:4,size:72},
+ title:{x:32,y:4,width:748,height:72,fontSize:40,lineHeight:1.1,accentWidth:260,accentGap:12},
+ body:{x:32,width:816,
+  hebrew:{y:90,height:58,fontSize:40,lineHeight:1.24,direction:'rtl',align:'start'},
+  latin:{y:154,height:56,fontSize:32,lineHeight:1.24,align:'start'},
+  single:{y:88,height:126,fontSize:36,lineHeight:1.2,align:'start'},
+  lead:{fontSize:52,lineHeight:1.12}},
+ fit:{strategy:'shrink-to-floor',floor:20,maxSteps:40,glyphTolerance:6,fill:null,heightCeiling:null},
+};
 
 /** The physical side a channel's lines align to (see CardAlign), or CSS `start` for `natural`. */
 export function cardTextAlign(channel:Pick<CardChannel,'align'|'direction'>):'left'|'right'|'start'{
@@ -182,6 +207,8 @@ export function cardStyle(card:CardDefinition):Record<string,string>{
   style[`--card-${part}-font-size`]=`${channel.fontSize}px`;style[`--card-${part}-line-height`]=String(channel.lineHeight);style[`--card-${part}-align`]=cardTextAlign(channel);
   if('direction' in channel&&channel.direction)style[`--card-${part}-direction`]=channel.direction;
  }
+ // The lead line is sized relative to its channel, so the fit's shrink steps carry it down with the rest.
+ if(body.lead){style['--card-lead-scale']=String(body.lead.fontSize/body.single.fontSize);style['--card-lead-line-height']=String(body.lead.lineHeight)}
  return style;
 }
 
@@ -190,16 +217,17 @@ const BUILT_IN:readonly LayoutDefinition[]=[
  {id:'left',label:'Left panel',templateLayout:'left',contained:true,capabilities:{sets:true,translation:true,oneBlockPerSlide:false}},
  {id:'right',label:'Right panel',templateLayout:'right',contained:true,capabilities:{sets:true,translation:true,oneBlockPerSlide:false}},
  {id:'corner',label:'Corner',templateLayout:'bottom',contained:true,capabilities:{sets:false,translation:false,oneBlockPerSlide:true},card:CORNER_CARD},
+ {id:'nameplate',label:'Name plate',templateLayout:'bottom',contained:true,capabilities:{sets:false,translation:false,oneBlockPerSlide:true},card:NAMEPLATE_CARD},
 ];
 const registry=new Map<LayoutId,LayoutDefinition>(BUILT_IN.map(definition=>[definition.id,definition]));
 // Companion reads a layout id as part of a variable name, so the id follows its grammar.
 const LAYOUT_ID=/^[a-z][a-z0-9_-]{0,39}$/;
 
-/** In catalog order: the lower third first, then the two panels, then the corner card, then any added. */
+/** In catalog order: the lower third first, then the two panels, the corner card and the name plate, then any added. */
 export function layoutIds():LayoutId[]{return [...registry.keys()]}
 export function isLayoutId(value:unknown):value is LayoutId{return typeof value==='string'&&registry.has(value)}
 export function layoutDefinition(id:LayoutId):LayoutDefinition|undefined{return registry.get(id)}
-/** "bottom, left, right, or corner" - for the sentence that refuses anything else. */
+/** "bottom, left, right, corner, or nameplate" - for the sentence that refuses anything else. */
 export function layoutChoices():string{const ids=layoutIds();return ids.length<2?ids.join(''):`${ids.slice(0,-1).join(', ')}, or ${ids[ids.length-1]}`}
 export function registerLayout(definition:LayoutDefinition):void{
  if(!LAYOUT_ID.test(definition.id))throw new Error(`Layout id ${JSON.stringify(definition.id)} must start with a letter and use only a-z, 0-9, _ and -, up to 40 characters`);
@@ -207,7 +235,7 @@ export function registerLayout(definition:LayoutDefinition):void{
  if(!registry.has(definition.templateLayout)&&definition.templateLayout!==definition.id)throw new Error(`Layout ${definition.id} borrows motion from ${definition.templateLayout}, which is not registered`);
  registry.set(definition.id,definition);
 }
-/** Removes a layout added with `registerLayout`. The built-in four cannot be removed. */
+/** Removes a layout added with `registerLayout`. The built-in layouts cannot be removed. */
 export function unregisterLayout(id:LayoutId):void{if(isBuiltInLayout(id))throw new Error(`Layout ${id} is built in`);registry.delete(id)}
 export function isBuiltInLayout(id:LayoutId):boolean{return BUILT_IN.some(definition=>definition.id===id)}
 /**

@@ -2,7 +2,7 @@
  * The layout tools (MCP plan L3, R-L4): list, read, clone, edit, check, preview, publish and rebase
  * data layouts - the per-workspace card layouts L2 stores in lib/layout-definitions.ts - so an
  * agent can add a layout (a top-right "Response" card, say) and publish a graphic in it with no
- * code change and no release. The built-in four stay code (ruling 7): they can be read, and the
+ * code change and no release. The built-in layouts stay code (ruling 7): they can be read, and the
  * corner card can be cloned, but none of them is ever written here.
  *
  * Nothing here puts anything on screen. publish_layout makes a definition the one new graphics
@@ -172,7 +172,7 @@ export async function layoutToolOperation(operation:string,data:Input,who:string
   const rows=await repository.list(),ids=[...new Set(rows.map(row=>row.id))].sort();
   const builtIn=layoutIds().filter(isBuiltInLayout).map(id=>{const definition=layoutDefinition(id)!;return {id,label:definition.label,kind:'built-in' as const,card:Boolean(definition.card),cloneable:Boolean(definition.card),capabilities:definition.capabilities}});
   const own=ids.map(id=>{const versions=rows.filter(row=>row.id===id).sort((a,b)=>a.version-b.version),newest=versions[versions.length-1],published=newestPublished(versions);return {id,label:newest.document.label,kind:'data' as const,card:true,cloneable:true,anchor:newest.document.card.frame.anchor,newestVersion:newest.version,status:newest.status,publishedVersion:published?.version??null,usable:Boolean(published),updatedAt:newest.updatedAt}});
-  return {layouts:[...builtIn,...own],message:own.length?`${own.length} of this congregation's own layout${own.length===1?'':'s'} beside the four built in. A layout is usable in create_draft once it has a published version.`:'Only the four built-in layouts so far. create_layout clones corner (or a layout of your own) into a new card layout.'};
+  return {layouts:[...builtIn,...own],message:own.length?`${own.length} of this congregation's own layout${own.length===1?'':'s'} beside the five built in. A layout is usable in create_draft once it has a published version.`:'Only the built-in layouts so far. create_layout clones corner (or a layout of your own) into a new card layout.'};
  }
 
  if(operation==='get_layout'){

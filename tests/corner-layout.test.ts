@@ -106,6 +106,8 @@ const css=readFileSync(fileURLToPath(new URL('../app/overlay.css',import.meta.ur
 test('the generic card block reads every property cardStyle sets, and each one it reads is set or edge-defaulted',()=>{
  const block=css.slice(css.indexOf('.overlay[data-card]::before'));
  const read=new Set([...block.matchAll(/var\((--card-[a-z-]+)/g)].map(match=>match[1]));
+ // The name plate also sets its lead line's scale: every built-in card's properties together are what the block may read.
+ const style={...cardStyle(card),...cardStyle(layoutDefinition('nameplate')!.card!)};
  for(const name of Object.keys(style))assert.ok(read.has(name),`app/overlay.css reads ${name}`);
  for(const name of read){
   const edge=/-(left|right|top|bottom)$/.test(name);
@@ -265,7 +267,7 @@ const editable=(layout:string,templateCueId:string,content:unknown={mode:'custom
 test('a corner draft validates against a lower-third template and nothing else',()=>{
  assert.equal(parseEditable(editable('corner',bottomTemplate.id)).layout,'corner');
  assert.throws(()=>parseEditable(editable('corner',leftTemplate.id)),(error:unknown)=>error instanceof AuthoringError&&error.code==='template_layout_mismatch');
- assert.throws(()=>parseEditable(editable('middle',bottomTemplate.id)),/layout must be bottom, left, right, or corner/);
+ assert.throws(()=>parseEditable(editable('middle',bottomTemplate.id)),/layout must be bottom, left, right, corner, or nameplate/);
 });
 
 const draftOf=(value:EditableDraft):Draft=>({...value,id:'draft-corner',version:1,sourcePin:sourcePinFor(value.content),activeRevision:null,activeDraftVersion:null,createdAt:0,updatedAt:0,createdBy:'test',updatedBy:'test'});
@@ -324,7 +326,7 @@ test('the authoring service creates and lists corner drafts, and refuses to cut 
  assert.equal(created.draft.layout,'corner');
  const listed=await service.operation('list_drafts',{compact:true,layout:'corner'},'tester') as {drafts:Array<{id:string;layout:string}>};
  assert.deepEqual(listed.drafts.map(row=>row.layout),['corner']);
- await assert.rejects(service.operation('list_drafts',{compact:true,layout:'middle'},'tester'),/layout must be bottom, left, right, or corner/);
+ await assert.rejects(service.operation('list_drafts',{compact:true,layout:'middle'},'tester'),/layout must be bottom, left, right, corner, or nameplate/);
  await assert.rejects(service.operation('create_source_draft_set',{sourceId:KOL_NIDRE,mode:'bilingual',layout:'corner',templateCueId:bottomTemplate.id},'tester'),(error:unknown)=>error instanceof AuthoringError&&error.code==='corner_set_unsupported');
  const dry=await service.operation('style_draft',{draftId:created.draft.id,expectedVersion:created.draft.version,layout:'corner'},'tester') as {dryRun:boolean};
  assert.equal(dry.dryRun,true,'style_draft accepts the corner layout');
@@ -342,11 +344,26 @@ test('every MCP tool that takes a layout accepts corner',async()=>{
  const listed=await payload(await handler.fetch(request({jsonrpc:'2.0',id:1,method:'tools/list',params:{}}),{authInfo})) as {result:{tools:{name:string;inputSchema:{properties:Record<string,{enum?:string[]}>}}[]}};
  for(const name of ['create_draft','list_drafts','create_source_draft_set','style_draft']){
   const tool=listed.result.tools.find(item=>item.name===name);
-  assert.deepEqual(tool?.inputSchema.properties.layout?.enum,['left','bottom','right','corner'],`${name} lists corner`);
+  assert.deepEqual(tool?.inputSchema.properties.layout?.enum,['left','bottom','right','corner','nameplate'],`${name} lists corner`);
  }
  const draft={...editable('corner','template-bottom'),content:{mode:'custom',text:'Thank you'}};
  const created=await payload(await handler.fetch(request({jsonrpc:'2.0',id:2,method:'tools/call',params:{name:'create_draft',arguments:draft}}),{authInfo})) as {result:{isError?:boolean}};
  assert.notEqual(created.result.isError,true);
  assert.deepEqual(calls.map(call=>call.operation),['create_draft']);
  assert.equal((calls[0].input as {layout:string}).layout,'corner');
+});
+
+test('a name plate sets its name as a larger lead line over left-to-right detail lines',()=>{
+ const cue={...cornerCue({textTitle:'Bar Mitzvah of',textMain:'Gavin Stein\nבֶּנְיָה פְּרֶעֵל | Benyah P\'re-eil'}),layout:'nameplate'};
+ const box=new Player(new FakeElement('div') as unknown as HTMLElement,[cue]).render(cue) as unknown as FakeElement;
+ assert.equal(box.dataset.card,'nameplate');
+ const nameplate=layoutDefinition('nameplate')!.card!;
+ assert.equal(nameplate.frame.anchor,'bottom-left','clear of the resting logo and scan card in the bottom-right corner');
+ assert.equal(box.style.properties['--card-lead-scale'],String(nameplate.body.lead!.fontSize/nameplate.body.single.fontSize));
+ const single=box.querySelector('.single-channel')!;
+ assert.ok('lead' in single.dataset);
+ assert.deepEqual(single.children.map(line=>[line.className,line.textContent]),[['card-line card-line-lead','Gavin Stein'],['card-line','בֶּנְיָה פְּרֶעֵל | Benyah P\'re-eil']]);
+ // The corner card has no lead: its lone channel stays one block.
+ const corner=renderCorner({textTitle:'Response',textMain:'וְאִמְרוּ אָמֵן\nVaimru Amen'}).box.querySelector('.single-channel')!;
+ assert.equal(corner.children.length,0);assert.ok(!('lead' in corner.dataset));
 });

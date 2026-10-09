@@ -14,8 +14,8 @@ const names = new Map((baseline as Array<{id: string; name: string}>).map(cue =>
 
 test('one tile per layout, named by the look and never by a cue', () => {
   const looks = templateLooks(templates, 'bilingual');
-  assert.equal(looks.length, 4);
-  assert.deepEqual(looks.map(look => look.layout), ['bottom', 'left', 'right', 'corner']);
+  assert.equal(looks.length, 5);
+  assert.deepEqual(looks.map(look => look.layout), ['bottom', 'left', 'right', 'corner', 'nameplate']);
   for (const look of looks) {
     const template = templates.find(item => item.id === look.id);
     assert.ok(template, `${look.layout} tile points at a baseline`);
@@ -44,15 +44,15 @@ test('the descriptor names what goes on screen, per mode', () => {
 
 test('a layout with no baseline gets no tile; a non-importable baseline still gives one', () => {
   const looks = templateLooks(templates.filter(item => item.layout !== 'right'), 'bilingual');
-  assert.deepEqual(looks.map(look => look.layout), ['bottom', 'left', 'corner']);
+  assert.deepEqual(looks.map(look => look.layout), ['bottom', 'left', 'corner', 'nameplate']);
   const none = templateLooks(templates.map(item => ({...item, importable: false})), 'bilingual');
-  assert.deepEqual(none.map(look => look.layout), ['bottom', 'left', 'right', 'corner']);
+  assert.deepEqual(none.map(look => look.layout), ['bottom', 'left', 'right', 'corner', 'nameplate']);
 });
 
 test('the supported custom right-panel baseline remains importable', () => {
   const real = templates.map(item => { let importable = true; try { editableFromBaseline(item.id); } catch { importable = false; } return {...item, importable}; });
   assert.ok(real.some(item => item.layout === 'right' && item.importable), 'fixture: the right baseline is importable as custom text');
   const looks = templateLooks(real, 'bilingual');
-  assert.deepEqual(looks.map(look => look.layout), ['bottom', 'left', 'right', 'corner']);
+  assert.deepEqual(looks.map(look => look.layout), ['bottom', 'left', 'right', 'corner', 'nameplate']);
   assert.equal(looks.find(look => look.layout === 'right')?.label, 'Right panel · Hebrew + transliteration');
 });

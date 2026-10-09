@@ -890,7 +890,8 @@
            "left",
            "bottom",
            "right",
-           "corner"
+           "corner",
+           "nameplate"
           ]
          },
          "templateCueId": {
@@ -1150,7 +1151,8 @@
            "left",
            "bottom",
            "right",
-           "corner"
+           "corner",
+           "nameplate"
           ]
          },
          "templateCueId": {
@@ -1423,7 +1425,8 @@
            "left",
            "bottom",
            "right",
-           "corner"
+           "corner",
+           "nameplate"
           ]
          },
          "templateCueId": {
@@ -1938,7 +1941,8 @@
            "left",
            "bottom",
            "right",
-           "corner"
+           "corner",
+           "nameplate"
           ]
          },
          "arrangement": {
@@ -2302,7 +2306,8 @@
       "left",
       "bottom",
       "right",
-      "corner"
+      "corner",
+      "nameplate"
      ]
     },
     "name": {
@@ -2566,7 +2571,8 @@
       "left",
       "bottom",
       "right",
-      "corner"
+      "corner",
+      "nameplate"
      ]
     },
     "templateCueId": {
@@ -4272,7 +4278,8 @@
       "left",
       "bottom",
       "right",
-      "corner"
+      "corner",
+      "nameplate"
      ]
     },
     "templateCueId": {
@@ -4912,7 +4919,7 @@
     "layoutId": {
      "type": "string",
      "pattern": "^[a-z][a-z0-9_-]{0,39}$",
-     "description": "A layout id from list_layouts (built-in: bottom, left, right, corner)."
+     "description": "A layout id from list_layouts (built-in: bottom, left, right, corner, nameplate)."
     },
     "version": {
      "type": "integer",
@@ -5686,7 +5693,8 @@
       "left",
       "bottom",
       "right",
-      "corner"
+      "corner",
+      "nameplate"
      ]
     },
     "workspace": {
@@ -5752,7 +5760,8 @@
       "left",
       "bottom",
       "right",
-      "corner"
+      "corner",
+      "nameplate"
      ]
     },
     "limit": {
@@ -5801,7 +5810,7 @@
  },
  {
   "name": "list_layouts",
-  "description": "Every layout CRC can use: the four built in (bottom lower third, left and right panels, corner card) and this congregation's own card layouts, with each one's newest version, whether it is a draft or published, and publishedVersion. Only a layout with a published version is accepted by create_draft. Read only; get_layout has the full definition.",
+  "description": "Every layout CRC can use: the five built in (bottom lower third, left and right panels, corner card, nameplate) and this congregation's own card layouts, with each one's newest version, whether it is a draft or published, and publishedVersion. Only a layout with a published version is accepted by create_draft. Read only; get_layout has the full definition.",
   "inputSchema": {
    "type": "object",
    "$schema": "https://json-schema.org/draft/2020-12/schema",
@@ -6990,7 +6999,8 @@
       "left",
       "bottom",
       "right",
-      "corner"
+      "corner",
+      "nameplate"
      ]
     },
     "templateCueId": {
@@ -7713,7 +7723,7 @@
     "layoutId": {
      "type": "string",
      "pattern": "^[a-z][a-z0-9_-]{0,39}$",
-     "description": "A layout id from list_layouts (built-in: bottom, left, right, corner)."
+     "description": "A layout id from list_layouts (built-in: bottom, left, right, corner, nameplate)."
     },
     "version": {
      "type": "integer",
@@ -7936,7 +7946,7 @@
     "layoutId": {
      "type": "string",
      "pattern": "^[a-z][a-z0-9_-]{0,39}$",
-     "description": "A layout id from list_layouts (built-in: bottom, left, right, corner)."
+     "description": "A layout id from list_layouts (built-in: bottom, left, right, corner, nameplate)."
     },
     "expectedVersion": {
      "type": "integer",
@@ -8015,7 +8025,7 @@
     "layoutId": {
      "type": "string",
      "pattern": "^[a-z][a-z0-9_-]{0,39}$",
-     "description": "A layout id from list_layouts (built-in: bottom, left, right, corner)."
+     "description": "A layout id from list_layouts (built-in: bottom, left, right, corner, nameplate)."
     },
     "expectedVersion": {
      "type": "integer",
@@ -9538,7 +9548,8 @@
       "left",
       "bottom",
       "right",
-      "corner"
+      "corner",
+      "nameplate"
      ]
     },
     "arrangement": {
@@ -10421,7 +10432,8 @@
         "left",
         "bottom",
         "right",
-        "corner"
+        "corner",
+        "nameplate"
        ]
       },
       "templateCueId": {
@@ -11120,7 +11132,7 @@
     "layoutId": {
      "type": "string",
      "pattern": "^[a-z][a-z0-9_-]{0,39}$",
-     "description": "A layout id from list_layouts (built-in: bottom, left, right, corner)."
+     "description": "A layout id from list_layouts (built-in: bottom, left, right, corner, nameplate)."
     },
     "expectedVersion": {
      "type": "integer",
@@ -12036,7 +12048,7 @@
     "layoutId": {
      "type": "string",
      "pattern": "^[a-z][a-z0-9_-]{0,39}$",
-     "description": "A layout id from list_layouts (built-in: bottom, left, right, corner)."
+     "description": "A layout id from list_layouts (built-in: bottom, left, right, corner, nameplate)."
     },
     "version": {
      "type": "integer",

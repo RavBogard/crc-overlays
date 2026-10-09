@@ -81,7 +81,7 @@ test('list_templates returns a look per layout and the named text sizes; the siz
  const {call}=wired();
  const listed=await call('list_templates',{},undefined);
  assert.ok(listed.output.templates.length>0,'existing callers keep templates');
- assert.deepEqual(listed.output.looks.map((look:{layout:string})=>look.layout),['bottom','left','right','corner']);
+ assert.deepEqual(listed.output.looks.map((look:{layout:string})=>look.layout),['bottom','left','right','corner','nameplate']);
  assert.equal(listed.output.looks.find((look:{layout:string})=>look.layout==='corner').templateCueId,lookFor('corner').id);
  assert.deepEqual(listed.output.textSizes.map((size:{id:string})=>size.id),['comfortable','large','compact']);
  // The look drawer's own density buttons, read from its source so the two can never disagree.
@@ -187,7 +187,7 @@ test('preview_content shows content without a draft, and with includePreviewImag
 test('list_custom_templates and compose_custom_draft make a guided custom draft, and refuse bad values in sentences',async()=>{
  const {call}=wired();
  const listed=await call('list_custom_templates',{},undefined);
- assert.deepEqual(listed.output.templates.map((template:{id:string})=>template.id),['speaker','announcement','citation','service-begins','corner']);
+ assert.deepEqual(listed.output.templates.map((template:{id:string})=>template.id),['speaker','announcement','citation','service-begins','corner','nameplate']);
  assert.ok(listed.output.templates[0].fields.every((field:{maxLength:number})=>field.maxLength>0));
  const speaker=await call('compose_custom_draft',{templateId:'speaker',values:{name:'Rabbi Miriam Cohen',role:'Guest speaker'},textSize:'large'});
  assert.equal(speaker.isError,false,speaker.text);
