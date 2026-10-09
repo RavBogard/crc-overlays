@@ -172,6 +172,21 @@ function keepWatermarkClearOfLogo(box:HTMLElement){
  watermark.style.left=`${safeLeft}px`;watermark.style.right='auto';watermark.style.width=`${Math.max(0,safeRight-safeLeft)}px`;
  watermark.style.visibility=safeRight-safeLeft<24?'hidden':'';
 }
+/**
+ * The titles a left-to-left words-only change leaves exactly where they are: each one whose text is
+ * the same in both panels and that is drawn the same way - the same title mode (a Hebrew accent
+ * title, the watermark, or neither, which moves the English title) and the same title typography.
+ * Only what changes animates.
+ */
+export function heldTitles(from:Pick<Cue,'layout'|'texts'|'presentation'>,to:Pick<Cue,'layout'|'texts'|'presentation'>):Set<string>{
+ const mode=(cue:typeof from)=>!cue.texts.accentTextTitle?'none':(cue.layout==='left'||cue.layout==='right')&&cue.presentation?.legacyTitleWatermark?'watermark':'accent';
+ const look=(cue:typeof from)=>JSON.stringify([mode(cue),cue.presentation?.titleLineHeight,cue.presentation?.titleLetterSpacing]);
+ const held=new Set<string>();
+ if(look(from)!==look(to))return held;
+ if(from.texts.textTitle&&from.texts.textTitle===to.texts.textTitle)held.add('textTitle');
+ if(from.texts.accentTextTitle&&from.texts.accentTextTitle===to.texts.accentTextTitle&&from.presentation?.hebrewFontFamily===to.presentation?.hebrewFontFamily)held.add('accentTextTitle');
+ return held;
+}
 /** A card that leads with a name (CardDefinition body.lead): one left-to-right line per written line, the first marked as the lead. */
 function splitLeadLines(channel:HTMLElement){
  const lines=(channel.textContent||'').split('\n');
@@ -199,12 +214,13 @@ export class Player{
   * nothing about what a compositor is doing with the frame.
   */
  get occupied(){return this.desired.cue!==null||this.current!==null||this.root.childElementCount>0}
- render(c:Cue,imageAssetUrl?:string,retained?:HTMLElement){const noHebrewPanel=(c.layout==='left'||c.layout==='right')&&Boolean(c.texts.textMainEng&&c.texts.textTranslation&&!c.texts.textMainheb);let box:HTMLElement=document.createElement('div');box.className=`overlay ${c.layout}${noHebrewPanel?' panel-translation-stack':''}`;const definition=resolveCueLayout(c,this.options.layouts);/* A data layout's id is an author's word: it is not a class, so it can never match a rule meant for a built-in layout or a part. */if(c.layoutRef){box.className='overlay';box.dataset.layout=c.layout}if(definition?.contained)box.dataset.contain='';if(definition?.card){box.dataset.card=c.layout;for(const [name,value] of Object.entries(cardStyle(definition.card)))box.style.setProperty(name,value)}/* L4: every branding colour and font role, as the CSS variables app/overlay.css reads. */for(const [name,value] of Object.entries(brandingCssVariables(this.branding)))box.style.setProperty(name,value);/* G10: the accent title's stored size and weight switch on their rules; none stored, none match. */if(hasAccentTypography(this.branding))box.dataset.accentTypography='';if(c.presentation?.largePrint)box.dataset.largePrint='true';if(c.presentation?.verticalAlignment)box.dataset.verticalAlignment=c.presentation.verticalAlignment;if((c.layout==='left'||c.layout==='right')&&c.presentation?.legacyTitleWatermark&&c.texts.accentTextTitle)box.dataset.legacyTitleWatermark='true';
+ render(c:Cue,imageAssetUrl?:string,retained?:HTMLElement,held:ReadonlySet<string>=new Set()){const noHebrewPanel=(c.layout==='left'||c.layout==='right')&&Boolean(c.texts.textMainEng&&c.texts.textTranslation&&!c.texts.textMainheb);let box:HTMLElement=document.createElement('div');box.className=`overlay ${c.layout}${noHebrewPanel?' panel-translation-stack':''}`;const definition=resolveCueLayout(c,this.options.layouts);/* A data layout's id is an author's word: it is not a class, so it can never match a rule meant for a built-in layout or a part. */if(c.layoutRef){box.className='overlay';box.dataset.layout=c.layout}if(definition?.contained)box.dataset.contain='';if(definition?.card){box.dataset.card=c.layout;for(const [name,value] of Object.entries(cardStyle(definition.card)))box.style.setProperty(name,value)}/* L4: every branding colour and font role, as the CSS variables app/overlay.css reads. */for(const [name,value] of Object.entries(brandingCssVariables(this.branding)))box.style.setProperty(name,value);/* G10: the accent title's stored size and weight switch on their rules; none stored, none match. */if(hasAccentTypography(this.branding))box.dataset.accentTypography='';if(c.presentation?.largePrint)box.dataset.largePrint='true';if(c.presentation?.verticalAlignment)box.dataset.verticalAlignment=c.presentation.verticalAlignment;if((c.layout==='left'||c.layout==='right')&&c.presentation?.legacyTitleWatermark&&c.texts.accentTextTitle)box.dataset.legacyTitleWatermark='true';
 const add=(classes:string,text:string,name:string)=>{const el=document.createElement(classes==='logo'?'img':'div');el.className=`part ${classes}`;el.dataset.element=name;if(el instanceof HTMLImageElement){el.src=this.branding.logo;el.alt=this.branding.logoAlt}else el.textContent=text;box.appendChild(el);return el};
 add('base','','baseMain');add('titlebar','','baseTitle');const grad=add('titlebar titlegrad','','baseTitleGrad');grad.style.setProperty('background',`linear-gradient(90deg,${this.branding.titleShade},${this.branding.titleColor})`,'important');add('accent','','accentLineBottom');
 if((c.layout==='left'||c.layout==='right')&&c.presentation?.legacyTitleWatermark&&c.texts.accentTextTitle){const watermark=document.createElement('div');watermark.className='part title-watermark';watermark.dataset.element='accentTextTitle';watermark.textContent=legacyTitleDisplay(c.texts.accentTextTitle);watermark.setAttribute('aria-hidden','true');box.appendChild(watermark)}
 if(c.texts.textTitle)add('title',c.texts.textTitle,'textTitle');if(c.texts.accentTextTitle&&!((c.layout==='left'||c.layout==='right')&&c.presentation?.legacyTitleWatermark))add('title title-accent',c.texts.accentTextTitle,'accentTextTitle');if(usesPanelRows(c)){const rows=document.createElement('div');rows.className='part panel-rows';rows.dataset.rowCount=String(c.contentRows!.length);for(const [index,content] of c.contentRows!.entries()){const row=document.createElement('div');row.className='content-row';row.dataset.row=String(index+1);for(const item of panelRowChannels(content,c.rowOrder)){const channel=document.createElement('div');channel.className=`prayer ${item.classes}`;channel.textContent=displayPresentationText(item.text,item.element,c.presentation);channel.dataset.element=item.element;channel.dataset.animationElement=item.animationElement;row.appendChild(channel)}rows.appendChild(row)}box.appendChild(rows)}else {const body=c.layout==='bottom'?document.createElement('div'):null;if(body){body.className='bottom-body';body.dataset.layout=c.presentation?.bottomLayout||'columns';box.appendChild(body)}for(const part of textParts(c.texts)){const el=add(part.classes,displayPresentationText(part.text,part.element,c.presentation),part.element);body?.appendChild(el)}}if(definition?.card?.body.lead)box.querySelectorAll<HTMLElement>('.prayer.single-channel').forEach(splitLeadLines);const logo=add('logo','','Image');if(logo instanceof HTMLImageElement&&imageAssetUrl)logo.src=imageAssetUrl;if(retained){
- const chrome=['baseMain','baseTitle','baseTitleGrad','accentLineBottom','Image'];
+ // A title the next panel shares stays as it is, like the panel itself (heldTitles).
+ const chrome=['baseMain','baseTitle','baseTitleGrad','accentLineBottom','Image',...held];
  for(const name of chrome){const existing=retained.querySelector<HTMLElement>(`[data-element="${name}"]`),replacement=box.querySelector<HTMLElement>(`[data-element="${name}"]`);if(existing&&replacement){/* The same artwork stays as it is: reassigning its src would reload it mid-change. */if(existing instanceof HTMLImageElement&&replacement instanceof HTMLImageElement&&existing.src!==replacement.src)existing.src=replacement.src;replacement.replaceWith(existing)}}
  retained.className=box.className;retained.style.cssText=box.style.cssText;for(const key of Object.keys(retained.dataset))delete retained.dataset[key];Object.assign(retained.dataset,box.dataset);retained.replaceChildren(...Array.from(box.childNodes));box=retained;
  }else this.root.replaceChildren(box);if(c.presentation){const styles=presentationTextStyles(c.presentation);box.querySelectorAll<HTMLElement>('.prayer').forEach(element=>{if(styles.textAlign)element.style.textAlign=styles.textAlign;if(styles.lineHeight)element.style.lineHeight=styles.lineHeight});applyPresentationTypography(box,c.presentation)}this.applyFit(box,c);return box}
@@ -214,19 +230,25 @@ if(c.texts.textTitle)add('title',c.texts.textTitle,'textTitle');if(c.texts.accen
  // Artwork that fails or times out falls back to the congregation branding logo so the
  // text cue still goes to air; font and layout failures still surface to the caller.
  async settleAssets(box:HTMLElement,imageAssetUrl?:string){const wait=this.options.waitForAssets??waitForRenderedOverlayAssets;try{await wait(box);return}catch(error){const logo=box.querySelector<HTMLImageElement>('img.logo');if(!imageAssetUrl||!logo||logo.src===this.branding.logo||(logo.complete&&Boolean(logo.naturalWidth)))throw error;logo.src=this.branding.logo;await wait(box)}}
- async animate(box:HTMLElement,c:Cue,direction:AnimationDirection,textOnly=false){
+ async animate(box:HTMLElement,c:Cue,direction:AnimationDirection,textOnly=false,held:ReadonlySet<string>=new Set()){
   const duration=c.duration[direction]||.5,translatePx=c.template?.translatePx||48;
-  const elements=Array.from(box.querySelectorAll<HTMLElement>('[data-element]')).filter(el=>!textOnly||el.matches('.title,.title-watermark,.prayer'));
+  const elements=Array.from(box.querySelectorAll<HTMLElement>('[data-element]')).filter(el=>!textOnly||(el.matches('.title,.title-watermark,.prayer')&&!held.has(el.dataset.element||'')));
+  const fades=(tracks:AnimationTrack[])=>tracks.filter(track=>(track.effect?.effect||'fade')==='fade');
   const planned=elements.map(el=>{
    const name=el.dataset.animationElement||el.dataset.element||'';
    let tracks=tracksFor(name,direction,c.animations);
    if(!tracks.length&&(textOnly||el.matches('.title,.title-watermark')))tracks=[{element:name,direction,effect:{effect:'fade'},keyframes:[0,.25]}];
+   // Words leaving a panel that stays are gone once they have faded: a slide still running after
+   // that only holds the empty panel on screen.
+   if(textOnly&&direction==='Out'&&fades(tracks).length)tracks=fades(tracks);
    return {el,tracks};
   });
   // A words-only change keeps the panel on screen, so the time the whole graphic's tracks give the
-  // panel before its words move is dead air: the words' own timing starts at zero.
+  // panel before its words move is dead air. The words' timing starts when they first become
+  // visible - their earliest fade - so their slide in is already under way as they appear.
   const rangeOf=(track:AnimationTrack)=>track.keyframes?.length===2?track.keyframes:[0,duration];
-  const lead=textOnly?Math.min(...planned.flatMap(({tracks})=>tracks.map(track=>rangeOf(track)[0]))):0;
+  const visibleFrom=planned.flatMap(({tracks})=>(fades(tracks).length?fades(tracks):tracks).map(track=>rangeOf(track)[0]));
+  const lead=textOnly?Math.min(...visibleFrom):0;
   const shift=Number.isFinite(lead)?lead:0;
   const finished=planned.flatMap(({el,tracks})=>{
    el.style.visibility='';
@@ -238,14 +260,15 @@ if(c.texts.textTitle)add('title',c.texts.textTitle,'textTitle');if(c.texts.accen
   if(this.busy)return;this.busy=true;const g=this.generation;
   try{while(g===this.generation){
    if((this.current?.id??null)===this.desired.cue){this.revision=this.desired.revision;this.phase='settled';break}
-   this.phase='transition';let retained:HTMLElement|undefined;
+   this.phase='transition';let retained:HTMLElement|undefined,held:ReadonlySet<string>=new Set();
    if(this.current&&this.root.firstElementChild){
     const old=this.root.firstElementChild as HTMLElement;
     const next=this.cues.find(c=>c.id===this.desired.cue);
     const wordsOnly=this.current.layout==='left'&&!this.current.layoutRef&&next?.layout==='left'&&!next.layoutRef;
-    await this.animate(old,this.current,'Out',wordsOnly);if(g!==this.generation)return;
+    held=wordsOnly&&next?heldTitles(this.current,next):new Set();
+    await this.animate(old,this.current,'Out',wordsOnly,held);if(g!==this.generation)return;
     const latest=this.cues.find(c=>c.id===this.desired.cue);
-    if(wordsOnly&&latest?.layout==='left'&&!latest.layoutRef)retained=old;
+    if(wordsOnly&&latest?.layout==='left'&&!latest.layoutRef){retained=old;const still=heldTitles(this.current,latest);held=new Set([...held].filter(name=>still.has(name)))}
     else{if(wordsOnly){await this.animate(old,this.current,'Out');if(g!==this.generation)return}this.root.replaceChildren();this.current=null}
    }
    if(this.desired.cue){
@@ -254,11 +277,13 @@ if(c.texts.textTitle)add('title',c.texts.textTitle,'textTitle');if(c.texts.accen
     // A command may arrive during artwork lookup. Resolve the newest cue before replacing text.
     if(!incomingStillDesired(cue.id,this.desired)){continue}
     if(retained&&cue.layout!=='left')retained=undefined;
-    const box=this.render(cue,imageAssetUrl,retained);
-    if(retained)box.querySelectorAll<HTMLElement>('.title,.title-watermark,.prayer').forEach(el=>el.style.visibility='hidden');
+    // The cue may have changed again during the artwork lookup: hold only what it still shares.
+    if(retained&&this.current){const still=heldTitles(this.current,cue);held=new Set([...held].filter(name=>still.has(name)))}else held=new Set();
+    const box=this.render(cue,imageAssetUrl,retained,held);
+    if(retained)box.querySelectorAll<HTMLElement>('.title,.title-watermark,.prayer').forEach(el=>{if(!held.has(el.dataset.element||''))el.style.visibility='hidden'});
     else box.style.visibility='hidden';
     await this.settleAssets(box,imageAssetUrl);if(g!==this.generation)return;
-    this.applyFit(box,cue);await this.animate(box,cue,'In',Boolean(retained));if(g!==this.generation)return;
+    this.applyFit(box,cue);await this.animate(box,cue,'In',Boolean(retained),held);if(g!==this.generation)return;
     this.current=cue;
    }
   }}catch{if(g===this.generation)this.phase='error'}finally{if(g===this.generation)this.busy=false}

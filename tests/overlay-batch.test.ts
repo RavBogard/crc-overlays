@@ -1,6 +1,6 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
-import { Player, BOTTOM_DEFAULT_SPLIT, bottomColumnWidths, bottomRows, type Cue } from '../lib/player.ts';
+import { Player, heldTitles, BOTTOM_DEFAULT_SPLIT, bottomColumnWidths, bottomRows, type Cue } from '../lib/player.ts';
 import { tracksFor, type AnimationTrack } from '../lib/player-motion.ts';
 import { publishFitIssues } from '../app/author/preview.ts';
 import { buildCue, editableFromBaseline, parseEditable, sourcePinFor, type Draft } from '../lib/authoring-model.ts';
@@ -106,4 +106,65 @@ test('a words-only change starts the words at once, without the panel lead-in of
   assert.deepEqual(delays.map(d=>Math.round(d)),[0,200]);
   delays.length=0;await player.animate(box,cue,'In');
   assert.deepEqual(delays.map(d=>Math.round(d)),[400,600],'the full graphic keeps its timing');
+});
+
+// The left panel's own template (lib/cues.json): its words fade out by about .15s while their slide
+// runs to about .39s, and fade in .2s after their slide in starts.
+const leftTemplate=(baseline as unknown as Cue[]).find(cue=>cue.layout==='left'&&cue.animations.some(track=>track.element==='HebText'&&track.direction==='Out'))!;
+function timedElement(element:string,classes:string,log:Array<{element:string;delay:number;end:number}>){
+  return {dataset:{element},style:{visibility:''},classList:{contains:(name:string)=>classes.split(' ').includes(name)},matches:(selector:string)=>selector.split(',').some(part=>classes.split(' ').includes(part.trim().slice(1))),
+    animate:(_frames:unknown,options:{delay:number;duration:number})=>{log.push({element,delay:options.delay,end:options.delay+options.duration});return {finished:Promise.resolve()}}};
+}
+
+test('a words-only change leaves no blank panel: words go once faded and appear at once',async()=>{
+  const log:Array<{element:string;delay:number;end:number}>=[];
+  const els=[timedElement('textTitle','part title',log),timedElement('textMainheb','part prayer hebrew',log),timedElement('textMainEng','part prayer english',log)];
+  const box={querySelectorAll:()=>els,style:{visibility:''}} as unknown as HTMLElement;
+  const player=new Player({replaceChildren(){}} as unknown as HTMLElement,[leftTemplate]);
+  await player.animate(box,leftTemplate,'Out',true);
+  assert.ok(Math.max(...log.map(item=>item.end))<=160,`the words are gone by their fade's end, not the slide's (${Math.max(...log.map(item=>item.end))}ms)`);
+  log.length=0;await player.animate(box,leftTemplate,'In',true);
+  const fadeIns=log.filter(item=>item.element!=='textTitle');
+  assert.ok(fadeIns.some(item=>Math.round(item.delay)===0),'the words start becoming visible at once');
+  assert.ok(log.every(item=>item.end>0));
+  log.length=0;await player.animate(box,leftTemplate,'Out');
+  assert.ok(Math.max(...log.map(item=>item.end))>=380,'the full exit keeps its slide');
+});
+
+test('a title both panels share is held: only what changes animates',async()=>{
+  const log:Array<{element:string;delay:number;end:number}>=[];
+  const els=[timedElement('textTitle','part title',log),timedElement('accentTextTitle','part title title-accent',log),timedElement('textMainEng','part prayer english',log)];
+  const box={querySelectorAll:()=>els,style:{visibility:''}} as unknown as HTMLElement;
+  const player=new Player({replaceChildren(){}} as unknown as HTMLElement,[leftTemplate]);
+  await player.animate(box,leftTemplate,'Out',true,new Set(['textTitle','accentTextTitle']));
+  assert.deepEqual([...new Set(log.map(item=>item.element))],['textMainEng']);
+  log.length=0;await player.animate(box,leftTemplate,'In',true,new Set(['textTitle']));
+  assert.deepEqual([...new Set(log.map(item=>item.element))],['accentTextTitle','textMainEng']);
+});
+
+test('heldTitles holds a title only when its text and its drawing are the same',()=>{
+  const cue=(texts:Record<string,string>,presentation:Cue['presentation']={}):Cue=>({id:'x',name:'x',layout:'left',texts,animations:[],duration:{},presentation});
+  const shema={textTitle:'Shema',accentTextTitle:'שְׁמַע'};
+  assert.deepEqual([...heldTitles(cue({...shema,textMainEng:'a'}),cue({...shema,textMainEng:'b'}))],['textTitle','accentTextTitle']);
+  assert.deepEqual([...heldTitles(cue({...shema}),cue({textTitle:'Shema',accentTextTitle:'וְאָהַבְתָּ'}))],['textTitle']);
+  assert.deepEqual([...heldTitles(cue({...shema}),cue({textTitle:'V\'ahavta',accentTextTitle:'שְׁמַע'}))],['accentTextTitle']);
+  assert.deepEqual([...heldTitles(cue({...shema}),cue({textTitle:'Shema'}))],[],'losing the Hebrew title moves the English one');
+  assert.deepEqual([...heldTitles(cue({...shema}),cue({...shema},{legacyTitleWatermark:true}))],[],'a watermark is drawn differently');
+  assert.deepEqual([...heldTitles(cue({...shema}),cue({...shema},{titleLetterSpacing:2}))],[]);
+  assert.deepEqual([...heldTitles(cue({...shema}),cue({...shema},{hebrewFontFamily:'david-libre'}))],['textTitle']);
+});
+
+test('a left-to-left change hands the shared title to render and both animations',async()=>{
+  const first:Cue={id:'a',name:'First',layout:'left',texts:{textTitle:'Shema',textMainEng:'one'},animations:[],duration:{}};
+  const next:Cue={...first,id:'b',texts:{textTitle:'Shema',textMainEng:'two'}};
+  const box={querySelectorAll:()=>[],style:{visibility:''}} as unknown as HTMLElement;
+  const root={firstElementChild:box,replaceChildren(){}} as unknown as HTMLElement;
+  const player=new Player(root,[first,next],undefined,{waitForAssets:async()=>{}});
+  const helds:string[][]=[];let rendered:string[]=[];
+  player.current=first;player.desired={cue:'b',revision:1,mode:'animate'};
+  player.animate=async(...args)=>{helds.push([...(args[4]??[])]);};
+  player.applyFit=()=>{};
+  player.render=(_cue,_url,_previous,held=new Set())=>{rendered=[...held];return box;};
+  await player.drain();
+  assert.deepEqual(helds,[['textTitle'],['textTitle']]);assert.deepEqual(rendered,['textTitle']);
 });
