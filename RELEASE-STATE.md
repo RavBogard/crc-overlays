@@ -4,16 +4,23 @@ What is deployed right now. Update this file on every release — it is the one 
 "what is live", and it is short so it can be read under pressure. The history is in
 `docs/planning/2026-09-deploys/` (25 deploy records, the release chain, the phase build notes).
 
-**Last updated: 2026-10-08 Central.** Overlay round 2 is on main and live on both workspaces. The paired release is identified by annotated Git tag `overlays-2026-10-08`. Resolve the exact source SHA with `git rev-parse overlays-2026-10-08^{commit}`; it is `0481a93`. Details: `docs/planning/2026-10-08-overlay-round2/STATE.md`.
+**Last updated: 2026-10-09 Central.** Michael's name plate and left-panel transition changes are released to both workspaces as `overlays-2026-10-09`. Resolve the exact paired source SHA with `git rev-parse overlays-2026-10-09^{commit}`. Details and deployment verification locations: `docs/planning/2026-10-09-michael-release/STATE.md`.
 
 ## Web, per workspace
 
 | Workspace | Host | Release | How it gets there |
 |---|---|---|---|
-| CRC | `overlays.centralreform.org` (alt `crc-overlays.vercel.app`) | `overlays-2026-10-08` | main and paired production CLI |
-| TBI | `overlays.templebnaiisrael.com` (alt `tbi-overlays.vercel.app`) | `overlays-2026-10-08` | paired staged production CLI |
+| CRC | `overlays.centralreform.org` (alt `crc-overlays.vercel.app`) | `overlays-2026-10-09` | main and paired production CLI |
+| TBI | `overlays.templebnaiisrael.com` (alt `tbi-overlays.vercel.app`) | `overlays-2026-10-09` | paired staged production CLI |
 
-Both workspaces use the exact tag SHA. Deployment IDs, Ready status and SHA checks are recorded under ignored `work/overlay-batch-release/verified.json` in the release checkout, with the paired receipt in `work/deploy-staging/releases/<SHA>/release.json`.
+Both workspaces use the exact tag SHA. Deployment IDs, Ready status and SHA checks are recorded under ignored `work/overlay-batch-release/verified.json` in `C:/Users/dsbog/crc-overlays-release-20261009`, with the paired receipt in `work/deploy-staging/releases/<SHA>/release.json`.
+
+### Release overlays-2026-10-09: Michael's name plate and transitions
+
+- Preserves Michael's commits `1e9b091` and `d8459e0` on main. Adds the Name plate layout and guided form, with a larger name above Hebrew and transliteration. Left-to-left changes finish their word fade promptly and retain titles whose text and drawing match.
+- Gates: TypeScript; 1,309 TS + 35 MJS tests pass (13 existing skips); lint zero errors/two existing warnings; production build; diff check. Live browser checks cover three name plate samples, retained shared-title opacity, and a roughly 0.52-second transition. Final paired browser and health evidence is in the release checkout's ignored `work/release-20261009/`.
+- Direct CLI deployment of Michael's SHA was blocked by Vercel's commit-author permission check. The release-record commit uses Daniel's existing authorized identity without changing or rewriting Michael's work. Michael has GitHub write access but is not a member of the Vercel team; TBI also has no Git integration. See the state note for the concrete follow-up.
+- No migrations, relay release, Companion source changes, or published graphic edits. Physical OBS/booth acceptance remains separate.
 
 ### Release overlays-2026-10-08: overlay round 2
 
