@@ -159,13 +159,14 @@ export const CORNER_CARD:CardDefinition={
 };
 /**
  * The name plate: who is on the bimah - "Bar Mitzvah of" over the name, and beneath it a Hebrew
- * name with its transliteration. It is the corner card's surface and strip, pinned bottom-left
- * where the resting logo and scan card never sit, and wide enough for a full name.
- * Card x 48..928, y 808..1032. Title strip y 808..888 with the logo at its right end; the heading is 40px (the corner's is 28px) so it reads from the back. Body x 80..896,
- * y 896..1022: the name at 52px, then the detail lines at 36px, all left-aligned.
+ * name with its transliteration. It is the corner card's surface and strip, centred along the
+ * bottom of the frame like the old name plates, and wide enough for a full name.
+ * Card x 520..1400, y 808..1032. Title strip y 808..888 with the logo at its right end; the heading
+ * is 40px (the corner's is 28px) so it reads from the back. Body x 552..1368, y 896..1022: the name
+ * at 52px, then the detail lines at 36px, all left-aligned.
  */
 export const NAMEPLATE_CARD:CardDefinition={
- frame:{anchor:'bottom-left',insetX:48,insetY:48,width:880,height:224},
+ frame:{anchor:'bottom-left',insetX:520,insetY:48,width:880,height:224},
  surface:{radius:18,stripHeight:80,ruleHeight:6},
  logo:{x:796,y:4,size:72},
  title:{x:32,y:4,width:748,height:72,fontSize:40,lineHeight:1.1,accentWidth:260,accentGap:12},

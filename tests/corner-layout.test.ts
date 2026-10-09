@@ -358,7 +358,7 @@ test('a name plate sets its name as a larger lead line over left-to-right detail
  const box=new Player(new FakeElement('div') as unknown as HTMLElement,[cue]).render(cue) as unknown as FakeElement;
  assert.equal(box.dataset.card,'nameplate');
  const nameplate=layoutDefinition('nameplate')!.card!;
- assert.equal(nameplate.frame.anchor,'bottom-left','clear of the resting logo and scan card in the bottom-right corner');
+ assert.equal(nameplate.frame.insetX*2+nameplate.frame.width,1920,'centred along the bottom of the frame');
  assert.equal(box.style.properties['--card-lead-scale'],String(nameplate.body.lead!.fontSize/nameplate.body.single.fontSize));
  const single=box.querySelector('.single-channel')!;
  assert.ok('lead' in single.dataset);
