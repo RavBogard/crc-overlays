@@ -139,7 +139,7 @@ const EXCERPT_LENGTH=80;
 const clip=(value:string)=>{const flat=value.replace(/\s+/g,' ').trim();return flat.length>EXCERPT_LENGTH?`${flat.slice(0,EXCERPT_LENGTH-1).trimEnd()}…`:flat};
 /** The first words a graphic reads: custom text as typed, else its first selected block (a local wording edit wins), transliteration or English before Hebrew. */
 function excerpt(draft:Draft){
- if(draft.content.mode==='custom')return clip(draft.content.text);
+ if(draft.content.mode==='custom')return clip(draft.content.rows?.length?draft.content.rows.map(row=>row.tr||row.en||row.he).join(' '):draft.content.text);
  const first=selections(draft.content)[0];if(!first)return '';
  const source=sourceMetadata(draft).find(item=>item.id===first.sourceId)??canonicalSources.get(first.sourceId);
  const block=source?.blocks.find(candidate=>candidate.id===first.blockId);if(!block)return '';

@@ -378,6 +378,15 @@
 .start-from-options button.active { border-color: #609985; background: #27483f; color: #c8eee1; }
 .guided-fields { display: grid; gap: 9px; margin-top: 12px; }
 .guided-note { margin: 0; color: var(--quiet); font-size: 10px; line-height: 1.45; }
+/* Custom lines: the congregation's own Hebrew with its transliteration, set like a passage. */
+.custom-lines { display: grid; gap: 10px; margin-top: 12px; }
+.custom-line { position: relative; display: grid; gap: 7px; min-width: 0; margin: 0; padding: 10px 11px 11px; border: 1px solid var(--line); border-radius: 8px; background: #0d1715; }
+.custom-line legend { padding: 0 4px; color: var(--muted); font-size: 11px; }
+.custom-line-actions { position: absolute; top: -9px; right: 9px; display: flex; gap: 4px; }
+.custom-line-actions button { min-width: 0; padding: 4px 6px; background: #0d1715; }
+.custom-line textarea { min-height: 44px; margin-top: 4px; resize: vertical; }
+.custom-line textarea[dir="rtl"] { font-family: "Noto Sans Hebrew", Arial, sans-serif; font-size: 16px; text-align: right; }
+.custom-line-add { display: inline-flex; justify-self: start; align-items: center; gap: 6px; padding: 7px 10px; background: transparent; font-size: 11px; }
 .appearance-controls { display: grid; gap: 10px; margin-top: 13px; }
 .appearance-controls fieldset { min-width: 0; margin: 0; padding: 0; border: 0; }
 .appearance-controls legend { margin-bottom: 6px; color: var(--muted); font-size: 11px; }

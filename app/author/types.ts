@@ -63,7 +63,9 @@ export type LocalVariantOverride = {
 export type DraftContent =
   | CanonicalDraftContent
   | { mode: "local-variant"; label: string; reason?: string; base: CanonicalDraftContent; overrides: LocalVariantOverride[] }
-  | { mode: "custom"; text: string };
+  | { mode: "custom"; text: string; rows?: CustomRow[]; rowOrder?: TextLayer[] };
+/** One typed line of a custom draft: a Hebrew line, its transliteration and an optional translation. */
+export type CustomRow = { he: string; tr: string; en: string };
 export type Draft = {
   id: string;
   name: string;
@@ -237,6 +239,8 @@ export type DraftForm = {
   mode: ContentMode;
   groups: SourceGroup[];
   customText: string;
+  /** Custom lines, used instead of customText when set (null: one plain block). */
+  customRows: CustomRow[] | null;
   variantLabel: string;
   variantReason: string;
   variantBase?: CanonicalDraftContent;

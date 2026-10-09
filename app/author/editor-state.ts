@@ -1,5 +1,5 @@
 import { exceedsOnePanel, type PanelBlock, type PanelLayout } from "@/lib/panel-budget";
-import type { ContentMode, Draft, DraftForm, Source, SourceDisplay, SourceGroup, TextArrangement, TextLayer } from "./types";
+import type { ContentMode, CustomRow, Draft, DraftForm, Source, SourceDisplay, SourceGroup, TextArrangement, TextLayer } from "./types";
 import { loadWordingEdits, wordingEditsReady, withWordingEdits } from "./wording-edits";
 import { NEW_OVERLAY_PRESENTATION_DEFAULTS } from "@/lib/overlay-presentation-defaults";
 
@@ -75,6 +75,7 @@ export const emptyForm: DraftForm = {
   arrangement: "blocks",
   groups: [],
   customText: "",
+  customRows: null,
   variantLabel: "",
   variantReason: "",
   variantOverrides: [],
@@ -166,6 +167,7 @@ export function formFromDraft(draft: Draft): DraftForm {
     ...layerFormFields(draft),
     groups: structuredClone(groups),
     customText: content.mode === "custom" ? content.text : "",
+    customRows: content.mode === "custom" && content.rows?.length ? structuredClone(content.rows) : null,
     variantLabel: variant ? variant.label : "",
     variantReason: variant ? variant.reason || "" : "",
     variantOverrides: variant ? loadWordingEdits(variant.overrides, draft.sourceSnapshots) : [],
@@ -194,7 +196,9 @@ export function editableFromForm(form: DraftForm) {
               base: structuredClone(form.variantBase),
               overrides: form.variantOverrides.map(({ sourceId, blockId, channel, sourceText, localText }) => ({ sourceId, blockId, channel, sourceText, localText })),
             }
-        : { mode: "custom" as const, text: form.customText.trim() };
+        : form.customRows
+          ? { mode: "custom" as const, text: "", rows: form.customRows.map((row) => ({ he: row.he.trim(), tr: row.tr.trim(), en: row.en.trim() })).filter((row) => row.he || row.tr || row.en), ...(form.rowOrder ? { rowOrder: [...form.rowOrder] } : {}) }
+          : { mode: "custom" as const, text: form.customText.trim() };
   return {
     name: form.name.trim(),
     title: form.title.trim(),
@@ -209,7 +213,7 @@ export function editableFromForm(form: DraftForm) {
 export function formReady(form: DraftForm) {
   const hasContent =
     form.mode === "custom"
-      ? Boolean(form.customText.trim())
+      ? form.customRows ? form.customRows.some((row) => row.he.trim() || row.tr.trim() || row.en.trim()) : Boolean(form.customText.trim())
       : form.mode === "local-variant"
         ? Boolean(form.variantBase && form.variantLabel.trim() && form.variantOverrides.length && form.variantOverrides.every((item) => item.localText.trim()))
       : form.groups.some((group) => group.blockIds.length) && wordingEditsReady(form);
@@ -263,8 +267,13 @@ function selectedBlock(draft: Draft, group: SourceGroup | undefined) {
   return draft.sourceSnapshots?.find((source) => source.id === group.sourceId)?.blocks.find((block) => block.id === group.blockIds[0]);
 }
 
+/** What a custom draft reads: its plain block, or its lines, each layer on its own line. */
+export function customBody(content: { text: string; rows?: CustomRow[] }) {
+  return content.rows?.length ? content.rows.flatMap((row) => [row.he, row.tr, row.en].filter(Boolean)).join("\n") : content.text;
+}
+
 export function draftThumbnailCopy(draft: Draft) {
-  if (draft.content.mode === "custom") return { title: draft.title, accent: draft.accentTitle, body: draft.content.text };
+  if (draft.content.mode === "custom") return { title: draft.title, accent: draft.accentTitle, body: customBody(draft.content) };
   const content = draft.content.mode === "local-variant" ? draft.content.base : draft.content;
   if (content.mode === "bilingual") {
     const block = selectedBlock(draft, content.hebrewGroups[0]);
@@ -278,7 +287,7 @@ export function draftThumbnailCopy(draft: Draft) {
 }
 
 export function draftReadableText(draft: Draft) {
-  if (draft.content.mode === "custom") return draft.content.text;
+  if (draft.content.mode === "custom") return customBody(draft.content);
   const content = draft.content.mode === "local-variant" ? draft.content.base : draft.content;
   const overrideFor = (sourceId: string, blockId: string, channel: "he" | "tr" | "en", fallback?: string) =>
     draft.content.mode === "local-variant"

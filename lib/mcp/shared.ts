@@ -27,7 +27,10 @@ const canonicalContent=z.discriminatedUnion('mode',[bilingual,originalEnglish,so
 const variantOverride=z.object({sourceId:z.string().min(1).max(160),blockId:z.string().min(1).max(220),channel:z.enum(['he','tr','en']),sourceText:z.string().min(1).max(4000),localText:z.string().min(1).max(4000)}).strict();
 const localVariant=z.object({mode:z.literal('local-variant'),label:z.string().min(1).max(80),reason:z.string().min(1).max(500).optional(),base:canonicalContent,overrides:z.array(variantOverride).min(1).max(96)}).strict();
 const custom=z.object({mode:z.literal('custom'),text:z.string().min(1).max(4000)}).strict();
-const content=z.union([canonicalContent,localVariant,custom]);
+// The congregation's own lines laid out like a siddur passage, for Hebrew no source holds.
+const customRow=z.object({he:z.string().max(1000).optional(),tr:z.string().max(1000).optional(),en:z.string().max(1000).optional()}).strict();
+const customLines=z.object({mode:z.literal('custom'),rows:z.array(customRow).min(1).max(24).describe('Your own lines, each a Hebrew line (he), its transliteration (tr) and optionally a translation (en), drawn exactly as a source passage is: Hebrew right to left, a panel row per line, a lower third\'s two columns. Use instead of text.'),rowOrder:rowOrder.optional()}).strict();
+const content=z.union([canonicalContent,localVariant,custom,customLines]);
 // R-A6 - optional: left out, the draft takes the layout's look (list_templates `looks`).
 export const templateCueId=z.string().min(1).max(80).describe("A baseline template id from list_templates. Leave it out to use the layout's default look; it contributes motion and timing only.");
 export const textSize=z.enum(TEXT_SIZE_IDS as [TextSizePreset,...TextSizePreset[]]).describe("A named text size: comfortable uses the template's sizes; large is a floor of 49/41/41/41 for Hebrew/transliteration/translation/title; compact uses 34/28/24/28. Larger explicit font sizes are preserved.");

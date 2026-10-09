@@ -55,7 +55,17 @@ export type CanonicalContent=BilingualContent|OriginalEnglishContent|SourceEngli
 export type VariantChannel='he'|'tr'|'en';
 export type LocalVariantOverride={sourceId:string;blockId:string;channel:VariantChannel;sourceText:string;localText:string};
 export type LocalVariantContent={mode:'local-variant';label:string;reason?:string;base:CanonicalContent;overrides:LocalVariantOverride[]};
-export type CustomContent={mode:'custom';text:string};
+/**
+ * Custom text is the congregation's own words. `text` is one plain block. `rows` (set instead) are
+ * typed lines laid out like a siddur passage: each row a Hebrew line, its transliteration and an
+ * optional translation, built into the same channels and panel rows a source-backed graphic gets.
+ * A draft without rows stores no `rows` key, so every existing custom graphic keeps its hash.
+ */
+export type CustomRow={he:string;tr:string;en:string};
+export type CustomContent={mode:'custom';text:string;rows?:CustomRow[];rowOrder?:TextLayer[]};
+export const CUSTOM_ROW_LIMIT=24;
+/** The rows of a custom draft that carry any text, or none. */
+export function customRows(content:DraftContent):CustomRow[]{return content.mode==='custom'?(content.rows??[]).filter(row=>row.he||row.tr||row.en):[]}
 export type DraftContent=CanonicalContent|LocalVariantContent|CustomContent;
 export type EditableDraft={name:string;title:string;accentTitle?:string;layout:Layout;templateCueId:string;content:DraftContent;presentation:Presentation};
 export type SourceAuthorityPin={id:string;feedSha256:string;unitSha256:string;sourceSha256:string};
@@ -259,11 +269,18 @@ export function parseContent(value:unknown,snapshots:AuthoringSource[]=[]):Draft
   return {mode:'local-variant',label:text(input.label,'content.label',80)!,reason:text(input.reason,'content.reason',500,true),base,overrides};
  }
  if(input.mode==='custom'){
-  onlyKeys(input,['mode','text'],'content');
+  onlyKeys(input,['mode','text','rows','rowOrder'],'content');
   // Empty is a real value here, and only here: a slot with nothing typed into it this week
   // publishes a graphic that draws no text at all. Every other content mode still refuses it,
   // and previewValidation still refuses an empty graphic unless the caller says it is a slot.
-  return {mode:'custom',text:text(input.text,'content.text',4000,true)??''};
+  const body=text(input.text,'content.text',4000,true)??'';
+  if(input.rows===undefined){if(input.rowOrder!==undefined)throw new AuthoringError('invalid_input','content.rowOrder needs content.rows');return {mode:'custom',text:body}}
+  if(!Array.isArray(input.rows)||input.rows.length>CUSTOM_ROW_LIMIT)throw new AuthoringError('invalid_input',`content.rows must be a list of at most ${CUSTOM_ROW_LIMIT} lines`);
+  if(body)throw new AuthoringError('invalid_input','Custom text is either one block (content.text) or lines (content.rows), not both. Clear content.text to use lines.');
+  // Each line keeps its own words exactly, trimmed at the edges; an empty layer is ''.
+  const rows=input.rows.map((raw,index)=>{const row=record(raw,`content.rows[${index}]`);onlyKeys(row,['he','tr','en'],`content.rows[${index}]`);const layer=(key:TextLayer)=>{const value=row[key];if(value===undefined||value==='')return '';if(typeof value!=='string'||value.length>1000)throw new AuthoringError('invalid_input',`content.rows[${index}].${key} must be text of at most 1000 characters`);return value.trim()};return {he:layer('he'),tr:layer('tr'),en:layer('en')}}).filter(row=>row.he||row.tr||row.en);
+  const rowOrder=parseRowOrder(input.rowOrder,'content.rowOrder');
+  return {mode:'custom',text:'',rows,...(rowOrder?{rowOrder}:{})};
  }
  throw new AuthoringError('invalid_input','content.mode must be bilingual, original-en, source-en, local-variant, or custom');
 }
@@ -487,6 +504,8 @@ export function buildCue(draft:Draft):AuthoringCue{
  const overrides=draft.content.mode==='local-variant'?draft.content.overrides.map(item=>item.channel==='he'?item:{...item,localText:item.localText.replace(/\r\n?|\n/g,'\u2028')}):[];
  // A corner card holds a line or two: Hebrew and its transliteration, or one English line. It
  // has no room for a third, translated layer, and dropping a lit layer silently would not do.
+ const lines=customRows(content);
+ if(layoutDefinition(draft.layout)?.capabilities.translation===false&&lines.some(row=>row.en))throw new AuthoringError('corner_translation_unsupported',`A ${layoutDefinition(draft.layout)!.label.toLowerCase()} shows Hebrew and transliteration only. Clear the translation lines, or use a lower third or a panel.`,409);
  if(layoutDefinition(draft.layout)?.capabilities.translation===false&&content.mode==='bilingual'&&textLayers(content).includes('en'))throw new AuthoringError('corner_translation_unsupported','A corner card shows Hebrew and transliteration only. Turn off Translation, or use a lower third or a panel.',409);
  if(content.mode==='bilingual'&&content.preserveGroups&&draft.layout!=='left'&&draft.layout!=='right')throw new AuthoringError('group_layout_unsupported','Separate passage groups within one graphic need a left or right panel.',409);
  // G9 - an English-only passage beside Hebrew is a panel row or a lower third's English line; no other card has a place for it.
@@ -506,23 +525,33 @@ export function buildCue(draft:Draft):AuthoringCue{
   if(englishPassage&&draft.layout==='bottom')texts.textTranslation=englishInOrder(content,draft.sourceSnapshots,overrides,layers.includes('en')).map(item=>item.text).join(' ');
   else if(layers.includes('en')&&draft.layout==='bottom')texts.textTranslation=englishRunTexts(content,draft.sourceSnapshots,overrides).map(item=>item.text).join(' ');
  }else if(content.mode==='original-en'||content.mode==='source-en')texts.textMain=content.englishGroups.map(group=>renderGroup(group,'en',draft.sourceSnapshots,overrides)).join('\n');
+ // Typed lines build exactly as a passage's: Hebrew and transliteration channels, a lower third's
+ // translation line, and (below) one panel row per line.
+ else if(lines.length){
+  const join=(key:TextLayer,separator:string)=>lines.map(row=>row[key]).filter(Boolean).join(separator);
+  const hebrew=join('he','\n'),transliteration=join('tr','\n');
+  if(hebrew)texts.textMainheb=hebrew;
+  if(transliteration)texts.textMainEng=transliteration;
+  if(draft.layout==='bottom'&&join('en',' '))texts.textTranslation=join('en',' ');
+ }
  // An empty custom text writes no main layer at all, so the renderer draws the title bar and
  // nothing else. `textParts` already skips a falsy channel; leaving the key out keeps the
  // published cue free of an empty string nobody reads.
- else if(content.text)texts.textMain=content.text;
+ else if(content.mode==='custom'&&content.text)texts.textMain=content.text;
  const sourceIds=[...new Set(groups.map(group=>group.sourceId))].sort();
  // MCP plan L2: a data layout pins its published definition and takes that definition's own
  // motion (R-L5); only the built-in four still clone their template cue's, unchanged.
  const dataLayout=layoutDefinition(draft.layout)?.ref?layoutDefinition(draft.layout):undefined;
  const motion=dataLayout?.motion?layoutMotion(dataLayout.motion):null;
  const animations=motion?motion.animations:structuredClone(template.animations);
- if(motion){/* the definition's motion already names every text element */}else if(content.mode==='bilingual'&&!animations.some(track=>track.element==='textMainheb'||track.element==='textMainEng')){
+ const layered=content.mode==='bilingual'||lines.length>0;
+ if(motion){/* the definition's motion already names every text element */}else if(layered&&!animations.some(track=>track.element==='textMainheb'||track.element==='textMainEng')){
   const combined=animations.filter(track=>track.element==='textMain');
   if(combined.length){
    for(let index=animations.length-1;index>=0;index--)if(animations[index].element==='textMain')animations.splice(index,1);
    animations.push(...combined.flatMap(track=>[{...structuredClone(track),element:'textMainheb'},{...structuredClone(track),element:'textMainEng'}]));
   }
- }else if(content.mode!=='bilingual'&&!animations.some(track=>track.element==='textMain')){
+ }else if(!layered&&!animations.some(track=>track.element==='textMain')){
   const single=animations.filter(track=>track.element==='textMainEng');
   const fallback=single.length?single:animations.filter(track=>track.element==='textMainheb');
   if(fallback.length){
@@ -536,7 +565,8 @@ export function buildCue(draft:Draft):AuthoringCue{
  return {
   id:draft.id,name:draft.name,layout:draft.layout,...(dataLayout?.ref?{layoutRef:{...dataLayout.ref}}:{}),texts,
   ...(content.mode==='bilingual'?(rows=>rows.length?{contentRows:rows}:{})(composeContentRows(draft,content,overrides,layers)):{}),
-  ...(content.mode==='bilingual'&&content.rowOrder?{rowOrder:textRowOrder(content)}:{}),
+  ...(lines.length?{contentRows:lines.map(row=>({...row}))}:{}),
+  ...((content.mode==='bilingual'||lines.length)&&content.mode!=='original-en'&&content.mode!=='source-en'&&content.rowOrder?{rowOrder:textRowOrder(content)}:{}),
   animations,duration:motion?motion.duration:structuredClone(template.duration),
   ...(!motion&&template.template?{template:structuredClone(template.template)}:{}),
   ...(Object.keys(draft.presentation).length?{presentation:structuredClone(draft.presentation)}:{}),

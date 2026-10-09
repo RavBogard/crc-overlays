@@ -3087,6 +3087,58 @@
         "text"
        ],
        "additionalProperties": false
+      },
+      {
+       "type": "object",
+       "properties": {
+        "mode": {
+         "type": "string",
+         "const": "custom"
+        },
+        "rows": {
+         "minItems": 1,
+         "maxItems": 24,
+         "type": "array",
+         "items": {
+          "type": "object",
+          "properties": {
+           "he": {
+            "type": "string",
+            "maxLength": 1000
+           },
+           "tr": {
+            "type": "string",
+            "maxLength": 1000
+           },
+           "en": {
+            "type": "string",
+            "maxLength": 1000
+           }
+          },
+          "additionalProperties": false
+         },
+         "description": "Your own lines, each a Hebrew line (he), its transliteration (tr) and optionally a translation (en), drawn exactly as a source passage is: Hebrew right to left, a panel row per line, a lower third's two columns. Use instead of text."
+        },
+        "rowOrder": {
+         "minItems": 3,
+         "maxItems": 3,
+         "type": "array",
+         "items": {
+          "type": "string",
+          "enum": [
+           "he",
+           "tr",
+           "en"
+          ]
+         },
+         "description": "Order the Hebrew (he), transliteration (tr) and translation (en) layers stack in on a left or right panel, in both arrangements. Default he, tr, en, which is stored as absent; also sets the order of stacked bottom panels and corner cards. A side-by-side lower third keeps transliteration and Hebrew as two columns, with the translation above them when en comes first and below them otherwise."
+        }
+       },
+       "required": [
+        "mode",
+        "rows"
+       ],
+       "additionalProperties": false
       }
      ]
     },
@@ -7515,6 +7567,58 @@
         "text"
        ],
        "additionalProperties": false
+      },
+      {
+       "type": "object",
+       "properties": {
+        "mode": {
+         "type": "string",
+         "const": "custom"
+        },
+        "rows": {
+         "minItems": 1,
+         "maxItems": 24,
+         "type": "array",
+         "items": {
+          "type": "object",
+          "properties": {
+           "he": {
+            "type": "string",
+            "maxLength": 1000
+           },
+           "tr": {
+            "type": "string",
+            "maxLength": 1000
+           },
+           "en": {
+            "type": "string",
+            "maxLength": 1000
+           }
+          },
+          "additionalProperties": false
+         },
+         "description": "Your own lines, each a Hebrew line (he), its transliteration (tr) and optionally a translation (en), drawn exactly as a source passage is: Hebrew right to left, a panel row per line, a lower third's two columns. Use instead of text."
+        },
+        "rowOrder": {
+         "minItems": 3,
+         "maxItems": 3,
+         "type": "array",
+         "items": {
+          "type": "string",
+          "enum": [
+           "he",
+           "tr",
+           "en"
+          ]
+         },
+         "description": "Order the Hebrew (he), transliteration (tr) and translation (en) layers stack in on a left or right panel, in both arrangements. Default he, tr, en, which is stored as absent; also sets the order of stacked bottom panels and corner cards. A side-by-side lower third keeps transliteration and Hebrew as two columns, with the translation above them when en comes first and below them otherwise."
+        }
+       },
+       "required": [
+        "mode",
+        "rows"
+       ],
+       "additionalProperties": false
       }
      ]
     },
@@ -10946,6 +11050,58 @@
          "required": [
           "mode",
           "text"
+         ],
+         "additionalProperties": false
+        },
+        {
+         "type": "object",
+         "properties": {
+          "mode": {
+           "type": "string",
+           "const": "custom"
+          },
+          "rows": {
+           "minItems": 1,
+           "maxItems": 24,
+           "type": "array",
+           "items": {
+            "type": "object",
+            "properties": {
+             "he": {
+              "type": "string",
+              "maxLength": 1000
+             },
+             "tr": {
+              "type": "string",
+              "maxLength": 1000
+             },
+             "en": {
+              "type": "string",
+              "maxLength": 1000
+             }
+            },
+            "additionalProperties": false
+           },
+           "description": "Your own lines, each a Hebrew line (he), its transliteration (tr) and optionally a translation (en), drawn exactly as a source passage is: Hebrew right to left, a panel row per line, a lower third's two columns. Use instead of text."
+          },
+          "rowOrder": {
+           "minItems": 3,
+           "maxItems": 3,
+           "type": "array",
+           "items": {
+            "type": "string",
+            "enum": [
+             "he",
+             "tr",
+             "en"
+            ]
+           },
+           "description": "Order the Hebrew (he), transliteration (tr) and translation (en) layers stack in on a left or right panel, in both arrangements. Default he, tr, en, which is stored as absent; also sets the order of stacked bottom panels and corner cards. A side-by-side lower third keeps transliteration and Hebrew as two columns, with the translation above them when en comes first and below them otherwise."
+          }
+         },
+         "required": [
+          "mode",
+          "rows"
          ],
          "additionalProperties": false
         }
