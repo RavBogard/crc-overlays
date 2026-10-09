@@ -32,7 +32,7 @@ function CustomLinesEditor({ rows, onChange }: { rows: CustomRow[]; onChange: (r
       <label>Translation <span>optional</span><textarea rows={2} maxLength={1000} value={row.en} onChange={(event) => set(index, { en: event.target.value })} placeholder="Blessed are you" /></label>
     </fieldset>)}
     <button type="button" className="custom-line-add" disabled={rows.length >= LINE_LIMIT} onClick={() => onChange([...rows, emptyLine()])}><Plus size={14} />Add line</button>
-    <p className="guided-note">Each line shows its Hebrew right to left, with the transliteration and translation in their own styles. A side panel shows one row per line; a lower third shows the Hebrew and transliteration as its two columns.</p>
+    <p className="guided-note">Put *asterisks* around words for italics. Each line shows its Hebrew right to left, with the transliteration and translation in their own styles. A side panel shows one row per line; a lower third shows the Hebrew and transliteration as its two columns.</p>
   </div>;
 }
 
@@ -69,7 +69,7 @@ export function CustomTextEditor({ form, changeForm, templates }: { form: DraftF
     {form.customRows ? <CustomLinesEditor rows={form.customRows} onChange={(rows) => changeForm({ customRows: rows })} /> : <>
     <div className="start-from" role="group" aria-label="Start from"><span className="start-from-label">Start from</span><div className="start-from-options"><button type="button" aria-pressed={!active} className={!active ? "active" : ""} onClick={() => chooseTemplate(null)}>Blank</button>{CUSTOM_TEMPLATES.map((template) => <button key={template.id} type="button" aria-pressed={activeId === template.id} className={activeId === template.id ? "active" : ""} title={template.description} onClick={() => chooseTemplate(template)}>{template.label}</button>)}</div></div>
     {active ? <div className="guided-fields"><p className="guided-note">{active.description}</p>{active.fields.map((field) => <label key={field.key}>{field.label}<input value={values[field.key] || ""} dir={field.dir} maxLength={field.maxLength} placeholder={field.placeholder} onChange={(event) => { const next = { ...values, [field.key]: event.target.value }; setValues(next); composeInto(active, next); }} /></label>)}<p className="guided-note">Choose <strong>Blank</strong> to edit these words directly.</p></div>
-      : <label>Custom text <span>{form.customText.length} / 4000</span><textarea value={form.customText} maxLength={4000} onChange={(event) => changeForm({ customText: event.target.value })} placeholder="Type the words that should appear on screen…" /></label>}
+      : <label>Custom text <span>{form.customText.length} / 4000</span><textarea value={form.customText} maxLength={4000} onChange={(event) => changeForm({ customText: event.target.value })} placeholder="Type the words that should appear on screen…" /><small className="custom-text-hint">Each line break shows on screen. Put *asterisks* around words for italics.</small></label>}
     </>}
     <div className="provenance-note"><Sparkles size={17} /><span><strong>{active ? `${active.label} · ` : ""}Custom congregation text</strong><small>This text is separate from the authorized siddur library.</small></span></div></EditorCard>;
 }

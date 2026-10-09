@@ -1,4 +1,5 @@
 import type {Cue} from './player';
+import {plainCueText} from './inline-italics.ts';
 
 /**
  * Layout pass (handoff #2, B) — the second line of a row in the graphics list.
@@ -13,6 +14,6 @@ export function openingWords(cue: Cue, max = 60): string {
   const source = row
     ? row.tr.trim() || row.he.trim() || row.en.trim()
     : cue.texts.textMainEng || cue.texts.textMain || cue.texts.textMainheb || cue.texts.textTranslation || '';
-  const line = source.split(/\r?\n/).map(value => value.trim()).find(Boolean) ?? '';
+  const line = plainCueText(source).split(/\r?\n/).map(value => value.trim()).find(Boolean) ?? '';
   return line.length > max ? `${line.slice(0, max - 1).trimEnd()}…` : line;
 }

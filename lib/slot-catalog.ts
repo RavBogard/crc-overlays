@@ -13,6 +13,7 @@
 import {createRequire} from 'node:module';
 import {SLOTS,SLOT_CATEGORY,slotDefinition} from './slots';
 import type {Cue} from './player';
+import {plainCueText} from './inline-italics.ts';
 
 /** One slot as `GET /api/catalog?include=slots` reports it. */
 export type CatalogSlot={cueId:string;key:string;text:string};
@@ -65,7 +66,7 @@ export function slotCueRegister(read:SlotCueReader=readCommitted):Map<string,str
 
 /** The text a slot cue currently carries: the one text layer a custom bottom graphic has. */
 export function slotTextOf(cue:Cue|undefined):string{
- return typeof cue?.texts?.textMain==='string'?cue.texts.textMain:'';
+ return typeof cue?.texts?.textMain==='string'?plainCueText(cue.texts.textMain):'';
 }
 
 /**

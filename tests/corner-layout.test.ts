@@ -276,7 +276,7 @@ const customDraft=(layout:'corner'|'bottom'):Draft=>draftOf(parseEditable(editab
 test('a corner draft publishes a corner cue with the lower third motion',()=>{
  const cue=buildCue(customDraft('corner'));
  assert.equal(cue.layout,'corner');
- assert.equal(cue.texts.textMain,'וְאִמְרוּ אָמֵן\nVaimru Amen');
+ assert.equal(cue.texts.textMain,'וְאִמְרוּ אָמֵן Vaimru Amen','a typed break travels as U+2028, so reflow keeps it');
  assert.deepEqual(cue.duration,bottomTemplate.duration);
  assert.ok(cue.animations.some(track=>track.element==='baseMain'),'the bars keep their motion');
  assert.equal(cue.contentRows,undefined,'a corner card never carries panel rows');

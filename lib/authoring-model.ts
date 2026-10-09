@@ -5,6 +5,7 @@ import type {Cue} from './player';
 import {loadSourceLibrary} from './source-library.ts';
 import {templateLayoutFor} from './layout-label.ts';
 import {layoutMotion} from './layout-definitions.ts';
+import {markItalics} from './inline-italics.ts';
 
 const require=createRequire(import.meta.url);
 const sourceMapJson=require('../content/legacy-crc-shabbat-morning.sources.json');
@@ -66,6 +67,12 @@ export type CustomContent={mode:'custom';text:string;rows?:CustomRow[];rowOrder?
 export const CUSTOM_ROW_LIMIT=24;
 /** The rows of a custom draft that carry any text, or none. */
 export function customRows(content:DraftContent):CustomRow[]{return content.mode==='custom'?(content.rows??[]).filter(row=>row.he||row.tr||row.en):[]}
+/**
+ * One layer of the congregation's own words as a cue carries it. Every break typed is deliberate,
+ * so it travels as U+2028, which Latin paragraph/phrase reflow leaves alone (the local wording
+ * precedent; the Player turns it back into a line). `*words*` becomes italic (lib/inline-italics.ts).
+ */
+export function customLayer(text:string):string{return markItalics(text).replace(/\r\n?|\n/g,' ')}
 export type DraftContent=CanonicalContent|LocalVariantContent|CustomContent;
 export type EditableDraft={name:string;title:string;accentTitle?:string;layout:Layout;templateCueId:string;content:DraftContent;presentation:Presentation};
 export type SourceAuthorityPin={id:string;feedSha256:string;unitSha256:string;sourceSha256:string};
@@ -504,7 +511,7 @@ export function buildCue(draft:Draft):AuthoringCue{
  const overrides=draft.content.mode==='local-variant'?draft.content.overrides.map(item=>item.channel==='he'?item:{...item,localText:item.localText.replace(/\r\n?|\n/g,'\u2028')}):[];
  // A corner card holds a line or two: Hebrew and its transliteration, or one English line. It
  // has no room for a third, translated layer, and dropping a lit layer silently would not do.
- const lines=customRows(content);
+ const lines=customRows(content).map(row=>({he:customLayer(row.he),tr:customLayer(row.tr),en:customLayer(row.en)}));
  if(layoutDefinition(draft.layout)?.capabilities.translation===false&&lines.some(row=>row.en))throw new AuthoringError('corner_translation_unsupported',`A ${layoutDefinition(draft.layout)!.label.toLowerCase()} shows Hebrew and transliteration only. Clear the translation lines, or use a lower third or a panel.`,409);
  if(layoutDefinition(draft.layout)?.capabilities.translation===false&&content.mode==='bilingual'&&textLayers(content).includes('en'))throw new AuthoringError('corner_translation_unsupported','A corner card shows Hebrew and transliteration only. Turn off Translation, or use a lower third or a panel.',409);
  if(content.mode==='bilingual'&&content.preserveGroups&&draft.layout!=='left'&&draft.layout!=='right')throw new AuthoringError('group_layout_unsupported','Separate passage groups within one graphic need a left or right panel.',409);
@@ -529,7 +536,7 @@ export function buildCue(draft:Draft):AuthoringCue{
  // translation line, and (below) one panel row per line.
  else if(lines.length){
   const join=(key:TextLayer,separator:string)=>lines.map(row=>row[key]).filter(Boolean).join(separator);
-  const hebrew=join('he','\n'),transliteration=join('tr','\n');
+  const hebrew=join('he',' '),transliteration=join('tr',' ');
   if(hebrew)texts.textMainheb=hebrew;
   if(transliteration)texts.textMainEng=transliteration;
   if(draft.layout==='bottom'&&join('en',' '))texts.textTranslation=join('en',' ');
@@ -537,7 +544,7 @@ export function buildCue(draft:Draft):AuthoringCue{
  // An empty custom text writes no main layer at all, so the renderer draws the title bar and
  // nothing else. `textParts` already skips a falsy channel; leaving the key out keeps the
  // published cue free of an empty string nobody reads.
- else if(content.mode==='custom'&&content.text)texts.textMain=content.text;
+ else if(content.mode==='custom'&&content.text)texts.textMain=customLayer(content.text);
  const sourceIds=[...new Set(groups.map(group=>group.sourceId))].sort();
  // MCP plan L2: a data layout pins its published definition and takes that definition's own
  // motion (R-L5); only the built-in four still clone their template cue's, unchanged.
