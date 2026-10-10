@@ -367,3 +367,13 @@ test('a name plate sets its name as a larger lead line over left-to-right detail
  const corner=renderCorner({textTitle:'Response',textMain:'וְאִמְרוּ אָמֵן\nVaimru Amen'}).box.querySelector('.single-channel')!;
  assert.equal(corner.children.length,0);assert.ok(!('lead' in corner.dataset));
 });
+
+test('only the name plate centres its heading with centred text',()=>{
+ const css=readFileSync(fileURLToPath(new URL('../app/overlay.css',import.meta.url)),'utf8');
+ const rules=css.split('\n').filter(line=>line.includes('[data-alignment="center"]'));
+ assert.equal(rules.length,1);
+ assert.match(rules[0],/^\.overlay\[data-card="nameplate"\]\[data-alignment="center"\]/,'no other layout is keyed to it');
+ const cue={...cornerCue({textTitle:'Bar Mitzvah of',textMain:'Gavin Stein'}),layout:'nameplate',presentation:{alignment:'center' as const}};
+ const box=new Player(new FakeElement('div') as unknown as HTMLElement,[cue]).render(cue) as unknown as FakeElement;
+ assert.equal(box.dataset.alignment,'center');
+});

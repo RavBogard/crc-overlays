@@ -286,6 +286,11 @@ only its translation is a single channel and takes the full block, as any single
    the first line - the name - is set larger, as a multiple of the channel's size so a fit shrink
    carries it down too. */
 .overlay[data-card] .prayer[data-lead] .card-line{direction:ltr;unicode-bidi:isolate;white-space:pre-wrap}
+/* The name plate's heading follows centred text (Michael, Oct 9), and only on the name plate: every
+   other layout keeps its title where it is. The logo holds the strip's right end, so the lane is
+   mirrored about the card's centre (68px in from the left, as far as the logo reaches in from the
+   right) and the heading sits over the middle of the card, clear of the logo. */
+.overlay[data-card="nameplate"][data-alignment="center"]:not(:has(.title-accent)) .title{left:calc(var(--card-title-left) + 68px);width:calc(var(--card-title-width) - 68px);justify-content:center;text-align:center}
 .overlay[data-card] .prayer[data-lead] .card-line-lead{font-size:calc(1em * var(--card-lead-scale,1));line-height:var(--card-lead-line-height);font-weight:600}
 
 /* G10: the accent title's size and weight as branding (typography.accentTitle; lib/branding-palette.ts).
