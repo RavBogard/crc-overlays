@@ -102,14 +102,17 @@ test('the layer renders one image and reuses it, so the artwork is never re-requ
  const root=stage();
  renderRestingLogo(asRoot(root),{src:'/assets/siona-floor.jpg',alt:'artwork'});
  assert.equal(root.children.length,1);
- const image=root.children[0]!;
+ const frame=root.children[0]!;
+ assert.equal(frame.className,'resting-logo');
+ const image=frame.children[0]!;
  assert.equal(image.tagName,'img');
- assert.equal(image.className,'resting-logo');
+ assert.equal(image.className,'resting-logo-artwork');
  assert.equal(image.getAttribute('src'),'/assets/siona-floor.jpg');
  assert.equal(image.getAttribute('alt'),'artwork');
  assert.equal(root.dataset.restingLogo,'on');
  renderRestingLogo(asRoot(root),{src:'/assets/siona-floor.jpg',alt:'artwork'});
- assert.equal(root.children[0],image,'the same node: a replacement would re-fetch a 3 MB JPEG and flash');
+ assert.equal(root.children[0],frame,'the same frame preserves the rotation');
+ assert.equal(frame.children[0],image,'the same node: a replacement would re-fetch a 3 MB JPEG and flash');
 });
 
 test('a null view empties the layer',()=>{

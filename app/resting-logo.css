@@ -8,13 +8,13 @@
    inset the scan card uses and clear of the lower third's Hebrew column (left:1010, width:850,
    which ends at 1860 but sits far above this).
 
-   The circular crop, gold ring and paper backing are the same treatment the in-cue medallion
-   already gets (.logo in app/overlay.css): object-fit:cover on a square box crops the 1500x1382
-   artwork to its centre without stretching it, and the ring keeps the mark legible against both
-   a bright sanctuary wall and a dark room. Nothing here redraws or reinterprets the artwork. */
-#output-logo{position:absolute;width:1920px;height:1080px;transform-origin:top left;overflow:hidden;pointer-events:none;--crc-paper:#f8f5ec}
+   The circular crop meets the gold ring directly, without a paper-colored outline.
+   object-fit:cover on a square box crops the 1500x1382 artwork to its centre without stretching
+   it. A slight enlargement inside the frame also crops away the source image's white margin. */
+#output-logo{position:absolute;width:1920px;height:1080px;transform-origin:top left;overflow:hidden;pointer-events:none}
 #output-logo[data-resting-logo='off']{display:none}
-#output-logo .resting-logo{position:absolute;right:48px;bottom:48px;width:132px;height:132px;box-sizing:border-box;object-fit:cover;object-position:center;border-radius:50%;background:var(--crc-paper);border:3px solid rgba(217,166,46,.9);padding:5px;box-shadow:0 6px 18px rgba(3,26,45,.22);filter:drop-shadow(0 4px 8px rgba(3,26,45,.18))}
+#output-logo .resting-logo{position:absolute;right:48px;bottom:48px;width:132px;height:132px;box-sizing:border-box;overflow:hidden;border-radius:50%;border:3px solid rgba(217,166,46,.9);box-shadow:0 6px 18px rgba(3,26,45,.22);filter:drop-shadow(0 4px 8px rgba(3,26,45,.18))}
+#output-logo .resting-logo-artwork{display:block;width:100%;height:100%;object-fit:cover;object-position:center;transform:scale(1.07)}
 /* Keep the stage's viewport scaling separate from the mark's one-minute turn. */
 #output-logo .resting-logo{animation:resting-logo-turn 60s linear infinite;transform-origin:center}
 @keyframes resting-logo-turn{from{transform:rotate(0deg)}to{transform:rotate(360deg)}}

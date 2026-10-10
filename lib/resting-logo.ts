@@ -70,7 +70,7 @@ export function restingLogoStatus(configuration:RestingLogoConfiguration|null|un
  return occupancy.cueOccupied||occupancy.scanCardVisible?'suppressed':'resting';
 }
 
-type LogoNodes={image:HTMLImageElement};
+type LogoNodes={frame:HTMLElement;image:HTMLImageElement};
 const layers=new WeakMap<HTMLElement,LogoNodes>();
 
 /**
@@ -86,11 +86,14 @@ export function renderRestingLogo(root:HTMLElement,view:RestingLogoView|null):vo
   return;
  }
  let nodes=layers.get(root);
- if(!nodes||nodes.image.parentNode!==root){
+ if(!nodes||nodes.frame.parentNode!==root){
+  const frame=root.ownerDocument.createElement('span');
+  frame.className='resting-logo';
   const image=root.ownerDocument.createElement('img');
-  image.className='resting-logo';
-  root.replaceChildren(image);
-  nodes={image};
+  image.className='resting-logo-artwork';
+  frame.replaceChildren(image);
+  root.replaceChildren(frame);
+  nodes={frame,image};
   layers.set(root,nodes);
  }
  if(nodes.image.getAttribute('src')!==view.src)nodes.image.setAttribute('src',view.src);

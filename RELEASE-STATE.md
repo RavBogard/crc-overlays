@@ -4,16 +4,23 @@ What is deployed right now. Update this file on every release — it is the one 
 "what is live", and it is short so it can be read under pressure. The history is in
 `docs/planning/2026-09-deploys/` (25 deploy records, the release chain, the phase build notes).
 
-**Last updated: 2026-10-09 Central.** Michael's name plate and left-panel transition changes are released to both workspaces as `overlays-2026-10-09`. Resolve the exact paired source SHA with `git rev-parse overlays-2026-10-09^{commit}`. Details and deployment verification locations: `docs/planning/2026-10-09-michael-release/STATE.md`.
+**Last updated: 2026-10-09 Central.** The spinning logo's white outline is removed, alongside Michael's latest main-branch changes, in `overlays-2026-10-09-logo`. Resolve the paired source SHA with `git rev-parse overlays-2026-10-09-logo^{commit}`. Details and verification locations: `docs/planning/2026-10-09-logo-outline/STATE.md`.
 
 ## Web, per workspace
 
 | Workspace | Host | Release | How it gets there |
 |---|---|---|---|
-| CRC | `overlays.centralreform.org` (alt `crc-overlays.vercel.app`) | `overlays-2026-10-09` | main and paired production CLI |
-| TBI | `overlays.templebnaiisrael.com` (alt `tbi-overlays.vercel.app`) | `overlays-2026-10-09` | paired staged production CLI |
+| CRC | `overlays.centralreform.org` (alt `crc-overlays.vercel.app`) | `overlays-2026-10-09-logo` | main and paired production CLI |
+| TBI | `overlays.templebnaiisrael.com` (alt `tbi-overlays.vercel.app`) | `overlays-2026-10-09-logo` | paired staged production CLI |
 
 Both workspaces use the exact tag SHA. Deployment IDs, Ready status and SHA checks are recorded under ignored `work/overlay-batch-release/verified.json` in `C:/Users/dsbog/crc-overlays-release-20261009`, with the paired receipt in `work/deploy-staging/releases/<SHA>/release.json`.
+
+### Release overlays-2026-10-09-logo: logo outline and Michael's latest changes
+
+- Removes the resting logo's cream padding and the source JPEG's white margin; preserves its gold edge, size, corner position and rotation.
+- Includes Michael's main-branch changes through `ec88956`: centered name plates, Hebrew lines for custom graphics, pixel line spacing and Match Hebrew spacing, custom line breaks and italics, and refresh when an old renderer cannot draw a catalog layout.
+- Combined-release checks: 1,328 TS and 35 MJS tests pass (13 existing skips), TypeScript, lint, production build and diff check. Logs and production browser verification: ignored `work/logo-outline-release/`.
+- Daniel authorized release after Michael finished streaming. No relay release, database migration, published graphic edits or remote browser-source refresh. Reload the browser source to pick up the logo styling.
 
 ### Release overlays-2026-10-09: Michael's name plate and transitions
 
