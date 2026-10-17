@@ -3,9 +3,11 @@ import assert from 'node:assert/strict';
 import {AuthoringError,buildCue,type Draft} from '../lib/authoring-model.ts';
 import {MemoryAuthoringRepository,createAuthoringService,type ReviewReceipt} from '../lib/authoring.ts';
 import {cueCategory,cuesWithSlotMarkers,slotCueRegister,slotIndex,useSlotCueRegister} from '../lib/slot-catalog.ts';
-import {PORTION_SEPARATOR,SERVICE_TYPES,SLOTS,SLOT_LINE_MAX,hebrewBookFor,slotFieldsFromGraphic,slotFieldsFromText,slotSummary,slotTextFromFields,slotTextProblems,slotsForServiceType} from '../lib/slots.ts';
+import {PORTION_SEPARATOR,SERVICE_TYPES,SLOTS,SLOT_LINE_MAX,hebrewBookFor,slotFieldsFromGraphic,slotFieldsFromText,slotSummary,slotTextFromFields,slotTextProblems,slotsForServiceType,type SlotDefinition} from '../lib/slots.ts';
 import type {Cue} from '../lib/player.ts';
 
+/** A two-line card, as the lines2 kind is shaped; no slot uses it since Oct 17, but the kind remains. */
+const TWO_LINES:SlotDefinition={key:'two_lines',name:'Two names',title:'Central Reform Congregation',kind:'lines2',labels:['First','Second'],placeholders:['','']};
 const BARECHU='efa9fad4-f7d5-4091-a708-82103028861b';
 const measurement={viewportWidth:1920,viewportHeight:1080,fontsReady:true,overflow:false,rendererVersion:'test-renderer',measuredAt:Date.now()} as const;
 
@@ -24,20 +26,21 @@ function service(){
 }
 
 test('the slot table is the data the page and the converter both read',()=>{
- assert.equal(SLOTS.length,16,'sixteen slots');
- assert.equal(new Set(SLOTS.map(slot=>slot.key)).size,16,'every key is distinct');
+ assert.equal(SLOTS.length,15,'fifteen slots: the two-line student card was retired on Oct 17');
+ assert.equal(new Set(SLOTS.map(slot=>slot.key)).size,15,'every key is distinct');
  for(const slot of SLOTS)assert.match(slot.key,/^[a-z][a-z0-9_]{0,39}$/,`${slot.key} can be a Companion variable name`);
  for(const slot of SLOTS)assert.ok(slot.name.length<=80&&!/[<>]/.test(slot.name),`${slot.name} is a name the catalog validator accepts`);
  assert.deepEqual(SERVICE_TYPES.flatMap(type=>type.slotKeys).sort(),SLOTS.map(slot=>slot.key).sort(),'every slot belongs to exactly one service type');
  assert.deepEqual(slotsForServiceType('shabbat').map(slot=>slot.key),['guest_name']);
- assert.equal(slotsForServiceType('bnei-mitzvah').length,12);
+ assert.equal(slotsForServiceType('bnei-mitzvah').length,11);
+ assert.ok(!SLOTS.some(slot=>slot.key==='student_names'),'the two-line student card is no longer a slot (Michael, Oct 17)');
  assert.equal(slotsForServiceType('funeral').length,3);
  // A throwaway service type is a change to one table, not a new page.
  assert.deepEqual(slotsForServiceType('no-such-type'),[]);
 });
 
 test('a two-line slot joins its fields, dropping a blank one',()=>{
- const students=SLOTS.find(slot=>slot.key==='student_names')!;
+ const students=TWO_LINES;
  assert.equal(slotTextFromFields(students,['Noa Bogard','Ezra Bogard']),'Noa Bogard\nEzra Bogard');
  assert.deepEqual(slotFieldsFromText(students,'Noa Bogard\nEzra Bogard'),['Noa Bogard','Ezra Bogard']);
  assert.equal(PORTION_SEPARATOR,'·','the separator stays the middle dot the seed drafts use');
@@ -81,7 +84,7 @@ test('the length guard names the field and says what to do, and an empty slot is
  const long=slotTextProblems(guest,'x'.repeat(SLOT_LINE_MAX+1));
  assert.equal(long.length,1);
  assert.match(long[0],/Guest name is 41 characters; shorten it to 40/);
- const students=SLOTS.find(slot=>slot.key==='student_names')!;
+ const students=TWO_LINES;
  assert.match(slotTextProblems(students,`a\n${'x'.repeat(50)}`)[0],/line 2/);
  assert.match(slotTextProblems(students,'a\nb\nc')[0],/3 lines; this graphic holds 2/);
  assert.deepEqual(slotTextProblems(SLOTS.find(slot=>slot.key==='student_name')!,''),[],'an empty designed slot is no problem either');

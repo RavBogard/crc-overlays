@@ -68,7 +68,6 @@ const reading = (key: string, name: string, title: string): SlotDefinition => ({
 
 export const SLOTS: readonly SlotDefinition[] = [
   { key: 'student_name', name: 'Student name', title: 'Central Reform Congregation', kind: 'nameplate', labels: ['Heading', 'Name', 'Hebrew name', 'Hebrew name in English letters'], placeholders: ['Bat Mitzvah of', 'Eliana Levine', 'שָׁרוֹן', 'Sharon'] },
-  { key: 'student_names', name: 'Student names (two lines)', title: 'Central Reform Congregation', kind: 'lines2', labels: ['First student', 'Second student'], placeholders: ['Noa Bogard', 'Ezra Bogard'] },
   reading('torah_1', 'Torah reading 1', 'Torah Reading'),
   reading('torah_2', 'Torah reading 2', 'Torah Reading'),
   reading('torah_3', 'Torah reading 3', 'Torah Reading'),
@@ -86,7 +85,7 @@ export const SLOTS: readonly SlotDefinition[] = [
 ];
 
 export const SERVICE_TYPES: readonly ServiceTypeDefinition[] = [
-  { id: 'bnei-mitzvah', name: "B'nei mitzvah", slotKeys: ['student_name', 'student_names', 'torah_1', 'torah_2', 'torah_3', 'torah_4', 'torah_5', 'torah_6', 'torah_7', 'haftarah_1', 'haftarah_2', 'haftarah_3'] },
+  { id: 'bnei-mitzvah', name: "B'nei mitzvah", slotKeys: ['student_name', 'torah_1', 'torah_2', 'torah_3', 'torah_4', 'torah_5', 'torah_6', 'torah_7', 'haftarah_1', 'haftarah_2', 'haftarah_3'] },
   { id: 'shabbat', name: 'Shabbat', slotKeys: ['guest_name'] },
   { id: 'funeral', name: 'Funeral / Yizkor', slotKeys: ['remember_1', 'remember_2', 'remember_3'] },
 ];
