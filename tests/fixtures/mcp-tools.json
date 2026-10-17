@@ -8864,7 +8864,7 @@
  },
  {
   "name": "save_slots",
-  "description": "Save slot text for one service type in one call, as the web \"This service\" page does: every changed slot is republished under its standing approval, unchanged ones are left alone, and one overlong value refuses the whole Save. expectedVersions (slot key to the version list_slots returned) refuses the Save if a slot changed since you read it. Publishes to the catalog; puts nothing on screen.",
+  "description": "Save slot text for one service type in one call, as the web \"This service\" page does: every changed slot is republished, unchanged ones are left alone, and one overlong value refuses the whole Save. Plain slots publish under their standing approval. A name plate slot takes Heading, Name, Hebrew name and transliteration, and a reading slot takes Verses and Hebrew book, one per line. They write into the graphic the slot uses, publish through the fit check, and one that does not fit is listed in refused and left as it was. expectedVersions (slot key to the version list_slots returned) refuses the Save if a slot changed since you read it. Publishes to the catalog; puts nothing on screen.",
   "inputSchema": {
    "type": "object",
    "$schema": "https://json-schema.org/draft/2020-12/schema",

@@ -825,20 +825,36 @@ export function createAuthoringService(repo:AuthoringRepository,workspace:Author
   // What save_slots reads and writes: every slot (or one service type's), its graphic, what it
   // says now and the draft version expectedVersions can pin. Nothing here writes.
   if(operation==='list_slots'){
-   keys(data,['serviceType']);const {SERVICE_TYPES,SLOTS,slotsForServiceType}=await import('./slots');const {slotCueRegister}=await import('./slot-catalog');
+   keys(data,['serviceType','includeCandidates']);const {SERVICE_TYPES,SLOTS,slotsForServiceType,slotFieldsFromGraphic,isDesignedSlot}=await import('./slots');const {resolvedSlotRegister}=await import('./slot-bindings');
    const serviceType=optionalString(data.serviceType,'serviceType',80);if(serviceType&&!SERVICE_TYPES.some(type=>type.id===serviceType))throw new AuthoringError('unknown_service_type',`There is no service type called ${serviceType}; they are ${SERVICE_TYPES.map(type=>type.id).join(', ')}.`,404);
-   const register=slotCueRegister();
-   const slots=await Promise.all((serviceType?slotsForServiceType(serviceType):SLOTS).map(async definition=>{const cueId=register.get(definition.key)??null;const draft=cueId?await repo.getDraft(cueId):null;return {key:definition.key,name:definition.name,kind:definition.kind,labels:definition.labels,cueId,minted:Boolean(draft),text:draft?.content.mode==='custom'?draft.content.text:'',version:draft?.version??null,published:Boolean(draft&&draft.activeRevision!==null)}}));
-   return {serviceTypes:SERVICE_TYPES.map(type=>({id:type.id,name:type.name,slotKeys:[...type.slotKeys]})),...(serviceType?{serviceType}:{}),slots};
+   const register=await resolvedSlotRegister(buildKeyStore());
+   // A slot's fields are read from the graphic it fills, so the page opens on what is on screen.
+   const slots=await Promise.all((serviceType?slotsForServiceType(serviceType):SLOTS).map(async definition=>{const cueId=register.get(definition.key)??null;const draft=cueId?await repo.getDraft(cueId):null;const text=draft?(isDesignedSlot(definition)?slotFieldsFromGraphic(definition,{title:draft.title,accentTitle:draft.accentTitle??null,text:draft.content.mode==='custom'?draft.content.text:''}).join('\n'):draft.content.mode==='custom'?draft.content.text:''):'';return {key:definition.key,name:definition.name,kind:definition.kind,labels:definition.labels,cueId,graphicName:draft?.name??null,minted:Boolean(draft&&!draft.archivedAt),text,version:draft?.version??null,published:Boolean(draft&&draft.activeRevision!==null)}}));
+   // The published graphics a slot can be pointed at, for the page's picker.
+   const candidates=optionalBoolean(data.includeCandidates,'includeCandidates')===true?(await repo.listDrafts()).filter(draft=>!draft.archivedAt&&draft.activeRevision!==null).map(draft=>({id:draft.id,name:draft.name,layout:draft.layout,mode:draft.content.mode})).sort((x,y)=>x.name.localeCompare(y.name)):undefined;
+   return {serviceTypes:SERVICE_TYPES.map(type=>({id:type.id,name:type.name,slotKeys:[...type.slotKeys]})),...(serviceType?{serviceType}:{}),slots,...(candidates?{candidates}:{})};
+  }
+  // Oct 16 - point a slot at a graphic designed in the Library. A name plate slot writes custom
+  // text, so its graphic must be plain custom text; a reading only sets the title, so any graphic will do.
+  if(operation==='bind_slot'){
+   keys(data,['key','cueId']);const {slotDefinition}=await import('./slots');const {bindSlot}=await import('./slot-bindings');
+   const key=string(data.key,'key',40),cueId=string(data.cueId,'cueId',200);const definition=slotDefinition(key);
+   if(!definition)throw new AuthoringError('unknown_slot',`There is no slot called ${key}`,404);
+   const draft=await repo.getDraft(cueId);
+   if(!draft||draft.archivedAt)throw new AuthoringError('unknown_draft','That graphic is not in the library.',404);
+   if(draft.activeRevision===null)throw new AuthoringError('unpublished_graphic',`${draft.name} has not been published yet. Publish it once, then choose it here.`,409);
+   if(definition.kind!=='verses'&&(draft.content.mode!=='custom'||draft.content.rows?.length))throw new AuthoringError('slot_graphic_unsuitable',`${definition.name} writes plain custom text, and ${draft.name} is not a plain custom-text graphic.`,409);
+   await bindSlot(key,cueId,who,buildKeyStore());
+   return {key,cueId,graphicName:draft.name,message:`${definition.name} now fills "${draft.name}". Companion buttons that fired the old graphic need pointing at this one.`};
   }
   if(operation==='save_slots'){
    keys(data,['serviceType','values','expectedVersions']);
-   const {SERVICE_TYPES,slotDefinition,slotTextProblems}=await import('./slots');
-   const {slotCueRegister}=await import('./slot-catalog');
+   const {SERVICE_TYPES,slotDefinition,slotTextProblems,isDesignedSlot}=await import('./slots');
+   const {resolvedSlotRegister}=await import('./slot-bindings');
    const serviceType=string(data.serviceType,'serviceType',80);
    if(!SERVICE_TYPES.some(type=>type.id===serviceType))throw new AuthoringError('unknown_service_type','That service type does not exist',404);
    const values=object(data.values,'values');
-   const register=slotCueRegister();
+   const register=await resolvedSlotRegister(buildKeyStore());
    // Optional, per slot: the draft version list_slots reported. Any mismatch refuses the whole
    // Save before anything publishes, so a caller never overwrites text somebody else just typed.
    if(data.expectedVersions!==undefined){const expected=object(data.expectedVersions,'expectedVersions');for(const [key,version] of Object.entries(expected)){if(!Object.hasOwn(values,key))throw new AuthoringError('invalid_input',`expectedVersions names ${key}, which values does not save; drop it or add a value for it.`);const pinned=integer(version,`expectedVersions.${key}`,1);const cueId=register.get(key);const current=cueId?await repo.getDraft(cueId):null;if(current&&current.version!==pinned)throw new AuthoringError('version_conflict',`${slotDefinition(key)?.name??key} changed since you read it (now version ${current.version}). Call list_slots and save again. Nothing was published.`,409)}}
@@ -853,8 +869,13 @@ export function createAuthoringService(repo:AuthoringRepository,workspace:Author
    const problems=wanted.flatMap(item=>slotTextProblems(item.definition,item.text));
    if(problems.length)throw new AuthoringError('slot_text_too_long',problems.join(' '),400);
    const saved:Array<{key:string;cueId:string;text:string;published:boolean}>=[];
-   for(const item of wanted)saved.push(await publishSlotText(repo,item.definition.key,item.cueId,item.text,who));
-   return {serviceType,slots:saved,published:saved.filter(item=>item.published).length};
+   const refused:Array<{key:string;name:string;message:string}>=[];
+   for(const item of wanted){
+    if(!isDesignedSlot(item.definition)){saved.push(await publishSlotText(repo,item.definition.key,item.cueId,item.text,who));continue}
+    const outcome=await publishDesignedSlot(repo,item.definition,item.cueId,item.text,who,(operation,input)=>execute(operation,input,who));
+    if(outcome.refused!==undefined)refused.push({key:item.definition.key,name:item.definition.name,message:outcome.refused});else saved.push(outcome.saved);
+   }
+   return {serviceType,slots:saved,published:saved.filter(item=>item.published).length,...(refused.length?{refused}:{})};
   }
   if(operation==='publish_draft'){
    keys(data,['draftId','expectedVersion','previewId','confirmDuplicateName']);const draft=await versionedDraft(repo,string(data.draftId,'draftId'),integer(data.expectedVersion,'expectedVersion',1));assertSourcePin(draft);
@@ -1046,6 +1067,37 @@ async function publishSlotText(repo:AuthoringRepository,key:string,cueId:string,
  await repo.saveReview(preview.id,reviewReceipt(who,{standingApproval:`slot:${key}`}));
  await repo.publish(updated.id,updated.version,preview.id,who);
  return {key,cueId,text,published:true};
+}
+/**
+ * A designed slot (Oct 16): its fields are written into the graphic the slot fills - a name plate's
+ * heading and text, a reading's verses and Hebrew book - keeping that graphic's own design, and it
+ * is published through ship_draft, so the server fit check decides. Words that do not fit are not
+ * published: the graphic is put back as it was and the refusal says why. Empty fields leave the
+ * graphic alone.
+ */
+async function publishDesignedSlot(repo:AuthoringRepository,definition:import('./slots').SlotDefinition,cueId:string,text:string,who:string,run:(operation:string,input:unknown)=>Promise<unknown>):Promise<{saved:{key:string;cueId:string;text:string;published:boolean};refused?:undefined}|{refused:string;saved?:undefined}>{
+ const key=definition.key;
+ const current=await repo.getDraft(cueId);
+ if(!current||current.archivedAt)return {refused:`The graphic ${definition.name} fills is no longer in the library. Choose another one for it.`};
+ if(!text)return {saved:{key,cueId,text,published:false}};
+ const {slotFieldsFromText}=await import('./slots');const fields=slotFieldsFromText(definition,text);
+ const before=editableOnly(current);let next:EditableDraft;
+ if(definition.kind==='verses')next={...before,title:fields[0],accentTitle:fields[1]||undefined};
+ else{
+  if(current.content.mode!=='custom'||current.content.rows?.length)return {refused:`${definition.name} writes plain custom text, and "${current.name}" is not a plain custom-text graphic. Choose another one for it.`};
+  const {customTemplate}=await import('./custom-templates');const composed=customTemplate('nameplate')!.compose({heading:fields[0],name:fields[1],hebrewName:fields[2],transliteration:fields[3]});
+  next={...before,title:composed.title||before.title,content:{mode:'custom',text:composed.text}};
+ }
+ const unchanged=next.title===before.title&&(next.accentTitle??null)===(before.accentTitle??null)&&JSON.stringify(next.content)===JSON.stringify(before.content);
+ if(unchanged&&current.activeRevision!==null&&current.activeDraftVersion===current.version)return {saved:{key,cueId,text,published:false}};
+ let parsed:EditableDraft;try{parsed=parseEditable(next) as EditableDraft}catch(error){return {refused:`${definition.name}: ${error instanceof Error?error.message:String(error)}`}}
+ const updated=await repo.updateDraft(cueId,current.version,parsed,who);
+ if(!updated)throw conflict();
+ const shipped=await run('ship_draft',{draftId:cueId,expectedVersion:updated.version}) as {shipped:boolean;message?:string};
+ if(shipped.shipped)return {saved:{key,cueId,text,published:true}};
+ // Not published: put the graphic back as it was, so the library and the screen still agree.
+ await repo.updateDraft(cueId,updated.version,before,who);
+ return {refused:`${definition.name} was not saved: ${(shipped.message??'it did not pass the fit check.').replace(/ Nothing was published\.$/,'')}`};
 }
 function validatePublishPreview(draft:Draft,preview?:PreviewRecord){
  if(!preview)throw new AuthoringError('unknown_preview','Unknown preview',404);

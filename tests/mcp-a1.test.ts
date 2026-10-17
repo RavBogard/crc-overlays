@@ -216,18 +216,18 @@ test('the shared library five are registered and reach the shelf operations',asy
 
 test('list_slots reports slot text and versions; save_slots publishes and refuses a stale expectedVersions',async()=>{
  const {call}=wired();
- const student=await call('create_draft',{name:'Student name',title:'Central Reform Congregation',layout:'bottom',templateCueId:BARECHU,content:{mode:'custom',text:'Student'}});
- useSlotCueRegister(new Map([['student_name',student.output.draft.id]]));
+ const student=await call('create_draft',{name:'Remember Them 1',title:'Remember Them',layout:'bottom',templateCueId:BARECHU,content:{mode:'custom',text:'Student'}});
+ useSlotCueRegister(new Map([['remember_1',student.output.draft.id]]));
  try{
-  const listed=await call('list_slots',{serviceType:'bnei-mitzvah'},undefined);
-  const slot=listed.output.slots.find((item:{key:string})=>item.key==='student_name');
+  const listed=await call('list_slots',{serviceType:'funeral'},undefined);
+  const slot=listed.output.slots.find((item:{key:string})=>item.key==='remember_1');
   assert.deepEqual([slot.minted,slot.version,slot.cueId],[true,1,student.output.draft.id]);
   assert.ok(listed.output.slots.some((item:{minted:boolean})=>!item.minted),'an unminted slot says so');
-  const saved=await call('save_slots',{serviceType:'bnei-mitzvah',values:{student_name:'Noa Bogard'},expectedVersions:{student_name:1}});
+  const saved=await call('save_slots',{serviceType:'funeral',values:{remember_1:'Noa Bogard'},expectedVersions:{remember_1:1}});
   assert.equal(saved.isError,false,saved.text);assert.equal(saved.output.published,1);
-  const stale=await call('save_slots',{serviceType:'bnei-mitzvah',values:{student_name:'Ezra Bogard'},expectedVersions:{student_name:1}});
-  assert.equal(stale.isError,true);assert.match(stale.text,/Student name changed since you read it .*Call list_slots and save again\. Nothing was published\./);
-  const after=await call('list_slots',{serviceType:'bnei-mitzvah'},undefined);assert.equal(after.output.slots.find((item:{key:string})=>item.key==='student_name').text,'Noa Bogard');
+  const stale=await call('save_slots',{serviceType:'funeral',values:{remember_1:'Ezra Bogard'},expectedVersions:{remember_1:1}});
+  assert.equal(stale.isError,true);assert.match(stale.text,/Remember Them 1 changed since you read it .*Call list_slots and save again\. Nothing was published\./);
+  const after=await call('list_slots',{serviceType:'funeral'},undefined);assert.equal(after.output.slots.find((item:{key:string})=>item.key==='remember_1').text,'Noa Bogard');
   const unknownType=await call('list_slots',{serviceType:'no-such-type'},undefined);assert.equal(unknownType.isError,true);assert.match(unknownType.text,/they are /);
  }finally{useSlotCueRegister(null)}
 });

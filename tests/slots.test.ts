@@ -3,7 +3,7 @@ import assert from 'node:assert/strict';
 import {AuthoringError,buildCue,type Draft} from '../lib/authoring-model.ts';
 import {MemoryAuthoringRepository,createAuthoringService,type ReviewReceipt} from '../lib/authoring.ts';
 import {cueCategory,cuesWithSlotMarkers,slotCueRegister,slotIndex,useSlotCueRegister} from '../lib/slot-catalog.ts';
-import {PORTION_SEPARATOR,SERVICE_TYPES,SLOTS,SLOT_LINE_MAX,slotFieldsFromText,slotTextFromFields,slotTextProblems,slotsForServiceType} from '../lib/slots.ts';
+import {PORTION_SEPARATOR,SERVICE_TYPES,SLOTS,SLOT_LINE_MAX,hebrewBookFor,slotFieldsFromGraphic,slotFieldsFromText,slotSummary,slotTextFromFields,slotTextProblems,slotsForServiceType} from '../lib/slots.ts';
 import type {Cue} from '../lib/player.ts';
 
 const BARECHU='efa9fad4-f7d5-4091-a708-82103028861b';
@@ -36,27 +36,55 @@ test('the slot table is the data the page and the converter both read',()=>{
  assert.deepEqual(slotsForServiceType('no-such-type'),[]);
 });
 
-test('a reading slot joins its two fields the way the seed drafts are shaped',()=>{
- const torah=SLOTS.find(slot=>slot.key==='torah_1')!;
- assert.equal(slotTextFromFields(torah,['Noa Bogard',`Vayera ${PORTION_SEPARATOR} 18:1`]),`Noa Bogard\nVayera ${PORTION_SEPARATOR} 18:1`);
- assert.deepEqual(slotFieldsFromText(torah,`Noa Bogard\nVayera ${PORTION_SEPARATOR} 18:1`),['Noa Bogard',`Vayera ${PORTION_SEPARATOR} 18:1`]);
+test('a two-line slot joins its fields, dropping a blank one',()=>{
+ const students=SLOTS.find(slot=>slot.key==='student_names')!;
+ assert.equal(slotTextFromFields(students,['Noa Bogard','Ezra Bogard']),'Noa Bogard\nEzra Bogard');
+ assert.deepEqual(slotFieldsFromText(students,'Noa Bogard\nEzra Bogard'),['Noa Bogard','Ezra Bogard']);
  assert.equal(PORTION_SEPARATOR,'·','the separator stays the middle dot the seed drafts use');
  // A blank field is dropped rather than published as an empty line.
- assert.equal(slotTextFromFields(torah,['','Vayera']),'Vayera');
- assert.equal(slotTextFromFields(torah,['  ','  ']),'','nothing typed is nothing published');
- assert.equal(slotTextFromFields(SLOTS.find(slot=>slot.key==='student_name')!,['  Noa   Bogard ']),'Noa Bogard');
+ assert.equal(slotTextFromFields(students,['','Ezra']),'Ezra');
+ assert.equal(slotTextFromFields(students,['  ','  ']),'','nothing typed is nothing published');
+ assert.equal(slotTextFromFields(SLOTS.find(slot=>slot.key==='guest_name')!,['  Noa   Bogard ']),'Noa Bogard');
+});
+
+test('a designed slot keeps its fields in place and reads them back from its graphic',()=>{
+ const student=SLOTS.find(slot=>slot.key==='student_name')!,torah=SLOTS.find(slot=>slot.key==='torah_1')!,haftarah=SLOTS.find(slot=>slot.key==='haftarah_1')!;
+ assert.equal(student.kind,'nameplate');assert.equal(torah.kind,'verses');assert.equal(haftarah.kind,'verses');
+ assert.equal(slotTextFromFields(student,['Bat Mitzvah of','Eliana Levine','','Sharon']),'Bat Mitzvah of\nEliana Levine\n\nSharon','a blank keeps its place');
+ assert.equal(slotTextFromFields(torah,[' ','']),'','all blank leaves the graphic as it is');
+ assert.deepEqual(slotFieldsFromGraphic(student,{title:'Bat Mitzvah of',text:'Eliana Levine\nשָׁרוֹן | Sharon'}),['Bat Mitzvah of','Eliana Levine','שָׁרוֹן','Sharon']);
+ assert.deepEqual(slotFieldsFromGraphic(student,{title:'Bar Mitzvah of',text:'Gavin Stein'}),['Bar Mitzvah of','Gavin Stein','','']);
+ assert.deepEqual(slotFieldsFromGraphic(torah,{title:'Genesis 1:1-13',accentTitle:'בְּרֵאשִׁית',text:'When God began…'}),['Genesis 1:1-13','בְּרֵאשִׁית']);
+ assert.equal(slotSummary(student,{title:'Bat Mitzvah of',text:'Eliana Levine\nשָׁרוֹן | Sharon'}),'Eliana Levine','the deck shows the name');
+ assert.equal(slotSummary(torah,{title:'Genesis 1:1-13',accentTitle:'בְּרֵאשִׁית',text:'When God began…'}),'Genesis 1:1-13','the deck shows the verses');
+ assert.match(slotTextProblems(student,'Bat Mitzvah of\n\n\n')[0],/type the name/);
+ assert.match(slotTextProblems(torah,'\nבְּרֵאשִׁית')[0],/type the verses/);
+ assert.match(slotTextProblems(torah,`${'x'.repeat(61)}\n`)[0],/Verses is 61 characters/);
+});
+
+test('the Hebrew book name follows the verses',()=>{
+ assert.equal(hebrewBookFor('Genesis 1:1-13'),'בְּרֵאשִׁית');
+ assert.equal(hebrewBookFor('  exodus 12'),'שְׁמוֹת');
+ assert.equal(hebrewBookFor('Lev. 19:1-18'),'וַיִּקְרָא');
+ assert.equal(hebrewBookFor('Bamidbar 6:22'),'בְּמִדְבַּר');
+ assert.equal(hebrewBookFor('Deuteronomy 6:4'),'דְּבָרִים');
+ assert.equal(hebrewBookFor('Isaiah 42:5–21'),'יְשַׁעְיָהוּ');
+ assert.equal(hebrewBookFor('1 Samuel 1:1'),'שְׁמוּאֵל א׳');
+ assert.equal(hebrewBookFor('II Kings 4:1'),'מְלָכִים ב׳');
+ assert.equal(hebrewBookFor('Vayera 18:1'),undefined,'a parashah name is not a book');
 });
 
 test('the length guard names the field and says what to do, and an empty slot is never a problem',()=>{
- const student=SLOTS.find(slot=>slot.key==='student_name')!;
- assert.deepEqual(slotTextProblems(student,''),[]);
- assert.deepEqual(slotTextProblems(student,'Noa Bogard'),[]);
- const long=slotTextProblems(student,'x'.repeat(SLOT_LINE_MAX+1));
+ const guest=SLOTS.find(slot=>slot.key==='guest_name')!;
+ assert.deepEqual(slotTextProblems(guest,''),[]);
+ assert.deepEqual(slotTextProblems(guest,'Noa Bogard'),[]);
+ const long=slotTextProblems(guest,'x'.repeat(SLOT_LINE_MAX+1));
  assert.equal(long.length,1);
- assert.match(long[0],/Student name is 41 characters; shorten it to 40/);
- const torah=SLOTS.find(slot=>slot.key==='torah_1')!;
- assert.match(slotTextProblems(torah,`a\n${'x'.repeat(50)}`)[0],/line 2/);
- assert.match(slotTextProblems(torah,'a\nb\nc')[0],/3 lines; this graphic holds 2/);
+ assert.match(long[0],/Guest name is 41 characters; shorten it to 40/);
+ const students=SLOTS.find(slot=>slot.key==='student_names')!;
+ assert.match(slotTextProblems(students,`a\n${'x'.repeat(50)}`)[0],/line 2/);
+ assert.match(slotTextProblems(students,'a\nb\nc')[0],/3 lines; this graphic holds 2/);
+ assert.deepEqual(slotTextProblems(SLOTS.find(slot=>slot.key==='student_name')!,''),[],'an empty designed slot is no problem either');
 });
 
 test('the register skips anything that could not safely reach a Companion variable',()=>{
@@ -105,26 +133,26 @@ test('an empty slot publishes a graphic that draws no text at all',async()=>{
 
 test('one Save publishes every changed slot of the service type and nothing else',async()=>{
  const {api}=service();
- const student=await slotDraft(api,'Student name','Central Reform Congregation','Reader Name');
- const torah=await slotDraft(api,'Torah reading 1','Torah Reading',`Reader Name\nPortion ${PORTION_SEPARATOR} Chapter:Verse`);
- useSlotCueRegister(new Map([['student_name',student.id],['torah_1',torah.id]]));
+ const student=await slotDraft(api,'Remember Them 1','Remember Them','Reader Name');
+ const torah=await slotDraft(api,'Remember Them 2','Remember Them','Reader Name');
+ useSlotCueRegister(new Map([['remember_1',student.id],['remember_2',torah.id]]));
  try{
-  const first=await api.operation('save_slots',{serviceType:'bnei-mitzvah',values:{student_name:'Noa Bogard',torah_1:`Ezra Bogard\nVayera ${PORTION_SEPARATOR} 18:1`}},'tester') as SaveResult;
+  const first=await api.operation('save_slots',{serviceType:'funeral',values:{remember_1:'Noa Bogard',remember_2:'Ezra Bogard'}},'tester') as SaveResult;
   assert.equal(first.published,2);
-  assert.deepEqual(first.slots.map(slot=>slot.key),['student_name','torah_1']);
+  assert.deepEqual(first.slots.map(slot=>slot.key),['remember_1','remember_2']);
 
   const cues=(await api.publishedCues()) as Cue[];
   assert.equal(cues.find(cue=>cue.id===student.id)?.texts.textMain,'Noa Bogard');
-  assert.equal(slotIndex(cues,new Map([['student_name',student.id]]))[0]?.text,'Noa Bogard');
+  assert.equal(slotIndex(cues,new Map([['remember_1',student.id]]))[0]?.text,'Noa Bogard');
 
   // A second Save that moved one name must not mint a fresh revision of the slot beside it.
-  const second=await api.operation('save_slots',{serviceType:'bnei-mitzvah',values:{student_name:'Ezra Bogard',torah_1:`Ezra Bogard\nVayera ${PORTION_SEPARATOR} 18:1`}},'tester') as SaveResult;
+  const second=await api.operation('save_slots',{serviceType:'funeral',values:{remember_1:'Ezra Bogard',remember_2:'Ezra Bogard'}},'tester') as SaveResult;
   assert.equal(second.published,1);
   assert.deepEqual(second.slots.map(slot=>slot.published),[true,false]);
   assert.deepEqual((await api.operation('list_revisions',{draftId:torah.id},'tester') as {revisions:unknown[]}).revisions.length,1);
 
   // Clearing a slot publishes it blank rather than leaving last week's name on air.
-  const cleared=await api.operation('save_slots',{serviceType:'bnei-mitzvah',values:{student_name:''}},'tester') as SaveResult;
+  const cleared=await api.operation('save_slots',{serviceType:'funeral',values:{remember_1:''}},'tester') as SaveResult;
   assert.equal(cleared.published,1);
   const after=(await api.publishedCues()) as Cue[];
   assert.equal(after.find(cue=>cue.id===student.id)?.texts.textMain,undefined);
@@ -133,18 +161,18 @@ test('one Save publishes every changed slot of the service type and nothing else
 
 test('a Save that would overflow the layout is refused whole, before anything is published',async()=>{
  const {api}=service();
- const student=await slotDraft(api,'Student name','Central Reform Congregation','Reader Name');
- const torah=await slotDraft(api,'Torah reading 1','Torah Reading','Reader Name');
- useSlotCueRegister(new Map([['student_name',student.id],['torah_1',torah.id]]));
+ const student=await slotDraft(api,'Remember Them 1','Remember Them','Reader Name');
+ const torah=await slotDraft(api,'Remember Them 2','Remember Them','Reader Name');
+ useSlotCueRegister(new Map([['remember_1',student.id],['remember_2',torah.id]]));
  try{
   await assert.rejects(
-   ()=>api.operation('save_slots',{serviceType:'bnei-mitzvah',values:{student_name:'Noa Bogard',torah_1:'x'.repeat(SLOT_LINE_MAX+1)}},'tester'),
+   ()=>api.operation('save_slots',{serviceType:'funeral',values:{remember_1:'Noa Bogard',remember_2:'x'.repeat(SLOT_LINE_MAX+1)}},'tester'),
    (error)=>(error as AuthoringError).code==='slot_text_too_long',
   );
   const cues=(await api.publishedCues()) as Cue[];
   assert.equal(cues.length,0,'the good value beside the bad one is not published either');
   await assert.rejects(
-   ()=>api.operation('save_slots',{serviceType:'bnei-mitzvah',values:{no_such_slot:'x'}},'tester'),
+   ()=>api.operation('save_slots',{serviceType:'funeral',values:{no_such_slot:'x'}},'tester'),
    (error)=>(error as AuthoringError).code==='unknown_slot',
   );
   await assert.rejects(
@@ -167,13 +195,13 @@ test('a slot whose graphic has not been minted yet is refused by name, not silen
 
 test('the standing approval is recorded on the revision, and buys nothing for anything else',async()=>{
  const {repo,api}=service();
- const student=await slotDraft(api,'Student name','Central Reform Congregation','Reader Name');
- useSlotCueRegister(new Map([['student_name',student.id]]));
+ const student=await slotDraft(api,'Remember Them 1','Remember Them','Reader Name');
+ useSlotCueRegister(new Map([['remember_1',student.id]]));
  try{
-  await api.operation('save_slots',{serviceType:'bnei-mitzvah',values:{student_name:'Noa Bogard'}},'tester');
+  await api.operation('save_slots',{serviceType:'funeral',values:{remember_1:'Noa Bogard'}},'tester');
   const revision=(await repo.revisions(student.id))[0]!;
   const review=revision.review as ReviewReceipt;
-  assert.equal(review.standingApproval,'slot:student_name');
+  assert.equal(review.standingApproval,'slot:remember_1');
   assert.equal(review.browserMeasurement,undefined,'a standing approval never claims a measurement nobody took');
  }finally{useSlotCueRegister(null)}
 

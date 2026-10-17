@@ -19,6 +19,10 @@
 .slot label span{display:block;color:#aabbb7;font-size:13px;margin-bottom:6px}
 .slot input{display:block;width:100%;background:#0c1417;color:#f2f5f4;border:1px solid #52676a;border-radius:7px;padding:11px;font:inherit;font-size:17px}
 .slot input:disabled{opacity:.6}
+.slot select{display:block;width:100%;background:#0c1417;color:#f2f5f4;border:1px solid #52676a;border-radius:7px;padding:9px;font:inherit;font-size:15px}
+.slot .slot-fills{margin-top:0;padding-bottom:10px;border-bottom:1px solid #2b3c40}
+.slot input[dir="rtl"]{font-family:"Noto Sans Hebrew",Arial,sans-serif;text-align:right}
+.slots-refused{flex-basis:100%;margin:0;padding:12px 14px 12px 32px;background:#4c282b;border:1px solid #b56569;border-radius:8px;color:#ffd9d3;line-height:1.45}
 .slot-problem{display:block;margin-top:8px;color:#ffb5a9;font-size:13px;line-height:1.4;font-weight:400}
 .slot-blank{display:block;margin-top:8px;color:#849490;font-size:13px}
 

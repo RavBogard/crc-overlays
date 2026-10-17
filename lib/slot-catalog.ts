@@ -11,7 +11,7 @@
  * were able to land one at a time.
  */
 import {createRequire} from 'node:module';
-import {SLOTS,SLOT_CATEGORY,slotDefinition} from './slots';
+import {SLOTS,SLOT_CATEGORY,slotDefinition,slotSummary,type SlotGraphicWords} from './slots';
 import type {Cue} from './player';
 import {plainCueText} from './inline-italics.ts';
 
@@ -64,6 +64,10 @@ export function slotCueRegister(read:SlotCueReader=readCommitted):Map<string,str
  return committed;
 }
 
+/** A slot graphic's words as a published cue carries them, read as plain text. */
+export function slotWordsOf(cue:Cue|undefined):SlotGraphicWords{
+ return {title:plainCueText(cue?.texts?.textTitle??''),accentTitle:cue?.texts?.accentTextTitle??null,text:slotTextOf(cue)};
+}
 /** The text a slot cue currently carries: the one text layer a custom bottom graphic has. */
 export function slotTextOf(cue:Cue|undefined):string{
  return typeof cue?.texts?.textMain==='string'?plainCueText(cue.texts.textMain):'';
@@ -83,7 +87,7 @@ export function slotIndex(cues:readonly Cue[],register=slotCueRegister()):Catalo
   if(!cueId)continue;
   const cue=byId.get(cueId);
   if(!cue)continue;
-  index.push({cueId,key:slot.key,text:slotTextOf(cue)});
+  index.push({cueId,key:slot.key,text:slotSummary(slot,slotWordsOf(cue))});
  }
  return index;
 }

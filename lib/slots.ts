@@ -28,7 +28,18 @@ export type SlotFieldKind =
   /** Two lines: two names on one card. */
   | 'lines2'
   /** Two fields — the reader, then the portion — becoming the two lines of a reading slate. */
-  | 'reading';
+  | 'reading'
+  /**
+   * The student's name plate (Oct 16): heading, name, Hebrew name and its transliteration, written
+   * into the graphic the slot uses the way the Name plate form composes them. The graphic keeps
+   * its own design; publishing goes through the fit check.
+   */
+  | 'nameplate'
+  /**
+   * A reading (Oct 16): the verses become the graphic's title and the Hebrew book name its Hebrew
+   * title. The reading's own text stays as it was authored. Fit-checked like `nameplate`.
+   */
+  | 'verses';
 
 export type SlotDefinition = {
   /** Stable, never reused. It becomes the Companion variable `slot_<key>`. */
@@ -50,13 +61,13 @@ export type ServiceTypeDefinition = { id: string; name: string; slotKeys: readon
 export const PORTION_SEPARATOR = '·';
 
 const reading = (key: string, name: string, title: string): SlotDefinition => ({
-  key, name, title, kind: 'reading',
-  labels: ['Reader', 'Portion and verses'],
-  placeholders: ['Noa Bogard', `Vayera ${PORTION_SEPARATOR} 18:1–33`],
+  key, name, title, kind: 'verses',
+  labels: ['Verses', 'Hebrew book'],
+  placeholders: title.startsWith('Haftarah') ? ['Isaiah 42:5–21', 'יְשַׁעְיָהוּ'] : ['Genesis 1:1–13', 'בְּרֵאשִׁית'],
 });
 
 export const SLOTS: readonly SlotDefinition[] = [
-  { key: 'student_name', name: 'Student name', title: 'Central Reform Congregation', kind: 'line', labels: ['Student'], placeholders: ['Noa Bogard'] },
+  { key: 'student_name', name: 'Student name', title: 'Central Reform Congregation', kind: 'nameplate', labels: ['Heading', 'Name', 'Hebrew name', 'Hebrew name in English letters'], placeholders: ['Bat Mitzvah of', 'Eliana Levine', 'שָׁרוֹן', 'Sharon'] },
   { key: 'student_names', name: 'Student names (two lines)', title: 'Central Reform Congregation', kind: 'lines2', labels: ['First student', 'Second student'], placeholders: ['Noa Bogard', 'Ezra Bogard'] },
   reading('torah_1', 'Torah reading 1', 'Torah Reading'),
   reading('torah_2', 'Torah reading 2', 'Torah Reading'),
@@ -98,9 +109,28 @@ export const SLOT_CATEGORY = 'names';
 export const SLOT_LINE_MAX = 40;
 export const SLOT_LINES_MAX = 2;
 
+/** A slot that writes its fields into a graphic designed in the Library, fit-checked on publish. */
+export function isDesignedSlot(definition: SlotDefinition): boolean {
+  return definition.kind === 'nameplate' || definition.kind === 'verses';
+}
+/** A designed slot's fields: a heading or verses line is longer than a name, so it gets more room. */
+export const DESIGNED_FIELD_MAX = 60;
+
 /** Problems an editor can act on, in their own words. An empty slot is never a problem. */
 export function slotTextProblems(definition: SlotDefinition, text: string): string[] {
   if (!text) return [];
+  if (isDesignedSlot(definition)) {
+    const fields = slotFieldsFromText(definition, text);
+    const problems: string[] = [];
+    if (text.split('\n').length > definition.labels.length) problems.push(`${definition.name} has more fields than its form.`);
+    fields.forEach((value, index) => {
+      if (value.length > DESIGNED_FIELD_MAX) problems.push(`${definition.name}: ${definition.labels[index]} is ${value.length} characters; shorten it to ${DESIGNED_FIELD_MAX} or fewer.`);
+    });
+    // The field a reader would miss: a name plate needs a name, a reading needs its verses.
+    const primary = definition.kind === 'nameplate' ? 1 : 0;
+    if (!fields[primary]) problems.push(`${definition.name}: type the ${definition.labels[primary].toLowerCase()}, or clear every field to leave the graphic as it is.`);
+    return problems;
+  }
   const lines = text.split('\n');
   const problems: string[] = [];
   if (lines.length > SLOT_LINES_MAX) problems.push(`${definition.name} has ${lines.length} lines; this graphic holds ${SLOT_LINES_MAX}.`);
@@ -119,6 +149,12 @@ export type SlotFields = readonly string[];
  * week's name, and never the placeholder "Reader Name".
  */
 export function slotTextFromFields(definition: SlotDefinition, fields: SlotFields): string {
+  // A designed slot's fields keep their places - the third line is always the Hebrew name -
+  // and all of them blank is the empty string, which leaves the graphic as it is.
+  if (isDesignedSlot(definition)) {
+    const values = fieldCount(definition).map((_, index) => (fields[index] ?? '').replace(/\s+/g, ' ').trim());
+    return values.some(Boolean) ? values.join('\n') : '';
+  }
   // A blank field is dropped rather than published as an empty line: a card with only a
   // second name typed in should read as one line, not as a gap above it.
   return fieldCount(definition)
@@ -134,5 +170,70 @@ export function slotFieldsFromText(definition: SlotDefinition, text: string): st
 }
 
 function fieldCount(definition: SlotDefinition): undefined[] {
-  return new Array(definition.kind === 'line' ? 1 : 2).fill(undefined);
+  return new Array(definition.kind === 'line' ? 1 : definition.kind === 'nameplate' ? 4 : 2).fill(undefined);
+}
+
+/** The words of a graphic, as a designed slot reads and writes them. */
+export type SlotGraphicWords = { title: string; accentTitle?: string | null; text: string };
+
+const HEBREW = /[֐-׿]/;
+/**
+ * The slot's fields as the graphic it fills says them now, so the page opens on what is on
+ * screen. A name plate's text is "Name" over "Hebrew | transliteration" (lib/custom-templates.ts).
+ */
+export function slotFieldsFromGraphic(definition: SlotDefinition, words: SlotGraphicWords): string[] {
+  if (definition.kind === 'verses') return [words.title, words.accentTitle ?? ''];
+  if (definition.kind === 'nameplate') {
+    const [name = '', detail = ''] = words.text.split('\n');
+    const parts = detail.split(' | ').map(part => part.trim()).filter(Boolean);
+    const hebrew = parts.find(part => HEBREW.test(part)) ?? '';
+    const latin = parts.find(part => part !== hebrew) ?? '';
+    return [words.title, name.trim(), hebrew, latin];
+  }
+  return slotFieldsFromText(definition, words.text);
+}
+
+/** The line a Stream Deck key shows for a slot: the name, the verses, or the plain slot's text. */
+export function slotSummary(definition: SlotDefinition, words: SlotGraphicWords): string {
+  if (!isDesignedSlot(definition)) return words.text;
+  const fields = slotFieldsFromGraphic(definition, words);
+  return definition.kind === 'nameplate' ? fields[1] : fields[0];
+}
+
+/**
+ * The Hebrew name of the book a reading comes from, from its verses: "Genesis 1:1–13" is
+ * בְּרֵאשִׁית. Torah books by English or transliterated name, and the prophets a Haftarah is read
+ * from. Undefined when the verses do not start with a book this knows.
+ */
+const BOOKS: ReadonlyArray<[RegExp, string]> = [
+  [/^(genesis|gen\.?|bereshit|bereishit|b'reishit|breishit)\b/i, 'בְּרֵאשִׁית'],
+  [/^(exodus|exod?\.?|shemot|sh'mot|shmot)\b/i, 'שְׁמוֹת'],
+  [/^(leviticus|lev\.?|vayikra|vayyikra)\b/i, 'וַיִּקְרָא'],
+  [/^(numbers|num\.?|bamidbar|b'midbar|bemidbar)\b/i, 'בְּמִדְבַּר'],
+  [/^(deuteronomy|deut?\.?|devarim|d'varim)\b/i, 'דְּבָרִים'],
+  [/^(joshua|josh\.?)\b/i, 'יְהוֹשֻׁעַ'],
+  [/^(judges|judg\.?)\b/i, 'שׁוֹפְטִים'],
+  [/^(1|i|first)\s*(samuel|sam\.?)\b/i, 'שְׁמוּאֵל א׳'],
+  [/^(2|ii|second)\s*(samuel|sam\.?)\b/i, 'שְׁמוּאֵל ב׳'],
+  [/^(1|i|first)\s*(kings|kgs\.?)\b/i, 'מְלָכִים א׳'],
+  [/^(2|ii|second)\s*(kings|kgs\.?)\b/i, 'מְלָכִים ב׳'],
+  [/^(isaiah|isa\.?)\b/i, 'יְשַׁעְיָהוּ'],
+  [/^(jeremiah|jer\.?)\b/i, 'יִרְמְיָהוּ'],
+  [/^(ezekiel|ezek\.?)\b/i, 'יְחֶזְקֵאל'],
+  [/^(hosea|hos\.?)\b/i, 'הוֹשֵׁעַ'],
+  [/^joel\b/i, 'יוֹאֵל'],
+  [/^amos\b/i, 'עָמוֹס'],
+  [/^(obadiah|obad\.?)\b/i, 'עֹבַדְיָה'],
+  [/^jonah\b/i, 'יוֹנָה'],
+  [/^(micah|mic\.?)\b/i, 'מִיכָה'],
+  [/^(nahum|nah\.?)\b/i, 'נַחוּם'],
+  [/^(habakkuk|hab\.?)\b/i, 'חֲבַקּוּק'],
+  [/^(zephaniah|zeph\.?)\b/i, 'צְפַנְיָה'],
+  [/^(haggai|hag\.?)\b/i, 'חַגַּי'],
+  [/^(zechariah|zech\.?)\b/i, 'זְכַרְיָה'],
+  [/^(malachi|mal\.?)\b/i, 'מַלְאָכִי'],
+];
+export function hebrewBookFor(verses: string): string | undefined {
+  const text = verses.trim();
+  return BOOKS.find(([pattern]) => pattern.test(text))?.[1];
 }

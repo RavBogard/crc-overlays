@@ -2,6 +2,7 @@ import {authorizeRequest} from '@/lib/access';
 import {catalog,json} from '@/lib/server';
 import {liturgyIndex} from '@/lib/liturgy-index';
 import {cuesWithSlotMarkers,slotIndex} from '@/lib/slot-catalog';
+import {resolvedSlotRegister} from '@/lib/slot-bindings';
 import {cueRoleIndex} from '@/lib/cue-roles';
 
 /**
@@ -21,8 +22,10 @@ export async function GET(r:Request){
  try{
   const current=await catalog();
   const include=new URL(r.url).searchParams.get('include');
+  // The workspace's own slot choices (lib/slot-bindings.ts) decide which cue each slot is.
+  const register=include==='slots'?await resolvedSlotRegister():undefined;
   const body=include==='liturgy'?{version:current.version,cues:current.cues,liturgy:liturgyIndex(current.cues)}
-   :include==='slots'?{version:current.version,cues:cuesWithSlotMarkers(current.cues),slots:slotIndex(current.cues),roles:cueRoleIndex(current.cues)}
+   :include==='slots'?{version:current.version,cues:cuesWithSlotMarkers(current.cues,register),slots:slotIndex(current.cues,register),roles:cueRoleIndex(current.cues)}
    :include==='layouts'?{version:current.version,cues:current.cues,layouts:current.layouts??{}}
    :current.cues;
   return new Response(JSON.stringify(body),{headers:{'Content-Type':'application/json','Cache-Control':'no-store','Referrer-Policy':'no-referrer','X-Content-Type-Options':'nosniff','X-CRC-Catalog-Version':current.version}});
