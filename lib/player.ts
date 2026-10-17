@@ -160,6 +160,20 @@ function applyPresentationTypography(box:HTMLElement,presentation:CuePresentatio
 // Auto-fit must always start from the template's own base sizes (plus any authored
 // override) so that re-fitting after fonts and artwork load cannot shrink cumulatively.
 function resetFitBaseline(box:HTMLElement,cue:Cue){box.querySelectorAll<HTMLElement>('.prayer,.title').forEach(el=>{el.style.fontSize=''});if(cue.presentation)applyPresentationTypography(box,cue.presentation)}
+/**
+ * A side panel's titles compact to fit rather than spill (Michael, Oct 17: "Avot V'Imahot —
+ * Interpretation" and its אָבוֹת וְאִמָּהוֹת watermark). The faint watermark steps down until it fits
+ * the lane beside the logo; the English and Hebrew titles step down until each fits its own box.
+ * A title that already fits keeps its size, and each stops at a floor that stays readable.
+ */
+export const SIDE_TITLE_FLOOR=24,WATERMARK_FLOOR=56;
+export function fitSideTitles(box:HTMLElement,cue:Pick<Cue,'layout'>){
+ if(cue.layout!=='left'&&cue.layout!=='right')return;
+ const shrink=(el:HTMLElement,floor:number,step:number)=>{const over=()=>el.scrollWidth>el.clientWidth+1||el.scrollHeight>el.clientHeight+1;let size=parseFloat(getComputedStyle(el).fontSize);for(let attempt=0;attempt<60&&size>floor&&over();attempt++){size=Math.max(floor,size-step);el.style.fontSize=`${size}px`}};
+ const watermark=box.querySelector<HTMLElement>('.title-watermark');
+ if(watermark){watermark.style.fontSize='';if(watermark.style.visibility!=='hidden')shrink(watermark,WATERMARK_FLOOR,2)}
+ box.querySelectorAll<HTMLElement>('.title').forEach(el=>shrink(el,SIDE_TITLE_FLOOR,1));
+}
 /** Keep the decorative title lettering within the strip's uninterrupted lane beside the logo. */
 function keepWatermarkClearOfLogo(box:HTMLElement){
  const watermark=box.querySelector<HTMLElement>('.title-watermark'),strip=box.querySelector<HTMLElement>('.titlebar:not(.titlegrad)'),logo=box.querySelector<HTMLElement>('.logo');if(!watermark||!strip||!logo)return;
@@ -239,7 +253,7 @@ if(c.texts.textTitle)add('title',c.texts.textTitle,'textTitle');if(c.texts.accen
  }else this.root.replaceChildren(box);if(c.presentation){const styles=presentationTextStyles(c.presentation);box.querySelectorAll<HTMLElement>('.prayer').forEach(element=>{if(styles.textAlign)element.style.textAlign=styles.textAlign;if(styles.lineHeight)element.style.lineHeight=styles.lineHeight});applyPresentationTypography(box,c.presentation)}this.applyFit(box,c);return box}
  // Idempotent: safe to call again once fonts and artwork have settled, and every call
  // measures from the same baseline, so the final sizes never depend on the call count.
- applyFit(box:HTMLElement,cue:Cue):void{box.querySelectorAll<HTMLElement>('.prayer').forEach(el=>{el.style.top='';el.style.bottom=''});if(cue.layout==='bottom')box.querySelectorAll<HTMLElement>('.title-accent').forEach(el=>{el.style.top='';el.style.bottom='';el.style.height='';el.style.lineHeight=''});resetFitBaseline(box,cue);if((cue.layout==='left'||cue.layout==='right')&&!usesPanelRows(cue))fitPanelCopy(box,cue);if(cue.layout==='bottom'){fitBottomBody(box,cue);fitBottomAccentTitle(box)}const card=resolveCueLayout(cue,this.options.layouts)?.card;if(card)CARD_FIT[card.fit.strategy](box,card,cue);if(usesPanelRows(cue))fitPanelRows(box,cue);fitChannelOrder(box,cue);keepWatermarkClearOfLogo(box)}
+ applyFit(box:HTMLElement,cue:Cue):void{box.querySelectorAll<HTMLElement>('.prayer').forEach(el=>{el.style.top='';el.style.bottom=''});if(cue.layout==='bottom')box.querySelectorAll<HTMLElement>('.title-accent').forEach(el=>{el.style.top='';el.style.bottom='';el.style.height='';el.style.lineHeight=''});resetFitBaseline(box,cue);if((cue.layout==='left'||cue.layout==='right')&&!usesPanelRows(cue))fitPanelCopy(box,cue);if(cue.layout==='bottom'){fitBottomBody(box,cue);fitBottomAccentTitle(box)}const card=resolveCueLayout(cue,this.options.layouts)?.card;if(card)CARD_FIT[card.fit.strategy](box,card,cue);if(usesPanelRows(cue))fitPanelRows(box,cue);fitChannelOrder(box,cue);keepWatermarkClearOfLogo(box);fitSideTitles(box,cue)}
  // Artwork that fails or times out falls back to the congregation branding logo so the
  // text cue still goes to air; font and layout failures still surface to the caller.
  async settleAssets(box:HTMLElement,imageAssetUrl?:string){const wait=this.options.waitForAssets??waitForRenderedOverlayAssets;try{await wait(box);return}catch(error){const logo=box.querySelector<HTMLImageElement>('img.logo');if(!imageAssetUrl||!logo||logo.src===this.branding.logo||(logo.complete&&Boolean(logo.naturalWidth)))throw error;logo.src=this.branding.logo;await wait(box)}}
