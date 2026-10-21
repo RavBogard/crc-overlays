@@ -1,6 +1,6 @@
 # Planned-service preparation and refresh
 
-Current implementation: branch `codex/beit-mitzvah-planned-service`, isolated checkout `C:/Users/dsbog/crc-overlays-beit-mitzvah-service`, based on `origin/main` `6e225d7`. Verified the deployed `498c719` is its ancestor. The dirty `google-signin` primary checkout was preserved. No Overlays deployment, database mutation, live command, Companion edit, renderer change, or new credential occurred.
+Current implementation: branch `codex/beit-mitzvah-planned-service`, isolated checkout `C:/Users/dsbog/crc-overlays-beit-mitzvah-service`, based on `origin/main` `6e225d7`. Verified the previous deployed `498c719` is its ancestor. The dirty `google-signin` primary checkout was preserved. The authorized paired web release is now verified on `82939627f9fc2390a7c5fc1f0c11e82512a0199d`; no database mutation, live command, Companion edit, renderer change, or new credential occurred.
 
 ## Delivered
 
@@ -32,7 +32,7 @@ The first focused run found test-fixture typing/method errors and an effect-base
 
 The repository's primary dependency directory was empty. The session-created junction to it was preserved under ignored `work/beit-planned-service/empty-primary-dependencies`, and `npm ci` installed the isolated checkout's own dependencies. No primary dependency files were changed.
 
-## Remaining and next action
+## Release verification and remaining limits
 
 ### Remote CI correction
 
@@ -40,6 +40,21 @@ PR #9's first authoritative run `39547644431` failed six existing app test cases
 
 The three preset failures are precisely gzip's platform OS byte: the released Windows header ends in `0a`, while Linux uses `03`. Changing only byte 9 of the local output reproduces the remote hash `cfdd308f…` instead of the released Windows hash `bfc718e1…`; the JSON is identical. A shared test assertion now verifies the native header, normalizes only that byte, and checks the immutable complete compressed and JSON hashes. The signed-link test still verifies the exact bytes served on its platform. No preset, export writer, renderer, or Companion runtime was changed.
 
-Two scratch tests previously passed fictitious `/scratch/check-1` paths that Linux's existing wrapper writer must actually create. They now own real temporary directories, retain cleanup, and assert the Linux wrapper path/content; the pack-options case forces the Linux branch on Windows too. The screenshot timeout fixture now injects the existing synthetic host interface so its 30 ms deadline measures screenshot behavior rather than filesystem and `/proc` setup. No assertion was skipped or deadline raised. Focused verification: 79 cases, 73 passed/six existing platform skips. Full local `npm test` again passed: 1,343 TypeScript tests/13 existing skips and all 35 MJS tests. TypeScript and lint passed with only the two known authoring warnings. Exact-head Linux CI and independent review of this test-only correction remain required before release.
+Two scratch tests previously passed fictitious `/scratch/check-1` paths that Linux's existing wrapper writer must actually create. They now own real temporary directories, retain cleanup, and assert the Linux wrapper path/content; the pack-options case forces the Linux branch on Windows too. The screenshot timeout fixture now injects the existing synthetic host interface so its 30 ms deadline measures screenshot behavior rather than filesystem and `/proc` setup. No assertion was skipped or deadline raised. Focused verification: 79 cases, 73 passed/six existing platform skips. Full local `npm test` again passed: 1,343 TypeScript tests/13 existing skips and all 35 MJS tests. TypeScript and lint passed with only the two known authoring warnings. Exact-head PR CI `39548228866` passed all three jobs, and independent review accepted the correction before release.
 
-Parent Astra owns final integration. Independent review should inspect query authorization, the existing author-route boundary, preview binding, and the remaining multi-client duplicate-import limitation. This local pass does not validate deployed credentials, a live centralreform.live read, real database writes, physical booth hardware, or operator acceptance. Complete the repository's existing release checks and paired-workspace process before any authorized deployment; do not release this branch automatically.
+### Authorized paired production release
+
+PR #9 merged without force as `82939627f9fc2390a7c5fc1f0c11e82512a0199d`; its tree exactly equals reviewed `2571ce4`. Merged-main CI `39549702763` also passed. Fresh provider identity checks verified team `team_AyFDvnGV3IHjAY32PlW1tltN`, CRC project `prj_yO5apcZTDQdaNCIRCLdy6ieJNZiR`, and TBI project `prj_fLQgcm9b9lYzcfR4yyEIpQGZHyx2` before production writes. The incumbent `deploy-workspaces.mjs --commit <full SHA> --confirm-production` completed TBI staging/install/build and both production deployments.
+
+Fresh canonical readbacks verified **Ready, same SHA** on all four hosts:
+
+| Workspace | Canonical aliases | Deployment |
+| --- | --- | --- |
+| CRC | `overlays.centralreform.org`, `crc-overlays.vercel.app` | `dpl_G4oaFifwUY9ij1c29Sw1GEBNyo8f` |
+| TBI | `overlays.templebnaiisrael.com`, `tbi-overlays.vercel.app` | `dpl_C5G7i9VMNtNNsENyBzyMscDcndmB` |
+
+All 24 read-only smoke checks passed: `/system` and `/services` 200, correct public workspace identity, established `/health` 307 to `/system#status`, and unauthenticated service-read/authoring-refresh 401 on each host. The first diagnostic assumed `/health` was a direct 200; checking its existing source redirect contract corrected the diagnostic, with no runtime change. Sanitized readbacks, smoke results, and deployment logs remain in ignored `work/beit-planned-service/`; the paired receipt is under `work/deploy-staging/releases/<release SHA>/release.json`.
+
+Existing CRC source reader keys were retained; TBI has neither. The production sensitive reader cannot be exported locally, and no authenticated authoring session was available to prove a live centralreform.live read. No credential was minted/rotated and no service was imported to manufacture verification. The existing multi-client duplicate-import limitation, physical booth acceptance, real operator import, source/resource rights, and hardware remain separate. Parent Astra retains final ecosystem integration.
+
+These release records are committed on the owned task branch only. Their documentation commit is **not deployed**; `main` and the paired canonical production deployments remain on the full release SHA above, avoiding an incidental CRC-only docs deployment.

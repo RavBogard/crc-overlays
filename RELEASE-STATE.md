@@ -4,16 +4,26 @@ What is deployed right now. Update this file on every release — it is the one 
 "what is live", and it is short so it can be read under pressure. The history is in
 `docs/planning/2026-09-deploys/` (25 deploy records, the release chain, the phase build notes).
 
-**Last updated: 2026-10-09 Central.** The spinning logo's white outline is removed, alongside Michael's latest main-branch changes, in `overlays-2026-10-09-logo`. Resolve the paired source SHA with `git rev-parse overlays-2026-10-09-logo^{commit}`. Details and verification locations: `docs/planning/2026-10-09-logo-outline/STATE.md`.
+**Last updated: 2026-10-21 Central.** Both web workspaces are verified Ready on `82939627f9fc2390a7c5fc1f0c11e82512a0199d` (PR #9: planned-service preparation and reviewed refresh). TBI's music integration remains unconfigured. Details: `docs/planning/2026-10-20-beit-mitzvah-planned-service/RETURN.md`.
 
 ## Web, per workspace
 
 | Workspace | Host | Release | How it gets there |
 |---|---|---|---|
-| CRC | `overlays.centralreform.org` (alt `crc-overlays.vercel.app`) | `overlays-2026-10-09-logo` | main and paired production CLI |
-| TBI | `overlays.templebnaiisrael.com` (alt `tbi-overlays.vercel.app`) | `overlays-2026-10-09-logo` | paired staged production CLI |
+| CRC | `overlays.centralreform.org` (alt `crc-overlays.vercel.app`) | `8293962` | main and paired production CLI |
+| TBI | `overlays.templebnaiisrael.com` (alt `tbi-overlays.vercel.app`) | `8293962` | paired staged production CLI |
 
-Both workspaces use the exact tag SHA. Deployment IDs, Ready status and SHA checks are recorded under ignored `work/overlay-batch-release/verified.json` in `C:/Users/dsbog/crc-overlays-release-20261009`, with the paired receipt in `work/deploy-staging/releases/<SHA>/release.json`.
+Both canonical host pairs use the exact full SHA above. CRC deployment: `dpl_G4oaFifwUY9ij1c29Sw1GEBNyo8f`; TBI: `dpl_C5G7i9VMNtNNsENyBzyMscDcndmB`. Sanitized provider readbacks and smoke results are under ignored `work/beit-planned-service/` in `C:/Users/dsbog/crc-overlays-beit-mitzvah-service`; the paired receipt is `work/deploy-staging/releases/82939627f9fc2390a7c5fc1f0c11e82512a0199d/release.json`.
+
+### Release 8293962: linked planned services
+
+- Portal links select only an authorized source service, including distant-future services. Existing preparations are reused or explicitly chosen when ambiguous. Preparing a new service remains an operator action.
+- Preview and refresh bind the reviewed source fingerprint and collection version, refuse stale plans, and preserve operator choices/missing rows. No automatic import, publication, Names update, live command, or renderer change.
+- Independent review accepted the implementation and test-only platform corrections. PR CI `39548228866` and merged-main CI `39549702763` passed all App/Relay/Companion jobs. Local TypeScript, full tests (1,343 TS passes/13 existing skips and 35 MJS passes), lint (two existing warnings), production build, and focused phone/desktop browser checks passed. The paired staging and both production builds passed.
+- All four canonical hosts report the correct workspace; `/system` and `/services` return 200. The established `/health` redirect is 307 to `/system#status`. Unauthenticated service reads and authoring refresh return 401 on every host. Both provider projects report Ready on the same release SHA.
+- Existing CRC-only reader configuration was retained; TBI has neither reader key. Its sensitive token is intentionally not exportable, and no authenticated authoring session was available for a live source-read proof. No credential rotation, tenant, migration, service/resource/grant mutation, relay/Companion release, or booth action. Physical hardware and a real operator import remain unverified.
+
+Release-record commits on the task branch are documentation only and are not the deployed SHA. They were kept off `main` to avoid a CRC-only automatic redeployment after the paired verification.
 
 ### Release overlays-2026-10-09-logo: logo outline and Michael's latest changes
 
