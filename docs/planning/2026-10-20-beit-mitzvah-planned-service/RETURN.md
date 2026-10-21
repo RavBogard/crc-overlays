@@ -34,4 +34,12 @@ The repository's primary dependency directory was empty. The session-created jun
 
 ## Remaining and next action
 
+### Remote CI correction
+
+PR #9's first authoritative run `39547644431` failed six existing app test cases (1,343 passed, seven skipped); Relay and Companion jobs passed. The failing runtime and tests were identical to base `6e225d7`. Full failure evidence is in ignored `work/beit-planned-service/ci-119049339190.log`.
+
+The three preset failures are precisely gzip's platform OS byte: the released Windows header ends in `0a`, while Linux uses `03`. Changing only byte 9 of the local output reproduces the remote hash `cfdd308f…` instead of the released Windows hash `bfc718e1…`; the JSON is identical. A shared test assertion now verifies the native header, normalizes only that byte, and checks the immutable complete compressed and JSON hashes. The signed-link test still verifies the exact bytes served on its platform. No preset, export writer, renderer, or Companion runtime was changed.
+
+Two scratch tests previously passed fictitious `/scratch/check-1` paths that Linux's existing wrapper writer must actually create. They now own real temporary directories, retain cleanup, and assert the Linux wrapper path/content; the pack-options case forces the Linux branch on Windows too. The screenshot timeout fixture now injects the existing synthetic host interface so its 30 ms deadline measures screenshot behavior rather than filesystem and `/proc` setup. No assertion was skipped or deadline raised. Focused verification: 79 cases, 73 passed/six existing platform skips. Full local `npm test` again passed: 1,343 TypeScript tests/13 existing skips and all 35 MJS tests. TypeScript and lint passed with only the two known authoring warnings. Exact-head Linux CI and independent review of this test-only correction remain required before release.
+
 Parent Astra owns final integration. Independent review should inspect query authorization, the existing author-route boundary, preview binding, and the remaining multi-client duplicate-import limitation. This local pass does not validate deployed credentials, a live centralreform.live read, real database writes, physical booth hardware, or operator acceptance. Complete the repository's existing release checks and paired-workspace process before any authorized deployment; do not release this branch automatically.

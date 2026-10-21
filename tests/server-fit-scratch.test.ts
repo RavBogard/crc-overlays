@@ -5,7 +5,7 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
 import {spawn} from 'node:child_process';
-import {closeSync,existsSync,mkdirSync,mkdtempSync,openSync,rmSync,unlinkSync,writeFileSync,writeSync} from 'node:fs';
+import {closeSync,existsSync,mkdirSync,mkdtempSync,openSync,readFileSync,rmSync,unlinkSync,writeFileSync,writeSync} from 'node:fs';
 import {tmpdir} from 'node:os';
 import {join} from 'node:path';
 import {format} from 'node:util';
@@ -165,21 +165,28 @@ test('the browser\'s profile is an explicit directory inside this check\'s scrat
  // process's os.tmpdir(), outside the scratch directory (production log, 2026-09-23).
  const calls:{dir:string;options:Record<string,unknown>}[]=[];
  const browserType:StageBrowserType={async launchPersistentContext(dir,options){calls.push({dir,options});return {async newPage(){return stage(async()=>CLEAN)},async close(){return null}}}};
+ const root=mkdtempSync(join(tmpdir(),'server-fit-profile-'));
+ const scratch=join(root,'check-1'),second=join(root,'check-2');
+ mkdirSync(scratch);mkdirSync(second);
  const saved=process.env.LD_LIBRARY_PATH;
  try{
   delete process.env.LD_LIBRARY_PATH;
-  await launchStage(browserType,{kind:'sparticuz',detail:'pack'},'/scratch/check-1',async()=>{process.env.LD_LIBRARY_PATH='/tmp/al2023/lib';return {args:['--single-process'],executable:'/tmp/chromium'}});
-  await launchStage(browserType,{kind:'channel',detail:'chrome'},'/scratch/check-2',async()=>{throw Error('the pack is only loaded on Linux')});
- }finally{if(saved===undefined)delete process.env.LD_LIBRARY_PATH;else process.env.LD_LIBRARY_PATH=saved}
- assert.equal(stageProfile('/scratch/check-1'),join('/scratch/check-1','profile'));
- assert.deepEqual(calls.map(call=>call.dir),[stageProfile('/scratch/check-1'),stageProfile('/scratch/check-2')]);
- const pack=calls[0].options as {executablePath:string;args:string[];env:Record<string,string>};
- assert.equal(pack.executablePath,'/tmp/chromium');
- assert.deepEqual(pack.args,['--single-process']);
- assert.equal(pack.env.TMPDIR,'/scratch/check-1');
- assert.equal(pack.env.LD_LIBRARY_PATH,'/tmp/al2023/lib','the environment is still read after the pack has loaded');
- assert.equal(process.env.TMPDIR===undefined||process.env.TMPDIR!=='/scratch/check-1',true,'the server process environment is never changed');
- assert.equal((calls[1].options as {channel?:string}).channel,'chrome');
+  await launchStage(browserType,{kind:'sparticuz',detail:'pack'},scratch,async()=>{process.env.LD_LIBRARY_PATH='/tmp/al2023/lib';return {args:['--single-process'],executable:'/tmp/chromium'}});
+  await launchStage(browserType,{kind:'channel',detail:'chrome'},second,async()=>{throw Error('channel launch must not load the pack')});
+  assert.equal(stageProfile(scratch),join(scratch,'profile'));
+  assert.deepEqual(calls.map(call=>call.dir),[stageProfile(scratch),stageProfile(second)]);
+  const pack=calls[0].options as {executablePath:string;args:string[];env:Record<string,string>};
+  assert.equal(pack.executablePath,process.platform==='linux'?join(scratch,'chromium-no-core'):'/tmp/chromium');
+  if(process.platform==='linux')assert.match(readFileSync(pack.executablePath,'utf8'),/ulimit -c 0/);
+  assert.deepEqual(pack.args,['--single-process']);
+  assert.equal(pack.env.TMPDIR,scratch);
+  assert.equal(pack.env.LD_LIBRARY_PATH,'/tmp/al2023/lib','the environment is still read after the pack has loaded');
+  assert.notEqual(process.env.TMPDIR,scratch,'the server process environment is never changed');
+  assert.equal((calls[1].options as {channel?:string}).channel,'chrome');
+ }finally{
+  if(saved===undefined)delete process.env.LD_LIBRARY_PATH;else process.env.LD_LIBRARY_PATH=saved;
+  rmSync(root,{recursive:true,force:true});
+ }
 });
 
 test('a late launch releases its scratch only once it has landed and been closed',async()=>{
@@ -282,6 +289,7 @@ test('every check shares one pack extraction, and a failed one is tried again',a
 
 test('the pack launch environment is read after the pack has loaded, so a cold first check gets its libraries',async()=>{
  const saved={LD_LIBRARY_PATH:process.env.LD_LIBRARY_PATH,FONTCONFIG_PATH:process.env.FONTCONFIG_PATH};
+ const scratch=mkdtempSync(join(tmpdir(),'server-fit-pack-'));
  try{
   delete process.env.LD_LIBRARY_PATH;delete process.env.FONTCONFIG_PATH;
   const options=await packLaunchOptions(async()=>{
@@ -290,15 +298,17 @@ test('the pack launch environment is read after the pack has loaded, so a cold f
    process.env.LD_LIBRARY_PATH='/tmp/al2023/lib';
    process.env.FONTCONFIG_PATH='/tmp/fonts';
    return {args:['--headless'],executable:'/tmp/chromium'};
-  },'/scratch/check-1');
+  },scratch,'linux');
   assert.equal(options.env.LD_LIBRARY_PATH,'/tmp/al2023/lib');
   assert.equal(options.env.FONTCONFIG_PATH,'/tmp/fonts');
-  assert.equal(options.env.TMPDIR,'/scratch/check-1');
-  assert.equal(options.env.HOME,'/scratch/check-1');
-  assert.equal(options.executablePath,'/tmp/chromium');
+  assert.equal(options.env.TMPDIR,scratch);
+  assert.equal(options.env.HOME,scratch);
+  assert.equal(options.executablePath,join(scratch,'chromium-no-core'));
+  assert.match(readFileSync(options.executablePath,'utf8'),/exec '\/tmp\/chromium' "\$@"/);
   assert.deepEqual(options.args,['--headless']);
  }finally{
   for(const [key,value] of Object.entries(saved)){if(value===undefined)delete process.env[key];else process.env[key]=value}
+  rmSync(scratch,{recursive:true,force:true});
  }
 });
 

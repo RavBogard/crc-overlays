@@ -7,7 +7,8 @@ import zlib from 'node:zlib'
 import type {AuthInfo} from '@modelcontextprotocol/server'
 import {createAuthoringMcpHandler} from '../lib/mcp.ts'
 import {companionLabel} from '../lib/companion-deck/model.ts'
-import {renderDeck} from '../lib/companion-deck/render.ts'
+import {encodeCompanionConfig, renderDeck} from '../lib/companion-deck/render.ts'
+import {assertReleasedPreset} from './fixtures/released-companion-preset.ts'
 import {MemoryCompanionDeckRepository} from '../lib/companion-deck/repository.ts'
 import {PgCompanionDeckRepository} from '../lib/companion-deck/postgres-repository.ts'
 import {exportSigningKey, signExport, verifyExport} from '../lib/companion-deck/export.ts'
@@ -22,8 +23,7 @@ import {handleDeckDownload} from '../app/api/companion/deck/handler.ts'
 const root = path.resolve(import.meta.dirname, '..')
 const plan = path.join(root, 'docs/planning/2026-09-23-overlay-consistency/companion')
 const snapshot = JSON.parse(fs.readFileSync(path.join(plan, 'catalog-snapshot-2026-09-23.json'), 'utf8')) as {drafts: {id: string; name: string; title?: string; archived: boolean; activeRevision: number}[]}
-// C1's hashes: the preset released to Michael on 2026-09-23 (gzip, and the JSON inside it).
-const RELEASED_SHA256 = 'bfc718e1b74fc5224da3e32e2db459f7b43ea5fca8bd5e2ef2320942713a1113'
+// C1's immutable released JSON hash; platform gzip verification is shared with the renderer test.
 const RELEASED_JSON_SHA256 = '52d1da91e481e06767472e700bebf0e5a0923094eac65d5597b09e53bd232efd'
 const sha256 = (b: Buffer | string) => crypto.createHash('sha256').update(b).digest('hex')
 
@@ -138,12 +138,12 @@ test('PgCompanionDeckRepository: versioned insert and replace, conflicts, saniti
 test('export of the unchanged seed is the released preset byte for byte, and every connection label is exact', async () => {
   const f = fixture()
   const link = await f.run('export_deck_config', {scope: 'full'})
-  assert.equal(link.sha256, RELEASED_SHA256)
   assert.equal(link.deckVersion, 1)
   assert.match(link.url, /^https:\/\/crc\.example\/api\/companion\/deck\?token=/)
   assert.ok(link.connections.length > 0)
   for (const c of link.connections) { assert.equal(c.exact, true, c.label); assert.equal(companionLabel(c.label), c.label) }
   const deck = (await f.stored()).deck
+  assert.equal(link.sha256, assertReleasedPreset(encodeCompanionConfig(renderDeck(deck))))
   const labels = new Set(deck.connections.map((c) => c.label))
   for (const inst of Object.values(renderDeck(deck).instances)) assert.ok(labels.has(String(inst.label)))
 
@@ -152,7 +152,8 @@ test('export of the unchanged seed is the released preset byte for byte, and eve
   assert.equal(response.status, 200)
   assert.match(response.headers.get('content-disposition')!, /attachment; filename="crc-companion-deck-v1-\d{4}-\d{2}-\d{2}\.companionconfig"/)
   const bytes = Buffer.from(await response.arrayBuffer())
-  assert.equal(sha256(bytes), RELEASED_SHA256)
+  assert.equal(sha256(bytes), link.sha256, 'signed link names the exact bytes served on this platform')
+  assertReleasedPreset(bytes)
   assert.equal(sha256(zlib.gunzipSync(bytes)), RELEASED_JSON_SHA256)
   assert.ok(!/"config"|"secrets"/.test(zlib.gunzipSync(bytes).toString('utf8')))
 })
@@ -328,7 +329,8 @@ test('create, rename, move and delete a page: chains, Prev/Next labels and jumps
   assert.equal(cell(back, 2, 7)!.label, 'Next ▸\nHome')
   assert.deepEqual((await f.run('get_deck')).chains[0], [4, 5, 6, 7, 8, 9])
   // The unchanged-again deck renders the released preset.
-  assert.equal((await f.run('export_deck_config', {})).sha256, RELEASED_SHA256)
+  assert.equal((await f.run('export_deck_config', {})).sha256,
+    assertReleasedPreset(encodeCompanionConfig(renderDeck((await f.stored()).deck))))
 })
 
 test('page tools refuse in plain sentences, and a page nothing reaches is refused', async () => {

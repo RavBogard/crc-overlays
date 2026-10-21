@@ -11,6 +11,7 @@ import {
 import { encodeCompanionConfig, expandStyle, renderButton, renderDeck, resolveConnections, templateLayers } from '../lib/companion-deck/render.ts'
 import { CHAINS, buildCrcDeck, seedCrcDeck, type CrcSeedData, type CueManifest } from '../lib/companion-deck/seed.ts'
 import { DeckConflictError, MemoryCompanionDeckRepository } from '../lib/companion-deck/repository.ts'
+import { assertReleasedPreset } from './fixtures/released-companion-preset.ts'
 
 const root = path.resolve(import.meta.dirname, '..')
 const manifest = JSON.parse(fs.readFileSync(path.join(root, 'docs/planning/2026-09-23-overlay-consistency/companion/CUE-MANIFEST.json'), 'utf8')) as CueManifest
@@ -156,10 +157,14 @@ test('id seeds are per button: adding a button leaves every other control unchan
 test('renderDeck(seed) reproduces the released CRC preset byte for byte', () => {
   const exported = renderDeck(seedCrcDeck(manifest, seedData))
   assert.equal(sha256(JSON.stringify(exported)), RELEASED_JSON_SHA256)
-  assert.equal(sha256(encodeCompanionConfig(exported)), RELEASED_SHA256)
+  assertReleasedPreset(encodeCompanionConfig(exported))
   assert.equal(seedData.source.sha256, RELEASED_SHA256)
   const released = process.env.COMPANION_RELEASED_PRESET
-  if (released && fs.existsSync(released)) assert.ok(fs.readFileSync(released).equals(encodeCompanionConfig(exported)))
+  if (released && fs.existsSync(released)) {
+    const bytes = encodeCompanionConfig(exported)
+    bytes[9] = 10 // The released artifact's platform header; every other byte is exact.
+    assert.ok(fs.readFileSync(released).equals(bytes))
+  }
 })
 
 test('the CRC seed: 56 pages on named templates, 439 cue bindings, CRC build recorded', () => {
