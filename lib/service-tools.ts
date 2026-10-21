@@ -1,4 +1,4 @@
-import {randomUUID} from 'node:crypto';
+import {createHash,randomUUID} from 'node:crypto';
 import type {z} from 'zod/v4';
 import {friendlyCueName} from './cue-search';
 import {namesPages,type NamesList} from './names-list';
@@ -314,21 +314,37 @@ export async function serviceToolOperation(operation:string,raw:unknown,actor:st
    return {serviceId,version:result.collection.version,archived:archive,change:archive?`Archived.${current.names?' Its names list was removed with it.':''} restore_service brings it back.`:'Restored.',...(result.warning?{warning:result.warning}:{})};
   }
   case'refresh_from_setlist':{
-   const {serviceId,expectedVersion,dryRun,removeMissing}=input as Input<'refresh_from_setlist'>;
+   const {serviceId,expectedVersion,dryRun,removeMissing,expectedSourceRevision}=input as Input<'refresh_from_setlist'>;
    const loaded=await load(manager,serviceId);checkVersion(loaded.current,expectedVersion);
    if(!loaded.current.origin)throw refuse('This service was not imported from centralreform.live, so there is no setlist to refresh it from. Use prepare_service_from_setlist to import one.','no_origin',409);
    const imported=await manager.matchLiveSetlist(loaded.current.origin.setlistId);
+   // The exact fetch used below to build/apply the plan also validates the
+   // reviewed preview. Generated row/entry ids and timestamps are not identity.
+   const sourceRevision=refreshSourceRevision(loaded.current,imported,removeMissing===true);
+   if(expectedSourceRevision&&expectedSourceRevision!==sourceRevision)throw refuse('The source service or its graphic matches changed after this preview. Nothing was changed. Preview changes again.','source_conflict',409);
    const plan=refreshPlan(loaded.current,imported,removeMissing===true);
+   const orderChanged=loaded.current.rows.map(row=>row.trackId??row.id).join('\0')!==plan.draft.rows.map(row=>row.trackId??row.id).join('\0');
+   const order=plan.draft.rows.map(row=>({rowId:row.id,label:row.label,...(row.trackId?{trackId:row.trackId}:{})}));
    const summary={added:0,updated:0,kept:0,missing:0,removed:0,unchanged:0};for(const change of plan.changes)summary[change.change]++;summary.unchanged=plan.unchanged;
-   if(dryRun!==false)return {serviceId,version:loaded.current.version,dryRun:true,setlistId:loaded.current.origin.setlistId,summary,changes:plan.changes,next:'Nothing was written. Run again with dryRun:false and the same expectedVersion to apply.'};
+   if(dryRun!==false)return {serviceId,version:loaded.current.version,dryRun:true,setlistId:loaded.current.origin.setlistId,sourceRevision,orderChanged,order,summary,changes:plan.changes,next:'Nothing was written. Run again with dryRun:false, this sourceRevision as expectedSourceRevision, and the same expectedVersion to apply the reviewed source.'};
    const origin:ServiceOrigin={setlistId:imported.setlist.id,trackIds:imported.rows.flatMap(row=>row.trackId?[row.trackId]:[]),eventDate:imported.setlist.eventDate??imported.setlist.date,importedAt:now()};
    const written=await write(loaded,plan.draft,actor,`Refreshed from the setlist: ${summary.added} added, ${summary.updated} updated, ${summary.kept} decisions kept, ${summary.missing} no longer on the setlist, ${summary.removed} removed.`,{origin});
-   return {...written,dryRun:false,summary,changes:plan.changes};
+   return {...written,dryRun:false,sourceRevision,orderChanged,summary,changes:plan.changes};
   }
  }
 }
 
 type RefreshChange={change:'added'|'updated'|'kept'|'missing'|'removed';rowId:string;label:string;from?:string;to?:string;why?:string};
+function refreshSourceRevision(current:PreparedService,imported:{setlist:unknown;entries:CollectionEntry[];coverage:CoverageItem[];rows:Row[]},removeMissing:boolean){
+ const entries=new Map(imported.entries.map(entry=>[entry.id,entry])),coverage=new Map(imported.coverage.map(item=>[item.id,item]));
+ const rows=imported.rows.map(row=>{
+  const entry=row.entryId?entries.get(row.entryId):undefined,item=row.coverageId?coverage.get(row.coverageId):undefined;
+  return {trackId:row.trackId??null,position:row.setlistPosition??null,label:row.label,candidates:row.candidateCueIds,
+   entry:entry?{type:entry.type,label:entry.label,cueIds:entry.cueIds}:null,
+   coverage:item?{label:item.label,status:item.status,cueId:item.cueId??null,sourceId:item.sourceId??null,owner:item.owner??null,reason:item.reason??null}:null};
+ });
+ return createHash('sha256').update(JSON.stringify({serviceId:current.id,version:current.version,setlist:imported.setlist,rows,removeMissing})).digest('hex');
+}
 /**
  * The re-import merge. Rows are matched by setlist track id (then, for a track with no id, by
  * label among imported rows). A human decision - covered, not needed, intentional fallback, or

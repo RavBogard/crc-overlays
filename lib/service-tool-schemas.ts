@@ -34,7 +34,7 @@ export const serviceToolSchemas={
  clear_names:z.object({serviceId,expectedVersion}).strict(),
  archive_service:z.object({serviceId,expectedVersion}).strict(),
  restore_service:z.object({serviceId,expectedVersion}).strict(),
- refresh_from_setlist:z.object({serviceId,expectedVersion,dryRun:z.boolean().optional().describe('Default true: report what would change and write nothing.'),removeMissing:z.boolean().optional().describe('Also remove rows whose setlist row is gone. Default false: they are kept and reported.')}).strict(),
+ refresh_from_setlist:z.object({serviceId,expectedVersion,dryRun:z.boolean().optional().describe('Default true: report what would change and write nothing.'),removeMissing:z.boolean().optional().describe('Also remove rows whose setlist row is gone. Default false: they are kept and reported.'),expectedSourceRevision:z.string().regex(/^[a-f0-9]{64}$/).optional().describe('The sourceRevision returned by the reviewed dry run. Refuses apply if the source or proposed matches changed since that preview.')}).strict(),
 } satisfies Record<string,z.ZodObject>;
 
 export type ServiceToolName=keyof typeof serviceToolSchemas;

@@ -233,11 +233,29 @@ export class ServicesManager{
   * `/services` panel asks on mount and renders nothing at all on TBI.
   */
  async listLiveSetlists(raw:unknown){
-  const input=object(raw,'input');only(input,[],'input');
+  const input=object(raw,'input');only(input,['requestedSetlistId'],'input');
+  const requested=text(input.requestedSetlistId,'requestedSetlistId',160,true);
+  if(requested&&!/^[A-Za-z0-9_-]+$/.test(requested))throw new ServicesError('invalid_input','The linked service id is not valid.');
   if(!liveSetlistDependencies.availability().available)return {available:false as const};
-  let setlists;
-  try{setlists=await liveSetlistDependencies.listRecentSetlists(liveSetlistDependencies.createTransport())}
+  let setlists;const transport=liveSetlistDependencies.createTransport();
+  try{setlists=await liveSetlistDependencies.listRecentSetlists(transport)}
   catch{throw new ServicesError('live_unavailable',LIVE_UNAVAILABLE_MESSAGE,503)}
+  if(requested&&!setlists.some(item=>item.id===requested)){
+   // Recent is a picker convenience, not the authorization boundary for a
+   // ceremony months away. Resolve the exact id with the same scoped reader.
+   try{
+    const raw=await transport('get_setlist',{id:requested});
+    if(raw&&typeof raw==='object'&&!Array.isArray(raw)){
+     const row=raw as Record<string,unknown>;
+     if(row.id===requested&&row.ok!==false&&!row.error&&(row.orgId===undefined||row.orgId==='crc'))setlists.push({
+      id:requested,name:typeof row.name==='string'?row.name:'Planned service',
+      date:typeof row.date==='string'?row.date:null,eventDate:typeof row.eventDate==='string'?row.eventDate:null,
+      trackCount:typeof row.trackCount==='number'?row.trackCount:Array.isArray(row.tracks)?row.tracks.length:0,
+      publishedAt:typeof row.publishedAt==='string'?row.publishedAt:null,
+     });
+    }
+   }catch{/* No authorized exact result: keep the link unavailable, never pick a fallback. */}
+  }
   return {available:true as const,setlists,suggestion:await this.suggestedSetlist(setlists)};
  }
  /**

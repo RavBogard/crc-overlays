@@ -3,7 +3,7 @@ import {mkdtemp,readFile,rm} from 'node:fs/promises';
 import {tmpdir} from 'node:os';
 import {join} from 'node:path';
 import assert from 'node:assert/strict';
-import {coreSafeExecutable,packLaunchOptions,measureCueOnServer,serverRendererVersion,SERVER_FIT_PREVIEW_IMAGE_MAX_BYTES,SERVER_RENDERER_PREFIX,STAGE_DISPOSE_TIMEOUT_MS,STAGE_PATH,type StageBrowser,type StageLauncher,type StageMeasurement} from '../lib/server-fit.ts';
+import {coreSafeExecutable,packLaunchOptions,measureCueOnServer,serverRendererVersion,SERVER_FIT_PREVIEW_IMAGE_MAX_BYTES,SERVER_RENDERER_PREFIX,STAGE_DISPOSE_TIMEOUT_MS,STAGE_PATH,type ScratchHost,type StageBrowser,type StageLauncher,type StageMeasurement} from '../lib/server-fit.ts';
 import {SERVER_RENDERER_PREFIX as CONTRACT_PREFIX} from '../lib/server-fit-contract.ts';
 import type {Cue} from '../lib/player.ts';
 
@@ -189,7 +189,9 @@ test('a Linux launch wrapper disables core dumps and forwards Chromium as argv',
 
 test('a stalled screenshot is classified as its own bounded unavailable image result',async()=>{
  const visited=fresh();
- const result=await measureCueOnServer(CUE,{origin:ORIGIN,deadlineMs:30,includePreviewImage:true,launch:fakeLauncher(()=>({fitErrors:[],warnings:[],fill:0.5,artwork:'none'}),visited,async()=>new Promise<Uint8Array>(()=>{}))});
+ // This deadline tests screenshot behavior, not filesystem/proc scans before measurement.
+ const host:ScratchHost={async make(){return '/synthetic-scratch'},async remove(){},async bytes(){return 0},async free(){return null},async survivors(){return []},async alive(){return false},async held(){return 0},async kill(){}};
+ const result=await measureCueOnServer(CUE,{origin:ORIGIN,deadlineMs:30,host,includePreviewImage:true,launch:fakeLauncher(()=>({fitErrors:[],warnings:[],fill:0.5,artwork:'none'}),visited,async()=>new Promise<Uint8Array>(()=>{}))});
  assert.equal(result.verdict,'pass');
  assert.equal(result.previewImageUnavailable,'screenshot_deadline');
  assert.equal(visited.closed,1);

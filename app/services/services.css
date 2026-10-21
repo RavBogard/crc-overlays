@@ -11,3 +11,6 @@
 /* D4: the finder is a section of the open collection now, not a panel of its own. */
 .cue-finder .section-heading h3{margin:5px 0 7px;font-size:20px}
 .cue-finder .search-label{margin-top:14px}
+
+/* Planned-service preparation stays inside the established authoring forms. */
+.planned-matches{display:grid;gap:8px;margin:12px 0}.planned-matches button{text-align:left;overflow-wrap:anywhere}.planned-matches .selected{background:#263e3b;border-color:#71a498}.planned-preview{display:grid;gap:12px}.planned-preview h4{margin:0}.planned-preview ul{gap:12px}.planned-preview details>summary{cursor:pointer;font-weight:600}.planned-preview ol{margin:10px 0 0;padding-inline-start:24px}.planned-preview ol li{display:list-item;margin-bottom:7px}.setlist-import select{min-width:0;max-width:100%;text-overflow:ellipsis}.setlist-import .create-actions>button{min-height:44px}.setlist-import p,.setlist-import li{overflow-wrap:anywhere}

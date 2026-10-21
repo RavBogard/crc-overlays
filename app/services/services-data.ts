@@ -16,7 +16,7 @@ import type {NamesList} from '@/lib/names-list';
 export type Cue={id:string;name:string;title?:string;layout?:string;hidden?:boolean;aliasOf?:string};
 export type Entry={id:string;type:'cue'|'alternates'|'multipart';label:string;cueIds:string[];available:boolean;cues:{id:string;name:string;available:boolean}[]};
 export type Coverage={id:string;label:string;status:string;cueId?:string;sourceId?:string;owner?:string;reason?:string;computedStatus:string;cueAvailable:boolean;sourceAvailable:boolean;degraded:boolean};
-export type Collection={id:string;name:string;service:string;version:number;archived:boolean;entries:Entry[];coverage:Coverage[];names?:NamesList|null;updatedAt:number};
+export type Collection={id:string;name:string;service:string;version:number;archived:boolean;entries:Entry[];coverage:Coverage[];origin?:{setlistId:string}|null;names?:NamesList|null;updatedAt:number};
 export type Feedback={id:string;version:number;collectionId?:string;kind:string;cueId?:string;context:string;reason:string;impact:string;productGap:boolean;archived:boolean;createdAt:number};
 export type Dashboard={catalog:{cues:Cue[];version:string};collections:Collection[];feedback:Feedback[];permissions:{editCollections:boolean;recordFeedback:boolean;editFeedback:boolean}};
 export type Source={id:string;name:string;book?:string;service?:string;section?:string;display?:SourceDisplay};
@@ -26,6 +26,14 @@ export class ServicesRequestError extends Error{code:string;status:number;constr
 export const isUnauthorized=(error:unknown)=>error instanceof ServicesRequestError&&error.status===401;
 
 export async function call<T=Record<string,unknown>>(operation:string,input:unknown={}):Promise<T>{const response=await fetch('/api/services',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({operation,input})});const raw=await response.text();let data:Record<string,unknown>={};try{data=JSON.parse(raw)}catch{if(!response.ok)throw new ServicesRequestError(`Request failed (${response.status})`,'',response.status)}if(!response.ok)throw new ServicesRequestError(typeof data.error==='string'?data.error:'Request failed',typeof data.code==='string'?data.code:'',response.status);return data as T}
+
+/** Existing author session, route and domain; no machine credential or live action. */
+export async function callServiceAuthor<T>(operation:'refresh_from_setlist',input:unknown):Promise<T>{
+ const response=await fetch('/api/authoring',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({operation,input})});
+ const data=await response.json();
+ if(!response.ok)throw new ServicesRequestError(typeof data.error==='string'?data.error:'Service refresh failed',typeof data.code==='string'?data.code:'',response.status);
+ return data as T;
+}
 
 const flatten=(value:string)=>value.toLocaleLowerCase().normalize('NFKD').replace(/[\u0591-\u05c7]/g,'');
 
