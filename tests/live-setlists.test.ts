@@ -152,8 +152,40 @@ test('import_setlist refuses with 409 on an unconfigured congregation and never 
    },
   );
   assert.deepEqual(await servicesOperation('list_live_setlists',{},'member:test',repository),{available:false});
+  assert.deepEqual(await servicesOperation('list_live_setlists',{requestedSetlistId:'future-service'},'member:test',repository),{available:false});
   assert.equal(constructed,0,'the transport factory was never called');
   assert.equal(repository.collections.size,0,'nothing was written');
+ }finally{Object.assign(liveSetlistDependencies,original)}
+});
+
+test('a distant-future linked service outside the recent picker is resolved by the authorized exact reader',async()=>{
+ const original={...liveSetlistDependencies},reads:{tool:string;id:unknown}[]=[];
+ try{
+  liveSetlistDependencies.availability=()=>({available:true,reason:'ok'});
+  liveSetlistDependencies.listRecentSetlists=async()=>[{id:'recent-service',name:'Recent',date:null,eventDate:'2030-01-01',trackCount:1,publishedAt:null}];
+  liveSetlistDependencies.todaySuggestion=async()=>null;
+  liveSetlistDependencies.createTransport=()=>async(tool,args)=>{reads.push({tool,id:args.id});return {id:'future-service',orgId:'crc',name:'Future ceremony',eventDate:'2099-01-01',tracks:[{id:'row',notes:'Private source notes'}]}};
+  const repository=new MemoryServicesRepository();
+  const result=await servicesOperation('list_live_setlists',{requestedSetlistId:'future-service'},'editor',repository) as {available:boolean;setlists:{id:string;name:string;eventDate:string;trackCount:number}[]};
+  assert.equal(result.available,true);assert.deepEqual(result.setlists.map(row=>row.id),['recent-service','future-service']);
+  assert.deepEqual(reads,[{tool:'get_setlist',id:'future-service'}]);
+  assert.equal(result.setlists[1].eventDate,'2099-01-01');assert.equal(result.setlists[1].trackCount,1);
+  assert.doesNotMatch(JSON.stringify(result),/Private source notes|tracks/);assert.equal(repository.collections.size,0);
+ }finally{Object.assign(liveSetlistDependencies,original)}
+});
+
+test('unknown, mismatched and foreign exact linked reads never authorize or select a fallback source',async()=>{
+ const original={...liveSetlistDependencies};let reply:unknown;
+ try{
+  liveSetlistDependencies.availability=()=>({available:true,reason:'ok'});
+  liveSetlistDependencies.listRecentSetlists=async()=>[{id:'recent-service',name:'Recent',date:null,eventDate:null,trackCount:0,publishedAt:null}];
+  liveSetlistDependencies.todaySuggestion=async()=>null;
+  liveSetlistDependencies.createTransport=()=>async()=>reply;
+  for(const value of [{error:'not_found'},{id:'someone-else',orgId:'crc'},{id:'requested',orgId:'brotherslazaroff'},{id:'requested',orgId:'crc',ok:false}]){
+   reply=value;
+   const result=await servicesOperation('list_live_setlists',{requestedSetlistId:'requested'},'editor',new MemoryServicesRepository()) as {setlists:{id:string}[]};
+   assert.deepEqual(result.setlists.map(row=>row.id),['recent-service']);
+  }
  }finally{Object.assign(liveSetlistDependencies,original)}
 });
 

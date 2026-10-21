@@ -8193,6 +8193,11 @@
      "description": "Also remove rows whose setlist row is gone. Default false: they are kept and reported.",
      "type": "boolean"
     },
+    "expectedSourceRevision": {
+     "description": "The sourceRevision returned by the reviewed dry run. Refuses apply if the source or proposed matches changed since that preview.",
+     "type": "string",
+     "pattern": "^[a-f0-9]{64}$"
+    },
     "workspace": {
      "type": "string",
      "minLength": 1,

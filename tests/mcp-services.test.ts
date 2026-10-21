@@ -221,8 +221,17 @@ test('refresh_from_setlist is a dry run by default, keeps decisions, takes new m
   const dry=await tools('refresh_from_setlist',{serviceId,expectedVersion:3});
   assert.equal(dry.dryRun,true);assert.equal(dry.version,3);
   assert.deepEqual(dry.summary,{added:1,updated:1,kept:0,missing:1,removed:0,unchanged:1});
+  assert.match(dry.sourceRevision,/^[a-f0-9]{64}$/);
+  assert.equal((await tools('refresh_from_setlist',{serviceId,expectedVersion:3})).sourceRevision,dry.sourceRevision,'fresh generated ids do not invalidate the reviewed plan');
   assert.equal((await tools('get_service',{serviceId})).version,3,'a dry run writes nothing');
-  const applied=await tools('refresh_from_setlist',{serviceId,expectedVersion:3,dryRun:false});
+  const reviewed=setlist;
+  setlist={...setlist,tracks:[...(setlist.tracks as {id:string;title:string}[]),{id:'late-source-row',title:'Mah Tovu'}]};
+  await assert.rejects(()=>tools('refresh_from_setlist',{serviceId,expectedVersion:3,dryRun:false,expectedSourceRevision:dry.sourceRevision}),error=>(error as {code?:string}).code==='source_conflict');
+  assert.equal((await tools('get_service',{serviceId})).version,3,'a changed source writes nothing');
+  setlist=reviewed;
+  await assert.rejects(()=>tools('refresh_from_setlist',{serviceId,expectedVersion:2,dryRun:false,expectedSourceRevision:dry.sourceRevision}),error=>(error as {code?:string}).code==='version_conflict');
+  await assert.rejects(()=>tools('refresh_from_setlist',{serviceId,expectedVersion:3,dryRun:false,removeMissing:true,expectedSourceRevision:dry.sourceRevision}),error=>(error as {code?:string}).code==='source_conflict');
+  const applied=await tools('refresh_from_setlist',{serviceId,expectedVersion:3,dryRun:false,expectedSourceRevision:dry.sourceRevision});
   assert.equal(applied.version,4);
   const after=await tools('get_service',{serviceId});
   assert.deepEqual(after.rows.map((row:{label:string;readiness:string})=>[row.label,row.readiness]),[['Mah Tovu','covered'],['Hand-added Kaddish','covered'],['Kaddish','covered'],['Lecha Dodi (Sulzer)','covered'],['Announcements','not-needed']]);
@@ -234,6 +243,26 @@ test('refresh_from_setlist is a dry run by default, keeps decisions, takes new m
   await assert.rejects(()=>tools('refresh_from_setlist',{serviceId,expectedVersion:1}),/at version 5, not 1/);
   const manual=await tools('create_service',{name:'Manual',service:'Any'});
   await assert.rejects(()=>tools('refresh_from_setlist',{serviceId:manual.serviceId,expectedVersion:1}),/not imported from centralreform.live/);
+ }finally{Object.assign(liveSetlistDependencies,original)}
+});
+
+test('an order-only source refresh is visible in the reviewed plan and applies source order',async()=>{
+ const original={...liveSetlistDependencies},repository=new MemoryServicesRepository();let id=0;
+ const loaders:ServicesLoaders={catalog:async()=>({cues:structuredClone(CUES),version:'v1'}),sources:()=>[],now:()=>1000,id:()=>`order-id-${++id}`,liveCue:async()=>null};
+ let setlist:LiveSetlist={id:'order-source',name:'Synthetic service',eventDate:'2030-02-01',tracks:[{id:'first',title:'Mah Tovu'},{id:'second',title:'Kaddish'}]};
+ try{
+  liveSetlistDependencies.availability=()=>({available:true,reason:'ok'});
+  liveSetlistDependencies.createTransport=()=>async()=>({});
+  liveSetlistDependencies.importSetlist=async()=>({setlist:{id:String(setlist.id),name:String(setlist.name),date:null,eventDate:'2030-02-01'},...matchSetlist(setlist,{cues:CUES as unknown as Cue[],liturgyFor:()=>({unitId:null,momentId:null,book:null,folio:null}),id:loaders.id!})});
+  const {servicesOperation}=await import('../lib/service-collections.ts');
+  const created=await servicesOperation('import_setlist',{setlistId:'order-source'},'editor',repository,loaders) as {collection:{id:string}};
+  setlist={...setlist,tracks:[...(setlist.tracks as {id:string;title:string}[])].reverse()};
+  const run=(args:Record<string,unknown>)=>serviceToolOperation('refresh_from_setlist',{serviceId:created.collection.id,...args},'editor',{repository,loaders}) as Promise<{version:number;sourceRevision:string;orderChanged:boolean;order:{label:string}[];changes:unknown[]}>;
+  const preview=await run({expectedVersion:1});
+  assert.equal(preview.orderChanged,true);assert.deepEqual(preview.changes,[]);assert.deepEqual(preview.order.map(row=>row.label),['Kaddish','Mah Tovu']);
+  await run({expectedVersion:1,dryRun:false,expectedSourceRevision:preview.sourceRevision});
+  const saved=repository.collections.get(created.collection.id);
+  assert.deepEqual(saved?.rows?.map(row=>row.trackId),['second','first']);
  }finally{Object.assign(liveSetlistDependencies,original)}
 });
 
