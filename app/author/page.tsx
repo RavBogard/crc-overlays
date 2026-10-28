@@ -59,10 +59,22 @@ import { useLibraryFolders } from "./use-library-folders";
 import { publishFitIssues } from "./preview";
 import { FitIssueDialog } from "./fit-issue-dialog";
 
+const LIBRARY_COLLAPSED_KEY = "overlays.author.library-collapsed";
+
 export default function AuthorPage() {
   const [fitIssuePrompt, setFitIssuePrompt] = useState<{ stamp: string; issues: string[] } | null>(null);
   const approvedFitStamp = useRef("");
   const [key, setKey] = useState("");
+  // The library rail can fold away for more editing room; the choice is kept per browser.
+  const [libraryCollapsed, setLibraryCollapsed] = useState(() => {
+    if (typeof window === "undefined") return false;
+    try { return localStorage.getItem(LIBRARY_COLLAPSED_KEY) === "1"; } catch { return false; }
+  });
+  const toggleLibraryCollapsed = () => {
+    const next = !libraryCollapsed;
+    setLibraryCollapsed(next);
+    try { localStorage.setItem(LIBRARY_COLLAPSED_KEY, next ? "1" : "0"); } catch { /* Private browsing still folds the rail for this visit. */ }
+  };
   const [role, setRole] = useState<AccessRole | undefined>(undefined);
   const [workspaceLabel, setWorkspaceLabel] = useState<string | null>(null);
   const [workspace, setWorkspace] = useState<PublicWorkspace | null>(null);
@@ -809,8 +821,9 @@ export default function AuthorPage() {
       <WorkspaceHeader current="/author" title="Library" role={role} workspace={workspace} aside={<Link className="header-link" href="/author/fit-check">Fit check</Link>} />
       {workspaceLabel && <div className="workspace-banner"><CircleAlert size={16} />{workspaceLabel}</div>}
 
-      <div className="author-shell">
+      <div className={`author-shell ${libraryCollapsed ? "library-collapsed" : ""}`}>
         <LibrarySidebar
+          collapsed={libraryCollapsed} toggleCollapsed={toggleLibraryCollapsed}
           publishedItems={publishedItems} draftItems={draftItems} archivedItems={archivedItems} visibleLibrary={visibleLibrary}
           allDrafts={drafts}
           apiKey={key} workspace={workspace} refreshAfterPublish={async () => { await refreshLists(key); }}

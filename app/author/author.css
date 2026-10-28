@@ -45,6 +45,11 @@
 .workspace-banner { display: flex; align-items: center; justify-content: center; gap: 8px; padding: 8px 20px; border-bottom: 1px solid #755c2a; background: #3b3018; color: #f4d993; font-size: 13px; }
 .author-shell { min-height: calc(100vh - 78px); display: grid; grid-template-columns: 292px minmax(0, 1fr); }
 .library-sidebar { position: sticky; top: 0; align-self: start; height: calc(100vh - 78px); display: flex; flex-direction: column; padding: 18px 14px 14px; border-right: 1px solid var(--line); background: rgba(12, 20, 18, .92); overflow: hidden; }
+.library-sidebar > .library-collapse { align-self: flex-end; margin: -10px -4px 6px 0; color: var(--muted); }
+.author-shell.library-collapsed { grid-template-columns: 52px minmax(0, 1fr); }
+.library-sidebar.collapsed { align-items: center; padding: 14px 0; }
+.library-sidebar.collapsed > .library-collapse { align-self: center; margin: 0; }
+.author-shell.library-collapsed .publish-dock { left: 52px; }
 .create-stack { display: grid; gap: 8px; }
 .create-stack .siddur-button { justify-content: flex-start; padding: 13px 14px; background: linear-gradient(145deg, #2a6655, #214b40); border-color: #609681; box-shadow: 0 8px 20px rgba(0,0,0,.18); }
 .siddur-button > span { display: grid; gap: 2px; text-align: left; }
@@ -516,6 +521,9 @@
   .slide-strip { margin-inline: 14px; }
   .recovery-banner { margin-inline: 14px; }
   .publish-dock { left: 250px; }
+  .author-shell.library-collapsed { grid-template-columns: 52px minmax(0,1fr); }
+  .library-sidebar.collapsed { width: 52px; }
+  .author-shell.library-collapsed .publish-dock { left: 52px; }
   .look-tiles { grid-template-columns: repeat(auto-fit, minmax(140px, 1fr)); }
   .artwork-grid { grid-template-columns: 1fr; }
 }
@@ -527,6 +535,8 @@
   .editing-grid { grid-template-columns: 1fr; }
   .preview-column { position: static; grid-row: 1; }
   .publish-dock { left: 0; }
+  .author-shell.library-collapsed .publish-dock { left: 0; }
+  .library-sidebar.collapsed { width: auto; align-items: flex-start; padding: 8px 14px; }
   .variant-candidates,
   .archived-grid { grid-template-columns: 1fr; }
 }

@@ -1,7 +1,7 @@
 "use client";
 
 import Link from "next/link";
-import { Archive, ArchiveRestore, BookOpenText, Check, ChevronLeft, ChevronRight, CircleAlert, Clock3, Copy, FilePlus2, History, LibraryBig, LoaderCircle, Maximize2, MoreHorizontal, PencilLine, Play, Redo2, RefreshCw, RotateCcw, Save, Search, Sparkles, Square, Undo2 } from "lucide-react";
+import { Archive, ArchiveRestore, BookOpenText, Check, ChevronLeft, ChevronRight, CircleAlert, Clock3, Copy, FilePlus2, History, LibraryBig, LoaderCircle, Maximize2, MoreHorizontal, PanelLeftClose, PanelLeftOpen, PencilLine, Play, Redo2, RefreshCw, RotateCcw, Save, Search, Sparkles, Square, Undo2 } from "lucide-react";
 import { useEffect, useRef, useState, type CSSProperties, type ReactNode } from "react";
 import type { Cue } from "@/lib/player";
 import type { AccessRole } from "@/lib/access";
@@ -38,6 +38,7 @@ export function LibrarySidebar(props: {
   activeDraftId: string | null; beginSiddur: () => void; beginCustom: () => void;
   openItem: (item: LibraryItem) => void; duplicateItem: (item: LibraryItem) => void; archiveItem: (item: LibraryItem) => void; restoreItem: (item: Draft) => void; restoreRetired: (item: Draft) => void;
   role: AccessRole | undefined;
+  collapsed: boolean; toggleCollapsed: () => void;
   sourceItems: SourceReviewSummary[]; sourceCount: number; sourceSelectedId: string | null;
   openSourceReview: (id: string) => void; checkSources: () => void; checkingSources: boolean;
 }) {
@@ -48,7 +49,12 @@ export function LibrarySidebar(props: {
   const folderSelect = (item: LibraryItem) => <select className="library-card-folder" aria-label={`Folder for ${itemName(item)}`} title={`Folder for ${itemName(item)}`} value={props.assignments[itemId(item)] || ""} disabled={props.folderBusy} onChange={(event) => void props.moveToFolder(itemId(item), event.target.value || null)}>
     <option value="">Unfiled</option>{props.folders.map((folder) => <option key={folder.id} value={folder.id}>{folder.name}</option>)}
   </select>;
-  return <aside className="library-sidebar">
+  // A collapsed rail keeps only the way back, so the editor gets the width.
+  if (props.collapsed) return <aside className="library-sidebar collapsed" aria-label="Library">
+    <button className="icon-button library-collapse" aria-label="Show library" aria-expanded={false} title="Show library" onClick={props.toggleCollapsed}><PanelLeftOpen size={18} /></button>
+  </aside>;
+  return <aside className="library-sidebar" aria-label="Library">
+    <button className="icon-button library-collapse" aria-label="Hide library" aria-expanded={true} title="Hide library" onClick={props.toggleCollapsed}><PanelLeftClose size={18} /></button>
     <div className="create-stack"><button className="siddur-button" onClick={props.beginSiddur}><BookOpenText size={19} /><span><strong>Add from siddur</strong><small>Find a prayer or reading</small></span></button><button className="secondary-create" onClick={props.beginCustom}><FilePlus2 size={17} /> New custom graphic</button></div>
     <div className={`library-tabs tabs-${tabCount}`} role="tablist" aria-label="Library">
       <button role="tab" aria-selected={props.libraryTab === "published"} className={props.libraryTab === "published" ? "active" : ""} onClick={() => props.setLibraryTab("published")}>Published <span title="published, visible">{publishedCount}</span></button>
