@@ -72,6 +72,17 @@ export function customRows(content:DraftContent):CustomRow[]{return content.mode
  * so it travels as U+2028, which Latin paragraph/phrase reflow leaves alone (the local wording
  * precedent; the Player turns it back into a line). `*words*` becomes italic (lib/inline-italics.ts).
  */
+/**
+ * Oct 30: a lower third merges typed lines into its two columns and a translation line, so the
+ * order the lines were typed in decides the order of the languages: an English line typed first
+ * ("Am I awake?" over Barchu) goes on top. Each layer takes the place of its first line, and a
+ * layer never typed keeps the default place after them. Undefined when that is the default order.
+ */
+export function typedLineOrder(rows:readonly CustomRow[]):TextLayer[]|undefined{
+ const first=(layer:TextLayer)=>{const index=rows.findIndex(row=>row[layer]);return index<0?Infinity:index};
+ const order=[...LAYER_ORDER].sort((a,b)=>first(a)-first(b)||LAYER_ORDER.indexOf(a)-LAYER_ORDER.indexOf(b));
+ return JSON.stringify(order)===JSON.stringify(LAYER_ORDER)?undefined:order;
+}
 export function customLayer(text:string):string{return markItalics(text).replace(/\r\n?|\n/g,' ')}
 export type DraftContent=CanonicalContent|LocalVariantContent|CustomContent;
 export type EditableDraft={name:string;title:string;accentTitle?:string;layout:Layout;templateCueId:string;content:DraftContent;presentation:Presentation};
@@ -574,6 +585,7 @@ export function buildCue(draft:Draft):AuthoringCue{
   ...(content.mode==='bilingual'?(rows=>rows.length?{contentRows:rows}:{})(composeContentRows(draft,content,overrides,layers)):{}),
   ...(lines.length?{contentRows:lines.map(row=>({...row}))}:{}),
   ...((content.mode==='bilingual'||lines.length)&&content.mode!=='original-en'&&content.mode!=='source-en'&&content.rowOrder?{rowOrder:textRowOrder(content)}:{}),
+  ...(content.mode==='custom'&&!content.rowOrder&&draft.layout==='bottom'?(order=>order?{rowOrder:order}:{})(typedLineOrder(lines)):{}),
   animations,duration:motion?motion.duration:structuredClone(template.duration),
   ...(!motion&&template.template?{template:structuredClone(template.template)}:{}),
   ...(Object.keys(draft.presentation).length?{presentation:structuredClone(draft.presentation)}:{}),

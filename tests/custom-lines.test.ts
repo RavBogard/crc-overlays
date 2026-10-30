@@ -1,7 +1,7 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
 import baseline from '../lib/cues.json';
-import {AuthoringError,buildCue,cueHash,editableFromBaseline,parseEditable,sourcePinFor,type Draft,type EditableDraft} from '../lib/authoring-model.ts';
+import {AuthoringError,buildCue,cueHash,editableFromBaseline,parseEditable,sourcePinFor,typedLineOrder,type Draft,type EditableDraft} from '../lib/authoring-model.ts';
 import {displayPresentationText,type Cue} from '../lib/player.ts';
 import {ITALIC_END,ITALIC_START} from '../lib/inline-italics.ts';
 import {slotTextOf} from '../lib/slot-catalog.ts';
@@ -86,4 +86,16 @@ test('custom text and lines take *italics*; siddur asterisks are left alone',()=
 test('plain-text readers see the words without markers',()=>{
  assert.equal(slotTextOf({id:'s',name:'s',layout:'bottom',texts:{textMain:`${ITALIC_START}Kiddush${ITALIC_END} follows in the hall`},animations:[],duration:{}}),'Kiddush follows\nin the hall');
  assert.equal(openingWords({id:'s',name:'s',layout:'bottom',texts:{textMain:`${ITALIC_START}Praise${ITALIC_END} Yah... For the mountains`},animations:[],duration:{}}),'Praise Yah...');
+});
+
+test('on a lower third, the order the lines were typed in orders the languages',()=>{
+ // Am I Awake/Barchu (Oct 30): the English line typed first, Barchu after it.
+ const amIAwake=[{en:'Am I awake? Am I prepared?'},{tr:"Bar'chu et Adonai hamvorach!"}];
+ assert.deepEqual(build('bottom',{mode:'custom',rows:amIAwake}).rowOrder,['en','tr','he'],'English on top, then the transliteration typed after it');
+ const line=(row:Partial<Record<'he'|'tr'|'en',string>>)=>({he:'',tr:'',en:'',...row});
+ assert.deepEqual(typedLineOrder([line({he:'שָׁלוֹם'}),line({tr:'Shalom'}),line({en:'Peace'})]),undefined,'the default order adds nothing');
+ assert.deepEqual(typedLineOrder([line({tr:'Shalom'}),line({he:'שָׁלוֹם'})]),['tr','he','en']);
+ assert.equal(build('bottom',{mode:'custom',rows:[{he:'שָׁלוֹם',tr:'Shalom',en:'Peace'}]}).rowOrder,undefined);
+ assert.deepEqual(build('bottom',{mode:'custom',rows:amIAwake,rowOrder:['tr','he','en']}).rowOrder,['tr','he','en'],'a chosen order wins');
+ assert.equal(build('left',{mode:'custom',rows:amIAwake}).rowOrder,undefined,'a side panel already shows one row per line, in typed order');
 });
