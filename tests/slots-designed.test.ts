@@ -62,7 +62,7 @@ test('Save writes the name plate and the reading into their own graphics, keepin
  assert.equal(saved.published,2);assert.equal(saved.refused,undefined);
  const plateNow=(await repo.getDraft(plate.id))!;
  assert.equal(plateNow.title,'Bar Mitzvah of');
- assert.deepEqual(plateNow.content,{mode:'custom',text:'Gavin Stein\nבֶּנְיָה פְּרֶעֵל | Benyah P\'re-eil'});
+ assert.deepEqual(plateNow.content,{mode:'custom',text:'Gavin Stein\nBenyah P\'re-eil | בֶּנְיָה פְּרֶעֵל'},'English left, Hebrew right');
  assert.equal(plateNow.layout,'nameplate');assert.deepEqual(plateNow.presentation,plate.presentation,'its look is untouched');assert.equal(plateNow.presentation.alignment,'center');
  assert.equal(plateNow.activeDraftVersion,plateNow.version,'published');
  const readingNow=(await repo.getDraft(reading.id))!;

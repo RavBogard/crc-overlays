@@ -55,7 +55,7 @@ test('a name plate is a heading over the name, then the Hebrew name and its tran
   assert.deepEqual(nameplate.compose({heading: 'Bar Mitzvah of', name: 'Gavin Stein', hebrewName: 'בֶּנְיָה פְּרֶעֵל', transliteration: "Benyah P're-eil"}), {
     name: 'Name plate · Gavin Stein',
     title: 'Bar Mitzvah of',
-    text: "Gavin Stein\nבֶּנְיָה פְּרֶעֵל | Benyah P're-eil",
+    text: "Gavin Stein\nBenyah P're-eil | בֶּנְיָה פְּרֶעֵל",
   });
   assert.equal(nameplate.compose({name: 'Rabbi Miriam Cohen'}).text, 'Rabbi Miriam Cohen', 'no divider without a Hebrew name');
   assert.equal(nameplate.compose({name: 'Gavin Stein', transliteration: "Benyah P're-eil"}).text, "Gavin Stein\nBenyah P're-eil");

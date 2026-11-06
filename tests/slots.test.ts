@@ -57,6 +57,7 @@ test('a designed slot keeps its fields in place and reads them back from its gra
  assert.equal(slotTextFromFields(torah,[' ','']),'','all blank leaves the graphic as it is');
  assert.deepEqual(slotFieldsFromGraphic(student,{title:'Bat Mitzvah of',text:'Eliana Levine\nשָׁרוֹן | Sharon'}),['Bat Mitzvah of','Eliana Levine','שָׁרוֹן','Sharon']);
  assert.deepEqual(slotFieldsFromGraphic(student,{title:'Bar Mitzvah of',text:'Gavin Stein'}),['Bar Mitzvah of','Gavin Stein','','']);
+ assert.deepEqual(slotFieldsFromGraphic(student,{title:'Bat Mitzvah of',text:'Eliana Levine\nSharon | שָׁרוֹן'}),['Bat Mitzvah of','Eliana Levine','שָׁרוֹן','Sharon'],'either order reads back');
  assert.deepEqual(slotFieldsFromGraphic(torah,{title:'Genesis 1:1-13',accentTitle:'בְּרֵאשִׁית',text:'When God began…'}),['Genesis 1:1-13','בְּרֵאשִׁית']);
  assert.equal(slotSummary(student,{title:'Bat Mitzvah of',text:'Eliana Levine\nשָׁרוֹן | Sharon'}),'Eliana Levine','the deck shows the name');
  assert.equal(slotSummary(torah,{title:'Genesis 1:1-13',accentTitle:'בְּרֵאשִׁית',text:'When God began…'}),'Genesis 1:1-13','the deck shows the verses');

@@ -146,7 +146,8 @@ export const CUSTOM_TEMPLATES: readonly CustomTemplate[] = [
   },
   {
     // Who is on the bimah: "Bar Mitzvah of" in the strip, the name large beneath it, then the
-    // Hebrew name and its transliteration on one line, Hebrew first, as the old name plates read.
+    // Hebrew name and its transliteration on one line: English left, Hebrew right, as the other
+    // overlays read (Michael, Nov 6; the old plates put the Hebrew first).
     id: "nameplate",
     label: "Name plate",
     description: "A name with what they are here for, and their Hebrew name: a b'nai mitzvah, a speaker, an honoree.",
@@ -159,7 +160,7 @@ export const CUSTOM_TEMPLATES: readonly CustomTemplate[] = [
     ],
     compose(values) {
       const name = read(values, "name");
-      const detail = [read(values, "hebrewName"), read(values, "transliteration")].filter(Boolean).join(" | ");
+      const detail = [read(values, "transliteration"), read(values, "hebrewName")].filter(Boolean).join(" | ");
       return {
         name: libraryName(this.label, name || detail),
         title: read(values, "heading"),
