@@ -210,6 +210,15 @@ export function editableFromForm(form: DraftForm) {
   };
 }
 
+/**
+ * The patch a Save sends for a draft that already exists. update_draft merges a patch over the saved
+ * draft, so a field left out keeps its old value: a Hebrew title cleared in the form is sent as ""
+ * (which clears it), not left out (which brought it back - "Copy of Modim Anachnu Lach", Nov 20).
+ */
+export function draftPatchFromForm(form: DraftForm) {
+  return { ...editableFromForm(form), accentTitle: form.accentTitle.trim() };
+}
+
 export function formReady(form: DraftForm) {
   const hasContent =
     form.mode === "custom"

@@ -12,6 +12,7 @@ import { AuthoringApiError, authoringCall } from "./api";
 import {
   draftHasUnpublishedWork,
   blocksForMode,
+  draftPatchFromForm,
   editableFromForm,
   emptyForm,
   formFromDraft,
@@ -601,7 +602,7 @@ export default function AuthorPage() {
       let original = draft;
       if (!original || dirty) {
         const response = original
-          ? await authoringCall<{ draft: Draft }>(key, "update_draft", { draftId: original.id, expectedVersion: original.version, patch: editableFromForm(form) })
+          ? await authoringCall<{ draft: Draft }>(key, "update_draft", { draftId: original.id, expectedVersion: original.version, patch: draftPatchFromForm(form) })
           : await authoringCall<{ draft: Draft }>(key, "create_draft", editableFromForm(form));
         original = response.draft;
         localStorage.removeItem(recoveryKey(draft?.id || null));
@@ -690,7 +691,7 @@ export default function AuthorPage() {
     setBusy("save"); setError("");
     try {
       const response = draft
-        ? await authoringCall<{ draft: Draft; warnings?: DuplicateNameWarning[] }>(key, "update_draft", { draftId: draft.id, expectedVersion: draft.version, patch: editableFromForm(form) })
+        ? await authoringCall<{ draft: Draft; warnings?: DuplicateNameWarning[] }>(key, "update_draft", { draftId: draft.id, expectedVersion: draft.version, patch: draftPatchFromForm(form) })
         : await authoringCall<{ draft: Draft; warnings?: DuplicateNameWarning[] }>(key, "create_draft", editableFromForm(form));
       if (!draft) localStorage.removeItem(recoveryKey(null));
       localStorage.removeItem(recoveryKey(response.draft.id));
