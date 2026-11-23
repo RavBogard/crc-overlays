@@ -1234,14 +1234,6 @@
    "unitId": "erev-maariv.in-preparation@rh1-maariv"
   },
   {
-   "momentId": "in-the-days-of-mordechai",
-   "unitId": "seasonal.in-the-days-of-mordechai@shabbat-maariv"
-  },
-  {
-   "momentId": "in-the-days-of-mordechai",
-   "unitId": "seasonal.in-the-days-of-mordechai@shabbat-shacharit"
-  },
-  {
    "momentId": "kaddish-shalem",
    "unitId": "amidah.kaddish-shalem@rh-shacharit"
   },
@@ -1984,6 +1976,10 @@
   {
    "momentId": "psalm-27",
    "unitId": "psukei.psalm-27@rh-shacharit"
+  },
+  {
+   "momentId": "psalm-27",
+   "unitId": "seasonal.psalm-27@shabbat-maariv"
   },
   {
    "momentId": "psalm-29",
@@ -2808,6 +2804,10 @@
   {
    "momentId": "yigdal",
    "unitId": "concluding.yigdal@rh-shacharit"
+  },
+  {
+   "momentId": "yigdal",
+   "unitId": "concluding.yigdal@shabbat-maariv"
   },
   {
    "momentId": "yigdal",
