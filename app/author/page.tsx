@@ -407,7 +407,7 @@ export default function AuthorPage() {
     if (target.id === draft?.id && !canLeave()) return;
     const setMembers = target.draftSetId ? drafts.filter((item) => item.draftSetId === target.draftSetId).sort((a, b) => (a.setIndex || 0) - (b.setIndex || 0)) : [];
     const subject = setMembers.length ? `all ${setMembers.length} slides in “${target.title}”` : `“${target.name}”`;
-    if (!confirm(`Archive ${subject}? ${setMembers.length ? "The prayer set" : "It"} will leave this editor library until restored. The published graphic and anything already on screen remain unchanged.`)) return;
+    if (!confirm(`Archive ${subject}? ${setMembers.length ? "The prayer set" : "It"} will leave this editor library and the Live list until restored. Anything already on screen stays as it is, and a deck button bound to it still works.`)) return;
     setBusy("archive"); setError("");
     try {
       if (target.draftSetId) await authoringCall(key, "archive_draft_set", { setId: target.draftSetId, expectedDraftIds: setMembers.map((item) => item.id) });
@@ -417,8 +417,8 @@ export default function AuthorPage() {
         setDraft(null); setEditorKind(null); setSource(null); setWorkingPreview(null); resetReview();
         history.replaceState(null, "", routeForDraft(null));
       }
-      setLibraryTab("archived");
-      setMessage(`Archived ${subject}. Published and live output remain unchanged.`);
+      // Stay on the tab you were on (Nov 27): jumping to Archived read as "it did not archive".
+      setMessage(`Archived ${subject}. It is in the Archived tab and no longer listed on Live; anything on screen stays as it is.`);
     } catch (value) { fail(value); }
     finally { setBusy(""); }
   }

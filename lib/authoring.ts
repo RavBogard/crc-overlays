@@ -942,7 +942,8 @@ export function createAuthoringService(repo:AuthoringRepository,workspace:Author
   if(operation==='rollback_draft'){keys(data,['draftId','expectedVersion','revision']);const id=string(data.draftId,'draftId');const revision=integer(data.revision,'revision',1);const selected=(await repo.revisions(id)).find(row=>row.revision===revision);if(!selected)throw new AuthoringError('unknown_revision','Unknown revision',404);assertRevisionAuthority(selected.cue,await localsFor(selected.cue.authoring?.sourceIds));const result=await repo.rollback(id,integer(data.expectedVersion,'expectedVersion',1),revision,who);return result;}
   throw new AuthoringError('unknown_operation',`Unknown authoring operation: ${operation}`,404);
  };
- return {operation:execute,publishedCues:()=>repo.published(),retiredCues:()=>repo.retiredCues()};
+ // Nov 27: an archived graphic stays published (a deck key may still fire it) but leaves the lists an operator picks from.
+ return {operation:execute,publishedCues:()=>repo.published(),retiredCues:()=>repo.retiredCues(),archivedCueIds:async()=>(await repo.listDrafts()).filter(draft=>draft.archivedAt&&draft.activeRevision!==null).map(draft=>draft.id)};
 }
 
 const FIT_CONTRACT={viewport:{width:1920,height:1080},fontsReadyRequired:true,noOverflowRequired:true,browserReported:true,humanReviewRequired:true} as const;
@@ -1240,7 +1241,7 @@ export async function authoringOperation(operation:string,input:unknown,actor:st
  if(isBrandingTool(operation)){const [{brandingToolOperation,defaultBrandingContext},{BrandingError}]=await Promise.all([import('./branding-tools'),import('./branding-store')]);try{return await brandingToolOperation(operation,input,actor,await defaultBrandingContext())}catch(error){if(error instanceof BrandingError)throw new AuthoringError(error.code,error.message,error.status);throw error}}
  if(isDeckTool(operation)){const {deckToolOperation,DeckToolError}=await import('./companion-deck/tools');try{return await deckToolOperation(operation,input,actor)}catch(error){if(error instanceof DeckToolError)throw new AuthoringError(error.code,error.message,error.status);throw error}}
  const result=await defaults().operation(operation,input,actor);
- if(['publish_draft','save_slots','rollback_draft','import_cue','retire_cue','restore_cue'].includes(operation)||(operation==='ship_draft'&&(result as {shipped?:unknown}).shipped===true)||((operation==='batch_ship'||operation==='batch_retire'||operation==='supersede_cue'||operation==='rebase_to_layout')&&(result as {liveCatalogChanged?:unknown}).liveCatalogChanged===true)){
+ if(['publish_draft','save_slots','rollback_draft','import_cue','retire_cue','restore_cue','archive_draft','archive_draft_set','restore_draft','restore_draft_set'].includes(operation)||(operation==='ship_draft'&&(result as {shipped?:unknown}).shipped===true)||((operation==='batch_ship'||operation==='batch_retire'||operation==='supersede_cue'||operation==='rebase_to_layout')&&(result as {liveCatalogChanged?:unknown}).liveCatalogChanged===true)){
   const {relayConfigured}=await import('./relay');
   if(relayConfigured()){
    try{const {syncLiveCatalog}=await import('./sync-live-catalog');await syncLiveCatalog()}
@@ -1252,5 +1253,7 @@ export async function authoringOperation(operation:string,input:unknown,actor:st
 export async function publishedCues():Promise<Cue[]>{return defaults().publishedCues()}
 /** MCP plan A3: every retired graphic in this workspace, for the live catalog, services and deck checks. */
 export async function retiredCues():Promise<RetiredCue[]>{return defaults().retiredCues()}
+/** The published graphics whose drafts are archived: the live catalog marks them hidden (lib/server.ts). */
+export async function archivedCueIds():Promise<string[]>{return defaults().archivedCueIds()}
 /** For the deck validator (plan T-C / C2): a binding to a retired cue must be flagged. */
 export async function isRetired(cueId:string):Promise<boolean>{return (await retiredCues()).some(cue=>cue.id===cueId)}
